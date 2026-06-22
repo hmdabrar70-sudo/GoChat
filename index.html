@@ -44,30 +44,9 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',sans-serif;mi
 .avatar{width:40px;height:40px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px;color:#fff;flex-shrink:0;overflow:hidden;position:relative;}
 .avatar img{width:100%;height:100%;object-fit:cover;border-radius:50%;}
 
-/* Story UI Layout */
-.story-container { display: flex; gap: 14px; overflow-x: auto; padding: 16px; background: var(--bg); border-bottom: 1px solid var(--border); scrollbar-width: none; }
-.story-container::-webkit-scrollbar { display: none; }
-.story-item { display: flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer; flex-shrink: 0; width: 72px; position:relative; }
-.story-ring { width: 70px; height: 70px; border-radius: 50%; padding: 3px; background: var(--border); position: relative; display:flex; align-items:center; justify-content:center; transition:0.2s; }
-.story-item:active .story-ring { transform: scale(0.95); }
-.story-ring.active { background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%); }
-.story-ring img, .story-ring .avatar-placeholder { width: 100%; height: 100%; border-radius: 50%; border: 3px solid var(--bg); object-fit: cover; background: var(--accent); display:flex; align-items:center; justify-content:center; color:#fff; font-size:24px; font-weight:bold; }
-.story-add-btn { position: absolute; bottom: 2px; right: 2px; background: #ff5e7e; width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; border: 2px solid var(--bg); z-index:10; }
-.story-name { font-size: 11px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; text-align: center; display:flex; align-items:center; justify-content:center; gap:2px; font-weight:500;}
-
-/* Story Viewer Modal & Options */
-#story-viewer-screen { display:none; position:fixed; inset:0; background:#000; z-index:9999; flex-direction:column; }
-#story-viewer-screen.open { display:flex; }
-.story-progress-bar { width:100%; height:3px; background:rgba(255,255,255,0.3); position:absolute; top:10px; left:0; z-index:10001; }
-.story-progress-inner { height:100%; width:0%; background:#fff; }
-.story-viewer-header { position:absolute; top:20px; left:0; width:100%; padding:16px; display:flex; align-items:center; gap:12px; z-index:10001; background:linear-gradient(to bottom, rgba(0,0,0,0.6), transparent); }
-.story-viewer-content { flex:1; display:flex; align-items:center; justify-content:center; position:relative; overflow:hidden; }
-.story-viewer-content img, .story-viewer-content video { width:100%; max-height:100vh; object-fit:contain; }
-.story-tap-area { position:absolute; top:0; bottom:0; width:50%; z-index:10000; }
-.story-tap-left { left:0; }
-.story-tap-right { right:0; }
-.story-dropdown-menu { display:none; position:absolute; top:45px; right:0; background:var(--surface); border:1px solid var(--border); border-radius:16px; width:150px; box-shadow:0 4px 12px rgba(0,0,0,0.3); overflow:hidden; z-index:10005; }
-.story-dropdown-menu.open { display:block; }
+/* Custom Dropdown for Posts */
+.post-dropdown-menu { display:none; position:absolute; top:45px; right:0; background:var(--surface); border:1px solid var(--border); border-radius:16px; width:150px; box-shadow:0 4px 12px rgba(0,0,0,0.3); overflow:hidden; z-index:10005; }
+.post-dropdown-menu.open { display:block; }
 
 .compose-btn{padding:8px 20px;background:var(--accent);color:#fff;border:none;border-radius:30px;font-size:13px;font-weight:700;cursor:pointer; display:flex; align-items:center; gap:6px; transition:0.2s;}
 .img-btn{padding:8px 16px;background:var(--card);color:var(--accent2);border:1px solid var(--border);border-radius:30px;font-size:13px;cursor:pointer; display:flex; align-items:center; gap:6px;}
@@ -209,10 +188,6 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',sans-serif;mi
         <span class="material-symbols-outlined" style="color:var(--success); font-size:28px;">image</span>
       </div>
     </div>
-
-    <div class="story-container" id="story-container">
-        </div>
-    <input type="file" id="story-upload-input" accept="image/*,video/*" style="display:none;" onchange="handleStoryUpload(this)">
 
     <div class="feed-tabs">
         <div class="feed-tab active" id="tab-foryou" onclick="setFeedTab('foryou')">For You</div>
@@ -377,48 +352,6 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',sans-serif;mi
   <div class="single-post-content" id="single-post-container"></div>
 </div>
 
-<div id="story-viewer-screen">
-    <div class="story-progress-bar"><div class="story-progress-inner" id="story-progress-inner"></div></div>
-    <div class="story-viewer-header">
-        <div class="avatar" id="story-viewer-avatar" style="width:36px; height:36px;">?</div>
-        <div style="flex:1;">
-            <div id="story-viewer-name" style="font-weight:700; color:#fff; font-size:14px; text-shadow:0 1px 3px rgba(0,0,0,0.8);">Name</div>
-            <div id="story-viewer-time" style="color:rgba(255,255,255,0.8); font-size:11px; text-shadow:0 1px 3px rgba(0,0,0,0.8);">Time</div>
-        </div>
-        
-        <div style="position:relative;">
-          <button onclick="event.stopPropagation(); toggleStoryDropdownMenu()" style="background:none; border:none; color:#fff; display:flex; padding:8px; cursor:pointer;"><span class="material-symbols-outlined" style="font-size:28px; text-shadow:0 1px 3px rgba(0,0,0,0.8);">more_vert</span></button>
-          <div id="story-dropdown-menu" class="story-dropdown-menu" style="color:var(--text);">
-              <div class="chat-dropdown-item" style="color:var(--danger);" onclick="event.stopPropagation(); deleteCurrentStory()"><span class="material-symbols-outlined" style="font-size:18px;">delete</span> Delete Story</div>
-          </div>
-        </div>
-        <button onclick="closeStoryViewer()" style="background:none; border:none; color:#fff; display:flex; padding:8px; cursor:pointer;"><span class="material-symbols-outlined" style="font-size:28px; text-shadow:0 1px 3px rgba(0,0,0,0.8);">close</span></button>
-    </div>
-    <div class="story-viewer-content" id="story-viewer-content-zone">
-        <img id="story-viewer-img" src="" alt="Story">
-        <div class="story-tap-area story-tap-left" onclick="prevStory()"></div>
-        <div class="story-tap-area story-tap-right" onclick="nextStory()"></div>
-    </div>
-    
-    <div id="story-viewer-bottom-zone" style="position:absolute; bottom:20px; left:0; width:100%; padding:16px; z-index:10005; background:linear-gradient(to top, rgba(0,0,0,0.6), transparent); display:flex; flex-direction:column; gap:12px;">
-        <div id="story-emoji-panel" style="display:none; justify-content:space-around; font-size:26px; padding:0 8px;">
-            <span style="cursor:pointer; transition:transform 0.1s;" onclick="event.stopPropagation(); sendStoryReaction('❤️')">❤️</span>
-            <span style="cursor:pointer; transition:transform 0.1s;" onclick="event.stopPropagation(); sendStoryReaction('😂')">😂</span>
-            <span style="cursor:pointer; transition:transform 0.1s;" onclick="event.stopPropagation(); sendStoryReaction('😮')">😮</span>
-            <span style="cursor:pointer; transition:transform 0.1s;" onclick="event.stopPropagation(); sendStoryReaction('😢')">😢</span>
-            <span style="cursor:pointer; transition:transform 0.1s;" onclick="event.stopPropagation(); sendStoryReaction('😍')">😍</span>
-        </div>
-        <div id="story-reply-wrap" style="display:none; gap:10px; align-items:center; padding:0 8px;">
-            <input type="text" id="story-reply-input" placeholder="Reply to story..." style="flex:1; background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.3); border-radius:30px; padding:12px 18px; color:#fff; outline:none; font-size:14px;" onclick="event.stopPropagation(); clearTimeout(storyTimer);" onfocus="clearTimeout(storyTimer)">
-            <button onclick="event.stopPropagation(); sendStoryReply();" style="background:var(--accent); border:none; border-radius:50%; width:42px; height:42px; color:#fff; display:flex; align-items:center; justify-content:center; cursor:pointer;"><span class="material-symbols-outlined" style="font-size:20px;">send</span></button>
-        </div>
-        <div id="story-views-bar" style="display:none; justify-content:center; align-items:center; gap:6px; color:#fff; font-size:13px; font-weight:700; background:rgba(255,255,255,0.18); padding:10px 20px; border-radius:30px; cursor:pointer; width:fit-content; margin:0 auto; box-shadow:0 2px 8px rgba(0,0,0,0.2);" onclick="event.stopPropagation(); openStoryViewersListModal();">
-            <span class="material-symbols-outlined" style="font-size:18px; font-variation-settings:'FILL' 1;">visibility</span>
-            <span id="story-views-count">0</span> views
-        </div>
-    </div>
-</div>
-
 <div id="comment-panel" class="comment-panel">
   <div class="comment-panel-header"><div style="display:flex; align-items:center; gap:10px;"><div class="chat-back" onclick="closeCommentPanel()"><span class="material-symbols-outlined">arrow_back</span></div><div style="font-weight:800; font-size:16px;">Comments</div></div></div>
   <div id="comment-list" class="comment-list"></div>
@@ -445,7 +378,6 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',sans-serif;mi
 <div class="modal-overlay" id="tag-modal"><div class="modal-box" style="max-height:80vh; display:flex; flex-direction:column;"><button class="modal-close" onclick="closeTagModal()"><span class="material-symbols-outlined">close</span></button><div class="modal-title" style="font-weight:800; font-size:18px; margin-bottom:15px;">Tag Friends</div><div id="tag-friends-list" style="overflow-y:auto; flex:1; margin-bottom:15px; max-height:300px;"></div><button class="btn-primary" onclick="closeTagModal()">Done</button></div></div>
 <div class="modal-overlay" id="mention-modal"><div class="modal-box" style="max-height:80vh; display:flex; flex-direction:column;"><button class="modal-close" onclick="closeMentionModal()"><span class="material-symbols-outlined">close</span></button><div class="modal-title" style="font-weight:800; font-size:18px; margin-bottom:15px;">Mention Friends</div><div id="mention-friends-list" style="overflow-y:auto; flex:1; max-height:300px;"></div></div></div>
 <div class="modal-overlay" id="friends-list-modal"><div class="modal-box" style="max-height:80vh; display:flex; flex-direction:column;"><button class="modal-close" onclick="closeFriendsListModal()"><span class="material-symbols-outlined">close</span></button><div class="modal-title" style="font-weight:800; font-size:18px; margin-bottom:15px;">Friends</div><div id="friends-list-container" style="overflow-y:auto; flex:1; max-height:400px;"></div></div></div>
-<div class="modal-overlay" id="story-viewers-modal" onclick="closeStoryViewersListModal()"><div class="modal-box" style="max-height:60vh; display:flex; flex-direction:column;" onclick="event.stopPropagation();"><button class="modal-close" onclick="closeStoryViewersListModal()"><span class="material-symbols-outlined">close</span></button><div style="font-weight:800; font-size:16px; margin-bottom:15px; color:var(--text);">Story Viewers</div><div id="story-viewers-container" style="overflow-y:auto; flex:1; display:flex; flex-direction:column; gap:4px;"></div></div></div>
 
 <div class="modal-overlay" id="edit-post-modal">
     <div class="modal-box">
@@ -463,7 +395,7 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',sans-serif;mi
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script>
-const MY_SPECIAL_EMAIL = "hbmabrar@gmail.com"; 
+const MY_SPECIAL_EMAIL = "gochat.official@gmail.com"; 
 
 firebase.initializeApp({
   apiKey: "AIzaSyAnKueAHG8cw6O-Hy8U9fgGzH4fDMYQBy8",
@@ -478,13 +410,12 @@ const auth=firebase.auth(); const db=firebase.firestore();
 let currentUser=null,currentUserData=null,currentChatId=null,currentChatUser=null,feedUnsub=null,chatUnsub=null,notifUnsub=null,activeCommentPostId=null,commentPanelListener=null;
 let chatCounters = {}; let currentFeedTab = 'foryou'; let currentTaggedFriends = []; let currentMentionPostId = null; let pendingMentions = {}; let amIBlockedByCurrent = false;
 
-let storiesUnsub = null; let globalStoriesGrouped = {}; let storyUserOrder = []; let currentUserOrderIndex = 0; let activeStoryIndex = 0; let storyTimer = null;
 let currentEditPostId = null;
 
 if (localStorage.getItem('theme') === 'light') { document.body.classList.add('light-mode'); }
 function toggleDarkMode() { document.body.classList.toggle('light-mode'); localStorage.setItem('theme', document.body.classList.contains('light-mode') ? 'light' : 'dark'); }
 function toggleSettingsMenu() { closeAllDropdowns(); document.getElementById('settings-menu').classList.toggle('open'); }
-function closeAllDropdowns() { document.querySelectorAll('.story-dropdown-menu, .chat-dropdown, .settings-menu').forEach(m => m.classList.remove('open')); }
+function closeAllDropdowns() { document.querySelectorAll('.post-dropdown-menu, .chat-dropdown, .settings-menu').forEach(m => m.classList.remove('open')); }
 window.addEventListener('click', closeAllDropdowns);
 
 function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
@@ -595,7 +526,7 @@ auth.onAuthStateChanged(async(user)=>{
                 });
             });
         });
-    }else{ currentUser=null;currentUserData=null; document.getElementById('auth-screen').style.display='flex'; document.getElementById('app-screen').style.display='none'; if(feedUnsub)feedUnsub(); if(notifUnsub) notifUnsub(); if(storiesUnsub) storiesUnsub(); }
+    }else{ currentUser=null;currentUserData=null; document.getElementById('auth-screen').style.display='flex'; document.getElementById('app-screen').style.display='none'; if(feedUnsub)feedUnsub(); if(notifUnsub) notifUnsub(); }
 });
 
 function showPage(page){
@@ -605,83 +536,6 @@ function showPage(page){
     if(page==='messages') loadMessages(); if(page==='profile'){ loadUserUI(); loadMyPosts(); } if(page==='friends'){ loadFriendRequests(); }
 }
 async function markNotifAsRead(id) { await db.collection('notifications').doc(id).update({read: true}); }
-function loadStories() {
-    if(storiesUnsub) storiesUnsub();
-    storiesUnsub = db.collection('stories').onSnapshot(snap => {
-        const now = Date.now();
-        let allStories = snap.docs.map(d => ({id: d.id, ...d.data()})).filter(s => { const exp = s.expiresAt.toMillis ? s.expiresAt.toMillis() : new Date(s.expiresAt).getTime(); return exp > now; });
-        globalStoriesGrouped = {};
-        allStories.forEach(s => { if(!globalStoriesGrouped[s.uid]) globalStoriesGrouped[s.uid] = []; globalStoriesGrouped[s.uid].push(s); });
-        for(let uid in globalStoriesGrouped) { globalStoriesGrouped[uid].sort((a,b) => a.createdAt - b.createdAt); }
-        
-        storyUserOrder = []; let html = ''; let myAv = currentUserData?.avatar ? `<img src="${currentUserData.avatar}">` : `<div class="avatar-placeholder">${avatarInitial(currentUserData?.name || 'User')}</div>`;
-        html += `<div class="story-item" onclick="document.getElementById('story-upload-input').click()"><div class="story-ring" style="background:var(--border);">${myAv}<div class="story-add-btn"><span class="material-symbols-outlined" style="font-size:16px; font-weight:bold;">add</span></div></div><div class="story-name">Create story</div></div>`;
-        if(globalStoriesGrouped[currentUser?.uid]) { storyUserOrder.push(currentUser.uid); html += `<div class="story-item" onclick="openStoryViewer('${currentUser.uid}')"><div class="story-ring active">${myAv}</div><div class="story-name">Your story</div></div>`; }
-        const friends = currentUserData?.friends || [];
-        friends.forEach(fId => {
-            if(globalStoriesGrouped[fId]) {
-                storyUserOrder.push(fId); const firstStory = globalStoriesGrouped[fId][0]; const avHtml = firstStory.avatar ? `<img src="${firstStory.avatar}">` : `<div class="avatar-placeholder">${avatarInitial(firstStory.name)}</div>`; const vBadge = getVerifiedBadge(firstStory.email) ? `<span class="material-symbols-outlined" style="color:#ff4f4f; font-size:12px; font-variation-settings: 'FILL' 1; margin-left:2px;">verified</span>` : '';
-                html += `<div class="story-item" onclick="openStoryViewer('${fId}')"><div class="story-ring active">${avHtml}</div><div class="story-name">${firstStory.name.split(' ')[0]} ${vBadge}</div></div>`;
-            }
-        });
-        const container = document.getElementById('story-container'); if(container) container.innerHTML = html;
-        if(document.getElementById('story-viewer-screen')?.classList.contains('open')) {
-            const curUid = storyUserOrder[currentUserOrderIndex];
-            if(curUid === currentUser?.uid && globalStoriesGrouped[curUid]) {
-                const st = globalStoriesGrouped[curUid][activeStoryIndex];
-                let countEl = document.getElementById('story-views-count');
-                if(st && countEl) countEl.textContent = st.viewedBy ? st.viewedBy.length : 0;
-            }
-        }
-    });
-}
-async function handleStoryUpload(input) {
-    const file = input.files[0]; if(!file) return; showToast('Uploading story...'); const formData = new FormData(); formData.append('file', file); formData.append('upload_preset', 'gochat');
-    try { 
-        const res = await fetch('https://api.cloudinary.com/v1_1/dsnqmwyvt/auto/upload', { method: 'POST', body: formData }); const data = await res.json(); 
-        if (data.secure_url) { 
-            const expireAt = new Date(Date.now() + 24 * 3600000);
-            await db.collection('stories').add({ uid: currentUser.uid, name: currentUserData.name, email: currentUserData.email || '', avatar: currentUserData.avatar || '', imgUrl: data.secure_url, type: data.resource_type, viewedBy: [], createdAt: Date.now(), expiresAt: expireAt }); showToast('Story added! ✦');
-        } else { showToast('Story upload failed!'); } 
-    } catch (e) { showToast('Network error uploading story.'); } input.value = '';
-}
-function openStoryViewer(uid) { currentUserOrderIndex = storyUserOrder.indexOf(uid); if(currentUserOrderIndex === -1) return; activeStoryIndex = 0; document.getElementById('story-viewer-screen').classList.add('open'); renderStoryFrame(); }
-function toggleStoryDropdownMenu() { document.getElementById('story-dropdown-menu').classList.toggle('open'); }
-async function deleteCurrentStory() {
-    document.getElementById('story-dropdown-menu').classList.remove('open'); const currentUid = storyUserOrder[currentUserOrderIndex];
-    if (currentUid !== currentUser.uid) { showToast("You can only delete your own story!"); return; }
-    const targetStory = globalStoriesGrouped[currentUid][activeStoryIndex]; if(!targetStory) return;
-    if(!confirm("Delete this story permanently?")) return; showToast("Deleting story...");
-    try { await db.collection('stories').doc(targetStory.id).delete(); showToast("Story deleted successfully! 🗑"); nextStory(); } catch(e) { showToast("Error deleting story."); }
-}
-function renderStoryFrame() {
-    document.getElementById('story-dropdown-menu').classList.remove('open');
-    if(currentUserOrderIndex < 0 || currentUserOrderIndex >= storyUserOrder.length) { closeStoryViewer(); return; }
-    const currentUid = storyUserOrder[currentUserOrderIndex]; const userStories = globalStoriesGrouped[currentUid];
-    if(!userStories || activeStoryIndex >= userStories.length) { currentUserOrderIndex++; activeStoryIndex = 0; if(currentUserOrderIndex >= storyUserOrder.length) { closeStoryViewer(); return; } renderStoryFrame(); return; }
-    if(activeStoryIndex < 0) { currentUserOrderIndex--; if(currentUserOrderIndex < 0) { currentUserOrderIndex = 0; activeStoryIndex = 0; } else { activeStoryIndex = globalStoriesGrouped[storyUserOrder[currentUserOrderIndex]].length - 1; } renderStoryFrame(); return; }
-    
-    clearTimeout(storyTimer); const st = userStories[activeStoryIndex];
-    document.getElementById('story-viewer-avatar').innerHTML = st.avatar ? `<img src="${st.avatar}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">` : avatarInitial(st.name);
-    document.getElementById('story-viewer-name').innerHTML = st.name + getVerifiedBadge(st.email); document.getElementById('story-viewer-time').innerHTML = getRelativeTime(st.createdAt);
-    
-    const emojiPanel = document.getElementById('story-emoji-panel'); const replyWrap = document.getElementById('story-reply-wrap'); const viewsBar = document.getElementById('story-views-bar'); document.getElementById('story-reply-input').value = ''; 
-    if(st.uid === currentUser.uid) { emojiPanel.style.display = 'none'; replyWrap.style.display = 'none'; viewsBar.style.display = 'flex'; document.getElementById('story-views-count').textContent = st.viewedBy ? st.viewedBy.length : 0; } else {
-        emojiPanel.style.display = 'flex'; replyWrap.style.display = 'flex'; viewsBar.style.display = 'none';
-        const alreadyViewed = st.viewedBy && st.viewedBy.some(v => v.uid === currentUser.uid);
-        if(!alreadyViewed) { db.collection('stories').doc(st.id).update({ viewedBy: firebase.firestore.FieldValue.arrayUnion({ uid: currentUser.uid, name: currentUserData.name, avatar: currentUserData.avatar || '' }) }); }
-    }
-    
-    let frameDuration = 5000; const isVideo = st.imgUrl.match(/\.(mp4|webm|mov)$/i) || st.type === 'video'; const zone = document.getElementById('story-viewer-content-zone');
-    if(isVideo) { frameDuration = 20000; zone.innerHTML = `<video id="story-viewer-img" src="${st.imgUrl}" autoplay playsinline style="width:100%; max-height:100vh; object-fit:contain;" onended="nextStory()"></video><div class="story-tap-area story-tap-left" onclick="prevStory()"></div><div class="story-tap-area story-tap-right" onclick="nextStory()"></div>`; } 
-    else { zone.innerHTML = `<img id="story-viewer-img" src="${st.imgUrl}" alt="Story"><div class="story-tap-area story-tap-left" onclick="prevStory()"></div><div class="story-tap-area story-tap-right" onclick="nextStory()"></div>`; }
-    const bar = document.getElementById('story-progress-inner'); bar.style.transition = 'none'; bar.style.width = '0%'; setTimeout(() => { bar.style.transition = `width ${frameDuration / 1000}s linear`; bar.style.width = '100%'; }, 50); storyTimer = setTimeout(() => { nextStory(); }, frameDuration);
-}
-function nextStory() { activeStoryIndex++; renderStoryFrame(); } function prevStory() { activeStoryIndex--; renderStoryFrame(); } function closeStoryViewer() { document.getElementById('story-viewer-screen').classList.remove('open'); clearTimeout(storyTimer); }
-async function sendStoryReaction(emoji) { const st = globalStoriesGrouped[storyUserOrder[currentUserOrderIndex]][activeStoryIndex]; if(!st) return; showToast("Sending reaction..."); let chatId = [currentUser.uid, st.uid].sort().join('_'); let text = `Reacted to your story: ${emoji}`; try { await db.collection('chats').doc(chatId).collection('messages').add({uid:currentUser.uid, text: text, read:false, createdAt:firebase.firestore.FieldValue.serverTimestamp()}); await db.collection('chats').doc(chatId).set({lastMsg:text, lastAt:firebase.firestore.FieldValue.serverTimestamp(), names:{[currentUser.uid]:currentUserData.name, [st.uid]: st.name}, avatars:{[currentUser.uid]:currentUserData.avatar||'', [st.uid]:st.avatar||''}},{merge:true}); showToast("Reaction sent to inbox! ❤️"); } catch(e) { showToast("Failed to send reaction."); } }
-async function sendStoryReply() { const input = document.getElementById('story-reply-input'); const replyText = input.value.trim(); if(!replyText) return; const st = globalStoriesGrouped[storyUserOrder[currentUserOrderIndex]][activeStoryIndex]; if(!st) return; input.value = ''; showToast("Sending reply..."); let chatId = [currentUser.uid, st.uid].sort().join('_'); let text = `Replied to your story: "${replyText}"`; try { await db.collection('chats').doc(chatId).collection('messages').add({uid:currentUser.uid, text: text, read:false, createdAt:firebase.firestore.FieldValue.serverTimestamp()}); await db.collection('chats').doc(chatId).set({lastMsg:text, lastAt:firebase.firestore.FieldValue.serverTimestamp(), names:{[currentUser.uid]:currentUserData.name, [st.uid]: st.name}, avatars:{[currentUser.uid]:currentUserData.avatar||'', [st.uid]:st.avatar||''}},{merge:true}); showToast("Reply sent to chat! ✉️"); renderStoryFrame(); } catch(e) { showToast("Failed to send reply."); } }
-function openStoryViewersListModal() { clearTimeout(storyTimer); const st = globalStoriesGrouped[storyUserOrder[currentUserOrderIndex]][activeStoryIndex]; const container = document.getElementById('story-viewers-container'); document.getElementById('story-viewers-modal').classList.add('open'); const viewers = st.viewedBy || []; if(viewers.length === 0) { container.innerHTML = '<div class="empty-feed" style="padding:20px; font-size:13px;">No views yet</div>'; return; } container.innerHTML = viewers.map(v => { const avHtml = v.avatar ? `<img src="${v.avatar}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">` : avatarInitial(v.name); return `<div class="msg-item" style="margin:4px 0; border:none; box-shadow:none; padding:10px 0;"><div class="avatar" style="width:36px;height:36px;">${avHtml}</div><div class="msg-info" style="font-weight:700; color:var(--text);">${v.name}</div></div>`; }).join(''); }
-function closeStoryViewersListModal() { document.getElementById('story-viewers-modal').classList.remove('open'); renderStoryFrame(); }
 
 function openCreatePost() { document.getElementById('create-post-screen').classList.add('open'); checkPostInputs(); }
 function closeCreatePost() { document.getElementById('create-post-screen').classList.remove('open'); document.getElementById('post-title').value = ''; removePostImage(); currentTaggedFriends=[]; document.getElementById('tag-count').style.display='none'; }
@@ -766,7 +620,7 @@ function loadFeed(){
                 postDropdownHtml = `
                 <div style="position:relative; margin-left:auto;">
                     <span class="material-symbols-outlined" onclick="event.stopPropagation(); closeAllDropdowns(); document.getElementById('post-drop-${pid}').classList.toggle('open')" style="cursor:pointer; padding:4px; border-radius:30px; color:var(--text);">more_vert</span>
-                    <div id="post-drop-${pid}" class="story-dropdown-menu" style="top:30px; right:0; width:160px; z-index:100; font-weight:normal; color:var(--text);">
+                    <div id="post-drop-${pid}" class="post-dropdown-menu" style="top:30px; right:0; width:160px; z-index:100; font-weight:normal; color:var(--text);">
                         <div class="chat-dropdown-item" onclick="event.stopPropagation(); openEditPostModal('${pid}', '${safeTitle}')"><span class="material-symbols-outlined" style="font-size:18px;">edit</span> Edit Title</div>
                         <div class="chat-dropdown-item" onclick="event.stopPropagation(); togglePinPost('${pid}', ${p.isPinned?true:false})"><span class="material-symbols-outlined" style="font-size:18px;">push_pin</span> ${p.isPinned?'Unpin Post':'Pin Post'}</div>
                         <div class="chat-dropdown-item" style="color:var(--danger);" onclick="event.stopPropagation(); deletePost('${pid}')"><span class="material-symbols-outlined" style="font-size:18px;">delete</span> Delete Post</div>
@@ -795,7 +649,7 @@ async function openSinglePost(postId) {
             postDropdownHtml = `
             <div style="position:relative; margin-left:auto;">
                 <span class="material-symbols-outlined" onclick="event.stopPropagation(); closeAllDropdowns(); document.getElementById('post-drop-sp-${pid}').classList.toggle('open')" style="cursor:pointer; padding:4px; border-radius:30px; color:var(--text);">more_vert</span>
-                <div id="post-drop-sp-${pid}" class="story-dropdown-menu" style="top:30px; right:0; width:160px; z-index:100; font-weight:normal; color:var(--text);">
+                <div id="post-drop-sp-${pid}" class="post-dropdown-menu" style="top:30px; right:0; width:160px; z-index:100; font-weight:normal; color:var(--text);">
                     <div class="chat-dropdown-item" onclick="event.stopPropagation(); openEditPostModal('${pid}', '${safeTitle}')"><span class="material-symbols-outlined" style="font-size:18px;">edit</span> Edit Title</div>
                     <div class="chat-dropdown-item" onclick="event.stopPropagation(); togglePinPost('${pid}', ${p.isPinned?true:false}); closeSinglePost();"><span class="material-symbols-outlined" style="font-size:18px;">push_pin</span> ${p.isPinned?'Unpin Post':'Pin Post'}</div>
                     <div class="chat-dropdown-item" style="color:var(--danger);" onclick="event.stopPropagation(); deletePost('${pid}')"><span class="material-symbols-outlined" style="font-size:18px;">delete</span> Delete Post</div>
@@ -888,7 +742,7 @@ async function loadMyPosts(){
                 postDropdownHtml = `
                 <div style="position:relative; margin-left:auto;">
                     <span class="material-symbols-outlined" onclick="event.stopPropagation(); closeAllDropdowns(); document.getElementById('post-drop-my-${p.id}').classList.toggle('open')" style="cursor:pointer; padding:4px; border-radius:30px; color:var(--text);">more_vert</span>
-                    <div id="post-drop-my-${p.id}" class="story-dropdown-menu" style="top:30px; right:0; width:160px; z-index:100; font-weight:normal; color:var(--text);">
+                    <div id="post-drop-my-${p.id}" class="post-dropdown-menu" style="top:30px; right:0; width:160px; z-index:100; font-weight:normal; color:var(--text);">
                         <div class="chat-dropdown-item" onclick="event.stopPropagation(); openEditPostModal('${p.id}', '${safeTitle}')"><span class="material-symbols-outlined" style="font-size:18px;">edit</span> Edit Title</div>
                         <div class="chat-dropdown-item" onclick="event.stopPropagation(); togglePinPost('${p.id}', ${p.isPinned?true:false})"><span class="material-symbols-outlined" style="font-size:18px;">push_pin</span> ${p.isPinned?'Unpin Post':'Pin Post'}</div>
                         <div class="chat-dropdown-item" style="color:var(--danger);" onclick="event.stopPropagation(); deletePost('${p.id}')"><span class="material-symbols-outlined" style="font-size:18px;">delete</span> Delete Post</div>
@@ -903,7 +757,7 @@ async function loadMyPosts(){
 
 function uploadAvatar(input){ const file=input.files[0];if(!file)return; showToast('Uploading profile photo...'); const formData = new FormData(); formData.append('file', file); formData.append('upload_preset', 'gochat'); fetch('https://api.cloudinary.com/v1_1/dsnqmwyvt/image/upload', { method: 'POST', body: formData }).then(res => res.json()).then(async data => { if(data.secure_url) { await db.collection('users').doc(currentUser.uid).set({avatar: data.secure_url},{merge:true}); currentUserData.avatar=data.secure_url; loadUserUI(); showToast('Profile photo updated! ✅'); } else { showToast('Upload failed.'); } }).catch(e => showToast('Network error.')); }
 async function unfriendUser(uid) { if(!confirm('Unfriend?')) return; await db.collection('users').doc(currentUser.uid).update({ friends: firebase.firestore.FieldValue.arrayRemove(uid) }); await db.collection('users').doc(uid).update({ friends: firebase.firestore.FieldValue.arrayRemove(currentUser.uid) }); showToast('Unfriended!'); viewUserProfile(uid); }
-async function cleanupExpiredPosts(){ const now=Date.now(); const pSnap=await db.collection('posts').get(); pSnap.forEach(d=>{try{const exp=d.data().expiresAt; if(exp && (exp.toMillis?exp.toMillis():new Date(exp).getTime())<now) d.ref.delete();}catch(e){}}); const sSnap=await db.collection('stories').get(); sSnap.forEach(d=>{try{const exp=d.data().expiresAt; if(exp && (exp.toMillis?exp.toMillis():new Date(exp).getTime())<now) d.ref.delete();}catch(e){}}); } setInterval(cleanupExpiredPosts,5*60000);
+async function cleanupExpiredPosts(){ const now=Date.now(); const pSnap=await db.collection('posts').get(); pSnap.forEach(d=>{try{const exp=d.data().expiresAt; if(exp && (exp.toMillis?exp.toMillis():new Date(exp).getTime())<now) d.ref.delete();}catch(e){}}); } setInterval(cleanupExpiredPosts,5*60000);
 </script>
 </body>
 </html>
