@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>GoChat V2</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@700&family=Dancing+Script:wght@700&family=Pacifico&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+:root{
+/* New Light Premium Theme based on Image */
+--bg:#f8f9fa;
+--surface:#ffffff;
+--surface-2:#f0f2f5;
+--card:#ffffff;
+--border:#e5e5ee;
+--border-light:#f0f0f5;
+--accent:#9d85ff;
+--accent-light:#b4a3ff;
+--accent-dark:#7c5cff;
+--accent-glow:rgba(157, 133, 255, 0.25);
+--text:#1a1a2e;
+--text-secondary:#5a5a70;
+--text-muted:#8a8a9a;
+--danger:#ff4d6a;
+--danger-bg:rgba(255,77,106,0.1);
+--success:#22c55e;
+--success-bg:rgba(34,197,94,0.1);
+--warning:#f59e0b;
+--gradient:linear-gradient(135deg,#9d85ff 0%,#b4a3ff 100%);
+--gradient-orange:linear-gradient(135deg,#ff7e67 0%,#ffb867 100%);
+--shadow-sm:0 4px 12px rgba(0,0,0,0.05);
+--shadow-md:0 8px 24px rgba(0,0,0,0.08);
+--shadow-lg:0 12px 32px rgba(0,0,0,0.12);
+--shadow-glow:0 8px 20px rgba(255, 126, 103, 0.3);
+--radius-sm:12px;
+--radius-md:16px;
+--radius-lg:24px;
+--radius-xl:32px;
+}
+body.dark-mode{
+--bg:#0a0a0f; --surface:#16161f; --surface-2:#1e1e2a; --card:#22222f;
+--border:#2a2a3a; --border-light:#3a3a4a; --text:#f0f0f5; --text-secondary:#a0a0b5;
+--text-muted:#6a6a80; --shadow-sm:0 4px 12px rgba(0,0,0,0.3);
+}
+html,body{overscroll-behavior:none;}
+body{
+background:var(--bg); color:var(--text);
+font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;
+min-height:100vh; min-height:100dvh;
+touch-action:manipulation; -webkit-font-smoothing:antialiased;
+}
+.material-symbols-outlined{
+font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24;
+display:inline-block; vertical-align:middle;
+}
+.material-symbols-outlined.filled{font-variation-settings:'FILL' 1;}
+::-webkit-scrollbar{width:4px;height:4px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:10px;}
+
+/* Auth Screen - Modern Image Design */
+#auth-screen{
+min-height:100vh;min-height:100dvh;
+display:flex;align-items:center;justify-content:center;
+background:#fff;
+position:relative; overflow:hidden;
+}
+/* Orange Gradient Circles */
+#auth-screen::before{
+content:'';position:absolute;
+width:220px;height:220px;
+background:var(--gradient-orange);
+border-radius:50%;
+top:-50px;right:-50px;
+}
+#auth-screen::after{
+content:'';position:absolute;
+width:280px;height:280px;
+background:var(--gradient-orange);
+border-radius:50%;
+bottom:-80px;left:-80px;
+}
+.auth-box{
+background:transparent;
+padding:40px 30px;
+width:100%;max-width:400px;
+text-align:left;
+position:relative; z-index:10;
+}
+.auth-title-welcome{font-size:28px;font-weight:800;color:var(--text);margin-bottom:4px;letter-spacing:-0.5px;}
+.auth-logo{
+font-size:38px;
+font-family: 'Pacifico', cursive; /* Stylish Font */
+background:var(--gradient);
+-webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+margin-bottom:12px; padding-bottom:6px;
+}
+.auth-sub{color:var(--text);font-size:14px;margin-bottom:40px;font-weight:500;}
+.auth-msg{font-size:13px;margin-top:20px;padding:12px 16px;border-radius:var(--radius-md);display:none;font-weight:600;}
+.auth-msg.error{background:var(--danger-bg);color:var(--danger);display:block;}
+.auth-msg.success{background:var(--success-bg);color:var(--success);display:block;}
+.auth-input-group {margin-bottom: 20px;}
+.auth-input-group label {display:block; font-size:11px; color:var(--text-muted); text-transform:uppercase; font-weight:700; margin-bottom:8px; letter-spacing:0.5px;}
+.auth-input-group input {
+width:100%; padding:15px 20px; border-radius:30px;
+border:1px solid var(--border); background:#fff;
+font-size:15px; color:var(--text); outline:none; transition:all 0.2s;
+}
+.auth-input-group input:focus{border-color:var(--accent-light); box-shadow:0 0 0 4px var(--accent-glow);}
+.btn-auth-primary {
+width:100%; padding:16px; border-radius:30px; border:none;
+background:var(--gradient-orange); color:#fff; font-size:15px; font-weight:700;
+cursor:pointer; transition:all 0.2s; box-shadow:var(--shadow-glow); margin-top:10px;
+}
+.btn-auth-primary:active{transform:scale(0.98);}
+
+/* App Screen */
+#app-screen{display:none;max-width:520px;margin:0 auto;padding-bottom:100px;}
+.topbar{
+position:sticky;top:0;z-index:100;
+background:rgba(255,255,255,0.9);
+backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px);
+border-bottom:1px solid var(--border);
+padding:14px 18px; display:flex;align-items:center;justify-content:space-between;
+}
+body.dark-mode .topbar{background:rgba(22,22,31,0.85);}
+.topbar-logo{
+font-size:24px;
+font-family: 'Pacifico', cursive; /* Stylish Font */
+background:var(--gradient);
+-webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+cursor:pointer; padding-bottom:4px;
+}
+.topbar-actions{display:flex;gap:8px;align-items:center;}
+.topbar-btn{
+width:40px;height:40px; border-radius:50%; background:var(--surface-2); border:1px solid var(--border);
+display:flex;align-items:center;justify-content:center; cursor:pointer; color:var(--text); position:relative; transition:all 0.2s;
+}
+.topbar-btn:active{transform:scale(0.95);}
+.topbar-btn .material-symbols-outlined{font-size:22px;}
+
+/* Floating Bottom Nav */
+.bottom-nav{
+position:fixed;bottom:20px;left:50%;transform:translateX(-50%);
+width:92%;max-width:440px;
+background:var(--surface);
+border-radius:40px;
+display:flex;z-index:100;
+justify-content:space-around;align-items:center;
+padding:10px 16px;
+box-shadow:var(--shadow-lg);
+border:1px solid var(--border);
+}
+.nav-item{
+flex:1;display:flex;align-items:center;justify-content:center;
+cursor:pointer;color:var(--text-muted); transition:all 0.3s; position:relative; padding:8px 0;
+}
+.nav-item .material-symbols-outlined{font-size:26px;transition:all 0.3s;}
+.nav-item.active{color:var(--accent-dark);}
+.nav-item.active .material-symbols-outlined{font-variation-settings:'FILL' 1;}
+.nav-item:active{transform:scale(0.9);}
+.nav-fab{
+width:56px;height:56px;border-radius:50%;
+background:var(--gradient); color:white;
+display:flex;align-items:center;justify-content:center;
+transform:translateY(-25px);
+box-shadow:0 8px 20px rgba(157, 133, 255, 0.4);
+cursor:pointer; border:4px solid var(--bg);
+flex-shrink:0;z-index:101; transition:all 0.2s;
+}
+.nav-fab:active{transform:translateY(-25px) scale(0.9);}
+
+/* Post Card Floating */
+.post-card{
+background:var(--surface);
+border:1px solid var(--border);
+border-radius:24px;
+padding:20px;
+margin:16px;
+box-shadow:var(--shadow-sm);
+transition:all 0.2s;
+}
+.post-header{display:flex;align-items:center;gap:12px;margin-bottom:14px;}
+.post-name{font-weight:700;font-size:15px;display:flex;align-items:center;gap:4px;}
+.post-time{font-size:11px;color:var(--text-muted);display:flex;align-items:center;gap:4px;margin-top:2px;}
+.post-img{width:100%;border-radius:16px;margin-bottom:12px;max-height:400px;object-fit:cover;}
+.post-actions{
+display:flex;gap:16px; align-items:center; border-top:1px solid var(--border); padding-top:14px;
+}
+.post-action-btn{
+background:none;border:none;cursor:pointer; display:flex;align-items:center;gap:6px;
+color:var(--text-secondary); font-weight:600;font-size:14px;
+}
+.post-action-btn.liked{color:var(--danger);}
+
+/* Stories */
+.stories-wrapper{
+display:flex;gap:14px; overflow-x:auto; padding:16px 18px;
+background:var(--surface); border-bottom:1px solid var(--border); scrollbar-width:none;
+}
+.stories-wrapper::-webkit-scrollbar{display:none;}
+.story-circle{
+width:68px;height:68px; border-radius:50%; padding:3px;
+cursor:pointer; flex-shrink:0; position:relative;
+background:var(--gradient);
+}
+.story-circle img{width:100%;height:100%;border-radius:50%;object-fit:cover;border:3px solid var(--surface);}
+.story-name{font-size:11px;text-align:center;margin-top:6px;color:var(--text);font-weight:600;}
+
+/* Rest of standard UI CSS */
+.page{display:none;padding:0 0 12px;animation:fadeIn 0.3s ease;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+.page.active{display:block;}
+.avatar{width:42px;height:42px;border-radius:50%;background:var(--gradient);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px;color:#fff;flex-shrink:0;overflow:hidden;}
+.avatar img{width:100%;height:100%;object-fit:cover;}
+.nav-badge{position:absolute;top:0px;right:calc(50% - 18px);background:var(--danger);color:white;border-radius:30px;min-width:18px;height:18px;padding:0 5px;font-size:10px;display:none;align-items:center;justify-content:center;font-weight:700;border:2px solid var(--surface);}
+.feed-tabs{display:flex;margin:12px 16px;background:var(--surface-2);border-radius:20px;padding:4px;}
+.feed-tab{flex:1;text-align:center;padding:10px;font-size:14px;font-weight:700;color:var(--text-muted);cursor:pointer;border-radius:16px;transition:all 0.3s;}
+.feed-tab.active{background:var(--surface);color:var(--accent-dark);box-shadow:var(--shadow-sm);}
+.section-title{padding:16px 20px 8px;font-size:12px;font-weight:800;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;}
+.empty-feed{text-align:center;padding:60px 20px;color:var(--text-muted);font-size:14px;font-weight:500;}
+.loading{text-align:center;padding:40px;color:var(--text-muted);font-size:14px;display:flex;justify-content:center;align-items:center;gap:10px;font-weight:600;}
+.loading .material-symbols-outlined{animation:spin 1s linear infinite;}
+@keyframes spin{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
+
+/* Profile Header */
+.profile-header{
+background:var(--surface); padding:24px 20px; position:relative;
+display:flex;flex-direction:column;gap:14px; border-bottom:1px solid var(--border); margin-bottom:16px;
+}
+.profile-main-row{display:flex;align-items:center;gap:16px;width:100%;}
+.profile-avatar{width:88px;height:88px;border-radius:50%;background:var(--gradient);display:flex;align-items:center;justify-content:center;font-size:34px;font-weight:800;color:#fff;overflow:hidden;border:4px solid var(--bg);}
+.profile-avatar img{width:100%;height:100%;object-fit:cover;}
+.profile-info-col{display:flex;flex-direction:column;gap:4px;flex:1;}
+.profile-name{font-size:22px;font-weight:800;color:var(--text);letter-spacing:-0.3px;}
+.profile-bio{font-size:14px;color:var(--text);line-height:1.6;font-weight:500;margin-top:8px;}
+.profile-personal-details{font-size:13px;color:var(--text-secondary);display:flex;flex-direction:column;gap:10px;margin-top:10px;background:var(--surface-2);padding:16px;border-radius:var(--radius-lg);border:1px solid var(--border);}
+.detail-item{display:flex;gap:12px;align-items:center;color:var(--text);font-weight:500;}
+.detail-item .material-symbols-outlined{font-size:20px;color:var(--accent-dark);}
+
+/* Utilities needed for JS functionality */
+.msg-item{display:flex;align-items:center;gap:14px;padding:14px 16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);margin:10px 16px;cursor:pointer;box-shadow:var(--shadow-sm);}
+.msg-info{flex:1;min-width:0;}
+.msg-name{font-weight:700;font-size:15px;margin-bottom:3px;}
+.btn-primary{padding:14px 24px;background:var(--gradient);color:#fff;border:none;border-radius:30px;font-size:15px;font-weight:800;cursor:pointer;width:100%;text-align:center;}
+.btn-outline{padding:12px 20px;background:transparent;color:var(--accent-dark);border:2px solid var(--accent-dark);border-radius:30px;font-size:14px;font-weight:700;cursor:pointer;}
+.input-group label{display:block;font-size:12px;color:var(--text-muted);margin-bottom:6px;font-weight:700;text-transform:uppercase;}
+.input-group input, .input-group select{width:100%;padding:14px 18px;background:var(--surface-2);border:1px solid var(--border);border-radius:20px;color:var(--text);font-size:15px;outline:none;}
+#toast{position:fixed;bottom:110px;left:50%;transform:translateX(-50%);background:var(--surface);color:var(--text);padding:12px 24px;border-radius:30px;font-size:14px;font-weight:600;z-index:9999;opacity:0;transition:all 0.3s;pointer-events:none;box-shadow:var(--shadow-lg);}
+#toast.show{opacity:1;bottom:120px;}
+</style>
+</head>
+<body>
+<div id="auth-screen">
+<div class="auth-box">
+<div class="auth-title-welcome">Welcome back to</div>
+<div class="auth-logo">✦ GoChat</div>
+<div class="auth-sub">Connect and share your moments</div>
+<div>
+<div class="auth-input-group">
+<label>Email Address</label>
+<input type="email" id="auth-email" placeholder="example@email.com">
+</div>
+<div class="auth-input-group">
+<label>Password</label>
+<input type="password" id="auth-password" placeholder="••••••••">
+</div>
+<button class="btn-auth-primary" onclick="loginWithEmail()">Log In</button>
+<div style="text-align:center; margin-top: 30px; font-size: 13px; color: var(--text-secondary);">
+New to GoChat? <span style="color: #ff7e67; font-weight: 700; cursor: pointer;" onclick="registerWithEmail()">Register</span>
+</div>
+</div>
+<div id="auth-msg" class="auth-msg"></div>
+</div>
+</div>
+
+<div id="app-screen">
+<div class="topbar">
+<div class="topbar-logo" onclick="refreshFeed()">✦ GoChat</div>
+<div class="topbar-actions">
+<div class="topbar-btn" onclick="showPage('notifications')" style="position:relative;">
+<span class="material-symbols-outlined">notifications</span>
+<div class="nav-badge" id="notif-badge">0</div>
+</div>
+<div class="topbar-btn" onclick="showPage('search')">
+<span class="material-symbols-outlined">search</span>
+</div>
+</div>
+</div>
+
+<div class="page active" id="page-feed">
+<div class="stories-wrapper" id="stories-list"></div>
+<div class="feed-tabs">
+<div class="feed-tab active" id="tab-foryou" onclick="setFeedTab('foryou')">For You</div>
+<div class="feed-tab" id="tab-friends" onclick="setFeedTab('friends')">Friends</div>
+</div>
+<div id="feed-loading" class="loading"><span class="material-symbols-outlined">autorenew</span> Loading...</div>
+<div id="feed-list"></div>
+</div>
+
+<div class="page" id="page-search">
+<div class="section-title">Search Results</div>
+<div id="search-results-list"><div class="empty-feed">Type a name to search</div></div>
+</div>
+
+<div class="page" id="page-friends">
+<div class="section-title">Friends</div>
+<div id="friend-requests-list"></div>
+<div id="all-friends-list"></div>
+</div>
+
+<div class="page" id="page-notifications">
+<div class="section-title">Notifications</div>
+<div id="notifications-list"><div class="empty-feed">No notifications yet</div></div>
+</div>
+
+<div class="page" id="page-messages">
+<div class="section-title">Messages</div>
+<div id="msg-list"></div>
+</div>
+
+<div class="page" id="page-profile">
+<div class="profile-header">
+<div class="profile-main-row">
+<div class="profile-avatar" id="profile-avatar-big">?</div>
+<div class="profile-info-col">
+<div class="profile-name" id="profile-name-display">Loading...</div>
+</div>
+</div>
+<div id="profile-display-section">
+<div class="profile-bio" id="profile-bio-display"></div>
+<div class="profile-personal-details" id="profile-details-display"></div>
+<button class="btn-outline" onclick="doLogout()" style="margin-top:16px;width:100%;color:var(--danger);border-color:var(--danger);">Log out</button>
+</div>
+</div>
+<div class="section-title">My Posts</div>
+<div id="my-posts-list"></div>
+</div>
+
+<div class="bottom-nav">
+<div class="nav-item active" id="nav-feed" onclick="showPage('feed')">
+<span class="material-symbols-outlined">home</span>
+</div>
+<div class="nav-item" id="nav-friends" onclick="showPage('friends')">
+<span class="material-symbols-outlined">group</span>
+</div>
+<div class="nav-fab" onclick="showToast('Create post clicked!')">
+<span class="material-symbols-outlined" style="font-weight:700;">add</span>
+</div>
+<div class="nav-item" id="nav-messages" onclick="showPage('messages')">
+<span class="material-symbols-outlined">chat</span>
+</div>
+<div class="nav-item" id="nav-profile" onclick="showPage('profile')">
+<span class="material-symbols-outlined">person</span>
+</div>
+</div>
+</div>
+
+<div id="toast"></div>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script>
+// Firebase Config
+firebase.initializeApp({
+apiKey:"AIzaSyAnKueAHG8cw6O-Hy8U9fgGzH4fDMYQBy8",
+authDomain:"gochat-3efa3.firebaseapp.com",
+projectId:"gochat-3efa3"
+});
+const auth=firebase.auth();
+const db=firebase.firestore();
+let currentUser=null, currentUserData=null;
+
+function escapeHTML(str){
+if(!str)return'';
+return str.replace(/[&<>"']/g,function(match){
+const map={'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'};
+return map[match];
+});
+}
+
+function showToast(msg){
+const t=document.getElementById('toast');
+t.textContent=msg; t.classList.add('show');
+setTimeout(()=>t.classList.remove('show'),2500);
+}
+
+function showPage(page){
+document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+const pEl=document.getElementById('page-'+page);
+if(pEl)pEl.classList.add('active');
+const nEl=document.getElementById('nav-'+page);
+if(nEl)nEl.classList.add('active');
+if(page==='profile'){loadUserUI();}
+window.scrollTo({top:0,behavior:'smooth'});
+}
+
+async function loginWithEmail(){
+const email=document.getElementById('auth-email').value.trim();
+const pass=document.getElementById('auth-password').value;
+if(!email||!pass){showToast('Enter email and password'); return;}
+try{ await auth.signInWithEmailAndPassword(email,pass); }
+catch(e){showToast(e.message);}
+}
+
+async function registerWithEmail(){
+const email=document.getElementById('auth-email').value.trim();
+const pass=document.getElementById('auth-password').value;
+if(!email||!pass){showToast('Enter email and password'); return;}
+try{
+const res=await auth.createUserWithEmailAndPassword(email,pass);
+await db.collection('users').doc(res.user.uid).set({
+name:email.split('@')[0], email:email,
+createdAt:firebase.firestore.FieldValue.serverTimestamp()
+});
+}catch(e){showToast(e.message);}
+}
+
+function doLogout(){ auth.signOut(); window.location.reload(); }
+
+auth.onAuthStateChanged(async(user)=>{
+if(user){
+currentUser=user;
+document.getElementById('auth-screen').style.display='none';
+document.getElementById('app-screen').style.display='block';
+db.collection('users').doc(user.uid).onSnapshot(doc=>{
+if(doc.exists){ currentUserData=doc.data(); loadUserUI(); }
+});
+}else{
+currentUser=null; currentUserData=null;
+document.getElementById('auth-screen').style.display='flex';
+document.getElementById('app-screen').style.display='none';
+}
+});
+
+function loadUserUI(){
+if(!currentUser||!currentUserData)return;
+const name=currentUserData.name||currentUser.email.split('@')[0];
+document.getElementById('profile-name-display').textContent=name;
+let dHtml='';
+if(currentUserData.location)dHtml+=`<div class="detail-item"><span class="material-symbols-outlined">location_on</span> Lives in <strong>${escapeHTML(currentUserData.location)}</strong></div>`;
+if(currentUserData.hometown)dHtml+=`<div class="detail-item"><span class="material-symbols-outlined">home</span> From <strong>${escapeHTML(currentUserData.hometown)}</strong></div>`;
+
+// ✦ Joined Date Update Added Here! ✦
+if(currentUserData.createdAt){
+    const joinedDate = currentUserData.createdAt.toDate ? currentUserData.createdAt.toDate() : new Date(currentUserData.createdAt);
+    const month = joinedDate.toLocaleString('default', { month: 'long' });
+    const year = joinedDate.getFullYear();
+    dHtml += `<div class="detail-item"><span class="material-symbols-outlined">schedule</span> Joined <strong>${month} ${year}</strong></div>`;
+}
+
+document.getElementById('profile-details-display').innerHTML=dHtml;
+}
+
+// Basic Feed functionality to prevent errors
+function setFeedTab(tab){
+document.querySelectorAll('.feed-tab').forEach(t=>t.classList.remove('active'));
+document.getElementById('tab-'+tab).classList.add('active');
+}
+</script>
+</body>
+</html>
