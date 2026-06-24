@@ -251,7 +251,17 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',sans-serif;mi
 <div class="section-title">My Posts</div><div id="my-posts-list"></div>
 </div>
 <div class="page" id="page-other-profile">
-<div class="chat-topbar" style="position:sticky;top:0;z-index:100;"><div class="chat-back" onclick="closeUserProfile()"><span class="material-symbols-outlined">arrow_back</span></div><div class="chat-name" id="other-profile-top-name" style="margin-left:10px;">Profile</div><div class="icon-btn" onclick="toggleProfileMenu()" style="background:var(--bg); padding:8px; border:none;"><span class="material-symbols-outlined">more_vert</span><div class="profile-menu" id="profile-menu"><div class="chat-dropdown-item" onclick="copyProfileLink()"><span class="material-symbols-outlined">link</span> Copy Profile Link</div><div class="chat-dropdown-item danger" id="block-user-btn" onclick="blockCurrentUser()"><span class="material-symbols-outlined">block</span> Block User</div></div></div></div>
+<div class="chat-topbar" style="position:sticky;top:0;z-index:100;">
+<div class="chat-back" onclick="closeUserProfile()"><span class="material-symbols-outlined">arrow_back</span></div>
+<div class="chat-name" id="other-profile-top-name" style="margin-left:10px;">Profile</div>
+<div class="icon-btn" onclick="event.stopPropagation(); toggleProfileMenu()" style="background:var(--bg); padding:8px; border:none; position:relative;">
+<span class="material-symbols-outlined">more_vert</span>
+<div class="profile-menu" id="profile-menu" onclick="event.stopPropagation();">
+<div class="chat-dropdown-item" onclick="copyProfileLink()"><span class="material-symbols-outlined">link</span> Copy Profile Link</div>
+<div class="chat-dropdown-item danger" id="block-user-btn" onclick="blockCurrentUser()"><span class="material-symbols-outlined">block</span> Block User</div>
+</div>
+</div>
+</div>
 <div class="profile-header">
 <div class="profile-main-row">
 <div class="profile-avatar-wrap"><div class="profile-avatar" id="other-profile-avatar">?</div></div>
@@ -362,12 +372,21 @@ if (localStorage.getItem('theme') === 'light') { document.body.classList.add('li
 function toggleDarkMode() { document.body.classList.toggle('light-mode'); localStorage.setItem('theme', document.body.classList.contains('light-mode') ? 'light' : 'dark'); }
 function toggleSettingsMenu() { closeAllDropdowns(); document.getElementById('settings-menu').classList.toggle('open'); }
 function toggleFabMenu() { const fm = document.getElementById('fab-menu'); fm.style.display = fm.style.display === 'none' || fm.style.display === '' ? 'flex' : 'none'; }
-function toggleProfileMenu() { closeAllDropdowns(); document.getElementById('profile-menu').classList.toggle('open'); }
+function toggleProfileMenu() { 
+    closeAllDropdowns(); 
+    document.getElementById('profile-menu').classList.toggle('open'); 
+}
 function closeAllDropdowns() { 
     document.querySelectorAll('.post-dropdown-menu, .settings-menu, .chat-list-menu, .profile-menu').forEach(m => m.classList.remove('open')); 
     const fm = document.getElementById('fab-menu'); if(fm) fm.style.display='none'; 
 }
-window.addEventListener('click', closeAllDropdowns);
+// শুধুমাত্র বাইরের ক্লিকে ড্রপডাউন বন্ধ হবে
+document.addEventListener('click', function(e) {
+    // যদি ক্লিকটি কোনো ড্রপডাউন বাটন বা মেনুর ভেতরে না হয়, তাহলে সব বন্ধ করো
+    if (!e.target.closest('.icon-btn') && !e.target.closest('.more-btn') && !e.target.closest('.msg-menu-btn') && !e.target.closest('.post-dropdown-menu') && !e.target.closest('.chat-list-menu') && !e.target.closest('.profile-menu') && !e.target.closest('.settings-menu')) {
+        closeAllDropdowns();
+    }
+});
 function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
 function avatarInitial(name){return name?name[0].toUpperCase():'?';}
 function getRelativeTime(ts){
@@ -405,8 +424,6 @@ async function doLogout(){
     window.location.reload(); 
 }
 async function handleDeleteAccount() { if (!confirm("Are you absolutely sure? This action is permanent.")) return; showToast("Processing account destruction..."); try { await db.collection('users').doc(currentUser.uid).delete(); await auth.currentUser.delete(); showToast("Account deleted!"); setTimeout(() => window.location.reload(), 1500); } catch(e) { showToast("Failed to delete account."); } }
-
-// Update online status
 function updateOnlineStatus() {
     if(currentUser && currentUserData) {
         db.collection('users').doc(currentUser.uid).update({ 
@@ -415,18 +432,14 @@ function updateOnlineStatus() {
         }).catch(()=>{});
     }
 }
-
 auth.onAuthStateChanged(async(user)=>{
 if(user){
 currentUser=user;
 try { const snap = await db.collection('users').doc(user.uid).get(); currentUserData = snap.exists ? snap.data() : {name:user.email.split('@')[0],email:user.email}; } catch(e) { currentUserData = {name:user.email.split('@')[0],email:user.email}; }
 document.getElementById('auth-screen').style.display='none'; document.getElementById('app-screen').style.display='block';
-
-// Update online status
 await updateOnlineStatus();
 if(onlineStatusInterval) clearInterval(onlineStatusInterval);
-onlineStatusInterval = setInterval(updateOnlineStatus, 60000); // Update every minute
-
+onlineStatusInterval = setInterval(updateOnlineStatus, 60000);
 window.addEventListener('beforeunload', () => {
     if(currentUser) {
         db.collection('users').doc(currentUser.uid).update({ 
@@ -435,7 +448,6 @@ window.addEventListener('beforeunload', () => {
         }).catch(()=>{});
     }
 });
-
 loadUserUI(); loadFeed(); loadMessages(); loadStories(); cleanupExpiredPosts();
 db.collection('users').doc(user.uid).onSnapshot(doc => {
 if(doc.exists) {
@@ -483,7 +495,6 @@ function toggleArchivedChats() {
         loadArchivedMessages();
     }
 }
-/* --- Friend System Logic --- */
 async function sendRequest(uid) { await db.collection('users').doc(uid).update({ receivedRequests: firebase.firestore.FieldValue.arrayUnion(currentUser.uid) }); await db.collection('users').doc(currentUser.uid).update({ sentRequests: firebase.firestore.FieldValue.arrayUnion(uid) }); db.collection('notifications').add({ toUid: uid, fromUid: currentUser.uid, fromName: currentUserData.name, type: 'friend_request', read: false, createdAt: firebase.firestore.FieldValue.serverTimestamp() }); searchUsers(); showToast('Request sent'); }
 async function cancelRequest(uid) { await db.collection('users').doc(uid).update({ receivedRequests: firebase.firestore.FieldValue.arrayRemove(currentUser.uid) }); await db.collection('users').doc(currentUser.uid).update({ sentRequests: firebase.firestore.FieldValue.arrayRemove(uid) }); searchUsers(); showToast('Request cancelled'); }
 async function acceptRequest(uid) { await db.collection('users').doc(currentUser.uid).update({ receivedRequests: firebase.firestore.FieldValue.arrayRemove(uid), friends: firebase.firestore.FieldValue.arrayUnion(uid) }); await db.collection('users').doc(uid).update({ sentRequests: firebase.firestore.FieldValue.arrayRemove(currentUser.uid), friends: firebase.firestore.FieldValue.arrayUnion(currentUser.uid) }); db.collection('notifications').add({ toUid: uid, fromUid: currentUser.uid, fromName: currentUserData.name, type: 'request_accepted', read: false, createdAt: firebase.firestore.FieldValue.serverTimestamp() }); searchUsers(); loadFriendRequests(); showToast('Request accepted!'); }
@@ -523,7 +534,6 @@ html += `<div class="msg-item" onclick="viewUserProfile('${uId}')"><div class="a
 });
 res.innerHTML = html || '<div class="empty-feed">No users found</div>';
 }
-/* --- Friends List Modal --- */
 async function openFriendsListModal(uid) {
 document.getElementById('friends-list-modal').classList.add('open');
 const container = document.getElementById('friends-list-container'); container.innerHTML = '<div class="loading">Loading...</div>';
@@ -542,7 +552,6 @@ if(fDoc.exists) {
 container.innerHTML = html;
 }
 function closeFriendsListModal() { document.getElementById('friends-list-modal').classList.remove('open'); }
-/* --- Story Logic --- */
 async function uploadStory(input) {
 const file = input.files[0]; if(!file) return; const isVideo = file.type.startsWith('video/'); showToast('Uploading Story...');
 const formData = new FormData(); formData.append('file', file); formData.append('upload_preset', 'gochat');
@@ -586,7 +595,6 @@ if(!activeStoryGroup || currentStoryIndex >= activeStoryGroup.length) return; co
 if(s.reacts && s.reacts.includes(currentUser.uid)) { await ref.update({ reacts: firebase.firestore.FieldValue.arrayRemove(currentUser.uid) }); s.reacts = s.reacts.filter(id => id !== currentUser.uid); reactBtn.style.color = '#fff'; reactBtn.style.fontVariationSettings = "'FILL' 0"; }
 else { await ref.update({ reacts: firebase.firestore.FieldValue.arrayUnion(currentUser.uid) }); if(!s.reacts) s.reacts = []; s.reacts.push(currentUser.uid); reactBtn.style.color = 'var(--danger)'; reactBtn.style.fontVariationSettings = "'FILL' 1"; if(s.uid !== currentUser.uid) { db.collection('notifications').add({ toUid: s.uid, fromUid: currentUser.uid, fromName: currentUserData.name, type: 'like', read: false, createdAt: firebase.firestore.FieldValue.serverTimestamp() }); } }
 }
-/* --- Posts Logic --- */
 async function toggleLike(pid) {
 if(!currentUser) return; const ref = db.collection('posts').doc(pid); const doc = await ref.get();
 if(doc.exists) {
@@ -646,9 +654,7 @@ if(u.gender) dHtml += `<div class="detail-item"><span class="material-symbols-ou
 if(u.location) dHtml += `<div class="detail-item"><span class="material-symbols-outlined">location_on</span> Lives in <strong>${u.location}</strong></div>`;
 if(u.hometown) dHtml += `<div class="detail-item"><span class="material-symbols-outlined">home</span> From <strong>${u.hometown}</strong></div>`;
 document.getElementById('other-profile-details-display').innerHTML = dHtml;
-// Check if user is blocked
 const isBlocked = currentUserData.blockedUsers?.includes(uid);
-// Friendship Control Buttons
 let isFriend = currentUserData.friends?.includes(uid); let btnHtml = '';
 if(isBlocked) {
     btnHtml = `<button class="btn-outline" style="flex:1; border-color:var(--success); color:var(--success);" onclick="unblockUser('${uid}')"><span class="material-symbols-outlined">person_add</span> Unblock User</button>`;
@@ -660,7 +666,6 @@ if(isBlocked) {
     else if(hasReceived) btnHtml = `<button class="btn-primary" style="flex:1;" onclick="acceptRequest('${uid}')">Accept Request</button>`;
     else btnHtml = `<button class="btn-primary" style="flex:1;" onclick="sendRequest('${uid}')"><span class="material-symbols-outlined">person_add</span> Add Friend</button>`;
 }
-// Update block button text
 const blockBtn = document.getElementById('block-user-btn');
 if(blockBtn) {
     if(isBlocked) {
@@ -732,18 +737,9 @@ async function sendMsg() {
     }); 
     await db.collection('chats').doc(currentChatId).set({ 
         lastMsg: text, 
-        lastAt: firebase.firestore.FieldValue.serverTimestamp(),
-        names: { 
-            [currentUser.uid]: currentUserData.name, 
-            [currentUser.uid.replace(currentUser.uid, '').replace('_', '')]: '' 
-        },
-        avatars: {
-            [currentUser.uid]: currentUserData.avatar,
-            [currentUser.uid.replace(currentUser.uid, '').replace('_', '')]: ''
-        }
+        lastAt: firebase.firestore.FieldValue.serverTimestamp()
     }, { merge: true }); 
 }
-
 async function sendChatImage(input) {
     const file = input.files[0];
     if(!file || !currentChatId) return;
@@ -765,7 +761,7 @@ async function sendChatImage(input) {
                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
             });
             await db.collection('chats').doc(currentChatId).set({
-                lastMsg: '📷 Photo',
+                lastMsg: ' Photo',
                 lastAt: firebase.firestore.FieldValue.serverTimestamp()
             }, { merge: true });
             showToast('Image sent!');
@@ -775,7 +771,6 @@ async function sendChatImage(input) {
     }
     input.value = '';
 }
-
 async function loadMessages() {
 const list = document.getElementById('msg-list'); if(!list) return; 
 const snap = await db.collection('chats').get(); 
@@ -783,32 +778,24 @@ const mutedChats = currentUserData.mutedChats || [];
 const pinnedChats = currentUserData.pinnedChats || [];
 const archivedChats = currentUserData.archivedChats || [];
 const blockedUsers = currentUserData.blockedUsers || [];
-
 let chats = [];
 snap.forEach(d => {
 if(d.id.includes(currentUser.uid) && !archivedChats.includes(d.id)) {
     let data = d.data(); 
     let otherUid = d.id.replace(currentUser.uid, '').replace('_', ''); 
-    
-    // Skip blocked users
     if(blockedUsers.includes(otherUid)) return;
-    
-    // Get other user's name from chat data or fetch it
     let otherName = 'User';
     let otherAv = '';
-    
     if(data.names && data.names[otherUid]) {
         otherName = data.names[otherUid];
     } else if(data.avatars && data.avatars[otherUid]) {
         otherAv = data.avatars[otherUid];
     } else {
-        // Fetch user data if not in chat
         db.collection('users').doc(otherUid).get().then(userDoc => {
             if(userDoc.exists) {
                 const userData = userDoc.data();
                 otherName = userData.name || 'User';
                 otherAv = userData.avatar || '';
-                // Update chat with user info
                 data.names = data.names || {};
                 data.names[otherUid] = otherName;
                 data.avatars = data.avatars || {};
@@ -820,7 +807,6 @@ if(d.id.includes(currentUser.uid) && !archivedChats.includes(d.id)) {
             }
         });
     }
-    
     chats.push({
         id: d.id,
         otherUid,
@@ -832,8 +818,6 @@ if(d.id.includes(currentUser.uid) && !archivedChats.includes(d.id)) {
     });
 }
 });
-
-// Sort: pinned first, then by last message time
 chats.sort((a, b) => {
 if(a.isPinned && !b.isPinned) return -1;
 if(!a.isPinned && b.isPinned) return 1;
@@ -841,7 +825,6 @@ const timeA = a.data.lastAt?.toMillis ? a.data.lastAt.toMillis() : 0;
 const timeB = b.data.lastAt?.toMillis ? b.data.lastAt.toMillis() : 0;
 return timeB - timeA;
 });
-
 let html = '';
 chats.forEach(chat => {
 const pinIcon = chat.isPinned ? '<span class="material-symbols-outlined" style="font-size:16px; color:var(--accent); margin-right:4px;">push_pin</span>' : '';
@@ -853,8 +836,8 @@ html += `<div class="msg-item ${chat.isPinned?'pinned':''} ${chat.isMuted?'muted
 <div class="msg-preview">${chat.data.lastMsg || 'New chat'}</div>
 </div>
 <div class="msg-menu-btn" onclick="event.stopPropagation(); toggleChatListMenu('${chat.id}', this)"><span class="material-symbols-outlined">more_vert</span></div>
-<div id="chat-menu-${chat.id}" class="chat-list-menu">
-<div class="chat-dropdown-item" onclick="pinChat('${chat.id}')"><span class="material-symbols-outlined">${chat.isPinned?'push_pin':'push_pin'}</span> ${chat.isPinned?'Unpin':'Pin'}</div>
+<div id="chat-menu-${chat.id}" class="chat-list-menu" onclick="event.stopPropagation();">
+<div class="chat-dropdown-item" onclick="pinChat('${chat.id}')"><span class="material-symbols-outlined">push_pin</span> ${chat.isPinned?'Unpin':'Pin'}</div>
 <div class="chat-dropdown-item" onclick="muteChat('${chat.id}')"><span class="material-symbols-outlined">${chat.isMuted?'notifications_on':'notifications_off'}</span> ${chat.isMuted?'Unmute':'Mute'}</div>
 <div class="chat-dropdown-item" onclick="archiveChat('${chat.id}')"><span class="material-symbols-outlined">archive</span> Archive</div>
 <div class="chat-dropdown-item danger" onclick="deleteChat('${chat.id}')"><span class="material-symbols-outlined">delete</span> Delete Chat</div>
@@ -863,7 +846,6 @@ html += `<div class="msg-item ${chat.isPinned?'pinned':''} ${chat.isMuted?'muted
 });
 list.innerHTML = html || '<div class="empty-feed">No messages yet</div>';
 }
-
 async function loadArchivedMessages() {
     const list = document.getElementById('archived-msg-list');
     if(!list) return;
@@ -872,7 +854,6 @@ async function loadArchivedMessages() {
         list.innerHTML = '<div class="empty-feed">No archived chats</div>';
         return;
     }
-    
     let html = '';
     for(let chatId of archivedChats) {
         const doc = await db.collection('chats').doc(chatId).get();
@@ -881,7 +862,6 @@ async function loadArchivedMessages() {
             let otherUid = chatId.replace(currentUser.uid, '').replace('_', '');
             let otherName = data.names ? data.names[otherUid] : 'User';
             let otherAv = data.avatars ? data.avatars[otherUid] : '';
-            
             html += `<div class="msg-item" onclick="openChat('${chatId}', '${otherUid}', '${otherName}', '${otherAv}')">
                 <div class="avatar">${otherAv ? `<img src="${otherAv}">` : avatarInitial(otherName)}</div>
                 <div class="msg-info">
@@ -894,7 +874,6 @@ async function loadArchivedMessages() {
     }
     list.innerHTML = html;
 }
-
 async function unarchiveChat(chatId) {
     await db.collection('users').doc(currentUser.uid).update({ 
         archivedChats: firebase.firestore.FieldValue.arrayRemove(chatId) 
@@ -903,8 +882,6 @@ async function unarchiveChat(chatId) {
     loadArchivedMessages();
     loadMessages();
 }
-
-// Chat List Menu Functions
 function toggleChatListMenu(chatId, btn) {
 closeAllDropdowns();
 const dropdown = document.getElementById(`chat-menu-${chatId}`);
@@ -912,7 +889,6 @@ if(dropdown) {
 dropdown.classList.toggle('open');
 }
 }
-
 async function muteChat(chatId) {
 closeAllDropdowns();
 const isMuted = currentUserData.mutedChats?.includes(chatId);
@@ -925,7 +901,6 @@ showToast('Chat muted');
 }
 loadMessages();
 }
-
 async function pinChat(chatId) {
 closeAllDropdowns();
 const isPinned = currentUserData.pinnedChats?.includes(chatId);
@@ -938,14 +913,12 @@ showToast('Chat pinned');
 }
 loadMessages();
 }
-
 async function archiveChat(chatId) {
 closeAllDropdowns();
 await db.collection('users').doc(currentUser.uid).update({ archivedChats: firebase.firestore.FieldValue.arrayUnion(chatId) });
 showToast('Chat archived');
 loadMessages();
 }
-
 async function deleteChat(chatId) {
 if(!confirm('Delete this entire chat? This cannot be undone.')) return;
 closeAllDropdowns();
@@ -961,10 +934,8 @@ loadMessages();
 showToast('Failed to delete chat');
 }
 }
-
 function openProfileEdit() { document.getElementById('profile-display-section').style.display = 'none'; document.getElementById('profile-edit-section').style.display = 'block'; document.getElementById('edit-name').value = currentUserData.name || ''; document.getElementById('edit-bio').value = currentUserData.bio || ''; document.getElementById('edit-gender').value = currentUserData.gender || ''; document.getElementById('edit-location').value = currentUserData.location || ''; document.getElementById('edit-hometown').value = currentUserData.hometown || ''; document.getElementById('edit-relationship').value = currentUserData.relationship || ''; }
 function closeProfileEdit() { document.getElementById('profile-display-section').style.display = 'block'; document.getElementById('profile-edit-section').style.display = 'none'; }
-// Profile Update with Emoji & 7 Day Limits
 async function saveProfileChanges() {
 const newName = document.getElementById('edit-name').value.trim();
 const emojiRegex = /[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu;
@@ -1002,7 +973,7 @@ async function pinPost(postId) {
 async function submitPost() {
 const title = document.getElementById('post-title').value.trim(); const imgFile = document.getElementById('post-img-input').files[0]; if (!title && !imgFile) return; let imgUrl = '';
 if (imgFile) { showToast('Uploading post...'); const formData = new FormData(); formData.append('file', imgFile); formData.append('upload_preset', 'gochat'); try { const res = await fetch('https://api.cloudinary.com/v1_1/dsnqmwyvt/auto/upload', { method: 'POST', body: formData }); const data = await res.json(); if (data.secure_url) { imgUrl = data.secure_url; } else { showToast('Image upload failed!'); return; } } catch (e) { showToast('Network error uploading image.'); return; } }
-try { const expireAt = new Date(Date.now() + 24 * 3600000); await db.collection('posts').add({ uid: currentUser.uid, name: currentUserData.name || currentUser.email.split('@')[0], email: currentUserData.email || '', avatar: currentUserData.avatar || '', title: title, imgUrl: imgUrl, likes: 0, likedBy: [], comments: [], tagged: currentTaggedFriends, isPinned: false, createdAt: firebase.firestore.FieldValue.serverTimestamp(), expiresAt: expireAt }); closeCreatePost(); showToast('Posted! ✦'); } catch (e) { showToast('Error saving post.'); }
+try { const expireAt = new Date(Date.now() + 24 * 3600000); await db.collection('posts').add({ uid: currentUser.uid, name: currentUserData.name || currentUser.email.split('@')[0], email: currentUserData.email || '', avatar: currentUserData.avatar || '', title: title, imgUrl: imgUrl, likes: 0, likedBy: [], comments: [], tagged: currentTaggedFriends, isPinned: false, createdAt: firebase.firestore.FieldValue.serverTimestamp(), expiresAt: expireAt }); closeCreatePost(); showToast('Posted! '); } catch (e) { showToast('Error saving post.'); }
 }
 function setFeedTab(tab) { currentFeedTab = tab; document.querySelectorAll('.feed-tab').forEach(t => t.classList.remove('active')); let tabEl = document.getElementById('tab-' + tab); if(tabEl) tabEl.classList.add('active'); loadFeed(); }
 function buildPostCardHTML(p) {
@@ -1013,13 +984,22 @@ let postDropdownHtml = '';
 if(p.uid === currentUser?.uid) { 
     const safeTitle = (p.title || '').replace(/'/g, "\\'"); 
     const pinText = p.isPinned ? 'Unpin Post' : 'Pin Post';
-    postDropdownHtml = `<div style="position:relative; margin-left:auto;"><span class="material-symbols-outlined more-btn" onclick="event.stopPropagation(); closeAllDropdowns(); document.getElementById('post-drop-${pid}').classList.toggle('open')">more_vert</span><div id="post-drop-${pid}" class="post-dropdown-menu">
-    <div class="chat-dropdown-item" onclick="event.stopPropagation(); pinPost('${pid}')"><span class="material-symbols-outlined">push_pin</span> ${pinText}</div>
-    <div class="chat-dropdown-item" onclick="event.stopPropagation(); openEditPostModal('${pid}', '${safeTitle}')"><span class="material-symbols-outlined">edit</span> Edit Post</div>
-    <div class="chat-dropdown-item" style="color:var(--danger);" onclick="event.stopPropagation(); deletePost('${pid}')"><span class="material-symbols-outlined">delete</span> Delete Post</div>
+    postDropdownHtml = `<div style="position:relative; margin-left:auto;">
+    <span class="material-symbols-outlined more-btn" onclick="event.stopPropagation(); togglePostDropdown('${pid}')" style="cursor:pointer; padding:6px; border-radius:50%;">more_vert</span>
+    <div id="post-drop-${pid}" class="post-dropdown-menu" onclick="event.stopPropagation();">
+    <div class="chat-dropdown-item" onclick="pinPost('${pid}')"><span class="material-symbols-outlined">push_pin</span> ${pinText}</div>
+    <div class="chat-dropdown-item" onclick="openEditPostModal('${pid}', '${safeTitle}')"><span class="material-symbols-outlined">edit</span> Edit Post</div>
+    <div class="chat-dropdown-item danger" onclick="deletePost('${pid}')"><span class="material-symbols-outlined">delete</span> Delete Post</div>
     </div></div>`; 
 }
 return `<div class="post-card"><div class="post-header"><div class="avatar" style="width:44px;height:44px;cursor:pointer;" onclick="viewUserProfile('${p.uid}')">${av}</div><div><div class="post-name" style="cursor:pointer;" onclick="viewUserProfile('${p.uid}')">${p.name||'User'} ${vBadge}</div><div class="post-time">${getRelativeTime(p.createdAt)}</div></div> ${postDropdownHtml}</div>${p.title?`<div style="font-weight:600; font-size:16px; margin-bottom:12px; color:var(--text); white-space:pre-wrap; line-height:1.5;">${p.title}</div>`:''}${mediaHtml}<div class="post-actions"><button class="post-action-btn" style="color:${likeColor};" onclick="toggleLike('${pid}')"><span class="material-symbols-outlined" style="font-variation-settings: 'FILL' ${fillProp}; font-size:26px;">favorite</span><span style="font-size:15px; font-weight:700;">${p.likes||0}</span></button><button class="post-action-btn" style="color:var(--text); margin-left:20px;" onclick="openCommentPanel('${pid}')"><span class="material-symbols-outlined" style="font-size:24px;">chat</span><span style="font-size:15px; font-weight:700;">${commentCount}</span></button><span class="material-symbols-outlined" onclick="sharePost('${pid}')" style="cursor:pointer; margin-left:20px; color:var(--text); font-size:24px;">share</span></div></div>`;
+}
+function togglePostDropdown(pid) {
+    closeAllDropdowns();
+    const dropdown = document.getElementById(`post-drop-${pid}`);
+    if(dropdown) {
+        dropdown.classList.toggle('open');
+    }
 }
 function loadFeed(){
 const feedList=document.getElementById('feed-list'); if(!feedList) return; if(feedUnsub) feedUnsub();
@@ -1061,7 +1041,6 @@ const list=document.getElementById('my-posts-list'); if(!list) return; list.inne
 try {
 const snap=await db.collection('posts').where('uid', '==', currentUser.uid).get(); let mine=[]; snap.forEach(d => { mine.push({ id: d.id, ...d.data() }); });
 mine.sort((a,b) => { 
-    // Pinned posts first
     if(a.isPinned && !b.isPinned) return -1;
     if(!a.isPinned && b.isPinned) return 1;
     let ta = a.createdAt?.toMillis ? a.createdAt.toMillis() : 0; 
