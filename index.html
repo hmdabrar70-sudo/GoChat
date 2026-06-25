@@ -1740,6 +1740,37 @@ lastSeen:firebase.firestore.FieldValue.serverTimestamp()
 }).catch(()=>{});
 }
 }
+async function checkAndUpdateStreak() {
+  if(!currentUser || !currentUserData) return;
+
+  const now = new Date();
+  const todayStr = `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}`; // আজকের তারিখ
+
+  const yesterday = new Date(now);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayStr = `${yesterday.getFullYear()}-${yesterday.getMonth() + 1}-${yesterday.getDate()}`; // গতকালের তারিখ
+
+  let lastLogin = currentUserData.lastLoginDate || "";
+  let streak = currentUserData.loginStreak || 0;
+
+  if (lastLogin !== todayStr) {
+    if (lastLogin === yesterdayStr) {
+      streak += 1; // গতকাল লগইন করেছিল, তাই স্ট্রিক ১ বাড়ল
+    } else {
+      streak = 1; // গ্যাপ পড়েছে বা ফার্স্ট টাইম, তাই স্ট্রিক ১ থেকে শুরু
+    }
+    
+    // Firebase এ আপডেট পাঠানো
+    await db.collection('users').doc(currentUser.uid).update({
+      lastLoginDate: todayStr,
+      loginStreak: streak
+    });
+
+    // লোকাল ডাটায় আপডেট করা যাতে সাথে সাথেই ব্যাজ দেখা যায়
+    currentUserData.lastLoginDate = todayStr;
+    currentUserData.loginStreak = streak;
+  }
+}
 // Auth State
 auth.onAuthStateChanged(async(user)=>{
 if(user){
@@ -1748,7 +1779,7 @@ try{
 const snap=await db.collection('users').doc(user.uid).get();
 currentUserData=snap.exists?snap.data():{name:user.email.split('@')[0],email:user.email};
 }catch(e){currentUserData={name:user.email.split('@')[0],email:user.email};}
-
+await checkAndUpdateStreak();
 document.getElementById('auth-screen').style.display='none';
 document.getElementById('app-screen').style.display='block';
 
@@ -3240,11 +3271,9 @@ if(exp&&(exp.toMillis?exp.toMillis():new Date(exp).getTime())<now)d.ref.delete()
 }
 setInterval(cleanupExpiredPosts,30*60000);
 function startVoiceToText() {
-   const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-  // এবার সরাসরি শুধু বাংলা ফিক্স করে দিলাম
-  recognition.lang = 'bn-BD'; 
+  const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+  recognition.lang = 'auto'; // এটি যেকোনো ভাষা স্বয়ংক্রিয়ভাবে শনাক্ত করবে
   recognition.interimResults = false;
-  
 
   recognition.onstart = () => {
     showToast("Listening...");
