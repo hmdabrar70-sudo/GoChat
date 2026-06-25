@@ -3189,16 +3189,31 @@ list.innerHTML=posts.map(p=>buildPostCardHTML(p)).join('');
 }catch(e){list.innerHTML='<div class="empty-feed">Failed to load posts.</div>';}
 }
 
+function getStreakBadge(streak) {
+  if (!streak) return '';
+  if (streak >= 100) return '<span title="100 Days Streak!" style="margin-left:4px; font-size:18px;">👑</span>';
+  if (streak >= 30) return '<span title="30 Days Streak!" style="margin-left:4px; font-size:18px;">🌟</span>';
+  if (streak >= 7) return '<span title="7 Days Streak!" style="margin-left:4px; font-size:18px;">🔥</span>';
+  return '';
+}
+
 function loadUserUI(){
 if(!currentUser||!currentUserData)return;
 const name=currentUserData.name||currentUser.email.split('@')[0]||'User';
 const avHtml=currentUserData.avatar?`<img src="${currentUserData.avatar}">`:avatarInitial(name);
 const safeName=escapeHTML(name);
+
+// নতুন স্ট্রিক ব্যাজ লজিক
+const streakBadge = getStreakBadge(currentUserData.loginStreak);
+
 const setSafeHTML=(id,html)=>{const el=document.getElementById(id);if(el)el.innerHTML=html;};
 setSafeHTML('modal-composer-avatar',avHtml);
 setSafeHTML('modal-composer-name',safeName+getVerifiedBadge(currentUserData.email));
-setSafeHTML('profile-name-display',safeName+getVerifiedBadge(currentUserData.email));
+
+// নামের পাশে ব্যাজ যোগ করা হলো
+setSafeHTML('profile-name-display',safeName + streakBadge + getVerifiedBadge(currentUserData.email));
 setSafeHTML('profile-avatar-big',avHtml);
+
 const bioEl=document.getElementById('profile-bio-display');
 if(bioEl)bioEl.textContent=currentUserData.bio||'';
 let dHtml='';
@@ -3208,9 +3223,14 @@ if(currentUserData.location)dHtml+=`<div class="detail-item"><span class="materi
 if(currentUserData.hometown)dHtml+=`<div class="detail-item"><span class="material-symbols-outlined">home</span> From <strong>${escapeHTML(currentUserData.hometown)}</strong></div>`;
 if (currentUserData.createdAt) {
     const joinedDate = currentUserData.createdAt.toDate ? currentUserData.createdAt.toDate() : new Date(currentUserData.createdAt);
-const month = joinedDate.toLocaleString('default', { month: 'long' });
+    const month = joinedDate.toLocaleString('default', { month: 'long' });
     const year = joinedDate.getFullYear();
     dHtml += `<div class="detail-item"><span class="material-symbols-outlined">schedule</span> Joined <strong>${month} ${year}</strong></div>`;
+}
+
+// প্রোফাইল ডিটেইলসে Streak Day যোগ করা হলো
+if(currentUserData.loginStreak) {
+    dHtml += `<div class="detail-item" style="color:var(--danger);"><span class="material-symbols-outlined">local_fire_department</span> Streak <strong>Day ${currentUserData.loginStreak}</strong></div>`;
 }
 
 setSafeHTML('profile-details-display',dHtml);
