@@ -1191,6 +1191,7 @@ New to GoChat? <span style="color: #ff7e67; font-weight: 700; cursor: pointer;" 
 </div>
 <div id="feed-loading" class="loading"><span class="material-symbols-outlined">autorenew</span> Loading...</div>
 <div id="feed-list"></div>
+<button id="load-more-btn" class="btn-outline" onclick="loadMorePosts()" style="margin: 20px auto; display: none; width: 180px; text-align: center;">Load More</button>
 </div>
 
 <!-- Search Page -->
@@ -1581,7 +1582,7 @@ let typingTimeout=null;
 let allUsersCache=null;
 let usersCacheLoaded=false;
 let searchTimeout=null;
-
+let postLimit = 10; // শুরুতে ১০টি পোস্ট দেখাবে
 // Friends Management State
 let isFriendsEditMode = false;
 let friendsToDelete = [];
@@ -2990,7 +2991,7 @@ imgUrls.push(url);
 }catch(e){showToast('Image upload failed!');return;}
 }
 try{
-const expireAt=new Date(Date.now()+24*3600000);
+const expireAt=new Date(Date.now()+365*24*3600000);
 await db.collection('posts').add({
 uid:currentUser.uid,
 name:currentUserData.name||currentUser.email.split('@')[0],
@@ -3010,13 +3011,58 @@ showToast('Posted!');
 }catch(e){showToast('Error saving post.');}
 }
 
+function loadFeed(){
+const feedList=document.getElementById('feed-list');
+if(!feedList)return;
+if(feedUnsub)feedUnsub();
+
+// এখানে orderBy এবং limit(postLimit) যুক্ত করা হয়েছে
+feedUnsub=db.collection('posts').orderBy('createdAt', 'desc').limit(postLimit).onSnapshot((snap)=>{
+const loadEl=document.getElementById('feed-loading');
+if(loadEl)loadEl.style.display='none';
+let postsData=[];
+snap.forEach(d=>{postsData.push({id:d.id,...d.data()});});
+
+if(currentFeedTab==='friends'){
+postsData=postsData.filter(p=>currentUserData.friends?.includes(p.uid)||p.uid===currentUser.uid);
+}
+if(postsData.length===0){
+feedList.innerHTML='<div class="empty-feed">No posts yet in this feed</div>';
+document.getElementById('load-more-btn').style.display='none';
+return;
+}
+
+feedList.innerHTML=postsData.map(p=>buildPostCardHTML(p)).join('');
+
+// Load More বাটন কন্ট্রোল
+const loadMoreBtn = document.getElementById('load-more-btn');
+if(postsData.length >= postLimit){
+    loadMoreBtn.style.display='block';
+} else {
+    loadMoreBtn.style.display='none';
+}
+});
+}
+
+// নতুন Load More ফাংশন
+function loadMorePosts() {
+    postLimit += 10; // বাটনে ক্লিক করলে আরও ১০টি পোস্ট বাড়বে
+    document.getElementById('load-more-btn').textContent = "Loading...";
+    loadFeed();
+    setTimeout(() => {
+        document.getElementById('load-more-btn').textContent = "Load More";
+    }, 1000);
+}
+
 function setFeedTab(tab){
 currentFeedTab=tab;
+postLimit = 10; // ট্যাব বদলালে আবার প্রথম ১০টি পোস্ট থেকে শুরু হবে
 document.querySelectorAll('.feed-tab').forEach(t=>t.classList.remove('active'));
 const tabEl=document.getElementById('tab-'+tab);
 if(tabEl)tabEl.classList.add('active');
 loadFeed();
 }
+
 
 function openImageZoom(src){
 document.getElementById('zoom-image').src=src;
@@ -3105,30 +3151,7 @@ ${mediaHtml}
 </div>`;
 }
 
-function loadFeed(){
-const feedList=document.getElementById('feed-list');
-if(!feedList)return;
-if(feedUnsub)feedUnsub();
-feedUnsub=db.collection('posts').onSnapshot((snap)=>{
-const loadEl=document.getElementById('feed-loading');
-if(loadEl)loadEl.style.display='none';
-let postsData=[];
-snap.forEach(d=>{postsData.push({id:d.id,...d.data()});});
-postsData.sort((a,b)=>{
-const ta=a.createdAt?(a.createdAt.toMillis?a.createdAt.toMillis():new Date(a.createdAt).getTime()):0;
-const tb=b.createdAt?(b.createdAt.toMillis?b.createdAt.toMillis():new Date(b.createdAt).getTime()):0;
-return tb-ta;
-});
-if(currentFeedTab==='friends'){
-postsData=postsData.filter(p=>currentUserData.friends?.includes(p.uid)||p.uid===currentUser.uid);
-}
-if(postsData.length===0){
-feedList.innerHTML='<div class="empty-feed">No posts yet in this feed</div>';
-return;
-}
-feedList.innerHTML=postsData.map(p=>buildPostCardHTML(p)).join('');
-});
-}
+
 
 function closeSinglePost(){document.getElementById('single-post-screen').classList.remove('open');}
 
