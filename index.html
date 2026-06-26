@@ -3020,22 +3020,33 @@ else{btn.disabled=true;btn.style.opacity='0.5';}
 }
 
 function previewImages(input){
-const files=Array.from(input.files);
-if(!files.length)return;
-const remaining=10-composeImages.length;
-const toAdd=files.slice(0,remaining);
-toAdd.forEach(file=>{
-const reader=new FileReader();
-reader.onload=e=>{
-composeImages.push({file:file,preview:e.target.result});
-renderComposeImageGrid();
-checkPostInputs();
-};
-reader.readAsDataURL(file);
-});
-if(files.length>remaining){showToast('Maximum 10 images allowed');}
-input.value='';
+  const files=Array.from(input.files);
+  if(!files.length)return;
+  
+  // ৫ এমবি লিমিট চেক (5 * 1024 * 1024 bytes)
+  const MAX_SIZE = 5 * 1024 * 1024; 
+  const oversizedFiles = files.filter(file => file.size > MAX_SIZE);
+  
+  if (oversizedFiles.length > 0) {
+    showToast('Maximum photo size is 5MB!');
+    return; // ৫ এমবি বেশি হলে ফাইলটি সিলেক্ট হবে না
+  }
+
+  const remaining=10-composeImages.length;
+  const toAdd=files.slice(0,remaining);
+  toAdd.forEach(file=>{
+    const reader=new FileReader();
+    reader.onload=e=>{
+      composeImages.push({file:file,preview:e.target.result});
+      renderComposeImageGrid();
+      checkPostInputs();
+    };
+    reader.readAsDataURL(file);
+  });
+  if(files.length>remaining){showToast('Maximum 10 images allowed');}
+  input.value='';
 }
+
 
 function renderComposeImageGrid(){
 const grid=document.getElementById('compose-img-grid');
