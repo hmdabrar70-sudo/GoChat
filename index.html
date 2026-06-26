@@ -3435,18 +3435,27 @@ list.innerHTML=mine.map(p=>buildPostCardHTML(p)).join('');
 }
 
 function uploadAvatar(input){
-const file=input.files[0];
-if(!file)return;
-showToast('Uploading profile photo...');
-uploadToCloudinary(file,false)
-.then(async url=>{
-await db.collection('users').doc(currentUser.uid).update({avatar:url});
-currentUserData.avatar=url;
-loadUserUI();
-showToast('Profile photo updated!');
-})
-.catch(e=>showToast('Network error.'));
+  const file=input.files[0];
+  if(!file)return;
+  
+  // ৫ এমবি লিমিট চেক (5MB = 5 * 1024 * 1024 bytes)
+  const MAX_SIZE = 5 * 1024 * 1024;
+  if(file.size > MAX_SIZE) {
+    showToast('Profile photo must be under 5MB!');
+    return;
+  }
+
+  showToast('Uploading profile photo...');
+  uploadToCloudinary(file,false)
+  .then(async url=>{
+    await db.collection('users').doc(currentUser.uid).update({avatar:url});
+    currentUserData.avatar=url;
+    loadUserUI();
+    showToast('Profile photo updated!');
+  })
+  .catch(e=>showToast('Network error.'));
 }
+
 
 async function cleanupExpiredPosts(){
 const now=Date.now();
