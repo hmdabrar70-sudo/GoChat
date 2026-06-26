@@ -1397,7 +1397,17 @@ display: none; width: 180px; text-align: center;">Load More</button>
 <div class="avatar sm" id="sv-avatar" style="border:2px solid #fff;">?</div>
 <div style="font-weight:700;font-size:14px;text-shadow:0 1px 4px rgba(0,0,0,0.8);" id="sv-name">Name</div>
 </div>
+<div style="display:flex;align-items:center;gap:12px;position:relative;">
+<span id="sv-menu-btn" class="material-symbols-outlined more-btn" style="color:#fff;cursor:pointer;font-size:28px;text-shadow:0 1px 4px rgba(0,0,0,0.8);display:none;" onclick="toggleStoryMenu(event)">more_vert</span>
+
+<div id="story-menu" class="post-dropdown-menu" style="top:40px;right:30px;position:absolute;z-index:10000;padding:4px;">
+<div class="setting-item" onclick="deleteCurrentStory()" style="color:var(--danger);margin:0;">
+<span class="material-symbols-outlined">delete</span> Delete Story
+</div>
+</div>
+
 <span class="material-symbols-outlined" style="color:#fff;cursor:pointer;font-size:28px;text-shadow:0 1px 4px rgba(0,0,0,0.8);" onclick="closeStory()">close</span>
+</div>
 </div>
 <div class="story-media-container" id="sv-media-container" onclick="nextStorySegment()"></div>
 <div class="story-footer">
@@ -2390,6 +2400,15 @@ if(currentStoryIndex>=activeStoryGroup.length){closeStory();return;}
 const s=activeStoryGroup[currentStoryIndex];
 const safeName=escapeHTML(s.name);
 document.getElementById('sv-name').textContent=safeName;
+
+// থ্রি-ডট আইকন শো/হাইড করার লজিক
+const svMenuBtn = document.getElementById('sv-menu-btn');
+if(svMenuBtn) {
+  svMenuBtn.style.display = (s.uid === currentUser.uid) ? 'block' : 'none';
+}
+const sm = document.getElementById('story-menu');
+if(sm) sm.classList.remove('open');
+
 document.getElementById('sv-avatar').innerHTML=s.avatar?`<img src="${s.avatar}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`:avatarInitial(s.name);
 document.getElementById('sv-views').textContent=(s.views||[]).length;
 const reactBtn=document.getElementById('sv-react-btn');
@@ -2422,6 +2441,31 @@ function closeStory(){
 document.getElementById('story-viewer').classList.remove('open');
 clearTimeout(storyTimer);
 document.getElementById('sv-media-container').innerHTML='';
+}
+function toggleStoryMenu(event){
+  event.stopPropagation();
+  document.getElementById('story-menu').classList.toggle('open');
+  clearTimeout(storyTimer); // থ্রি-ডটে ক্লিক করলে স্টোরি পজ হয়ে যাবে
+}
+
+async function deleteCurrentStory(){
+  const s = activeStoryGroup[currentStoryIndex];
+  if(!s || s.uid !== currentUser.uid) return;
+  
+  if(!confirm("Are you sure you want to delete this story?")) {
+    storyTimer = setTimeout(nextStorySegment, 5000); // No দিলে স্টোরি আবার চলতে থাকবে
+    return;
+  }
+  
+  document.getElementById('story-menu').classList.remove('open');
+  showToast("Deleting story...");
+  try {
+    await db.collection('stories').doc(s.id).delete();
+    showToast("Story deleted!");
+    closeStory(); // ডিলিট হলে স্টোরি ভিউয়ার বন্ধ হয়ে যাবে
+  } catch(e) {
+    showToast("Failed to delete story");
+  }
 }
 
 async function reactToCurrentStory(){
