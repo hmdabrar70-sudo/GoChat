@@ -2527,30 +2527,37 @@ createdAt:firebase.firestore.FieldValue.serverTimestamp()
 }
 // ===== POSTS LOGIC =====
 async function toggleLike(pid){
-if(!currentUser||!checkRateLimit())return;
-const ref=db.collection('posts').doc(pid);
-const doc=await ref.get();
-if(doc.exists){
-const p=doc.data();
-let likedBy=p.likedBy||[];
-let likes=p.likes||0;
-if(likedBy.includes(currentUser.uid)){
-likedBy=likedBy.filter(id=>id!==currentUser.uid);
-likes=Math.max(0,likes-1);
-}else{
-likedBy.push(currentUser.uid);
-likes++;
-if(p.uid!==currentUser.uid){
-db.collection('notifications').add({
-toUid:p.uid,fromUid:currentUser.uid,
-fromName:currentUserData.name,
-type:'like',postId:pid,read:false,
-createdAt:firebase.firestore.FieldValue.serverTimestamp()
-});
-awardPoints(p.uid, 5);
+  if(!currentUser||!checkRateLimit())return;
+  const ref=db.collection('posts').doc(pid);
+  const doc=await ref.get();
+  
+  if(doc.exists){
+    const p=doc.data();
+    const isLiked = p.likedBy && p.likedBy.includes(currentUser.uid);
+    
+    if(isLiked){
+      await ref.update({
+        likes: firebase.firestore.FieldValue.increment(-1),
+        likedBy: firebase.firestore.FieldValue.arrayRemove(currentUser.uid)
+      });
+    } else {
+      await ref.update({
+        likes: firebase.firestore.FieldValue.increment(1),
+        likedBy: firebase.firestore.FieldValue.arrayUnion(currentUser.uid)
+      });
+      
+      if(p.uid!==currentUser.uid){
+        db.collection('notifications').add({
+          toUid:p.uid,fromUid:currentUser.uid,
+          fromName:currentUserData.name,
+          type:'like',postId:pid,read:false,
+          createdAt:firebase.firestore.FieldValue.serverTimestamp()
+        });
+        awardPoints(p.uid, 5);
+      }
+    }
+  }
 }
-}
-await ref.update({likes,likedBy});
 }
 }
 
