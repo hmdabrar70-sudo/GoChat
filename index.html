@@ -3758,31 +3758,35 @@ return;
 const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
 recognition.lang = 'bn-BD';
 recognition.interimResults = false;
-recognition.continuous = true; // একটানা কথা শোনার জন্য এই লাইনটি যোগ করা হলো
+recognition.continuous = false; 
 
 recognition.onstart = () => showToast("Listening...");
 
 recognition.onresult = (event) => {
-  // সর্বশেষ বলা কথাটুকু ধরবে
-  const current = event.resultIndex;
-  const transcript = event.results[current][0].transcript;
+  const transcript = event.results[0][0].transcript;
   
-  const inputField = document.getElementById('chatInput'); // আপনার স্ক্রিনশটের ৩৭৬৪ লাইনে থাকা আইডি
-  // আগের কথার সাথে নতুন কথাগুলো স্পেস দিয়ে জোড়া লাগাবে
-  inputField.value = inputField.value + " " + transcript; 
+  // এখানে আমরা সব ধরণের সম্ভাব্য আইডি এবং ইনপুট টাইপ চেক করছি যাতে কোনো ভুল না হয়
+  const inputField = document.getElementById('chatInput') || 
+                     document.getElementById('chat-input') || 
+                     document.getElementById('message-input') || 
+                     document.querySelector('.chat-input');
   
-  setTypingStatus(true);
-};
-
-recognition.onerror = (event) => {
-  // নেটওয়ার্ক এরর হলে সুন্দরভাবে জানাবে
-  if (event.error === 'network') {
-    showToast("Network Error: কানেকশন দুর্বল, দয়া করে আবার চেষ্টা করুন।");
+  if (inputField) {
+    if (inputField.value === "") {
+      inputField.value = transcript;
+    } else {
+      inputField.value = inputField.value + " " + transcript;
+    }
+    setTypingStatus(true);
   } else {
-    showToast("Error: " + event.error);
+    showToast("ইনপুট বক্স খুঁজে পাওয়া যায়নি!");
   }
 };
 
+recognition.onerror = (event) => {
+  console.log("Speech Error: " + event.error);
+  showToast("বুঝতে পারিনি, আবার বলুন...");
+};
 recognition.start();
 }
 
