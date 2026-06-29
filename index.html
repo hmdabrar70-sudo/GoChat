@@ -3758,14 +3758,31 @@ return;
 const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
 recognition.lang = 'bn-BD';
 recognition.interimResults = false;
+recognition.continuous = true; // একটানা কথা শোনার জন্য এই লাইনটি যোগ করা হলো
+
 recognition.onstart = () => showToast("Listening...");
+
 recognition.onresult = (event) => {
-const transcript = event.results[0][0].transcript;
-const inputField = document.getElementById('chat-input');
-inputField.value = transcript;
-setTypingStatus(true);
+  // সর্বশেষ বলা কথাটুকু ধরবে
+  const current = event.resultIndex;
+  const transcript = event.results[current][0].transcript;
+  
+  const inputField = document.getElementById('chatInput'); // আপনার স্ক্রিনশটের ৩৭৬৪ লাইনে থাকা আইডি
+  // আগের কথার সাথে নতুন কথাগুলো স্পেস দিয়ে জোড়া লাগাবে
+  inputField.value = inputField.value + " " + transcript; 
+  
+  setTypingStatus(true);
 };
-recognition.onerror = (event) => showToast("Error: " + event.error);
+
+recognition.onerror = (event) => {
+  // নেটওয়ার্ক এরর হলে সুন্দরভাবে জানাবে
+  if (event.error === 'network') {
+    showToast("Network Error: কানেকশন দুর্বল, দয়া করে আবার চেষ্টা করুন।");
+  } else {
+    showToast("Error: " + event.error);
+  }
+};
+
 recognition.start();
 }
 
