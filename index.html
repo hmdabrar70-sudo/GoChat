@@ -2741,12 +2741,22 @@ return`<div style="margin-top:8px;margin-left:16px;padding-left:12px;border-left
 </div>`;
 }).join('');
 }
-return`<div class="comment-item">
-<div class="comment-author">${safeCName}</div>
-<div style="margin-top:4px;">${safeCText}</div>
-<div style="font-size:11px;color:var(--accent);margin-top:6px;cursor:pointer;font-weight:700;" onclick="showReplyInput('${pid}',${idx},'${safeCName}')">Reply</div>
-<div id="reply-input-${idx}"></div>
-${repliesHtml}
+return `<div class="comment-item">
+    <div class="comment-author">${safeCName}</div>
+    <div style="margin-top:4px;">${safeCText}</div>
+    
+    <div style="display:flex; gap:15px; margin-top:8px; align-items:center;">
+        <button class="post-action-btn" onclick="toggleCommentReaction('${pid}', ${idx}, 'like')">
+            <span class="material-symbols-outlined" style="font-size:18px;">thumb_up</span> ${c.likes || 0}
+        </button>
+        <button class="post-action-btn" onclick="toggleCommentReaction('${pid}', ${idx}, 'dislike')">
+            <span class="material-symbols-outlined" style="font-size:18px;">thumb_down</span> ${c.dislikes || 0}
+        </button>
+        <span style="font-size:11px; color:var(--accent); cursor:pointer; font-weight:700;" onclick="showReplyInput('${pid}',${idx},'${safeCName}')">Reply</span>
+    </div>
+    
+    <div id="reply-input-${idx}"></div>
+    ${repliesHtml}
 </div>`;
 }).join('');
 });
@@ -2769,6 +2779,27 @@ container.innerHTML = `
 </div>
 `;
 document.getElementById(`reply-text-${idx}`).focus();
+}
+async function toggleCommentReaction(pid, commentIdx, type) {
+    if (!currentUser || !checkRateLimit()) return;
+    const ref = db.collection('posts').doc(pid);
+    const doc = await ref.get();
+    if (!doc.exists) return;
+    
+    let comments = doc.data().comments || [];
+    if (!comments[commentIdx]) return;
+    
+    // লাইক বা ডিসলাইক আপডেট করা
+    // লাইক বা ডিসলাইক টগল লজিক
+if (type === 'like') {
+    comments[commentIdx].likes = (comments[commentIdx].likes || 0) + 1;
+} else {
+    comments[commentIdx].dislikes = (comments[commentIdx].dislikes || 0) + 1;
+}
+
+    
+    await ref.update({ comments });
+    showToast('Reaction added!');
 }
 
 async function submitReply(pid, idx) {
