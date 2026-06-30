@@ -155,9 +155,9 @@ background:rgba(10,10,15,0.92);
 backdrop-filter:blur(24px);
 -webkit-backdrop-filter:blur(24px);
 border-bottom:1px solid var(--border);
-padding:16px 20px;
+padding:10px 18px;
 display:flex;align-items:center;justify-content:space-between;
-box-shadow:0 4px 20px rgba(0,0,0,0.1);
+box-shadow:0 2px 12px rgba(0,0,0,0.08);
 }
 body.light-mode .topbar{background:rgba(255,255,255,0.9);}
 .topbar-actions{display:flex;gap:8px;align-items:center;}
@@ -1442,11 +1442,13 @@ Continue with Google
 <div class="icon-btn" onclick="event.stopPropagation();toggleProfileMenu()" style="background:var(--surface-2);padding:8px;border:none;position:relative;">
 <span class="material-symbols-outlined">more_vert</span>
 <div class="profile-menu" id="profile-menu" onclick="event.stopPropagation();">
-<div class="chat-dropdown-item" onclick="copyProfileLink()">
-<span class="material-symbols-outlined">link</span> Copy Profile Link
+<div class="chat-dropdown-item" onclick="copyProfileLink()" style="padding:12px 16px; display:flex; align-items:center; gap:12px;">
+<span class="material-symbols-outlined" style="color:var(--accent);">link</span> 
+<span>Copy Profile Link</span>
 </div>
-<div class="chat-dropdown-item danger" id="block-user-btn" onclick="blockCurrentUser()">
-<span class="material-symbols-outlined">block</span> Block User
+<div class="chat-dropdown-item danger" id="block-user-btn" onclick="blockCurrentUser()" style="padding:12px 16px; display:flex; align-items:center; gap:12px;">
+<span class="material-symbols-outlined">block</span> 
+<span>Block User</span>
 </div>
 </div>
 </div>
@@ -1630,7 +1632,7 @@ Continue with Google
 <div class="chat-topbar">
 <div class="chat-back" onclick="closeChat()"><span class="material-symbols-outlined">arrow_back</span></div>
 <div class="avatar sm" id="chat-avatar" style="position:relative;">?</div>
-<div class="chat-name" id="chat-name-display" style="flex:1;margin-left:8px;">Chat</div>
+<div class="chat-name" id="chat-name-display" style="flex:1;margin-left:8px; cursor:pointer;" onclick="if(currentChatOtherUid) viewUserProfile(currentChatOtherUid)">Chat</div>
 </div>
 <div class="chat-messages" id="chat-messages"></div>
 <div class="chat-input-bar" id="chat-input-area">
@@ -3884,6 +3886,12 @@ return`<div class="post-card">
 ${postDropdownHtml}
 </div>
 ${p.title?`<div style="font-weight:600;font-size:16px;margin-bottom:12px;color:var(--text);white-space:pre-wrap;line-height:1.5;">${safeTitle}</div>`:''}
+
+${p.privacy ? `
+<div style="display:inline-flex; align-items:center; gap:5px; background:var(--surface-2); padding:3px 10px; border-radius:20px; margin-bottom:10px; font-size:11px; font-weight:700; color:var(--text-secondary);">
+<span class="material-symbols-outlined" style="font-size:14px;">${p.privacy === 'public' ? 'public' : p.privacy === 'friends' ? 'group' : 'lock'}</span>
+<span>${p.privacy === 'public' ? 'Public' : p.privacy === 'friends' ? 'Friends' : 'Only Me'}</span>
+</div>` : ''}
 ${mediaHtml}
 <div class="post-actions">
 <button class="post-action-btn ${isLiked?'liked':''}" onclick="toggleLike('${pid}')">
@@ -4043,7 +4051,24 @@ const tb=b.createdAt?.toMillis?b.createdAt.toMillis():0;
 return tb-ta;
 });
 if(mine.length===0){list.innerHTML='<div class="empty-feed">No posts yet</div>';return;}
-list.innerHTML=mine.map(p=>buildPostCardHTML(p)).join('');
+
+// Use Instagram-style grid like other profiles
+let html = '<div class="profile-photo-grid">';
+mine.forEach(p => {
+    const imgUrls = p.imgUrls && p.imgUrls.length > 0 ? p.imgUrls : (p.imgUrl ? [p.imgUrl] : []);
+    let media = '';
+    let multiIcon = imgUrls.length > 1 ? `<span class="material-symbols-outlined grid-multi-icon">content_copy</span>` : '';
+    let pinIcon = p.isPinned ? `<span class="material-symbols-outlined grid-pin-icon">push_pin</span>` : '';
+    
+    if(imgUrls.length > 0){
+        media = `<img src="${escapeHTML(imgUrls[0])}">`;
+    } else {
+        media = `<div class="grid-post-text">${escapeHTML(p.title || '')}</div>`;
+    }
+    html += `<div class="grid-post-item" onclick="openSinglePostView('${p.id}')">${media}${multiIcon}${pinIcon}</div>`;
+});
+html += '</div>';
+list.innerHTML = html;
 }catch(e){list.innerHTML='<div class="empty-feed">Network issue. Could not load posts.</div>';}
 }
 
