@@ -1139,6 +1139,72 @@ margin-bottom: 0 !important;
 .post-dropdown-menu div:active {
 background: rgba(0, 0, 0, 0.05) !important;
 }
+/* =========================================
+   SKELETON LOADING ANIMATION
+   ========================================= */
+.skeleton-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    padding: 20px;
+    margin: 16px;
+    box-shadow: var(--shadow-sm);
+}
+.skeleton-header { display: flex; gap: 12px; margin-bottom: 14px; }
+.skeleton-avatar { 
+    width: 44px; height: 44px; 
+    border-radius: 50%; 
+    background: var(--surface-2); 
+    animation: shimmer 1.5s infinite; 
+}
+.skeleton-text-wrap { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 8px; }
+.skeleton-text { height: 12px; background: var(--surface-2); border-radius: 6px; animation: shimmer 1.5s infinite; }
+.skeleton-text.w-40 { width: 40%; }
+.skeleton-text.w-20 { width: 20%; }
+.skeleton-box { width: 100%; height: 250px; background: var(--surface-2); border-radius: 16px; animation: shimmer 1.5s infinite; }
+
+@keyframes shimmer {
+    0% { opacity: 0.5; }
+    50% { opacity: 1; }
+    100% { opacity: 0.5; }
+}
+
+/* =========================================
+   INSTAGRAM STYLE PHOTO GRID (MY POSTS)
+   ========================================= */
+.profile-photo-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2px;
+}
+.grid-post-item {
+    aspect-ratio: 1;
+    position: relative;
+    cursor: pointer;
+    overflow: hidden;
+    background: var(--surface-2);
+}
+.grid-post-item img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    transition: transform 0.2s;
+}
+.grid-post-item:active img { transform: scale(0.95); }
+.grid-post-text {
+    padding: 8px; font-size: 11px; font-weight: 600; color: var(--text-muted);
+    word-break: break-word; overflow: hidden;
+    display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical;
+}
+.grid-multi-icon {
+    position: absolute; top: 6px; right: 6px; 
+    color: #fff; font-size: 16px;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.6));
+}
+.grid-pin-icon {
+    position: absolute; bottom: 6px; left: 6px; 
+    color: var(--accent); font-size: 16px;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.6));
+}
 </style>
 </head>
 <body>
@@ -1195,7 +1261,19 @@ Continue with Google
 <div class="feed-tab active" id="tab-foryou" onclick="setFeedTab('foryou')">For You</div>
 <div class="feed-tab" id="tab-friends" onclick="setFeedTab('friends')">Friends</div>
 </div>
-<div id="feed-loading" class="loading"><span class="material-symbols-outlined">autorenew</span> Loading...</div>
+<div id="feed-loading">
+    <div class="skeleton-card">
+        <div class="skeleton-header">
+            <div class="skeleton-avatar"></div>
+            <div class="skeleton-text-wrap">
+                <div class="skeleton-text w-40"></div>
+                <div class="skeleton-text w-20"></div>
+            </div>
+        </div>
+        <div class="skeleton-box"></div>
+    </div>
+</div>
+
 <div id="feed-list"></div>
 <button id="load-more-btn" class="btn-outline" onclick="loadMorePosts()" style="margin: 20px auto; display: none; width: 180px; text-align: center;">Load More</button>
 </div>
@@ -1591,6 +1669,28 @@ const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 const MAX_IMAGES_PER_POST = 10;
 const RATE_LIMIT_MS = 1000;
+const SKELETON_HTML = `
+<div class="skeleton-card">
+    <div class="skeleton-header">
+        <div class="skeleton-avatar"></div>
+        <div class="skeleton-text-wrap">
+            <div class="skeleton-text w-40"></div>
+            <div class="skeleton-text w-20"></div>
+        </div>
+    </div>
+    <div class="skeleton-box"></div>
+</div>
+<div class="skeleton-card">
+    <div class="skeleton-header">
+        <div class="skeleton-avatar"></div>
+        <div class="skeleton-text-wrap">
+            <div class="skeleton-text w-40"></div>
+            <div class="skeleton-text w-20"></div>
+        </div>
+    </div>
+    <div class="skeleton-box"></div>
+</div>`;
+
 
 // ===== FIREBASE INIT =====
 firebase.initializeApp({
@@ -3457,6 +3557,22 @@ showToast('Post deleted!');
 if(document.getElementById('page-profile').classList.contains('active'))loadMyPosts();
 closeSinglePost();
 }
+async function openSinglePostView(pid) {
+    document.getElementById('single-post-screen').classList.add('open');
+    const container = document.getElementById('single-post-container');
+    container.innerHTML = SKELETON_HTML; 
+    
+    try {
+        const doc = await db.collection('posts').doc(pid).get();
+        if(doc.exists) {
+            container.innerHTML = buildPostCardHTML({id: doc.id, ...doc.data()});
+        } else {
+            container.innerHTML = '<div class="empty-feed">Post not found</div>';
+        }
+    } catch(e) {
+        container.innerHTML = '<div class="empty-feed">Error loading post</div>';
+    }
+}
 
 async function pinPost(postId){
 closeAllDropdowns();
@@ -3651,23 +3767,79 @@ ${mediaHtml}
 
 function closeSinglePost(){document.getElementById('single-post-screen').classList.remove('open');}
 
-async function loadOtherUserPosts(uid){
-const list=document.getElementById('other-user-posts-list');
-if(!list)return;
-list.innerHTML='<div class="loading"><span class="material-symbols-outlined">autorenew</span> Loading...</div>';
-try{
-const snap=await db.collection('posts').where('uid','==',uid).get();
-let posts=[];
-snap.forEach(d=>{posts.push({id:d.id,...d.data()});});
-posts.sort((a,b)=>{
-const ta=a.createdAt?.toMillis?a.createdAt.toMillis():0;
-const tb=b.createdAt?.toMillis?b.createdAt.toMillis():0;
-return tb-ta;
-});
-if(posts.length===0){list.innerHTML='<div class="empty-feed">No posts yet</div>';return;}
-list.innerHTML=posts.map(p=>buildPostCardHTML(p)).join('');
-}catch(e){list.innerHTML='<div class="empty-feed">Failed to load posts.</div>';}
+// নিজের প্রোফাইলের পোস্ট লোড (গ্রিড ভিউ + স্কেলেটন)
+async function loadMyPosts(){
+    const list=document.getElementById('my-posts-list');
+    if(!list)return;
+    list.innerHTML = SKELETON_HTML; // Skeleton Loading Effect
+    try{
+        const snap=await db.collection('posts').where('uid','==',currentUser.uid).get();
+        let mine=[];
+        snap.forEach(d=>{mine.push({id:d.id,...d.data()});});
+        mine.sort((a,b)=>{
+            if(a.isPinned&&!b.isPinned)return-1;
+            if(!a.isPinned&&b.isPinned)return 1;
+            const ta=a.createdAt?.toMillis?a.createdAt.toMillis():0;
+            const tb=b.createdAt?.toMillis?b.createdAt.toMillis():0;
+            return tb-ta;
+        });
+        if(mine.length===0){list.innerHTML='<div class="empty-feed">No posts yet</div>';return;}
+        
+        // গ্রিড জেনারেট করা
+        let html = '<div class="profile-photo-grid">';
+        mine.forEach(p => {
+            const imgUrls = p.imgUrls && p.imgUrls.length > 0 ? p.imgUrls : (p.imgUrl ? [p.imgUrl] : []);
+            let media = '';
+            let multiIcon = imgUrls.length > 1 ? `<span class="material-symbols-outlined grid-multi-icon">content_copy</span>` : '';
+            let pinIcon = p.isPinned ? `<span class="material-symbols-outlined grid-pin-icon">push_pin</span>` : '';
+            
+            if(imgUrls.length > 0){
+                media = `<img src="${escapeHTML(imgUrls[0])}">`;
+            } else {
+                media = `<div class="grid-post-text">${escapeHTML(p.title || '')}</div>`;
+            }
+            html += `<div class="grid-post-item" onclick="openSinglePostView('${p.id}')">${media}${multiIcon}${pinIcon}</div>`;
+        });
+        html += '</div>';
+        list.innerHTML = html;
+    }catch(e){list.innerHTML='<div class="empty-feed">Network issue. Could not load posts.</div>';}
 }
+
+// অন্য ইউজারের প্রোফাইলের পোস্ট লোড (গ্রিড ভিউ + স্কেলেটন)
+async function loadOtherUserPosts(uid){
+    const list=document.getElementById('other-user-posts-list');
+    if(!list)return;
+    list.innerHTML = SKELETON_HTML; // Skeleton Loading Effect
+    try{
+        const snap=await db.collection('posts').where('uid','==',uid).get();
+        let posts=[];
+        snap.forEach(d=>{posts.push({id:d.id,...d.data()});});
+        posts.sort((a,b)=>{
+            const ta=a.createdAt?.toMillis?a.createdAt.toMillis():0;
+            const tb=b.createdAt?.toMillis?b.createdAt.toMillis():0;
+            return tb-ta;
+        });
+        if(posts.length===0){list.innerHTML='<div class="empty-feed">No posts yet</div>';return;}
+        
+        // গ্রিড জেনারেট করা
+        let html = '<div class="profile-photo-grid">';
+        posts.forEach(p => {
+            const imgUrls = p.imgUrls && p.imgUrls.length > 0 ? p.imgUrls : (p.imgUrl ? [p.imgUrl] : []);
+            let media = '';
+            let multiIcon = imgUrls.length > 1 ? `<span class="material-symbols-outlined grid-multi-icon">content_copy</span>` : '';
+            
+            if(imgUrls.length > 0){
+                media = `<img src="${escapeHTML(imgUrls[0])}">`;
+            } else {
+                media = `<div class="grid-post-text">${escapeHTML(p.title || '')}</div>`;
+            }
+            html += `<div class="grid-post-item" onclick="openSinglePostView('${p.id}')">${media}${multiIcon}</div>`;
+        });
+        html += '</div>';
+        list.innerHTML = html;
+    }catch(e){list.innerHTML='<div class="empty-feed">Failed to load posts.</div>';}
+}
+
 
 function getStreakBadge(streak) {
 if (!streak) return '';
