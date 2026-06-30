@@ -2711,27 +2711,45 @@ dHtml += `<div class="detail-item" style="color:var(--danger);"><span class="mat
 document.getElementById('other-profile-details-display').innerHTML=dHtml;
 const isBlocked=currentUserData.blockedUsers?.includes(uid);
 let isFriend=currentUserData.friends?.includes(uid);
-let btnHtml='';
-if(isBlocked){
-btnHtml=`<button class="btn-outline" style="flex:1;border-color:var(--success);color:var(--success);" onclick="unblockUser('${uid}')">Unblock User</button>`;
-}else if(isFriend){
-btnHtml=`<button class="btn-outline" style="flex:1;border-color:var(--danger);color:var(--danger);" onclick="confirmUnfriend('${uid}')">Unfriend</button>`;
-}else{
-const hasSent=currentUserData.sentRequests?.includes(uid);
-const hasReceived=currentUserData.receivedRequests?.includes(uid);
-if(hasSent)btnHtml=`<button class="btn-outline" style="flex:1;" onclick="cancelRequest('${uid}')">Cancel Request</button>`;
-else if(hasReceived)btnHtml=`<button class="btn-primary" style="flex:1;" onclick="acceptRequest('${uid}')">Accept Request</button>`;
-else btnHtml=`<button class="btn-primary" style="flex:1;" onclick="sendRequest('${uid}')">Add Friend</button>`;
-}
-const blockBtn=document.getElementById('block-user-btn');
-if(blockBtn){
-if(isBlocked){
-blockBtn.innerHTML='<span class="material-symbols-outlined">person_add</span> Unblock User';
-}else{
-blockBtn.innerHTML='<span class="material-symbols-outlined">block</span> Block User';
-}
-}
-document.getElementById('other-profile-btns').innerHTML=`<button class="btn-primary" style="flex:1;" onclick="openChat('${[currentUser.uid,uid].sort().join('_')}','${uid}','${safeName}','${u.avatar||''}')">Message</button>`+btnHtml+`<button class="btn-outline" style="width:100%; margin-top:10px; border-color:#f59e0b; color:#f59e0b;" onclick="openLeaderboard()"><span class="material-symbols-outlined" style="font-size:18px;">trophy</span> Leaderboard</button>`;
+    let btnHtml='';
+    if(isBlocked){
+        btnHtml=`<button class="icon-btn" style="width:48px; height:48px; border-radius:50%; border-color:var(--success); color:var(--success);" onclick="unblockUser('${uid}')" title="Unblock User"><span class="material-symbols-outlined">lock_open</span></button>`;
+    }else if(isFriend){
+        btnHtml=`<button class="icon-btn" style="width:48px; height:48px; border-radius:50%; border-color:var(--danger); color:var(--danger);" onclick="confirmUnfriend('${uid}')" title="Unfriend"><span class="material-symbols-outlined">person_remove</span></button>`;
+    }else{
+        const hasSent=currentUserData.sentRequests?.includes(uid);
+        const hasReceived=currentUserData.receivedRequests?.includes(uid);
+        if(hasSent) {
+            btnHtml=`<button class="icon-btn" style="width:48px; height:48px; border-radius:50%; border-color:var(--text-muted); color:var(--text-muted);" onclick="cancelRequest('${uid}')" title="Cancel Request"><span class="material-symbols-outlined">close</span></button>`;
+        } else if(hasReceived) {
+            btnHtml=`<button class="icon-btn" style="width:48px; height:48px; border-radius:50%; background:var(--gradient); color:#fff; border:none;" onclick="acceptRequest('${uid}')" title="Accept Request"><span class="material-symbols-outlined">check</span></button>`;
+        } else {
+            btnHtml=`<button class="icon-btn" style="width:48px; height:48px; border-radius:50%; background:var(--gradient); color:#fff; border:none;" onclick="sendRequest('${uid}')" title="Add Friend"><span class="material-symbols-outlined">person_add</span></button>`;
+        }
+    }
+    
+    const blockBtn=document.getElementById('block-user-btn');
+    if(blockBtn){
+        if(isBlocked){
+            blockBtn.innerHTML='<span class="material-symbols-outlined">person_add</span> Unblock User';
+        }else{
+            blockBtn.innerHTML='<span class="material-symbols-outlined">block</span> Block User';
+        }
+    }
+
+    document.getElementById('other-profile-btns').innerHTML=`
+        <div style="display:flex; justify-content:center; gap:20px; width:100%; margin-top:16px;">
+            <button class="icon-btn" style="width:48px; height:48px; border-radius:50%; background:var(--gradient); color:#fff; border:none; box-shadow:var(--shadow-glow);" onclick="openChat('${[currentUser.uid,uid].sort().join('_')}','${uid}','${safeName}','${u.avatar||''}')" title="Message">
+                <span class="material-symbols-outlined">chat</span>
+            </button>
+            
+            ${btnHtml}
+            
+            <button class="icon-btn" style="width:48px; height:48px; border-radius:50%; border-color:#f59e0b; color:#f59e0b;" onclick="openLeaderboard()" title="Leaderboard">
+                <span class="material-symbols-outlined">trophy</span>
+            </button>
+        </div>
+    `;
 loadOtherUserPosts(uid);
 }
 
