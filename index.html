@@ -1205,6 +1205,32 @@ background: rgba(0, 0, 0, 0.05) !important;
     color: var(--accent); font-size: 16px;
     filter: drop-shadow(0 2px 4px rgba(0,0,0,0.6));
 }
+
+/* =========================================
+   PULL TO REFRESH + INFINITE SCROLL STYLES
+   ========================================= */
+#pull-to-refresh {
+    position: fixed;
+    top: -60px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--surface);
+    color: var(--accent);
+    padding: 10px 24px;
+    border-radius: 30px;
+    font-size: 14px;
+    font-weight: 700;
+    box-shadow: var(--shadow-md);
+    z-index: 9999;
+    transition: top 0.25s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid var(--border);
+}
+#pull-to-refresh.show {
+    top: 16px;
+}
 </style>
 </head>
 <body>
@@ -1260,6 +1286,10 @@ Continue with Google
 </div>
 
 <div class="page active" id="page-feed">
+<div id="pull-to-refresh">
+    <span class="material-symbols-outlined">refresh</span>
+    <span>Pull to refresh</span>
+</div>
 <div class="stories-wrapper" id="stories-list"></div>
 <div class="feed-tabs">
 <div class="feed-tab active" id="tab-foryou" onclick="setFeedTab('foryou')">For You</div>
@@ -1737,6 +1767,12 @@ let isFriendsEditMode = false;
 let friendsToDelete = [];
 let lastActionTime = 0;
 
+// ===== NEW: Infinite Scroll & Pull to Refresh State =====
+let isLoadingMorePosts = false;
+let pullStartY = 0;
+let isPulling = false;
+let touchStartXStory = 0;
+
 // ===== UTILITY FUNCTIONS =====
 function escapeHTML(str){
 if(!str)return'';
@@ -2125,6 +2161,11 @@ lastSeen:firebase.firestore.FieldValue.serverTimestamp()
 });
 
 loadUserUI();loadFeed();loadMessages();loadStories();cleanupExpiredPosts();
+
+// Initialize new features (Infinite Scroll, Pull to Refresh, Story Swipe)
+if (typeof initializeNewFeatures === 'function') {
+    initializeNewFeatures();
+}
 
 db.collection('users').doc(user.uid).onSnapshot(doc=>{
 if(doc.exists){
@@ -2590,6 +2631,8 @@ renderCurrentStory();
 
 function renderCurrentStory(){
 if(currentStoryIndex>=activeStoryGroup.length){closeStory();return;}
+enhanceStoryViewer(); // Enable swipe support every time story renders
+
 const s=activeStoryGroup[currentStoryIndex];
 const safeName=escapeHTML(s.name);
 document.getElementById('sv-name').textContent=safeName;
@@ -4179,6 +4222,178 @@ async function applyPrivacy() {
   showToast('Privacy updated to: ' + mode.toUpperCase());
   closePrivacySettings();
 }
+
+// =====================================================
+// ===== NEW FEATURES: INFINITE SCROLL + PULL TO REFRESH + STORY SWIPE =====
+// =====================================================
+
+function initInfiniteScroll() {
+    const feedPage = document.getElementById('page-feed');
+    if (!feedPage) return;
+
+    window.addEventListener('scroll', () => {
+        if (isLoadingMorePosts || document.getElementById('page-feed').classList.contains('active') === false) return;
+
+        const scrollTop = window.scrollY || document.documentElement.scrollTop;
+        const scrollHeight = document.documentElement.scrollHeight;
+        const clientHeight = window.innerHeight || document.documentElement.clientHeight;
+
+        if (scrollTop + clientHeight >= scrollHeight - 400) {
+            loadMorePostsInfinite();
+        }
+    });
+}
+
+async function loadMorePostsInfinite() {
+    if (isLoadingMorePosts) return;
+    isLoadingMorePosts = true;
+
+    postLimit += 8; // Increase limit
+
+    const feedList = document.getElementById('feed-list');
+    if (feedList) {
+        const loadingDiv = document.createElement('div');
+        loadingDiv.style.cssText = 'text-align:center; padding:20px; color:var(--text-muted);';
+        loadingDiv.innerHTML = `<span class="material-symbols-outlined" style="animation: spin 1s linear infinite;">autorenew</span> Loading more...`;
+        feedList.appendChild(loadingDiv);
+
+        // Re-trigger feed load with new limit (onSnapshot will update)
+        if (typeof loadFeed === 'function') {
+            loadFeed();
+        }
+
+        setTimeout(() => {
+            if (loadingDiv.parentNode) loadingDiv.parentNode.removeChild(loadingDiv);
+            isLoadingMorePosts = false;
+        }, 1500);
+    } else {
+        isLoadingMorePosts = false;
+    }
+}
+
+function initPullToRefresh() {
+    const feedPage = document.getElementById('page-feed');
+    const indicator = document.getElementById('pull-to-refresh');
+    if (!feedPage || !indicator) return;
+
+    feedPage.addEventListener('touchstart', (e) => {
+        if (window.scrollY > 5) return;
+        pullStartY = e.touches[0].clientY;
+        isPulling = true;
+    }, { passive: true });
+
+    feedPage.addEventListener('touchmove', (e) => {
+        if (!isPulling || window.scrollY > 5) return;
+        const currentY = e.touches[0].clientY;
+        const diff = currentY - pullStartY;
+
+        if (diff > 0) {
+            indicator.style.top = `${Math.min(diff / 2.5, 70)}px`;
+            if (diff > 100) {
+                indicator.classList.add('show');
+                indicator.querySelector('span:last-child').textContent = 'Release to refresh';
+            } else {
+                indicator.classList.remove('show');
+            }
+        }
+    }, { passive: true });
+
+    feedPage.addEventListener('touchend', (e) => {
+        if (!isPulling) return;
+        isPulling = false;
+
+        const currentY = e.changedTouches[0].clientY;
+        const diff = currentY - pullStartY;
+
+        if (diff > 100 && window.scrollY < 10) {
+            indicator.style.top = '16px';
+            indicator.querySelector('span:last-child').textContent = 'Refreshing...';
+            refreshFeedFull();
+        } else {
+            indicator.style.top = '-60px';
+            indicator.classList.remove('show');
+        }
+    }, { passive: true });
+}
+
+async function refreshFeedFull() {
+    const indicator = document.getElementById('pull-to-refresh');
+    postLimit = 10;
+    showToast('Refreshing feed...');
+
+    if (typeof loadFeed === 'function') loadFeed();
+    if (typeof loadStories === 'function') loadStories();
+
+    setTimeout(() => {
+        if (indicator) {
+            indicator.style.top = '-60px';
+            indicator.classList.remove('show');
+            indicator.querySelector('span:last-child').textContent = 'Pull to refresh';
+        }
+    }, 1800);
+}
+
+// ===== Improved Story Viewer with Left/Right Swipe =====
+function initStorySwipe() {
+    const storyViewer = document.getElementById('story-viewer');
+    if (!storyViewer) return;
+
+    // Remove old listeners if any (to avoid duplicates)
+    storyViewer.ontouchstart = null;
+    storyViewer.ontouchend = null;
+
+    storyViewer.addEventListener('touchstart', (e) => {
+        touchStartXStory = e.changedTouches[0].screenX;
+    }, { passive: true });
+
+    storyViewer.addEventListener('touchend', (e) => {
+        const touchEndX = e.changedTouches[0].screenX;
+        const diff = touchStartXStory - touchEndX;
+
+        if (Math.abs(diff) < 70) return; // Ignore small swipes
+
+        if (diff > 0) {
+            // Swipe Left → Next Story
+            if (typeof nextStorySegment === 'function') {
+                nextStorySegment();
+            }
+        } else {
+            // Swipe Right → Previous Story
+            if (currentStoryIndex > 0 && typeof renderCurrentStory === 'function') {
+                currentStoryIndex--;
+                renderCurrentStory();
+            }
+        }
+    }, { passive: true });
+}
+
+// Call this in renderCurrentStory to re-init swipe
+function enhanceStoryViewer() {
+    initStorySwipe();
+}
+
+// ===== Initialize Everything After Auth =====
+function initializeNewFeatures() {
+    setTimeout(() => {
+        initInfiniteScroll();
+        initPullToRefresh();
+        initStorySwipe();
+
+        // Also enhance story viewer when opened
+        const storyModal = document.getElementById('story-viewer');
+        if (storyModal) {
+            const observer = new MutationObserver(() => {
+                if (storyModal.classList.contains('open')) {
+                    enhanceStoryViewer();
+                }
+            });
+            observer.observe(storyModal, { attributes: true, attributeFilter: ['class'] });
+        }
+    }, 1200);
+}
+
+// Call initializeNewFeatures after successful login
+// We will hook it into the existing auth listener later if needed
 </script>
 </body>
 </html>
