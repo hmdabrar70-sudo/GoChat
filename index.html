@@ -68,13 +68,10 @@ min-height:100dvh;
 touch-action:manipulation;
 -webkit-font-smoothing:antialiased;
 }
-.material-symbols-outlined {
-    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
-    display: inline-block;
-    vertical-align: middle;
-    /* সিলেক্ট বন্ধ করার কোড */
-    -webkit-user-select: none;
-    user-select: none;
+.material-symbols-outlined{
+font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24;
+display:inline-block;
+vertical-align:middle;
 }
 .material-symbols-outlined.filled{font-variation-settings:'FILL' 1;}
 ::-webkit-scrollbar{width:4px;height:4px;}
@@ -421,14 +418,11 @@ border-top:1px solid var(--border);
 padding-top:16px;
 margin-top:4px;
 }
-.post-action-btn {
-    background: none; border: none; cursor: pointer;
-    display: flex; align-items: center; gap: 6px;
-    color: var(--text-secondary);
-    font-weight: 600; font-size: 14px;
-    /* নিচের লাইন দুটি টেক্সট সিলেক্ট হওয়া বন্ধ করবে */
-    -webkit-user-select: none;
-    user-select: none;
+.post-action-btn{
+background:none;border:none;cursor:pointer;
+display:flex;align-items:center;gap:6px;
+color:var(--text-secondary);
+font-weight:600;font-size:14px;
 }
 .post-action-btn.liked{color:var(--danger);}
 .post-action-btn.liked .material-symbols-outlined{font-variation-settings:'FILL' 1;}
@@ -2088,25 +2082,25 @@ storiesSnap.forEach(doc => storiesBatch.delete(doc.ref));
 await storiesBatch.commit();
 
 const chatsSnap = await db.collection('chats').get();
-const chatsToDelete = ();
-                        try {
-            const snap = await db.collection('users').doc(user.uid).get();
-            currentUserData = snap.exists ? snap.data() : { name: user.email.split('@')[0], email: user.email };
-            
-            try {
-                await checkAndUpdateStreak();
-            } catch (e) {
-                console.error("Streak Update skipped:", e);
-            }
-        } catch(e) {
-            currentUserData = { name: user.email.split('@')[0], email: user.email };
-        }
+const chatsToDelete = [];
+chatsSnap.forEach(doc => {
+if(doc.id.includes(currentUser.uid)) {
+chatsToDelete.push(doc.id);
+}
+});
+for(let chatId of chatsToDelete) {
+const messagesSnap = await db.collection('chats').doc(chatId).collection('messages').get();
+const msgBatch = db.batch();
+messagesSnap.forEach(doc => msgBatch.delete(doc.ref));
+await msgBatch.commit();
+await db.collection('chats').doc(chatId).delete();
+}
 
-        document.getElementById('auth-screen').style.display = 'none';
-        document.getElementById('app-screen').style.display = 'block';
+const notifsSnap = await db.collection('notifications').where('toUid', '==', currentUser.uid).get();
+const notifsBatch = db.batch();
+notifsSnap.forEach(doc => notifsBatch.delete(doc.ref));
+await notifsBatch.commit();
 
-        
-      
 await db.collection('users').doc(currentUser.uid).delete();
 await auth.currentUser.delete();
 
@@ -2127,6 +2121,51 @@ lastSeen:firebase.firestore.FieldValue.serverTimestamp()
 }
 }
 
+async function checkAndUpdateStreak() {
+    if(!currentUser || !currentUserData) return;
+    
+    try {
+        const now = new Date();
+        const todayStr = `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}`;
+        
+        // আজ অলরেডি আপডেট হয়ে থাকলে স্কিপ করবে
+        if (currentUserData.lastLoginDate === todayStr) return; 
+
+        const yesterday = new Date(now);
+        yesterday.setDate(yesterday.getDate() - 1);
+        const yesterdayStr = `${yesterday.getFullYear()}-${yesterday.getMonth() + 1}-${yesterday.getDate()}`;
+
+        let lastLogin = currentUserData.lastLoginDate || "";
+        let streak = currentUserData.loginStreak || 0;
+
+        if (lastLogin === yesterdayStr) {
+            streak += 1;
+        } else {
+            streak = 1;
+        }
+
+        let pointsToAdd = 10;
+        if (streak > 0 && streak % 10 === 0) {
+            pointsToAdd += 500;
+            showToast("🎉 10 Day Streak! +500 Points Bonus!");
+        }
+
+        // update এর বদলে set(..., {merge: true}) ব্যবহার
+        await db.collection('users').doc(currentUser.uid).set({
+            lastLoginDate: todayStr,
+            loginStreak: streak,
+            points: firebase.firestore.FieldValue.increment(pointsToAdd)
+        }, { merge: true });
+        
+        // লোকাল আপডেট
+        currentUserData.lastLoginDate = todayStr;
+        currentUserData.loginStreak = streak;
+        currentUserData.points = (currentUserData.points || 0) + pointsToAdd;
+        
+    } catch (error) {
+        console.error("Streak Update Error: ", error);
+    }
+}
 
 
 // ===== AUTH STATE LISTENER =====
@@ -2822,7 +2861,6 @@ return `<div class="comment-item">
 }).join('');
 });
 }
-
 async function toggleCommentReaction(pid, commentIdx, type) {
     if (!currentUser || !checkRateLimit()) return;
     const ref = db.collection('posts').doc(pid);
@@ -2832,7 +2870,7 @@ async function toggleCommentReaction(pid, commentIdx, type) {
     let comments = doc.data().comments || [];
     if (!comments[commentIdx]) return;
     
-    // রিঅ্যাক্ট চেক লজিক
+    // রিঅ্যাক্ট চেক লজিক (যাতে আপনি নিজে বারবার লাইক দিতে না পারেন)
     if (comments[commentIdx].reactedBy && comments[commentIdx].reactedBy.includes(currentUser.uid)) {
         showToast('You already reacted to this!');
         return;
@@ -2851,6 +2889,24 @@ async function toggleCommentReaction(pid, commentIdx, type) {
     showToast('Reaction added!');
 }
 
+function showReplyInput(pid, idx, authorName) {
+const container = document.getElementById(`reply-input-${idx}`);
+if (!container) return;
+if (container.innerHTML.trim() !== '') {
+container.innerHTML = '';
+return;
+}
+const safeAuthor = escapeHTML(authorName);
+container.innerHTML = `
+<div class="reply-input-container">
+<input type="text" id="reply-text-${idx}" placeholder="Reply to ${safeAuthor}..." onkeypress="if(event.key==='Enter')submitReply('${pid}',${idx})">
+<button onclick="submitReply('${pid}',${idx})">
+<span class="material-symbols-outlined" style="font-size:16px;">send</span>
+</button>
+</div>
+`;
+document.getElementById(`reply-text-${idx}`).focus();
+}
 
 async function submitReply(pid, idx) {
 const input = document.getElementById(`reply-text-${idx}`);
@@ -3964,16 +4020,24 @@ async function loadOtherUserPosts(uid){
 }
 
 
+function getStreakBadge(streak) {
+if (!streak) return '';
+if (streak >= 100) return '<span title="100 Days Streak!" style="margin-left:4px; font-size:18px;">👑</span>';
+if (streak >= 30) return '<span title="30 Days Streak!" style="margin-left:4px; font-size:18px;">🌟</span>';
+if (streak >= 7) return '<span title="7 Days Streak!" style="margin-left:4px; font-size:18px;">🔥</span>';
+return '';
+}
+
 function loadUserUI(){
 if(!currentUser||!currentUserData)return;
 const name=currentUserData.name||currentUser.email.split('@')[0]||'User';
 const avHtml=currentUserData.avatar?`<img src="${currentUserData.avatar}">`:avatarInitial(name);
 const safeName=escapeHTML(name);
+const streakBadge = getStreakBadge(currentUserData.loginStreak);
 const setSafeHTML=(id,html)=>{const el=document.getElementById(id);if(el)el.innerHTML=html;};
 setSafeHTML('modal-composer-avatar',avHtml);
 setSafeHTML('modal-composer-name',safeName+getVerifiedBadge(currentUserData.email));
-// স্ট্রিক সরানো হয়েছে
-setSafeHTML('profile-name-display',safeName + getVerifiedBadge(currentUserData.email));
+setSafeHTML('profile-name-display',safeName + streakBadge + getVerifiedBadge(currentUserData.email));
 setSafeHTML('profile-avatar-big',avHtml);
 const bioEl=document.getElementById('profile-bio-display');
 if(bioEl)bioEl.textContent=currentUserData.bio||'';
@@ -3988,8 +4052,11 @@ const month = joinedDate.toLocaleString('default', { month: 'long' });
 const year = joinedDate.getFullYear();
 dHtml += `<div class="detail-item"><span class="material-symbols-outlined">schedule</span> Joined <strong>${month} ${year}</strong></div>`;
 }
-
+if(currentUserData.loginStreak) {
+dHtml += `<div class="detail-item" style="color:var(--danger);"><span class="material-symbols-outlined">local_fire_department</span> Streak <strong>Day ${currentUserData.loginStreak}</strong></div>`;
+}
 setSafeHTML('profile-details-display',dHtml);
+// loadUserUI ফাংশনের ভেতরের বাটন সেকশনটি এভাবে বদলে দিন:
 const buttonsHtml = `
     <div style="display:flex; justify-content:center; gap:20px; width:100%; margin-top:16px;">
         <button class="icon-btn" style="width:48px; height:48px; border-radius:50%; background:var(--gradient); color:#fff; border:none; box-shadow:var(--shadow-glow);" onclick="openProfileEdit()" title="Edit Profile">
@@ -4004,7 +4071,6 @@ const buttonsHtml = `
 const fCount=document.getElementById('profile-friend-count');
 if(fCount)fCount.textContent=`${(currentUserData.friends||[]).length} friends`;
 }
-
 
 async function loadMyPosts(){
 const list=document.getElementById('my-posts-list');
@@ -4044,40 +4110,22 @@ list.innerHTML = html;
 }
 
 function uploadAvatar(input){
-    const file=input.files[0];
-    if(!file)return;
-    if(file.size > MAX_FILE_SIZE) {
-        showToast('Profile photo must be under 5MB!');
-        return;
-    }
-    showToast('Uploading profile photo...');
-    
-    uploadToCloudinary(file,false)
-    .then(async url=>{
-        await db.collection('users').doc(currentUser.uid).update({avatar:url});
-        currentUserData.avatar=url;
-        
-        const postsSnap = await db.collection('posts').where('uid', '==', currentUser.uid).get();
-        const batch = db.batch();
-        postsSnap.forEach(doc => {
-            batch.update(doc.ref, { avatar: url });
-        });
-        await batch.commit();
-        
-        const storySnap = await db.collection('stories').where('uid', '==', currentUser.uid).get();
-        const storyBatch = db.batch();
-        storySnap.forEach(doc => {
-            storyBatch.update(doc.ref, { avatar: url });
-        });
-        await storyBatch.commit();
-        
-        loadUserUI();
-        if (document.getElementById('page-feed').classList.contains('active')) loadFeed();
-        showToast('Profile photo updated everywhere!');
-    })
-    .catch(e=>showToast('Network error.'));
+const file=input.files[0];
+if(!file)return;
+if(file.size > MAX_FILE_SIZE) {
+showToast('Profile photo must be under 5MB!');
+return;
 }
-
+showToast('Uploading profile photo...');
+uploadToCloudinary(file,false)
+.then(async url=>{
+await db.collection('users').doc(currentUser.uid).update({avatar:url});
+currentUserData.avatar=url;
+loadUserUI();
+showToast('Profile photo updated!');
+})
+.catch(e=>showToast('Network error.'));
+}
 
 async function cleanupExpiredPosts(){
 const now = new Date();
