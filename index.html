@@ -2088,25 +2088,25 @@ storiesSnap.forEach(doc => storiesBatch.delete(doc.ref));
 await storiesBatch.commit();
 
 const chatsSnap = await db.collection('chats').get();
-const chatsToDelete = [];
-chatsSnap.forEach(doc => {
-if(doc.id.includes(currentUser.uid)) {
-chatsToDelete.push(doc.id);
-}
-});
-for(let chatId of chatsToDelete) {
-const messagesSnap = await db.collection('chats').doc(chatId).collection('messages').get();
-const msgBatch = db.batch();
-messagesSnap.forEach(doc => msgBatch.delete(doc.ref));
-await msgBatch.commit();
-await db.collection('chats').doc(chatId).delete();
-}
+const chatsToDelete = ();
+                        try {
+            const snap = await db.collection('users').doc(user.uid).get();
+            currentUserData = snap.exists ? snap.data() : { name: user.email.split('@')[0], email: user.email };
+            
+            try {
+                await checkAndUpdateStreak();
+            } catch (e) {
+                console.error("Streak Update skipped:", e);
+            }
+        } catch(e) {
+            currentUserData = { name: user.email.split('@')[0], email: user.email };
+        }
 
-const notifsSnap = await db.collection('notifications').where('toUid', '==', currentUser.uid).get();
-const notifsBatch = db.batch();
-notifsSnap.forEach(doc => notifsBatch.delete(doc.ref));
-await notifsBatch.commit();
+        document.getElementById('auth-screen').style.display = 'none';
+        document.getElementById('app-screen').style.display = 'block';
 
+        
+      
 await db.collection('users').doc(currentUser.uid).delete();
 await auth.currentUser.delete();
 
