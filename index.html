@@ -2003,6 +2003,7 @@ friends: [], sentRequests: [], receivedRequests: [],
 blockedUsers: [], mutedChats: [], pinnedChats: [], archivedChats: [],
 online: true,
 points: 20,
+loginStreak: 1,
 lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
 createdAt: firebase.firestore.FieldValue.serverTimestamp()
 });
@@ -2120,7 +2121,51 @@ lastSeen:firebase.firestore.FieldValue.serverTimestamp()
 }
 }
 
+async function checkAndUpdateStreak() {
+    if(!currentUser || !currentUserData) return;
+    
+    try {
+        const now = new Date();
+        const todayStr = `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}`;
+        
+        // আজ অলরেডি আপডেট হয়ে থাকলে স্কিপ করবে
+        if (currentUserData.lastLoginDate === todayStr) return; 
 
+        const yesterday = new Date(now);
+        yesterday.setDate(yesterday.getDate() - 1);
+        const yesterdayStr = `${yesterday.getFullYear()}-${yesterday.getMonth() + 1}-${yesterday.getDate()}`;
+
+        let lastLogin = currentUserData.lastLoginDate || "";
+        let streak = currentUserData.loginStreak || 0;
+
+        if (lastLogin === yesterdayStr) {
+            streak += 1;
+        } else {
+            streak = 1;
+        }
+
+        let pointsToAdd = 10;
+        if (streak > 0 && streak % 10 === 0) {
+            pointsToAdd += 500;
+            showToast("🎉 10 Day Streak! +500 Points Bonus!");
+        }
+
+        // update এর বদলে set(..., {merge: true}) ব্যবহার
+        await db.collection('users').doc(currentUser.uid).set({
+            lastLoginDate: todayStr,
+            loginStreak: streak,
+            points: firebase.firestore.FieldValue.increment(pointsToAdd)
+        }, { merge: true });
+        
+        // লোকাল আপডেট
+        currentUserData.lastLoginDate = todayStr;
+        currentUserData.loginStreak = streak;
+        currentUserData.points = (currentUserData.points || 0) + pointsToAdd;
+        
+    } catch (error) {
+        console.error("Streak Update Error: ", error);
+    }
+}
 
 
 // ===== AUTH STATE LISTENER =====
@@ -2132,7 +2177,7 @@ const snap=await db.collection('users').doc(user.uid).get();
 currentUserData=snap.exists?snap.data():{name:user.email.split('@')[0],email:user.email};
 }catch(e){currentUserData={name:user.email.split('@')[0],email:user.email};}
 
-
+await checkAndUpdateStreak();
 document.getElementById('auth-screen').style.display='none';
 document.getElementById('app-screen').style.display='block';
 
@@ -3975,17 +4020,24 @@ async function loadOtherUserPosts(uid){
 }
 
 
-
+function getStreakBadge(streak) {
+if (!streak) return '';
+if (streak >= 100) return '<span title="100 Days Streak!" style="margin-left:4px; font-size:18px;">👑</span>';
+if (streak >= 30) return '<span title="30 Days Streak!" style="margin-left:4px; font-size:18px;">🌟</span>';
+if (streak >= 7) return '<span title="7 Days Streak!" style="margin-left:4px; font-size:18px;">🔥</span>';
+return '';
+}
 
 function loadUserUI(){
 if(!currentUser||!currentUserData)return;
 const name=currentUserData.name||currentUser.email.split('@')[0]||'User';
 const avHtml=currentUserData.avatar?`<img src="${currentUserData.avatar}">`:avatarInitial(name);
 const safeName=escapeHTML(name);
+const streakBadge = getStreakBadge(currentUserData.loginStreak);
 const setSafeHTML=(id,html)=>{const el=document.getElementById(id);if(el)el.innerHTML=html;};
 setSafeHTML('modal-composer-avatar',avHtml);
 setSafeHTML('modal-composer-name',safeName+getVerifiedBadge(currentUserData.email));
-setSafeHTML('profile-name-display',safeName + getVerifiedBadge(currentUserData.email));
+setSafeHTML('profile-name-display',safeName + streakBadge + getVerifiedBadge(currentUserData.email));
 setSafeHTML('profile-avatar-big',avHtml);
 const bioEl=document.getElementById('profile-bio-display');
 if(bioEl)bioEl.textContent=currentUserData.bio||'';
