@@ -3854,7 +3854,12 @@ dropdown.classList.add('open');
 function buildPostCardHTML(p){
 const pid=p.id;
 const uniqueDropId = pid + '_' + Math.random().toString(36).substr(2, 5);
-const av=p.avatar?`<img src="${p.avatar}">`:avatarInitial(p.name||'?');
+let av = p.avatar ? `<img src="${p.avatar}">` : avatarInitial(p.name||'?');
+
+// If this is the current user's post, always use the latest avatar
+if (currentUser && p.uid === currentUser.uid && currentUserData && currentUserData.avatar) {
+    av = `<img src="${currentUserData.avatar}">`;
+}
 const vBadge=getVerifiedBadge(p.email);
 const isLiked=p.likedBy&&p.likedBy.includes(currentUser?.uid);
 const likeColor=isLiked?'var(--danger)':'var(--text-secondary)';
