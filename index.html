@@ -68,13 +68,10 @@ min-height:100dvh;
 touch-action:manipulation;
 -webkit-font-smoothing:antialiased;
 }
-.material-symbols-outlined {
-    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
-    display: inline-block;
-    vertical-align: middle;
-    /* সিলেক্ট বন্ধ করার কোড */
-    -webkit-user-select: none;
-    user-select: none;
+.material-symbols-outlined{
+font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24;
+display:inline-block;
+vertical-align:middle;
 }
 .material-symbols-outlined.filled{font-variation-settings:'FILL' 1;}
 ::-webkit-scrollbar{width:4px;height:4px;}
@@ -421,14 +418,11 @@ border-top:1px solid var(--border);
 padding-top:16px;
 margin-top:4px;
 }
-.post-action-btn {
-    background: none; border: none; cursor: pointer;
-    display: flex; align-items: center; gap: 6px;
-    color: var(--text-secondary);
-    font-weight: 600; font-size: 14px;
-    /* নিচের লাইন দুটি টেক্সট সিলেক্ট হওয়া বন্ধ করবে */
-    -webkit-user-select: none;
-    user-select: none;
+.post-action-btn{
+background:none;border:none;cursor:pointer;
+display:flex;align-items:center;gap:6px;
+color:var(--text-secondary);
+font-weight:600;font-size:14px;
 }
 .post-action-btn.liked{color:var(--danger);}
 .post-action-btn.liked .material-symbols-outlined{font-variation-settings:'FILL' 1;}
@@ -2867,7 +2861,6 @@ return `<div class="comment-item">
 }).join('');
 });
 }
-
 async function toggleCommentReaction(pid, commentIdx, type) {
     if (!currentUser || !checkRateLimit()) return;
     const ref = db.collection('posts').doc(pid);
@@ -2877,7 +2870,7 @@ async function toggleCommentReaction(pid, commentIdx, type) {
     let comments = doc.data().comments || [];
     if (!comments[commentIdx]) return;
     
-    // রিঅ্যাক্ট চেক লজিক
+    // রিঅ্যাক্ট চেক লজিক (যাতে আপনি নিজে বারবার লাইক দিতে না পারেন)
     if (comments[commentIdx].reactedBy && comments[commentIdx].reactedBy.includes(currentUser.uid)) {
         showToast('You already reacted to this!');
         return;
@@ -2896,6 +2889,24 @@ async function toggleCommentReaction(pid, commentIdx, type) {
     showToast('Reaction added!');
 }
 
+function showReplyInput(pid, idx, authorName) {
+const container = document.getElementById(`reply-input-${idx}`);
+if (!container) return;
+if (container.innerHTML.trim() !== '') {
+container.innerHTML = '';
+return;
+}
+const safeAuthor = escapeHTML(authorName);
+container.innerHTML = `
+<div class="reply-input-container">
+<input type="text" id="reply-text-${idx}" placeholder="Reply to ${safeAuthor}..." onkeypress="if(event.key==='Enter')submitReply('${pid}',${idx})">
+<button onclick="submitReply('${pid}',${idx})">
+<span class="material-symbols-outlined" style="font-size:16px;">send</span>
+</button>
+</div>
+`;
+document.getElementById(`reply-text-${idx}`).focus();
+}
 
 async function submitReply(pid, idx) {
 const input = document.getElementById(`reply-text-${idx}`);
@@ -4099,40 +4110,22 @@ list.innerHTML = html;
 }
 
 function uploadAvatar(input){
-    const file=input.files[0];
-    if(!file)return;
-    if(file.size > MAX_FILE_SIZE) {
-        showToast('Profile photo must be under 5MB!');
-        return;
-    }
-    showToast('Uploading profile photo...');
-    
-    uploadToCloudinary(file,false)
-    .then(async url=>{
-        await db.collection('users').doc(currentUser.uid).update({avatar:url});
-        currentUserData.avatar=url;
-        
-        const postsSnap = await db.collection('posts').where('uid', '==', currentUser.uid).get();
-        const batch = db.batch();
-        postsSnap.forEach(doc => {
-            batch.update(doc.ref, { avatar: url });
-        });
-        await batch.commit();
-        
-        const storySnap = await db.collection('stories').where('uid', '==', currentUser.uid).get();
-        const storyBatch = db.batch();
-        storySnap.forEach(doc => {
-            storyBatch.update(doc.ref, { avatar: url });
-        });
-        await storyBatch.commit();
-        
-        loadUserUI();
-        if (document.getElementById('page-feed').classList.contains('active')) loadFeed();
-        showToast('Profile photo updated everywhere!');
-    })
-    .catch(e=>showToast('Network error.'));
+const file=input.files[0];
+if(!file)return;
+if(file.size > MAX_FILE_SIZE) {
+showToast('Profile photo must be under 5MB!');
+return;
 }
-
+showToast('Uploading profile photo...');
+uploadToCloudinary(file,false)
+.then(async url=>{
+await db.collection('users').doc(currentUser.uid).update({avatar:url});
+currentUserData.avatar=url;
+loadUserUI();
+showToast('Profile photo updated!');
+})
+.catch(e=>showToast('Network error.'));
+}
 
 async function cleanupExpiredPosts(){
 const now = new Date();
