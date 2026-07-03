@@ -4305,24 +4305,34 @@ async function deleteChatForEveryone() {
     if (!confirmDelete) return;
 
     try {
-        // চ্যাট আইডি ঠিকঠাক আছে কিনা চেক করা
         if (!currentChatId) {
             alert("Error: Chat ID not found!");
             return;
         }
 
-        // ১. চোখের সামনে থেকে (স্ক্রিন থেকে) মেসেজগুলো সাথে সাথে গায়েব করে দেওয়া
+        // ১. চোখের সামনে থেকে মেসেজগুলো সাথে সাথে গায়েব করে দেওয়া
         const chatMessagesDiv = document.getElementById('chat-messages');
         if (chatMessagesDiv) {
             chatMessagesDiv.innerHTML = '<div style="text-align:center; padding:20px; color:var(--text-muted);">All messages deleted.</div>';
         }
 
-        // ২. ফায়ারবেস থেকে আসল ম্যাজিক (মেইন চ্যাট ডিলিট করা)
+        // ২. সাব-ফোল্ডার (messages) থেকে সব মেসেজ খুঁজে বের করা
+        const messagesRef = db.collection('chats').doc(currentChatId).collection('messages');
+        const messagesSnapshot = await messagesRef.get();
+        
+        // ৩. সবগুলো মেসেজ একবারে ডিলিট করার জন্য ব্যাচ (batch) তৈরি করা
+        const batch = db.batch();
+        messagesSnapshot.forEach((doc) => {
+            batch.delete(doc.ref);
+        });
+        await batch.commit(); // ব্যাচ ডিলিট কমপ্লিট করা
+
+        // ৪. মেইন চ্যাটের ইনফরমেশন (last message ইত্যাদি) ডিলিট করা
         await db.collection('chats').doc(currentChatId).delete();
         
         alert("Chat deleted for everyone successfully! Storage freed.");
         
-        // চ্যাট স্ক্রিনটা অটোমেটিক বন্ধ করে আগের পেজে পাঠিয়ে দেওয়া
+        // চ্যাট স্ক্রিনটা বন্ধ করে দেওয়া
         if (typeof closeChat === 'function') {
             closeChat();
         }
