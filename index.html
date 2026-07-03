@@ -1212,6 +1212,20 @@ background: rgba(0, 0, 0, 0.05) !important;
     color: var(--accent); font-size: 16px;
     filter: drop-shadow(0 2px 4px rgba(0,0,0,0.6));
 }
+/* --- Auto-hide Scroll Animation CSS --- */
+.topbar {
+    transition: transform 0.3s ease-in-out !important;
+}
+.nav-hidden-top {
+    transform: translateY(-100%) !important;
+}
+
+.bottom-nav {
+    transition: transform 0.3s ease-in-out !important;
+}
+.nav-hidden-bottom {
+    transform: translate(-50%, 150%) !important;
+}
 </style>
 </head>
 <body>
@@ -4186,6 +4200,34 @@ async function applyPrivacy() {
   showToast('Privacy updated to: ' + mode.toUpperCase());
   closePrivacySettings();
 }
+// --- Scroll to Hide Navigation Logic ---
+let lastScrollTop = 0;
+const topBar = document.querySelector('.topbar');
+const bottomNav = document.querySelector('.bottom-nav');
+
+window.addEventListener('scroll', function() {
+    let scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+
+    // যদি ইউজার স্ক্রল করে একদম উপরের দিকে থাকে, তাহলে সব শো করবে
+    if (scrollTop <= 50) {
+        topBar.classList.remove('nav-hidden-top');
+        bottomNav.classList.remove('nav-hidden-bottom');
+        lastScrollTop = scrollTop;
+        return;
+    }
+
+    if (scrollTop > lastScrollTop) {
+        // নিচের দিকে স্ক্রল করছে (Scroll Down) -> হাইড করো
+        topBar.classList.add('nav-hidden-top');
+        bottomNav.classList.add('nav-hidden-bottom');
+    } else {
+        // উপরের দিকে স্ক্রল করছে (Scroll Up) -> শো করো
+        topBar.classList.remove('nav-hidden-top');
+        bottomNav.classList.remove('nav-hidden-bottom');
+    }
+    
+    lastScrollTop = scrollTop;
+});
 </script>
 </body>
 </html>
