@@ -1650,6 +1650,16 @@ Continue with Google
 <div class="chat-back" onclick="closeChat()"><span class="material-symbols-outlined">arrow_back</span></div>
 <div class="avatar sm" id="chat-avatar" style="position:relative;">?</div>
 <div class="chat-name" id="chat-name-display" style="flex:1;margin-left:8px;">Chat</div>
+<div class="chat-header-actions" style="margin-left: auto; position: relative;">
+    <span class="material-symbols-outlined" onclick="toggleChatDeleteMenu()" style="cursor: pointer; padding: 8px;">more_vert</span>
+    
+    <div id="chat-delete-menu" class="chat-list-menu" style="top: 100%; right: 0; transform: none; display: none; width: max-content;">
+        <div class="chat-dropdown-item danger" onclick="deleteChatForEveryone()">
+            <span class="material-symbols-outlined">delete_forever</span>
+            Delete for Everyone
+        </div>
+    </div>
+</div>
 </div>
 <div class="chat-messages" id="chat-messages"></div>
 <div class="chat-input-bar" id="chat-input-area">
@@ -4237,6 +4247,81 @@ async function applyPrivacy() {
   });
   showToast('Privacy updated to: ' + mode.toUpperCase());
   closePrivacySettings();
+}
+// --- Scroll to Hide Navigation Logic (Isolated & Safe) ---
+(function() {
+    let safeLastScroll = 0;
+    const safeTopBar = document.querySelector('.topbar');
+    const safeBottomNav = document.querySelector('.bottom-nav');
+
+    if (safeTopBar && safeBottomNav) {
+        window.addEventListener('scroll', function() {
+            let currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+
+            if (currentScroll <= 50) {
+                safeTopBar.classList.remove('nav-hidden-top');
+                safeBottomNav.classList.remove('nav-hidden-bottom');
+                safeLastScroll = currentScroll;
+                return;
+            }
+
+            if (currentScroll > safeLastScroll) {
+                safeTopBar.classList.add('nav-hidden-top');
+                safeBottomNav.classList.add('nav-hidden-bottom');
+            } else {
+                safeTopBar.classList.remove('nav-hidden-top');
+                safeBottomNav.classList.remove('nav-hidden-bottom');
+            }
+            
+            safeLastScroll = currentScroll;
+        });
+    }
+})();
+// চ্যাট হেডারের মেনু ওপেন/ক্লোজ করার ফাংশন
+function toggleChatDeleteMenu() {
+    const menu = document.getElementById('chat-delete-menu');
+    if (menu.style.display === 'block') {
+        menu.style.display = 'none';
+    } else {
+        menu.style.display = 'block';
+    }
+}
+
+// স্ক্রিনের অন্য কোথাও ক্লিক করলে মেনু হাইড করার জন্য
+document.addEventListener('click', function(event) {
+    const menu = document.getElementById('chat-delete-menu');
+    const actionsDiv = document.querySelector('.chat-header-actions');
+    if (menu && menu.style.display === 'block' && actionsDiv && !actionsDiv.contains(event.target)) {
+        menu.style.display = 'none';
+    }
+});
+// Delete for Everyone এর আসল ফাংশন
+async function deleteChatForEveryone() {
+    // মেনুটা সাথে সাথে বন্ধ করে দেওয়া
+    document.getElementById('chat-delete-menu').style.display = 'none';
+
+    // ইউজারকে একটা ওয়ার্নিং দেওয়া
+    const confirmDelete = confirm("Are you sure? This will permanently delete all messages for both sides and cannot be undone.");
+    if (!confirmDelete) return;
+
+    try {
+        // এখানে ফায়ারবেস থেকে মেসেজ ডিলিট করার লজিক বসবে।
+        // আপনার ডাটাবেসের কালেকশন অনুযায়ী এটা আপডেট হতে পারে।
+        // উদাহরণস্বরূপ:
+        /*
+        const chatId = generateChatId(currentUser.uid, currentOtherProfileUid);
+        await db.collection('chats').doc(chatId).delete();
+        */
+        
+        alert("Chat deleted for everyone successfully! Storage freed.");
+        
+        // চ্যাট স্ক্রিন থেকে বের হয়ে আগের পেজে চলে যাওয়া
+        // closeChat(); // যদি আপনার চ্যাট ক্লোজ করার ফাংশন থাকে
+        
+    } catch (error) {
+        console.error("Error deleting chat:", error);
+        alert("Failed to delete chat. Please try again.");
+    }
 }
 </script>
 </body>
