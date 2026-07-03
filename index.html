@@ -4238,33 +4238,35 @@ async function applyPrivacy() {
   showToast('Privacy updated to: ' + mode.toUpperCase());
   closePrivacySettings();
 }
-// --- Scroll to Hide Navigation Logic (Error-Free) ---
-let lastScrollTop = 0;
-const topBar = document.querySelector('.topbar');
-const bottomNav = document.querySelector('.bottom-nav');
+// --- Scroll to Hide Navigation Logic (Isolated & Safe) ---
+(function() {
+    let safeLastScroll = 0;
+    const safeTopBar = document.querySelector('.topbar');
+    const safeBottomNav = document.querySelector('.bottom-nav');
 
-if (topBar && bottomNav) {
-    window.addEventListener('scroll', function() {
-        let scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+    if (safeTopBar && safeBottomNav) {
+        window.addEventListener('scroll', function() {
+            let currentScroll = window.pageYOffset || document.documentElement.scrollTop;
 
-        if (scrollTop <= 50) {
-            topBar.classList.remove('nav-hidden-top');
-            bottomNav.classList.remove('nav-hidden-bottom');
-            lastScrollTop = scrollTop;
-            return;
-        }
+            if (currentScroll <= 50) {
+                safeTopBar.classList.remove('nav-hidden-top');
+                safeBottomNav.classList.remove('nav-hidden-bottom');
+                safeLastScroll = currentScroll;
+                return;
+            }
 
-        if (scrollTop > lastScrollTop) {
-            topBar.classList.add('nav-hidden-top');
-            bottomNav.classList.add('nav-hidden-bottom');
-        } else {
-            topBar.classList.remove('nav-hidden-top');
-            bottomNav.classList.remove('nav-hidden-bottom');
-        }
-        
-        lastScrollTop = scrollTop;
-    });
-}
+            if (currentScroll > safeLastScroll) {
+                safeTopBar.classList.add('nav-hidden-top');
+                safeBottomNav.classList.add('nav-hidden-bottom');
+            } else {
+                safeTopBar.classList.remove('nav-hidden-top');
+                safeBottomNav.classList.remove('nav-hidden-bottom');
+            }
+            
+            safeLastScroll = currentScroll;
+        });
+    }
+})();
 </script>
 </body>
 </html>
