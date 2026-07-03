@@ -4238,34 +4238,33 @@ async function applyPrivacy() {
   showToast('Privacy updated to: ' + mode.toUpperCase());
   closePrivacySettings();
 }
-// --- Scroll to Hide Navigation Logic ---
+// --- Scroll to Hide Navigation Logic (Error-Free) ---
 let lastScrollTop = 0;
 const topBar = document.querySelector('.topbar');
 const bottomNav = document.querySelector('.bottom-nav');
 
-window.addEventListener('scroll', function() {
-    let scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+if (topBar && bottomNav) {
+    window.addEventListener('scroll', function() {
+        let scrollTop = window.pageYOffset || document.documentElement.scrollTop;
 
-    // যদি ইউজার স্ক্রল করে একদম উপরের দিকে থাকে, তাহলে সব শো করবে
-    if (scrollTop <= 50) {
-        topBar.classList.remove('nav-hidden-top');
-        bottomNav.classList.remove('nav-hidden-bottom');
+        if (scrollTop <= 50) {
+            topBar.classList.remove('nav-hidden-top');
+            bottomNav.classList.remove('nav-hidden-bottom');
+            lastScrollTop = scrollTop;
+            return;
+        }
+
+        if (scrollTop > lastScrollTop) {
+            topBar.classList.add('nav-hidden-top');
+            bottomNav.classList.add('nav-hidden-bottom');
+        } else {
+            topBar.classList.remove('nav-hidden-top');
+            bottomNav.classList.remove('nav-hidden-bottom');
+        }
+        
         lastScrollTop = scrollTop;
-        return;
-    }
-
-    if (scrollTop > lastScrollTop) {
-        // নিচের দিকে স্ক্রল করছে (Scroll Down) -> হাইড করো
-        topBar.classList.add('nav-hidden-top');
-        bottomNav.classList.add('nav-hidden-bottom');
-    } else {
-        // উপরের দিকে স্ক্রল করছে (Scroll Up) -> শো করো
-        topBar.classList.remove('nav-hidden-top');
-        bottomNav.classList.remove('nav-hidden-bottom');
-    }
-    
-    lastScrollTop = scrollTop;
-});
+    });
+}
 </script>
 </body>
 </html>
