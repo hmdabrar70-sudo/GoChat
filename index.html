@@ -4305,18 +4305,24 @@ async function deleteChatForEveryone() {
     if (!confirmDelete) return;
 
     try {
-        // এখানে ফায়ারবেস থেকে মেসেজ ডিলিট করার লজিক বসবে।
-        // আপনার ডাটাবেসের কালেকশন অনুযায়ী এটা আপডেট হতে পারে।
-        // উদাহরণস্বরূপ:
-        /*
-        const chatId = generateChatId(currentUser.uid, currentOtherProfileUid);
-        await db.collection('chats').doc(chatId).delete();
-        */
+        // ১. চোখের সামনে থেকে (স্ক্রিন থেকে) মেসেজগুলো সাথে সাথে গায়েব করে দেওয়া
+        const chatMessagesDiv = document.getElementById('chat-messages');
+        if (chatMessagesDiv) {
+            chatMessagesDiv.innerHTML = '<div style="text-align:center; padding:20px; color:var(--text-muted);">All messages deleted.</div>';
+        }
+
+        // ২. ফায়ারবেস থেকে ডাটা পার্মানেন্টলি মুছে ফেলা
+        if (currentUser && currentOtherProfileUid) {
+            // দুজনের আইডি মিলিয়ে চ্যাট আইডি তৈরি করা (সাধারণত এভাবেই করা হয়)
+            const chatId = currentUser.uid < currentOtherProfileUid 
+                ? currentUser.uid + '_' + currentOtherProfileUid 
+                : currentOtherProfileUid + '_' + currentUser.uid;
+            
+            // ডাটাবেস থেকে ডিলিট কমান্ড (এখানে 'chats' হলো ফোল্ডারের নাম)
+            await db.collection('chats').doc(chatId).delete();
+        }
         
         alert("Chat deleted for everyone successfully! Storage freed.");
-        
-        // চ্যাট স্ক্রিন থেকে বের হয়ে আগের পেজে চলে যাওয়া
-        // closeChat(); // যদি আপনার চ্যাট ক্লোজ করার ফাংশন থাকে
         
     } catch (error) {
         console.error("Error deleting chat:", error);
