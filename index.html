@@ -2100,23 +2100,29 @@ const provider = new firebase.auth.GoogleAuthProvider();
 try {
 const result = await auth.signInWithPopup(provider);
 const user = result.user;
+// --- সঠিক কোড ---
 const doc = await db.collection('users').doc(user.uid).get();
 if (!doc.exists) {
-await db.collection('users').doc(user.uid).set({
-name: user.email.split('@')[0],
-email: user.email,
-avatar: '',
-bio: '', location: '', hometown: '', relationship: '', gender: '',
-friends: [], sentRequests: [], receivedRequests: [],
-blockedUsers: [], mutedChats: [], pinnedChats: [], archivedChats: [],
-online: true,
-points: 20,
-loginStreak: 1,
-lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
-createdAt: firebase.firestore.FieldValue.serverTimestamp()
-});
+    await db.collection('users').doc(user.uid).set({
+        name: user.email.split('@')[0],
+        email: user.email,
+        avatar: '',
+        bio: '', location: '', hometown: '', relationship: '', gender: '',
+        friends: [], sentRequests: [], receivedRequests: [],
+        blockedUsers: [], mutedChats: [], pinnedChats: [], archivedChats: [],
+        online: true,
+        points: 20,
+        loginStreak: 1,
+        lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
 }
-} // এটা loginWithGoogle ফাংশনের ক্লোজিং ব্র্যাকেট
+showToast("Logged in successfully!");
+} catch (error) {
+    console.error(error);
+    showToast("Login failed!");
+}
+} // loginWithGoogle শেষ
 
 function togglePasswordVisibility() {
     const passwordInput = document.getElementById('auth-password');
@@ -2124,18 +2130,11 @@ function togglePasswordVisibility() {
     
     if (passwordInput.type === "password") {
         passwordInput.type = "text";
-        eyeIcon.innerText = "visibility_off";
+        eyeIcon.textContent = "visibility_off";
     } else {
         passwordInput.type = "password";
-        eyeIcon.innerText = "visibility";
+        eyeIcon.textContent = "visibility";
     }
-}
-
-
-showToast("Logged in successfully!");
-} catch (error) {
-console.error(error);
-showToast("Login failed!");
 }
 }
 
