@@ -3558,6 +3558,24 @@ lastNameChange:firebase.firestore.FieldValue.serverTimestamp()
 };
 showToast('Saving profile...');
 await db.collection('users').doc(currentUser.uid).update(updates);
+        // === নতুন ম্যাজিক: ইউজারের আগের সব পোস্টের নাম আপডেট করা ===
+        try {
+            // 'posts' ফোল্ডার থেকে এই ইউজারের সব পোস্ট খুঁজে বের করা
+            const postsSnapshot = await db.collection('posts').where('uid', '==', currentUser.uid).get();
+            
+            if (!postsSnapshot.empty) {
+                const batch = db.batch();
+                postsSnapshot.forEach((doc) => {
+                    batch.update(doc.ref, { name: newName }); 
+                    // (নোট: আপনার পোস্ট ডাটাবেসে নামের ফিল্ড যদি 'authorName' হয়, তবে 'name' এর বদলে 'authorName' দেবেন)
+                });
+                await batch.commit(); // সব পোস্ট এক ক্লিকে আপডেট!
+            }
+        } catch (error) {
+            console.error("Error updating old posts: ", error);
+        }
+        // ========================================================
+        
 currentUserData={...currentUserData,...updates};
 loadUserUI();
 closeProfileEdit();
@@ -4088,6 +4106,23 @@ uploadToCloudinary(file,false)
 .then(async url=>{
 await db.collection('users').doc(currentUser.uid).update({avatar:url});
 currentUserData.avatar=url;
+        // === নতুন ম্যাজিক: ইউজারের আগের সব পোস্টের ছবি আপডেট করা ===
+        try {
+            // 'posts' ফোল্ডার থেকে এই ইউজারের সব পোস্ট খুঁজে বের করা
+            const postsSnapshot = await db.collection('posts').where('uid', '==', currentUser.uid).get();
+            
+            if (!postsSnapshot.empty) {
+                const batch = db.batch();
+                postsSnapshot.forEach((doc) => {
+                    batch.update(doc.ref, { avatar: url }); 
+                    // (নোট: আপনার পোস্ট ডাটাবেসে ছবির ফিল্ডের নাম যদি 'avatar' না হয়ে অন্য কিছু হয়, তবে সেটা বসাবেন)
+                });
+                await batch.commit(); // সব পোস্টে এক ক্লিকে নতুন ছবি আপডেট!
+            }
+        } catch (error) {
+            console.error("Error updating old posts avatar: ", error);
+        }
+        // ========================================================
 loadUserUI();
 showToast('Profile photo updated!');
 })
