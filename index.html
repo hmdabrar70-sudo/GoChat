@@ -2100,28 +2100,27 @@ const provider = new firebase.auth.GoogleAuthProvider();
 try {
 const result = await auth.signInWithPopup(provider);
 const user = result.user;
-// --- সঠিক কোড ---
-const doc = await db.collection('users').doc(user.uid).get();
-if (!doc.exists) {
-    await db.collection('users').doc(user.uid).set({
-        name: user.email.split('@')[0],
-        email: user.email,
-        avatar: '',
-        bio: '', location: '', hometown: '', relationship: '', gender: '',
-        friends: [], sentRequests: [], receivedRequests: [],
-        blockedUsers: [], mutedChats: [], pinnedChats: [], archivedChats: [],
-        online: true,
-        points: 20,
-        loginStreak: 1,
-        lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    });
-}
-showToast("Logged in successfully!");
-} catch (error) {
-    console.error(error);
-    showToast("Login failed!");
-}
+        const doc = await db.collection('users').doc(user.uid).get();
+        if (!doc.exists) {
+            await db.collection('users').doc(user.uid).set({
+                name: user.email.split('@')[0],
+                email: user.email,
+                avatar: '',
+                bio: '', location: '', hometown: '', relationship: '', gender: '',
+                friends: [], sentRequests: [], receivedRequests: [],
+                blockedUsers: [], mutedChats: [], pinnedChats: [], archivedChats: [],
+                online: true,
+                points: 20,
+                loginStreak: 1,
+                lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        }
+        showToast("Logged in successfully!");
+    } catch (error) {
+        console.error(error);
+        showToast("Login failed!");
+    }
 } // loginWithGoogle শেষ
 
 function togglePasswordVisibility() {
@@ -2136,7 +2135,7 @@ function togglePasswordVisibility() {
         eyeIcon.textContent = "visibility";
     }
 }
-}
+
 
 async function registerWithEmail(){
 const email=document.getElementById('auth-email').value.trim();
