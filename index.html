@@ -1279,7 +1279,7 @@ background: rgba(0, 0, 0, 0.05) !important;
 <div class="auth-input-group" style="position: relative;">
     <label>Password</label>
     <input type="password" id="auth-password" placeholder="••••••••" style="padding-right: 40px;">
-    <span class="material-symbols-outlined" 
+    <span id="toggle-eye" class="material-symbols-outlined" 
           style="position: absolute; right: 10px; top: 35px; cursor: pointer; color: #888; font-size: 20px;" 
           onclick="togglePasswordVisibility()">visibility</span>
 </div>
@@ -1409,10 +1409,6 @@ Continue with Google
     <span class="material-symbols-outlined">qr_code_scanner</span> Share ID
 </div>
 
-<!-- Settings Menu Item -->
-<div class="setting-item" onclick="openPage('language-page')">
-    <span class="material-icons">translate</span> Language
-</div>
 
 <div class="setting-item" style="color:var(--danger);" onclick="logout()">
     <span class="material-symbols-outlined">logout</span> Log out
@@ -1756,42 +1752,6 @@ Continue with Google
 <div class="image-zoom-modal" id="image-zoom-modal" onclick="closeImageZoom()">
 <button class="image-zoom-close" onclick="closeImageZoom()"><span class="material-symbols-outlined">close</span></button>
 <img id="zoom-image" src="">
-<!-- Language Selection Page -->
-<div id="language-page" class="page hidden">
-    <div class="header">
-        <button class="back-btn" onclick="goBack()"><span class="material-icons">arrow_back</span></button>
-        <h2>Select Language</h2>
-    </div>
-    
-    <div class="language-list">
-        <label class="lang-option">
-            <input type="radio" name="app-lang" value="en" checked>
-            <span>English (Default)</span>
-        </label>
-        
-        <label class="lang-option">
-            <input type="radio" name="app-lang" value="bn">
-            <span>Bangla (বাংলা)</span>
-        </label>
-        
-        <label class="lang-option">
-            <input type="radio" name="app-lang" value="ar">
-            <span>Arabic (العربية)</span>
-        </label>
-        
-        <label class="lang-option">
-            <input type="radio" name="app-lang" value="es"> <!-- Undo এর বদলে Spanish -->
-            <span>Spanish (Español)</span>
-        </label>
-        
-        <label class="lang-option">
-            <input type="radio" name="app-lang" value="hi">
-            <span>Hindi (हिन्दी)</span>
-        </label>
-    </div>
-
-    <button class="save-btn" onclick="saveLanguage()">Save Language</button>
-</div>
 </div>
 
 <div id="toast"></div>
@@ -1801,169 +1761,6 @@ Continue with Google
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
 <script>
-// ===== LANGUAGE SYSTEM START =====
-const translations = {
-    en: {
-        "dark_mode": "Dark mode",
-        "account_info": "Account info",
-        "user_privacy": "User Privacy",
-        "share_id": "Share ID",
-        "log_out": "Log out",
-        "select_language": "Select Language",
-        "save": "Save",
-        "loading": "Loading...",
-        "friends": "friends",
-        "my_posts": "My Posts",
-        "create_post": "Create Post",
-        "add_story": "Add Story",
-        "notifications": "Notifications",
-        "messages": "Messages",
-        "search": "Search",
-        "edit_profile": "Edit Profile Info",
-        "name": "Name",
-        "bio": "Bio",
-        "gender": "Gender",
-        "location": "Location",
-        "relationship": "Relationship",
-        "save_changes": "Save",
-        "cancel": "Cancel"
-    },
-    bn: {
-        "dark_mode": "ডার্ক মোড",
-        "account_info": "অ্যাকাউন্ট তথ্য",
-        "user_privacy": "ব্যক্তিগত গোপনীয়তা",
-        "share_id": "আইডি শেয়ার করুন",
-        "log_out": "লগ আউট",
-        "select_language": "ভাষা নির্বাচন করুন",
-        "save": "সেভ করুন",
-        "loading": "লোড হচ্ছে...",
-        "friends": "বন্ধু",
-        "my_posts": "আমার পোস্ট",
-        "create_post": "পোস্ট তৈরি করুন",
-        "add_story": "স্টোরি যোগ করুন",
-        "notifications": "বিজ্ঞপ্তি",
-        "messages": "বার্তা",
-        "search": "অনুসন্ধান",
-        "edit_profile": "প্রোফাইল সম্পাদনা",
-        "name": "নাম",
-        "bio": "বায়ো",
-        "gender": "লিঙ্গ",
-        "location": "অবস্থান",
-        "relationship": "সম্পর্ক",
-        "save_changes": "সেভ",
-        "cancel": "বাতিল"
-    },
-    ar: {
-        "dark_mode": "الوضع الداكن",
-        "account_info": "معلومات الحساب",
-        "user_privacy": "خصوصية المستخدم",
-        "share_id": "مشاركة المعرف",
-        "log_out": "تسجيل الخروج",
-        "select_language": "اختر اللغة",
-        "save": "حفظ",
-        "loading": "جار التحميل...",
-        "friends": "أصدقاء",
-        "my_posts": "منشوراتي",
-        "create_post": "إنشاء منشور",
-        "add_story": "إضافة قصة",
-        "notifications": "إشعارات",
-        "messages": "رسائل",
-        "search": "بحث",
-        "edit_profile": "تعديل الملف الشخصي",
-        "name": "اسم",
-        "bio": "السيرة الذاتية",
-        "gender": "جنس",
-        "location": "موقع",
-        "relationship": "علاقة",
-        "save_changes": "حفظ",
-        "cancel": "يلغي"
-    },
-    es: {
-        "dark_mode": "Modo oscuro",
-        "account_info": "Información de cuenta",
-        "user_privacy": "Privacidad del usuario",
-        "share_id": "Compartir ID",
-        "log_out": "Cerrar sesión",
-        "select_language": "Seleccionar idioma",
-        "save": "Guardar",
-        "loading": "Cargando...",
-        "friends": "amigos",
-        "my_posts": "Mis publicaciones",
-        "create_post": "Crear publicación",
-        "add_story": "Añadir historia",
-        "notifications": "Notificaciones",
-        "messages": "Mensajes",
-        "search": "Buscar",
-        "edit_profile": "Editar perfil",
-        "name": "Nombre",
-        "bio": "Biografía",
-        "gender": "Género",
-        "location": "Ubicación",
-        "relationship": "Relación",
-        "save_changes": "Guardar",
-        "cancel": "Cancelar"
-    },
-    hi: {
-        "dark_mode": "डार्क मोड",
-        "account_info": "खाता जानकारी",
-        "user_privacy": "उपयोगकर्ता गोपनीयता",
-        "share_id": "आईडी साझा करें",
-        "log_out": "लॉग आउट",
-        "select_language": "भाषा चुनें",
-        "save": "सहेजें",
-        "loading": "लोड हो रहा है...",
-        "friends": "मित्र",
-        "my_posts": "मेरी पोस्ट",
-        "create_post": "पोस्ट बनाएं",
-        "add_story": "कहानी जोड़ें",
-        "notifications": "सूचनाएं",
-        "messages": "संदेश",
-        "search": "खोज",
-        "edit_profile": "प्रोफ़ाइल संपादित करें",
-        "name": "नाम",
-        "bio": "बायो",
-        "gender": "लिंग",
-        "location": "स्थान",
-        "relationship": "रिश्ता",
-        "save_changes": "सहेजें",
-        "cancel": "रद्द करना"
-    }
-};
-
-function saveLanguage() {
-    const selectedLang = document.querySelector('input[name="app-lang"]:checked').value;
-    localStorage.setItem('gochat_lang', selectedLang);
-    applyLanguage(selectedLang);
-    goBack(); 
-}
-
-function applyLanguage(lang) {
-    const dict = translations[lang] || translations['en'];
-    
-    document.querySelectorAll('[data-i18n]').forEach(el => {
-        const key = el.getAttribute('data-i18n');
-        if (dict[key]) {
-            el.innerText = dict[key];
-        }
-    });
-
-    if (lang === 'ar') {
-        document.body.style.direction = 'rtl';
-    } else {
-        document.body.style.direction = 'ltr';
-    }
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-    const savedLang = localStorage.getItem('gochat_lang') || 'en';
-    const radio = document.querySelector(`input[name="app-lang"][value="${savedLang}"]`);
-    if(radio) radio.checked = true;
-    
-    applyLanguage(savedLang);
-});
-// ===== LANGUAGE SYSTEM END =====
-
-
 // ===== CONSTANTS =====
 const MY_SPECIAL_EMAIL="hbmabrar@gmail.com";
 const ONE_YEAR_MS = 365 * 24 * 60 * 60 * 1000;
@@ -3772,7 +3569,7 @@ async function saveProfileChanges(){
     // ৪. যদি নাম আসলেই পাল্টায়, শুধু তখনই নামের নতুন টাইমস্ট্যাম্প আপডেট হবে
     if (isNameChanged) {
         updates.lastNameChange = Date.now(); 
-    }
+    }    
 showToast('Saving profile...');
 await db.collection('users').doc(currentUser.uid).update(updates);
         // === নতুন ম্যাজিক: ইউজারের আগের সব পোস্টের নাম আপডেট করা ===
@@ -4654,6 +4451,19 @@ async function deleteChatForEveryone() {
     } catch (error) {
         console.error("Error deleting chat:", error);
         alert("Failed to delete chat. Please try again.");
+    }
+}
+// ===== Password Visibility Toggle =====
+function togglePasswordVisibility() {
+    const passwordInput = document.getElementById('login-password');
+    const eyeIcon = document.getElementById('toggle-eye');
+
+    if (passwordInput.type === 'password') {
+        passwordInput.type = 'text'; // পাসওয়ার্ড দেখাবে
+        eyeIcon.innerText = 'visibility_off'; // চোখটা কাটা দেখাবে
+    } else {
+        passwordInput.type = 'password'; // আবার হাইড করে দেবে
+        eyeIcon.innerText = 'visibility'; // স্বাভাবিক চোখ হয়ে যাবে
     }
 }
 </script>
