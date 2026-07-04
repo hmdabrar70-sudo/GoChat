@@ -1263,6 +1263,37 @@ background: rgba(0, 0, 0, 0.05) !important;
 .nav-hidden-bottom {
     transform: translate(-50%, 150%) !important;
 }
+/* ===== SELECTION MODE & DELETE MODAL CSS ===== */
+.chat-bubble-wrapper { transition: all 0.2s ease; position: relative; }
+.chat-bubble-wrapper.selected .chat-bubble {
+    background: rgba(124, 92, 255, 0.2) !important;
+    border: 2px solid #8a2be2 !important;
+}
+.selection-bottom-bar {
+    display: none; position: fixed; bottom: 0; left: 0; right: 0;
+    background: var(--surface); padding: 16px 20px;
+    border-top: 1px solid var(--border); z-index: 1000;
+    align-items: center; justify-content: space-between;
+    box-shadow: 0 -4px 15px rgba(0,0,0,0.1);
+}
+.selection-bottom-bar.active { display: flex; animation: slideUp 0.3s ease; }
+.delete-sheet-modal {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+    z-index: 2000; align-items: flex-end; justify-content: center;
+}
+.delete-sheet-modal.open { display: flex; animation: fadeIn 0.2s ease; }
+.delete-sheet-box {
+    background: var(--surface); width: 100%; border-radius: 20px 20px 0 0;
+    padding: 24px; text-align: center; max-width: 520px;
+}
+.delete-sheet-btn {
+    width: 100%; padding: 16px; margin-bottom: 10px; border-radius: 12px;
+    font-size: 16px; font-weight: 700; cursor: pointer; border: none;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    background: var(--surface-2); color: var(--text);
+}
+.delete-sheet-btn.danger { color: #ff4d6a; }
+.delete-sheet-btn:active { transform: scale(0.98); }
 </style>
 </head>
 <body>
@@ -1783,6 +1814,29 @@ Continue with Google
 </div>
 
 <div id="toast"></div>
+
+<!-- ===== SELECTION BAR & DELETE SHEET ===== -->
+<div id="selection-bottom-bar" class="selection-bottom-bar">
+    <div style="display: flex; align-items: center; gap: 16px;">
+        <span class="material-symbols-outlined" onclick="closeSelectionMode()" style="cursor:pointer; font-size: 24px;">close</span>
+        <span id="selected-count-text" style="font-weight: 800; font-size: 16px;">1 Selected</span>
+    </div>
+    <span class="material-symbols-outlined" onclick="showDeleteSheet()" style="cursor:pointer; font-size: 26px; color: #ff4d6a;">delete</span>
+</div>
+
+<div id="delete-sheet-modal" class="delete-sheet-modal" onclick="closeDeleteSheet()">
+    <div class="delete-sheet-box" onclick="event.stopPropagation()">
+        <div id="delete-sheet-title" style="margin-bottom: 20px; font-weight: 700; color: var(--text-muted);">Delete message(s)?</div>
+        
+        <button id="btn-delete-everyone" class="delete-sheet-btn danger" onclick="executeDelete('everyone')">
+            <span class="material-symbols-outlined">delete_forever</span> Delete for everyone
+        </button>
+        <button class="delete-sheet-btn" onclick="executeDelete('forme')">
+            <span class="material-symbols-outlined">delete</span> Delete for you
+        </button>
+        <button class="delete-sheet-btn" style="margin-top: 10px; background: transparent; color: var(--text-muted);" onclick="closeDeleteSheet()">Cancel</button>
+    </div>
+</div>
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
@@ -3103,14 +3157,28 @@ let replyHtml='';
 if(m.replyTo){
 replyHtml=`<div style="font-size:12px;opacity:0.7;margin-bottom:6px;padding:6px 10px;background:rgba(255,255,255,0.1);border-radius:8px;border-left:2px solid var(--accent);">Replying to a message</div>`;
 }
-let receiptHtml='';
+
+// === নতুন: মেসেজের সময় বের করার ম্যাজিক কোড ===
+let timeString = 'Sending...';
+if (m.createdAt) {
+    const date = m.createdAt.toDate ? m.createdAt.toDate() : new Date(m.createdAt);
+    timeString = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
+// সময় এবং Seen/Sent টিকমার্ক একসাথে দেখানোর ডিজাইন
+let timeAndReceiptHtml = `<div style="font-size: 10px; opacity: 0.7; text-align: right; margin-top: 5px; display: flex; justify-content: flex-end; gap: 4px; align-items: center;">
+    <span>${timeString}</span>`;
+
 if(isMine){
-if(m.read){
-receiptHtml=`<div class="read-receipt seen"><span class="material-symbols-outlined filled">done_all</span> Seen</div>`;
-}else{
-receiptHtml=`<div class="read-receipt"><span class="material-symbols-outlined">done</span> Sent</div>`;
+    if(m.read){
+        timeAndReceiptHtml += `<span class="material-symbols-outlined filled" style="font-size: 14px; color: #4ade80;">done_all</span>`; // Seen হলে ডাবল টিক
+    }else{
+        timeAndReceiptHtml += `<span class="material-symbols-outlined" style="font-size: 14px;">done</span>`; // শুধু Sent হলে সিঙ্গেল টিক
+    }
 }
-}
+timeAndReceiptHtml += `</div>`;
+// ===============================================
+
 let reactionsHtml = '';
 if (m.reactions && Object.keys(m.reactions).length > 0) {
 reactionsHtml = '<div class="message-reactions">';
@@ -3122,25 +3190,30 @@ reactionsHtml += `<span class="reaction-badge" onclick="toggleMessageReaction('$
 reactionsHtml += '</div>';
 }
 
-// === গ্রুপ চ্যাটের জন্য সেন্ডারের নাম অ্যাড করা হলো ===
 let senderNameHtml = '';
 if (otherUid === 'group' && !isMine && m.senderName) {
     senderNameHtml = `<div style="font-size: 12px; font-weight: 800; color: #ff7e67; margin-bottom: 6px;">${escapeHTML(m.senderName)}</div>`;
 }
 
-return`<div class="chat-bubble-wrapper ${isMine?'mine':'theirs'}" data-msgid="${d.id}">
+// চেক করবে যে মেসেজটা 'Delete for you' করা আছে কি না!
+if (m.deletedFor && m.deletedFor.includes(currentUser.uid)) {
+    return ''; // ডিলিট করা থাকলে স্ক্রিনে দেখাবে না
+}
+
+return`<div class="chat-bubble-wrapper ${isMine?'mine':'theirs'}" data-msgid="${d.id}" 
+ontouchstart="handleMsgTouchStart('${d.id}')" ontouchend="handleMsgTouchEnd()" 
+onmousedown="handleMsgTouchStart('${d.id}')" onmouseup="handleMsgTouchEnd()" 
+onclick="handleMsgClick('${d.id}')">
+
 <div class="chat-bubble ${isMine?'mine':'theirs'}" ondblclick="showReactionPicker(event,'${d.id}')">
 ${senderNameHtml}
 ${replyHtml}
 ${content}
-${receiptHtml}
+${timeAndReceiptHtml}
 </div>
 ${reactionsHtml}
-<div class="bubble-menu-btn" onclick="showMessageMenu(event,'${d.id}')">
-<span class="material-symbols-outlined">more_horiz</span>
-</div>
 </div>`;
-}).join('');
+
 list.scrollTop=list.scrollHeight;
 snap.docs.forEach(d=>{
 const m=d.data();
@@ -3148,30 +3221,6 @@ if(m.uid!==currentUser.uid&&!m.read){
 d.ref.update({read:true,readAt:firebase.firestore.FieldValue.serverTimestamp()}).catch(()=>{});
 }
 });
-});
-}
-
-function setupTypingIndicator(chatId, otherUid) {
-const typingRef = db.collection('chats').doc(chatId);
-if (onlineUnsub) onlineUnsub();
-onlineUnsub = typingRef.onSnapshot(doc => {
-if (!doc.exists) return;
-const data = doc.data();
-const typingUser = data.typing;
-const typingEl = document.getElementById('typing-indicator');
-if (typingUser && typingUser !== currentUser.uid && typingUser === otherUid) {
-if (!typingEl) {
-const indicator = document.createElement('div');
-indicator.id = 'typing-indicator';
-indicator.className = 'typing-indicator';
-indicator.innerHTML = '<span></span><span></span><span></span>';
-document.getElementById('chat-messages').appendChild(indicator);
-}
-const list = document.getElementById('chat-messages');
-list.scrollTop = list.scrollHeight;
-} else {
-if (typingEl) typingEl.remove();
-}
 });
 }
 
@@ -4657,6 +4706,112 @@ async function createGroupAction() {
         btn.textContent = originalText;
         btn.disabled = false;
     }
+}
+// ===== MESSAGE SELECTION & DELETE LOGIC =====
+let selectedMsgIds = [];
+let isMsgSelectionMode = false;
+let msgPressTimer = null;
+
+function handleMsgTouchStart(msgId) {
+    if(isMsgSelectionMode) return;
+    msgPressTimer = setTimeout(() => {
+        enterSelectionMode(msgId);
+    }, 500); // ৫০০ মিলিসেকেন্ড চেপে রাখলে সিলেকশন মোড অন হবে
+}
+
+function handleMsgTouchEnd() {
+    if(msgPressTimer) clearTimeout(msgPressTimer);
+}
+
+function enterSelectionMode(msgId) {
+    isMsgSelectionMode = true;
+    selectedMsgIds = [];
+    document.getElementById('selection-bottom-bar').classList.add('active');
+    document.getElementById('chat-input-area').style.display = 'none'; // চ্যাট ইনপুট হাইড হবে
+    toggleMsgSelection(msgId);
+    if(navigator.vibrate) navigator.vibrate(50); // ছোট্ট ভাইব্রেশন
+}
+
+function handleMsgClick(msgId) {
+    if(isMsgSelectionMode) {
+        toggleMsgSelection(msgId);
+    }
+}
+
+function toggleMsgSelection(msgId) {
+    const idx = selectedMsgIds.indexOf(msgId);
+    const wrapper = document.querySelector(`.chat-bubble-wrapper[data-msgid="${msgId}"]`);
+    if(idx > -1) {
+        selectedMsgIds.splice(idx, 1);
+        if(wrapper) wrapper.classList.remove('selected');
+    } else {
+        selectedMsgIds.push(msgId);
+        if(wrapper) wrapper.classList.add('selected');
+    }
+    
+    const count = selectedMsgIds.length;
+    document.getElementById('selected-count-text').textContent = count + ' Selected';
+    
+    if(count === 0) closeSelectionMode(); // সব আনসিলেক্ট করলে নরমাল মোড
+}
+
+function closeSelectionMode() {
+    isMsgSelectionMode = false;
+    selectedMsgIds = [];
+    document.getElementById('selection-bottom-bar').classList.remove('active');
+    document.getElementById('chat-input-area').style.display = 'flex'; // চ্যাট ইনপুট ফেরত আসবে
+    document.querySelectorAll('.chat-bubble-wrapper.selected').forEach(el => el.classList.remove('selected'));
+}
+
+function showDeleteSheet() {
+    if(selectedMsgIds.length === 0) return;
+    
+    // চেক করবে যে সিলেক্ট করা মেসেজগুলো কি আপনার নিজের পাঠানো কি না!
+    let allMine = true;
+    selectedMsgIds.forEach(msgId => {
+        const wrapper = document.querySelector(`.chat-bubble-wrapper[data-msgid="${msgId}"]`);
+        if(wrapper && wrapper.classList.contains('theirs')) allMine = false;
+    });
+
+    const btnEveryone = document.getElementById('btn-delete-everyone');
+    if(!allMine) {
+        btnEveryone.style.display = 'none'; // অন্যের মেসেজ হলে "Delete for everyone" হাইড থাকবে
+        document.getElementById('delete-sheet-title').textContent = "Can't delete others' messages for everyone";
+    } else {
+        btnEveryone.style.display = 'flex';
+        document.getElementById('delete-sheet-title').textContent = `Delete ${selectedMsgIds.length} message(s)?`;
+    }
+
+    document.getElementById('delete-sheet-modal').classList.add('open');
+}
+
+function closeDeleteSheet() {
+    document.getElementById('delete-sheet-modal').classList.remove('open');
+}
+
+async function executeDelete(type) {
+    if(selectedMsgIds.length === 0) return;
+    showToast("Deleting...");
+    closeDeleteSheet();
+    
+    try {
+        const batch = db.batch();
+        selectedMsgIds.forEach(msgId => {
+            const ref = db.collection('chats').doc(currentChatId).collection('messages').doc(msgId);
+            
+            if (type === 'everyone') {
+                batch.delete(ref); // সবার জন্য ডিলিট
+            } else if (type === 'forme') {
+                // শুধু নিজের জন্য ডিলিট (ডাটাবেসে নিজের আইডি ট্যাগ করে দেওয়া)
+                batch.set(ref, { deletedFor: firebase.firestore.FieldValue.arrayUnion(currentUser.uid) }, { merge: true });
+            }
+        });
+        await batch.commit();
+        showToast("Messages deleted!");
+    } catch(e) {
+        showToast("Failed to delete messages");
+    }
+    closeSelectionMode();
 }
 </script>
 </body>
