@@ -3121,8 +3121,16 @@ reactionsHtml += `<span class="reaction-badge" onclick="toggleMessageReaction('$
 }
 reactionsHtml += '</div>';
 }
+
+// === গ্রুপ চ্যাটের জন্য সেন্ডারের নাম অ্যাড করা হলো ===
+let senderNameHtml = '';
+if (otherUid === 'group' && !isMine && m.senderName) {
+    senderNameHtml = `<div style="font-size: 12px; font-weight: 800; color: #ff7e67; margin-bottom: 6px;">${escapeHTML(m.senderName)}</div>`;
+}
+
 return`<div class="chat-bubble-wrapper ${isMine?'mine':'theirs'}" data-msgid="${d.id}">
 <div class="chat-bubble ${isMine?'mine':'theirs'}" ondblclick="showReactionPicker(event,'${d.id}')">
+${senderNameHtml}
 ${replyHtml}
 ${content}
 ${receiptHtml}
@@ -3338,6 +3346,7 @@ inp.value='';
 setTypingStatus(false);
 const msgData={
 uid:currentUser.uid,
+senderName: currentUserData.name || 'User', // <-- ফায়ারবেসে নাম সেভ হবে
 text:text,
 createdAt:firebase.firestore.FieldValue.serverTimestamp()
 };
@@ -3347,8 +3356,15 @@ currentReplyMsgId=null;
 inp.placeholder='Message...';
 }
 await db.collection('chats').doc(currentChatId).collection('messages').add(msgData);
+
+// লাস্ট মেসেজে সেন্ডারের নাম দেখানো (গ্রুপের জন্য)
+let lastText = text;
+if (currentChatOtherUid === 'group') {
+    lastText = (currentUserData.name || 'User') + ": " + text;
+}
+
 await db.collection('chats').doc(currentChatId).set({
-lastMsg:text,
+lastMsg:lastText,
 lastAt:firebase.firestore.FieldValue.serverTimestamp()
 },{merge:true});
 }
@@ -3361,12 +3377,19 @@ try{
 const url=await uploadToCloudinary(file,false);
 await db.collection('chats').doc(currentChatId).collection('messages').add({
 uid:currentUser.uid,
+senderName: currentUserData.name || 'User', // <-- ছবির সাথে নাম সেভ হবে
 text:'',
 imageUrl:url,
 createdAt:firebase.firestore.FieldValue.serverTimestamp()
 });
+
+let lastText = '📷 Photo';
+if (currentChatOtherUid === 'group') {
+    lastText = (currentUserData.name || 'User') + " sent a photo";
+}
+
 await db.collection('chats').doc(currentChatId).set({
-lastMsg:'📷 Photo',
+lastMsg:lastText,
 lastAt:firebase.firestore.FieldValue.serverTimestamp()
 },{merge:true});
 showToast('Image sent!');
