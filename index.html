@@ -539,10 +539,9 @@ box-shadow:var(--shadow-md);
 font-size:13px;color:var(--text-secondary);
 display:flex;flex-direction:column;gap:10px;
 margin-top:10px;
-background:var(--surface-2);
-padding:16px;
-border-radius:var(--radius-lg);
-border:1px solid var(--border);
+background:transparent;
+padding:16px 5px;
+border:none;
 }
 .detail-item{display:flex;gap:12px;align-items:center;color:var(--text);font-weight:500;}
 .detail-item .material-symbols-outlined{font-size:20px;color:var(--accent-dark);}
@@ -3540,22 +3539,36 @@ document.getElementById('profile-edit-section').style.display='none';
 }
 
 async function saveProfileChanges(){
-const newName=document.getElementById('edit-name').value.trim();
-const emojiRegex=/[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu;
-if(emojiRegex.test(newName)){showToast('Name cannot contain emojis!');return;}
-if(currentUserData.lastNameChange){
-const lastChange=currentUserData.lastNameChange.toMillis?currentUserData.lastNameChange.toMillis():currentUserData.lastNameChange;
-if(Date.now()-lastChange<SEVEN_DAYS_MS){showToast('Name can only be changed once every 7 days');return;}
-}
-const updates={
-name:newName,
-bio:document.getElementById('edit-bio').value.trim(),
-gender:document.getElementById('edit-gender').value,
-location:document.getElementById('edit-location').value.trim(),
-hometown:document.getElementById('edit-hometown').value.trim(),
-relationship:document.getElementById('edit-relationship').value,
-lastNameChange:firebase.firestore.FieldValue.serverTimestamp()
-};
+    const newName = document.getElementById('edit-name').value.trim();
+    const emojiRegex = /[\p{Emoji_Presentation}\p{Extended_Pictographic}]/u;
+    if(emojiRegex.test(newName)){showToast('Name cannot contain emojis!'); return;}
+
+    // ১. চেক করব ইউজার সত্যিই নাম পাল্টেছে কিনা
+    const isNameChanged = (newName !== currentUserData.name);
+
+    // ২. যদি নাম পাল্টানোর চেষ্টা করে, তবেই ৭ দিনের লিমিট চেক করবে
+    if (isNameChanged && currentUserData.lastNameChange) {
+        const lastChange = currentUserData.lastNameChange;
+        if (Date.now() - lastChange < SEVEN_DAYS_MS) {
+            showToast('Name can only be changed once every 7 days'); 
+            return; // ৭ দিন না হলে এখানেই সেভ বন্ধ করে দেবে
+        }
+    }
+
+    // ৩. আপডেটের ডাটাগুলো রেডি করা
+    const updates = {
+        name: newName,
+        bio: document.getElementById('edit-bio').value.trim(),
+        gender: document.getElementById('edit-gender').value,
+        location: document.getElementById('edit-location').value.trim(),
+        hometown: document.getElementById('edit-hometown').value.trim(),
+        relationship: document.getElementById('edit-relationship').value
+    };
+
+    // ৪. যদি নাম আসলেই পাল্টায়, শুধু তখনই নামের নতুন টাইমস্ট্যাম্প আপডেট হবে
+    if (isNameChanged) {
+        updates.lastNameChange = Date.now(); 
+    }
 showToast('Saving profile...');
 await db.collection('users').doc(currentUser.uid).update(updates);
         // === নতুন ম্যাজিক: ইউজারের আগের সব পোস্টের নাম আপডেট করা ===
