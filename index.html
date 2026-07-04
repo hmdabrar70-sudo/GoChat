@@ -2100,32 +2100,25 @@ const provider = new firebase.auth.GoogleAuthProvider();
 try {
 const result = await auth.signInWithPopup(provider);
 const user = result.user;
-        const doc = await db.collection('users').doc(user.uid).get();
-        if (!doc.exists) {
-            await db.collection('users').doc(user.uid).set({
-                name: user.email.split('@')[0],
-                email: user.email,
-                avatar: '',
-                bio: '', location: '', hometown: '', relationship: '', gender: '',
-                friends: [], sentRequests: [], receivedRequests: [],
-                blockedUsers: [], mutedChats: [], pinnedChats: [], archivedChats: [],
-                online: true,
-                points: 20,
-                loginStreak: 1,
-                lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
-        }
-        showToast("Logged in successfully!");
-    } catch (error) {
-        console.error(error);
-        showToast("Login failed!");
-    }
-} // loginWithGoogle শেষ
-
+const doc = await db.collection('users').doc(user.uid).get();
+if (!doc.exists) {
+await db.collection('users').doc(user.uid).set({
+name: user.email.split('@')[0],
+email: user.email,
+avatar: '',
+bio: '', location: '', hometown: '', relationship: '', gender: '',
+friends: [], sentRequests: [], receivedRequests: [],
+blockedUsers: [], mutedChats: [], pinnedChats: [], archivedChats: [],
+online: true,
+points: 20,
+loginStreak: 1,
+lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
+createdAt: firebase.firestore.FieldValue.serverTimestamp()
+});
+}
 function togglePasswordVisibility() {
     const passwordInput = document.getElementById('auth-password');
-    const eyeIcon = document.getElementById('toggle-eye');
+    const eyeIcon = event.target;
     
     if (passwordInput.type === "password") {
         passwordInput.type = "text";
@@ -2136,6 +2129,12 @@ function togglePasswordVisibility() {
     }
 }
 
+showToast("Logged in successfully!");
+} catch (error) {
+console.error(error);
+showToast("Login failed!");
+}
+}
 
 async function registerWithEmail(){
 const email=document.getElementById('auth-email').value.trim();
@@ -3214,6 +3213,7 @@ ${timeAndReceiptHtml}
 </div>
 ${reactionsHtml}
 </div>`;
+
 list.scrollTop=list.scrollHeight;
 snap.docs.forEach(d=>{
 const m=d.data();
@@ -4716,7 +4716,7 @@ function handleMsgTouchStart(msgId) {
     if(isMsgSelectionMode) return;
     msgPressTimer = setTimeout(() => {
         enterSelectionMode(msgId);
-    }, 500);
+    }, 500); // ৫০০ মিলিসেকেন্ড চেপে রাখলে সিলেকশন মোড অন হবে
 }
 
 function handleMsgTouchEnd() {
@@ -4727,9 +4727,9 @@ function enterSelectionMode(msgId) {
     isMsgSelectionMode = true;
     selectedMsgIds = [];
     document.getElementById('selection-bottom-bar').classList.add('active');
-    document.getElementById('chat-input-area').style.display = 'none';
+    document.getElementById('chat-input-area').style.display = 'none'; // চ্যাট ইনপুট হাইড হবে
     toggleMsgSelection(msgId);
-    if(navigator.vibrate) navigator.vibrate(50);
+    if(navigator.vibrate) navigator.vibrate(50); // ছোট্ট ভাইব্রেশন
 }
 
 function handleMsgClick(msgId) {
@@ -4748,34 +4748,40 @@ function toggleMsgSelection(msgId) {
         selectedMsgIds.push(msgId);
         if(wrapper) wrapper.classList.add('selected');
     }
+    
     const count = selectedMsgIds.length;
     document.getElementById('selected-count-text').textContent = count + ' Selected';
-    if(count === 0) closeSelectionMode();
+    
+    if(count === 0) closeSelectionMode(); // সব আনসিলেক্ট করলে নরমাল মোড
 }
 
 function closeSelectionMode() {
     isMsgSelectionMode = false;
     selectedMsgIds = [];
     document.getElementById('selection-bottom-bar').classList.remove('active');
-    document.getElementById('chat-input-area').style.display = 'flex';
+    document.getElementById('chat-input-area').style.display = 'flex'; // চ্যাট ইনপুট ফেরত আসবে
     document.querySelectorAll('.chat-bubble-wrapper.selected').forEach(el => el.classList.remove('selected'));
 }
 
 function showDeleteSheet() {
     if(selectedMsgIds.length === 0) return;
+    
+    // চেক করবে যে সিলেক্ট করা মেসেজগুলো কি আপনার নিজের পাঠানো কি না!
     let allMine = true;
     selectedMsgIds.forEach(msgId => {
         const wrapper = document.querySelector(`.chat-bubble-wrapper[data-msgid="${msgId}"]`);
         if(wrapper && wrapper.classList.contains('theirs')) allMine = false;
     });
+
     const btnEveryone = document.getElementById('btn-delete-everyone');
     if(!allMine) {
-        btnEveryone.style.display = 'none';
-        document.getElementById('delete-sheet-title').textContent = "Can't delete others' messages";
+        btnEveryone.style.display = 'none'; // অন্যের মেসেজ হলে "Delete for everyone" হাইড থাকবে
+        document.getElementById('delete-sheet-title').textContent = "Can't delete others' messages for everyone";
     } else {
         btnEveryone.style.display = 'flex';
         document.getElementById('delete-sheet-title').textContent = `Delete ${selectedMsgIds.length} message(s)?`;
     }
+
     document.getElementById('delete-sheet-modal').classList.add('open');
 }
 
@@ -4787,13 +4793,16 @@ async function executeDelete(type) {
     if(selectedMsgIds.length === 0) return;
     showToast("Deleting...");
     closeDeleteSheet();
+    
     try {
         const batch = db.batch();
         selectedMsgIds.forEach(msgId => {
             const ref = db.collection('chats').doc(currentChatId).collection('messages').doc(msgId);
+            
             if (type === 'everyone') {
-                batch.delete(ref);
+                batch.delete(ref); // সবার জন্য ডিলিট
             } else if (type === 'forme') {
+                // শুধু নিজের জন্য ডিলিট (ডাটাবেসে নিজের আইডি ট্যাগ করে দেওয়া)
                 batch.set(ref, { deletedFor: firebase.firestore.FieldValue.arrayUnion(currentUser.uid) }, { merge: true });
             }
         });
