@@ -4495,17 +4495,116 @@ function togglePasswordVisibility() {
         eyeIcon.innerText = 'visibility'; // স্বাভাবিক চোখ হয়ে যাবে
     }
 }
-// ===== GROUP CHAT LOGIC (STEP 1) =====
-function openCreateGroupModal() {
+// ===== GROUP CHAT LOGIC (STEP 2: Create & Load Friends) =====
+let selectedGroupFriends = [];
+
+async function openCreateGroupModal() {
     document.getElementById('create-group-modal').style.display = 'flex';
+    selectedGroupFriends = []; // মডাল ওপেন হলে সিলেকশন ফাঁকা হবে
+    document.getElementById('group-name-input').value = ''; // নাম ফাঁকা হবে
+    await loadFriendsForGroup(); // বন্ধুদের লিস্ট লোড করবে
 }
 
 function closeCreateGroupModal() {
     document.getElementById('create-group-modal').style.display = 'none';
 }
 
-function createGroupAction() {
-    showToast("Group creation logic will be added in the next step!");
+async function loadFriendsForGroup() {
+    const list = document.getElementById('group-friends-list');
+    const friends = currentUserData.friends || [];
+
+    if (friends.length === 0) {
+        list.innerHTML = '<div style="text-align:center; color:var(--text-muted); font-size:13px; margin-top:20px;">You have no friends to add.</div>';
+        return;
+    }
+
+    list.innerHTML = '<div class="loading" style="text-align:center; padding: 20px;"><span class="material-symbols-outlined">autorenew</span> Loading friends...</div>';
+
+    try {
+        const friendDocs = friends.map(uid => db.collection('users').doc(uid).get());
+        const snapshots = await Promise.all(friendDocs);
+        
+        let html = '';
+        snapshots.forEach((doc, index) => {
+            if (doc.exists) {
+                const u = doc.data();
+                const uid = friends[index];
+                const safeName = escapeHTML(u.name);
+                const avHtml = u.avatar ? `<img src="${u.avatar}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">` : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:var(--gradient);color:#fff;font-weight:bold;">${safeName[0].toUpperCase()}</div>`;
+                
+                // বন্ধুদের লিস্ট এবং টিক দেওয়ার চেক-বক্স
+                html += `
+                <div class="msg-item" onclick="toggleGroupFriend('${uid}', this)" style="margin: 0; padding: 10px; cursor: pointer; border-radius: 8px;">
+                    <div class="avatar sm">${avHtml}</div>
+                    <div class="msg-info" style="margin-left:10px;">${safeName}</div>
+                    <input type="checkbox" value="${uid}" style="pointer-events:none; width:18px; height:18px; accent-color: #8a2be2;">
+                </div>`;
+            }
+        });
+        list.innerHTML = html;
+    } catch (error) {
+        list.innerHTML = '<div style="text-align:center; color:var(--danger); font-size:13px;">Failed to load friends.</div>';
+    }
+}
+
+function toggleGroupFriend(uid, element) {
+    const checkbox = element.querySelector('input[type="checkbox"]');
+    if (selectedGroupFriends.includes(uid)) {
+        selectedGroupFriends = selectedGroupFriends.filter(id => id !== uid);
+        checkbox.checked = false; // টিক মুছে যাবে
+    } else {
+        selectedGroupFriends.push(uid);
+        checkbox.checked = true; // টিক বসবে
+    }
+}
+
+async function createGroupAction() {
+    const groupName = document.getElementById('group-name-input').value.trim();
+    
+    if (!groupName) {
+        showToast("Please enter a group name!");
+        return;
+    }
+    if (selectedGroupFriends.length === 0) {
+        showToast("Please select at least one friend!");
+        return;
+    }
+
+    const btn = document.querySelector('#create-group-modal button');
+    const originalText = btn.textContent;
+    btn.textContent = "Creating Group...";
+    btn.disabled = true; // ডাবল ক্লিক বন্ধ
+
+    try {
+        const groupId = 'group_' + Date.now(); // গ্রুপের জন্য ইউনিক আইডি
+        const members = [currentUser.uid, ...selectedGroupFriends]; // আপনি + আপনার বন্ধুরা
+        
+        // ফায়ারবেসে গ্রুপ সেভ করা
+        await db.collection('chats').doc(groupId).set({
+            isGroup: true,
+            groupName: groupName,
+            admin: currentUser.uid,
+            members: members,
+            lastMsg: 'Group created',
+            lastAt: firebase.firestore.FieldValue.serverTimestamp(),
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        showToast("Group created successfully! 🚀");
+        closeCreateGroupModal();
+        
+        // ভাই, গ্রুপ তো ডাটাবেসে সেভ হয়ে গেছে! কিন্তু স্ক্রিনে দেখানোর জন্য তৃতীয় ধাপ লাগবে।
+        setTimeout(() => {
+            showToast("Ready for Step 3 to show the group in message list!");
+        }, 2000);
+
+    } catch (error) {
+        console.error(error);
+        showToast("Failed to create group.");
+    } finally {
+        btn.textContent = originalText;
+        btn.disabled = false;
+    }
 }
 </script>
 </body>
