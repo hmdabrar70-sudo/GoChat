@@ -2933,7 +2933,7 @@ return`<div style="margin-top:8px;margin-left:16px;padding-left:12px;border-left
 </div>`;
 }).join('');
 }
-return `<div class="comment-item">
+return `<div class="comment-item" ondblclick="showCommentActions('${pid}', ${idx}, '${c.uid}')">
     <div class="comment-author">${safeCName}</div>
     <div style="margin-top:4px;">${safeCText}</div>
     
@@ -4982,6 +4982,39 @@ async function blockUserFromChat() {
     } catch (e) {
         showToast("Failed to block user");
     }
+}
+
+function showCommentActions(pid, idx, commentUid) {
+    if (commentUid !== currentUser.uid) return;
+
+    const menu = document.createElement('div');
+    menu.className = 'chat-bubble-menu show'; // একই স্টাইল ব্যবহার করছি
+    menu.style.cssText = `position:fixed; bottom:0; left:0; width:100%; background:var(--surface); border-radius:20px 20px 0 0; padding:20px; z-index:9999; box-shadow:var(--shadow-lg);`;
+    
+    menu.innerHTML = `
+        <div style="font-weight:800; margin-bottom:15px; text-align:center;">Comment Options</div>
+        <div class="chat-dropdown-item" onclick="editComment('${pid}', ${idx}); this.parentElement.remove();">
+            <span class="material-symbols-outlined">edit</span> Edit Comment
+        </div>
+        <div class="chat-dropdown-item" onclick="copyComment('${pid}', ${idx}); this.parentElement.remove();">
+            <span class="material-symbols-outlined">content_copy</span> Copy
+        </div>
+        <div class="chat-dropdown-item danger" onclick="deleteComment('${pid}', ${idx}); this.parentElement.remove();">
+            <span class="material-symbols-outlined">delete</span> Delete Comment
+        </div>
+        <div style="margin-top:10px; padding:10px; text-align:center; color:var(--text-muted); cursor:pointer;" onclick="this.parentElement.remove()">Cancel</div>
+    `;
+    document.body.appendChild(menu);
+}
+
+async function deleteComment(pid, idx) {
+    if (!confirm("Delete this comment?")) return;
+    const ref = db.collection('posts').doc(pid);
+    const doc = await ref.get();
+    let comments = doc.data().comments;
+    comments.splice(idx, 1);
+    await ref.update({ comments });
+    showToast("Comment deleted!");
 }
 </script>
 </body>
