@@ -3507,105 +3507,114 @@ input.value='';
 
 // ✅ FIXED: loadMessages() - otherUid extraction bug fixed
 // ✅ FIXED: loadMessages() - Now supports Group Chats!
-// ===== FIXED: loadMessages (Supports Group Chat) =====
-async function loadMessages(){
+// ===== FIXED & REAL-TIME: loadMessages (Supports Group Chat & Live Sorting) =====
+function loadMessages(){
     const list=document.getElementById('msg-list');
     if(!list)return;
-    list.innerHTML = '<div class="loading" style="padding:20px;text-align:center;"><span class="material-symbols-outlined">autorenew</span> Loading...</div>';
     
-    const snap=await db.collection('chats').get();
-    const mutedChats=currentUserData.mutedChats||[];
-    const pinnedChats=currentUserData.pinnedChats||[];
-    const archivedChats=currentUserData.archivedChats||[];
-    const blockedUsers=currentUserData.blockedUsers||[];
-    let chats=[];
+    // শুধু প্রথমবার লোডিং দেখাবে, পরে ব্যাকগ্রাউন্ডে সাইলেন্টলি আপডেট হবে
+    if(list.innerHTML.trim() === '') {
+        list.innerHTML = '<div class="loading" style="padding:20px;text-align:center;"><span class="material-symbols-outlined">autorenew</span> Loading...</div>';
+    }
     
-    snap.forEach(d=>{
-        const data=d.data();
+    // আগের কোনো লিসেনার থাকলে সেটা রিমুভ করবে (ডাবল লোডিং এড়ানোর জন্য)
+    if(window.chatListUnsub) window.chatListUnsub();
+    
+    // .get() এর বদলে .onSnapshot() ব্যবহার করা হয়েছে রিয়েল-টাইম লাইভ আপডেটের জন্য
+    window.chatListUnsub = db.collection('chats').onSnapshot(snap => {
+        const mutedChats=currentUserData.mutedChats||[];
+        const pinnedChats=currentUserData.pinnedChats||[];
+        const archivedChats=currentUserData.archivedChats||[];
+        const blockedUsers=currentUserData.blockedUsers||[];
+        let chats=[];
         
-        // ১. যদি এটা গ্রুপ চ্যাট হয়
-        if (data.isGroup) {
-            if (data.members && data.members.includes(currentUser.uid) && !archivedChats.includes(d.id)) {
-                chats.push({
-                    id: d.id, 
-                    otherUid: 'group', 
-                    otherName: data.groupName || 'Group', 
-                    otherAv: 'group_icon', 
-                    data: data, 
-                    isGroup: true,
-                    isPinned: pinnedChats.includes(d.id),
-                    isMuted: mutedChats.includes(d.id)
-                });
+        snap.forEach(d=>{
+            const data=d.data();
+            
+            // ১. যদি এটা গ্রুপ চ্যাট হয়
+            if (data.isGroup) {
+                if (data.members && data.members.includes(currentUser.uid) && !archivedChats.includes(d.id)) {
+                    chats.push({
+                        id: d.id, 
+                        otherUid: 'group', 
+                        otherName: data.groupName || 'Group', 
+                        otherAv: 'group_icon', 
+                        data: data, 
+                        isGroup: true,
+                        isPinned: pinnedChats.includes(d.id),
+                        isMuted: mutedChats.includes(d.id)
+                    });
+                }
+            } 
+            // ২. যদি এটা সিঙ্গেল চ্যাট হয়
+            else if (d.id.includes(currentUser.uid) && !archivedChats.includes(d.id)) {
+                const parts = d.id.split('_');
+                if (parts.length === 2) {
+                    const otherUid = parts[0] === currentUser.uid ? parts[1] : parts[0];
+                    if (blockedUsers.includes(otherUid)) return;
+                    
+                    let otherName = data.names ? data.names[otherUid] : 'User';
+                    let otherAv = data.avatars ? data.avatars[otherUid] : '';
+                    
+                    chats.push({
+                        id: d.id, otherUid, otherName, otherAv, data, isGroup: false,
+                        isPinned: pinnedChats.includes(d.id),
+                        isMuted: mutedChats.includes(d.id)
+                    });
+                }
             }
-        } 
-        // ২. যদি এটা সিঙ্গেল চ্যাট হয় (আগের লজিক)
-        else if (d.id.includes(currentUser.uid) && !archivedChats.includes(d.id)) {
-            const parts = d.id.split('_');
-            if (parts.length === 2) {
-                const otherUid = parts[0] === currentUser.uid ? parts[1] : parts[0];
-                if (blockedUsers.includes(otherUid)) return;
-                
-                let otherName = data.names ? data.names[otherUid] : 'User';
-                let otherAv = data.avatars ? data.avatars[otherUid] : '';
-                
-                chats.push({
-                    id: d.id, otherUid, otherName, otherAv, data, isGroup: false,
-                    isPinned: pinnedChats.includes(d.id),
-                    isMuted: mutedChats.includes(d.id)
-                });
+        });
+        
+        // মেসেজগুলো সময়ের ওপর ভিত্তি করে সাজানো (নতুন মেসেজ রিয়েল-টাইমে লাফ দিয়ে ওপরে আসবে)
+        chats.sort((a,b)=>{
+            if(a.isPinned&&!b.isPinned)return-1;
+            if(!a.isPinned&&b.isPinned)return 1;
+            const timeA=a.data.lastAt?.toMillis?a.data.lastAt.toMillis():0;
+            const timeB=b.data.lastAt?.toMillis?b.data.lastAt.toMillis():0;
+            return timeB-timeA; // বড় সময় (নতুন) ওপরে থাকবে
+        });
+        
+        let html='';
+        chats.forEach(chat=>{
+            const pinIcon=chat.isPinned?'<span class="material-symbols-outlined" style="font-size:16px;color:var(--accent);margin-right:4px;">push_pin</span>':'';
+            const muteIcon=chat.isMuted?'<span class="material-symbols-outlined" style="font-size:16px;color:var(--text-muted);margin-right:4px;">notifications_off</span>':'';
+            
+            let avHtml = '';
+            if (chat.isGroup) {
+                avHtml = `<div style="width:100%;height:100%;background:var(--gradient-orange);color:white;display:flex;align-items:center;justify-content:center;border-radius:50%;"><span class="material-symbols-outlined" style="font-size: 24px;">groups</span></div>`;
+            } else {
+                avHtml = chat.otherAv ? `<img src="${chat.otherAv}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">` : avatarInitial(chat.otherName);
             }
-        }
+            
+            html+=`<div class="msg-item ${chat.isPinned?'pinned':''} ${chat.isMuted?'muted':''}" onclick="openChat('${chat.id}','${chat.otherUid}','${escapeHTML(chat.otherName)}','${chat.isGroup ? '' : escapeHTML(chat.otherAv)}')">
+            <div class="avatar">${avHtml}</div>
+            <div class="msg-info" style="flex:1;">
+            <div class="msg-name">${pinIcon}${muteIcon}${escapeHTML(chat.otherName)}</div>
+            <div class="msg-preview">${escapeHTML(chat.data.lastMsg||'New Group created')}</div>
+            </div>
+            <div class="msg-menu-btn" onclick="event.stopPropagation();toggleChatListMenu('${chat.id}',this)">
+            <span class="material-symbols-outlined">more_vert</span>
+            </div>
+            <div id="chat-menu-${chat.id}" class="chat-list-menu" onclick="event.stopPropagation();">
+            <div class="chat-dropdown-item" onclick="pinChat('${chat.id}')">
+            <span class="material-symbols-outlined">push_pin</span> ${chat.isPinned?'Unpin':'Pin'}
+            </div>
+            <div class="chat-dropdown-item" onclick="muteChat('${chat.id}')">
+            <span class="material-symbols-outlined">${chat.isMuted?'notifications_on':'notifications_off'}</span> ${chat.isMuted?'Unmute':'Mute'}
+            </div>
+            <div class="chat-dropdown-item" onclick="archiveChat('${chat.id}')">
+            <span class="material-symbols-outlined">archive</span> Archive
+            </div>
+            <div class="chat-dropdown-item danger" onclick="deleteChat('${chat.id}')">
+            <span class="material-symbols-outlined">delete</span> Delete Chat
+            </div>
+            </div>
+            </div>`;
+        });
+        list.innerHTML=html||'<div class="empty-feed">No messages yet</div>';
     });
-    
-    // মেসেজগুলো সময়ের ওপর ভিত্তি করে সাজানো
-    chats.sort((a,b)=>{
-        if(a.isPinned&&!b.isPinned)return-1;
-        if(!a.isPinned&&b.isPinned)return 1;
-        const timeA=a.data.lastAt?.toMillis?a.data.lastAt.toMillis():0;
-        const timeB=b.data.lastAt?.toMillis?b.data.lastAt.toMillis():0;
-        return timeB-timeA;
-    });
-    
-    let html='';
-    chats.forEach(chat=>{
-        const pinIcon=chat.isPinned?'<span class="material-symbols-outlined" style="font-size:16px;color:var(--accent);margin-right:4px;">push_pin</span>':'';
-        const muteIcon=chat.isMuted?'<span class="material-symbols-outlined" style="font-size:16px;color:var(--text-muted);margin-right:4px;">notifications_off</span>':'';
-        
-        // গ্রুপের জন্য সুন্দর একটা ডিফল্ট আইকন সেট করা
-        let avHtml = '';
-        if (chat.isGroup) {
-            avHtml = `<div style="width:100%;height:100%;background:var(--gradient-orange);color:white;display:flex;align-items:center;justify-content:center;border-radius:50%;"><span class="material-symbols-outlined" style="font-size: 24px;">groups</span></div>`;
-        } else {
-            avHtml = chat.otherAv ? `<img src="${chat.otherAv}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">` : avatarInitial(chat.otherName);
-        }
-        
-        html+=`<div class="msg-item ${chat.isPinned?'pinned':''} ${chat.isMuted?'muted':''}" onclick="openChat('${chat.id}','${chat.otherUid}','${escapeHTML(chat.otherName)}','${chat.isGroup ? '' : escapeHTML(chat.otherAv)}')">
-        <div class="avatar">${avHtml}</div>
-        <div class="msg-info" style="flex:1;">
-        <div class="msg-name">${pinIcon}${muteIcon}${escapeHTML(chat.otherName)}</div>
-        <div class="msg-preview">${escapeHTML(chat.data.lastMsg||'New Group created')}</div>
-        </div>
-        <div class="msg-menu-btn" onclick="event.stopPropagation();toggleChatListMenu('${chat.id}',this)">
-        <span class="material-symbols-outlined">more_vert</span>
-        </div>
-        <div id="chat-menu-${chat.id}" class="chat-list-menu" onclick="event.stopPropagation();">
-        <div class="chat-dropdown-item" onclick="pinChat('${chat.id}')">
-        <span class="material-symbols-outlined">push_pin</span> ${chat.isPinned?'Unpin':'Pin'}
-        </div>
-        <div class="chat-dropdown-item" onclick="muteChat('${chat.id}')">
-        <span class="material-symbols-outlined">${chat.isMuted?'notifications_on':'notifications_off'}</span> ${chat.isMuted?'Unmute':'Mute'}
-        </div>
-        <div class="chat-dropdown-item" onclick="archiveChat('${chat.id}')">
-        <span class="material-symbols-outlined">archive</span> Archive
-        </div>
-        <div class="chat-dropdown-item danger" onclick="deleteChat('${chat.id}')">
-        <span class="material-symbols-outlined">delete</span> Delete Chat
-        </div>
-        </div>
-        </div>`;
-    });
-    list.innerHTML=html||'<div class="empty-feed">No messages yet</div>';
 }
+
 
 
 
