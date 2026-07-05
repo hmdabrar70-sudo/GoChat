@@ -3214,9 +3214,13 @@ function openChat(chatId,otherUid,otherName,otherAvatar){
             </div>
             ${reactionsHtml}
             
-            <div class="bubble-menu-btn" onclick="showMessageMenu(event, '${d.id}')">
+                      <div class="bubble-menu-btn" 
+                ontouchstart="event.stopPropagation()" 
+                onmousedown="event.stopPropagation()" 
+                onclick="showMessageMenu(event, '${d.id}')">
                 <span class="material-symbols-outlined" style="font-size:18px;">more_vert</span>
             </div>
+
 
             </div>`;
               }).join(''); 
@@ -3320,26 +3324,43 @@ if (picker) picker.remove();
 }
 
 function showMessageMenu(event, msgId) {
-event.stopPropagation();
-const existing = document.querySelector('.chat-bubble-menu.show');
-if (existing) existing.remove();
-const wrapper = event.currentTarget.closest('.chat-bubble-wrapper');
-const menu = document.createElement('div');
-menu.className = 'chat-bubble-menu show';
-menu.style.cssText = 'position:absolute;top:50%;right:-60px;transform:translateY(-50%);background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:6px;z-index:100;box-shadow:var(--shadow-lg);';
-menu.innerHTML = `
-<div style="padding:8px 12px;cursor:pointer;font-size:13px;font-weight:600;border-radius:8px;" onmouseover="this.style.background='var(--surface-2)'" onmouseout="this.style.background='transparent'" onclick="replyToMessage('${msgId}')">↩️ Reply</div>
-<div style="padding:8px 12px;cursor:pointer;font-size:13px;font-weight:600;border-radius:8px;" onmouseover="this.style.background='var(--surface-2)'" onmouseout="this.style.background='transparent'" onclick="forwardMessage('${msgId}')">↪️ Forward</div>
-<div style="padding:8px 12px;cursor:pointer;font-size:13px;font-weight:600;border-radius:8px;color:var(--danger);" onmouseover="this.style.background='var(--danger-bg)'" onmouseout="this.style.background='transparent'" onclick="deleteMessage('${msgId}')">🗑️ Delete</div>
-`;
-wrapper.appendChild(menu);
-setTimeout(() => {
-document.addEventListener('click', function closeMenu() {
-menu.remove();
-document.removeEventListener('click', closeMenu);
-}, { once: true });
-}, 100);
+    event.stopPropagation();
+    const existing = document.querySelector('.chat-bubble-menu.show');
+    if (existing) existing.remove();
+    
+    const wrapper = event.currentTarget.closest('.chat-bubble-wrapper');
+    const isMine = wrapper.classList.contains('mine'); // চেক করবে মেসেজটা আপনার নাকি বন্ধুর
+    
+    const menu = document.createElement('div');
+    menu.className = 'chat-bubble-menu show';
+    
+    // মোবাইলের স্ক্রিন অনুযায়ী মেনুটা ডান বা বামে সরাবে (যাতে স্ক্রিনের বাইরে না যায়)
+    const alignPosition = isMine ? 'right: 35px;' : 'left: 35px;';
+    
+    menu.style.cssText = `position:absolute; top: 10px; ${alignPosition} background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:6px; z-index:99999; box-shadow:var(--shadow-lg); width: 150px;`;
+    
+    menu.innerHTML = `
+    <div style="padding:10px 12px;cursor:pointer;font-size:14px;font-weight:600;border-radius:8px; display:flex; gap:10px; align-items:center; color:var(--text);" onclick="replyToMessage('${msgId}')">
+        <span class="material-symbols-outlined" style="font-size:18px;">reply</span> Reply
+    </div>
+    <div style="padding:10px 12px;cursor:pointer;font-size:14px;font-weight:600;border-radius:8px; display:flex; gap:10px; align-items:center; color:var(--text);" onclick="forwardMessage('${msgId}')">
+        <span class="material-symbols-outlined" style="font-size:18px;">forward</span> Forward
+    </div>
+    <div style="padding:10px 12px;cursor:pointer;font-size:14px;font-weight:600;border-radius:8px;color:var(--danger); display:flex; gap:10px; align-items:center;" onclick="deleteMessage('${msgId}')">
+        <span class="material-symbols-outlined" style="font-size:18px;">delete</span> Delete
+    </div>
+    `;
+    
+    wrapper.appendChild(menu);
+    
+    setTimeout(() => {
+        document.addEventListener('click', function closeMenu() {
+            if(menu) menu.remove();
+            document.removeEventListener('click', closeMenu);
+        }, { once: true });
+    }, 100);
 }
+
 
 function replyToMessage(msgId) {
 currentReplyMsgId = msgId;
