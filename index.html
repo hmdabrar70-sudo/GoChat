@@ -1263,6 +1263,14 @@ background: rgba(0, 0, 0, 0.05) !important;
 .nav-hidden-bottom {
     transform: translate(-50%, 150%) !important;
 }
+/* ব্রাউজারের ডিফল্ট কপি অপশন বন্ধ করার ম্যাজিক কোড */
+.chat-bubble-wrapper { 
+    transition: all 0.2s ease !important; 
+    position: relative !important; 
+    -webkit-user-select: none !important; 
+    user-select: none !important; 
+    -webkit-touch-callout: none !important; 
+}
 </style>
 </head>
 <body>
@@ -3149,10 +3157,15 @@ function openChat(chatId,otherUid,otherName,otherAvatar){
                 return ''; 
             }
 
-            // রিটার্ন ব্লক
+                        // রিটার্ন ব্লক (টাচ ইভেন্ট সহ আপডেট)
             return `<div class="chat-bubble-wrapper ${isMine?'mine':'theirs'}" data-msgid="${d.id}" 
-            ontouchstart="handleMsgTouchStart('${d.id}')" ontouchend="handleMsgTouchEnd()" 
-            onmousedown="handleMsgTouchStart('${d.id}')" onmouseup="handleMsgTouchEnd()" 
+            ontouchstart="handleMsgTouchStart('${d.id}')" 
+            ontouchend="handleMsgTouchEnd()" 
+            ontouchcancel="handleMsgTouchEnd()"
+            onmousedown="handleMsgTouchStart('${d.id}')" 
+            onmouseup="handleMsgTouchEnd()" 
+            onmouseleave="handleMsgTouchEnd()"
+            oncontextmenu="event.preventDefault(); return false;"
             onclick="handleMsgClick('${d.id}')">
 
             <div class="chat-bubble ${isMine?'mine':'theirs'}" ondblclick="showReactionPicker(event,'${d.id}')">
@@ -3163,7 +3176,7 @@ function openChat(chatId,otherUid,otherName,otherAvatar){
             </div>
             ${reactionsHtml}
             </div>`;
-        }).join(''); 
+              }).join(''); 
         
         list.scrollTop=list.scrollHeight;
         
