@@ -4984,7 +4984,33 @@ async function blockUserFromChat() {
     }
 }
 
-// ===== NEW COMMENT OPTIONS LOGIC =====
+// ===== FIXED COMMENT ACTIONS =====
+
+function showCommentActions(pid, idx, commentUid) {
+    if (commentUid !== currentUser.uid) {
+        showToast("You can only manage your own comments.");
+        return;
+    }
+
+    const menu = document.createElement('div');
+    menu.className = 'comment-action-menu'; 
+    menu.style.cssText = `position:fixed; bottom:0; left:0; width:100%; background:var(--surface); border-radius:20px 20px 0 0; padding:20px; z-index:99999; box-shadow:0 -5px 20px rgba(0,0,0,0.3);`;
+    
+    menu.innerHTML = `
+        <div style="font-weight:800; margin-bottom:15px; text-align:center;">Comment Options</div>
+        <div class="chat-dropdown-item" onclick="editComment('${pid}', ${idx}); this.parentElement.remove();">
+            <span class="material-symbols-outlined">edit</span> Edit Comment
+        </div>
+        <div class="chat-dropdown-item" onclick="copyComment(this); this.parentElement.remove();">
+            <span class="material-symbols-outlined">content_copy</span> Copy
+        </div>
+        <div class="chat-dropdown-item danger" onclick="deleteComment('${pid}', ${idx}); this.parentElement.remove();">
+            <span class="material-symbols-outlined">delete</span> Delete Comment
+        </div>
+        <div style="margin-top:10px; padding:10px; text-align:center; color:var(--text-muted); cursor:pointer;" onclick="this.parentElement.remove()">Cancel</div>
+    `;
+    document.body.appendChild(menu);
+}
 
 async function editComment(pid, idx) {
     const ref = db.collection('posts').doc(pid);
@@ -4992,7 +5018,8 @@ async function editComment(pid, idx) {
     if (!doc.exists) return;
     
     let comments = doc.data().comments;
-    const newText = prompt("Edit your comment:", comments[idx].text);
+    const oldText = comments[idx].text;
+    const newText = prompt("Edit your comment:", oldText);
     
     if (newText !== null && newText.trim() !== "") {
         comments[idx].text = newText.trim();
@@ -5001,17 +5028,16 @@ async function editComment(pid, idx) {
     }
 }
 
-function copyComment(pid, idx) {
-    // কমেন্ট টেক্সট কপি করার জন্য
-    const commentItems = document.querySelectorAll('.comment-item');
-    // কমেন্ট আইটেম থেকে টেক্সট বের করা
-    const commentText = document.querySelectorAll('.comment-item')[idx].querySelector('div[style*="margin-top:4px"]').textContent;
-    
-    navigator.clipboard.writeText(commentText).then(() => {
-        showToast("Comment copied to clipboard!");
-    }).catch(err => {
-        showToast("Failed to copy");
-    });
+function copyComment(btnElement) {
+    // কমেন্ট আইটেমটি খুঁজে বের করা
+    const commentItem = btnElement.closest('.comment-item');
+    if (commentItem) {
+        // দ্বিতীয় ডিভ-এর ভেতরে টেক্সট থাকে (আগের গঠন অনুযায়ী)
+        const textToCopy = commentItem.querySelector('div[style*="margin-top:4px"]').textContent;
+        navigator.clipboard.writeText(textToCopy).then(() => {
+            showToast("Copied to clipboard!");
+        });
+    }
 }
 
 async function deleteComment(pid, idx) {
