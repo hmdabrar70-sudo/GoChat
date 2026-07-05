@@ -1723,10 +1723,22 @@ Continue with Google
     <span class="material-symbols-outlined" onclick="toggleChatDeleteMenu()" style="cursor: pointer; padding: 8px;">more_vert</span>
     
     <div id="chat-delete-menu" class="chat-list-menu" style="top: 100%; right: 0; transform: none; display: none; width: max-content;">
-        <div class="chat-dropdown-item danger" onclick="deleteChatForEveryone()">
-            <span class="material-symbols-outlined">delete_forever</span>
-            Delete for Everyone
+        
+        <div class="chat-dropdown-item" onclick="viewProfileFromChat()">
+            <span class="material-symbols-outlined" style="color: var(--accent);">account_circle</span>
+            View Profile
         </div>
+        
+        <div class="chat-dropdown-item danger" onclick="clearChatForMe()">
+            <span class="material-symbols-outlined">mop</span> 
+            Clear Chat
+        </div>
+
+        <div class="chat-dropdown-item danger" onclick="blockUserFromChat()">
+            <span class="material-symbols-outlined">block</span>
+            Block User
+        </div>
+
     </div>
 </div>
 </div>
@@ -4909,6 +4921,62 @@ async function executeDelete(type) {
         showToast("Failed to delete messages");
     }
     closeSelectionMode();
+}
+// ===== NEW CHAT HEADER MENU FUNCTIONS =====
+
+// ১. View Profile ফাংশন
+function viewProfileFromChat() {
+    document.getElementById('chat-delete-menu').style.display = 'none'; // মেনু বন্ধ করবে
+    if (currentChatOtherUid === 'group') {
+        showToast("Cannot view profile for a group.");
+        return;
+    }
+    viewUserProfile(currentChatOtherUid); // সরাসরি প্রোফাইল ওপেন করবে
+}
+
+// ৩. Clear Chat (Delete for me) ফাংশন
+async function clearChatForMe() {
+    document.getElementById('chat-delete-menu').style.display = 'none';
+    if (!confirm("Are you sure you want to clear this chat for yourself?")) return;
+    
+    showToast("Clearing chat...");
+    try {
+        const messagesRef = db.collection('chats').doc(currentChatId).collection('messages');
+        const snap = await messagesRef.get();
+        const batch = db.batch();
+        
+        snap.forEach(doc => {
+            batch.set(doc.ref, { deletedFor: firebase.firestore.FieldValue.arrayUnion(currentUser.uid) }, { merge: true });
+        });
+        await batch.commit();
+        
+        // স্ক্রিন থেকে সাথে সাথে মেসেজ গায়েব করে দেবে
+        document.getElementById('chat-messages').innerHTML = '<div style="text-align:center; padding:20px; color:var(--text-muted);">Chat cleared</div>';
+        showToast("Chat cleared!");
+    } catch (e) {
+        showToast("Failed to clear chat");
+    }
+}
+
+// ৪. Block User ফাংশন
+async function blockUserFromChat() {
+    document.getElementById('chat-delete-menu').style.display = 'none';
+    if (currentChatOtherUid === 'group') {
+        showToast("Cannot block a group.");
+        return;
+    }
+    if (!confirm("Are you sure you want to block this user?")) return;
+    
+    try {
+        await db.collection('users').doc(currentUser.uid).update({
+            blockedUsers: firebase.firestore.FieldValue.arrayUnion(currentChatOtherUid)
+        });
+        showToast("User blocked successfully");
+        closeChat(); // ব্লক করার পর চ্যাট থেকে বের করে দেবে
+        loadMessages(); // চ্যাট লিস্ট আপডেট করবে
+    } catch (e) {
+        showToast("Failed to block user");
+    }
 }
 </script>
 </body>
