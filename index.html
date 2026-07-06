@@ -2303,7 +2303,7 @@ lastSeen:firebase.firestore.FieldValue.serverTimestamp()
 }
 });
 
-loadUserUI();loadFeed();loadMessages();loadStories();cleanupExpiredPosts();
+loadUserUI(); loadFeed(); loadMessages(); loadStories(); cleanupExpiredPosts(); fixMissingNamesInChats();
 
 db.collection('users').doc(user.uid).onSnapshot(doc=>{
 if(doc.exists){
@@ -5050,6 +5050,37 @@ async function deleteComment(pid, idx) {
     comments.splice(idx, 1);
     await ref.update({ comments });
     showToast("Comment deleted!");
+}
+async function fixMissingNamesInChats() {
+    // শুধুমাত্র যারা বর্তমানে লগইন করা তাদের চ্যাটগুলো চেক করবে
+    if (!currentUser) return;
+    
+    const chatsRef = db.collection('chats');
+    const snap = await chatsRef.get();
+    
+    snap.forEach(async (doc) => {
+        const data = doc.data();
+        // যদি চ্যাটে 'names' ফিল্ড মিসিং থাকে বা নাম 'User' থাকে
+        if (!data.names || Object.keys(data.names).length < 2) {
+            const parts = doc.id.split('_');
+            if (parts.length === 2) {
+                const otherUid = parts[0] === currentUser.uid ? parts[1] : parts[0];
+                
+                // ওই ইউজারের সঠিক নাম বের করা
+                const userDoc = await db.collection('users').doc(otherUid).get();
+                if (userDoc.exists) {
+                    const userName = userDoc.data().name;
+                    await chatsRef.doc(doc.id).set({
+                        names: { 
+                            [currentUser.uid]: currentUserData.name, 
+                            [otherUid]: userName 
+                        }
+                    }, { merge: true });
+                    console.log("Fixed name for chat:", doc.id);
+                }
+            }
+        }
+    });
 }
 </script>
 </body>
