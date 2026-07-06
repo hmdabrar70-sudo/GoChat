@@ -224,31 +224,33 @@
             } catch(e) { contentArea.innerHTML = '<p style="color:red;">Error loading users.</p>'; }
         }
 
-        async function loadPostsList() {
+                async function loadPostsList() {
             const contentArea = document.getElementById('content-area');
             try {
-                const snapshot = await db.collection('posts').orderBy('timestamp', 'desc').get();
+                // orderBy অংশটি বাদ দিয়ে সরাসরি সব পোস্ট কল করা হলো
+                const snapshot = await db.collection('posts').get();
                 let html = '<table class="data-table"><tr><th>Author</th><th>Post Text</th><th>Action</th></tr>';
+                
                 snapshot.forEach(doc => {
                     const post = doc.data();
+                    // authorName না থাকলে userName দেখাবে
+                    const name = post.authorName || post.userName || 'Unknown'; 
+                    const postText = post.text ? post.text.substring(0, 50) + '...' : '[Image/Video Post]';
+                    
                     html += `<tr>
-                        <td><strong>${post.authorName || 'Unknown'}</strong></td>
-                        <td>${post.text ? post.text.substring(0, 50) + '...' : '[Image/Video Post]'}</td>
+                        <td><strong>${name}</strong></td>
+                        <td>${postText}</td>
                         <td><button class="action-btn" onclick="deletePost('${doc.id}')">Delete</button></td>
                     </tr>`;
                 });
+                
                 html += '</table>';
                 contentArea.innerHTML = html;
-            } catch(e) { contentArea.innerHTML = '<p style="color:red;">Error loading posts.</p>'; }
-        }
-
-        async function deleteUser(uid) {
-            if(confirm("Are you sure you want to ban/delete this user?")) {
-                await db.collection('users').doc(uid).delete();
-                alert("User deleted!");
-                loadUsersList(); 
+            } catch(e) { 
+                contentArea.innerHTML = '<p style="color:red;">Error loading posts.</p>'; 
             }
         }
+        
 
         async function deletePost(postId) {
             if(confirm("Are you sure you want to delete this post?")) {
