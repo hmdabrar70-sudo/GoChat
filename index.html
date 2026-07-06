@@ -2276,57 +2276,30 @@ async function checkAndUpdateStreak() {
     }
 }
 
-// --- Admin Remote Control Receivers ---
-
-// ১. মেইনটেন্যান্স মোড চেক লিসেনার
+// ===== ADMIN REMOTE CONTROL RECEIVERS =====
 db.collection('system').doc('settings').onSnapshot(doc => {
     if (doc.exists && doc.data().maintenanceMode === true) {
-        // যদি মেইনটেন্যান্স মোড অন থাকে, তবে পুরো স্ক্রিন ব্লক করে দেবে
         if (!document.getElementById('maintenance-overlay')) {
             const overlay = document.createElement('div');
             overlay.id = 'maintenance-overlay';
-            overlay.innerHTML = `
-                <div style="text-align:center; padding:20px;">
-                    <h2 style="font-size:24px; margin-bottom:10px;">🛠️ App Under Maintenance</h2>
-                    <p style="color:#666;">We are updating GoChat to make it better. Please try again later!</p>
-                </div>
-            `;
-            // সিএসএস স্টাইল (পুরো স্ক্রিন জুড়ে দেখানোর জন্য)
-            Object.assign(overlay.style, {
-                position: 'fixed', top: '0', left: '0', width: '100vw', height: '100vh',
-                background: '#f4f7f6', zIndex: '99999', display: 'flex',
-                justifyContent: 'center', align-items: 'center', fontFamily: 'sans-serif'
-            });
+            overlay.style = 'position:fixed; top:0; left:0; width:100%; height:100%; background:#f4f7f6; z-index:99999; display:flex; justify-content:center; align-items:center; flex-direction:column;';
+            overlay.innerHTML = '<h2 style="color:#333;">🛠️ App Under Maintenance</h2><p>We are updating GoChat. Please wait!</p>';
             document.body.appendChild(overlay);
         }
     } else {
-        // মেইনটেন্যান্স মোড অফ হলে স্ক্রিন থেকে নোটিশ সরিয়ে দেবে
         const overlay = document.getElementById('maintenance-overlay');
         if (overlay) overlay.remove();
     }
 });
 
-// ২. গ্লোবাল অ্যানাউন্সমেন্ট লিসেনার
-let lastAnnouncementTime = null;
 db.collection('system').doc('announcement').onSnapshot(doc => {
-    if (doc.exists) {
-        const data = doc.data();
-        // যদি নতুন কোনো অ্যানাউন্সমেন্ট আসে, তবে সেটি ইউজারকে টোস্ট বা অ্যালার্ট হিসেবে দেখাবে
-        if (data.message && data.timestamp) {
-            const currentNoticeTime = data.timestamp.toDate().getTime();
-            if (!lastAnnouncementTime || currentNoticeTime > lastAnnouncementTime) {
-                lastAnnouncementTime = currentNoticeTime;
-                
-                // আপনার অ্যাপের অরিজিনাল showToast ফাংশন থাকলে সেটা ব্যবহার করতে পারেন, নাহলে নিচেরটা কাজ করবে
-                if (typeof showToast === 'function') {
-                    showToast("📢 Notice: " + data.message);
-                } else {
-                    alert("📢 GoChat Notice:\n\n" + data.message);
-                }
-            }
-        }
+    if (doc.exists && doc.data().message) {
+        alert("📢 GoChat Notice:\n\n" + doc.data().message);
     }
 });
+// ==========================================
+
+
 
 // ===== AUTH STATE LISTENER =====
 auth.onAuthStateChanged(async(user)=>{
