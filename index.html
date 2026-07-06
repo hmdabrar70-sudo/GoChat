@@ -1280,9 +1280,42 @@ background: rgba(0, 0, 0, 0.05) !important;
     opacity: 1;
     background: var(--surface-2);
 }
+/* Splash Screen CSS */
+#splash-screen {
+    position: fixed; 
+    inset: 0;
+    background: #ffffff; /* লাইট ব্যাকগ্রাউন্ড */
+    display: flex; 
+    justify-content: center; 
+    align-items: center;
+    z-index: 999999; /* সবার উপরে থাকবে */
+    transition: opacity 0.5s ease;
+}
+.splash-logo {
+    font-size: 56px;
+    font-weight: 900;
+    font-family: 'Pacifico', cursive;
+    background: linear-gradient(135deg, #7c5cff 0%, #a78bfa 50%, #c084fc 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: logoPulse 1.2s infinite alternate ease-in-out;
+}
+@keyframes logoPulse {
+    0% { opacity: 0.3; transform: scale(0.95); }
+    100% { opacity: 1; transform: scale(1.05); }
+}
+/* ডার্ক মোডের জন্য ব্যাকগ্রাউন্ড */
+body:not(.light-mode) #splash-screen {
+    background: var(--bg);
+}
 </style>
 </head>
 <body>
+<!-- Splash Screen HTML -->
+<div id="splash-screen">
+    <div class="splash-logo">✦ GoChat</div>
+</div>
+
 <div id="auth-screen">
 <div class="auth-box">
 <div class="auth-title-welcome">Welcome back to</div>
@@ -2303,6 +2336,15 @@ db.collection('system').doc('announcement').onSnapshot(doc => {
 
 // ===== AUTH STATE LISTENER =====
 auth.onAuthStateChanged(async(user)=>{
+// ফায়ারবেস চেকিং শেষ হলে স্প্ল্যাশ স্ক্রিন হাইড করার ম্যাজিক
+setTimeout(() => {
+    const splash = document.getElementById('splash-screen');
+    if (splash) {
+        splash.style.opacity = '0'; // ফেড আউট হবে
+        setTimeout(() => splash.style.display = 'none', 500);
+    }
+}, 600); // 600ms ডিলে দেওয়া হলো যাতে এনিমেশনটা একটু চোখে পড়ে
+
 if(user){
 currentUser=user;
 try{
