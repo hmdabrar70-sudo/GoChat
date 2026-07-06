@@ -1293,6 +1293,7 @@ background: rgba(0, 0, 0, 0.05) !important;
 }
 .splash-logo {
     font-size: 56px;
+    padding-right: 15px
     font-weight: 900;
     font-family: 'Pacifico', cursive;
     background: linear-gradient(135deg, #7c5cff 0%, #a78bfa 50%, #c084fc 100%);
@@ -2337,13 +2338,7 @@ db.collection('system').doc('announcement').onSnapshot(doc => {
 // ===== AUTH STATE LISTENER =====
 auth.onAuthStateChanged(async(user)=>{
 // ফায়ারবেস চেকিং শেষ হলে স্প্ল্যাশ স্ক্রিন হাইড করার ম্যাজিক
-setTimeout(() => {
-    const splash = document.getElementById('splash-screen');
-    if (splash) {
-        splash.style.opacity = '0'; // ফেড আউট হবে
-        setTimeout(() => splash.style.display = 'none', 500);
-    }
-}, 600); // 600ms ডিলে দেওয়া হলো যাতে এনিমেশনটা একটু চোখে পড়ে
+
 
 if(user){
 currentUser=user;
@@ -2355,6 +2350,11 @@ currentUserData=snap.exists?snap.data():{name:user.email.split('@')[0],email:use
 await checkAndUpdateStreak();
 document.getElementById('auth-screen').style.display='none';
 document.getElementById('app-screen').style.display='block';
+// লগইন থাকলে মেইন পেজ রেডি হওয়ার পর স্প্ল্যাশ সরবে
+setTimeout(() => {
+    const splash = document.getElementById('splash-screen');
+    if (splash) { splash.style.opacity = '0'; setTimeout(() => splash.style.display = 'none', 500); }
+}, 200);
 
 await updateOnlineStatus();
 if(onlineStatusInterval)clearInterval(onlineStatusInterval);
@@ -2424,6 +2424,12 @@ return`<div class="notif-item ${!data.read?'unread':''}" onclick="db.collection(
 currentUser=null;currentUserData=null;
 document.getElementById('auth-screen').style.display='flex';
 document.getElementById('app-screen').style.display='none';
+// লগআউট থাকলে লগইন পেজ রেডি হওয়ার পর স্প্ল্যাশ সরবে
+setTimeout(() => {
+    const splash = document.getElementById('splash-screen');
+    if (splash) { splash.style.opacity = '0'; setTimeout(() => splash.style.display = 'none', 500); }
+}, 200);
+
 if(feedUnsub)feedUnsub();
 if(notifUnsub)notifUnsub();
 if(storyUnsub)storyUnsub();
