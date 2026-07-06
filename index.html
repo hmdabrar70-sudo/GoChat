@@ -2824,56 +2824,70 @@ input.value='';
 }
 
 function loadStories(){
-const list=document.getElementById('stories-list');
-if(!list)return;
-if(storyUnsub)storyUnsub();
-storyUnsub=db.collection('stories').onSnapshot(snap=>{
-let stories=[];
-snap.forEach(d=>stories.push({id:d.id,...d.data()}));
-let grouped={};
-stories.forEach(s=>{
-if(!grouped[s.uid])grouped[s.uid]=[];
-grouped[s.uid].push(s);
-});
-let html='';
-if(grouped[currentUser.uid]){
-const av=currentUserData.avatar||'https://via.placeholder.com/150/7c5cff/FFFFFF?text='+avatarInitial(currentUserData.name);
-html+=`<div>
-<div class="story-circle" onclick="playStories('${currentUser.uid}')">
-<img src="${av}">
-</div>
-<div class="story-name">Your Story</div>
-</div>`;
-delete grouped[currentUser.uid];
-}
-for(let uid in grouped){
-const uName=grouped[uid][0].name;
-const safeUName=escapeHTML(uName);
-const uAv=grouped[uid][0].avatar||'https://via.placeholder.com/150/7c5cff/FFFFFF?text='+avatarInitial(uName);
-html+=`<div>
-<div class="story-circle" onclick="playStories('${uid}')">
-<img src="${uAv}">
-</div>
-<div class="story-name">${safeUName}</div>
-</div>`;
-}
-list.innerHTML=html;
-window.allStoriesData=stories;
-});
+    const list=document.getElementById('stories-list');
+    if(!list)return;
+    if(storyUnsub)storyUnsub();
+    storyUnsub=db.collection('stories').onSnapshot(snap=>{
+        let stories=[];
+        snap.forEach(d=>stories.push({id:d.id,...d.data()}));
+        let grouped={};
+        stories.forEach(s=>{
+            if(!grouped[s.uid])grouped[s.uid]=[];
+            grouped[s.uid].push(s);
+        });
+        
+        let html='';
+        let userIdsOrder = []; // নতুন: ইউজারদের সিরিয়াল সেভ করার জন্য
+        
+        if(grouped[currentUser.uid]){
+            const av=currentUserData.avatar||'https://via.placeholder.com/150/7c5cff/FFFFFF?text='+avatarInitial(currentUserData.name);
+            html+=`<div>
+            <div class="story-circle" onclick="playStories('${currentUser.uid}')">
+            <img src="${av}">
+            </div>
+            <div class="story-name">Your Story</div>
+            </div>`;
+            userIdsOrder.push(currentUser.uid); // সিরিয়ালে অ্যাড করা হলো
+            delete grouped[currentUser.uid];
+        }
+        
+        for(let uid in grouped){
+            const uName=grouped[uid][0].name;
+            const safeUName=escapeHTML(uName);
+            const uAv=grouped[uid][0].avatar||'https://via.placeholder.com/150/7c5cff/FFFFFF?text='+avatarInitial(uName);
+            html+=`<div>
+            <div class="story-circle" onclick="playStories('${uid}')">
+            <img src="${uAv}">
+            </div>
+            <div class="story-name">${safeUName}</div>
+            </div>`;
+            userIdsOrder.push(uid); // সিরিয়ালে অ্যাড করা হলো
+        }
+        
+        list.innerHTML=html;
+        window.allStoriesData=stories;
+        window.storyUserIds = userIdsOrder; // সব ইউজারদের লিস্ট গ্লোবালি সেভ করা হলো
+    });
 }
 
-function playStories(uid){
-if(!window.allStoriesData)return;
-activeStoryGroup=window.allStoriesData.filter(s=>s.uid===uid).sort((a,b)=>{
-const ta=a.createdAt?.toMillis?a.createdAt.toMillis():0;
-const tb=b.createdAt?.toMillis?b.createdAt.toMillis():0;
-return ta-tb;
-});
-if(activeStoryGroup.length===0)return;
-currentStoryIndex=0;
-document.getElementById('story-viewer').classList.add('open');
-renderCurrentStory();
+function playStories(uid, startIndex = 0){
+    if(!window.allStoriesData)return;
+    
+    // কোন ইউজারের স্টোরি চলছে তার ইনডেক্স বের করা
+    window.currentStoryUidIndex = window.storyUserIds.indexOf(uid); 
+    
+    activeStoryGroup=window.allStoriesData.filter(s=>s.uid===uid).sort((a,b)=>{
+        const ta=a.createdAt?.toMillis?a.createdAt.toMillis():0;
+        const tb=b.createdAt?.toMillis?b.createdAt.toMillis():0;
+        return ta-tb;
+    });
+    
+    if(activeStoryGroup.length===0)return;
+    currentStoryIndex = startIndex; // যেখান থেকে শুরু হবে
+    document.getElementById('story-viewer').classList.add('open');
+    renderCurrentStory();
 }
+
 
 function renderCurrentStory(){
 if(currentStoryIndex>=activeStoryGroup.length){closeStory();return;}
@@ -2913,18 +2927,45 @@ views:firebase.firestore.FieldValue.arrayUnion(currentUser.uid)
 }
 }
 
-function nextStorySegment(){currentStoryIndex++;renderCurrentStory();}
-// আগের স্টোরিতে যাওয়ার ফাংশন
+// পরের স্টোরিতে যাওয়ার লজিক
+function nextStorySegment(){
+    if(currentStoryIndex < activeStoryGroup.length - 1) {
+        // একই ইউজারের পরের স্টোরি
+        currentStoryIndex++;
+        renderCurrentStory();
+    } else {
+        // ইউজারের সব স্টোরি শেষ, পরের ইউজারের স্টোরিতে যাবে
+        if(window.storyUserIds && window.currentStoryUidIndex < window.storyUserIds.length - 1) {
+            window.currentStoryUidIndex++;
+            let nextUid = window.storyUserIds[window.currentStoryUidIndex];
+            playStories(nextUid, 0); 
+        } else {
+            closeStory(); // সবার স্টোরি শেষ হলে তবেই ক্লোজ হবে
+        }
+    }
+}
+
+// আগের স্টোরিতে যাওয়ার লজিক
 function prevStorySegment(){
     if(currentStoryIndex > 0) {
+        // একই ইউজারের আগের স্টোরি
         currentStoryIndex--;
         renderCurrentStory();
     } else {
-        // যদি একদম প্রথম স্টোরি হয়, তবে সেটা আবার শুরু থেকে প্লে হবে
-        currentStoryIndex = 0;
-        renderCurrentStory();
+        // আগের ইউজারের শেষ স্টোরিতে যাবে
+        if(window.storyUserIds && window.currentStoryUidIndex > 0) {
+            window.currentStoryUidIndex--;
+            let prevUid = window.storyUserIds[window.currentStoryUidIndex];
+            let prevGroup = window.allStoriesData.filter(s=>s.uid===prevUid);
+            playStories(prevUid, prevGroup.length - 1);
+        } else {
+            // একদম প্রথম ইউজারের প্রথম স্টোরি হলে আবার শুরু থেকে প্লে হবে
+            currentStoryIndex = 0;
+            renderCurrentStory();
+        }
     }
 }
+
 
 function closeStory(){
 document.getElementById('story-viewer').classList.remove('open');
