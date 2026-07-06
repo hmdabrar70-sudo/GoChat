@@ -3138,7 +3138,9 @@ function openChat(chatId,otherUid,otherName,otherAvatar){
     currentChatId=chatId;
     currentChatOtherUid=otherUid;
     document.getElementById('chat-screen').classList.add('open');
-    
+    // চ্যাট ওপেন করলেই মেসেজ 'Read' হয়ে যাবে
+db.collection('chats').doc(chatId).set({ isRead: true }, { merge: true });
+
     // === এই ২ লাইন আপনার হারানো ইনপুট বার ফিরিয়ে আনবে ===
     document.getElementById('chat-input-area').style.display = 'flex';
     if(typeof closeSelectionMode === 'function') closeSelectionMode();
@@ -3470,9 +3472,19 @@ if (currentChatOtherUid === 'group') {
 }
 
 await db.collection('chats').doc(currentChatId).set({
-lastMsg:lastText,
-lastAt:firebase.firestore.FieldValue.serverTimestamp()
-},{merge:true});
+    lastMsg: lastText,
+    lastAt: firebase.firestore.FieldValue.serverTimestamp(),
+    names: { 
+        [currentUser.uid]: currentUserData.name, 
+        [currentChatOtherUid]: document.getElementById('chat-name-display').textContent 
+    },
+    avatars: { 
+        [currentUser.uid]: currentUserData.avatar || '', 
+        [currentChatOtherUid]: '' 
+    },
+    lastSender: currentUser.uid, // কে মেসেজ পাঠালো
+    isRead: false // মেসেজটি এখনো পড়া হয়নি
+}, { merge: true });
 }
 
 async function sendChatImage(input){
@@ -3495,9 +3507,11 @@ if (currentChatOtherUid === 'group') {
 }
 
 await db.collection('chats').doc(currentChatId).set({
-lastMsg:lastText,
-lastAt:firebase.firestore.FieldValue.serverTimestamp()
-},{merge:true});
+    lastMsg: lastText,
+    lastAt: firebase.firestore.FieldValue.serverTimestamp(),
+    lastSender: currentUser.uid,
+    isRead: false
+}, { merge: true });
 showToast('Image sent!');
 }catch(e){showToast('Failed to send image');}
 input.value='';
@@ -3571,7 +3585,26 @@ function loadMessages(){
             const timeB=b.data.lastAt?.toMillis?b.data.lastAt.toMillis():0;
             return timeB-timeA; // বড় সময় (নতুন) ওপরে থাকবে
         });
+                // --- Unread Badge Logic ---
+        let unreadCount = 0;
+        chats.forEach(chat => {
+            // যদি আমি সেন্ডার না হই এবং মেসেজটি পড়া না হয়ে থাকে
+            if (chat.data.lastSender !== currentUser.uid && chat.data.isRead === false) {
+                unreadCount++;
+            }
+        });
         
+        const badge = document.getElementById('msg-badge');
+        if (badge) {
+            if (unreadCount > 0) {
+                badge.textContent = unreadCount;
+                badge.style.display = 'flex';
+            } else {
+                badge.style.display = 'none';
+            }
+        }
+        // -------------------------
+
         let html='';
         chats.forEach(chat=>{
             const pinIcon=chat.isPinned?'<span class="material-symbols-outlined" style="font-size:16px;color:var(--accent);margin-right:4px;">push_pin</span>':'';
