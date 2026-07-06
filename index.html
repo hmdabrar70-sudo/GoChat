@@ -1389,9 +1389,13 @@ Continue with Google
 </div>
 
 <div class="page" id="page-notifications">
-<div class="section-title" style="font-size:18px;padding:20px 20px 12px;">Notifications</div>
-<div id="notifications-list"><div class="empty-feed">No notifications yet</div></div>
+    <div style="display: flex; justify-content: space-between; align-items: center; padding: 20px 20px 12px;">
+        <h3 style="font-size:18px;">Notifications</h3>
+        <button id="edit-btn" onclick="toggleEditMode()" style="background: none; border: none; color: var(--accent); font-weight: bold; cursor: pointer;">Edit</button>
+    </div>
+    <div id="notifications-list"><div class="empty-feed">No notifications yet</div></div>
 </div>
+
 
 <div class="page" id="page-messages">
 <div style="padding:20px 20px 12px;display:flex;justify-content:space-between;align-items:center;">
@@ -2336,7 +2340,26 @@ const nList=document.getElementById('notifications-list');
 if(!nList)return;
 if(notifs.length===0){nList.innerHTML='<div class="empty-feed">No notifications yet</div>';return;}
 
-nList.innerHTML=notifs.map(data=>{
+nList.innerHTML = notifs.map(data => {
+    let textDesc = 'interacted with you';
+    if(data.type === 'like') textDesc = 'liked your post';
+    else if(data.type === 'comment') textDesc = 'commented on your post';
+    else if(data.type === 'friend_request') textDesc = 'sent you a friend request';
+    else if(data.type === 'request_accepted') textDesc = 'accepted your request';
+
+    const safeName = escapeHTML(data.fromName);
+    
+    return `
+    <div class="notif-item ${!data.read ? 'unread' : ''}" style="display:flex; align-items:center;">
+        <input type="checkbox" class="notif-checkbox" style="display:none; margin-right:10px;" onchange="selectNotif('${data.id}', this)">
+        <div class="avatar sm">${avatarInitial(data.fromName)}</div>
+        <div class="notif-text" onclick="db.collection('notifications').doc('${data.id}').update({read:true});">
+            <strong>${safeName}</strong> ${textDesc}
+            <div class="notif-time">${getRelativeTime(data.createdAt)}</div>
+        </div>
+    </div>`;
+}).join('');
+
 let textDesc='interacted with you';
 if(data.type==='like')textDesc='liked your post';
 else if(data.type==='comment')textDesc='commented on your post';
@@ -5114,6 +5137,49 @@ async function fixMissingNamesInChats() {
             }
         }
     });
+}
+let isEditMode = false;
+let selectedNotifs = [];
+
+function toggleEditMode() {
+    isEditMode = !isEditMode;
+    const btn = document.getElementById('edit-btn');
+    btn.innerText = isEditMode ? 'Cancel' : 'Edit';
+    
+    // চেকবাক্সগুলো দেখাবে বা লুকাবে
+    const checkboxes = document.querySelectorAll('.notif-checkbox');
+    checkboxes.forEach(cb => cb.style.display = isEditMode ? 'block' : 'none');
+    
+    // এডিট মোড অন থাকলে বাটনটি ডিলিট বাটনে পরিণত হবে
+    if (isEditMode) {
+        btn.innerText = 'Delete Selected';
+        btn.onclick = deleteSelectedNotifications;
+    } else {
+        btn.onclick = toggleEditMode;
+    }
+}
+
+function selectNotif(id, checkbox) {
+    if (checkbox.checked) {
+        selectedNotifs.push(id);
+    } else {
+        selectedNotifs = selectedNotifs.filter(notifId => notifId !== id);
+    }
+}
+
+async function deleteSelectedNotifications() {
+    if (selectedNotifs.length === 0) return showToast("Select at least one!");
+    
+    if(!confirm("Are you sure you want to delete selected notifications?")) return;
+    
+    showToast("Deleting...");
+    for (const id of selectedNotifs) {
+        await db.collection('notifications').doc(id).delete();
+    }
+    showToast(selectedNotifs.length + " Notifications deleted!");
+    
+    selectedNotifs = [];
+    toggleEditMode(); // মোড অফ করা
 }
 </script>
 </body>
