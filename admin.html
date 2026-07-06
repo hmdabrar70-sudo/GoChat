@@ -11,9 +11,12 @@
         #admin-login-screen { display: flex; height: 100vh; justify-content: center; align-items: center; background: #2c3e50; }
         .login-box { background: white; padding: 40px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); width: 350px; text-align: center; }
         .login-box h2 { margin-bottom: 20px; color: #4f46e5; }
-        .input-field { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ccc; border-radius: 5px; outline: none; }
+        .input-field { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ccc; border-radius: 5px; outline: none; transition: 0.3s; }
+        .input-field:focus { border-color: #4f46e5; }
         .btn { width: 100%; padding: 12px; background: #4f46e5; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; margin-top: 10px; transition: 0.3s; }
         .btn:hover { background: #4338ca; }
+        .toggle-link { margin-top: 15px; font-size: 14px; cursor: pointer; color: #4f46e5; font-weight: 600; display: inline-block; }
+        .toggle-link:hover { text-decoration: underline; }
         
         #admin-dashboard { display: none; display: flex; height: 100vh; }
         .sidebar { width: 250px; background: #2c3e50; color: white; padding: 20px 0; display: flex; flex-direction: column; }
@@ -36,7 +39,6 @@
         .action-btn { padding: 6px 12px; background: #e74c3c; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: bold; }
         .action-btn:hover { background: #c0392b; }
 
-        /* Announcement & Settings Styles */
         .admin-form-group { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); margin-bottom: 20px; }
         .admin-form-group textarea { width: 100%; height: 100px; padding: 10px; border: 1px solid #ddd; border-radius: 5px; margin-top: 10px; outline: none; }
         .toggle-btn { padding: 10px 20px; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; color: white; }
@@ -57,16 +59,33 @@
 </head>
 <body>
 
+    <!-- Auth Screen -->
     <div id="admin-login-screen">
-        <div class="login-box">
+        
+        <!-- Login Form -->
+        <div class="login-box" id="login-box">
             <h2>GoChat Admin</h2>
             <div id="login-error" style="color: red; margin-bottom: 10px; font-size: 14px;"></div>
-            <input type="email" id="admin-email" class="input-field" placeholder="Admin Email">
-            <input type="password" id="admin-pass" class="input-field" placeholder="Password">
+            <input type="email" id="login-email" class="input-field" placeholder="Admin Email">
+            <input type="password" id="login-pass" class="input-field" placeholder="Password">
             <button class="btn" onclick="loginAdmin()">Secure Login</button>
+            <span class="toggle-link" onclick="toggleAuth('signup')">Create new Admin account</span>
         </div>
+
+        <!-- Sign Up Form (Secret Key Required) -->
+        <div class="login-box" id="signup-box" style="display: none;">
+            <h2>New Admin Setup</h2>
+            <div id="signup-error" style="color: red; margin-bottom: 10px; font-size: 14px;"></div>
+            <input type="email" id="signup-email" class="input-field" placeholder="New Admin Email">
+            <input type="password" id="signup-pass" class="input-field" placeholder="Password (Min 6 chars)">
+            <input type="password" id="signup-secret" class="input-field" placeholder="Enter Secret Key 🔑" style="border-color: #f59e0b; background: #fffbeb;">
+            <button class="btn" style="background: #27ae60;" onclick="registerAdmin()">Create Admin</button>
+            <span class="toggle-link" onclick="toggleAuth('login')">Back to Login</span>
+        </div>
+
     </div>
 
+    <!-- Dashboard Screen -->
     <div id="admin-dashboard">
         <div class="sidebar">
             <h2>Admin Panel</h2>
@@ -83,12 +102,13 @@
         <div class="main-content">
             <div class="header">
                 <h1 id="page-title">Dashboard</h1>
-                <div>Welcome, <strong style="color: #4f46e5;">Master Admin</strong></div>
+                <div>Welcome, <strong style="color: #4f46e5;" id="header-admin-name">Admin</strong></div>
             </div>
             <div id="content-area"></div>
         </div>
     </div>
 
+    <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
@@ -107,35 +127,110 @@
         const auth = firebase.auth();
         const db = firebase.firestore();
         
-        // 🔒 ADMIN LOCK: শুধুমাত্র এই ইমেইলটি লগইন করতে পারবে
-        const AUTHORIZED_ADMIN = "hmdabrar70@gmail.com";
+        // 🔒 SECRET CREDENTIALS
+        const MASTER_ADMIN = "hmdabrar70@gmail.com";
+        const SECRET_KEY = "sabbir@hm@d";
 
-        auth.onAuthStateChanged(user => {
+        function toggleAuth(mode) {
+            document.getElementById('login-box').style.display = mode === 'login' ? 'block' : 'none';
+            document.getElementById('signup-box').style.display = mode === 'signup' ? 'block' : 'none';
+            document.getElementById('login-error').innerText = '';
+            document.getElementById('signup-error').innerText = '';
+        }
+
+        // --- Auth State Listener ---
+        auth.onAuthStateChanged(async user => {
             if (user) {
-                if(user.email !== AUTHORIZED_ADMIN) {
-                    auth.signOut();
-                    alert("SECURITY ALERT: You are not authorized to access the Admin Panel.");
+                // ১. মাস্টার অ্যাডমিন হলে সরাসরি ঢুকে যাবে
+                if (user.email === MASTER_ADMIN) {
+                    showDashboard(user);
                     return;
                 }
-                document.getElementById('admin-login-screen').style.display = 'none';
-                document.getElementById('admin-dashboard').style.display = 'flex';
-                switchTab('dashboard');
+                
+                // ২. নতুন তৈরি করা অ্যাডমিন কি না সেটা ডাটাবেস থেকে চেক করবে
+                try {
+                    const adminDoc = await db.collection('admin_users').doc(user.uid).get();
+                    if (adminDoc.exists) {
+                        showDashboard(user);
+                    } else {
+                        // যদি সাধারণ ইউজার ভুল করে অ্যাডমিন প্যানেলে লগইন করার চেষ্টা করে
+                        auth.signOut();
+                        alert("SECURITY ALERT: This account is not an Admin! Access Denied.");
+                    }
+                } catch(e) {
+                    auth.signOut();
+                }
             } else {
-                document.getElementById('admin-login-screen').style.display = 'flex';
-                document.getElementById('admin-dashboard').style.display = 'none';
+                hideDashboard();
             }
         });
 
+        function showDashboard(user) {
+            document.getElementById('admin-login-screen').style.display = 'none';
+            document.getElementById('admin-dashboard').style.display = 'flex';
+            document.getElementById('header-admin-name').innerText = user.email.split('@')[0];
+            switchTab('dashboard');
+        }
+
+        function hideDashboard() {
+            document.getElementById('admin-login-screen').style.display = 'flex';
+            document.getElementById('admin-dashboard').style.display = 'none';
+        }
+
+        // --- Login Logic ---
         async function loginAdmin() {
-            const email = document.getElementById('admin-email').value.trim();
-            const pass = document.getElementById('admin-pass').value;
+            const email = document.getElementById('login-email').value.trim();
+            const pass = document.getElementById('login-pass').value;
             const err = document.getElementById('login-error');
             
             if(!email || !pass) { err.innerText = "Please fill all fields!"; return; }
-            if(email !== AUTHORIZED_ADMIN) { err.innerText = "Access Denied: Unrecognized Admin ID!"; return; }
+            err.style.color = "blue";
+            err.innerText = "Checking credentials...";
+            
+            try { 
+                await auth.signInWithEmailAndPassword(email, pass); 
+            } catch(e) { 
+                err.style.color = "red";
+                err.innerText = "Login Failed: Wrong Email or Password."; 
+            }
+        }
 
-            try { await auth.signInWithEmailAndPassword(email, pass); } 
-            catch(e) { err.innerText = "Access Denied: Wrong Password"; }
+        // --- Secret Admin Signup Logic ---
+        async function registerAdmin() {
+            const email = document.getElementById('signup-email').value.trim();
+            const pass = document.getElementById('signup-pass').value;
+            const secret = document.getElementById('signup-secret').value;
+            const err = document.getElementById('signup-error');
+            
+            if(!email || !pass || !secret) { err.innerText = "Please fill all fields!"; return; }
+            if(pass.length < 6) { err.innerText = "Password must be at least 6 characters."; return; }
+            
+            // সিক্রেট কি চেক করা
+            if(secret !== SECRET_KEY) { 
+                err.innerText = "Invalid Secret Key! You cannot create an admin account."; 
+                return; 
+            }
+
+            err.style.color = "blue";
+            err.innerText = "Creating secure admin account...";
+
+            try {
+                const userCredential = await auth.createUserWithEmailAndPassword(email, pass);
+                
+                // ডাটাবেসে 'admin_users' নামের স্পেশাল ফোল্ডারে সেভ করা
+                await db.collection('admin_users').doc(userCredential.user.uid).set({
+                    email: email,
+                    role: 'admin',
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                
+                // সফল হলে মেসেজ দেখাবে (লগইন অটোমেটিক হয়ে যাবে)
+                err.style.color = "green";
+                err.innerText = "Admin Account created successfully!";
+            } catch(e) {
+                err.style.color = "red";
+                err.innerText = "Error: " + e.message;
+            }
         }
 
         async function logoutAdmin() { await auth.signOut(); }
@@ -152,7 +247,7 @@
         const profileHTML = `
             <div class="admin-form-group" style="text-align: center; padding: 40px;">
                 <img src="https://ui-avatars.com/api/?name=Admin&background=4f46e5&color=fff&size=100" style="border-radius: 50%; margin-bottom: 20px;">
-                <h2>Master Admin</h2>
+                <h2>Admin Profile</h2>
                 <p style="font-size: 18px; color: #666; margin-top: 15px;">Logged in Email:</p>
                 <h3 style="color: #4f46e5; margin-top: 5px;" id="admin-email-display">Loading...</h3>
                 <p style="margin-top: 20px; font-size: 14px; color: #27ae60; font-weight: bold;">Status: Active & Secure 🔒</p>
@@ -212,7 +307,6 @@
                 title.innerText = "Global Announcements";
                 contentArea.innerHTML = announceHTML;
                 
-                // Load Current Announcement automatically
                 db.collection('system').doc('announcement').onSnapshot(doc => {
                     const msgBox = document.getElementById('active-msg-text');
                     const delBtn = document.getElementById('delete-announce-btn');
