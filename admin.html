@@ -12,7 +12,7 @@
         .login-box { background: white; padding: 40px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); width: 350px; text-align: center; }
         .login-box h2 { margin-bottom: 20px; color: #4f46e5; }
         .input-field { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ccc; border-radius: 5px; outline: none; }
-        .btn { width: 100%; padding: 12px; background: #4f46e5; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; margin-top: 10px; }
+        .btn { width: 100%; padding: 12px; background: #4f46e5; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; margin-top: 10px; transition: 0.3s; }
         .btn:hover { background: #4338ca; }
         
         #admin-dashboard { display: none; display: flex; height: 100vh; }
@@ -33,7 +33,7 @@
         .data-table th, .data-table td { border-bottom: 1px solid #ddd; padding: 12px; text-align: left; font-size: 14px; }
         .data-table th { background: #4f46e5; color: white; }
         .data-table img { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; }
-        .action-btn { padding: 6px 12px; background: #e74c3c; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; }
+        .action-btn { padding: 6px 12px; background: #e74c3c; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: bold; }
         .action-btn:hover { background: #c0392b; }
 
         /* Announcement & Settings Styles */
@@ -94,6 +94,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
     <script>
+        // Firebase Config
         firebase.initializeApp({
             apiKey: "AIzaSyAnKueAHG8cw6O-Hy8U9fgGzH4fDMYQBy8",
             authDomain: "gochat-3efa3.firebaseapp.com",
@@ -106,7 +107,7 @@
         const auth = firebase.auth();
         const db = firebase.firestore();
         
-        // 🔒 ADMIN LOCK
+        // 🔒 ADMIN LOCK: শুধুমাত্র এই ইমেইলটি লগইন করতে পারবে
         const AUTHORIZED_ADMIN = "hmdabrar70@gmail.com";
 
         auth.onAuthStateChanged(user => {
@@ -139,12 +140,13 @@
 
         async function logoutAdmin() { await auth.signOut(); }
 
+        // --- HTML Templates ---
         const dashboardHTML = `
             <div class="stats-grid">
                 <div class="stat-card"><h3>Total Users</h3><h1 id="total-users">0</h1></div>
                 <div class="stat-card"><h3>Total Posts</h3><h1 id="total-posts">0</h1></div>
             </div>
-            <p>Welcome to GoChat Secure Admin Panel.</p>
+            <p style="color: #666;">Welcome to GoChat Secure Admin Panel. Manage your platform from here.</p>
         `;
 
         const profileHTML = `
@@ -164,6 +166,13 @@
                 <textarea id="announce-text" placeholder="Write your announcement here..."></textarea>
                 <button class="btn" style="width: auto; padding: 10px 20px;" onclick="sendAnnouncement()">Send to All Users</button>
             </div>
+            <div class="admin-form-group">
+                <h3>📍 Currently Active Announcement</h3>
+                <div id="current-announcement-box" style="padding:15px; background:#f9f9f9; border:1px solid #ddd; border-radius:5px; margin-top:10px;">
+                    <p id="active-msg-text" style="font-size: 16px; font-weight: bold; color: #333;">No active announcement.</p>
+                    <button id="delete-announce-btn" class="action-btn" style="margin-top:15px; display:none;" onclick="deleteAnnouncement()">Delete Announcement</button>
+                </div>
+            </div>
         `;
 
         const settingsHTML = `
@@ -174,6 +183,7 @@
             </div>
         `;
 
+        // --- Tab Switching Logic ---
         function switchTab(tab) {
             document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
             event.target.classList.add('active');
@@ -188,11 +198,8 @@
             } else if(tab === 'profile') {
                 title.innerText = "Admin Profile";
                 contentArea.innerHTML = profileHTML;
-                // বর্তমানে লগইন করা জিমেইলটি দেখাবে
                 const user = auth.currentUser;
-                if(user) {
-                    document.getElementById('admin-email-display').innerText = user.email;
-                }
+                if(user) { document.getElementById('admin-email-display').innerText = user.email; }
             } else if(tab === 'users') {
                 title.innerText = "Users Management";
                 contentArea.innerHTML = '<p>Loading...</p>';
@@ -204,6 +211,21 @@
             } else if(tab === 'announce') {
                 title.innerText = "Global Announcements";
                 contentArea.innerHTML = announceHTML;
+                
+                // Load Current Announcement automatically
+                db.collection('system').doc('announcement').onSnapshot(doc => {
+                    const msgBox = document.getElementById('active-msg-text');
+                    const delBtn = document.getElementById('delete-announce-btn');
+                    if(msgBox && delBtn) {
+                        if(doc.exists && doc.data().message) {
+                            msgBox.innerText = doc.data().message;
+                            delBtn.style.display = 'inline-block';
+                        } else {
+                            msgBox.innerText = "No active announcement.";
+                            delBtn.style.display = 'none';
+                        }
+                    }
+                });
             } else if(tab === 'settings') {
                 title.innerText = "App Settings";
                 contentArea.innerHTML = settingsHTML;
@@ -211,6 +233,7 @@
             }
         }
 
+        // --- Core Functions ---
         function loadDashboardStats() {
             db.collection('users').onSnapshot(snap => { if(document.getElementById('total-users')) document.getElementById('total-users').innerText = snap.size; });
             db.collection('posts').onSnapshot(snap => { if(document.getElementById('total-posts')) document.getElementById('total-posts').innerText = snap.size; });
@@ -223,8 +246,9 @@
                 let html = '<table class="data-table"><tr><th>Avatar</th><th>Name</th><th>Email</th><th>Action</th></tr>';
                 snapshot.forEach(doc => {
                     const user = doc.data();
+                    const profilePic = user.avatar || user.profilePic || 'https://via.placeholder.com/40';
                     html += `<tr>
-                        <td><img src="${user.profilePic || 'https://via.placeholder.com/40'}"></td>
+                        <td><img src="${profilePic}"></td>
                         <td><strong>${user.name || 'No Name'}</strong></td>
                         <td>${user.email || 'No Email'}</td>
                         <td><button class="action-btn" onclick="deleteUser('${doc.id}')">Ban/Delete</button></td>
@@ -242,8 +266,8 @@
                 let html = '<table class="data-table"><tr><th>Author</th><th>Post Text</th><th>Action</th></tr>';
                 snapshot.forEach(doc => {
                     const post = doc.data();
-                    const name = post.authorName || post.userName || 'Unknown';
-                    const postText = post.text ? post.text.substring(0, 50) + '...' : '[Image/Video Post]';
+                    const name = post.authorName || post.userName || post.name || 'Unknown';
+                    const postText = post.text || post.title ? (post.text || post.title).substring(0, 50) + '...' : '[Image/Video Post]';
                     html += `<tr>
                         <td><strong>${name}</strong></td>
                         <td>${postText}</td>
@@ -258,7 +282,7 @@
         async function deleteUser(uid) {
             if(confirm("Are you sure you want to ban/delete this user?")) {
                 await db.collection('users').doc(uid).delete();
-                alert("User deleted!");
+                alert("User deleted successfully!");
                 loadUsersList(); 
             }
         }
@@ -266,7 +290,7 @@
         async function deletePost(postId) {
             if(confirm("Are you sure you want to delete this post?")) {
                 await db.collection('posts').doc(postId).delete();
-                alert("Post deleted!");
+                alert("Post deleted successfully!");
                 loadPostsList(); 
             }
         }
@@ -281,7 +305,18 @@
                 });
                 alert("Announcement updated globally!");
                 document.getElementById('announce-text').value = '';
-            } catch(e) { alert("Error sending announcement"); }
+            } catch(e) { alert("Error sending announcement."); }
+        }
+
+        async function deleteAnnouncement() {
+            if(confirm("Are you sure you want to remove this announcement? Users will no longer see it.")) {
+                try {
+                    await db.collection('system').doc('announcement').delete();
+                    alert("Announcement deleted successfully!");
+                } catch(e) {
+                    alert("Error deleting announcement.");
+                }
+            }
         }
         
         let isMaintenanceOn = false;
