@@ -1283,42 +1283,51 @@ background: rgba(0, 0, 0, 0.05) !important;
 </style>
 </head>
 <body>
-<div id="auth-screen">
-<div class="auth-box">
-<div class="auth-title-welcome">Welcome back to</div>
-<div class="auth-logo">✦ GoChat</div>
-<div class="auth-sub">Connect and share your moments</div>
-<div>
-<div class="auth-input-group">
-<label>Email Address</label>
-<input type="email" id="auth-email" placeholder="example@email.com">
-</div>
-<div class="auth-input-group" style="position: relative;">
-    <label>Password</label>
-    <input type="password" id="auth-password" placeholder="••••••••" style="padding-right: 40px;">
-    <span id="toggle-eye" class="material-symbols-outlined" 
-          style="position: absolute; right: 10px; top: 35px; cursor: pointer; color: #888; font-size: 20px;" 
-          onclick="togglePasswordVisibility()">visibility</span>
-</div>
+    <!-- ================= NEW AUTH SCREEN ================= -->
+    <div id="auth-screen">
+        <div class="auth-box">
+            <h1 style="color: #4f46e5; margin-bottom: 30px; text-align: center;">GoChat</h1>
+            
+            <!-- Main Auth Home (3 Options) -->
+            <div id="auth-home">
+                <button class="btn" style="background: #27ae60;" onclick="showSection('signup-step1')">Create Account</button>
+                <button class="btn" style="background: #2980b9;" onclick="showSection('login-form')">Log In</button>
+                <div style="margin: 20px 0; text-align: center; color: #7f8c8d;">--- OR ---</div>
+                <button class="btn" style="background: #e74c3c;" onclick="loginWithGoogle()">🌐 Login with Google</button>
+            </div>
 
-<button class="btn-auth-primary" onclick="loginWithEmail()">Log In</button>
-<div style="text-align:center; margin-top: 30px; font-size: 13px; color: #5a5a70;">
-New to GoChat?
-<span style="color: #ff7e67; font-weight: 700; cursor: pointer;" onclick="registerWithEmail()">Register</span>
-</div>
-<div style="display:flex; align-items:center; margin: 24px 0 10px;">
-<div style="flex:1; height:1px; background:#e5e5ee;"></div>
-<div style="padding:0 14px; font-size:12px; color:#8a8a9a; font-weight:700; letter-spacing: 1px;">OR</div>
-<div style="flex:1; height:1px; background:#e5e5ee;"></div>
-</div>
-<button class="btn-auth-google" onclick="loginWithGoogle()">
-<img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" alt="Google" style="width:20px;height:20px;">
-Continue with Google
-</button>
-</div>
-<div id="auth-msg" class="auth-msg"></div>
-</div>
-</div>
+            <!-- Log In Form -->
+            <div id="login-form" style="display: none;">
+                <h3 style="margin-bottom: 20px; text-align: center;">Welcome Back</h3>
+                <input type="email" id="login-email" class="input-field" placeholder="Email Address">
+                <input type="password" id="login-pass" class="input-field" placeholder="Password">
+                <button class="btn" onclick="loginUser()">Log In</button>
+                <button class="btn" style="background: #95a5a6; margin-top: 10px;" onclick="showSection('auth-home')">Back</button>
+            </div>
+
+            <!-- Sign Up - Page 1 -->
+            <div id="signup-step1" style="display: none;">
+                <h3 style="margin-bottom: 20px; text-align: center;">Create Account (Step 1)</h3>
+                <input type="text" id="reg-name" class="input-field" placeholder="Your Full Name">
+                <input type="email" id="reg-email" class="input-field" placeholder="Email Address">
+                <button class="btn" onclick="goToStep2()">Next ➡️</button>
+                <button class="btn" style="background: #95a5a6; margin-top: 10px;" onclick="showSection('auth-home')">Back</button>
+            </div>
+
+            <!-- Sign Up - Page 2 -->
+            <div id="signup-step2" style="display: none;">
+                <h3 style="margin-bottom: 20px; text-align: center;">Create Account (Step 2)</h3>
+                <input type="password" id="reg-pass" class="input-field" placeholder="Password">
+                <input type="password" id="reg-confirm-pass" class="input-field" placeholder="Confirm Password">
+                <button class="btn" style="background: #27ae60;" onclick="completeSignup()">✅ Confirm</button>
+                <button class="btn" style="background: #95a5a6; margin-top: 10px;" onclick="showSection('signup-step1')">⬅️ Back</button>
+            </div>
+            
+            <!-- Error/Success Message Display -->
+            <div id="auth-msg" style="color: red; margin-top: 15px; text-align: center; font-size: 14px;"></div>
+        </div>
+    </div>
+    <!-- =================================================== -->
 
 <div id="app-screen">
 <div class="topbar">
@@ -1813,6 +1822,27 @@ Continue with Google
 
 <div id="toast"></div>
 <style>
+        /* Auth Screen Styles */
+        #auth-screen {
+            display: flex; height: 100vh; justify-content: center; align-items: center; 
+            background: linear-gradient(135deg, #f4f7f6, #e0e7ff);
+        }
+        .auth-box {
+            background: white; padding: 40px; border-radius: 12px; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 90%; max-width: 400px;
+        }
+        .input-field {
+            width: 100%; padding: 14px; margin: 10px 0; border: 1px solid #ddd; 
+            border-radius: 8px; outline: none; font-size: 16px;
+        }
+        .input-field:focus { border-color: #4f46e5; }
+        .btn {
+            width: 100%; padding: 14px; background: #4f46e5; color: white; 
+            border: none; border-radius: 8px; cursor: pointer; font-weight: bold; 
+            font-size: 16px; margin-top: 10px; transition: 0.3s;
+        }
+        .btn:hover { opacity: 0.9; }
+
     #selection-bottom-bar { display: none; position: fixed; bottom: 0; left: 0; width: 100%; background: var(--surface); border-top: 1px solid var(--border); padding: 16px 20px; z-index: 99999; justify-content: space-between; align-items: center; box-shadow: 0 -4px 20px rgba(0,0,0,0.3); }
     #selection-bottom-bar.active { display: flex !important; }
     .chat-bubble-wrapper.selected { background: rgba(124, 92, 255, 0.15); border-radius: 8px; }
@@ -1846,7 +1876,7 @@ Continue with Google
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
-<script>
+
 // ===== CONSTANTS =====
 const MY_SPECIAL_EMAIL="hbmabrar@gmail.com";
 const ONE_YEAR_MS = 365 * 24 * 60 * 60 * 1000;
@@ -2088,38 +2118,121 @@ function closeLeaderboard() {
 document.getElementById('leaderboard-modal').classList.remove('open');
 }
 
-// ===== AUTH FUNCTIONS =====
-async function loginWithEmail(){
-const email=document.getElementById('auth-email').value.trim();
-const pass=document.getElementById('auth-password').value;
-const msg=document.getElementById('auth-msg');
-if(!email||!pass){msg.textContent='Please enter email and password.';msg.className='auth-msg error';return;}
-msg.textContent='Logging in...';msg.className='auth-msg success';
-try{await auth.signInWithEmailAndPassword(email,pass);}
-catch(e){msg.textContent='Login failed: '+e.message;msg.className='auth-msg error';}
-}
+        // পেজ বা সেকশন পরিবর্তন করার ফাংশন
+        function showSection(sectionId) {
+            document.getElementById('auth-home').style.display = 'none';
+            document.getElementById('login-form').style.display = 'none';
+            document.getElementById('signup-step1').style.display = 'none';
+            document.getElementById('signup-step2').style.display = 'none';
+            document.getElementById('auth-msg').innerText = ''; // মেসেজ ক্লিয়ার
+            
+            document.getElementById(sectionId).style.display = 'block';
+        }
 
-async function loginWithGoogle() {
-const provider = new firebase.auth.GoogleAuthProvider();
-try {
-const result = await auth.signInWithPopup(provider);
-const user = result.user;
-const doc = await db.collection('users').doc(user.uid).get();
-if (!doc.exists) {
-await db.collection('users').doc(user.uid).set({
-name: user.email.split('@')[0],
-email: user.email,
-avatar: '',
-bio: '', location: '', hometown: '', relationship: '', gender: '',
-friends: [], sentRequests: [], receivedRequests: [],
-blockedUsers: [], mutedChats: [], pinnedChats: [], archivedChats: [],
-online: true,
-points: 20,
-loginStreak: 1,
-lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
-createdAt: firebase.firestore.FieldValue.serverTimestamp()
-});
-}
+        // Step 1 থেকে Step 2 তে যাওয়ার ফাংশন
+        function goToStep2() {
+            const name = document.getElementById('reg-name').value.trim();
+            const email = document.getElementById('reg-email').value.trim();
+            const msg = document.getElementById('auth-msg');
+
+            if(!name || !email) {
+                msg.style.color = 'red';
+                msg.innerText = 'Please enter your Name and Email!';
+                return;
+            }
+            // সব ঠিক থাকলে Step 2 তে যাবে
+            showSection('signup-step2');
+        }
+
+        // নতুন একাউন্ট তৈরি (Confirm) করার ফাংশন
+        async function completeSignup() {
+            const name = document.getElementById('reg-name').value.trim();
+            const email = document.getElementById('reg-email').value.trim();
+            const pass = document.getElementById('reg-pass').value;
+            const confirmPass = document.getElementById('reg-confirm-pass').value;
+            const msg = document.getElementById('auth-msg');
+
+            if(pass !== confirmPass) {
+                msg.style.color = 'red';
+                msg.innerText = 'Passwords do not match!';
+                return;
+            }
+            if(pass.length < 6) {
+                msg.style.color = 'red';
+                msg.innerText = 'Password must be at least 6 characters!';
+                return;
+            }
+
+            try {
+                msg.style.color = 'blue';
+                msg.innerText = 'Creating account...';
+                
+                // ഫায়ারবেস একাউন্ট তৈরি
+                const userCredential = await auth.createUserWithEmailAndPassword(email, pass);
+                const user = userCredential.user;
+
+                // ইউজারের প্রোফাইলে নাম সেভ করা
+                await user.updateProfile({ displayName: name });
+                
+                // ফায়ারস্টোর ডাটাবেসে ইউজারের তথ্য সেভ করা
+                await db.collection('users').doc(user.uid).set({
+                    name: name,
+                    email: email,
+                    uid: user.uid,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                }, { merge: true });
+
+                msg.style.color = 'green';
+                msg.innerText = 'Account created successfully!';
+                
+            } catch (error) {
+                msg.style.color = 'red';
+                msg.innerText = error.message;
+            }
+        }
+
+        // সাধারণ লগইন ফাংশন
+        async function loginUser() {
+            const email = document.getElementById('login-email').value.trim();
+            const pass = document.getElementById('login-pass').value;
+            const msg = document.getElementById('auth-msg');
+
+            if(!email || !pass) {
+                msg.style.color = 'red';
+                msg.innerText = 'Please fill all fields!';
+                return;
+            }
+
+            try {
+                msg.style.color = 'blue';
+                msg.innerText = 'Logging in...';
+                await auth.signInWithEmailAndPassword(email, pass);
+            } catch (error) {
+                msg.style.color = 'red';
+                msg.innerText = 'Error: ' + error.message;
+            }
+        }
+
+        // গুগল দিয়ে লগইন ফাংশন
+        async function loginWithGoogle() {
+            const provider = new firebase.auth.GoogleAuthProvider();
+            try {
+                const result = await auth.signInWithPopup(provider);
+                const user = result.user;
+                
+                // নতুন ইউজার হলে ডাটাবেসে তথ্য সেভ করবে
+                await db.collection('users').doc(user.uid).set({
+                    name: user.displayName || 'Google User',
+                    email: user.email,
+                    profilePic: user.photoURL,
+                    uid: user.uid
+                }, { merge: true });
+                
+            } catch (error) {
+                alert("Google Sign-In failed: " + error.message);
+            }
+        }
+
 function togglePasswordVisibility() {
     const passwordInput = document.getElementById('auth-password');
     const eyeIcon = event.target;
