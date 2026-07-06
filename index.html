@@ -5130,19 +5130,21 @@ async function fixMissingNamesInChats() {
     });
 }
 
+// --- Notification Edit Mode & Delete Logic ---
 let isEditMode = false;
 let selectedNotifs = [];
 
 function toggleEditMode() {
     isEditMode = !isEditMode;
     const btn = document.getElementById('edit-btn');
+    if (!btn) return;
+    
     btn.innerText = isEditMode ? 'Cancel' : 'Edit';
     
     // চেকবাক্সগুলো দেখাবে বা লুকাবে
     const checkboxes = document.querySelectorAll('.notif-checkbox');
     checkboxes.forEach(cb => cb.style.display = isEditMode ? 'block' : 'none');
     
-    // এডিট মোড অন থাকলে বাটনটি ডিলিট বাটনে পরিণত হবে
     if (isEditMode) {
         btn.innerText = 'Delete Selected';
         btn.onclick = deleteSelectedNotifications;
@@ -5165,13 +5167,21 @@ async function deleteSelectedNotifications() {
     if(!confirm("Are you sure you want to delete selected notifications?")) return;
     
     showToast("Deleting...");
-    for (const id of selectedNotifs) {
-        await db.collection('notifications').doc(id).delete();
+    try {
+        for (const id of selectedNotifs) {
+            await db.collection('notifications').doc(id).delete();
+        }
+        showToast(selectedNotifs.length + " Notifications deleted!");
+        selectedNotifs = [];
+        isEditMode = false;
+        const btn = document.getElementById('edit-btn');
+        btn.innerText = 'Edit';
+        btn.onclick = toggleEditMode;
+        // নোটিফিকেশন লিস্ট রিফ্রেশ করার জন্য আপনার ফাংশনটি কল করুন
+        if(typeof loadNotifications === 'function') loadNotifications();
+    } catch(e) {
+        showToast("Error deleting notifications");
     }
-    showToast(selectedNotifs.length + " Notifications deleted!");
-    
-    selectedNotifs = [];
-    toggleEditMode(); // মোড অফ করা
 }
 </script>
 </body>
