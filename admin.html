@@ -322,7 +322,7 @@
                         <td><img src="${profilePic}"></td>
                         <td><strong>${user.name || 'No Name'}</strong></td>
                         <td>${user.email || 'No Email'}</td>
-                        <td><button class="action-btn" onclick="deleteUser('${doc.id}')">Ban/Delete</button></td>
+                        <td><button class="action-btn" onclick="banUser('${doc.id}', '${user.email}')">Ban User</button></td>
                     </tr>`;
                 });
                 html += '</table>';
@@ -350,11 +350,32 @@
             } catch(e) { contentArea.innerHTML = '<p style="color:red;">Error loading posts.</p>'; }
         }
 
-        async function deleteUser(uid) {
-            if(confirm("Are you sure you want to ban/delete this user?")) {
-                await db.collection('users').doc(uid).delete();
-                alert("User deleted successfully!");
-                loadUsersList(); 
+        async function banUser(uid, email) {
+            if(confirm("Are you sure you want to PERMANENTLY BAN this user? All their posts and stories will be deleted.")) {
+                try {
+                    // .   
+                    if(email) {
+                        await db.collection('banned_emails').doc(email).set({ banned: true });
+                    }
+                    
+                    // .   
+                    await db.collection('users').doc(uid).update({ isBanned: true });
+                    
+                    // .   (     )
+                    const postsSnap = await db.collection('posts').where('uid', '==', uid).get();
+                    const batch = db.batch();
+                    postsSnap.forEach(doc => batch.delete(doc.ref));
+                    
+                    const storiesSnap = await db.collection('stories').where('uid', '==', uid).get();
+                    storiesSnap.forEach(doc => batch.delete(doc.ref));
+                    
+                    await batch.commit();
+                    
+                    alert("User has been successfully banned and all their data purged!");
+                    loadUsersList(); 
+                } catch(e) {
+                    alert("Error banning user.");
+                }
             }
         }
 
