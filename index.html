@@ -2174,6 +2174,14 @@ const provider = new firebase.auth.GoogleAuthProvider();
 try {
 const result = await auth.signInWithPopup(provider);
 const user = result.user;
+// Check Blacklist
+const banCheck = await db.collection('banned_emails').doc(user.email).get();
+if (banCheck.exists) {
+    await auth.signOut();
+    showToast("Access Denied: This account is permanently banned.");
+    return;
+}
+
 const doc = await db.collection('users').doc(user.uid).get();
 if (!doc.exists) {
 await db.collection('users').doc(user.uid).set({
@@ -2215,6 +2223,14 @@ const email=document.getElementById('auth-email').value.trim();
 const pass=document.getElementById('auth-password').value;
 const msg=document.getElementById('auth-msg');
 if(!email||!pass){msg.textContent='Please enter email and password.';msg.className='auth-msg error';return;}
+// Check Blacklist
+const banCheck = await db.collection('banned_emails').doc(email).get();
+if (banCheck.exists) {
+    msg.textContent='Access Denied: This email is permanently banned.';
+    msg.className='auth-msg error';
+    return;
+}
+
 msg.textContent='Creating account...';msg.className='auth-msg success';
 try{
 const result=await auth.createUserWithEmailAndPassword(email,pass);
@@ -2410,6 +2426,21 @@ loadUserUI(); loadFeed(); loadMessages(); loadStories(); cleanupExpiredPosts(); 
 db.collection('users').doc(user.uid).onSnapshot(doc=>{
 if(doc.exists){
 currentUserData=doc.data();
+// --- LOCKDOWN CHECK ---
+if (currentUserData.isBanned) {
+    document.body.innerHTML = `
+        <div style="height:100vh; display:flex; flex-direction:column; justify-content:center; align-items:center; background:#1a1a2e; color:white; font-family:sans-serif; text-align:center; padding: 20px;">
+            <span class="material-symbols-outlined" style="font-size: 80px; color: #ff4d6a; margin-bottom: 20px;">gavel</span>
+            <h1 style="color:#ff4d6a; margin-bottom:10px;">ACCOUNT BANNED</h1>
+            <p style="color:#a0a0b5; margin-bottom:30px;">Your account has been permanently suspended by the Admin.</p>
+            <button onclick="firebase.auth().signOut().then(()=>window.location.reload())" style="padding:12px 24px; background:#ff4d6a; color:white; border:none; border-radius:30px; font-weight:bold; cursor:pointer;">Exit App</button>
+        </div>
+    `;
+    auth.signOut();
+    return;
+}
+// -----------------------
+
 loadUserUI();loadFriendRequests();
 const fBadge=document.getElementById('friends-badge');
 const reqCount=currentUserData.receivedRequests?currentUserData.receivedRequests.length:0;
