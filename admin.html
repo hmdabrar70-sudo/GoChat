@@ -350,104 +350,61 @@
             } catch(e) { contentArea.innerHTML = '<p style="color:red;">Error loading posts.</p>'; }
         }
 
-      async function banUser(uid, email) {
-    if (!confirm("⚠️ WARNING: This will PERMANENTLY DELETE ALL data for this user. Are you sure?")) return;
+       async function banUser(uid, email) {
 
-    try {
-        alert("Deleting user data... please wait.");
+            if(confirm("Are you sure you want to PERMANENTLY BAN this user? All their posts and stories will be deleted.")) {
 
-        // ১. ব্যান লিস্টে ইমেইল যোগ করা
-        if (email) {
-            await db.collection('banned_emails').doc(email).set({ bannedAt: firebase.firestore.FieldValue.serverTimestamp() });
-        }
-
-        // ২. পোস্ট ডিলিট করা
-        const postsSnap = await db.collection('posts').where('uid', '==', uid).get();
-        for (const doc of postsSnap.docs) {
-            await doc.ref.delete();
-        }
-
-        // ৩. স্টোরি ডিলিট করা
-        const storiesSnap = await db.collection('stories').where('uid', '==', uid).get();
-        for (const doc of storiesSnap.docs) {
-            await doc.ref.delete();
-        }
-
-        // ৪. চ্যাট রুমগুলো ডিলিট করা (যেগুলোতে এই ইউজারের আইডি আছে)
-        const chatsSnap = await db.collection('chats').get();
-        for (const doc of chatsSnap.docs) {
-            if (doc.id.includes(uid)) {
-                // চ্যাটের ভেতরকার সব মেসেজ ডিলিট
-                const msgs = await doc.ref.collection('messages').get();
-                for (const msg of msgs.docs) {
-                    await msg.ref.delete();
-                }
-                // চ্যাট রুম ডিলিট
-                await doc.ref.delete();
-            }
-        }
-
-        // ৫. ইউজার প্রোফাইল ডিলিট
-        await db.collection('users').doc(uid).delete();
-
-        alert("User and all associated data permanently deleted.");
-        loadUsersList(); // লিস্ট রিলোড হবে
-
-    } catch (error) {
-        console.error("Delete Error: ", error);
-        alert("Error: Could not delete user data. Check console for details.");
-    }
-      }
-        
-
-        async function deletePost(postId) {
-            if(confirm("Are you sure you want to delete this post?")) {
-                await db.collection('posts').doc(postId).delete();
-                alert("Post deleted successfully!");
-                loadPostsList(); 
-            }
-        }
-
-        async function sendAnnouncement() {
-            const text = document.getElementById('announce-text').value.trim();
-            if(!text) return alert("Write something first!");
-            try {
-                await db.collection('system').doc('announcement').set({
-                    message: text,
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                });
-                alert("Announcement updated globally!");
-                document.getElementById('announce-text').value = '';
-            } catch(e) { alert("Error sending announcement."); }
-        }
-
-        async function deleteAnnouncement() {
-            if(confirm("Are you sure you want to remove this announcement? Users will no longer see it.")) {
                 try {
-                    await db.collection('system').doc('announcement').delete();
-                    alert("Announcement deleted successfully!");
+
+                    // .   
+
+                    if(email) {
+
+                        await db.collection('banned_emails').doc(email).set({ banned: true });
+
+                    }
+
+                    
+
+                    // .   
+
+                    await db.collection('users').doc(uid).update({ isBanned: true });
+
+                    
+
+                    // .   (     )
+
+                    const postsSnap = await db.collection('posts').where('uid', '==', uid).get();
+
+                    const batch = db.batch();
+
+                    postsSnap.forEach(doc => batch.delete(doc.ref));
+
+                    
+
+                    const storiesSnap = await db.collection('stories').where('uid', '==', uid).get();
+
+                    storiesSnap.forEach(doc => batch.delete(doc.ref));
+
+                    
+
+                    await batch.commit();
+
+                    
+
+                    alert("User has been successfully banned and all their data purged!");
+
+                    loadUsersList(); 
+
                 } catch(e) {
-                    alert("Error deleting announcement.");
+
+                    alert("Error banning user.");
+
                 }
+
             }
-        }
-        
-        let isMaintenanceOn = false;
-        function checkMaintenanceStatus() {
-            db.collection('system').doc('settings').onSnapshot(doc => {
-                const btn = document.getElementById('maintenance-btn');
-                if(!btn) return;
-                if(doc.exists && doc.data().maintenanceMode === true) {
-                    isMaintenanceOn = true;
-                    btn.className = "toggle-btn toggle-on";
-                    btn.innerText = "App is currently OFF (Turn ON to Resume)";
-                } else {
-                    isMaintenanceOn = false;
-                    btn.className = "toggle-btn toggle-off";
-                    btn.innerText = "App is currently ON (Turn OFF for Maintenance)";
-                }
-            });
-        }
+
+       }
 
         async function toggleMaintenance() {
             const newState = !isMaintenanceOn;
