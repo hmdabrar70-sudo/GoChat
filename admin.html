@@ -351,37 +351,41 @@
         }
 
         async function banUser(uid, email) {
-    if(confirm("Are you sure? This will PERMANENTLY BAN the user and DELETE all their Posts, Stories, and Chat history from database!")) {
-        try {
-            showToast("Processing... Please wait.");
-
-            // ১. ব্যান লিস্টে রাখা (যাতে নতুন একাউন্ট না খুলতে পারে)
-            if(email) {
-                await db.collection('banned_emails').doc(email).set({ bannedAt: firebase.firestore.FieldValue.serverTimestamp() });
-            }
-            
-            // ২. পোস্ট মুছে ফেলা
-            const postsSnap = await db.collection('posts').where('uid', '==', uid).get();
-            const batch = db.batch();
-            postsSnap.forEach(doc => batch.delete(doc.ref));
-            
-            // ৩. স্টোরি মুছে ফেলা
-            const storiesSnap = await db.collection('stories').where('uid', '==', uid).get();
-            storiesSnap.forEach(doc => batch.delete(doc.ref));
-            
-            await batch.commit(); // পোস্ট ও স্টোরি ডিলিট কমিট
-            
-            // ৪. চ্যাট মেসেজগুলো মুছে ফেলা (খুব গুরুত্বপূর্ণ)
-            const chatsSnap = await db.collection('chats').get();
-            for (let doc of chatsSnap.docs) {
-                if (doc.id.includes(uid)) {
-                    const messages = await doc.ref.collection('messages').get();
-                    const msgBatch = db.batch();
-                    messages.forEach(msg => msgBatch.delete(msg.ref));
-                    await msgBatch.commit();
-                    await doc.ref.delete(); // চ্যাট রুমটিও ডিলিট
+            if(confirm("Are you sure you want to PERMANENTLY BAN this user? All their posts and stories will be deleted.")) {
+                try {
+                    // .   
+                    if(email) {
+                        await db.collection('banned_emails').doc(email).set({ banned: true });
+                    }
+                    
+                    // .   
+                    await db.collection('users').doc(uid).update({ isBanned: true });
+                    
+                    // .   (     )
+                    const postsSnap = await db.collection('posts').where('uid', '==', uid).get();
+                    const batch = db.batch();
+                    postsSnap.forEach(doc => batch.delete(doc.ref));
+                    
+                    const storiesSnap = await db.collection('stories').where('uid', '==', uid).get();
+                    storiesSnap.forEach(doc => batch.delete(doc.ref));
+                    
+                    await batch.commit();
+                    
+                    alert("User has been successfully banned and all their data purged!");
+                    loadUsersList(); 
+                } catch(e) {
+                    alert("Error banning user.");
                 }
             }
+        }
+
+        async function deletePost(postId) {
+            if(confirm("Are you sure you want to delete this post?")) {
+                await db.collection('posts').doc(postId).delete();
+                alert("Post deleted successfully!");
+                loadPostsList(); 
+            }
+        }
 
             // ৫. ইউজার প্রোফাইল ডাটাবেস থেকে মুছে ফেলা
             await db.collection('users').doc(uid).delete();
