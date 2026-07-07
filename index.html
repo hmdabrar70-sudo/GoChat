@@ -1479,30 +1479,10 @@ Continue with Google
 
 <div class="page" id="page-profile">
 <div class="profile-header">
-<div class="icon-btn" onclick="event.stopPropagation();toggleSettingsMenu()" style="position:absolute;top:16px;right:16px;background:var(--surface-2);padding:10px;border:none;">
-<span class="material-symbols-outlined">settings</span>
-<div class="settings-menu" id="settings-menu" style="text-align:left;">
-<div class="setting-item" onclick="event.stopPropagation();toggleDarkMode();toggleSettingsMenu();">
-<span class="material-symbols-outlined">dark_mode</span> Dark mode
-</div>
-<div class="setting-item" onclick="event.stopPropagation();openSettingsPrivacy();">
-<span class="material-symbols-outlined">info</span> Account info
-</div>
-<div class="setting-item" onclick="event.stopPropagation();openPrivacySettings()">
-    <span class="material-symbols-outlined">lock</span> User Privacy
+<div class="icon-btn" onclick="openFullSettings()" style="position:absolute;top:16px;right:16px;background:var(--surface-2);padding:10px;border:none;">
+    <span class="material-symbols-outlined">settings</span>
 </div>
 
-<div class="setting-item" onclick="openShareModal()">
-    <span class="material-symbols-outlined">qr_code_scanner</span> Share ID
-</div>
-
-
-<div class="setting-item" style="color:var(--danger);" onclick="doLogout()">
-    <span class="material-symbols-outlined">logout</span> Log out
-</div>
-</div>
-</div>
-<div class="profile-main-row">
 <div class="profile-avatar-wrap">
 <div class="profile-avatar" id="profile-avatar-big">?</div>
 <label class="avatar-edit-btn" for="avatar-input">
@@ -1882,6 +1862,85 @@ Continue with Google
 </div>
 
 <div id="toast"></div>
+<!-- ইনস্টাগ্রাম স্টাইল সেটিংস পেজ -->
+<div id="full-settings-screen" style="display:none; position:fixed; inset:0; background:var(--bg); z-index:1000; flex-direction:column; overflow-y:auto; animation:slideUp 0.3s ease;">
+    <div class="chat-topbar" style="position:sticky; top:0; z-index:100;">
+        <div class="chat-back" onclick="closeFullSettings()"><span class="material-symbols-outlined">arrow_back</span></div>
+        <div class="chat-name" style="font-size: 18px; font-weight: 800;">Settings and activity</div>
+    </div>
+    
+    <div style="padding: 20px;">
+        <!-- Account Section -->
+        <div style="font-size: 13px; font-weight: 700; color: var(--text-muted); margin-bottom: 10px; text-transform: uppercase;">Your Account</div>
+        
+        <div class="settings-list-item" onclick="openSettingsPrivacy()">
+            <div style="display:flex; align-items:center; gap:16px;">
+                <span class="material-symbols-outlined" style="font-size: 24px;">account_circle</span>
+                <span style="font-weight:600; font-size:15px;">Account info</span>
+            </div>
+            <span class="material-symbols-outlined" style="color:var(--text-muted);">chevron_right</span>
+        </div>
+        
+        <div class="settings-list-item" onclick="openPrivacySettings()">
+            <div style="display:flex; align-items:center; gap:16px;">
+                <span class="material-symbols-outlined" style="font-size: 24px;">lock</span>
+                <span style="font-weight:600; font-size:15px;">User Privacy</span>
+            </div>
+            <span class="material-symbols-outlined" style="color:var(--text-muted);">chevron_right</span>
+        </div>
+        
+        <div class="settings-list-item" onclick="openShareModal()">
+            <div style="display:flex; align-items:center; gap:16px;">
+                <span class="material-symbols-outlined" style="font-size: 24px;">qr_code_scanner</span>
+                <span style="font-weight:600; font-size:15px;">Share Profile ID</span>
+            </div>
+            <span class="material-symbols-outlined" style="color:var(--text-muted);">chevron_right</span>
+        </div>
+
+        <!-- App Settings Section -->
+        <div style="font-size: 13px; font-weight: 700; color: var(--text-muted); margin-top: 24px; margin-bottom: 10px; text-transform: uppercase;">App Settings</div>
+        
+        <div class="settings-list-item" onclick="toggleDarkMode()">
+            <div style="display:flex; align-items:center; gap:16px;">
+                <span class="material-symbols-outlined" style="font-size: 24px;">dark_mode</span>
+                <span style="font-weight:600; font-size:15px;">Dark Mode</span>
+            </div>
+            <span class="material-symbols-outlined" style="color:var(--text-muted);">chevron_right</span>
+        </div>
+
+        <!-- Danger Section -->
+        <div style="font-size: 13px; font-weight: 700; color: var(--text-muted); margin-top: 24px; margin-bottom: 10px; text-transform: uppercase;">Login</div>
+
+        <div class="settings-list-item" onclick="doLogout()" style="border-bottom: none;">
+            <div style="display:flex; align-items:center; gap:16px;">
+                <span class="material-symbols-outlined" style="font-size: 24px; color: var(--danger);">logout</span>
+                <span style="font-weight:600; font-size:15px; color: var(--danger);">Log out</span>
+            </div>
+        </div>
+        
+    </div>
+</div>
+
+<style>
+/* সেটিংস পেজের লিস্ট আইটেম ডিজাইন */
+.settings-list-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 0;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    color: var(--text);
+    transition: opacity 0.2s;
+}
+.settings-list-item:active {
+    opacity: 0.5;
+}
+.settings-list-item .material-symbols-outlined {
+    color: var(--text);
+}
+</style>
+
 <style>
     #selection-bottom-bar { display: none; position: fixed; bottom: 0; left: 0; width: 100%; background: var(--surface); border-top: 1px solid var(--border); padding: 16px 20px; z-index: 99999; justify-content: space-between; align-items: center; box-shadow: 0 -4px 20px rgba(0,0,0,0.3); }
     #selection-bottom-bar.active { display: flex !important; }
@@ -2514,6 +2573,15 @@ if(storyUnsub)storyUnsub();
 if(onlineStatusInterval)clearInterval(onlineStatusInterval);
 }
 });
+
+// ফুল-স্ক্রিন সেটিংস ওপেন ও ক্লোজ করার ফাংশন
+function openFullSettings() {
+    document.getElementById('full-settings-screen').style.display = 'flex';
+}
+
+function closeFullSettings() {
+    document.getElementById('full-settings-screen').style.display = 'none';
+}
 
 // ===== NAVIGATION =====
 function showPage(page){
