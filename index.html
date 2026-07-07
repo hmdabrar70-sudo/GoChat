@@ -2469,22 +2469,33 @@ const nList=document.getElementById('notifications-list');
 if(!nList)return;
 if(notifs.length===0){nList.innerHTML='<div class="empty-feed">No notifications yet</div>';return;}
 
-nList.innerHTML=notifs.map(data=>{
-let textDesc='interacted with you';
-if(data.type==='like')textDesc='liked your post';
-else if(data.type==='comment')textDesc='commented on your post';
-else if(data.type==='friend_request')textDesc='sent you a friend request';
-else if(data.type==='request_accepted')textDesc='accepted your friend request';
+nList.innerHTML = notifs.map(data => {
+    let textDesc = 'interacted with you';
+    if(data.type === 'like') textDesc = 'liked your post';
+    else if(data.type === 'comment') textDesc = 'commented on your post';
+    else if(data.type === 'friend_request') textDesc = 'sent you a friend request';
+    else if(data.type === 'request_accepted') textDesc = 'accepted your friend request';
 
-const safeName=escapeHTML(data.fromName);
-return`<div class="notif-item ${!data.read?'unread':''}" onclick="db.collection('notifications').doc('${data.id}').update({read:true});">
-<div class="avatar sm">${avatarInitial(data.fromName)}</div>
-<div class="notif-text">
-<strong>${safeName}</strong> ${textDesc}
-<div class="notif-time">${getRelativeTime(data.createdAt)}</div>
-</div>
-<span class="material-symbols-outlined notif-delete" onclick="event.stopPropagation();deleteNotification('${data.id}')">close</span>
-</div>`;
+    const safeName = escapeHTML(data.fromName);
+    
+    // নতুন ম্যাজিক: ক্লিক করলে কী হবে তার লজিক
+    let onClickAction = `db.collection('notifications').doc('${data.id}').update({read:true});`;
+    if (data.postId) {
+        // লাইক বা কমেন্ট হলে সরাসরি ওই পোস্ট ওপেন হবে
+        onClickAction += ` openSinglePostView('${data.postId}');`;
+    } else if (data.type === 'friend_request' || data.type === 'request_accepted') {
+        // ফ্রেন্ড রিকোয়েস্ট হলে ফ্রেন্ডস পেজে নিয়ে যাবে
+        onClickAction += ` showPage('friends');`; 
+    }
+
+    return `<div class="notif-item ${!data.read ? 'unread' : ''}" onclick="${onClickAction}">
+        <div class="avatar sm">${avatarInitial(data.fromName)}</div>
+        <div class="notif-text">
+            <strong>${safeName}</strong> ${textDesc}
+            <div class="notif-time">${getRelativeTime(data.createdAt)}</div>
+        </div>
+        <span class="material-symbols-outlined notif-delete" onclick="event.stopPropagation();deleteNotification('${data.id}')">close</span>
+    </div>`;
 }).join('');
 });
 }else{
