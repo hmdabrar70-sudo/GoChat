@@ -2227,8 +2227,9 @@ const pass=document.getElementById('auth-password').value;
 const msg=document.getElementById('auth-msg');
 if(!email||!pass){msg.textContent='Please enter email and password.';msg.className='auth-msg error';return;}
 msg.textContent='Logging in...';msg.className='auth-msg success';
-try{await auth.signInWithEmailAndPassword(email,pass);}
-catch(e){msg.textContent='Login failed: '+e.message;msg.className='auth-msg error';}
+try{
+    const result = await auth.signInWithEmailAndPassword(email,pass);
+    await saveLoginSession(result.user); // সেশন সেভ হবে
 }
 
 async function loginWithGoogle() {
@@ -2273,6 +2274,7 @@ function togglePasswordVisibility() {
     }
 }
 
+await saveLoginSession(user);
 showToast("Logged in successfully!");
 } catch (error) {
 console.error(error);
@@ -2308,6 +2310,7 @@ points: 0,
 lastSeen:firebase.firestore.FieldValue.serverTimestamp(),
 createdAt:firebase.firestore.FieldValue.serverTimestamp()
 });
+await saveLoginSession(user);
 }catch(e){msg.textContent='Registration failed: '+e.message;msg.className='auth-msg error';}
 }
 
@@ -5379,6 +5382,56 @@ async function fixMissingNamesInChats() {
             }
         }
     });
+}
+// ===== SESSION MANAGEMENT HELPER =====
+function generateSessionId() {
+    return 'sess_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+}
+
+function getDeviceInfo() {
+    const ua = navigator.userAgent;
+    let device = "Unknown Device";
+    let os = "Unknown OS";
+    
+    if(/android/i.test(ua)) os = "Android";
+    else if(/iPad|iPhone|iPod/.test(ua)) os = "iOS";
+    else if(/windows/i.test(ua)) os = "Windows";
+    else if(/mac/i.test(ua)) os = "Mac OS";
+    else if(/linux/i.test(ua)) os = "Linux";
+    
+    if(/mobile/i.test(ua)) device = "Mobile Browser";
+    else device = "Desktop Browser";
+
+    return `${device} - ${os}`;
+}
+
+async function saveLoginSession(user) {
+    try {
+        let ip = "Unknown IP";
+        try {
+            const res = await fetch('https://api.ipify.org?format=json');
+            const data = await res.json();
+            ip = data.ip;
+        } catch(e) {}
+
+        const sessionId = generateSessionId();
+        const sessionData = {
+            sessionId: sessionId,
+            deviceInfo: getDeviceInfo(),
+            userAgent: navigator.userAgent,
+            ipAddress: ip,
+            loginTime: firebase.firestore.FieldValue.serverTimestamp(),
+            lastActive: firebase.firestore.FieldValue.serverTimestamp()
+        };
+
+        // ফায়ারবেসে sessions ফোল্ডারে সেভ করা
+        await db.collection('users').doc(user.uid).collection('sessions').doc(sessionId).set(sessionData);
+        
+        // ইউজারের ফোনের লোকাল স্টোরেজে সেশন আইডি সেভ রাখা
+        localStorage.setItem('gochat_session_id', sessionId);
+    } catch (error) {
+        console.log("Session error:", error);
+    }
 }
 </script>
 </body>
