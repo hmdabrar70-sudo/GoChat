@@ -1872,7 +1872,9 @@ Continue with Google
     <div style="padding: 20px;">
         <div style="font-size: 13px; font-weight: 700; color: var(--text-muted); margin-bottom: 10px; text-transform: uppercase;">Your Account</div>
         
-        <div class="settings-list-item" onclick="openSettingsPrivacy()">
+               <div style="font-size: 13px; font-weight: 700; color: var(--text-muted); margin-bottom: 10px; text-transform: uppercase;">Your Account</div>
+        
+        <div class="settings-list-item" onclick="closeFullSettings(); openSettingsPrivacy();">
             <div style="display:flex; align-items:center; gap:16px;">
                 <span class="material-symbols-outlined" style="font-size: 24px;">account_circle</span>
                 <span style="font-weight:600; font-size:15px;">Account info</span>
@@ -1880,7 +1882,7 @@ Continue with Google
             <span class="material-symbols-outlined" style="color:var(--text-muted);">chevron_right</span>
         </div>
         
-        <div class="settings-list-item" onclick="openPrivacySettings()">
+        <div class="settings-list-item" onclick="closeFullSettings(); openPrivacySettings();">
             <div style="display:flex; align-items:center; gap:16px;">
                 <span class="material-symbols-outlined" style="font-size: 24px;">lock</span>
                 <span style="font-weight:600; font-size:15px;">User Privacy</span>
@@ -1888,7 +1890,7 @@ Continue with Google
             <span class="material-symbols-outlined" style="color:var(--text-muted);">chevron_right</span>
         </div>
         
-        <div class="settings-list-item" onclick="openShareModal()">
+        <div class="settings-list-item" onclick="closeFullSettings(); openShareModal();">
             <div style="display:flex; align-items:center; gap:16px;">
                 <span class="material-symbols-outlined" style="font-size: 24px;">qr_code_scanner</span>
                 <span style="font-weight:600; font-size:15px;">Share Profile ID</span>
@@ -2143,18 +2145,22 @@ return email===MY_SPECIAL_EMAIL?'<span class="material-symbols-outlined verified
 }
 
 function openSettingsPrivacy(){
-  document.getElementById('settings-menu').classList.remove('open');
-  document.getElementById('settings-privacy-screen').classList.add('open');
-  const el=document.getElementById('contact-email-display');
-  if(el)el.textContent=currentUser?currentUser.email:'Not logged in';
+  // পুরনো মেনু থাকলে সেটা হাইড করবে
+  const oldMenu = document.getElementById('settings-menu');
+  if(oldMenu) oldMenu.classList.remove('open');
   
-  // নতুন লাইন: পেজ ওপেন হলেই ব্লক লিস্ট লোড হবে
+  document.getElementById('settings-privacy-screen').classList.add('open');
+  const el = document.getElementById('contact-email-display');
+  if(el) el.textContent = currentUser ? currentUser.email : 'Not logged in';
+  
+  // ব্লক লিস্ট লোড হবে
   loadBlockedUsers(); 
 }
 
 function closeSettingsPrivacy(){
-document.getElementById('settings-privacy-screen').classList.remove('open');
+  document.getElementById('settings-privacy-screen').classList.remove('open');
 }
+
 
 // ===== POINT SYSTEM =====
 async function awardPoints(uid, amount) {
@@ -4825,9 +4831,13 @@ function copyProfileLink() {
 // ===== PRIVACY SETTINGS LOGIC =====
 
 function openPrivacySettings() {
-  document.getElementById('settings-menu').classList.remove('open');
+  // পুরনো মেনু থাকলে সেটা হাইড করবে, না থাকলে ক্র্যাশ করবে না
+  const oldMenu = document.getElementById('settings-menu');
+  if(oldMenu) oldMenu.classList.remove('open');
+  
   document.getElementById('privacy-settings-screen').style.display = 'flex';
 }
+
 
 function closePrivacySettings() {
   document.getElementById('privacy-settings-screen').style.display = 'none';
