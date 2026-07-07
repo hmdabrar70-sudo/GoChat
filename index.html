@@ -3381,31 +3381,41 @@ document.getElementById('other-profile-avatar').innerHTML=avHtml;
 document.getElementById('other-profile-bio').textContent=u.bio||'';
 document.getElementById('other-profile-friend-count').textContent=`${(u.friends||[]).length} friends`;
 document.getElementById('other-profile-friend-count').onclick=()=>openFriendsListModal(uid);
-let dHtml='';
-if(u.relationship)dHtml+=`<div class="detail-item"><span class="material-symbols-outlined">favorite</span> <strong>${escapeHTML(u.relationship)}</strong></div>`;
-if(u.gender)dHtml+=`<div class="detail-item"><span class="material-symbols-outlined">person</span> <strong>${escapeHTML(u.gender)}</strong></div>`;
-if(u.location)dHtml+=`<div class="detail-item"><span class="material-symbols-outlined">location_on</span> Lives in <strong>${escapeHTML(u.location)}</strong></div>`;
-if(u.hometown)dHtml+=`<div class="detail-item"><span class="material-symbols-outlined">home</span> From <strong>${escapeHTML(u.hometown)}</strong></div>`;
+    let dHtml='';
+    if(u.relationship) dHtml += `<div class="detail-item"><i class="ph ph-heart" style="font-size:20px; color:var(--accent-dark);"></i> <strong>${escapeHTML(u.relationship)}</strong></div>`;
+    if(u.gender) dHtml += `<div class="detail-item"><i class="ph ph-gender-intersex" style="font-size:20px; color:var(--accent-dark);"></i> <strong>${escapeHTML(u.gender)}</strong></div>`;
+    if(u.location) dHtml += `<div class="detail-item"><i class="ph ph-map-pin" style="font-size:20px; color:var(--accent-dark);"></i> Lives in <strong>${escapeHTML(u.location)}</strong></div>`;
+    if(u.hometown) dHtml += `<div class="detail-item"><i class="ph ph-house-line" style="font-size:20px; color:var(--accent-dark);"></i> From <strong>${escapeHTML(u.hometown)}</strong></div>`;
+    
+    // জয়েন ডেটের আইকনটিও পাল্টানো দরকার ছিল, সেটিও নিচে দিচ্ছি:
+    if (u.createdAt) {
+        const joinedDate = u.createdAt.toDate ? u.createdAt.toDate() : new Date(u.createdAt);
+        const month = joinedDate.toLocaleString('default', { month: 'long' });
+        const year = joinedDate.getFullYear();
+        dHtml += `<div class="detail-item"><i class="ph ph-clock" style="font-size:20px; color:var(--accent-dark);"></i> Joined <strong>${month} ${year}</strong></div>`;
+    }
+
 
 document.getElementById('other-profile-details-display').innerHTML=dHtml;
 const isBlocked=currentUserData.blockedUsers?.includes(uid);
 let isFriend=currentUserData.friends?.includes(uid);
     let btnHtml='';
     if(isBlocked){
-        btnHtml=`<button class="icon-btn" style="width:48px; height:48px; border-radius:50%; border-color:var(--success); color:var(--success);" onclick="unblockUser('${uid}')" title="Unblock User"><span class="material-symbols-outlined">lock_open</span></button>`;
+        btnHtml=`<button class="icon-btn" style="width:48px; height:48px; border-radius:50%; border-color:var(--success); color:var(--success);" onclick="unblockUser('${uid}')" title="Unblock User"><i class="ph ph-lock-open"></i></button>`;
     }else if(isFriend){
-        btnHtml=`<button class="icon-btn" style="width:48px; height:48px; border-radius:50%; border-color:var(--danger); color:var(--danger);" onclick="confirmUnfriend('${uid}')" title="Unfriend"><span class="material-symbols-outlined">person_remove</span></button>`;
+        btnHtml=`<button class="icon-btn" style="width:48px; height:48px; border-radius:50%; border-color:var(--danger); color:var(--danger);" onclick="confirmUnfriend('${uid}')" title="Unfriend"><i class="ph ph-user-minus"></i></button>`;
     }else{
         const hasSent=currentUserData.sentRequests?.includes(uid);
         const hasReceived=currentUserData.receivedRequests?.includes(uid);
         if(hasSent) {
-            btnHtml=`<button class="icon-btn" style="width:48px; height:48px; border-radius:50%; border-color:var(--text-muted); color:var(--text-muted);" onclick="cancelRequest('${uid}')" title="Cancel Request"><span class="material-symbols-outlined">close</span></button>`;
+            btnHtml=`<button class="icon-btn" style="width:48px; height:48px; border-radius:50%; border-color:var(--text-muted); color:var(--text-muted);" onclick="cancelRequest('${uid}')" title="Cancel Request"><i class="ph ph-x"></i></button>`;
         } else if(hasReceived) {
-            btnHtml=`<button class="icon-btn" style="width:48px; height:48px; border-radius:50%; background:var(--gradient); color:#fff; border:none;" onclick="acceptRequest('${uid}')" title="Accept Request"><span class="material-symbols-outlined">check</span></button>`;
+            btnHtml=`<button class="icon-btn" style="width:48px; height:48px; border-radius:50%; background:var(--gradient); color:#fff; border:none;" onclick="acceptRequest('${uid}')" title="Accept Request"><i class="ph ph-check"></i></button>`;
         } else {
-            btnHtml=`<button class="icon-btn" style="width:48px; height:48px; border-radius:50%; background:var(--gradient); color:#fff; border:none;" onclick="sendRequest('${uid}')" title="Add Friend"><span class="material-symbols-outlined">person_add</span></button>`;
+            btnHtml=`<button class="icon-btn" style="width:48px; height:48px; border-radius:50%; background:var(--gradient); color:#fff; border:none;" onclick="sendRequest('${uid}')" title="Add Friend"><i class="ph ph-user-plus"></i></button>`;
         }
     }
+
     
     const blockBtn=document.getElementById('block-user-btn');
     if(blockBtn){
@@ -3416,16 +3426,16 @@ let isFriend=currentUserData.friends?.includes(uid);
         }
     }
 
-    document.getElementById('other-profile-btns').innerHTML=`
+    Document.getElementById('other-profile-btns').innerHTML=`
         <div style="display:flex; justify-content:center; gap:20px; width:100%; margin-top:16px;">
             <button class="icon-btn" style="width:48px; height:48px; border-radius:50%; background:var(--gradient); color:#fff; border:none; box-shadow:var(--shadow-glow);" onclick="openChat('${[currentUser.uid,uid].sort().join('_')}','${uid}','${safeName}','${u.avatar||''}')" title="Message">
-                <span class="material-symbols-outlined">chat</span>
+                <i class="ph ph-chat-circle-dots"></i>
             </button>
             
             ${btnHtml}
             
             <button class="icon-btn" style="width:48px; height:48px; border-radius:50%; border-color:#f59e0b; color:#f59e0b;" onclick="openLeaderboard()" title="Leaderboard">
-                <span class="material-symbols-outlined">trophy</span>
+                <i class="ph ph-trophy"></i>
             </button>
         </div>
     `;
