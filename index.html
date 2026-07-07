@@ -4368,7 +4368,13 @@ imgUrls:imgUrls,
 imgUrl:imgUrls[0]||'',
 likes:0,likedBy:[],comments:[],
 tagged:currentTaggedFriends,
-taggedNames: currentTaggedNames,
+taggedNames: currentTaggedNames,<div class="post-name" style="cursor:pointer; flex-wrap: wrap;" onclick="viewUserProfile('${p.uid}')">
+    ${safeName} ${vBadge} ${taggedHtml}
+</div>
+<div class="post-name" style="cursor:pointer; flex-wrap: wrap;" onclick="viewUserProfile('${p.uid}')">
+    ${safeName} ${vBadge} ${taggedHtml}
+</div>
+
 isPinned:false,
 createdAt:firebase.firestore.FieldValue.serverTimestamp(),
 expiresAt:expireAt
@@ -4476,20 +4482,6 @@ mediaHtml=`<div class="post-media-wrap" ondblclick="handleDoubleTap('${pid}',eve
 <span class="material-symbols-outlined double-tap-heart filled" style="font-variation-settings:'FILL' 1;">favorite</span>
 </div>`;
 }
-
-let taggedHtml = '';
-if (p.tagged && p.tagged.length > 0) {
-    if (p.taggedNames && p.taggedNames.length > 0) {
-        if (p.tagged.length === 1) {
-            taggedHtml = ` <span style="color:var(--text-muted); font-size:13px; font-weight:500;">is with</span> <span style="color:var(--text); cursor:pointer; font-weight:700;" onclick="event.stopPropagation(); viewUserProfile('${p.tagged[0]}')">${p.taggedNames[0]}</span>`;
-        } else {
-            taggedHtml = ` <span style="color:var(--text-muted); font-size:13px; font-weight:500;">is with</span> <span style="color:var(--text); cursor:pointer; font-weight:700;" onclick="event.stopPropagation(); viewUserProfile('${p.tagged[0]}')">${p.taggedNames[0]}</span> <span style="color:var(--text-muted); font-size:13px; font-weight:500;">and</span> <span style="color:var(--text); font-weight:700;">${p.tagged.length - 1} others</span>`;
-        }
-    } else {
-        taggedHtml = ` <span style="color:var(--text-muted); font-size:13px; font-weight:500;">is with ${p.tagged.length} friend${p.tagged.length > 1 ? 's' : ''}</span>`;
-    }
-}
-
 let postDropdownHtml='';
 if(p.uid===currentUser?.uid){
 const pinText=p.isPinned?'Unpin Post':'Pin Post';
@@ -4512,10 +4504,11 @@ return`<div class="post-card">
 <div class="post-header">
 <div class="avatar" style="width:44px;height:44px;cursor:pointer;" onclick="viewUserProfile('${p.uid}')">${av}</div>
 <div style="flex:1;">
-<div class="post-name" style="cursor:pointer; flex-wrap: wrap;" onclick="viewUserProfile('${p.uid}')">
-    ${safeName} ${vBadge} ${taggedHtml}
+<div class="post-name" style="cursor:pointer;" onclick="viewUserProfile('${p.uid}')">${safeName} ${vBadge}</div>
+<div class="post-time">${getRelativeTime(p.createdAt)}</div>
 </div>
 ${postDropdownHtml}
+</div>
 </div>
 ${p.title?`<div style="font-weight:600;font-size:16px;margin-bottom:12px;color:var(--text);white-space:pre-wrap;line-height:1.5;">${safeTitle}</div>`:''}
 ${mediaHtml}
