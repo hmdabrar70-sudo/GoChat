@@ -350,18 +350,18 @@
             } catch(e) { contentArea.innerHTML = '<p style="color:red;">Error loading posts.</p>'; }
         }
 
-        async function banUser(uid, email) {
+      async function banUser(uid, email) {
             if(confirm("Are you sure you want to PERMANENTLY BAN this user? All their posts and stories will be deleted.")) {
                 try {
-                    // .   
+                    // .   
                     if(email) {
                         await db.collection('banned_emails').doc(email).set({ banned: true });
                     }
                     
-                    // .   
+                    // .   
                     await db.collection('users').doc(uid).update({ isBanned: true });
                     
-                    // .   (     )
+                    // .   (     )
                     const postsSnap = await db.collection('posts').where('uid', '==', uid).get();
                     const batch = db.batch();
                     postsSnap.forEach(doc => batch.delete(doc.ref));
@@ -387,19 +387,19 @@
             }
         }
 
-            // ৫. ইউজার প্রোফাইল ডাটাবেস থেকে মুছে ফেলা
-            await db.collection('users').doc(uid).delete();
-            
-            alert("Success: User and all their data permanently purged!");
-            loadUsersList(); // লিস্ট রিলোড হবে
-        } catch(e) {
-            console.error(e);
-            alert("Error: Failed to completely wipe user data.");
-        }
-    }
+        async function sendAnnouncement() {
+            const text = document.getElementById('announce-text').value.trim();
+            if(!text) return alert("Write something first!");
+            try {
+                await db.collection('system').doc('announcement').set({
+                    message: text,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                alert("Announcement updated globally!");
+                document.getElementById('announce-text').value = '';
+            } catch(e) { alert("Error sending announcement."); }
         }
 
-        
         async function deleteAnnouncement() {
             if(confirm("Are you sure you want to remove this announcement? Users will no longer see it.")) {
                 try {
@@ -437,4 +437,4 @@
         }
     </script>
 </body>
-</html>
+</html>  
