@@ -2075,6 +2075,7 @@ let feedUnsub=null,chatUnsub=null,notifUnsub=null,storyUnsub=null,onlineUnsub=nu
 let activeCommentPostId=null,commentPanelListener=null;
 let currentFeedTab='foryou';
 let currentTaggedFriends=[];
+let currentTaggedNames = [];
 let currentEditPostId=null;
 let activeStoryGroup=[];
 let currentStoryIndex=0;
@@ -4155,11 +4156,12 @@ checkPostInputs();
 }
 
 function closeCreatePost(){
-document.getElementById('create-post-screen').classList.remove('open');
-document.getElementById('post-title').value='';
-removePostImages();
-currentTaggedFriends=[];
-document.getElementById('tag-count').style.display='none';
+    document.getElementById('create-post-screen').classList.remove('open');
+    document.getElementById('post-title').value='';
+    removePostImages();
+    currentTaggedFriends=[];
+    currentTaggedNames=[]; // এটি নতুন যোগ হলো
+    document.getElementById('tag-count').style.display='none';
 }
 
 function checkPostInputs(){
@@ -4225,48 +4227,52 @@ checkPostInputs();
 }
 
 async function openTagModal(){
-document.getElementById('tag-modal').classList.add('open');
-const list=document.getElementById('tag-friends-list');
-const friends=currentUserData.friends||[];
-if(friends.length===0){
-list.innerHTML='<div class="empty-feed" style="padding:20px;">No friends to tag</div>';
-return;
-}
-list.innerHTML = '<div class="loading"><span class="material-symbols-outlined">autorenew</span> Loading...</div>';
+    document.getElementById('tag-modal').classList.add('open');
+    const list=document.getElementById('tag-friends-list');
+    const friends=currentUserData.friends||[];
+    if(friends.length===0){
+        list.innerHTML='<div class="empty-feed" style="padding:20px;">No friends to tag</div>';
+        return;
+    }
+    list.innerHTML = '<div class="loading"><span class="material-symbols-outlined">autorenew</span> Loading...</div>';
 
-const friendDocs = friends.map(fId => db.collection('users').doc(fId).get());
-const snapshots = await Promise.all(friendDocs);
+    const friendDocs = friends.map(fId => db.collection('users').doc(fId).get());
+    const snapshots = await Promise.all(friendDocs);
 
-let html = '';
-snapshots.forEach((snap, index) => {
-if(snap.exists){
-const u=snap.data();
-const fId = friends[index];
-const isTagged=currentTaggedFriends.includes(fId);
-const safeName=escapeHTML(u.name);
-const avHtml=u.avatar?`<img src="${u.avatar}">`:avatarInitial(u.name);
-html+=`<div class="msg-item" onclick="toggleTag('${fId}',this)">
-<div class="avatar">${avHtml}</div>
-<div class="msg-info" style="margin-left:10px;">${safeName}</div>
-<input type="checkbox" ${isTagged?'checked':''} style="pointer-events:none;width:20px;height:20px;accent-color:var(--accent);">
-</div>`;
-}
-});
-list.innerHTML = html || '<div class="empty-feed">No friends found</div>';
+    let html = '';
+    snapshots.forEach((snap, index) => {
+        if(snap.exists){
+            const u=snap.data();
+            const fId = friends[index];
+            const isTagged=currentTaggedFriends.includes(fId);
+            const safeName=escapeHTML(u.name);
+            const avHtml=u.avatar?`<img src="${u.avatar}">`:avatarInitial(u.name);
+            
+            // এখানে onclick এর ভেতর safeName পাস করা হয়েছে
+            html+=`<div class="msg-item" onclick="toggleTag('${fId}', '${safeName}', this)">
+            <div class="avatar">${avHtml}</div>
+            <div class="msg-info" style="margin-left:10px;">${safeName}</div>
+            <input type="checkbox" ${isTagged?'checked':''} style="pointer-events:none;width:20px;height:20px;accent-color:var(--accent);">
+            </div>`;
+        }
+    });
+    list.innerHTML = html || '<div class="empty-feed">No friends found</div>';
 }
 
-function toggleTag(uid,el){
-const cb=el.querySelector('input');
-if(currentTaggedFriends.includes(uid)){
-currentTaggedFriends=currentTaggedFriends.filter(id=>id!==uid);
-cb.checked=false;
-}else{
-currentTaggedFriends.push(uid);
-cb.checked=true;
-}
-const tagCount=document.getElementById('tag-count');
-tagCount.style.display=currentTaggedFriends.length>0?'inline-block':'none';
-tagCount.textContent=currentTaggedFriends.length;
+function toggleTag(uid, name, el){
+    const cb=el.querySelector('input');
+    if(currentTaggedFriends.includes(uid)){
+        currentTaggedFriends=currentTaggedFriends.filter(id=>id!==uid);
+        currentTaggedNames=currentTaggedNames.filter(n=>n!==name);
+        cb.checked=false;
+    }else{
+        currentTaggedFriends.push(uid);
+        currentTaggedNames.push(name);
+        cb.checked=true;
+    }
+    const tagCount=document.getElementById('tag-count');
+    tagCount.style.display=currentTaggedFriends.length>0?'inline-block':'none';
+    tagCount.textContent=currentTaggedFriends.length;
 }
 
 function closeTagModal(){document.getElementById('tag-modal').classList.remove('open');}
@@ -4362,6 +4368,7 @@ imgUrls:imgUrls,
 imgUrl:imgUrls[0]||'',
 likes:0,likedBy:[],comments:[],
 tagged:currentTaggedFriends,
+taggedNames: currentTaggedNames,
 isPinned:false,
 createdAt:firebase.firestore.FieldValue.serverTimestamp(),
 expiresAt:expireAt
@@ -4469,6 +4476,20 @@ mediaHtml=`<div class="post-media-wrap" ondblclick="handleDoubleTap('${pid}',eve
 <span class="material-symbols-outlined double-tap-heart filled" style="font-variation-settings:'FILL' 1;">favorite</span>
 </div>`;
 }
+
+let taggedHtml = '';
+if (p.tagged && p.tagged.length > 0) {
+    if (p.taggedNames && p.taggedNames.length > 0) {
+        if (p.tagged.length === 1) {
+            taggedHtml = ` <span style="color:var(--text-muted); font-size:13px; font-weight:500;">is with</span> <span style="color:var(--text); cursor:pointer; font-weight:700;" onclick="event.stopPropagation(); viewUserProfile('${p.tagged[0]}')">${p.taggedNames[0]}</span>`;
+        } else {
+            taggedHtml = ` <span style="color:var(--text-muted); font-size:13px; font-weight:500;">is with</span> <span style="color:var(--text); cursor:pointer; font-weight:700;" onclick="event.stopPropagation(); viewUserProfile('${p.tagged[0]}')">${p.taggedNames[0]}</span> <span style="color:var(--text-muted); font-size:13px; font-weight:500;">and</span> <span style="color:var(--text); font-weight:700;">${p.tagged.length - 1} others</span>`;
+        }
+    } else {
+        taggedHtml = ` <span style="color:var(--text-muted); font-size:13px; font-weight:500;">is with ${p.tagged.length} friend${p.tagged.length > 1 ? 's' : ''}</span>`;
+    }
+}
+
 let postDropdownHtml='';
 if(p.uid===currentUser?.uid){
 const pinText=p.isPinned?'Unpin Post':'Pin Post';
@@ -4491,8 +4512,8 @@ return`<div class="post-card">
 <div class="post-header">
 <div class="avatar" style="width:44px;height:44px;cursor:pointer;" onclick="viewUserProfile('${p.uid}')">${av}</div>
 <div style="flex:1;">
-<div class="post-name" style="cursor:pointer;" onclick="viewUserProfile('${p.uid}')">${safeName} ${vBadge}</div>
-<div class="post-time">${getRelativeTime(p.createdAt)}</div>
+<div class="post-name" style="cursor:pointer; flex-wrap: wrap;" onclick="viewUserProfile('${p.uid}')">
+    ${safeName} ${vBadge} ${taggedHtml}
 </div>
 ${postDropdownHtml}
 </div>
