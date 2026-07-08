@@ -1399,6 +1399,67 @@ body:not(.light-mode) #splash-screen {
 .tag-chip-remove .material-symbols-outlined {
   font-size: 14px;
 }
+/* @ Mention System Styles */
+.mention-dropdown {
+  display: none;
+  position: absolute;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  max-height: 300px;
+  overflow-y: auto;
+  z-index: 10000;
+  min-width: 250px;
+  animation: menuSlide 0.2s ease;
+}
+.mention-dropdown.show {
+  display: block;
+}
+.mention-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.mention-item:hover {
+  background: var(--surface-2);
+}
+.mention-item.selected {
+  background: var(--accent-glow);
+}
+.mention-item .avatar.sm {
+  width: 32px;
+  height: 32px;
+}
+.mention-info {
+  flex: 1;
+  min-width: 0;
+}
+.mention-name {
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.mention-username {
+  font-size: 12px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.mention-highlight {
+  background: var(--accent);
+  color: white;
+  padding: 0 4px;
+  border-radius: 4px;
+  font-weight: 700;
+}
 </style>
 </head>
 <body>
@@ -1732,6 +1793,7 @@ Continue with Google
 <div style="font-weight:700;font-size:15px;display:flex;align-items:center;gap:4px;" id="modal-composer-name">Name</div>
 </div>
 <textarea id="post-title" placeholder="What's on your mind?" style="width:100%;border:none;background:transparent;color:var(--text);font-size:20px;outline:none;resize:none;font-family:inherit;min-height:160px;font-weight:500;" oninput="checkPostInputs()"></textarea>
+<div class="mention-dropdown" id="post-mention-dropdown"></div>
 <div id="compose-img-preview" style="display:none;margin-top:16px;">
 <div class="tag-preview-container" id="tag-preview-container">
   <div class="tag-preview-label">Tagged Friends</div>
@@ -1831,6 +1893,7 @@ Continue with Google
 <span class="material-symbols-outlined" style="font-size:20px;">send</span>
 </button>
 </div>
+<div class="mention-dropdown" id="comment-mention-dropdown"></div>
 </div>
 
 <div id="chat-screen">
@@ -5573,6 +5636,300 @@ async function fixMissingNamesInChats() {
         }
     });
 }
+// ===== @ MENTION SYSTEM =====
+let mentionData = {
+  friends: [],
+  filterText: '',
+  selectedIndex: 0,
+  textarea: null,
+  dropdown: null,
+  startPos: 0,
+  endPos: 0
+};
+
+// ফ্রেন্ডস লিস্ট লোড করে রাখা
+async function loadMentionFriends() {
+  if (!currentUserData || !currentUserData.friends || currentUserData.friends.length === 0) {
+    mentionData.friends = [];
+    return;
+  }
+  
+  try {
+    const friendDocs = currentUserData.friends.map(uid => db.collection('users').doc(uid).get());
+    const snapshots = await Promise.all(friendDocs);
+    
+    mentionData.friends = snapshots
+      .filter(doc => doc.exists)
+      .map(doc => ({
+        uid: doc.id,
+        name: doc.data().name || 'User',
+        avatar: doc.data().avatar || ''
+      }));
+  } catch (e) {
+    console.error('Error loading mention friends:', e);
+    mentionData.friends = [];
+  }
+}
+
+// @ Mention হ্যান্ডেল করা
+function handleMentionInput(textarea, dropdownId, event) {
+  const dropdown = document.getElementById(dropdownId);
+  if (!dropdown) return;
+  
+  const text = textarea.value;
+  const cursorPos = textarea.selectionStart;
+  
+  // @ খোঁজা
+  const lastAtIndex = text.lastIndexOf('@', cursorPos - 1);
+  
+  // যদি @ না থাকে বা @ এর পরে স্পেস থাকে
+  if (lastAtIndex === -1) {
+    hideMentionDropdown(dropdown);
+    return;
+  }
+  
+  // @ এবং কার্সারের মাঝে স্পেস চেক করা
+  const betweenText = text.substring(lastAtIndex + 1, cursorPos);
+  if (betweenText.includes(' ') || betweenText.includes('\n')) {
+    hideMentionDropdown(dropdown);
+    return;
+  }
+  
+  // ড্রপডাউন পজিশন সেট করা
+  const coords = getCaretCoordinates(textarea, cursorPos);
+  dropdown.style.left = coords.left + 'px';
+  dropdown.style.top = (coords.top + textarea.offsetTop + 30) + 'px';
+  
+  // ফিল্টার টেক্সট
+  const filterText = betweenText.toLowerCase();
+  
+  // ফ্রেন্ডস ফিল্টার করা
+  const filtered = mentionData.friends.filter(f => 
+    f.name.toLowerCase().includes(filterText)
+  );
+  
+  if (filtered.length === 0) {
+    hideMentionDropdown(dropdown);
+    return;
+  }
+  
+  // ড্রপডাউন রেন্ডার করা
+  renderMentionDropdown(dropdown, filtered, textarea, lastAtIndex, cursorPos);
+}
+
+// Mention Dropdown রেন্ডার করা
+function renderMentionDropdown(dropdown, friends, textarea, startPos, endPos) {
+  mentionData.selectedIndex = 0;
+  
+  let html = friends.map((friend, index) => {
+    const safeName = escapeHTML(friend.name);
+    const avHtml = friend.avatar 
+      ? `<img src="${escapeHTML(friend.avatar)}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`
+      : avatarInitial(friend.name);
+    
+    return `
+      <div class="mention-item ${index === 0 ? 'selected' : ''}" 
+           onclick="selectMention('${friend.uid}', '${safeName}', ${startPos}, ${endPos})"
+           onmouseenter="selectMentionIndex(${index})">
+        <div class="avatar sm">${avHtml}</div>
+        <div class="mention-info">
+          <div class="mention-name">${safeName}</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+  
+  dropdown.innerHTML = html;
+  dropdown.classList.add('show');
+  
+  // স্টোর করা
+  mentionData.textarea = textarea;
+  mentionData.dropdown = dropdown;
+  mentionData.startPos = startPos;
+  mentionData.endPos = endPos;
+}
+
+// Mention সিলেক্ট করা
+function selectMention(uid, name, startPos, endPos) {
+  if (!mentionData.textarea) return;
+  
+  const textarea = mentionData.textarea;
+  const text = textarea.value;
+  
+  // @mention দিয়ে রিপ্লেস করা
+  const beforeText = text.substring(0, startPos);
+  const afterText = text.substring(endPos);
+  const mentionText = `@${name} `;
+  
+  textarea.value = beforeText + mentionText + afterText;
+  
+  // কার্সার পজিশন সেট করা
+  const newPos = startPos + mentionText.length;
+  textarea.setSelectionRange(newPos, newPos);
+  textarea.focus();
+  
+  // ড্রপডাউন হাইড করা
+  if (mentionData.dropdown) {
+    hideMentionDropdown(mentionData.dropdown);
+  }
+  
+  // ট্যাগড ফ্রেন্ডস এড করা (পোস্টের জন্য)
+  if (currentTaggedFriends && !currentTaggedFriends.includes(uid)) {
+    currentTaggedFriends.push(uid);
+    currentTaggedNames.push(name);
+    updateTagCount();
+    updateTagPreview();
+  }
+}
+
+// Mention Index সিলেক্ট করা (হোভারের জন্য)
+function selectMentionIndex(index) {
+  mentionData.selectedIndex = index;
+  const items = mentionData.dropdown.querySelectorAll('.mention-item');
+  items.forEach((item, i) => {
+    item.classList.toggle('selected', i === index);
+  });
+}
+
+// Mention Dropdown হাইড করা
+function hideMentionDropdown(dropdown) {
+  if (dropdown) {
+    dropdown.classList.remove('show');
+  }
+  mentionData.textarea = null;
+  mentionData.dropdown = null;
+}
+
+// কার্সার পজিশন পাওয়া
+function getCaretCoordinates(element, position) {
+  const div = document.createElement('div');
+  const style = getComputedStyle(element);
+  
+  // স্টাইল কপি করা
+  Array.from(style).forEach(prop => {
+    div.style.setProperty(prop, style.getPropertyValue(prop));
+  });
+  
+  div.style.position = 'absolute';
+  div.style.visibility = 'hidden';
+  div.style.whiteSpace = 'pre-wrap';
+  div.style.width = style.width;
+  
+  const text = element.value.substring(0, position);
+  div.textContent = text;
+  
+  const span = document.createElement('span');
+  span.textContent = element.value.substring(position) || '.';
+  div.appendChild(span);
+  
+  document.body.appendChild(div);
+  
+  const coords = {
+    left: span.offsetLeft,
+    top: span.offsetTop
+  };
+  
+  document.body.removeChild(div);
+  
+  return coords;
+}
+
+// কীবোর্ড নেভিগেশন
+function handleMentionKeydown(event, dropdownId) {
+  const dropdown = document.getElementById(dropdownId);
+  if (!dropdown || !dropdown.classList.contains('show')) return;
+  
+  const items = dropdown.querySelectorAll('.mention-item');
+  if (items.length === 0) return;
+  
+  switch(event.key) {
+    case 'ArrowDown':
+      event.preventDefault();
+      mentionData.selectedIndex = (mentionData.selectedIndex + 1) % items.length;
+      updateMentionSelection(items);
+      break;
+      
+    case 'ArrowUp':
+      event.preventDefault();
+      mentionData.selectedIndex = (mentionData.selectedIndex - 1 + items.length) % items.length;
+      updateMentionSelection(items);
+      break;
+      
+    case 'Enter':
+    case 'Tab':
+      event.preventDefault();
+      items[mentionData.selectedIndex].click();
+      break;
+      
+    case 'Escape':
+      hideMentionDropdown(dropdown);
+      break;
+  }
+}
+
+function updateMentionSelection(items) {
+  items.forEach((item, index) => {
+    item.classList.toggle('selected', index === mentionData.selectedIndex);
+  });
+}
+
+// ট্যাগ কাউন্ট আপডেট
+function updateTagCount() {
+  const tagCount = document.getElementById('tag-count');
+  if (tagCount) {
+    tagCount.textContent = currentTaggedFriends.length;
+    tagCount.style.display = currentTaggedFriends.length > 0 ? 'inline-block' : 'none';
+  }
+}
+
+// ইভেন্ট লিসেনার সেটআপ
+document.addEventListener('DOMContentLoaded', () => {
+  // পোস্ট টেক্সটএরিয়া
+  const postTextarea = document.getElementById('post-title');
+  if (postTextarea) {
+    postTextarea.addEventListener('input', (e) => {
+      handleMentionInput(e.target, 'post-mention-dropdown', e);
+    });
+    
+    postTextarea.addEventListener('keydown', (e) => {
+      handleMentionKeydown(e, 'post-mention-dropdown');
+    });
+    
+    // ক্লিক করলে ড্রপডাউন হাইড
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('#post-mention-dropdown') && e.target !== postTextarea) {
+        const dropdown = document.getElementById('post-mention-dropdown');
+        if (dropdown) hideMentionDropdown(dropdown);
+      }
+    });
+  }
+  
+  // কমেন্ট ইনপুট
+  const commentInput = document.getElementById('comment-panel-input');
+  if (commentInput) {
+    commentInput.addEventListener('input', (e) => {
+      handleMentionInput(e.target, 'comment-mention-dropdown', e);
+    });
+    
+    commentInput.addEventListener('keydown', (e) => {
+      handleMentionKeydown(e, 'comment-mention-dropdown');
+    });
+    
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('#comment-mention-dropdown') && e.target !== commentInput) {
+        const dropdown = document.getElementById('comment-mention-dropdown');
+        if (dropdown) hideMentionDropdown(dropdown);
+      }
+    });
+  }
+});
+
+// যখন পোস্ট স্ক্রিন ওপেন হবে, ফ্রেন্ডস লোড করবে
+const originalOpenCreatePost = window.openCreatePost;
+window.openCreatePost = function() {
+  if (originalOpenCreatePost) originalOpenCreatePost();
+  loadMentionFriends();
+};
 </script>
 </body>
 </html>
