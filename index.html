@@ -1992,9 +1992,28 @@ Continue with Google
 </div>
 
 <div class="image-zoom-modal" id="image-zoom-modal" onclick="closeImageZoom()">
-<button class="image-zoom-close" onclick="closeImageZoom()"><span class="material-symbols-outlined">close</span></button>
-<img id="zoom-image" src="">
+    <div style="position:absolute; top:20px; right:20px; display:flex; gap:12px; z-index:10005;">
+        
+        <div style="position:relative;">
+            <button class="image-zoom-close" style="position:static; width:40px; height:40px;" onclick="event.stopPropagation(); document.getElementById('zoom-menu').classList.toggle('open')">
+                <span class="material-symbols-outlined">more_vert</span>
+            </button>
+            <div id="zoom-menu" class="post-dropdown-menu" style="top:50px; right:0; width:170px; position:absolute;" onclick="event.stopPropagation();">
+                <div class="chat-dropdown-item" onclick="downloadZoomedImage(event)" style="padding: 12px 14px;">
+                    <span class="material-symbols-outlined" style="color:var(--text);">download</span> Save to device
+                </div>
+            </div>
+        </div>
+        
+        <button class="image-zoom-close" style="position:static; width:40px; height:40px;" onclick="closeImageZoom()">
+            <span class="material-symbols-outlined">close</span>
+        </button>
+        
+    </div>
+    
+    <img id="zoom-image" src="" onclick="event.stopPropagation()">
 </div>
+
 
 <div id="toast"></div>
 <div id="full-settings-screen" style="display:none; position:fixed; inset:0; background:var(--bg); z-index:1000; flex-direction:column; overflow-y:auto; animation:slideUp 0.3s ease;">
@@ -4664,8 +4683,49 @@ document.getElementById('image-zoom-modal').classList.add('open');
 }
 
 function closeImageZoom(){
-document.getElementById('image-zoom-modal').classList.remove('open');
-document.getElementById('zoom-image').src='';
+    document.getElementById('image-zoom-modal').classList.remove('open');
+    document.getElementById('zoom-image').src='';
+    // থ্রি-ডট মেনু ওপেন থাকলে সেটা বন্ধ করে দেবে
+    const menu = document.getElementById('zoom-menu');
+    if(menu) menu.classList.remove('open');
+}
+
+// নতুন ফাংশন: ছবি ডাউনলোড করার জন্য
+async function downloadZoomedImage(event) {
+    if(event) event.stopPropagation();
+    
+    // ডাউনলোড শুরু হলে মেনুটা হাইড করে দেবে
+    const menu = document.getElementById('zoom-menu');
+    if(menu) menu.classList.remove('open');
+    
+    const imgUrl = document.getElementById('zoom-image').src;
+    if(!imgUrl) return;
+
+    showToast("Downloading image...");
+    try {
+        // ছবিটা সার্ভার থেকে ফেচ করে ফাইলে (Blob) কনভার্ট করবে
+        const response = await fetch(imgUrl);
+        const blob = await response.blob();
+        const blobUrl = window.URL.createObjectURL(blob);
+        
+        // ব্যাকগ্রাউন্ডে একটি ডাউনলোড লিংক তৈরি করে সেটিতে ক্লিক করাবে
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = blobUrl;
+        a.download = 'GoChat_Image_' + Date.now() + '.jpg'; // এই নামে সেভ হবে
+        document.body.appendChild(a);
+        a.click();
+        
+        // কাজ শেষে লিংক রিমুভ করবে
+        window.URL.revokeObjectURL(blobUrl);
+        document.body.removeChild(a);
+        
+        showToast("Saved to device!");
+    } catch (e) {
+        console.error("Download error:", e);
+        // কোনো ব্রাউজার সিকিউরিটির কারণে ব্লক হলে, নতুন ট্যাবে ছবিটা ওপেন করবে
+        window.open(imgUrl, '_blank');
+    }
 }
 
 function togglePostDropdown(dropId){
