@@ -3249,10 +3249,14 @@ function renderCurrentStory(){
         svMenuBtn.style.display = 'block'; 
     }
 
-    // ২. ডিলিট বাটনটি শুধু নিজের স্টোরি হলে দেখাবে, অন্যের হলে হাইড হয়ে যাবে
+    // ২. ডিলিট বাটনটি শুধু নিজের স্টোরি হলে দেখাবে, অন্যের হলে হাইড হয়ে যাবে (CSS Conflict Fix)
     const svDeleteBtn = document.getElementById('sv-delete-btn');
     if(svDeleteBtn) {
-        svDeleteBtn.style.display = (s.uid === currentUser.uid) ? 'flex' : 'none';
+        if (s.uid === currentUser.uid) {
+            svDeleteBtn.style.setProperty('display', 'flex', 'important');
+        } else {
+            svDeleteBtn.style.setProperty('display', 'none', 'important'); // জোর করে লুকানো হলো
+        }
     }
 
     const sm = document.getElementById('story-menu');
@@ -3293,6 +3297,7 @@ function renderCurrentStory(){
         });
     }
 }
+
 
 
 // পরের স্টোরিতে যাওয়ার লজিক
