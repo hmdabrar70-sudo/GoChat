@@ -2099,6 +2099,22 @@ Continue with Google
 </div>
 
 <style>
+/* প্রোফাইল পেজের z-index জোর করে সবচেয়ে উপরে রাখা */
+#page-other-profile {
+    z-index: 10000 !important; 
+    display: none; /* ডিফল্ট ভাবে লুকানো */
+}
+
+/* চ্যাট স্ক্রিনের z-index প্রোফাইল পেজের নিচে রাখা */
+#chat-screen {
+    z-index: 400 !important;
+}
+
+/* প্রোফাইল পেজ ওপেন হলে এটাকে ফুল স্ক্রিন ও উপরে রাখা */
+#page-other-profile.open {
+    display: flex !important;
+}
+
 /* সেটিংস পেজের লিস্ট আইটেম ডিজাইন */
 .settings-list-item {
     display: flex;
@@ -5717,13 +5733,18 @@ function viewProfileFromChat() {
         return;
     }
     
-    // ১. প্রথমে প্রোফাইল ওপেন করি
-    viewUserProfile(currentChatOtherUid);
+    // ১. অন্য প্রোফাইল পেজটি সরাসরি ওপেন করি
+    const profilePage = document.getElementById('page-other-profile');
+    if(profilePage) {
+        profilePage.classList.add('open');
+        // প্রোফাইল পেজে ডাটা লোড করি
+        viewUserProfile(currentChatOtherUid);
+    }
     
-    // ২. এবার চ্যাট স্ক্রিনটা বন্ধ করে দেই (একটু সময় নিয়ে যেন কনফ্লিক্ট না হয়)
+    // ২. চ্যাট স্ক্রিনটা সরিয়ে দেই
     setTimeout(() => {
         closeChat();
-    }, 100); 
+    }, 50); 
 }
 
 // ৩. Clear Chat (Delete for me) ফাংশন
