@@ -3153,8 +3153,9 @@ function loadStories(){
         });
         
         let html='';
-        let userIdsOrder = []; // নতুন: ইউজারদের সিরিয়াল সেভ করার জন্য
+        let userIdsOrder = []; // সিরিয়াল সেভ করার জন্য
         
+        // ১. নিজের স্টোরি সবসময় প্রথমে থাকবে
         if(grouped[currentUser.uid]){
             const av=currentUserData.avatar||'https://via.placeholder.com/150/7c5cff/FFFFFF?text='+avatarInitial(currentUserData.name);
             html+=`<div>
@@ -3163,11 +3164,27 @@ function loadStories(){
             </div>
             <div class="story-name">Your Story</div>
             </div>`;
-            userIdsOrder.push(currentUser.uid); // সিরিয়ালে অ্যাড করা হলো
+            userIdsOrder.push(currentUser.uid);
             delete grouped[currentUser.uid];
         }
         
+        // ২. অন্যদের স্টোরিগুলোকে 'seen' এবং 'unseen' এ ভাগ করা
+        let unseenUsers = [];
+        let seenUsers = [];
+        
         for(let uid in grouped){
+            // চেক করা হচ্ছে এই ইউজারের সব স্টোরি দেখা হয়ে গেছে কিনা
+            const allSeen = grouped[uid].every(s => s.views && s.views.includes(currentUser.uid));
+            
+            if(allSeen) {
+                seenUsers.push(uid); // দেখা হয়ে গেলে seen লিস্টে
+            } else {
+                unseenUsers.push(uid); // না দেখা থাকলে unseen লিস্টে
+            }
+        }
+        
+        // ৩. আগে unseen (না দেখা) স্টোরিগুলো রেন্ডার করা (রঙিন রিং সহ)
+        unseenUsers.forEach(uid => {
             const uName=grouped[uid][0].name;
             const safeUName=escapeHTML(uName);
             const uAv=grouped[uid][0].avatar||'https://via.placeholder.com/150/7c5cff/FFFFFF?text='+avatarInitial(uName);
@@ -3177,12 +3194,27 @@ function loadStories(){
             </div>
             <div class="story-name">${safeUName}</div>
             </div>`;
-            userIdsOrder.push(uid); // সিরিয়ালে অ্যাড করা হলো
-        }
+            userIdsOrder.push(uid);
+        });
+
+        // ৪. এরপর seen (দেখা) স্টোরিগুলো রেন্ডার করা (গ্রে রিং সহ, একদম শেষে)
+        seenUsers.forEach(uid => {
+            const uName=grouped[uid][0].name;
+            const safeUName=escapeHTML(uName);
+            const uAv=grouped[uid][0].avatar||'https://via.placeholder.com/150/7c5cff/FFFFFF?text='+avatarInitial(uName);
+            // .seen ক্লাস যোগ করা হয়েছে যাতে রিংয়ের রঙ ম্লান হয়ে যায়
+            html+=`<div>
+            <div class="story-circle seen" onclick="playStories('${uid}')">
+            <img src="${uAv}">
+            </div>
+            <div class="story-name" style="color:var(--text-muted);">${safeUName}</div>
+            </div>`;
+            userIdsOrder.push(uid);
+        });
         
         list.innerHTML=html;
         window.allStoriesData=stories;
-        window.storyUserIds = userIdsOrder; // সব ইউজারদের লিস্ট গ্লোবালি সেভ করা হলো
+        window.storyUserIds = userIdsOrder;
     });
 }
 
