@@ -1748,7 +1748,10 @@ Continue with Google
 <span class="material-symbols-outlined" style="font-size:18px;">visibility</span>
 <span id="sv-views">0</span>
 </div>
+<div style="display:flex; align-items:center; gap:8px;">
+<span id="sv-react-count" style="color:#fff; font-size:16px; font-weight:700;">0</span>
 <span class="material-symbols-outlined" id="sv-react-btn" onclick="reactToCurrentStory()" style="color:#fff;font-size:32px;cursor:pointer;transition:0.2s;">favorite</span>
+</div>
 </div>
 </div>
 
@@ -3192,7 +3195,13 @@ svMenuBtn.style.display = (s.uid === currentUser.uid) ? 'block' : 'none';
 const sm = document.getElementById('story-menu');
 if(sm) sm.classList.remove('open');
 document.getElementById('sv-avatar').innerHTML=s.avatar?`<img src="${s.avatar}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`:avatarInitial(s.name);
+
+// ভিউ কাউন্ট
 document.getElementById('sv-views').textContent=(s.views||[]).length;
+
+// রিয়্যাক্ট কাউন্ট (নতুন আপডেট)
+document.getElementById('sv-react-count').textContent=(s.reacts||[]).length;
+
 const reactBtn=document.getElementById('sv-react-btn');
 if(s.reacts&&s.reacts.includes(currentUser.uid)){
 reactBtn.style.color='var(--danger)';
@@ -3289,30 +3298,39 @@ showToast("Failed to delete story");
 }
 
 async function reactToCurrentStory(){
-if(!activeStoryGroup||currentStoryIndex>=activeStoryGroup.length)return;
-const s=activeStoryGroup[currentStoryIndex];
-const ref=db.collection('stories').doc(s.id);
-const reactBtn=document.getElementById('sv-react-btn');
-if(s.reacts&&s.reacts.includes(currentUser.uid)){
-await ref.update({reacts:firebase.firestore.FieldValue.arrayRemove(currentUser.uid)});
-s.reacts=s.reacts.filter(id=>id!==currentUser.uid);
-reactBtn.style.color='#fff';
-reactBtn.style.fontVariationSettings="'FILL' 0";
-}else{
-await ref.update({reacts:firebase.firestore.FieldValue.arrayUnion(currentUser.uid)});
-if(!s.reacts)s.reacts=[];
-s.reacts.push(currentUser.uid);
-reactBtn.style.color='var(--danger)';
-reactBtn.style.fontVariationSettings="'FILL' 1";
-if(s.uid!==currentUser.uid){
-db.collection('notifications').add({
-toUid:s.uid,fromUid:currentUser.uid,
-fromName:currentUserData.name,
-type:'like',read:false,
-createdAt:firebase.firestore.FieldValue.serverTimestamp()
-});
-}
-}
+    if(!activeStoryGroup||currentStoryIndex>=activeStoryGroup.length)return;
+    const s=activeStoryGroup[currentStoryIndex];
+    const ref=db.collection('stories').doc(s.id);
+    const reactBtn=document.getElementById('sv-react-btn');
+    const reactCountDisplay=document.getElementById('sv-react-count'); // নতুন লাইন
+
+    if(s.reacts&&s.reacts.includes(currentUser.uid)){
+        // রিয়্যাক্ট রিমুভ করার লজিক
+        await ref.update({reacts:firebase.firestore.FieldValue.arrayRemove(currentUser.uid)});
+        s.reacts=s.reacts.filter(id=>id!==currentUser.uid);
+        
+        reactBtn.style.color='#fff';
+        reactBtn.style.fontVariationSettings="'FILL' 0";
+        reactCountDisplay.textContent = s.reacts.length; // কাউন্ট আপডেট
+    }else{
+        // রিয়্যাক্ট এড করার লজিক
+        await ref.update({reacts:firebase.firestore.FieldValue.arrayUnion(currentUser.uid)});
+        if(!s.reacts)s.reacts=[];
+        s.reacts.push(currentUser.uid);
+        
+        reactBtn.style.color='var(--danger)';
+        reactBtn.style.fontVariationSettings="'FILL' 1";
+        reactCountDisplay.textContent = s.reacts.length; // কাউন্ট আপডেট
+        
+        if(s.uid!==currentUser.uid){
+            db.collection('notifications').add({
+                toUid:s.uid,fromUid:currentUser.uid,
+                fromName:currentUserData.name,
+                type:'like',read:false,
+                createdAt:firebase.firestore.FieldValue.serverTimestamp()
+            });
+        }
+    }
 }
 // ===== POSTS LOGIC =====
 async function toggleLike(pid){
