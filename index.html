@@ -1345,6 +1345,60 @@ body:not(.light-mode) #splash-screen {
 body:not(.light-mode) #splash-screen {
     background: var(--bg);
 }
+/* Tag Preview Styles */
+.tag-preview-container {
+  display: none;
+  padding: 12px 20px;
+  background: var(--surface-2);
+  border-top: 1px solid var(--border);
+}
+.tag-preview-container.show {
+  display: block;
+}
+.tag-preview-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.tag-preview-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.tag-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: var(--accent-glow);
+  border: 1px solid var(--accent);
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent-light);
+}
+.tag-chip-remove {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: white;
+  transition: all 0.2s;
+}
+.tag-chip-remove:hover {
+  background: var(--danger);
+  transform: scale(1.1);
+}
+.tag-chip-remove .material-symbols-outlined {
+  font-size: 14px;
+}
 </style>
 </head>
 <body>
@@ -1679,6 +1733,10 @@ Continue with Google
 </div>
 <textarea id="post-title" placeholder="What's on your mind?" style="width:100%;border:none;background:transparent;color:var(--text);font-size:20px;outline:none;resize:none;font-family:inherit;min-height:160px;font-weight:500;" oninput="checkPostInputs()"></textarea>
 <div id="compose-img-preview" style="display:none;margin-top:16px;">
+<div class="tag-preview-container" id="tag-preview-container">
+  <div class="tag-preview-label">Tagged Friends</div>
+  <div class="tag-preview-list" id="tag-preview-list"></div>
+</div>
 <div class="compose-img-grid" id="compose-img-grid"></div>
 </div>
 </div>
@@ -4268,19 +4326,79 @@ async function openTagModal(){
 }
 
 function toggleTag(uid, name, el){
-    const cb=el.querySelector('input');
-    if(currentTaggedFriends.includes(uid)){
-        currentTaggedFriends=currentTaggedFriends.filter(id=>id!==uid);
-        currentTaggedNames=currentTaggedNames.filter(n=>n!==name);
-        cb.checked=false;
-    }else{
-        currentTaggedFriends.push(uid);
-        currentTaggedNames.push(name);
-        cb.checked=true;
-    }
-    const tagCount=document.getElementById('tag-count');
-    tagCount.style.display=currentTaggedFriends.length>0?'inline-block':'none';
-    tagCount.textContent=currentTaggedFriends.length;
+  const cb=el.querySelector('input');
+  if(currentTaggedFriends.includes(uid)){
+    currentTaggedFriends=currentTaggedFriends.filter(id=>id!==uid);
+    currentTaggedNames=currentTaggedNames.filter(n=>n!==name);
+    cb.checked=false;
+  }else{
+    currentTaggedFriends.push(uid);
+    currentTaggedNames.push(name);
+    cb.checked=true;
+  }
+  const tagCount=document.getElementById('tag-count');
+  tagCount.style.display=currentTaggedFriends.length>0?'inline-block':'none';
+  tagCount.textContent=currentTaggedFriends.length;
+  
+  // নতুন: ট্যাগ প্রিভিউ আপডেট করবে
+  updateTagPreview();
+}
+
+// নতুন ফাংশন: ট্যাগ প্রিভিউ আপডেট করার জন্য
+function updateTagPreview(){
+  const container = document.getElementById('tag-preview-container');
+  const list = document.getElementById('tag-preview-list');
+  
+  if(currentTaggedFriends.length === 0){
+    container.classList.remove('show');
+    list.innerHTML = '';
+    return;
+  }
+  
+  container.classList.add('show');
+  let html = '';
+  
+  currentTaggedFriends.forEach((uid, index) => {
+    const name = currentTaggedNames[index];
+    const safeName = escapeHTML(name);
+    html += `
+      <div class="tag-chip">
+        <span>@${safeName}</span>
+        <div class="tag-chip-remove" onclick="removeTagFromPreview('${uid}', '${safeName}')">
+          <span class="material-symbols-outlined">close</span>
+        </div>
+      </div>
+    `;
+  });
+  
+  list.innerHTML = html;
+}
+
+// নতুন ফাংশন: প্রিভিউ থেকে ট্যাগ রিমুভ করার জন্য
+function removeTagFromPreview(uid, name){
+  currentTaggedFriends = currentTaggedFriends.filter(id => id !== uid);
+  currentTaggedNames = currentTaggedNames.filter(n => n !== name);
+  
+  // ট্যাগ কাউন্ট আপডেট
+  const tagCount = document.getElementById('tag-count');
+  tagCount.style.display = currentTaggedFriends.length > 0 ? 'inline-block' : 'none';
+  tagCount.textContent = currentTaggedFriends.length;
+  
+  // প্রিভিউ আপডেট
+  updateTagPreview();
+  
+  // মডালের চেকবক্সও আপডেট হবে
+  const modalList = document.getElementById('tag-friends-list');
+  if(modalList){
+    const items = modalList.querySelectorAll('.msg-item');
+    items.forEach(item => {
+      const onclickAttr = item.getAttribute('onclick');
+      if(onclickAttr && onclickAttr.includes(uid)){
+        const cb = item.querySelector('input[type="checkbox"]');
+        if(cb) cb.checked = false;
+      }
+    });
+  }
 }
 
 function closeTagModal(){document.getElementById('tag-modal').classList.remove('open');}
