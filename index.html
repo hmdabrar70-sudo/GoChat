@@ -1927,8 +1927,8 @@ Continue with Google
 <div id="chat-screen">
 <div class="chat-topbar">
 <div class="chat-back" onclick="closeChat()"><span class="material-symbols-outlined">arrow_back</span></div>
-<div class="avatar sm" id="chat-avatar" style="position:relative;">?</div>
-<div class="chat-name" id="chat-name-display" style="flex:1;margin-left:8px;">Chat</div>
+<div class="avatar sm" id="chat-avatar" style="position:relative; cursor:pointer;" onclick="viewProfileFromChat()">?</div>
+<div class="chat-name" id="chat-name-display" style="flex:1;margin-left:8px; cursor:pointer;" onclick="viewProfileFromChat()">Chat</div>
 <div class="chat-header-actions" style="margin-left: auto; position: relative;">
     <span class="material-symbols-outlined" onclick="toggleChatDeleteMenu()" style="cursor: pointer; padding: 8px;">more_vert</span>
     
@@ -3763,9 +3763,11 @@ db.collection('chats').doc(chatId).set({ isRead: true }, { merge: true });
             }
 
             let senderNameHtml = '';
-            if (otherUid === 'group' && !isMine && m.senderName) {
-                senderNameHtml = `<div style="font-size: 12px; font-weight: 800; color: #ff7e67; margin-bottom: 6px;">${escapeHTML(m.senderName)}</div>`;
-            }
+if (otherUid === 'group' && !isMine && m.senderName) {
+    // এখানে onclick="viewUserProfile('${m.uid}')" যোগ করা হয়েছে
+    senderNameHtml = `<div style="font-size: 12px; font-weight: 800; color: #ff7e67; margin-bottom: 6px; cursor: pointer;" onclick="viewUserProfile('${m.uid}')">${escapeHTML(m.senderName)}</div>`;
+}
+
 
             // ডিলিট করা মেসেজ হাইড করা
             if (m.deletedFor && m.deletedFor.includes(currentUser.uid)) {
