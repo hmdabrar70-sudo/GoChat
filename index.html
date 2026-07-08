@@ -1726,11 +1726,14 @@ Continue with Google
 <div style="font-weight:700;font-size:14px;text-shadow:0 1px 4px rgba(0,0,0,0.8);" id="sv-name">Name</div>
 </div>
 <div style="display:flex;align-items:center;gap:12px;position:relative;">
-<span id="sv-menu-btn" class="material-symbols-outlined more-btn" style="color:#fff;cursor:pointer;font-size:28px;text-shadow:0 1px 4px rgba(0,0,0,0.8);display:none;" onclick="toggleStoryMenu(event)">more_vert</span>
-<div id="story-menu" class="post-dropdown-menu" style="top:40px;right:30px;position:absolute;z-index:10000;padding:4px;">
-<div class="setting-item" onclick="deleteCurrentStory()" style="color:var(--danger);margin:0;">
-<span class="material-symbols-outlined">delete</span> Delete Story
-</div>
+<span id="sv-menu-btn" class="material-symbols-outlined more-btn" style="color:#fff;cursor:pointer;font-size:28px;text-shadow:0 1px 4px rgba(0,0,0,0.8);display:block;" onclick="toggleStoryMenu(event)">more_vert</span>
+<div id="story-menu" class="post-dropdown-menu" style="top:40px;right:30px;position:absolute;z-index:10000;padding:4px;" onclick="event.stopPropagation();">
+    <div class="setting-item" onclick="downloadCurrentStory(event)" style="margin:0; display:flex; gap:10px; align-items:center;">
+        <span class="material-symbols-outlined">download</span> Save to device
+    </div>
+    <div class="setting-item" id="sv-delete-btn" onclick="deleteCurrentStory()" style="color:var(--danger);margin:0; display:flex; gap:10px; align-items:center;">
+        <span class="material-symbols-outlined">delete</span> Delete Story
+    </div>
 </div>
 <span class="material-symbols-outlined" style="color:#fff;cursor:pointer;font-size:28px;text-shadow:0 1px 4px rgba(0,0,0,0.8);" onclick="closeStory()">close</span>
 </div>
@@ -3209,7 +3212,13 @@ const safeName=escapeHTML(s.name);
 document.getElementById('sv-name').textContent=safeName;
 const svMenuBtn = document.getElementById('sv-menu-btn');
 if(svMenuBtn) {
-svMenuBtn.style.display = (s.uid === currentUser.uid) ? 'block' : 'none';
+    svMenuBtn.style.display = 'block'; // সবার স্টোরিতেই এখন থ্রি-ডট মেনু দেখাবে
+}
+
+// ডিলিট বাটনটি শুধু নিজের স্টোরি হলে দেখাবে, অন্যের হলে লুকানো থাকবে
+const svDeleteBtn = document.getElementById('sv-delete-btn');
+if(svDeleteBtn) {
+    svDeleteBtn.style.display = (s.uid === currentUser.uid) ? 'flex' : 'none';
 }
 const sm = document.getElementById('story-menu');
 if(sm) sm.classList.remove('open');
@@ -6104,6 +6113,54 @@ function markNotInterested(pid, element) {
     const postCard = element.closest('.post-card');
     if(postCard) {
         postCard.style.display = 'none';
+    }
+}
+// নতুন ফাংশন: স্টোরি ডাউনলোড করার জন্য (ছবি এবং ভিডিও)
+async function downloadCurrentStory(event) {
+    if(event) event.stopPropagation();
+    
+    // মেনু হাইড করা
+    const menu = document.getElementById('story-menu');
+    if(menu) menu.classList.remove('open');
+    
+    if(!activeStoryGroup || currentStoryIndex >= activeStoryGroup.length) return;
+    
+    const s = activeStoryGroup[currentStoryIndex];
+    let mediaUrl = s.mediaUrl;
+    if(!mediaUrl) return;
+
+    showToast("Starting download...");
+
+    // APK ফিক্স: Cloudinary লিংকের মাধ্যমে সরাসরি ডাউনলোড
+    if (mediaUrl.includes('cloudinary.com')) {
+        if (!mediaUrl.includes('fl_attachment')) {
+            mediaUrl = mediaUrl.replace('/upload/', '/upload/fl_attachment:GoChat_Story/');
+        }
+        window.location.href = mediaUrl;
+        return;
+    }
+
+    // সাধারণ ব্রাউজার ডাউনলোড (Blob)
+    try {
+        const response = await fetch(mediaUrl);
+        const blob = await response.blob();
+        const blobUrl = window.URL.createObjectURL(blob);
+        
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = blobUrl;
+        
+        // ভিডিও নাকি ছবি, তার ওপর ভিত্তি করে এক্সটেনশন ঠিক করা
+        const ext = s.isVideo ? '.mp4' : '.jpg';
+        a.download = 'GoChat_Story_' + Date.now() + ext;
+        
+        document.body.appendChild(a);
+        a.click();
+        
+        window.URL.revokeObjectURL(blobUrl);
+        document.body.removeChild(a);
+    } catch (e) {
+        window.open(mediaUrl, '_blank');
     }
 }
 </script>
