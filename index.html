@@ -3397,13 +3397,13 @@ repliesHtml=c.replies.map(r=>{
 const safeRName=escapeHTML(r.name);
 const safeRText=escapeHTML(r.text);
 return`<div style="margin-top:8px;margin-left:16px;padding-left:12px;border-left:2px solid var(--border);">
-<div class="comment-author" style="font-size:12px;">${safeRName}</div>
+<div class="comment-author" style="font-size:12px; cursor:pointer;" onclick="closeCommentPanel(); viewUserProfile('${r.uid}')">${safeRName}</div>
 <div style="font-size:12px;margin-top:2px;">${safeRText}</div>
 </div>`;
 }).join('');
 }
 return `<div class="comment-item" ondblclick="showCommentActions('${pid}', ${idx}, '${c.uid}')">
-    <div class="comment-author">${safeCName}</div>
+    <div class="comment-author" style="cursor:pointer;" onclick="closeCommentPanel(); viewUserProfile('${c.uid}')">${safeCName}</div>
     <div style="margin-top:4px;">${safeCText}</div>
     
     <div style="display:flex; gap:15px; margin-top:8px; align-items:center;">
@@ -3422,6 +3422,7 @@ return `<div class="comment-item" ondblclick="showCommentActions('${pid}', ${idx
 }).join('');
 });
 }
+
 async function toggleCommentReaction(pid, commentIdx, type) {
     if (!currentUser || !checkRateLimit()) return;
     const ref = db.collection('posts').doc(pid);
