@@ -619,7 +619,7 @@ color:var(--text-muted);
 .verified-icon{color:#1DA1F2 !important;font-size:16px;font-variation-settings:'FILL' 1;}
 #chat-screen,#create-post-screen,#settings-privacy-screen,#page-other-profile{
 display:none;position:fixed;inset:0;
-background:var(--bg);z-index:400;
+background:var(--bg);z-index:500;
 flex-direction:column;
 overflow-y:auto;
 }
@@ -5711,12 +5711,19 @@ async function executeDelete(type) {
 
 // ১. View Profile ফাংশন
 function viewProfileFromChat() {
-    document.getElementById('chat-delete-menu').style.display = 'none'; // মেনু বন্ধ করবে
+    document.getElementById('chat-delete-menu').style.display = 'none';
     if (currentChatOtherUid === 'group') {
         showToast("Cannot view profile for a group.");
         return;
     }
-    viewUserProfile(currentChatOtherUid); // সরাসরি প্রোফাইল ওপেন করবে
+    
+    // ১. প্রথমে প্রোফাইল ওপেন করি
+    viewUserProfile(currentChatOtherUid);
+    
+    // ২. এবার চ্যাট স্ক্রিনটা বন্ধ করে দেই (একটু সময় নিয়ে যেন কনফ্লিক্ট না হয়)
+    setTimeout(() => {
+        closeChat();
+    }, 100); 
 }
 
 // ৩. Clear Chat (Delete for me) ফাংশন
