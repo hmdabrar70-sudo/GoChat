@@ -4690,43 +4690,51 @@ function closeImageZoom(){
     if(menu) menu.classList.remove('open');
 }
 
-// নতুন ফাংশন: ছবি ডাউনলোড করার জন্য
+// নতুন ফাংশন: ছবি ডাউনলোড করার জন্য (APK এবং Web উভয়ের জন্য ফিক্সড)
 async function downloadZoomedImage(event) {
     if(event) event.stopPropagation();
     
-    // ডাউনলোড শুরু হলে মেনুটা হাইড করে দেবে
+    // মেনু হাইড করা
     const menu = document.getElementById('zoom-menu');
     if(menu) menu.classList.remove('open');
     
-    const imgUrl = document.getElementById('zoom-image').src;
+    let imgUrl = document.getElementById('zoom-image').src;
     if(!imgUrl) return;
 
-    showToast("Downloading image...");
+    showToast("Starting download...");
+
+    // APK (WebView) ফিক্স: Cloudinary-এর লিংকে fl_attachment যোগ করা
+    // এটি সার্ভার থেকে সরাসরি ফাইল ডাউনলোডের নির্দেশ দেয়, যা অ্যাপ খুব সহজেই ধরতে পারে।
+    if (imgUrl.includes('cloudinary.com')) {
+        if (!imgUrl.includes('fl_attachment')) {
+            imgUrl = imgUrl.replace('/upload/', '/upload/fl_attachment:GoChat_Photo/');
+        }
+        // WebView-তে ডাউনলোড ট্রিগার করার সবচেয়ে বিশ্বস্ত উপায়
+        window.location.href = imgUrl;
+        return;
+    }
+
+    // Cloudinary ছাড়া অন্য কোনো লিংক হলে সাধারণ ব্রাউজারের নিয়ম (Blob) কাজ করবে
     try {
-        // ছবিটা সার্ভার থেকে ফেচ করে ফাইলে (Blob) কনভার্ট করবে
         const response = await fetch(imgUrl);
         const blob = await response.blob();
         const blobUrl = window.URL.createObjectURL(blob);
         
-        // ব্যাকগ্রাউন্ডে একটি ডাউনলোড লিংক তৈরি করে সেটিতে ক্লিক করাবে
         const a = document.createElement('a');
         a.style.display = 'none';
         a.href = blobUrl;
-        a.download = 'GoChat_Image_' + Date.now() + '.jpg'; // এই নামে সেভ হবে
+        a.download = 'GoChat_Image_' + Date.now() + '.jpg';
         document.body.appendChild(a);
         a.click();
         
-        // কাজ শেষে লিংক রিমুভ করবে
         window.URL.revokeObjectURL(blobUrl);
         document.body.removeChild(a);
-        
-        showToast("Saved to device!");
     } catch (e) {
-        console.error("Download error:", e);
-        // কোনো ব্রাউজার সিকিউরিটির কারণে ব্লক হলে, নতুন ট্যাবে ছবিটা ওপেন করবে
+        // একদম শেষে কোনো কারণে ফেইল করলে লিংকে নিয়ে যাবে
         window.open(imgUrl, '_blank');
     }
 }
+
 
 function togglePostDropdown(dropId){
 const dropdown = document.getElementById(dropId);
