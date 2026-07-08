@@ -4425,14 +4425,21 @@ function toggleTag(uid, name, el){
   updateTagPreview();
 }
 
+
 // নতুন ফাংশন: ট্যাগ প্রিভিউ আপডেট করার জন্য
 function updateTagPreview(){
   const container = document.getElementById('tag-preview-container');
   const list = document.getElementById('tag-preview-list');
-  
+  const nameEl = document.getElementById('modal-composer-name'); // নতুন লাইন
+
   if(currentTaggedFriends.length === 0){
     container.classList.remove('show');
     list.innerHTML = '';
+    
+    // ট্যাগ না থাকলে নাম আবার আগের মতো স্বাভাবিক হয়ে যাবে
+    if(nameEl && currentUserData) {
+       nameEl.innerHTML = `<span style="display:flex; align-items:center; gap:4px;">${escapeHTML(currentUserData.name || 'User')} ${getVerifiedBadge(currentUserData.email)}</span>`;
+    }
     return;
   }
   
@@ -4453,6 +4460,24 @@ function updateTagPreview(){
   });
   
   list.innerHTML = html;
+
+  // --- Create Post স্ক্রিনে লাইভ নাম আপডেট (নতুন আপডেট) ---
+  if(nameEl && currentUserData) {
+      const safeName = escapeHTML(currentUserData.name || 'User');
+      const vBadge = getVerifiedBadge(currentUserData.email);
+      let previewWithText = '';
+      
+      if(currentTaggedNames.length === 1) {
+          previewWithText = `<span style="font-weight:500; color:var(--text-secondary); font-size:14px; margin-left:4px;">is with</span> <strong style="color:var(--text); font-size:14px; margin-left:4px;">${escapeHTML(currentTaggedNames[0])}</strong>`;
+      } else if(currentTaggedNames.length === 2) {
+          previewWithText = `<span style="font-weight:500; color:var(--text-secondary); font-size:14px; margin-left:4px;">is with</span> <strong style="color:var(--text); font-size:14px; margin-left:4px;">${escapeHTML(currentTaggedNames[0])}</strong> <span style="font-weight:500; color:var(--text-secondary); font-size:14px; margin-left:4px;">and</span> <strong style="color:var(--text); font-size:14px; margin-left:4px;">${escapeHTML(currentTaggedNames[1])}</strong>`;
+      } else if(currentTaggedNames.length > 2) {
+          previewWithText = `<span style="font-weight:500; color:var(--text-secondary); font-size:14px; margin-left:4px;">is with</span> <strong style="color:var(--text); font-size:14px; margin-left:4px;">${escapeHTML(currentTaggedNames[0])}</strong> <span style="font-weight:500; color:var(--text-secondary); font-size:14px; margin-left:4px;">and</span> <strong style="color:var(--text); font-size:14px; margin-left:4px;">${currentTaggedNames.length - 1} others</strong>`;
+      }
+      
+      nameEl.innerHTML = `<span style="display:flex; align-items:center; gap:4px;">${safeName} ${vBadge}</span> ${previewWithText}`;
+      nameEl.style.flexWrap = 'wrap';
+  }
 }
 
 // নতুন ফাংশন: প্রিভিউ থেকে ট্যাগ রিমুভ করার জন্য
@@ -4481,6 +4506,7 @@ function removeTagFromPreview(uid, name){
     });
   }
 }
+
 
 function closeTagModal(){document.getElementById('tag-modal').classList.remove('open');}
 
@@ -4575,6 +4601,7 @@ imgUrls:imgUrls,
 imgUrl:imgUrls[0]||'',
 likes:0,likedBy:[],comments:[],
 tagged:currentTaggedFriends,
+taggedNames: currentTaggedNames,
 isPinned:false,
 createdAt:firebase.firestore.FieldValue.serverTimestamp(),
 expiresAt:expireAt
@@ -4662,6 +4689,20 @@ const commentCount=p.comments?p.comments.length:0;
 const safeName=escapeHTML(p.name||'User');
 const safeTitle=escapeHTML(p.title||'');
 const safeTitleForAttr=(p.title||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;');
+
+// --- নতুন আপডেট: "is with..." টেক্সট তৈরি করা ---
+let withText = '';
+if (p.taggedNames && p.taggedNames.length > 0) {
+    if (p.taggedNames.length === 1) {
+        withText = `<span style="font-weight:500; color:var(--text-secondary); margin-left:4px;">is with</span> <strong style="color:var(--text); margin-left:4px;">${escapeHTML(p.taggedNames[0])}</strong>`;
+    } else if (p.taggedNames.length === 2) {
+        withText = `<span style="font-weight:500; color:var(--text-secondary); margin-left:4px;">is with</span> <strong style="color:var(--text); margin-left:4px;">${escapeHTML(p.taggedNames[0])}</strong> <span style="font-weight:500; color:var(--text-secondary); margin-left:4px;">and</span> <strong style="color:var(--text); margin-left:4px;">${escapeHTML(p.taggedNames[1])}</strong>`;
+    } else {
+        withText = `<span style="font-weight:500; color:var(--text-secondary); margin-left:4px;">is with</span> <strong style="color:var(--text); margin-left:4px;">${escapeHTML(p.taggedNames[0])}</strong> <span style="font-weight:500; color:var(--text-secondary); margin-left:4px;">and</span> <strong style="color:var(--text); margin-left:4px;">${p.taggedNames.length - 1} others</strong>`;
+    }
+}
+// ---------------------------------------------
+
 const imgUrls=p.imgUrls&&p.imgUrls.length>0?p.imgUrls:(p.imgUrl?[p.imgUrl]:[]);
 let mediaHtml='';
 if(imgUrls.length>1){
@@ -4682,6 +4723,7 @@ mediaHtml=`<div class="post-media-wrap" ondblclick="handleDoubleTap('${pid}',eve
 <span class="material-symbols-outlined double-tap-heart filled" style="font-variation-settings:'FILL' 1;">favorite</span>
 </div>`;
 }
+
 let postDropdownHtml='';
 if(p.uid===currentUser?.uid){
 const pinText=p.isPinned?'Unpin Post':'Pin Post';
@@ -4700,11 +4742,19 @@ postDropdownHtml=`<div style="position:relative;margin-left:auto;">
 </div>
 </div>`;
 }
+
 return`<div class="post-card">
 <div class="post-header">
 <div class="avatar" style="width:44px;height:44px;cursor:pointer;" onclick="viewUserProfile('${p.uid}')">${av}</div>
 <div style="flex:1;">
-<div class="post-name" style="cursor:pointer;" onclick="viewUserProfile('${p.uid}')">${safeName} ${vBadge}</div>
+
+<!-- নামের আপডেটটি এখানে যোগ করা হয়েছে -->
+<div class="post-name" style="flex-wrap: wrap; line-height: 1.4;">
+    <span style="cursor:pointer; display:flex; align-items:center; gap:4px;" onclick="viewUserProfile('${p.uid}')">${safeName} ${vBadge}</span>
+    ${withText}
+</div>
+<!-- আপডেট শেষ -->
+
 <div class="post-time">${getRelativeTime(p.createdAt)}</div>
 </div>
 ${postDropdownHtml}
@@ -4724,6 +4774,7 @@ ${mediaHtml}
 </div>
 </div>`;
 }
+
 
 function closeSinglePost(){document.getElementById('single-post-screen').classList.remove('open');}
 
