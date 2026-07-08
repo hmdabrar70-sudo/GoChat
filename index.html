@@ -3214,12 +3214,12 @@ const svMenuBtn = document.getElementById('sv-menu-btn');
 if(svMenuBtn) {
     svMenuBtn.style.display = 'block'; // সবার স্টোরিতেই এখন থ্রি-ডট মেনু দেখাবে
 }
-
 // ডিলিট বাটনটি শুধু নিজের স্টোরি হলে দেখাবে, অন্যের হলে লুকানো থাকবে
 const svDeleteBtn = document.getElementById('sv-delete-btn');
 if(svDeleteBtn) {
     svDeleteBtn.style.display = (s.uid === currentUser.uid) ? 'flex' : 'none';
 }
+
 const sm = document.getElementById('story-menu');
 if(sm) sm.classList.remove('open');
 document.getElementById('sv-avatar').innerHTML=s.avatar?`<img src="${s.avatar}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`:avatarInitial(s.name);
@@ -6115,11 +6115,10 @@ function markNotInterested(pid, element) {
         postCard.style.display = 'none';
     }
 }
-// নতুন ফাংশন: স্টোরি ডাউনলোড করার জন্য (ছবি এবং ভিডিও)
+// স্টোরি ডাউনলোড করার ফাংশন
 async function downloadCurrentStory(event) {
     if(event) event.stopPropagation();
     
-    // মেনু হাইড করা
     const menu = document.getElementById('story-menu');
     if(menu) menu.classList.remove('open');
     
@@ -6131,7 +6130,6 @@ async function downloadCurrentStory(event) {
 
     showToast("Starting download...");
 
-    // APK ফিক্স: Cloudinary লিংকের মাধ্যমে সরাসরি ডাউনলোড
     if (mediaUrl.includes('cloudinary.com')) {
         if (!mediaUrl.includes('fl_attachment')) {
             mediaUrl = mediaUrl.replace('/upload/', '/upload/fl_attachment:GoChat_Story/');
@@ -6140,7 +6138,6 @@ async function downloadCurrentStory(event) {
         return;
     }
 
-    // সাধারণ ব্রাউজার ডাউনলোড (Blob)
     try {
         const response = await fetch(mediaUrl);
         const blob = await response.blob();
@@ -6150,7 +6147,6 @@ async function downloadCurrentStory(event) {
         a.style.display = 'none';
         a.href = blobUrl;
         
-        // ভিডিও নাকি ছবি, তার ওপর ভিত্তি করে এক্সটেনশন ঠিক করা
         const ext = s.isVideo ? '.mp4' : '.jpg';
         a.download = 'GoChat_Story_' + Date.now() + ext;
         
