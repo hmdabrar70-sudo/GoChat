@@ -3238,59 +3238,62 @@ function playStories(uid, startIndex = 0){
 
 
 function renderCurrentStory(){
-if(currentStoryIndex>=activeStoryGroup.length){closeStory();return;}
-const s=activeStoryGroup[currentStoryIndex];
-const safeName=escapeHTML(s.name);
-document.getElementById('sv-name').textContent=safeName;
-const svMenuBtn = document.getElementById('sv-menu-btn');
-if(svMenuBtn) {
-    svMenuBtn.style.display = 'block'; 
-}
-const svDeleteBtn = document.getElementById('sv-delete-btn');
-if(svDeleteBtn) {
-    svDeleteBtn.style.display = (s.uid === currentUser.uid) ? 'flex' : 'none';
+    if(currentStoryIndex>=activeStoryGroup.length){closeStory();return;}
+    const s=activeStoryGroup[currentStoryIndex];
+    const safeName=escapeHTML(s.name);
+    document.getElementById('sv-name').textContent=safeName;
+    
+    // ১. থ্রি-ডট মেনুটি সবার স্টোরিতেই দেখাবে
+    const svMenuBtn = document.getElementById('sv-menu-btn');
+    if(svMenuBtn) {
+        svMenuBtn.style.display = 'block'; 
+    }
+
+    // ২. ডিলিট বাটনটি শুধু নিজের স্টোরি হলে দেখাবে, অন্যের হলে হাইড হয়ে যাবে
+    const svDeleteBtn = document.getElementById('sv-delete-btn');
+    if(svDeleteBtn) {
+        svDeleteBtn.style.display = (s.uid === currentUser.uid) ? 'flex' : 'none';
+    }
+
+    const sm = document.getElementById('story-menu');
+    if(sm) sm.classList.remove('open');
+    document.getElementById('sv-avatar').innerHTML=s.avatar?`<img src="${s.avatar}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`:avatarInitial(s.name);
+    
+    // ভিউ কাউন্ট এবং রিয়্যাক্ট কাউন্ট
+    document.getElementById('sv-views').textContent=(s.views||[]).length;
+    const reactCountDisplay = document.getElementById('sv-react-count');
+    if(reactCountDisplay) {
+        reactCountDisplay.textContent=(s.reacts||[]).length;
+    }
+
+    const reactBtn=document.getElementById('sv-react-btn');
+    if(s.reacts&&s.reacts.includes(currentUser.uid)){
+        reactBtn.style.color='var(--danger)';
+        reactBtn.style.fontVariationSettings="'FILL' 1";
+    }else{
+        reactBtn.style.color='#fff';
+        reactBtn.style.fontVariationSettings="'FILL' 0";
+    }
+
+    const mediaCont=document.getElementById('sv-media-container');
+    if(s.isVideo){
+        mediaCont.innerHTML=`<video src="${s.mediaUrl}" autoplay playsinline onended="nextStorySegment()" style="width:100%;max-height:85vh;object-fit:contain;"></video>`;
+        clearTimeout(storyTimer);
+    }else{
+        mediaCont.innerHTML=`<img src="${s.mediaUrl}">`;
+        clearTimeout(storyTimer);
+        storyTimer=setTimeout(nextStorySegment,5000);
+    }
+
+    document.getElementById('story-progress-bar').innerHTML=activeStoryGroup.map((_,i)=>`<div class="story-progress-segment"><div class="story-progress-fill ${i===currentStoryIndex?'animating':''}" style="width:${i<currentStoryIndex?'100%':'0%'};"></div></div>`).join('');
+    
+    if(s.uid!==currentUser.uid&&!(s.views||[]).includes(currentUser.uid)){
+        db.collection('stories').doc(s.id).update({
+            views:firebase.firestore.FieldValue.arrayUnion(currentUser.uid)
+        });
+    }
 }
 
-// ডিলিট বাটনটি শুধু নিজের স্টোরি হলে দেখাবে, অন্যের হলে লুকানো থাকবে
-const svDeleteBtn = document.getElementById('sv-delete-btn');
-if(svDeleteBtn) {
-    svDeleteBtn.style.display = (s.uid === currentUser.uid) ? 'flex' : 'none';
-}
-
-const sm = document.getElementById('story-menu');
-if(sm) sm.classList.remove('open');
-document.getElementById('sv-avatar').innerHTML=s.avatar?`<img src="${s.avatar}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`:avatarInitial(s.name);
-
-// ভিউ কাউন্ট
-document.getElementById('sv-views').textContent=(s.views||[]).length;
-
-// রিয়্যাক্ট কাউন্ট (নতুন আপডেট)
-document.getElementById('sv-react-count').textContent=(s.reacts||[]).length;
-
-const reactBtn=document.getElementById('sv-react-btn');
-if(s.reacts&&s.reacts.includes(currentUser.uid)){
-reactBtn.style.color='var(--danger)';
-reactBtn.style.fontVariationSettings="'FILL' 1";
-}else{
-reactBtn.style.color='#fff';
-reactBtn.style.fontVariationSettings="'FILL' 0";
-}
-const mediaCont=document.getElementById('sv-media-container');
-if(s.isVideo){
-mediaCont.innerHTML=`<video src="${s.mediaUrl}" autoplay playsinline onended="nextStorySegment()" style="width:100%;max-height:85vh;object-fit:contain;"></video>`;
-clearTimeout(storyTimer);
-}else{
-mediaCont.innerHTML=`<img src="${s.mediaUrl}">`;
-clearTimeout(storyTimer);
-storyTimer=setTimeout(nextStorySegment,5000);
-}
-document.getElementById('story-progress-bar').innerHTML=activeStoryGroup.map((_,i)=>`<div class="story-progress-segment"><div class="story-progress-fill ${i===currentStoryIndex?'animating':''}" style="width:${i<currentStoryIndex?'100%':'0%'};"></div></div>`).join('');
-if(s.uid!==currentUser.uid&&!(s.views||[]).includes(currentUser.uid)){
-db.collection('stories').doc(s.id).update({
-views:firebase.firestore.FieldValue.arrayUnion(currentUser.uid)
-});
-}
-}
 
 // পরের স্টোরিতে যাওয়ার লজিক
 function nextStorySegment(){
