@@ -4725,24 +4725,34 @@ mediaHtml=`<div class="post-media-wrap" ondblclick="handleDoubleTap('${pid}',eve
 </div>`;
 }
 
-let postDropdownHtml='';
-if(p.uid===currentUser?.uid){
-const pinText=p.isPinned?'Unpin Post':'Pin Post';
-postDropdownHtml=`<div style="position:relative;margin-left:auto;">
+let postDropdownHtml = `<div style="position:relative;margin-left:auto;">
 <span class="material-symbols-outlined more-btn" onclick="event.stopPropagation();togglePostDropdown('post-drop-${uniqueDropId}')" style="cursor:pointer;padding:6px;border-radius:50%;color:var(--text-secondary);">more_vert</span>
-<div id="post-drop-${uniqueDropId}" class="post-dropdown-menu" onclick="event.stopPropagation();">
-<div class="chat-dropdown-item" onclick="pinPost('${pid}')">
-<span class="material-symbols-outlined">push_pin</span> ${pinText}
-</div>
-<div class="chat-dropdown-item" onclick="openEditPostModal('${pid}','${safeTitleForAttr}')">
-<span class="material-symbols-outlined">edit</span> Edit Post
-</div>
-<div class="chat-dropdown-item danger" onclick="deletePost('${pid}')">
-<span class="material-symbols-outlined">delete</span> Delete Post
-</div>
-</div>
-</div>`;
+<div id="post-drop-${uniqueDropId}" class="post-dropdown-menu" onclick="event.stopPropagation();">`;
+
+if(p.uid === currentUser?.uid){
+    // নিজের পোস্টের জন্য অপশন
+    const pinText = p.isPinned ? 'Unpin Post' : 'Pin Post';
+    postDropdownHtml += `
+    <div class="chat-dropdown-item" onclick="pinPost('${pid}')">
+        <span class="material-symbols-outlined">push_pin</span> ${pinText}
+    </div>
+    <div class="chat-dropdown-item" onclick="openEditPostModal('${pid}','${safeTitleForAttr}')">
+        <span class="material-symbols-outlined">edit</span> Edit Post
+    </div>
+    <div class="chat-dropdown-item danger" onclick="deletePost('${pid}')">
+        <span class="material-symbols-outlined">delete</span> Delete Post
+    </div>`;
+} else {
+    // অন্যের পোস্টের জন্য অপশন (আপনার হারানো আপডেট)
+    postDropdownHtml += `
+    <div class="chat-dropdown-item" onclick="markInterested('${pid}')">
+        <span class="material-symbols-outlined" style="color: #f59e0b;">star</span> Interested
+    </div>
+    <div class="chat-dropdown-item" onclick="markNotInterested('${pid}', this)">
+        <span class="material-symbols-outlined">visibility_off</span> Not Interested
+    </div>`;
 }
+postDropdownHtml += `</div></div>`;
 
 return`<div class="post-card">
 <div class="post-header">
@@ -6010,6 +6020,24 @@ window.openCreatePost = function() {
   if (originalOpenCreatePost) originalOpenCreatePost();
   loadMentionFriends();
 };
+// Interested বাটনে ক্লিক করলে
+function markInterested(pid) {
+    closeAllDropdowns();
+    showToast('Marked as Interested!');
+    // ভবিষ্যতে চাইলে এখানে ডাটাবেস সেভ করার লজিক দিতে পারবেন
+}
+
+// Not Interested বাটনে ক্লিক করলে
+function markNotInterested(pid, element) {
+    closeAllDropdowns();
+    showToast('Post hidden from your feed');
+    
+    // পোস্টটি যেন সাথে সাথেই আপনার ফিড থেকে হাইড হয়ে যায়
+    const postCard = element.closest('.post-card');
+    if(postCard) {
+        postCard.style.display = 'none';
+    }
+}
 </script>
 </body>
 </html>
