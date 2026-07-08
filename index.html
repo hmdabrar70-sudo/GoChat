@@ -1744,12 +1744,22 @@ Continue with Google
 </div>
 
 <div class="story-footer">
-<div style="color:#fff;font-size:14px;font-weight:700;display:flex;align-items:center;gap:6px;">
-<span class="material-symbols-outlined" style="font-size:18px;">visibility</span>
-<span id="sv-views">0</span>
-</div>
-<span class="material-symbols-outlined" id="sv-react-btn" onclick="reactToCurrentStory()" style="color:#fff;font-size:32px;cursor:pointer;transition:0.2s;">favorite</span>
-</div>
+    <div style="color:#fff;font-size:14px;font-weight:700;display:flex;align-items:center;gap:6px;">
+        <span class="material-symbols-outlined" style="font-size:18px;">visibility</span>
+        <span id="sv-views">0</span>
+    </div>
+
+    <div style="position:relative;">
+        <span class="material-symbols-outlined" id="sv-react-btn" onclick="showStoryReactionPicker(event)" style="color:#fff;font-size:32px;cursor:pointer;transition:0.2s;">favorite</span>
+        
+        <div id="story-reaction-picker" class="reaction-picker" style="bottom: 50px; right: 0; position: absolute;">
+            <span class="reaction-emoji" onclick="sendStoryReaction('❤️')">❤️</span>
+            <span class="reaction-emoji" onclick="sendStoryReaction('😂')">😂</span>
+            <span class="reaction-emoji" onclick="sendStoryReaction('😮')">😮</span>
+            <span class="reaction-emoji" onclick="sendStoryReaction('😢')">😢</span>
+            <span class="reaction-emoji" onclick="sendStoryReaction('🔥')">🔥</span>
+        </div>
+    </div>
 </div>
 
 <div id="settings-privacy-screen" style="z-index: 1005;">
@@ -2092,6 +2102,36 @@ Continue with Google
     box-shadow: none;
     padding: 0;
     transition: transform 0.3s ease-in-out !important;
+}
+.nav-capsule {
+    flex: 1;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    background: var(--surface);
+    border-radius: 40px;
+    padding: 2px 16px; 
+    box-shadow: var(--shadow-lg);
+    border: 1px solid var(--border);
+}
+.nav-fab {
+    width: 50px; 
+    height: 50px; 
+    border-radius: 50%;
+    background: var(--gradient);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 8px 20px rgba(157, 133, 255, 0.4);
+    cursor: pointer;
+    flex-shrink: 0;
+    z-index: 101;
+    transition: all 0.2s;
+    transform: none; 
+    border: none;
+}
+.nav-fab:active { transform: scale(0.9); }
 }
 .nav-capsule {
     flex: 1;
@@ -3193,11 +3233,18 @@ const sm = document.getElementById('story-menu');
 if(sm) sm.classList.remove('open');
 document.getElementById('sv-avatar').innerHTML=s.avatar?`<img src="${s.avatar}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`:avatarInitial(s.name);
 document.getElementById('sv-views').textContent=(s.views||[]).length;
-const reactBtn=document.getElementById('sv-react-btn');
-if(s.reacts&&s.reacts.includes(currentUser.uid)){
-reactBtn.style.color='var(--danger)';
-reactBtn.style.fontVariationSettings="'FILL' 1";
-}else{
+const reactBtn = document.getElementById('sv-react-btn');
+const story = activeStoryGroup[currentStoryIndex];
+
+// যদি আমি রিঅ্যাক্ট করে থাকি, তবে বাটনটি লাল দেখাবে
+if(story.reacts && Object.values(story.reacts).some(list => list.includes(currentUser.uid))){
+    reactBtn.style.color = 'var(--danger)';
+    reactBtn.style.fontVariationSettings = "'FILL' 1";
+} else {
+    reactBtn.style.color = '#fff';
+    reactBtn.style.fontVariationSettings = "'FILL' 0";
+}
+
 reactBtn.style.color='#fff';
 reactBtn.style.fontVariationSettings="'FILL' 0";
 }
