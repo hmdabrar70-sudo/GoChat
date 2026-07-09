@@ -2227,6 +2227,34 @@ Continue with Google
         <button class="btn-outline" onclick="closeDeleteSheet()" style="width:100%; border:none; color: var(--text-muted); background: transparent;">Cancel</button>
     </div>
 </div>
+<div class="modal-overlay" id="quick-profile-modal" style="z-index: 100000; align-items: flex-end;" onclick="if(event.target===this) closeQuickProfile()">
+    <div class="modal-box" style="margin-top:auto; border-radius: 24px 24px 0 0; padding:24px 20px; width: 100%; text-align: center; background: var(--surface);">
+        
+        <div style="width: 40px; height: 5px; background: var(--border); border-radius: 10px; margin: 0 auto 20px;"></div>
+        
+        <div class="avatar xl" id="qp-avatar" style="margin: 0 auto 12px; border: 4px solid var(--bg); box-shadow: var(--shadow-md);">?</div>
+        <div id="qp-name" style="font-size: 22px; font-weight: 800; color: var(--text); margin-bottom: 24px;">User Name</div>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+            <button class="btn-primary" onclick="goToFullProfile()" style="margin:0; border-radius: 16px; padding: 12px; font-size: 14px; box-shadow: none;">
+                <span class="material-symbols-outlined">person</span> View Profile
+            </button>
+            <button class="btn-outline" id="qp-mute-btn" onclick="toggleMuteFromQP()" style="margin:0; border-radius: 16px; padding: 12px; font-size: 14px; border: none; background: var(--surface-2); color: var(--text);">
+                <span class="material-symbols-outlined">notifications_off</span> Mute
+            </button>
+            <button class="btn-outline" onclick="archiveFromQP()" style="margin:0; border-radius: 16px; padding: 12px; font-size: 14px; border: none; background: var(--surface-2); color: var(--text);">
+                <span class="material-symbols-outlined">archive</span> Archive
+            </button>
+            <button class="btn-outline" onclick="blockFromQP()" style="margin:0; border-radius: 16px; padding: 12px; font-size: 14px; border: none; background: rgba(255, 77, 106, 0.1); color: var(--danger);">
+                <span class="material-symbols-outlined">block</span> Block
+            </button>
+        </div>
+        
+        <button class="btn-primary" onclick="clearChatFromQP()" style="margin:0; width: 100%; border-radius: 16px; padding: 14px; font-size: 15px; background: rgba(255, 77, 106, 0.1); color: var(--danger); box-shadow: none;">
+            <span class="material-symbols-outlined">mop</span> Clear Chat
+        </button>
+    </div>
+</div>
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
@@ -5753,7 +5781,7 @@ async function executeDelete(type) {
 }
 // ===== NEW CHAT HEADER MENU FUNCTIONS =====
 
-// ১. View Profile ফাংশন
+// চ্যাট থেকে নামের ওপর ক্লিক করলে পপ-আপ ওপেন হবে
 function viewProfileFromChat() {
     document.getElementById('chat-delete-menu').style.display = 'none';
     if (currentChatOtherUid === 'group') {
@@ -5761,19 +5789,64 @@ function viewProfileFromChat() {
         return;
     }
     
-    // ১. অন্য প্রোফাইল পেজটি সরাসরি ওপেন করি
+    // চ্যাটের টপবার থেকে নাম ও ছবি কপি করে পপ-আপে বসানো
+    const name = document.getElementById('chat-name-display').textContent;
+    const avatarHtml = document.getElementById('chat-avatar').innerHTML;
+    
+    document.getElementById('qp-name').textContent = name;
+    document.getElementById('qp-avatar').innerHTML = avatarHtml;
+    
+    // ইউজারের চ্যাট মিউট করা আছে কিনা চেক করে বাটনের টেক্সট ঠিক করা
+    const isMuted = currentUserData.mutedChats?.includes(currentChatId);
+    const muteBtn = document.getElementById('qp-mute-btn');
+    if (isMuted) {
+        muteBtn.innerHTML = '<span class="material-symbols-outlined">notifications_active</span> Unmute';
+    } else {
+        muteBtn.innerHTML = '<span class="material-symbols-outlined">notifications_off</span> Mute';
+    }
+
+    // পপ-আপ ওপেন করা
+    document.getElementById('quick-profile-modal').classList.add('open');
+}
+
+// পপ-আপ বন্ধ করার ফাংশন
+function closeQuickProfile() {
+    document.getElementById('quick-profile-modal').classList.remove('open');
+}
+
+// "View Profile" বাটনে ক্লিক করলে ফুল প্রোফাইলে যাবে
+function goToFullProfile() {
+    closeQuickProfile();
     const profilePage = document.getElementById('page-other-profile');
     if(profilePage) {
         profilePage.classList.add('open');
-        // প্রোফাইল পেজে ডাটা লোড করি
         viewUserProfile(currentChatOtherUid);
     }
-    
-    // ২. চ্যাট স্ক্রিনটা সরিয়ে দেই
-    setTimeout(() => {
-        closeChat();
-    }, 50); 
+    setTimeout(() => { closeChat(); }, 50);
 }
+
+// অন্যান্য অ্যাকশন বাটনগুলোর ফাংশন
+async function toggleMuteFromQP() {
+    await muteChat(currentChatId);
+    closeQuickProfile();
+}
+
+async function archiveFromQP() {
+    await archiveChat(currentChatId);
+    closeQuickProfile();
+    closeChat(); // আর্কাইভ করার পর চ্যাট পেজ বন্ধ হয়ে যাবে
+}
+
+async function blockFromQP() {
+    closeQuickProfile();
+    await blockUserFromChat(); 
+}
+
+async function clearChatFromQP() {
+    closeQuickProfile();
+    await clearChatForMe(); 
+}
+
 
 // ৩. Clear Chat (Delete for me) ফাংশন
 async function clearChatForMe() {
