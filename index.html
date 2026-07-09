@@ -1438,6 +1438,22 @@ body:not(.light-mode) #splash-screen {
 .mention-dropdown.show {
   display: block;
 }
+/* নতুন স্প্ল্যাশ লোডার স্টাইল */
+.splash-loader {
+    width: 80px;
+    height: 80px;
+    animation: jolt 3s linear infinite;
+}
+.splash-track {
+    fill: none;
+    stroke: #FFD700; /* সোনালি রঙ */
+    stroke-width: 8;
+    stroke-linecap: round;
+}
+@keyframes jolt {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
 .mention-item {
   display: flex;
   align-items: center;
@@ -1487,7 +1503,12 @@ body:not(.light-mode) #splash-screen {
 <body>
 <!-- Splash Screen HTML -->
 <div id="splash-screen">
-    <div class="splash-logo">✦ GoChat</div>
+    <div style="display:flex; flex-direction:column; align-items:center; gap:20px;">
+        <svg class="splash-loader" viewBox="0 0 100 100">
+            <circle class="splash-track" cx="50" cy="50" r="40" />
+        </svg>
+        <div class="splash-logo" style="animation:none; font-size: 30px; padding: 0;">✦ GoChat</div>
+    </div>
 </div>
 
 <div id="auth-screen">
@@ -4818,31 +4839,39 @@ awardPoints(currentUser.uid, 20);
 }
 
 function loadFeed(){
-const feedList=document.getElementById('feed-list');
-if(!feedList)return;
-if(feedUnsub)feedUnsub();
-feedUnsub=db.collection('posts').orderBy('createdAt', 'desc').limit(postLimit).onSnapshot((snap)=>{
-const loadEl=document.getElementById('feed-loading');
-if(loadEl)loadEl.style.display='none';
-let postsData=[];
-snap.forEach(d=>{postsData.push({id:d.id,...d.data()});});
-if(currentFeedTab==='friends'){
-postsData=postsData.filter(p=>currentUserData.friends?.includes(p.uid)||p.uid===currentUser.uid);
+    const feedList = document.getElementById('feed-list');
+    if(!feedList) return;
+    if(feedUnsub) feedUnsub();
+    
+    // সব পোস্ট লোড করুন
+    feedUnsub = db.collection('posts').orderBy('createdAt', 'desc').onSnapshot((snap) => {
+        let allPosts = [];
+        snap.forEach(d => allPosts.push({id: d.id, ...d.data()}));
+        
+        // এখানে ফিল্টারিং লজিক
+        const filteredPosts = allPosts.filter(p => {
+            // ১. যদি পাবলিক হয়, সবাই দেখবে
+            if (p.privacy === 'public') return true;
+            
+            // ২. নিজের পোস্ট হলে সবসময় দেখাবে
+            if (p.uid === currentUser.uid) return true;
+            
+            // ৩. প্রাইভেট হলে শুধুমাত্র নিজের আইডিতে দেখাবে (ফিড থেকে বাদ যাবে)
+            if (p.privacy === 'private') return false;
+            
+            // ৪. ফ্রেন্ডস মোড হলে চেক করবে তারা ফ্রেন্ড কি না
+            if (p.privacy === 'friends') {
+                return currentUserData.friends && currentUserData.friends.includes(p.uid);
+            }
+            
+            return true;
+        });
+
+        // ফিল্টার করা পোস্টগুলো রেন্ডার করুন
+        feedList.innerHTML = filteredPosts.map(p => buildPostCardHTML(p)).join('');
+    });
 }
-if(postsData.length===0){
-feedList.innerHTML='<div class="empty-feed"><span class="material-symbols-outlined">inbox</span><br>No posts yet in this feed</div>';
-document.getElementById('load-more-btn').style.display='none';
-return;
-}
-feedList.innerHTML=postsData.map(p=>buildPostCardHTML(p)).join('');
-const loadMoreBtn = document.getElementById('load-more-btn');
-if(postsData.length >= postLimit){
-loadMoreBtn.style.display='block';
-} else {
-loadMoreBtn.style.display='none';
-}
-});
-}
+
 
 function loadMorePosts() {
 postLimit += 10;
