@@ -1747,8 +1747,8 @@ Continue with Google
 <div class="story-progress-bar" id="story-progress-bar"></div>
 <div class="story-header">
 <div style="display:flex;align-items:center;gap:10px;color:#fff;">
-<div class="avatar sm" id="sv-avatar" style="border:2px solid #fff;">?</div>
-<div style="font-weight:700;font-size:14px;text-shadow:0 1px 4px rgba(0,0,0,0.8);" id="sv-name">Name</div>
+<div class="avatar sm" id="sv-avatar" style="border:2px solid #fff; cursor:pointer;" onclick="viewProfileFromStory()">?</div>
+<div style="font-weight:700;font-size:14px;text-shadow:0 1px 4px rgba(0,0,0,0.8); cursor:pointer;" id="sv-name" onclick="viewProfileFromStory()">Name</div>
 </div>
 <div style="display:flex;align-items:center;gap:12px;position:relative;">
 <span id="sv-menu-btn" class="material-symbols-outlined more-btn" style="color:#fff;cursor:pointer;font-size:28px;text-shadow:0 1px 4px rgba(0,0,0,0.8);display:block;" onclick="toggleStoryMenu(event)">more_vert</span>
@@ -3429,6 +3429,26 @@ clearTimeout(storyTimer);
 document.getElementById('sv-media-container').innerHTML='';
 }
 
+// স্টোরি থেকে প্রোফাইল দেখার ফাংশন
+function viewProfileFromStory() {
+    if (!activeStoryGroup || currentStoryIndex >= activeStoryGroup.length) return;
+    const uid = activeStoryGroup[currentStoryIndex].uid;
+    
+    // ১. আগে স্টোরি পপ-আপটি বন্ধ করে দেওয়া
+    closeStory();
+    
+    // ২. নিজের স্টোরি হলে নিজের প্রোফাইলে, আর অন্যের হলে তার প্রোফাইলে যাওয়া
+    if (uid === currentUser.uid) {
+        showPage('profile');
+    } else {
+        const profilePage = document.getElementById('page-other-profile');
+        if (profilePage) {
+            profilePage.classList.add('open');
+            viewUserProfile(uid);
+        }
+    }
+}
+
 function toggleStoryMenu(event){
 event.stopPropagation();
 document.getElementById('story-menu').classList.toggle('open');
@@ -3714,7 +3734,7 @@ let isFriend=currentUserData.friends?.includes(uid);
 
     document.getElementById('other-profile-btns').innerHTML=`
         <div style="display:flex; justify-content:center; gap:20px; width:100%; margin-top:16px;">
-            <button class="icon-btn" style="width:48px; height:48px; border-radius:50%; background:var(--gradient); color:#fff; border:none; box-shadow:var(--shadow-glow);" onclick="openChat('${[currentUser.uid,uid].sort().join('_')}','${uid}','${safeName}','${u.avatar||''}')" title="Message">
+           <button class="icon-btn" style="width:48px; height:48px; border-radius:50%; background:var(--gradient); color:#fff; border:none; box-shadow:var(--shadow-glow);" onclick="closeUserProfile(); openChat('${[currentUser.uid,uid].sort().join('_')}','${uid}','${safeName}','${u.avatar||''}')" title="Message">
                 <span class="material-symbols-outlined">chat</span>
             </button>
             
