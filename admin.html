@@ -460,19 +460,32 @@
                 await db.collection('system').doc('settings').set({ maintenanceMode: newState }, { merge: true });
             }
         }
-        // ইউজারকে ব্লু ব্যাজ দেওয়ার বা নেওয়ার ফাংশন
+     // ইউজারকে ব্লু ব্যাজ দেওয়ার বা নেওয়ার ফাংশন (আপডেটেড)
 async function toggleUserVerification(uid, currentStatus) {
-    const newStatus = !currentStatus; // true থাকলে false হবে, false থাকলে true হবে
+    const newStatus = !currentStatus; 
     
     if(!confirm(`Are you sure you want to ${newStatus ? 'GIVE' : 'REMOVE'} the Blue Badge for this user?`)) return;
 
     try {
+        // ১. ইউজারের মেইন প্রোফাইল আপডেট করা
         await db.collection('users').doc(uid).update({
             isVerified: newStatus
         });
+        
+        // ২. নতুন ম্যাজিক: ইউজারের আগের সব পোস্টেও এক ক্লিকে ব্যাজ আপডেট করে দেওয়া
+        const postsSnap = await db.collection('posts').where('uid', '==', uid).get();
+        if(!postsSnap.empty) {
+            const batch = db.batch();
+            postsSnap.forEach(doc => {
+                batch.update(doc.ref, { isVerified: newStatus });
+            });
+            await batch.commit();
+        }
+
         alert(`User successfully ${newStatus ? 'Verified (Blue Badge Added)' : 'Unverified'}!`);
         
-        // এখানে আপনার ইউজার রিলোড করার ফাংশনটি কল করতে পারেন, যেমন: loadUsers(); 
+        // লিস্ট রিলোড করা
+        loadUsersList(); 
     } catch (error) {
         console.error("Error updating verification: ", error);
         alert("Failed to update verification status.");
