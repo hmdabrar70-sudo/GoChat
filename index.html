@@ -1713,9 +1713,9 @@ body:not(.light-mode) #splash-screen {
 <div id="app-screen">
 <div class="topbar">
 <div class="topbar-logo" onclick="refreshFeed()">✦ GoChat</div>
-    <div class="topbar-actions">
-    <div class="topbar-btn" onclick="toggleHamburgerMenu()">
-        <span class="material-symbols-outlined">menu</span>
+<div class="topbar-actions">
+    <div class="topbar-btn" id="topbar-settings-btn" onclick="openFullSettings()" style="display:none;">
+        <span class="material-symbols-outlined">settings</span>
     </div>
     
     <div class="topbar-btn" onclick="showPage('notifications')" style="position:relative;">
@@ -1726,7 +1726,7 @@ body:not(.light-mode) #splash-screen {
         <span class="material-symbols-outlined">search</span>
     </div>
 </div>
-
+</div>
 
 <div class="page active" id="page-feed">
 <div class="stories-wrapper" id="stories-list"></div>
@@ -2086,7 +2086,7 @@ body:not(.light-mode) #splash-screen {
             <div id="group-friends-list" style="max-height: 200px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding-bottom: 10px;">
                 <div style="color: var(--text-secondary); font-size: 13px; text-align: center; margin-top: 20px;">Friends list will load here...</div>
             </div>
-
+            
             <button onclick="createGroupAction()" style="padding: 12px; background: #8a2be2; color: white; border: none; border-radius: 8px; font-weight: 800; cursor: pointer; margin-top: 10px; font-size: 16px;">Create Group</button>
         </div>
     </div>
@@ -2271,12 +2271,7 @@ body:not(.light-mode) #splash-screen {
         <div class="color-circle" style="background: #e91e63;" onclick="selectTextStoryBg('#e91e63', this)"></div>
     </div>
 </div>
-<div id="hamburger-menu" style="display:none; position:fixed; top:60px; right:15px; background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:10px; z-index:10000; box-shadow:var(--shadow-lg); width: 200px;">
-    <div class="setting-item" onclick="openFullSettings(); toggleHamburgerMenu();">
-        <span class="material-symbols-outlined">settings</span> Settings
-    </div>
-</div>
-    
+
 <div id="toast"></div>
 <div id="full-settings-screen" style="display:none; position:fixed; inset:0; background:var(--bg); z-index:1000; flex-direction:column; overflow-y:auto; animation:slideUp 0.3s ease;">
     <div class="chat-topbar" style="position:sticky; top:0; z-index:100;">
@@ -6410,6 +6405,7 @@ async function executeDelete(type) {
 // ===== NEW CHAT HEADER MENU FUNCTIONS =====
 
 // চ্যাট থেকে নামের ওপর ক্লিক করলে পপ-আপ ওপেন হবে
+// পপ-আপ ওপেন করার ফাংশনটি এভাবে আপডেট করুন
 function viewProfileFromChat() {
     document.getElementById('chat-delete-menu').style.display = 'none';
     if (currentChatOtherUid === 'group') {
@@ -6417,16 +6413,20 @@ function viewProfileFromChat() {
         return;
     }
         
-    // ১. নাম এবং ব্যাজসহ এলিমেন্টটি নেওয়া (ব্যাজসহ)
-    const nameEl = document.getElementById('chat-name-display');
-    const nameHtml = nameEl.innerHTML; // এতে নাম এবং ব্যাজ (vBadge) দুটোই থাকবে
+    // চ্যাটের টপবার থেকে নাম কপি করা
+    const nameText = document.getElementById('chat-name-display').innerText; 
     const avatarHtml = document.getElementById('chat-avatar').innerHTML;
-        
-    // ২. পপ-আপের নাম এবং অবতার সেট করা
-    document.getElementById('qp-name').innerHTML = nameHtml; 
+    
+    // ভেরিফাইড ব্যাজ পাওয়ার জন্য ইউজার ডাটা চেক করা
+    const otherUser = allUsersCache ? allUsersCache.find(u => u.id === currentChatOtherUid) : null;
+    const isV = otherUser ? otherUser.isVerified : false;
+    const vBadge = getVerifiedBadge(otherUser ? otherUser.email : '', isV);
+    
+    // নামের সাথে ব্যাজটি যোগ করা
+    document.getElementById('qp-name').innerHTML = nameText + vBadge;
     document.getElementById('qp-avatar').innerHTML = avatarHtml;
         
-    // ৩. মিউট বাটন লজিক
+    // ইউজারের চ্যাট মিউট করা আছে কিনা চেক করে বাটনের টেক্সট ঠিক করা
     const isMuted = currentUserData.mutedChats?.includes(currentChatId);
     const muteBtn = document.getElementById('qp-mute-btn');
     if (isMuted) {
@@ -6434,11 +6434,9 @@ function viewProfileFromChat() {
     } else {
         muteBtn.innerHTML = '<span class="material-symbols-outlined">notifications_off</span> Mute';
     }
-    
-    // ৪. পপ-আপ ওপেন করা
+    // পপ-আপ ওপেন করা
     document.getElementById('quick-profile-modal').classList.add('open');
 }
-
 
 
 // পপ-আপ বন্ধ করার ফাংশন
@@ -7409,20 +7407,6 @@ async function submitTextStory() {
         btn.disabled = false;
     }
 }
-// Hamburger Menu ফাংশন
-function toggleHamburgerMenu() {
-    const menu = document.getElementById('hamburger-menu');
-    menu.style.display = (menu.style.display === 'block') ? 'none' : 'block';
-}
-
-// বাইরে ক্লিক করলে মেনু হাইড হবে
-document.addEventListener('click', function(e) {
-    const menu = document.getElementById('hamburger-menu');
-    const menuBtn = document.querySelector('.topbar-btn[onclick="toggleHamburgerMenu()"]');
-    if (menu && !menu.contains(e.target) && (menuBtn && !menuBtn.contains(e.target))) {
-        menu.style.display = 'none';
-    }
-});
 </script>
 </body>
 </html>
