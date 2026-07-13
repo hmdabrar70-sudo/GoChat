@@ -1658,6 +1658,19 @@ body:not(.light-mode) #splash-screen {
     0% { transform: translateY(-100px); opacity: 0; }
     100% { transform: translateY(0); opacity: 1; }
 }
+/* কুইক রিপ্লাই ইনপুট ডিজাইন */
+.msg-popup-reply-bar {
+    display: flex; gap: 8px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); width: 100%;
+}
+.msg-popup-reply-bar input {
+    flex: 1; background: var(--surface-2); border: 1px solid var(--border);
+    border-radius: 20px; padding: 8px 14px; color: var(--text); font-size: 13px; outline: none; transition: 0.2s;
+}
+.msg-popup-reply-bar input:focus { border-color: var(--accent); }
+.msg-popup-reply-bar button {
+    background: var(--accent); color: white; border: none; border-radius: 50%;
+    width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer;
+}
 @keyframes slideUpFade {
     0% { transform: translateY(0); opacity: 1; }
     100% { transform: translateY(-100px); opacity: 0; }
@@ -4789,13 +4802,14 @@ input.value='';
 }
 
 // ✅ FIXED: loadMessages() - Now supports Group Chats!
-// --- ইন-অ্যাপ নোটিফিকেশন ফাংশন ---
+// --- ইন-অ্যাপ নোটিফিকেশন ফাংশন (Smart Version) ---
+const notifSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+
 function showInAppMessageNotification(chatId, data) {
     let senderName = 'User';
     let avatarHtml = '';
     let otherUid = 'group';
 
-    // নাম এবং ছবি বের করার লজিক
     if (data.isGroup) {
         senderName = data.groupName || 'Group';
         avatarHtml = `<div class="avatar sm" style="background:var(--gradient-orange);color:white;"><span class="material-symbols-outlined" style="font-size:18px;">groups</span></div>`;
@@ -4810,16 +4824,20 @@ function showInAppMessageNotification(chatId, data) {
     const container = document.getElementById('in-app-notif-container');
     if (!container) return;
 
+    // ১. মেসেজ আসার সাথে সাথে সুন্দর 'টিং' সাউন্ড হবে
+    notifSound.play().catch(e => console.log('Sound blocked until user interaction'));
+
     const popup = document.createElement('div');
     popup.className = 'msg-popup';
+    popup.style.flexDirection = 'column';
+    popup.style.alignItems = 'stretch';
 
-    // ক্লিক করলে সরাসরি ওই চ্যাটে নিয়ে যাবে
-    popup.onclick = function() {
-        popup.remove();
-        openChat(chatId, otherUid, senderName, data.isGroup ? '' : (data.avatars ? data.avatars[otherUid] : ''));
-    };
-
-    popup.innerHTML = `
+    const topContent = document.createElement('div');
+    topContent.style.display = 'flex';
+    topContent.style.alignItems = 'center';
+    topContent.style.gap = '12px';
+    
+    topContent.innerHTML = `
         <div style="width:40px;height:40px;border-radius:50%;overflow:hidden;flex-shrink:0;">${avatarHtml}</div>
         <div style="flex:1; min-width:0;">
             <div style="font-size:14px; font-weight:800; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHTML(senderName)}</div>
@@ -4827,17 +4845,97 @@ function showInAppMessageNotification(chatId, data) {
         </div>
     `;
 
+    // নামে বা ছবিতে ক্লিক করলে চ্যাট ওপেন হবে
+    topContent.onclick = function() {
+        popup.remove();
+        openChat(chatId, otherUid, senderName, data.isGroup ? '' : (data.avatars ? data.avatars[otherUid] : ''));
+    };
+
+    // ২. কুইক রিপ্লাই বক্স
+    const replyBar = document.createElement('div');
+    replyBar.className = 'msg-popup-reply-bar';
+    replyBar.innerHTML = `
+        <input type="text" placeholder="Reply to ${escapeHTML(senderName)}..." onclick="event.stopPropagation();" onkeypress="if(event.key==='Enter'){event.stopPropagation(); sendQuickReply('${chatId}', '${otherUid}', this.value, this);}">
+        <button onclick="event.stopPropagation(); sendQuickReply('${chatId}', '${otherUid}', this.previousElementSibling.value, this)">
+            <span class="material-symbols-outlined" style="font-size:16px;">send</span>
+        </button>
+    `;
+
+    popup.appendChild(topContent);
+    popup.appendChild(replyBar);
     container.appendChild(popup);
 
-    // ঠিক ৫ সেকেন্ড পর পপআপটি হাইড হয়ে যাবে
-    setTimeout(() => {
-        if (popup.parentElement) {
+    // ৩. সোয়াইপ টু ডিসমিস (Swipe UP)
+    let startY = 0;
+    let currentY = 0;
+    popup.addEventListener('touchstart', (e) => { startY = e.touches[0].clientY; }, {passive: true});
+    popup.addEventListener('touchmove', (e) => {
+        currentY = e.touches[0].clientY;
+        const diff = currentY - startY;
+        if (diff < 0) { popup.style.transform = `translateY(${diff}px)`; } // আঙুলের সাথে সাথে উপরে উঠবে
+    }, {passive: true});
+    popup.addEventListener('touchend', (e) => {
+        if (currentY - startY < -40) { // যদি ৪০ পিক্সেল উপরে সোয়াইপ হয়, তবে কেটে যাবে
             popup.classList.add('hide');
-            setTimeout(() => popup.remove(), 400); // অ্যানিমেশন শেষ হওয়ার পর ডিলিট
+            setTimeout(() => popup.remove(), 400);
+        } else {
+            popup.style.transform = ''; // নাহলে আগের জায়গায় ফেরত আসবে
+        }
+    }, {passive: true});
+
+    // ৫ সেকেন্ড পর হাইড হবে (তবে রিপ্লাই টাইপ করতে থাকলে স্ক্রিনেই থাকবে)
+    setTimeout(() => {
+        if (popup.parentElement && !popup.querySelector('input:focus')) { 
+            popup.classList.add('hide');
+            setTimeout(() => popup.remove(), 400);
         }
     }, 5000);
 }
 
+// কুইক রিপ্লাই পাঠানোর লজিক
+async function sendQuickReply(chatId, otherUid, text, btnElement) {
+    text = text.trim();
+    if(!text || !currentUser) return;
+    
+    // সেন্ডিং অ্যানিমেশন
+    btnElement.disabled = true;
+    btnElement.innerHTML = '<span class="material-symbols-outlined" style="font-size:16px; animation:spin 1s linear infinite;">autorenew</span>';
+
+    const msgData = {
+        uid: currentUser.uid,
+        senderName: currentUserData.name || 'User',
+        text: text,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+    
+    try {
+        await db.collection('chats').doc(chatId).collection('messages').add(msgData);
+        
+        let lastText = text;
+        if (otherUid === 'group') {
+            lastText = (currentUserData.name || 'User') + ": " + text;
+        }
+
+        await db.collection('chats').doc(chatId).set({
+            lastMsg: lastText,
+            lastAt: firebase.firestore.FieldValue.serverTimestamp(),
+            lastSender: currentUser.uid,
+            isRead: false
+        }, { merge: true });
+
+        // মেসেজ গেলে পপআপ নিজে থেকেই হাইড হয়ে যাবে
+        const popup = btnElement.closest('.msg-popup');
+        if(popup) {
+            popup.classList.add('hide');
+            setTimeout(() => popup.remove(), 400);
+        }
+        showToast("Reply sent!");
+    } catch(e) {
+        showToast("Failed to send reply");
+        btnElement.disabled = false;
+        btnElement.innerHTML = '<span class="material-symbols-outlined" style="font-size:16px;">send</span>';
+    }
+}
 
 // ===== FIXED & REAL-TIME: loadMessages (Supports Group Chat & Live Sorting) =====
 function loadMessages(){
