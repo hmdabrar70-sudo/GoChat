@@ -5014,15 +5014,24 @@ function loadMessages(){
         snap.docChanges().forEach(change => {
             if (isAppReadyForNotifs && (change.type === 'added' || change.type === 'modified')) {
                 const data = change.doc.data();
+                const chatId = change.doc.id;
                 
-                // যদি মেসেজটা আমার না হয়, পড়া না হয়ে থাকে এবং মিউট করা না থাকে
-                if (data.lastSender && data.lastSender !== currentUser.uid && data.isRead === false && !mutedChats.includes(change.doc.id)) {
+                // ১. চেক করুন কারেন্ট ইউজার এই চ্যাটের অংশ কিনা (সবচেয়ে গুরুত্বপূর্ণ)
+                let isMyChat = false;
+                if (data.isGroup) {
+                    if (data.members && data.members.includes(currentUser.uid)) isMyChat = true;
+                } else {
+                    if (chatId.includes(currentUser.uid)) isMyChat = true;
+                }
+
+                // ২. যদি চ্যাটটি আমার হয়, সেন্ডার আমি নিজে না হই, পড়া না হয়ে থাকে এবং মিউট করা না থাকে
+                if (isMyChat && data.lastSender && data.lastSender !== currentUser.uid && data.isRead === false && !mutedChats.includes(chatId)) {
                     // যদি আমরা ঠিক ওই চ্যাটের ভেতরেই থাকি, তবে নোটিফিকেশন দেখাবে না
-                    if (currentChatId === change.doc.id && document.getElementById('chat-screen').classList.contains('open')) {
+                    if (currentChatId === chatId && document.getElementById('chat-screen').classList.contains('open')) {
                         return; 
                     }
                     // ফাংশন কল করে পপআপ দেখানো
-                    showInAppMessageNotification(change.doc.id, data);
+                    showInAppMessageNotification(chatId, data);
                 }
             }
         });
