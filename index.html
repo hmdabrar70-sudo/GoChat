@@ -2399,7 +2399,13 @@ body:not(.light-mode) #splash-screen {
                 </div>
                 <span class="material-symbols-outlined" style="color:var(--text-muted); font-size: 20px;">chevron_right</span>
             </div>
-
+            <div class="settings-list-item" onclick="toggleActiveStatus()">
+                <div style="display:flex; align-items:center; gap:16px;">
+                    <span class="material-symbols-outlined" style="font-size: 22px; color: var(--success);">radio_button_checked</span>
+                    <span style="font-weight:600; font-size:14px;">Active Status</span>
+                </div>
+                <span id="active-status-toggle" style="font-size: 13px; font-weight:700; color:var(--accent);">ON</span>
+            </div>
             <div class="settings-list-item" onclick="closeMainMenu(); openGallery();">
                 <div style="display:flex; align-items:center; gap:16px;">
                     <span class="material-symbols-outlined" style="font-size: 22px; color: #3b82f6;">photo_library</span>
@@ -3049,12 +3055,20 @@ showToast("Failed to delete account. Please try again.");
 }
 
 function updateOnlineStatus(){
-if(currentUser){
-db.collection('users').doc(currentUser.uid).update({
-online:true,
-lastSeen:firebase.firestore.FieldValue.serverTimestamp()
-}).catch(()=>{});
-}
+    if(currentUser){
+        // যদি স্ট্যাটাস ON থাকে তবেই অনলাইনে দেখাবে
+        if (currentUserData.showActiveStatus !== false) {
+            db.collection('users').doc(currentUser.uid).update({
+                online: true,
+                lastSeen: firebase.firestore.FieldValue.serverTimestamp()
+            }).catch(()=>{});
+        } else {
+            // OFF থাকলে অনলাইনে দেখাবে না
+            db.collection('users').doc(currentUser.uid).update({
+                online: false
+            }).catch(()=>{});
+        }
+    }
 }
 
 async function checkAndUpdateStreak() {
@@ -7712,6 +7726,36 @@ async function submitTextStory() {
     } finally {
         btn.textContent = "Post Story";
         btn.disabled = false;
+    }
+}
+// Active Status টগল করার লজিক
+async function toggleActiveStatus() {
+    if (!currentUser) return;
+    
+    // বর্তমান স্টেট চেক করা (undefined বা true থাকলে ON)
+    const currentStatus = currentUserData.showActiveStatus !== false; 
+    const newStatus = !currentStatus;
+    
+    // ডাটাবেসে আপডেট
+    await db.collection('users').doc(currentUser.uid).update({
+        showActiveStatus: newStatus
+    });
+    
+    // লোকাল ডাটা আপডেট
+    currentUserData.showActiveStatus = newStatus;
+    
+    // UI আপডেট
+    updateActiveStatusUI();
+    showToast(`Active Status is now ${newStatus ? 'ON' : 'OFF'}`);
+}
+
+// UI আপডেট করার ফাংশন
+function updateActiveStatusUI() {
+    const toggleText = document.getElementById('active-status-toggle');
+    if (toggleText) {
+        const isOn = (currentUserData.showActiveStatus !== false);
+        toggleText.textContent = isOn ? 'ON' : 'OFF';
+        toggleText.style.color = isOn ? 'var(--success)' : 'var(--danger)';
     }
 }
 </script>
