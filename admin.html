@@ -3,21 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GoChat Admin - Master Control Panel</title>
+    <title>GoChat V2 - Admin Master Control</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f3f4f6; }
-        .sidebar { background: #1e293b; min-height: 100vh; color: white; }
-        .sidebar-link { transition: all 0.3s; border-left: 4px solid transparent; }
-        .sidebar-link:hover, .sidebar-link.active { background: rgba(255,255,255,0.1); border-left-color: #3b82f6; }
-        .card { background: white; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-        .btn-primary { background: #3b82f6; color: white; transition: 0.3s; }
-        .btn-primary:hover { background: #2563eb; }
-        .btn-danger { background: #ef4444; color: white; transition: 0.3s; }
-        .btn-danger:hover { background: #dc2626; }
-        .btn-success { background: #10b981; color: white; transition: 0.3s; }
-        .btn-success:hover { background: #059669; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f2f5; }
+        .sidebar { background: #ffffff; border-right: 1px solid #e4e6eb; min-height: 100vh; }
+        .sidebar-link { transition: all 0.2s; border-left: 4px solid transparent; color: #65676b; }
+        .sidebar-link:hover, .sidebar-link.active { background: #f2f2f2; border-left-color: #1877f2; color: #1877f2; font-weight: 600; }
+        .card { background: white; border-radius: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.1); border: 1px solid #dddfe2; }
+        .btn-primary { background: #1877f2; color: white; }
+        .btn-primary:hover { background: #166fe5; }
+        .btn-danger { background: #dc3545; color: white; }
+        .btn-danger:hover { background: #bb2d3b; }
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 50; align-items: center; justify-content: center; }
         .modal.active { display: flex; }
         .toast { position: fixed; bottom: 20px; right: 20px; padding: 12px 20px; border-radius: 8px; color: white; z-index: 100; animation: slideIn 0.3s; }
@@ -30,8 +28,7 @@
     <div id="loginModal" class="modal active">
         <div class="bg-white p-8 rounded-xl shadow-2xl max-w-md w-full">
             <div class="text-center mb-6">
-                <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" alt="Google Logo" class="w-12 h-12 mx-auto mb-4">
-                <h2 class="text-2xl font-bold text-gray-800">GoChat Admin</h2>
+                <h2 class="text-2xl font-bold text-[#1877f2]">GoChat Admin</h2>
                 <p class="text-gray-500">Master Control Panel</p>
             </div>
             
@@ -56,9 +53,9 @@
     <!-- Main Admin Panel -->
     <div id="adminPanel" class="hidden flex h-screen overflow-hidden">
         <!-- Sidebar -->
-        <div class="sidebar w-64 flex-shrink-0">
-            <div class="p-6 border-b border-gray-700">
-                <h1 class="text-xl font-bold">GoChat Admin</h1>
+        <div class="sidebar w-64 flex-shrink-0 hidden md:block">
+            <div class="p-6 border-b border-gray-200">
+                <h1 class="text-xl font-bold text-[#1877f2]">GoChat V2</h1>
                 <p class="text-xs text-gray-400 mt-1" id="adminEmailDisplay">Loading...</p>
             </div>
             <nav class="mt-6 px-4 space-y-2">
@@ -71,7 +68,7 @@
                 <a href="#" onclick="showSection('banned')" class="sidebar-link flex items-center gap-3 py-3 px-4 rounded-lg">
                     <i class="fas fa-ban w-5"></i> Banned Users
                 </a>
-                <a href="#" onclick="logout()" class="sidebar-link flex items-center gap-3 py-3 px-4 rounded-lg text-red-400 hover:text-red-300 mt-8">
+                <a href="#" onclick="logout()" class="sidebar-link flex items-center gap-3 py-3 px-4 rounded-lg text-red-500 hover:text-red-600 mt-8">
                     <i class="fas fa-sign-out-alt w-5"></i> Logout
                 </a>
             </nav>
@@ -121,7 +118,6 @@
                 </div>
 
                 <div id="usersListContainer" class="space-y-4">
-                    <!-- Users will be loaded here dynamically -->
                     <div class="text-center py-10 text-gray-500">Loading users from database...</div>
                 </div>
             </div>
@@ -150,13 +146,13 @@
     </div>
 
     <!-- Firebase SDKs -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
     <script>
         // ==========================================
-        // 1. FIREBASE CONFIGURATION (Your Data)
+        // 1. FIREBASE CONFIGURATION (From your index.txt)
         // ==========================================
         firebase.initializeApp({
             apiKey: "AIzaSyAnKueAHG8cw6O-Hy8U9fgGzH4fDMYQBy8",
@@ -172,7 +168,7 @@
 
         // Global Variables
         let currentUser = null;
-        let allUsers = []; // Local cache for faster searching
+        let allUsers = []; 
         
         // ⚠️ IMPORTANT: Change this to your own secret key
         const MASTER_KEY = "sabbir@hm@d"; 
@@ -223,22 +219,20 @@
         // 3. DATABASE OPERATIONS (REAL DATA)
         // ==========================================
 
-        // Load all users from Firestore 'users' collection
         function loadUsersData() {
             const container = document.getElementById('usersListContainer');
             container.innerHTML = '<div class="text-center py-4"><i class="fas fa-spinner fa-spin text-blue-500"></i> Loading...</div>';
 
-            // Assuming your collection is named 'users'. If it's different, change 'users' below.
+            // Using 'users' collection as per your app structure
             db.collection('users').get().then((snapshot) => {
                 allUsers = [];
                 snapshot.forEach((doc) => {
                     allUsers.push({ id: doc.id, ...doc.data() });
                 });
                 
-                // Sort by join date (newest first) if available
-                allUsers.sort((a, b) => new Date(b.joinDate || 0) - new Date(a.joinDate || 0));
+                allUsers.sort((a, b) => new Date(b.createdAt?.seconds || 0) * 1000 - new Date(a.createdAt?.seconds || 0) * 1000);
                 
-                filterUsers(); // Render based on current filter
+                filterUsers();
                 updateStats();
             }).catch((error) => {
                 console.error("Error fetching users:", error);
@@ -246,7 +240,6 @@
             });
         }
 
-        // Render Users based on search/filter
         function filterUsers() {
             const searchTerm = document.getElementById('searchInput').value.toLowerCase();
             const statusFilter = document.getElementById('statusFilter').value;
@@ -254,26 +247,23 @@
 
             const filtered = allUsers.filter(user => {
                 const matchesSearch = (user.name?.toLowerCase().includes(searchTerm)) || 
-                                      (user.uid?.toLowerCase().includes(searchTerm)) ||
                                       (user.id?.toLowerCase().includes(searchTerm));
                 
-                const matchesStatus = statusFilter === 'all' ? true : user.status === statusFilter;
+                const isBanned = user.isBanned === true;
+                const matchesStatus = statusFilter === 'all' ? true : !isBanned;
                 
-                // In main list, we usually show active users. Banned are in separate tab.
-                return matchesSearch && matchesStatus; 
+                return matchesSearch && matchesStatus;
             });
 
             renderUserList(filtered, container, false);
         }
 
-        // Render Banned Users
         function loadBannedUsers() {
             const container = document.getElementById('bannedListContainer');
-            const bannedUsers = allUsers.filter(u => u.status === 'banned');
+            const bannedUsers = allUsers.filter(u => u.isBanned === true);
             renderUserList(bannedUsers, container, true);
         }
 
-        // Helper to generate HTML for user cards
         function renderUserList(users, container, isBannedView) {
             if (users.length === 0) {
                 container.innerHTML = '<div class="text-center text-gray-500 py-8">No users found.</div>';
@@ -288,8 +278,8 @@
                         </div>
                         <div>
                             <h4 class="font-bold text-gray-800">${user.name || 'Unknown User'}</h4>
-                            <p class="text-xs text-gray-500">ID: ${user.uid || user.id} • Email: ${user.email || 'N/A'}</p>
-                            ${isBannedView ? `<p class="text-xs text-red-500 font-semibold">Reason: ${user.banReason || 'Not specified'}</p>` : ''}
+                            <p class="text-xs text-gray-500">ID: ${user.id} • Email: ${user.email || 'N/A'}</p>
+                            ${isBannedView ? `<p class="text-xs text-red-500 font-semibold">Status: Banned</p>` : ''}
                         </div>
                     </div>
                     <div class="flex gap-2">
@@ -304,10 +294,9 @@
             `).join('');
         }
 
-        // Update Dashboard Stats
         function updateStats() {
             const total = allUsers.length;
-            const banned = allUsers.filter(u => u.status === 'banned').length;
+            const banned = allUsers.filter(u => u.isBanned === true).length;
             const active = total - banned;
 
             document.getElementById('statTotalUsers').innerText = total;
@@ -323,23 +312,22 @@
             document.getElementById('modalTitle').innerText = `Ban User: ${userName}`;
             document.getElementById('modalBody').innerHTML = `
                 <p class="mb-2">Are you sure you want to ban this user?</p>
-                <textarea id="banReasonInput" class="w-full border p-2 rounded mt-2" rows="3" placeholder="Enter reason for banning..."></textarea>
+                <textarea id="banReasonInput" class="w-full border p-2 rounded mt-2" rows="3" placeholder="Enter reason (optional)..."></textarea>
             `;
             document.getElementById('confirmBtn').onclick = () => performBan(userId);
             document.getElementById('actionModal').classList.add('active');
         }
 
         function performBan(userId) {
-            const reason = document.getElementById('banReasonInput').value || "Violation of terms";
-            
+            // Setting isBanned to true as per your app's logic
             db.collection('users').doc(userId).update({
-                status: 'banned',
-                banReason: reason,
+                isBanned: true,
+                banReason: document.getElementById('banReasonInput').value || "Violation of terms",
                 bannedAt: firebase.firestore.FieldValue.serverTimestamp()
             }).then(() => {
                 closeModal();
                 showToast("User banned successfully!", "success");
-                loadUsersData(); // Refresh list
+                loadUsersData();
             }).catch(err => {
                 showToast("Error: " + err.message, "error");
             });
@@ -354,9 +342,8 @@
 
         function performUnban(userId) {
             db.collection('users').doc(userId).update({
-                status: 'active',
-                banReason: null,
-                bannedAt: null
+                isBanned: false,
+                banReason: null
             }).then(() => {
                 closeModal();
                 showToast("User unbanned successfully!", "success");
@@ -370,23 +357,31 @@
             document.getElementById('modalTitle').innerText = "⚠️ Permanent Delete";
             document.getElementById('modalBody').innerHTML = `
                 <p class="text-red-600 font-bold">This action cannot be undone!</p>
-                <p>Are you sure you want to permanently delete <strong>${userName}</strong> from the database?</p>
+                <p>Are you sure you want to permanently delete <strong>${userName}</strong> and all their posts/chats?</p>
             `;
             document.getElementById('confirmBtn').className = "px-4 py-2 btn-danger rounded-lg text-white";
             document.getElementById('confirmBtn').onclick = () => performDelete(userId);
             document.getElementById('actionModal').classList.add('active');
         }
 
-        function performDelete(userId) {
-            db.collection('users').doc(userId).delete().then(() => {
+        async function performDelete(userId) {
+            try {
+                // 1. Delete User's Posts
+                const postsSnap = await db.collection('posts').where('uid', '==', userId).get();
+                const batch = db.batch();
+                postsSnap.forEach(doc => batch.delete(doc.ref));
+                await batch.commit();
+
+                // 2. Delete User Document
+                await db.collection('users').doc(userId).delete();
+
                 closeModal();
-                showToast("User permanently deleted!", "success");
+                showToast("User and their data permanently deleted!", "success");
                 loadUsersData();
-                // Reset button style
                 document.getElementById('confirmBtn').className = "px-4 py-2 btn-primary rounded-lg text-white";
-            }).catch(err => {
+            } catch (err) {
                 showToast("Error: " + err.message, "error");
-            });
+            }
         }
 
         // ==========================================
@@ -415,11 +410,8 @@
             setTimeout(() => toast.remove(), 3000);
         }
 
-        // Auth State Listener
         auth.onAuthStateChanged((user) => {
-            if (user) {
-                console.log("User logged in:", user.email);
-            }
+            if (user) console.log("User logged in:", user.email);
         });
 
     </script>
