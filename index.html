@@ -4993,7 +4993,7 @@ async function sendQuickReply(chatId, otherUid, text, btnElement) {
     }
 }
 
-// ===== FIXED & REAL-TIME: loadMessages (Supports Group Chat & Live Sorting) =====
+// ===== STRICT & SECURE loadMessages FUNCTION =====
 function loadMessages(){
     const list=document.getElementById('msg-list');
     if(!list)return;
@@ -5004,80 +5004,84 @@ function loadMessages(){
     
     if(window.chatListUnsub) window.chatListUnsub();
     
-    let isInitialChatLoad = true; // অ্যাপ ওপেন হওয়ার সময়ের জন্য ফিক্স
+    let isInitialChatLoad = true;
     
     window.chatListUnsub = db.collection('chats').onSnapshot(snap => {
-        const mutedChats=currentUserData.mutedChats||[];
+        const mutedChats = currentUserData?.mutedChats || [];
+        const pinnedChats = currentUserData?.pinnedChats || [];
+        const archivedChats = currentUserData?.archivedChats || [];
+        const blockedUsers = currentUserData?.blockedUsers || [];
+        let chats = [];
 
-        // --- নতুন মেসেজের জন্য নোটিফিকেশন চেক ---
+        // ১. কঠোর নোটিফিকেশন লজিক (নিজের চ্যাট ছাড়া পপআপ আসবে না)
         snap.docChanges().forEach(change => {
-            if (!isInitialChatLoad && (change.type === 'added' || change.type === 'modified')) {
-                const data = change.doc.data();
-                const chatId = change.doc.id;
-                
-                // চেক করা হচ্ছে মেসেজটি আমার লিস্টের কোনো চ্যাটের কিনা
-                let isMyChat = false;
-                if (data.isGroup) {
-                    if (data.members && data.members.includes(currentUser.uid)) isMyChat = true;
-                } else {
-                    if (chatId.includes(currentUser.uid)) isMyChat = true;
-                }
+            const data = change.doc.data();
+            const chatId = change.doc.id;
+            
+            // 🛑 সিকিউরিটি চেক: এই মেসেজটা কি আমার? 
+            let isMyChat = false;
+            if (data.isGroup && data.members && data.members.includes(currentUser.uid)) {
+                isMyChat = true; // গ্রুপে আমার আইডি থাকলে
+            } else if (!data.isGroup && chatId.includes(currentUser.uid)) {
+                isMyChat = true; // প্রাইভেট চ্যাটের আইডিতে আমার আইডি থাকলে
+            }
 
-                // যদি মেসেজটি আমার চ্যাটের হয়, সেন্ডার আমি নিজে না হই, পড়া না হয়ে থাকে এবং মিউট করা না থাকে
-                if (isMyChat && data.lastSender && data.lastSender !== currentUser.uid && data.isRead === false && !mutedChats.includes(chatId)) {
-                    // যদি আমরা ঠিক ওই চ্যাটের ভেতরেই থাকি, তবে নোটিফিকেশন দেখাবে না
-                    if (currentChatId === chatId && document.getElementById('chat-screen').classList.contains('open')) {
-                        return; 
+            if (!isMyChat) return; // 🛑 অন্যের মেসেজ হলে সাথে সাথে ব্লক!
+
+            if (!isInitialChatLoad && (change.type === 'added' || change.type === 'modified')) {
+                if (data.lastSender && data.lastSender !== currentUser.uid && data.isRead === false && !mutedChats.includes(chatId)) {
+                    if (currentChatId !== chatId || !document.getElementById('chat-screen').classList.contains('open')) {
+                        showInAppMessageNotification(chatId, data);
                     }
-                    // ফাংশন কল করে পপআপ দেখানো
-                    showInAppMessageNotification(chatId, data);
                 }
             }
         });
         isInitialChatLoad = false;
-        // ------------------------------------------
 
-        const pinnedChats=currentUserData.pinnedChats||[];
-        const archivedChats=currentUserData.archivedChats||[];
-        const blockedUsers=currentUserData.blockedUsers||[];
-        let chats=[];
-        
-        snap.forEach(d=>{
-            const data=d.data();
+        // ২. মেসেজ লিস্ট তৈরি (নিজের মেসেজ ছাড়া লিস্টে কিছুই আসবে না)
+        snap.forEach(d => {
+            const data = d.data();
+            const chatId = d.id;
             
-            if (data.isGroup) {
-                if (data.members && data.members.includes(currentUser.uid) && !archivedChats.includes(d.id)) {
-                    chats.push({
-                        id: d.id, otherUid: 'group', otherName: data.groupName || 'Group', otherAv: 'group_icon', data: data, isGroup: true,
-                        isPinned: pinnedChats.includes(d.id), isMuted: mutedChats.includes(d.id)
-                    });
-                }
-            } 
-            else if (d.id.includes(currentUser.uid) && !archivedChats.includes(d.id)) {
-                const parts = d.id.split('_');
+            // 🛑 আবার সিকিউরিটি চেক: আমি কি এই চ্যাটের অংশ?
+            let isMyChat = false;
+            if (data.isGroup && data.members && data.members.includes(currentUser.uid)) {
+                isMyChat = true;
+            } else if (!data.isGroup && chatId.includes(currentUser.uid)) {
+                isMyChat = true;
+            }
+
+            if (!isMyChat) return; // 🛑 অন্যের মেসেজ লিস্টে ঢুকবেই না!
+            
+            if (data.isGroup && !archivedChats.includes(chatId)) {
+                chats.push({
+                    id: chatId, otherUid: 'group', otherName: data.groupName || 'Group', otherAv: 'group_icon', data: data, isGroup: true,
+                    isPinned: pinnedChats.includes(chatId), isMuted: mutedChats.includes(chatId)
+                });
+            } else if (!data.isGroup && !archivedChats.includes(chatId)) {
+                const parts = chatId.split('_');
                 if (parts.length === 2) {
                     const otherUid = parts[0] === currentUser.uid ? parts[1] : parts[0];
-                    if (blockedUsers.includes(otherUid)) return;
-                    
-                    let otherName = data.names ? data.names[otherUid] : 'User';
-                    let otherAv = data.avatars ? data.avatars[otherUid] : '';
-                    
-                    chats.push({
-                        id: d.id, otherUid, otherName, otherAv, data, isGroup: false,
-                        isPinned: pinnedChats.includes(d.id), isMuted: mutedChats.includes(d.id)
-                    });
+                    if (!blockedUsers.includes(otherUid)) {
+                        chats.push({
+                            id: chatId, otherUid, otherName: data.names?.[otherUid] || 'User', otherAv: data.avatars?.[otherUid] || '', data, isGroup: false,
+                            isPinned: pinnedChats.includes(chatId), isMuted: mutedChats.includes(chatId)
+                        });
+                    }
                 }
             }
         });
         
-        chats.sort((a,b)=>{
-            if(a.isPinned&&!b.isPinned)return-1;
-            if(!a.isPinned&&b.isPinned)return 1;
-            const timeA=a.data.lastAt?.toMillis?a.data.lastAt.toMillis():0;
-            const timeB=b.data.lastAt?.toMillis?b.data.lastAt.toMillis():0;
-            return timeB-timeA; 
+        // ৩. সর্টিং (পিন করা গুলো উপরে, বাকিগুলো সময়ের ভিত্তিতে)
+        chats.sort((a,b) => {
+            if(a.isPinned && !b.isPinned) return -1;
+            if(!a.isPinned && b.isPinned) return 1;
+            const timeA = a.data.lastAt?.toMillis ? a.data.lastAt.toMillis() : 0;
+            const timeB = b.data.lastAt?.toMillis ? b.data.lastAt.toMillis() : 0;
+            return timeB - timeA; 
         });
 
+        // ৪. আনরিড ব্যাজ আপডেট (শুধুমাত্র নিজের আনরিড মেসেজের জন্য)
         let unreadCount = 0;
         chats.forEach(chat => {
             if (chat.data.lastSender !== currentUser.uid && chat.data.isRead === false) {
@@ -5087,18 +5091,15 @@ function loadMessages(){
         
         const badge = document.getElementById('msg-badge');
         if (badge) {
-            if (unreadCount > 0) {
-                badge.textContent = unreadCount;
-                badge.style.display = 'flex';
-            } else {
-                badge.style.display = 'none';
-            }
+            badge.textContent = unreadCount;
+            badge.style.display = unreadCount > 0 ? 'flex' : 'none';
         }
 
-        let html='';
-        chats.forEach(chat=>{
-            const pinIcon=chat.isPinned?'<span class="material-symbols-outlined" style="font-size:16px;color:var(--accent);margin-right:4px;">push_pin</span>':'';
-            const muteIcon=chat.isMuted?'<span class="material-symbols-outlined" style="font-size:16px;color:var(--text-muted);margin-right:4px;">notifications_off</span>':'';
+        // ৫. HTML রেন্ডারিং
+        let html = '';
+        chats.forEach(chat => {
+            const pinIcon = chat.isPinned ? '<span class="material-symbols-outlined" style="font-size:16px;color:var(--accent);margin-right:4px;">push_pin</span>' : '';
+            const muteIcon = chat.isMuted ? '<span class="material-symbols-outlined" style="font-size:16px;color:var(--text-muted);margin-right:4px;">notifications_off</span>' : '';
             
             let avHtml = '';
             if (chat.isGroup) {
@@ -5111,11 +5112,11 @@ function loadMessages(){
             const isOnline = (!chat.isGroup && chatUser && chatUser.online === true);
             const onlineIndicator = isOnline ? '<div class="online-dot"></div>' : '';
 
-            html+=`<div class="msg-item ${chat.isPinned?'pinned':''} ${chat.isMuted?'muted':''}" data-other-uid="${chat.otherUid}" onclick="openChat('${chat.id}','${chat.otherUid}','${escapeHTML(chat.otherName)}','${chat.isGroup ? '' : escapeHTML(chat.otherAv)}')">
+            html += `<div class="msg-item ${chat.isPinned?'pinned':''} ${chat.isMuted?'muted':''}" data-other-uid="${chat.otherUid}" onclick="openChat('${chat.id}','${chat.otherUid}','${escapeHTML(chat.otherName)}','${chat.isGroup ? '' : escapeHTML(chat.otherAv)}')">
             <div class="avatar" style="position:relative;">${avHtml}${onlineIndicator}</div>
             <div class="msg-info" style="flex:1;">
             <div class="msg-name">${pinIcon}${muteIcon}${escapeHTML(chat.otherName)}</div>
-            <div class="msg-preview">${escapeHTML(chat.data.lastMsg||'New Group created')}</div>
+            <div class="msg-preview">${escapeHTML(chat.data.lastMsg || 'New Message')}</div>
             </div>
             <div class="msg-menu-btn" onclick="event.stopPropagation();toggleChatListMenu('${chat.id}',this)">
             <span class="material-symbols-outlined">more_vert</span>
@@ -5136,10 +5137,9 @@ function loadMessages(){
             </div>
             </div>`;
         });
-        list.innerHTML=html||'<div class="empty-feed">No messages yet</div>';
+        list.innerHTML = html || '<div class="empty-feed">No messages yet</div>';
     });
 }
-
 
 async function loadArchivedMessages(){
 const list=document.getElementById('archived-msg-list');
