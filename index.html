@@ -7777,14 +7777,27 @@ function updateActiveStatusUI() {
         toggleText.style.color = isOn ? 'var(--success)' : 'var(--danger)';
     }
 }
-// ইমেইল পরিবর্তনের আসল লজিক (Updated & Robust)
+// === Email Change System (Complete & Bug-Free) ===
+function openChangeEmailModal() {
+    document.getElementById('change-email-modal').classList.add('open');
+}
+
+function closeChangeEmailModal() {
+    // মডাল বন্ধ করার সময় ফিল্ডগুলো ফাঁকা করে দেওয়া
+    const passInput = document.getElementById('email-curr-pass');
+    const newEmailInput = document.getElementById('email-new');
+    if(passInput) passInput.value = '';
+    if(newEmailInput) newEmailInput.value = '';
+    
+    document.getElementById('change-email-modal').classList.remove('open');
+}
+
 async function changeEmailAction() {
     const passInput = document.getElementById('email-curr-pass');
     const newEmailInput = document.getElementById('email-new');
     const pass = passInput.value;
     const newEmail = newEmailInput.value.trim();
     
-    // বাটনের টেক্সট পরিবর্তন করে লোডিং বোঝানো
     const btn = document.querySelector('#change-email-modal .btn-primary');
 
     if(!pass || !newEmail) { 
@@ -7799,19 +7812,19 @@ async function changeEmailAction() {
     try {
         const user = auth.currentUser;
         
-        // ১. নতুন করে লগইন ভেরিফাই করা
+        // ১. নতুন করে লগইন ভেরিফাই করা (High Security)
         const cred = firebase.auth.EmailAuthProvider.credential(user.email, pass);
         await user.reauthenticateWithCredential(cred);
         
         // ২. ইমেইল আপডেট করা
         await user.updateEmail(newEmail);
         
-        // ৩. ডাটাবেসে ইউজার তথ্য আপডেট
+        // ৩. ডাটাবেসে ইউজার তথ্য আপডেট করা
         await db.collection('users').doc(user.uid).update({
             email: newEmail
         });
 
-        // ৪. অ্যাপের ভেতর বর্তমান ইমেইল লেখাটি সাথে সাথে পাল্টে দেওয়া
+        // ৪. অ্যাপের ভেতর বর্তমান ইমেইল লেখাটি পাল্টে দেওয়া
         currentUserData.email = newEmail;
         const displayEl = document.getElementById('contact-email-display');
         if(displayEl) displayEl.textContent = newEmail;
@@ -7819,10 +7832,8 @@ async function changeEmailAction() {
         // ৫. কনফার্মেশন পপআপ
         alert("✅ Success! Your email has been transferred to " + newEmail);
         
-        // ফর্ম ফাঁকা করে মডাল বন্ধ করা
-        passInput.value = '';
-        newEmailInput.value = '';
         closeChangeEmailModal();
+        doLogout(); // নিরাপত্তার খাতিরে নতুন ইমেইল দিয়ে আবার লগইন করতে হবে
         
     } catch(e) {
         console.error(e);
