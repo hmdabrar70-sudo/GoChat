@@ -2632,6 +2632,19 @@ appId:"1:203332487017:web:06af0b8b4b12af89581ff8"
 const auth=firebase.auth();
 const db=firebase.firestore();
 db.settings({ experimentalForceLongPolling: true });
+// ===== FAST BOOT SYSTEM (WHATSAPP SPEED) =====
+if(localStorage.getItem('isLoggedIn') === 'true') {
+    document.addEventListener("DOMContentLoaded", () => {
+        const splash = document.getElementById('splash-screen');
+        if (splash) splash.style.display = 'none'; // সাথে সাথে স্প্ল্যাশ স্ক্রিন গায়েব
+        document.getElementById('auth-screen').style.display = 'none';
+        document.getElementById('app-screen').style.display = 'block'; // সাথে সাথে অ্যাপ ওপেন
+        
+        // ডামি লোডিং ইফেক্ট দেখানো
+        const feedList = document.getElementById('feed-list');
+        if(feedList && typeof SKELETON_HTML !== 'undefined') feedList.innerHTML = SKELETON_HTML;
+    });
+}
 
 // ===== STATE VARIABLES =====
 let currentUser=null,currentUserData=null,currentChatId=null,currentChatOtherUid=null;
@@ -3074,6 +3087,7 @@ auth.onAuthStateChanged(async(user)=>{
 
 if(user){
 currentUser=user;
+localStorage.setItem('isLoggedIn', 'true'); // ইউজার লগইন থাকলে ফোনে সেভ করে রাখবে
 try{
 const snap=await db.collection('users').doc(user.uid).get();
 currentUserData=snap.exists?snap.data():{name:user.email.split('@')[0],email:user.email};
@@ -3180,6 +3194,7 @@ nList.innerHTML = notifs.map(data => {
 });
 }else{
 currentUser=null;currentUserData=null;
+localStorage.removeItem('isLoggedIn'); // লগআউট হলে ফোনের সেভ করা ডাটা মুছে ফেলবে
 document.getElementById('auth-screen').style.display='flex';
 document.getElementById('app-screen').style.display='none';
 // লগআউট থাকলে লগইন পেজ রেডি হওয়ার পর স্প্ল্যাশ সরবে
