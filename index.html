@@ -2034,6 +2034,9 @@ body:not(.light-mode) #splash-screen {
 <p>You are currently logged in with:</p>
 <div class="email-display" id="contact-email-display">Loading...</div>
 </div>
+<button class="btn-primary" style="margin-top:10px;" onclick="openChangeEmailModal()">
+    <span class="material-symbols-outlined">edit</span> Change Email
+</button>
 <div class="settings-card">
 <h4>Blocked Accounts</h4>
 <p>Manage the users you have blocked.</p>
@@ -2267,6 +2270,22 @@ body:not(.light-mode) #splash-screen {
 <div class="modal-title">Friends</div>
 <div id="friends-list-container" style="overflow-y:auto;flex:1;margin-bottom:20px;max-height:400px;"></div>
 </div>
+</div>
+
+<div class="modal-overlay" id="change-email-modal" style="z-index: 10005;">
+    <div class="modal-box">
+        <button class="modal-close" onclick="closeChangeEmailModal()"><span class="material-symbols-outlined">close</span></button>
+        <div class="modal-title">Change Email</div>
+        <div class="input-group">
+            <label>Current Password</label>
+            <input type="password" id="email-curr-pass" placeholder="Enter current password">
+        </div>
+        <div class="input-group">
+            <label>New Email</label>
+            <input type="email" id="email-new" placeholder="Enter new email">
+        </div>
+        <button class="btn-primary" onclick="changeEmailAction()">Confirm Changes</button>
+    </div>
 </div>
 
 <div class="modal-overlay" id="leaderboard-modal">
@@ -7756,6 +7775,47 @@ function updateActiveStatusUI() {
         const isOn = (currentUserData.showActiveStatus !== false);
         toggleText.textContent = isOn ? 'ON' : 'OFF';
         toggleText.style.color = isOn ? 'var(--success)' : 'var(--danger)';
+    }
+}
+// মডাল ওপেন ও ক্লোজ করার লজিক
+function openChangeEmailModal() {
+    document.getElementById('change-email-modal').classList.add('open');
+}
+
+function closeChangeEmailModal() {
+    document.getElementById('change-email-modal').classList.remove('open');
+}
+
+// ইমেইল পরিবর্তনের আসল লজিক
+async function changeEmailAction() {
+    const pass = document.getElementById('email-curr-pass').value;
+    const newEmail = document.getElementById('email-new').value.trim();
+    
+    if(!pass || !newEmail) { showToast("Please fill all fields"); return; }
+
+    showToast("Verifying...");
+    
+    try {
+        // ১. নতুন করে লগইন ভেরিফাই করা (Firebase Security Rule)
+        const user = auth.currentUser;
+        const cred = firebase.auth.EmailAuthProvider.credential(user.email, pass);
+        await user.reauthenticateWithCredential(cred);
+        
+        // ২. ইমেইল আপডেট করা
+        await user.updateEmail(newEmail);
+        
+        // ৩. ডাটাবেসে ইউজার তথ্য আপডেট
+        await db.collection('users').doc(currentUser.uid).update({
+            email: newEmail
+        });
+
+        // ৪. কনফার্মেশন পপআপ
+        alert("Success! Your email has been transferred to " + newEmail);
+        
+        closeChangeEmailModal();
+        doLogout(); // নিরাপত্তার খাতিরে নতুন ইমেইল দিয়ে আবার লগইন করতে হবে
+    } catch(e) {
+        showToast("Error: " + e.message);
     }
 }
 </script>
