@@ -16,6 +16,8 @@
         .btn-primary:hover { background: #166fe5; }
         .btn-danger { background: #dc3545; color: white; }
         .btn-danger:hover { background: #bb2d3b; }
+        .btn-success { background: #198754; color: white; }
+        .btn-success:hover { background: #157347; }
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 50; align-items: center; justify-content: center; }
         .modal.active { display: flex; }
         .toast { position: fixed; bottom: 20px; right: 20px; padding: 12px 20px; border-radius: 8px; color: white; z-index: 100; animation: slideIn 0.3s; }
@@ -125,6 +127,11 @@
             <!-- Banned Users Section -->
             <div id="bannedSection" class="section hidden">
                 <h2 class="text-3xl font-bold text-gray-800 mb-6">Banned Users List</h2>
+                <div class="card p-4 mb-6">
+                     <input type="text" id="bannedSearchInput" placeholder="Search banned users..." 
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                           onkeyup="filterBannedUsers()">
+                </div>
                 <div id="bannedListContainer" class="space-y-4">
                     <!-- Banned users will be loaded here -->
                 </div>
@@ -264,6 +271,19 @@
             renderUserList(bannedUsers, container, true);
         }
 
+        function filterBannedUsers() {
+            const searchTerm = document.getElementById('bannedSearchInput').value.toLowerCase();
+            const container = document.getElementById('bannedListContainer');
+            
+            const filtered = allUsers.filter(user => {
+                const matchesSearch = (user.name?.toLowerCase().includes(searchTerm)) || 
+                                      (user.id?.toLowerCase().includes(searchTerm));
+                return matchesSearch && user.isBanned === true;
+            });
+            
+            renderUserList(filtered, container, true);
+        }
+
         function renderUserList(users, container, isBannedView) {
             if (users.length === 0) {
                 container.innerHTML = '<div class="text-center text-gray-500 py-8">No users found.</div>';
@@ -279,12 +299,12 @@
                         <div>
                             <h4 class="font-bold text-gray-800">${user.name || 'Unknown User'}</h4>
                             <p class="text-xs text-gray-500">ID: ${user.id} • Email: ${user.email || 'N/A'}</p>
-                            ${isBannedView ? `<p class="text-xs text-red-500 font-semibold">Status: Banned</p>` : ''}
+                            ${isBannedView ? `<p class="text-xs text-red-500 font-semibold">Reason: ${user.banReason || 'Not specified'}</p>` : ''}
                         </div>
                     </div>
                     <div class="flex gap-2">
                         ${isBannedView ? 
-                            `<button onclick="openUnbanModal('${user.id}')" class="btn-success px-3 py-1 rounded text-sm text-white"><i class="fas fa-check"></i> Unban</button>
+                            `<button onclick="openUnbanModal('${user.id}', '${user.name}')" class="btn-success px-3 py-1 rounded text-sm text-white"><i class="fas fa-check"></i> Unban</button>
                              <button onclick="openDeleteModal('${user.id}', '${user.name}')" class="btn-danger px-3 py-1 rounded text-sm text-white"><i class="fas fa-trash"></i> Delete</button>` 
                             : 
                             `<button onclick="openBanModal('${user.id}', '${user.name}')" class="btn-danger px-3 py-1 rounded text-sm text-white"><i class="fas fa-ban"></i> Ban</button>`
@@ -333,21 +353,25 @@
             });
         }
 
-        function openUnbanModal(userId) {
+        function openUnbanModal(userId, userName) {
             document.getElementById('modalTitle').innerText = "Unban User";
-            document.getElementById('modalBody').innerText = "Are you sure you want to restore this user's access?";
+            document.getElementById('modalBody').innerHTML = `
+                <p>Are you sure you want to restore access for <strong>${userName}</strong>?</p>
+                <p class="text-sm text-green-600 mt-2">The user will be able to log in and use the app immediately.</p>
+            `;
             document.getElementById('confirmBtn').onclick = () => performUnban(userId);
             document.getElementById('actionModal').classList.add('active');
         }
 
         function performUnban(userId) {
+            // ✅ FIX: Setting isBanned to false to match main app logic
             db.collection('users').doc(userId).update({
                 isBanned: false,
                 banReason: null
             }).then(() => {
                 closeModal();
                 showToast("User unbanned successfully!", "success");
-                loadUsersData();
+                loadUsersData(); // Refreshes both lists and stats
             }).catch(err => {
                 showToast("Error: " + err.message, "error");
             });
