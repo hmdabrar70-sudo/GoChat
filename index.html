@@ -4857,7 +4857,6 @@ showToast('Image sent!');
 input.value='';
 }
 
-// ✅ FIXED: loadMessages() - Now supports Group Chats!
 // --- ইন-অ্যাপ নোটিফিকেশন ফাংশন (Smart Version) ---
 const notifSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
 
@@ -4880,11 +4879,11 @@ function showInAppMessageNotification(chatId, data) {
     const container = document.getElementById('in-app-notif-container');
     if (!container) return;
 
-    // ১. মেসেজ আসার সাথে সাথে সুন্দর 'টিং' সাউন্ড হবে
     notifSound.play().catch(e => console.log('Sound blocked until user interaction'));
 
     const popup = document.createElement('div');
     popup.className = 'msg-popup';
+    popup.id = `popup-${chatId}`; // 🚀 FIX: আগের পপআপ রিমুভ করার জন্য আইডি যুক্ত করা হলো
     popup.style.flexDirection = 'column';
     popup.style.alignItems = 'stretch';
 
@@ -4901,13 +4900,11 @@ function showInAppMessageNotification(chatId, data) {
         </div>
     `;
 
-    // নামে বা ছবিতে ক্লিক করলে চ্যাট ওপেন হবে
     topContent.onclick = function() {
         popup.remove();
         openChat(chatId, otherUid, senderName, data.isGroup ? '' : (data.avatars ? data.avatars[otherUid] : ''));
     };
 
-    // ২. কুইক রিপ্লাই বক্স
     const replyBar = document.createElement('div');
     replyBar.className = 'msg-popup-reply-bar';
     replyBar.innerHTML = `
@@ -4921,25 +4918,23 @@ function showInAppMessageNotification(chatId, data) {
     popup.appendChild(replyBar);
     container.appendChild(popup);
 
-    // ৩. সোয়াইপ টু ডিসমিস (Swipe UP)
     let startY = 0;
     let currentY = 0;
     popup.addEventListener('touchstart', (e) => { startY = e.touches[0].clientY; }, {passive: true});
     popup.addEventListener('touchmove', (e) => {
         currentY = e.touches[0].clientY;
         const diff = currentY - startY;
-        if (diff < 0) { popup.style.transform = `translateY(${diff}px)`; } // আঙুলের সাথে সাথে উপরে উঠবে
+        if (diff < 0) { popup.style.transform = `translateY(${diff}px)`; }
     }, {passive: true});
     popup.addEventListener('touchend', (e) => {
-        if (currentY - startY < -40) { // যদি ৪০ পিক্সেল উপরে সোয়াইপ হয়, তবে কেটে যাবে
+        if (currentY - startY < -40) {
             popup.classList.add('hide');
             setTimeout(() => popup.remove(), 400);
         } else {
-            popup.style.transform = ''; // নাহলে আগের জায়গায় ফেরত আসবে
+            popup.style.transform = '';
         }
     }, {passive: true});
 
-    // ৫ সেকেন্ড পর হাইড হবে (তবে রিপ্লাই টাইপ করতে থাকলে স্ক্রিনেই থাকবে)
     setTimeout(() => {
         if (popup.parentElement && !popup.querySelector('input:focus')) { 
             popup.classList.add('hide');
@@ -5013,7 +5008,7 @@ function loadMessages(){
         const blockedUsers = currentUserData?.blockedUsers || [];
         let chats = [];
 
-        // ১. কঠোর নোটিফিকেশন লজিক (নিজের চ্যাট ছাড়া পপআপ আসবে না)
+        // ১. কঠোর নোটিফিকেশন লজিক (নিজের চ্যাট ছাড়া পপআপ আসবে না এবং ডুপ্লিকেট পপআপ বন্ধ করা হয়েছে)
         snap.docChanges().forEach(change => {
             const data = change.doc.data();
             const chatId = change.doc.id;
@@ -5021,17 +5016,32 @@ function loadMessages(){
             // 🛑 সিকিউরিটি চেক: এই মেসেজটা কি আমার? 
             let isMyChat = false;
             if (data.isGroup && data.members && data.members.includes(currentUser.uid)) {
-                isMyChat = true; // গ্রুপে আমার আইডি থাকলে
+                isMyChat = true; 
             } else if (!data.isGroup && chatId.includes(currentUser.uid)) {
-                isMyChat = true; // প্রাইভেট চ্যাটের আইডিতে আমার আইডি থাকলে
+                isMyChat = true; 
             }
 
-            if (!isMyChat) return; // 🛑 অন্যের মেসেজ হলে সাথে সাথে ব্লক!
+            if (!isMyChat) return; // অন্যের মেসেজ হলে সাথে সাথে ব্লক!
 
             if (!isInitialChatLoad && (change.type === 'added' || change.type === 'modified')) {
                 if (data.lastSender && data.lastSender !== currentUser.uid && data.isRead === false && !mutedChats.includes(chatId)) {
                     if (currentChatId !== chatId || !document.getElementById('chat-screen').classList.contains('open')) {
-                        showInAppMessageNotification(chatId, data);
+                        
+                        // --- 🚀 BUG FIX: বারবার একই পপআপ আসা বন্ধ করার ট্র্যাকার ---
+                        window.notifiedChatsCache = window.notifiedChatsCache || {};
+                        const msgTime = data.lastAt?.toMillis ? data.lastAt.toMillis() : 0;
+                        
+                        if (window.notifiedChatsCache[chatId] !== msgTime) {
+                            window.notifiedChatsCache[chatId] = msgTime; // এই নির্দিষ্ট মেসেজের সময় সেভ করা হলো
+                            
+                            // স্ক্রিনে এই ইউজারের আগের কোনো পপআপ আটকে থাকলে সেটা সরিয়ে দেওয়া
+                            const oldPopup = document.getElementById(`popup-${chatId}`);
+                            if (oldPopup) oldPopup.remove();
+                            
+                            showInAppMessageNotification(chatId, data);
+                        }
+                        // -------------------------------------------------------------
+                        
                     }
                 }
             }
@@ -5043,7 +5053,6 @@ function loadMessages(){
             const data = d.data();
             const chatId = d.id;
             
-            // 🛑 আবার সিকিউরিটি চেক: আমি কি এই চ্যাটের অংশ?
             let isMyChat = false;
             if (data.isGroup && data.members && data.members.includes(currentUser.uid)) {
                 isMyChat = true;
@@ -5051,7 +5060,7 @@ function loadMessages(){
                 isMyChat = true;
             }
 
-            if (!isMyChat) return; // 🛑 অন্যের মেসেজ লিস্টে ঢুকবেই না!
+            if (!isMyChat) return; 
             
             if (data.isGroup && !archivedChats.includes(chatId)) {
                 chats.push({
