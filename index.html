@@ -1828,21 +1828,26 @@ body:not(.light-mode) #splash-screen {
 </div>
 
 </div>
-<div id="profile-edit-section" style="display:none;text-align:left;background:var(--surface-2);border-top:1px solid var(--border);padding-top:20px;width:100%;border-radius:var(--radius-lg);margin-top:12px;">
-<div style="font-weight:800;margin-bottom:16px;text-align:center;font-size:16px;color:var(--text);">Edit Profile Info</div>
-<div class="input-group"><label>Name</label><input type="text" id="edit-name"></div>
-<div class="input-group"><label>Bio</label><input type="text" id="edit-bio"></div>
-<div class="input-group"><label>Gender</label><select id="edit-gender"><option value="">Select Gender</option><option value="Male">Male</option><option value="Female">Female</option></select></div>
-<div class="input-group"><label>Location</label><input type="text" id="edit-location"></div>
-<div class="input-group"><label>Phone</label><input type="tel" id="edit-phone"></div>
-<div class="input-group"><label>Email</label><input type="email" id="edit-email"></div>
-<div class="input-group"><label>Home Town</label><input type="text" id="edit-hometown"></div>
-<div class="input-group"><label>Relationship</label><select id="edit-relationship"><option value="">Select Status</option><option value="Single">Single</option><option value="In a relationship">In a relationship</option><option value="Married">Married</option></select></div>
-<div class="input-group"><label>Profession</label><input type="text" id="edit-profession" placeholder="e.g. Graphic Designer"></div>
-<div style="display:flex;gap:10px;margin-top:16px;">
-<button class="btn-primary" onclick="saveProfileChanges()" style="margin-top:0;flex:1;">Save</button>
-<button class="btn-outline" style="flex:1;border:none;background:var(--surface-2);color:var(--text);" onclick="closeProfileEdit()">Cancel</button>
-</div>
+<div id="edit-profile-screen" style="display:none; position:fixed; inset:0; background:var(--bg); z-index:1005; flex-direction:column; overflow-y:auto; animation:slideUp 0.3s ease;">
+    <div class="chat-topbar" style="position:sticky; top:0; z-index:100; display:flex; justify-content:space-between; align-items:center;">
+        <div style="display:flex; align-items:center; gap:12px;">
+            <div class="chat-back" onclick="closeProfileEdit()"><span class="material-symbols-outlined">close</span></div>
+            <div style="font-weight:800; font-size:18px;">Edit Profile</div>
+        </div>
+        <button class="btn-primary" onclick="saveProfileChanges()" style="margin:0; width:auto; padding:8px 16px; border-radius:20px; font-size:14px;">Save</button>
+    </div>
+    
+    <div style="padding: 20px; display:flex; flex-direction:column; gap:8px;">
+        <div class="input-group"><label>Name</label><input type="text" id="edit-name"></div>
+        <div class="input-group"><label>Bio</label><input type="text" id="edit-bio"></div>
+        <div class="input-group"><label>Gender</label><select id="edit-gender"><option value="">Select Gender</option><option value="Male">Male</option><option value="Female">Female</option></select></div>
+        <div class="input-group"><label>Location</label><input type="text" id="edit-location"></div>
+        <div class="input-group"><label>Phone</label><input type="tel" id="edit-phone"></div>
+        <div class="input-group"><label>Email</label><input type="email" id="edit-email"></div>
+        <div class="input-group"><label>Home Town</label><input type="text" id="edit-hometown"></div>
+        <div class="input-group"><label>Relationship</label><select id="edit-relationship"><option value="">Select Status</option><option value="Single">Single</option><option value="In a relationship">In a relationship</option><option value="Married">Married</option></select></div>
+        <div class="input-group"><label>Profession</label><input type="text" id="edit-profession" placeholder="e.g. Graphic Designer"></div>
+    </div>
 </div>
 </div>
 
@@ -4977,24 +4982,23 @@ loadMessages();
 }catch(e){showToast('Failed to delete chat');}
 }
 
-// ===== PROFILE FUNCTIONS =====
+// নতুন ফুল-স্ক্রিন এডিট প্রোফাইল ওপেন ও ক্লোজ ফাংশন
 function openProfileEdit(){
-document.getElementById('profile-display-section').style.display='none';
-document.getElementById('profile-edit-section').style.display='block';
-document.getElementById('edit-name').value=currentUserData.name||'';
-document.getElementById('edit-bio').value=currentUserData.bio||'';
-document.getElementById('edit-gender').value=currentUserData.gender||'';
-document.getElementById('edit-location').value=currentUserData.location||'';
-document.getElementById('edit-phone').value = currentUserData.phone || '';
-document.getElementById('edit-email').value = currentUserData.email || ''; 
-document.getElementById('edit-hometown').value=currentUserData.hometown||'';
-document.getElementById('edit-relationship').value=currentUserData.relationship||'';
-document.getElementById('edit-profession').value = currentUserData.profession || '';
+    document.getElementById('edit-profile-screen').style.display = 'flex';
+    
+    document.getElementById('edit-name').value = currentUserData.name || '';
+    document.getElementById('edit-bio').value = currentUserData.bio || '';
+    document.getElementById('edit-gender').value = currentUserData.gender || '';
+    document.getElementById('edit-location').value = currentUserData.location || '';
+    document.getElementById('edit-phone').value = currentUserData.phone || '';
+    document.getElementById('edit-email').value = currentUserData.email || ''; 
+    document.getElementById('edit-hometown').value = currentUserData.hometown || '';
+    document.getElementById('edit-relationship').value = currentUserData.relationship || '';
+    document.getElementById('edit-profession').value = currentUserData.profession || '';
 }
 
 function closeProfileEdit(){
-document.getElementById('profile-display-section').style.display='block';
-document.getElementById('profile-edit-section').style.display='none';
+    document.getElementById('edit-profile-screen').style.display = 'none';
 }
 
 async function saveProfileChanges(){
