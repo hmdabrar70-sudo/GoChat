@@ -93,6 +93,7 @@
             <div class="nav-link" onclick="switchTab('users')"> Users List</div>
             <div class="nav-link" onclick="switchTab('posts')"> Manage Posts</div>
             <div class="nav-link" onclick="switchTab('announce')"> Announcements</div>
+            <div class="nav-link" onclick="switchTab('banned')">  Banned Users</div>
             <div class="nav-link" onclick="switchTab('settings')"> Settings</div>
             <div style="flex:1;"></div>
             <div class="nav-link" style="color: #e74c3c;" onclick="logoutAdmin()"> Logout</div>
@@ -301,6 +302,11 @@
                 title.innerText = "App Settings";
                 contentArea.innerHTML = settingsHTML;
                 checkMaintenanceStatus();
+                        else if(tab === 'banned') {
+                title.innerText = "Banned Users";
+                loadBannedUsers();
+            }
+
             }
         }
 
@@ -489,6 +495,53 @@ async function toggleUserVerification(uid, currentStatus) {
     } catch (error) {
         console.error("Error updating verification: ", error);
         alert("Failed to update verification status.");
+    }
+}
+// নতুন: ব্যান করা ইউজারদের দেখার ট্যাব
+async function loadBannedUsers() {
+    const contentArea = document.getElementById('content-area');
+    contentArea.innerHTML = '<h3>All Banned Accounts</h3>';
+    
+    try {
+        const snapshot = await db.collection('users').where('isBanned', '==', true).get();
+        
+        if(snapshot.empty) {
+            contentArea.innerHTML += '<p style="margin-top:20px; color:#666;">No users are currently banned.</p>';
+            return;
+        }
+        
+        let html = '<table class="data-table"><tr><th>Name</th><th>Email</th><th>Action</th></tr>';
+        snapshot.forEach(doc => {
+            const user = doc.data();
+            html += `<tr>
+                <td><strong>${escapeHTML(user.name)}</strong></td>
+                <td>${user.email}</td>
+                <td><button class="action-btn" style="background:#27ae60;" onclick="unbanUser('${doc.id}', '${user.email}')">Unban User</button></td>
+            </tr>`;
+        });
+        html += '</table>';
+        contentArea.innerHTML += html;
+    } catch(e) {
+        contentArea.innerHTML = '<p style="color:red;">Error loading banned users.</p>';
+    }
+}
+
+// নতুন: আনব্যান করার সিস্টেম
+async function unbanUser(uid, email) {
+    if(confirm("Are you sure you want to restore this user's access?")) {
+        try {
+            // ১. ব্যান লিস্ট থেকে ইমেল সরিয়ে ফেলা
+            if(email) {
+                await db.collection('banned_emails').doc(email).delete();
+            }
+            // ২. ইউজারের স্টেটাস আপডেট করা
+            await db.collection('users').doc(uid).update({ isBanned: false });
+            
+            alert("User has been unbanned successfully!");
+            loadBannedUsers(); // লিস্ট রিফ্রেশ করা
+        } catch(e) {
+            alert("Error unbanning user.");
+        }
     }
 }
     </script>
