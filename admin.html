@@ -22,6 +22,12 @@
         .modal.active { display: flex; }
         .toast { position: fixed; bottom: 20px; right: 20px; padding: 12px 20px; border-radius: 8px; color: white; z-index: 100; animation: slideIn 0.3s; }
         @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
+        .switch { position: relative; display: inline-block; width: 50px; height: 24px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 34px; }
+        .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: #1877f2; }
+        input:checked + .slider:before { transform: translateX(26px); }
     </style>
 </head>
 <body class="bg-gray-100">
@@ -33,18 +39,14 @@
                 <h2 class="text-2xl font-bold text-[#1877f2]">GoChat Admin</h2>
                 <p class="text-gray-500">Master Control Panel</p>
             </div>
-            
             <button onclick="signInWithGoogle()" class="w-full bg-white border border-gray-300 text-gray-700 py-3 px-4 rounded-lg flex items-center justify-center gap-2 hover:bg-gray-50 mb-4 transition">
                 <i class="fab fa-google text-red-500"></i> Continue with Google
             </button>
-            
             <div class="relative my-6">
                 <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-gray-300"></div></div>
                 <div class="relative flex justify-center text-sm"><span class="px-2 bg-white text-gray-500">Security Check</span></div>
             </div>
-
             <input type="password" id="masterKeyInput" placeholder="Enter Master Key" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 mb-4">
-            
             <div class="flex gap-3">
                 <button onclick="verifyMasterKey()" class="flex-1 btn-primary py-2 rounded-lg font-medium">Verify & Enter</button>
                 <button onclick="logout()" class="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300">Cancel</button>
@@ -54,86 +56,78 @@
 
     <!-- Main Admin Panel -->
     <div id="adminPanel" class="hidden flex h-screen overflow-hidden">
-        <!-- Sidebar -->
         <div class="sidebar w-64 flex-shrink-0 hidden md:block">
             <div class="p-6 border-b border-gray-200">
                 <h1 class="text-xl font-bold text-[#1877f2]">GoChat V2</h1>
                 <p class="text-xs text-gray-400 mt-1" id="adminEmailDisplay">Loading...</p>
             </div>
             <nav class="mt-6 px-4 space-y-2">
-                <a href="#" onclick="showSection('dashboard')" class="sidebar-link active flex items-center gap-3 py-3 px-4 rounded-lg">
-                    <i class="fas fa-chart-line w-5"></i> Dashboard
-                </a>
-                <a href="#" onclick="showSection('users')" class="sidebar-link flex items-center gap-3 py-3 px-4 rounded-lg">
-                    <i class="fas fa-users w-5"></i> Users Management
-                </a>
-                <a href="#" onclick="showSection('banned')" class="sidebar-link flex items-center gap-3 py-3 px-4 rounded-lg">
-                    <i class="fas fa-ban w-5"></i> Banned Users
-                </a>
-                <a href="#" onclick="logout()" class="sidebar-link flex items-center gap-3 py-3 px-4 rounded-lg text-red-500 hover:text-red-600 mt-8">
-                    <i class="fas fa-sign-out-alt w-5"></i> Logout
-                </a>
+                <a href="#" onclick="showSection('dashboard')" class="sidebar-link active flex items-center gap-3 py-3 px-4 rounded-lg"><i class="fas fa-chart-line w-5"></i> Dashboard</a>
+                <a href="#" onclick="showSection('users')" class="sidebar-link flex items-center gap-3 py-3 px-4 rounded-lg"><i class="fas fa-users w-5"></i> Users Management</a>
+                <a href="#" onclick="showSection('reports')" class="sidebar-link flex items-center gap-3 py-3 px-4 rounded-lg"><i class="fas fa-flag w-5"></i> Post Reports</a>
+                <a href="#" onclick="showSection('settings')" class="sidebar-link flex items-center gap-3 py-3 px-4 rounded-lg"><i class="fas fa-cog w-5"></i> System Settings</a>
+                <a href="#" onclick="logout()" class="sidebar-link flex items-center gap-3 py-3 px-4 rounded-lg text-red-500 hover:text-red-600 mt-8"><i class="fas fa-sign-out-alt w-5"></i> Logout</a>
             </nav>
         </div>
 
-        <!-- Content Area -->
         <div class="flex-1 overflow-y-auto p-8">
             
-            <!-- Dashboard Section -->
+            <!-- Dashboard -->
             <div id="dashboardSection" class="section">
                 <h2 class="text-3xl font-bold text-gray-800 mb-6">Dashboard Overview</h2>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                    <div class="card p-6 border-l-4 border-blue-500">
-                        <div class="text-gray-500 text-sm font-medium">Total Users</div>
-                        <div class="text-3xl font-bold text-gray-800 mt-2" id="statTotalUsers">0</div>
-                    </div>
-                    <div class="card p-6 border-l-4 border-green-500">
-                        <div class="text-gray-500 text-sm font-medium">Active Users</div>
-                        <div class="text-3xl font-bold text-gray-800 mt-2" id="statActiveUsers">0</div>
-                    </div>
-                    <div class="card p-6 border-l-4 border-red-500">
-                        <div class="text-gray-500 text-sm font-medium">Banned Users</div>
-                        <div class="text-3xl font-bold text-gray-800 mt-2" id="statBannedUsers">0</div>
-                    </div>
+                    <div class="card p-6 border-l-4 border-blue-500"><div class="text-gray-500 text-sm">Total Users</div><div class="text-3xl font-bold mt-2" id="statTotalUsers">0</div></div>
+                    <div class="card p-6 border-l-4 border-green-500"><div class="text-gray-500 text-sm">Active Users</div><div class="text-3xl font-bold mt-2" id="statActiveUsers">0</div></div>
+                    <div class="card p-6 border-l-4 border-red-500"><div class="text-gray-500 text-sm">Banned Users</div><div class="text-3xl font-bold mt-2" id="statBannedUsers">0</div></div>
                 </div>
             </div>
 
-            <!-- Users Section -->
+            <!-- Users List -->
             <div id="usersSection" class="section hidden">
                 <div class="flex justify-between items-center mb-6">
                     <h2 class="text-3xl font-bold text-gray-800">User Management</h2>
-                    <button onclick="loadUsersData()" class="btn-primary px-4 py-2 rounded-lg text-sm">
-                        <i class="fas fa-sync-alt mr-2"></i> Refresh Data
-                    </button>
+                    <button onclick="loadUsersData()" class="btn-primary px-4 py-2 rounded-lg text-sm"><i class="fas fa-sync-alt mr-2"></i> Refresh</button>
                 </div>
-
                 <div class="card p-4 mb-6">
-                    <div class="flex gap-4">
-                        <input type="text" id="searchInput" placeholder="Search by Name or User ID..." 
-                               class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-                               onkeyup="filterUsers()">
-                        <select id="statusFilter" onchange="filterUsers()" class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none">
-                            <option value="all">All Status</option>
-                            <option value="active">Active Only</option>
-                        </select>
-                    </div>
+                    <input type="text" id="searchInput" placeholder="Search by Name or User ID..." class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500" onkeyup="filterUsers()">
                 </div>
+                <div id="usersListContainer" class="space-y-4"></div>
+            </div>
 
-                <div id="usersListContainer" class="space-y-4">
-                    <div class="text-center py-10 text-gray-500">Loading users from database...</div>
+            <!-- Post Reports Section (NEW) -->
+            <div id="reportsSection" class="section hidden">
+                <h2 class="text-3xl font-bold text-gray-800 mb-6">Post Reports Management</h2>
+                <div class="card p-6">
+                    <p class="text-gray-600 mb-4">Posts reported by users for violating community guidelines.</p>
+                    <div id="reportsListContainer" class="space-y-4">
+                        <div class="text-center text-gray-500">Loading reports...</div>
+                    </div>
                 </div>
             </div>
 
-            <!-- Banned Users Section -->
-            <div id="bannedSection" class="section hidden">
-                <h2 class="text-3xl font-bold text-gray-800 mb-6">Banned Users List</h2>
-                <div class="card p-4 mb-6">
-                     <input type="text" id="bannedSearchInput" placeholder="Search banned users..." 
-                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-                           onkeyup="filterBannedUsers()">
+            <!-- System Settings Section (NEW) -->
+            <div id="settingsSection" class="section hidden">
+                <h2 class="text-3xl font-bold text-gray-800 mb-6">System Settings</h2>
+                
+                <!-- Maintenance Mode -->
+                <div class="card p-6 mb-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h3 class="text-lg font-bold text-gray-800">Maintenance Mode</h3>
+                            <p class="text-sm text-gray-500">Turn this on to restrict access to the app for all users except admins.</p>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="maintenanceToggle" onchange="toggleMaintenanceMode()">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
                 </div>
-                <div id="bannedListContainer" class="space-y-4">
-                    <!-- Banned users will be loaded here -->
+
+                <!-- Global Announcement -->
+                <div class="card p-6">
+                    <h3 class="text-lg font-bold text-gray-800 mb-4">Global Announcement</h3>
+                    <textarea id="announcementText" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 mb-4" placeholder="Type a message to show all users..."></textarea>
+                    <button onclick="sendAnnouncement()" class="btn-primary px-6 py-2 rounded-lg">Send Announcement</button>
                 </div>
             </div>
 
@@ -152,15 +146,12 @@
         </div>
     </div>
 
-    <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
     <script>
-        // ==========================================
-        // 1. FIREBASE CONFIGURATION (From your index.txt)
-        // ==========================================
+        // ===== FIREBASE CONFIG (From your index.txt) =====
         firebase.initializeApp({
             apiKey: "AIzaSyAnKueAHG8cw6O-Hy8U9fgGzH4fDMYQBy8",
             authDomain: "gochat-3efa3.firebaseapp.com",
@@ -172,142 +163,75 @@
 
         const auth = firebase.auth();
         const db = firebase.firestore();
-
-        // Global Variables
-        let currentUser = null;
         let allUsers = []; 
-        
-        // ⚠️ IMPORTANT: Change this to your own secret key
         const MASTER_KEY = "sabbir@hm@d"; 
 
-        // ==========================================
-        // 2. AUTHENTICATION LOGIC
-        // ==========================================
-        
+        // ===== AUTH LOGIC =====
         function signInWithGoogle() {
-            const provider = new firebase.auth.GoogleAuthProvider();
-            auth.signInWithPopup(provider)
-                .then((result) => {
-                    showToast("Google Login Successful!", "success");
-                    document.getElementById('adminEmailDisplay').innerText = result.user.email;
-                })
-                .catch((error) => {
-                    showToast("Login Failed: " + error.message, "error");
-                });
+            auth.signInWithPopup(new firebase.auth.GoogleAuthProvider())
+                .then(r => document.getElementById('adminEmailDisplay').innerText = r.user.email)
+                .catch(e => showToast("Login Failed: " + e.message, "error"));
         }
 
         function verifyMasterKey() {
-            const inputKey = document.getElementById('masterKeyInput').value;
-            if (inputKey === MASTER_KEY) {
-                if (auth.currentUser) {
-                    enterAdminPanel();
-                } else {
-                    showToast("Please sign in with Google first!", "error");
-                }
-            } else {
-                showToast("Invalid Master Key!", "error");
-            }
+            if (document.getElementById('masterKeyInput').value === MASTER_KEY) {
+                if (auth.currentUser) enterAdminPanel();
+                else showToast("Please sign in with Google first!", "error");
+            } else showToast("Invalid Master Key!", "error");
         }
 
         function enterAdminPanel() {
             document.getElementById('loginModal').classList.remove('active');
             document.getElementById('adminPanel').classList.remove('hidden');
-            loadDashboardStats();
             loadUsersData();
+            loadSystemSettings(); // Load maintenance status
         }
 
-        function logout() {
-            auth.signOut().then(() => {
-                location.reload();
-            });
-        }
+        function logout() { auth.signOut().then(() => location.reload()); }
 
-        // ==========================================
-        // 3. DATABASE OPERATIONS (REAL DATA)
-        // ==========================================
-
-        function loadUsersData() {
+        // ===== DATA LOADING =====
+        async function loadUsersData() {
             const container = document.getElementById('usersListContainer');
-            container.innerHTML = '<div class="text-center py-4"><i class="fas fa-spinner fa-spin text-blue-500"></i> Loading...</div>';
-
-            // Using 'users' collection as per your app structure
-            db.collection('users').get().then((snapshot) => {
+            container.innerHTML = '<div class="text-center py-4"><i class="fas fa-spinner fa-spin"></i> Loading...</div>';
+            
+            try {
+                const snap = await db.collection('users').get();
                 allUsers = [];
-                snapshot.forEach((doc) => {
-                    allUsers.push({ id: doc.id, ...doc.data() });
-                });
-                
-                allUsers.sort((a, b) => new Date(b.createdAt?.seconds || 0) * 1000 - new Date(a.createdAt?.seconds || 0) * 1000);
-                
+                snap.forEach(doc => allUsers.push({ id: doc.id, ...doc.data() }));
                 filterUsers();
                 updateStats();
-            }).catch((error) => {
-                console.error("Error fetching users:", error);
-                container.innerHTML = '<div class="text-red-500 text-center">Error loading data. Check console.</div>';
-            });
+            } catch (e) {
+                container.innerHTML = '<div class="text-red-500 text-center">Error: ' + e.message + '</div>';
+            }
         }
 
         function filterUsers() {
-            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-            const statusFilter = document.getElementById('statusFilter').value;
-            const container = document.getElementById('usersListContainer');
-
-            const filtered = allUsers.filter(user => {
-                const matchesSearch = (user.name?.toLowerCase().includes(searchTerm)) || 
-                                      (user.id?.toLowerCase().includes(searchTerm));
-                
-                const isBanned = user.isBanned === true;
-                const matchesStatus = statusFilter === 'all' ? true : !isBanned;
-                
-                return matchesSearch && matchesStatus;
-            });
-
-            renderUserList(filtered, container, false);
+            const term = document.getElementById('searchInput').value.toLowerCase();
+            const filtered = allUsers.filter(u => !u.isBanned && (u.name?.toLowerCase().includes(term) || u.id.includes(term)));
+            renderUserList(filtered, 'usersListContainer', false);
         }
 
-        function loadBannedUsers() {
-            const container = document.getElementById('bannedListContainer');
-            const bannedUsers = allUsers.filter(u => u.isBanned === true);
-            renderUserList(bannedUsers, container, true);
-        }
-
-        function filterBannedUsers() {
-            const searchTerm = document.getElementById('bannedSearchInput').value.toLowerCase();
-            const container = document.getElementById('bannedListContainer');
+        function renderUserList(users, containerId, isBanned) {
+            const c = document.getElementById(containerId);
+            if (!users.length) { c.innerHTML = '<div class="text-center text-gray-500 py-8">No users found.</div>'; return; }
             
-            const filtered = allUsers.filter(user => {
-                const matchesSearch = (user.name?.toLowerCase().includes(searchTerm)) || 
-                                      (user.id?.toLowerCase().includes(searchTerm));
-                return matchesSearch && user.isBanned === true;
-            });
-            
-            renderUserList(filtered, container, true);
-        }
-
-        function renderUserList(users, container, isBannedView) {
-            if (users.length === 0) {
-                container.innerHTML = '<div class="text-center text-gray-500 py-8">No users found.</div>';
-                return;
-            }
-
-            container.innerHTML = users.map(user => `
-                <div class="card p-4 flex items-center justify-between hover:shadow-md transition">
+            c.innerHTML = users.map(u => `
+                <div class="card p-4 flex items-center justify-between">
                     <div class="flex items-center gap-4">
-                        <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold">
-                            ${(user.name || 'U').charAt(0).toUpperCase()}
-                        </div>
+                        <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold">${(u.name||'U')[0]}</div>
                         <div>
-                            <h4 class="font-bold text-gray-800">${user.name || 'Unknown User'}</h4>
-                            <p class="text-xs text-gray-500">ID: ${user.id} • Email: ${user.email || 'N/A'}</p>
-                            ${isBannedView ? `<p class="text-xs text-red-500 font-semibold">Reason: ${user.banReason || 'Not specified'}</p>` : ''}
+                            <h4 class="font-bold">${u.name || 'Unknown'}</h4>
+                            <p class="text-xs text-gray-500">ID: ${u.id} • ${u.email || 'N/A'}</p>
+                            ${u.isVerified ? '<span class="text-xs text-blue-500 font-bold"><i class="fas fa-check-circle"></i> Verified</span>' : ''}
                         </div>
                     </div>
                     <div class="flex gap-2">
-                        ${isBannedView ? 
-                            `<button onclick="openUnbanModal('${user.id}', '${user.name}')" class="btn-success px-3 py-1 rounded text-sm text-white"><i class="fas fa-check"></i> Unban</button>
-                             <button onclick="openDeleteModal('${user.id}', '${user.name}')" class="btn-danger px-3 py-1 rounded text-sm text-white"><i class="fas fa-trash"></i> Delete</button>` 
+                        ${!isBanned ? 
+                            `<button onclick="openVerifyModal('${u.id}', '${u.name}', ${u.isVerified || false})" class="bg-blue-100 text-blue-600 px-3 py-1 rounded text-sm hover:bg-blue-200"><i class="fas fa-badge-check"></i> Verify</button>
+                             <button onclick="openBanModal('${u.id}', '${u.email}')" class="btn-danger px-3 py-1 rounded text-sm"><i class="fas fa-ban"></i> Ban</button>` 
                             : 
-                            `<button onclick="openBanModal('${user.id}', '${user.name}')" class="btn-danger px-3 py-1 rounded text-sm text-white"><i class="fas fa-ban"></i> Ban</button>`
+                            `<button onclick="openUnbanModal('${u.id}', '${u.email}')" class="btn-success px-3 py-1 rounded text-sm"><i class="fas fa-check"></i> Unban</button>
+                             <button onclick="openDeleteModal('${u.id}')" class="btn-danger px-3 py-1 rounded text-sm"><i class="fas fa-trash"></i> Delete</button>`
                         }
                     </div>
                 </div>
@@ -316,128 +240,188 @@
 
         function updateStats() {
             const total = allUsers.length;
-            const banned = allUsers.filter(u => u.isBanned === true).length;
-            const active = total - banned;
-
+            const banned = allUsers.filter(u => u.isBanned).length;
             document.getElementById('statTotalUsers').innerText = total;
-            document.getElementById('statActiveUsers').innerText = active;
+            document.getElementById('statActiveUsers').innerText = total - banned;
             document.getElementById('statBannedUsers').innerText = banned;
         }
 
-        // ==========================================
-        // 4. ACTION HANDLERS (BAN/UNBAN/DELETE)
-        // ==========================================
-
-        function openBanModal(userId, userName) {
-            document.getElementById('modalTitle').innerText = `Ban User: ${userName}`;
-            document.getElementById('modalBody').innerHTML = `
-                <p class="mb-2">Are you sure you want to ban this user?</p>
-                <textarea id="banReasonInput" class="w-full border p-2 rounded mt-2" rows="3" placeholder="Enter reason (optional)..."></textarea>
-            `;
-            document.getElementById('confirmBtn').onclick = () => performBan(userId);
-            document.getElementById('actionModal').classList.add('active');
-        }
-
-        function performBan(userId) {
-            // Setting isBanned to true as per your app's logic
-            db.collection('users').doc(userId).update({
-                isBanned: true,
-                banReason: document.getElementById('banReasonInput').value || "Violation of terms",
-                bannedAt: firebase.firestore.FieldValue.serverTimestamp()
-            }).then(() => {
-                closeModal();
-                showToast("User banned successfully!", "success");
-                loadUsersData();
-            }).catch(err => {
-                showToast("Error: " + err.message, "error");
+        // ===== NEW FEATURE 1: MAINTENANCE MODE & ANNOUNCEMENT =====
+        function loadSystemSettings() {
+            db.collection('system').doc('settings').get().then(doc => {
+                if (doc.exists) {
+                    document.getElementById('maintenanceToggle').checked = doc.data().maintenanceMode || false;
+                }
             });
-        }
-
-        function openUnbanModal(userId, userName) {
-            document.getElementById('modalTitle').innerText = "Unban User";
-            document.getElementById('modalBody').innerHTML = `
-                <p>Are you sure you want to restore access for <strong>${userName}</strong>?</p>
-                <p class="text-sm text-green-600 mt-2">The user will be able to log in and use the app immediately.</p>
-            `;
-            document.getElementById('confirmBtn').onclick = () => performUnban(userId);
-            document.getElementById('actionModal').classList.add('active');
-        }
-
-        function performUnban(userId) {
-            // ✅ FIX: Setting isBanned to false to match main app logic
-            db.collection('users').doc(userId).update({
-                isBanned: false,
-                banReason: null
-            }).then(() => {
-                closeModal();
-                showToast("User unbanned successfully!", "success");
-                loadUsersData(); // Refreshes both lists and stats
-            }).catch(err => {
-                showToast("Error: " + err.message, "error");
-            });
-        }
-
-        function openDeleteModal(userId, userName) {
-            document.getElementById('modalTitle').innerText = "⚠️ Permanent Delete";
-            document.getElementById('modalBody').innerHTML = `
-                <p class="text-red-600 font-bold">This action cannot be undone!</p>
-                <p>Are you sure you want to permanently delete <strong>${userName}</strong> and all their posts/chats?</p>
-            `;
-            document.getElementById('confirmBtn').className = "px-4 py-2 btn-danger rounded-lg text-white";
-            document.getElementById('confirmBtn').onclick = () => performDelete(userId);
-            document.getElementById('actionModal').classList.add('active');
-        }
-
-        async function performDelete(userId) {
-            try {
-                // 1. Delete User's Posts
-                const postsSnap = await db.collection('posts').where('uid', '==', userId).get();
-                const batch = db.batch();
-                postsSnap.forEach(doc => batch.delete(doc.ref));
-                await batch.commit();
-
-                // 2. Delete User Document
-                await db.collection('users').doc(userId).delete();
-
-                closeModal();
-                showToast("User and their data permanently deleted!", "success");
-                loadUsersData();
-                document.getElementById('confirmBtn').className = "px-4 py-2 btn-primary rounded-lg text-white";
-            } catch (err) {
-                showToast("Error: " + err.message, "error");
-            }
-        }
-
-        // ==========================================
-        // 5. UI UTILITIES
-        // ==========================================
-
-        function showSection(sectionId) {
-            document.querySelectorAll('.section').forEach(el => el.classList.add('hidden'));
-            document.getElementById(sectionId + 'Section').classList.remove('hidden');
             
+            db.collection('system').doc('announcement').get().then(doc => {
+                if (doc.exists) {
+                    document.getElementById('announcementText').value = doc.data().message || '';
+                }
+            });
+        }
+
+        function toggleMaintenanceMode() {
+            const isEnabled = document.getElementById('maintenanceToggle').checked;
+            db.collection('system').doc('settings').set({
+                maintenanceMode: isEnabled,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            }, { merge: true }).then(() => {
+                showToast(isEnabled ? "Maintenance Mode ON" : "Maintenance Mode OFF", "success");
+            });
+        }
+
+        function sendAnnouncement() {
+            const msg = document.getElementById('announcementText').value.trim();
+            if(!msg) return showToast("Message cannot be empty", "error");
+            
+            db.collection('system').doc('announcement').set({
+                message: msg,
+                sentAt: firebase.firestore.FieldValue.serverTimestamp()
+            }).then(() => {
+                showToast("Announcement sent to all users!", "success");
+            });
+        }
+
+        // ===== NEW FEATURE 2: POST REPORT MANAGEMENT =====
+        function loadReports() {
+            const container = document.getElementById('reportsListContainer');
+            container.innerHTML = '<div class="text-center py-4"><i class="fas fa-spinner fa-spin"></i> Loading reports...</div>';
+            
+            db.collection('reports').orderBy('createdAt', 'desc').get().then(snap => {
+                if(snap.empty) {
+                    container.innerHTML = '<div class="text-center text-gray-500 py-8">No reports found.</div>';
+                    return;
+                }
+                
+                let html = '';
+                snap.forEach(doc => {
+                    const r = doc.data();
+                    html += `
+                        <div class="card p-4 border-l-4 border-yellow-500">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <h4 class="font-bold text-gray-800">Reported Post ID: ${r.postId}</h4>
+                                    <p class="text-sm text-gray-600">Reason: <span class="font-semibold text-red-500">${r.reason || 'Not specified'}</span></p>
+                                    <p class="text-xs text-gray-400">Reported by: ${r.reportedBy || 'Anonymous'} • ${new Date(r.createdAt?.seconds * 1000).toLocaleString()}</p>
+                                </div>
+                                <div class="flex gap-2">
+                                    <button onclick="deleteReportedPost('${r.postId}', '${doc.id}')" class="btn-danger px-3 py-1 rounded text-sm">Delete Post</button>
+                                    <button onclick="dismissReport('${doc.id}')" class="bg-gray-200 text-gray-700 px-3 py-1 rounded text-sm">Dismiss</button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                container.innerHTML = html;
+            });
+        }
+
+        function deleteReportedPost(postId, reportId) {
+            if(!confirm("Are you sure you want to delete this post?")) return;
+            
+            db.collection('posts').doc(postId).delete().then(() => {
+                db.collection('reports').doc(reportId).delete();
+                showToast("Post deleted successfully", "success");
+                loadReports();
+            }).catch(e => showToast("Error: " + e.message, "error"));
+        }
+
+        function dismissReport(reportId) {
+            db.collection('reports').doc(reportId).delete().then(() => {
+                showToast("Report dismissed", "success");
+                loadReports();
+            });
+        }
+
+        // ===== NEW FEATURE 3: VERIFICATION BADGE MANAGEMENT =====
+        function openVerifyModal(uid, name, isVerified) {
+            document.getElementById('modalTitle').innerText = `${isVerified ? 'Remove' : 'Add'} Verification Badge`;
+            document.getElementById('modalBody').innerHTML = `
+                <p>Do you want to ${isVerified ? 'remove' : 'grant'} the verified badge for <strong>${name}</strong>?</p>
+                <p class="text-sm text-gray-500 mt-2">This will show/hide the blue tick icon next to their name in the app.</p>
+            `;
+            document.getElementById('confirmBtn').onclick = () => performVerify(uid, !isVerified);
+            document.getElementById('actionModal').classList.add('active');
+        }
+
+        function performVerify(uid, setVerified) {
+            db.collection('users').doc(uid).update({
+                isVerified: setVerified
+            }).then(() => {
+                closeModal();
+                showToast(setVerified ? "User Verified!" : "Verification Removed", "success");
+                loadUsersData();
+            }).catch(e => showToast("Error: " + e.message, "error"));
+        }
+
+        // ===== BAN/UNBAN/DELETE (Existing Logic) =====
+        function openBanModal(uid, email) {
+            document.getElementById('modalTitle').innerText = "Ban User";
+            document.getElementById('modalBody').innerHTML = `<p>Ban <strong>${email}</strong>?</p><textarea id="banReason" class="w-full border p-2 mt-2 rounded" placeholder="Reason..."></textarea>`;
+            document.getElementById('confirmBtn').onclick = () => performBan(uid, email);
+            document.getElementById('actionModal').classList.add('active');
+        }
+
+        async function performBan(uid, email) {
+            try {
+                await db.collection('users').doc(uid).update({ isBanned: true, banReason: document.getElementById('banReason').value });
+                if(email) await db.collection('banned_emails').doc(email).set({ reason: document.getElementById('banReason').value });
+                closeModal(); showToast("User banned!", "success"); loadUsersData();
+            } catch (e) { showToast("Error: " + e.message, "error"); }
+        }
+
+        function openUnbanModal(uid, email) {
+            document.getElementById('modalTitle').innerText = "Unban User";
+            document.getElementById('modalBody').innerText = "Restore access for this user?";
+            document.getElementById('confirmBtn').onclick = () => performUnban(uid, email);
+            document.getElementById('actionModal').classList.add('active');
+        }
+
+        async function performUnban(uid, email) {
+            try {
+                await db.collection('users').doc(uid).update({ isBanned: false });
+                if(email) await db.collection('banned_emails').doc(email).delete();
+                closeModal(); showToast("User unbanned!", "success"); loadUsersData();
+            } catch (e) { showToast("Error: " + e.message, "error"); }
+        }
+
+        function openDeleteModal(uid) {
+            document.getElementById('modalTitle').innerText = "⚠️ Permanent Delete";
+            document.getElementById('modalBody').innerHTML = "<p class='text-red-600 font-bold'>This cannot be undone!</p><p>Delete user and all data?</p>";
+            document.getElementById('confirmBtn').className = "px-4 py-2 btn-danger rounded-lg text-white";
+            document.getElementById('confirmBtn').onclick = () => performDelete(uid);
+            document.getElementById('actionModal').classList.add('active');
+        }
+
+        async function performDelete(uid) {
+            try {
+                const posts = await db.collection('posts').where('uid', '==', uid).get();
+                const batch = db.batch();
+                posts.forEach(d => batch.delete(d.ref));
+                await batch.commit();
+                await db.collection('users').doc(uid).delete();
+                closeModal(); showToast("User deleted!", "success"); loadUsersData();
+                document.getElementById('confirmBtn').className = "px-4 py-2 btn-primary rounded-lg text-white";
+            } catch (e) { showToast("Error: " + e.message, "error"); }
+        }
+
+        // ===== UI UTILS =====
+        function showSection(id) {
+            document.querySelectorAll('.section').forEach(el => el.classList.add('hidden'));
+            document.getElementById(id + 'Section').classList.remove('hidden');
             document.querySelectorAll('.sidebar-link').forEach(el => el.classList.remove('active'));
             event.currentTarget.classList.add('active');
-
-            if (sectionId === 'banned') loadBannedUsers();
+            if(id === 'reports') loadReports();
         }
-
-        function closeModal() {
-            document.getElementById('actionModal').classList.remove('active');
+        function closeModal() { document.getElementById('actionModal').classList.remove('active'); }
+        function showToast(msg, type) {
+            const t = document.createElement('div');
+            t.className = `toast ${type === 'success' ? 'bg-green-600' : 'bg-red-600'}`;
+            t.innerText = msg;
+            document.body.appendChild(t);
+            setTimeout(() => t.remove(), 3000);
         }
-
-        function showToast(message, type) {
-            const toast = document.createElement('div');
-            toast.className = `toast ${type === 'success' ? 'bg-green-500' : 'bg-red-500'}`;
-            toast.innerText = message;
-            document.body.appendChild(toast);
-            setTimeout(() => toast.remove(), 3000);
-        }
-
-        auth.onAuthStateChanged((user) => {
-            if (user) console.log("User logged in:", user.email);
-        });
-
     </script>
 </body>
 </html>
