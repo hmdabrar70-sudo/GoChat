@@ -496,32 +496,41 @@ async function toggleUserVerification(uid, currentStatus) {
         alert("Failed to update verification status.");
     }
 }
-// নতুন: ব্যান করা ইউজারদের দেখার ট্যাব
+
 async function loadBannedUsers() {
     const contentArea = document.getElementById('content-area');
     contentArea.innerHTML = '<h3>All Banned Accounts</h3>';
     
     try {
-        const snapshot = await db.collection('users').where('isBanned', '==', true).get();
+        // নতুন পদ্ধতি: কুয়েরির এরর এড়াতে সব ইউজার লোড করে ফিল্টার করছি
+        const snapshot = await db.collection('users').get();
         
-        if(snapshot.empty) {
+        let bannedUsers = [];
+        snapshot.forEach(doc => {
+            const user = doc.data();
+            if(user.isBanned === true) { // এখানে সরাসরি চেক করছি
+                bannedUsers.push({ id: doc.id, ...user });
+            }
+        });
+        
+        if(bannedUsers.length === 0) {
             contentArea.innerHTML += '<p style="margin-top:20px; color:#666;">No users are currently banned.</p>';
             return;
         }
         
         let html = '<table class="data-table"><tr><th>Name</th><th>Email</th><th>Action</th></tr>';
-        snapshot.forEach(doc => {
-            const user = doc.data();
+        bannedUsers.forEach(user => {
             html += `<tr>
-                <td><strong>${escapeHTML(user.name)}</strong></td>
-                <td>${user.email}</td>
-                <td><button class="action-btn" style="background:#27ae60;" onclick="unbanUser('${doc.id}', '${user.email}')">Unban User</button></td>
+                <td><strong>${escapeHTML(user.name || 'No Name')}</strong></td>
+                <td>${user.email || 'No Email'}</td>
+                <td><button class="action-btn" style="background:#27ae60;" onclick="unbanUser('${user.id}', '${user.email}')">Unban User</button></td>
             </tr>`;
         });
         html += '</table>';
         contentArea.innerHTML += html;
     } catch(e) {
-        contentArea.innerHTML = '<p style="color:red;">Error loading banned users.</p>';
+        console.error("Banned Users Error:", e);
+        contentArea.innerHTML = '<p style="color:red;">Error loading banned users. Check console.</p>';
     }
 }
 
