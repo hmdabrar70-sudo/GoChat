@@ -18,6 +18,8 @@
         .btn-danger:hover { background: #bb2d3b; }
         .btn-success { background: #198754; color: white; }
         .btn-success:hover { background: #157347; }
+        .btn-warning { background: #f59e0b; color: white; }
+        .btn-warning:hover { background: #d97706; }
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 50; align-items: center; justify-content: center; }
         .modal.active { display: flex; }
         .toast { position: fixed; bottom: 20px; right: 20px; padding: 12px 20px; border-radius: 8px; color: white; z-index: 100; animation: slideIn 0.3s; }
@@ -94,7 +96,7 @@
                 <div id="usersListContainer" class="space-y-4"></div>
             </div>
 
-            <!-- Post Reports Section (NEW) -->
+            <!-- Post Reports Section -->
             <div id="reportsSection" class="section hidden">
                 <h2 class="text-3xl font-bold text-gray-800 mb-6">Post Reports Management</h2>
                 <div class="card p-6">
@@ -105,7 +107,7 @@
                 </div>
             </div>
 
-            <!-- System Settings Section (NEW) -->
+            <!-- System Settings Section -->
             <div id="settingsSection" class="section hidden">
                 <h2 class="text-3xl font-bold text-gray-800 mb-6">System Settings</h2>
                 
@@ -184,7 +186,7 @@
             document.getElementById('loginModal').classList.remove('active');
             document.getElementById('adminPanel').classList.remove('hidden');
             loadUsersData();
-            loadSystemSettings(); // Load maintenance status
+            loadSystemSettings();
         }
 
         function logout() { auth.signOut().then(() => location.reload()); }
@@ -227,7 +229,7 @@
                     </div>
                     <div class="flex gap-2">
                         ${!isBanned ? 
-                            `<button onclick="openVerifyModal('${u.id}', '${u.name}', ${u.isVerified || false})" class="bg-blue-100 text-blue-600 px-3 py-1 rounded text-sm hover:bg-blue-200"><i class="fas fa-badge-check"></i> Verify</button>
+                            `<button onclick="openVerifyModal('${u.id}', '${u.name}', ${u.isVerified || false})" class="bg-blue-100 text-blue-600 px-3 py-1 rounded text-sm hover:bg-blue-200"><i class="fas fa-badge-check"></i> ${u.isVerified ? 'Unverify' : 'Verify'}</button>
                              <button onclick="openBanModal('${u.id}', '${u.email}')" class="btn-danger px-3 py-1 rounded text-sm"><i class="fas fa-ban"></i> Ban</button>` 
                             : 
                             `<button onclick="openUnbanModal('${u.id}', '${u.email}')" class="btn-success px-3 py-1 rounded text-sm"><i class="fas fa-check"></i> Unban</button>
@@ -334,12 +336,13 @@
             });
         }
 
-        // ===== NEW FEATURE 3: VERIFICATION BADGE MANAGEMENT =====
+        // ===== NEW FEATURE 3: VERIFICATION BADGE MANAGEMENT (WITH UNVERIFY) =====
         function openVerifyModal(uid, name, isVerified) {
-            document.getElementById('modalTitle').innerText = `${isVerified ? 'Remove' : 'Add'} Verification Badge`;
+            const action = isVerified ? 'Remove' : 'Add';
+            document.getElementById('modalTitle').innerText = `${action} Verification Badge`;
             document.getElementById('modalBody').innerHTML = `
                 <p>Do you want to ${isVerified ? 'remove' : 'grant'} the verified badge for <strong>${name}</strong>?</p>
-                <p class="text-sm text-gray-500 mt-2">This will show/hide the blue tick icon next to their name in the app.</p>
+                <p class="text-sm text-gray-500 mt-2">This will ${isVerified ? 'hide' : 'show'} the blue tick icon next to their name in the app.</p>
             `;
             document.getElementById('confirmBtn').onclick = () => performVerify(uid, !isVerified);
             document.getElementById('actionModal').classList.add('active');
@@ -350,12 +353,12 @@
                 isVerified: setVerified
             }).then(() => {
                 closeModal();
-                showToast(setVerified ? "User Verified!" : "Verification Removed", "success");
+                showToast(setVerified ? "User Verified!" : "Verification Removed (Unverified)", "success");
                 loadUsersData();
             }).catch(e => showToast("Error: " + e.message, "error"));
         }
 
-        // ===== BAN/UNBAN/DELETE (Existing Logic) =====
+        // ===== BAN/UNBAN/DELETE (EXISTING LOGIC RESTORED) =====
         function openBanModal(uid, email) {
             document.getElementById('modalTitle').innerText = "Ban User";
             document.getElementById('modalBody').innerHTML = `<p>Ban <strong>${email}</strong>?</p><textarea id="banReason" class="w-full border p-2 mt-2 rounded" placeholder="Reason..."></textarea>`;
@@ -373,7 +376,7 @@
 
         function openUnbanModal(uid, email) {
             document.getElementById('modalTitle').innerText = "Unban User";
-            document.getElementById('modalBody').innerText = "Restore access for this user?";
+            document.getElementById('modalBody').innerText = "Restore access for this user? They will be able to login and use the app again.";
             document.getElementById('confirmBtn').onclick = () => performUnban(uid, email);
             document.getElementById('actionModal').classList.add('active');
         }
@@ -382,7 +385,7 @@
             try {
                 await db.collection('users').doc(uid).update({ isBanned: false });
                 if(email) await db.collection('banned_emails').doc(email).delete();
-                closeModal(); showToast("User unbanned!", "success"); loadUsersData();
+                closeModal(); showToast("User unbanned successfully!", "success"); loadUsersData();
             } catch (e) { showToast("Error: " + e.message, "error"); }
         }
 
