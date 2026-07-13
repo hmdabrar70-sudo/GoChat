@@ -6453,40 +6453,63 @@ async function executeDelete(type) {
 }
 // ===== NEW CHAT HEADER MENU FUNCTIONS =====
 
-// চ্যাট থেকে নামের ওপর ক্লিক করলে পপ-আপ ওপেন হবে
-// পপ-আপ ওপেন করার ফাংশনটি এভাবে আপডেট করুন
+// চ্যাট থেকে নামের ওপর ক্লিক করলে পপ-আপ ওপেন হবে (100% Crash-Proof)
 function viewProfileFromChat() {
-    document.getElementById('chat-delete-menu').style.display = 'none';
-    if (currentChatOtherUid === 'group') {
-        showToast("Cannot view profile for a group.");
-        return;
-    }
-        
-    // চ্যাটের টপবার থেকে নাম কপি করা
-    const nameText = document.getElementById('chat-name-display').innerText; 
-    const avatarHtml = document.getElementById('chat-avatar').innerHTML;
-    
-    // ভেরিফাইড ব্যাজ পাওয়ার জন্য ইউজার ডাটা চেক করা
-    const otherUser = allUsersCache ? allUsersCache.find(u => u.id === currentChatOtherUid) : null;
-    const isV = otherUser ? otherUser.isVerified : false;
-    const vBadge = getVerifiedBadge(otherUser ? otherUser.email : '', isV);
-    
-    // নামের সাথে ব্যাজটি যোগ করা
-    document.getElementById('qp-name').innerHTML = nameText + vBadge;
-    document.getElementById('qp-avatar').innerHTML = avatarHtml;
-        
-    // ইউজারের চ্যাট মিউট করা আছে কিনা চেক করে বাটনের টেক্সট ঠিক করা
-    const isMuted = currentUserData.mutedChats?.includes(currentChatId);
-    const muteBtn = document.getElementById('qp-mute-btn');
-    if (isMuted) {
-        muteBtn.innerHTML = '<span class="material-symbols-outlined">notifications_active</span> Unmute';
-    } else {
-        muteBtn.innerHTML = '<span class="material-symbols-outlined">notifications_off</span> Mute';
-    }
-    // পপ-আপ ওপেন করা
-    document.getElementById('quick-profile-modal').classList.add('open');
-}
+    try {
+        // ১. মেনু হাইড করা
+        const menu = document.getElementById('chat-delete-menu');
+        if(menu) menu.style.display = 'none';
 
+        // ২. গ্রুপ হলে প্রোফাইল দেখাবে না
+        if (currentChatOtherUid === 'group') {
+            showToast("Cannot view profile for a group.");
+            return;
+        }
+
+        // ৩. নাম এবং ছবি সংগ্রহ করা (আইকনের 'verified' টেক্সট রিমুভ করা হয়েছে)
+        let nameText = document.getElementById('chat-name-display').textContent || '';
+        nameText = nameText.replace('verified', '').trim(); 
+        const avatarHtml = document.getElementById('chat-avatar').innerHTML;
+
+        // ৪. ব্যাজ চেক করা
+        const otherUser = allUsersCache ? allUsersCache.find(u => u.id === currentChatOtherUid) : null;
+        const isV = otherUser ? otherUser.isVerified : false;
+        const vBadge = getVerifiedBadge(otherUser ? otherUser.email : '', isV);
+
+        // ৫. পপ-আপের ভেতরে বসানো
+        const qpName = document.getElementById('qp-name');
+        if(qpName) qpName.innerHTML = nameText + vBadge;
+
+        const qpAvatar = document.getElementById('qp-avatar');
+        if(qpAvatar) qpAvatar.innerHTML = avatarHtml;
+
+        // ৬. মিউট স্ট্যাটাস চেক (সবচেয়ে নিরাপদ উপায়, ডাটা না থাকলেও ক্র্যাশ করবে না)
+        let isMuted = false;
+        if(typeof currentUserData !== 'undefined' && currentUserData !== null && Array.isArray(currentUserData.mutedChats)){
+            isMuted = currentUserData.mutedChats.includes(currentChatId);
+        }
+
+        const muteBtn = document.getElementById('qp-mute-btn');
+        if (muteBtn) {
+            if (isMuted) {
+                muteBtn.innerHTML = '<span class="material-symbols-outlined">notifications_active</span> Unmute';
+            } else {
+                muteBtn.innerHTML = '<span class="material-symbols-outlined">notifications_off</span> Mute';
+            }
+        }
+
+        // ৭. মডাল ওপেন করা (সরাসরি flex দিয়ে গ্যারান্টি দেওয়া হলো)
+        const modal = document.getElementById('quick-profile-modal');
+        if(modal) {
+            modal.style.display = 'flex';
+            modal.classList.add('open');
+        }
+
+    } catch(error) {
+        console.error("Quick Profile Error: ", error);
+        showToast("Loading data... Please try again.");
+    }
+}
 
 // পপ-আপ বন্ধ করার ফাংশন
 function closeQuickProfile() {
