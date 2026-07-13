@@ -770,7 +770,7 @@ color:var(--text);
 padding:12px 24px;
 border-radius:var(--radius-xl);
 font-size:14px;font-weight:600;
-z-index:9999;
+z-index:999999; /* 🚀 আপডেট: জিরো বাড়িয়ে দেওয়া হলো যাতে সবকিছুর উপরে থাকে */
 opacity:0;transition:all 0.3s;
 pointer-events:none;
 box-shadow:var(--shadow-lg);
@@ -7777,27 +7777,29 @@ function updateActiveStatusUI() {
         toggleText.style.color = isOn ? 'var(--success)' : 'var(--danger)';
     }
 }
-// মডাল ওপেন ও ক্লোজ করার লজিক
-function openChangeEmailModal() {
-    document.getElementById('change-email-modal').classList.add('open');
-}
-
-function closeChangeEmailModal() {
-    document.getElementById('change-email-modal').classList.remove('open');
-}
-
-// ইমেইল পরিবর্তনের আসল লজিক
+// ইমেইল পরিবর্তনের আসল লজিক (Updated & Robust)
 async function changeEmailAction() {
-    const pass = document.getElementById('email-curr-pass').value;
-    const newEmail = document.getElementById('email-new').value.trim();
+    const passInput = document.getElementById('email-curr-pass');
+    const newEmailInput = document.getElementById('email-new');
+    const pass = passInput.value;
+    const newEmail = newEmailInput.value.trim();
     
-    if(!pass || !newEmail) { showToast("Please fill all fields"); return; }
+    // বাটনের টেক্সট পরিবর্তন করে লোডিং বোঝানো
+    const btn = document.querySelector('#change-email-modal .btn-primary');
 
-    showToast("Verifying...");
+    if(!pass || !newEmail) { 
+        alert("⚠️ Please fill all the fields!"); 
+        return; 
+    }
+
+    const originalText = btn.textContent;
+    btn.textContent = "Verifying...";
+    btn.disabled = true;
     
     try {
-        // ১. নতুন করে লগইন ভেরিফাই করা (Firebase Security Rule)
         const user = auth.currentUser;
+        
+        // ১. নতুন করে লগইন ভেরিফাই করা
         const cred = firebase.auth.EmailAuthProvider.credential(user.email, pass);
         await user.reauthenticateWithCredential(cred);
         
@@ -7805,17 +7807,41 @@ async function changeEmailAction() {
         await user.updateEmail(newEmail);
         
         // ৩. ডাটাবেসে ইউজার তথ্য আপডেট
-        await db.collection('users').doc(currentUser.uid).update({
+        await db.collection('users').doc(user.uid).update({
             email: newEmail
         });
 
-        // ৪. কনফার্মেশন পপআপ
-        alert("Success! Your email has been transferred to " + newEmail);
+        // ৪. অ্যাপের ভেতর বর্তমান ইমেইল লেখাটি সাথে সাথে পাল্টে দেওয়া
+        currentUserData.email = newEmail;
+        const displayEl = document.getElementById('contact-email-display');
+        if(displayEl) displayEl.textContent = newEmail;
+
+        // ৫. কনফার্মেশন পপআপ
+        alert("✅ Success! Your email has been transferred to " + newEmail);
         
+        // ফর্ম ফাঁকা করে মডাল বন্ধ করা
+        passInput.value = '';
+        newEmailInput.value = '';
         closeChangeEmailModal();
-        doLogout(); // নিরাপত্তার খাতিরে নতুন ইমেইল দিয়ে আবার লগইন করতে হবে
+        
     } catch(e) {
-        showToast("Error: " + e.message);
+        console.error(e);
+        // সঠিক কারণটি ইউজারকে অ্যালার্ট করে জানানো
+        if (e.code === 'auth/wrong-password') {
+            alert("❌ Error: Incorrect current password!");
+        } else if (e.code === 'auth/invalid-email') {
+            alert("❌ Error: The new email format is invalid!");
+        } else if (e.code === 'auth/email-already-in-use') {
+            alert("❌ Error: This email is already in use by another account!");
+        } else if (e.code === 'auth/requires-recent-login') {
+            alert("❌ Error: For security, please log out and log in again before changing email.");
+        } else {
+            alert("❌ Error: " + e.message);
+        }
+    } finally {
+        // সবশেষে বাটন আবার আগের মতো করে দেওয়া
+        btn.textContent = originalText;
+        btn.disabled = false;
     }
 }
 </script>
