@@ -1689,6 +1689,46 @@ body:not(.light-mode) #splash-screen {
     animation: sparkBurst 0.5s ease-out forwards;
     pointer-events: none; /* স্পার্কের ওপর যেন ক্লিক না লাগে */
 }
+/* =========================================
+   TIKTOK STYLE TOGGLE SWITCH
+   ========================================= */
+.toggle-switch {
+    position: relative;
+    width: 46px;
+    height: 26px;
+    background: var(--surface-2);
+    border-radius: 30px;
+    border: 2px solid var(--border);
+    transition: background 0.3s ease, border-color 0.3s ease;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+.toggle-switch::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 18px;
+    height: 18px;
+    background: var(--text-muted);
+    border-radius: 50%;
+    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), background 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+/* Active (ON) State */
+.toggle-switch.active {
+    background: var(--accent);
+    border-color: var(--accent);
+}
+.toggle-switch.active::after {
+    transform: translateX(20px);
+    background: #ffffff;
+}
+/* Success Color for Active Status */
+.toggle-switch.success.active {
+    background: var(--success);
+    border-color: var(--success);
+}
 </style>
 </head>
 <body>
@@ -2441,19 +2481,20 @@ body:not(.light-mode) #splash-screen {
                 </div>
                 <span class="material-symbols-outlined" style="color:var(--text-muted); font-size: 20px;">chevron_right</span>
             </div>
-          <div class="settings-list-item" onclick="togglePrivateAccount()">
+                      <div class="settings-list-item" onclick="togglePrivateAccount()">
                 <div style="display:flex; align-items:center; gap:16px;">
                     <span class="material-symbols-outlined" style="font-size: 22px; color: var(--accent);">lock</span>
                     <span style="font-weight:600; font-size:14px;">Private Account</span>
                 </div>
-                <span id="private-account-toggle" style="font-size: 13px; font-weight:700; color:var(--text-muted);">OFF</span>
+                <div id="private-account-toggle" class="toggle-switch"></div>
             </div>
+            
             <div class="settings-list-item" onclick="toggleActiveStatus()">
                 <div style="display:flex; align-items:center; gap:16px;">
                     <span class="material-symbols-outlined" style="font-size: 22px; color: var(--success);">radio_button_checked</span>
                     <span style="font-weight:600; font-size:14px;">Active Status</span>
                 </div>
-                <span id="active-status-toggle" style="font-size: 13px; font-weight:700; color:var(--accent);">ON</span>
+                <div id="active-status-toggle" class="toggle-switch success"></div>
             </div>
             <div class="settings-list-item" onclick="closeMainMenu(); openGallery();">
                 <div style="display:flex; align-items:center; gap:16px;">
@@ -7922,11 +7963,14 @@ async function toggleActiveStatus() {
 
 // UI আপডেট করার ফাংশন
 function updateActiveStatusUI() {
-    const toggleText = document.getElementById('active-status-toggle');
-    if (toggleText) {
+    const toggleEl = document.getElementById('active-status-toggle');
+    if (toggleEl) {
         const isOn = (currentUserData.showActiveStatus !== false);
-        toggleText.textContent = isOn ? 'ON' : 'OFF';
-        toggleText.style.color = isOn ? 'var(--success)' : 'var(--danger)';
+        if (isOn) {
+            toggleEl.classList.add('active');
+        } else {
+            toggleEl.classList.remove('active');
+        }
     }
 }
 // === Email Change System (Complete & Bug-Free) ===
@@ -8029,11 +8073,14 @@ async function togglePrivateAccount() {
 }
 
 function updatePrivateAccountUI() {
-    const toggleText = document.getElementById('private-account-toggle');
-    if (toggleText) {
+    const toggleEl = document.getElementById('private-account-toggle');
+    if (toggleEl) {
         const isOn = (currentUserData.isPrivate === true);
-        toggleText.textContent = isOn ? 'ON' : 'OFF';
-        toggleText.style.color = isOn ? 'var(--danger)' : 'var(--text-muted)';
+        if (isOn) {
+            toggleEl.classList.add('active');
+        } else {
+            toggleEl.classList.remove('active');
+        }
     }
 }
 </script>
