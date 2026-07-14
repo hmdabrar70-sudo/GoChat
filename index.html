@@ -1736,10 +1736,39 @@ body:not(.light-mode) #splash-screen {
             <div style="text-align:center; margin-top: 20px; color:#5a5a70;">
                 New to GoChat? <span style="color:#ff7e67; font-weight:700; cursor:pointer;" onclick="showRegister()">Register</span>
             </div>
-            <button class="btn-auth-google" onclick="loginWithGoogle()">
+                       <button class="btn-auth-google" onclick="loginWithGoogle()">
                 <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" alt="Google" style="width:20px;height:20px;">
                 Continue with Google
             </button>
+            
+            <button class="btn-auth-google" style="margin-top: 10px;" onclick="showPhoneLoginStep()">
+                <span class="material-symbols-outlined" style="font-size:20px; color:#1a1a2e;">call</span>
+                Continue with Phone
+            </button>
+        </div>
+
+        <div id="phone-login-step" style="display:none;">
+            <h2 class="auth-title-welcome">Phone Login</h2>
+            <p class="auth-sub">Enter your phone number</p>
+            <div id="recaptcha-container"></div>
+            
+            <div id="phone-input-section">
+                <div class="auth-input-group">
+                    <label>Phone Number (with +880)</label>
+                    <input type="tel" id="auth-phone-number" placeholder="+8801XXXXXXXXX">
+                </div>
+                <button class="btn-auth-primary" onclick="sendPhoneOTP()" id="btn-send-otp">Send OTP</button>
+                <button class="btn-auth-google" style="margin-top:10px; border:none;" onclick="backToLoginFromPhone()">Back to Login</button>
+            </div>
+            
+            <div id="otp-input-section" style="display:none;">
+                <div class="auth-input-group">
+                    <label>Enter OTP</label>
+                    <input type="number" id="auth-otp" placeholder="123456">
+                </div>
+                <button class="btn-auth-primary" onclick="verifyPhoneOTP()" id="btn-verify-otp">Verify OTP</button>
+                <button class="btn-auth-google" style="margin-top:10px; border:none;" onclick="backToPhoneInput()">Cancel</button>
+            </div>
         </div>
 
         <div id="registration-steps" style="display:none;">
@@ -2925,6 +2954,100 @@ document.getElementById('leaderboard-modal').classList.remove('open');
 }
 
 // ===== AUTH FUNCTIONS =====
+let confirmationResult = null;
+
+function showPhoneLoginStep() {
+    document.getElementById('login-form').style.display = 'none';
+    document.getElementById('registration-steps').style.display = 'none';
+    document.getElementById('phone-login-step').style.display = 'block';
+    
+    // reCAPTCHA ইনিশিয়ালাইজ করা (রোবট চেকিংয়ের জন্য)
+    if (!window.recaptchaVerifier) {
+        window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', {
+            'size': 'invisible'
+        });
+    }
+}
+
+function backToLoginFromPhone() {
+    document.getElementById('phone-login-step').style.display = 'none';
+    document.getElementById('login-form').style.display = 'block';
+}
+
+function backToPhoneInput() {
+    document.getElementById('otp-input-section').style.display = 'none';
+    document.getElementById('phone-input-section').style.display = 'block';
+}
+
+async function sendPhoneOTP() {
+    const phone = document.getElementById('auth-phone-number').value.trim();
+    
+    // নম্বর চেক করা (অবশ্যই +880 সহ হতে হবে)
+    if (!phone || phone.length < 11 || !phone.startsWith('+')) { 
+        showToast("Enter a valid phone number with country code (e.g., +880)!"); 
+        return; 
+    }
+    
+    const btn = document.getElementById('btn-send-otp');
+    btn.textContent = "Sending..."; 
+    btn.disabled = true;
+    
+    try {
+        const appVerifier = window.recaptchaVerifier;
+        confirmationResult = await auth.signInWithPhoneNumber(phone, appVerifier);
+        showToast("OTP Sent Successfully!");
+        
+        document.getElementById('phone-input-section').style.display = 'none';
+        document.getElementById('otp-input-section').style.display = 'block';
+    } catch (error) {
+        console.error(error);
+        alert("Error: " + error.message);
+        // এরর হলে reCAPTCHA রিসেট করা
+        if (window.recaptchaVerifier) {
+            window.recaptchaVerifier.render().then(widgetId => grecaptcha.reset(widgetId));
+        }
+    } finally {
+        btn.textContent = "Send OTP"; 
+        btn.disabled = false;
+    }
+}
+
+async function verifyPhoneOTP() {
+    const code = document.getElementById('auth-otp').value.trim();
+    if (!code) { showToast("Enter OTP!"); return; }
+    
+    const btn = document.getElementById('btn-verify-otp');
+    btn.textContent = "Verifying..."; 
+    btn.disabled = true;
+    
+    try {
+        const result = await confirmationResult.confirm(code);
+        const user = result.user;
+        
+        // ডাটাবেসে ইউজার আছে কি না চেক করা, না থাকলে নতুন করে অ্যাকাউন্ট তৈরি করা
+        const doc = await db.collection('users').doc(user.uid).get();
+        if (!doc.exists) {
+            await db.collection('users').doc(user.uid).set({
+                name: user.phoneNumber, // ডিফল্ট নাম হিসেবে ফোন নম্বর বসবে
+                email: '', phone: user.phoneNumber,
+                avatar: '', bio: '', location: '', hometown: '', relationship: '', gender: '',
+                followers: [], following: [], friends: [], sentRequests: [], receivedRequests: [],
+                blockedUsers: [], mutedChats: [], pinnedChats: [], archivedChats: [],
+                online: true, points: 20, loginStreak: 1,
+                lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        }
+        showToast("Phone Login Successful!");
+        // লগইন সফল হলে আপনার অ্যাপের existing লিসেনার অটোমেটিক মেইন পেজ ওপেন করে দেবে
+    } catch (error) {
+        showToast("Invalid OTP! Please try again.");
+    } finally {
+        btn.textContent = "Verify OTP"; 
+        btn.disabled = false;
+    }
+}
+
 async function loginWithEmail(){
 const email=document.getElementById('auth-email').value.trim();
 const pass=document.getElementById('auth-password').value;
