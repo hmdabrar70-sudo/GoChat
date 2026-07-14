@@ -2441,6 +2441,13 @@ body:not(.light-mode) #splash-screen {
                 </div>
                 <span class="material-symbols-outlined" style="color:var(--text-muted); font-size: 20px;">chevron_right</span>
             </div>
+          <div class="settings-list-item" onclick="togglePrivateAccount()">
+                <div style="display:flex; align-items:center; gap:16px;">
+                    <span class="material-symbols-outlined" style="font-size: 22px; color: var(--accent);">lock</span>
+                    <span style="font-weight:600; font-size:14px;">Private Account</span>
+                </div>
+                <span id="private-account-toggle" style="font-size: 13px; font-weight:700; color:var(--text-muted);">OFF</span>
+            </div>
             <div class="settings-list-item" onclick="toggleActiveStatus()">
                 <div style="display:flex; align-items:center; gap:16px;">
                     <span class="material-symbols-outlined" style="font-size: 22px; color: var(--success);">radio_button_checked</span>
@@ -4572,13 +4579,29 @@ async function viewUserProfile(uid){
            <button class="icon-btn" style="width:48px; height:48px; border-radius:50%; background:var(--gradient); color:#fff; border:none; box-shadow:var(--shadow-glow);" onclick="closeUserProfile(); openChat('${[currentUser.uid,uid].sort().join('_')}','${uid}','${safeName}','${u.avatar||''}')" title="Message">
                 <span class="material-symbols-outlined">chat</span>
             </button>
-            ${btnHtml}
+                        ${btnHtml}
             <button class="icon-btn" style="width:48px; height:48px; border-radius:50%; border-color:#f59e0b; color:#f59e0b;" onclick="openLeaderboard()" title="Leaderboard">
                 <span class="material-symbols-outlined">trophy</span>
             </button>
         </div>
     `;
-    loadOtherUserPosts(uid);
+    
+    // 🚀 প্রাইভেট অ্যাকাউন্ট চেক লজিক (Step 3)
+    const isOwnProfile = (currentUser && currentUser.uid === uid);
+    const isPrivate = (u.isPrivate === true);
+
+    if (isPrivate && !isOwnProfile) {
+        document.getElementById('other-user-posts-list').innerHTML = `
+            <div style="text-align:center; padding: 60px 20px; color: var(--text-muted);">
+                <span class="material-symbols-outlined" style="font-size: 60px; margin-bottom:15px; opacity:0.5; color: var(--text-secondary);">lock</span>
+                <h3 style="margin-bottom: 5px; color: var(--text);">This account is private</h3>
+                <p style="font-size:14px;">Only the account owner can see their posts.</p>
+            </div>
+        `;
+    } else {
+        // প্রাইভেট না হলে আগের মতোই ছবিগুলো লোড করবে
+        loadOtherUserPosts(uid);
+    }
 }
 
 function closeUserProfile(){
@@ -7982,6 +8005,35 @@ async function changeEmailAction() {
         // সবশেষে বাটন আবার আগের মতো করে দেওয়া
         btn.textContent = originalText;
         btn.disabled = false;
+    }
+}
+// === Private Account Toggle Logic ===
+async function togglePrivateAccount() {
+    if (!currentUser) return;
+    
+    // বর্তমান স্টেট চেক করা
+    const currentStatus = currentUserData.isPrivate === true; 
+    const newStatus = !currentStatus;
+    
+    // ডাটাবেসে আপডেট
+    await db.collection('users').doc(currentUser.uid).update({
+        isPrivate: newStatus
+    });
+    
+    // লোকাল ডাটা আপডেট
+    currentUserData.isPrivate = newStatus;
+    
+    // UI আপডেট
+    updatePrivateAccountUI();
+    showToast(`Private Account is now ${newStatus ? 'ON' : 'OFF'}`);
+}
+
+function updatePrivateAccountUI() {
+    const toggleText = document.getElementById('private-account-toggle');
+    if (toggleText) {
+        const isOn = (currentUserData.isPrivate === true);
+        toggleText.textContent = isOn ? 'ON' : 'OFF';
+        toggleText.style.color = isOn ? 'var(--danger)' : 'var(--text-muted)';
     }
 }
 </script>
