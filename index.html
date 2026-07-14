@@ -2005,10 +2005,11 @@ body:not(.light-mode) #splash-screen {
             <span class="material-symbols-outlined">chat</span>
             <div class="nav-badge" id="msg-badge">0</div>
         </div>
-        <div class="nav-item" id="nav-profile" onclick="showPage('profile')">
-            <span class="material-symbols-outlined">person</span>
+                <div class="nav-item" id="nav-profile" onclick="showPage('profile')">
+            <div id="nav-profile-pic-container" style="width: 26px; height: 26px; border-radius: 50%; overflow: hidden; background: var(--surface-2); display: flex; align-items: center; justify-content: center; border: 2px solid transparent; transition: all 0.3s;">
+                <span class="material-symbols-outlined" style="font-size: 18px; color: var(--text-muted);">person</span>
+            </div>
         </div>
-    </div>
     
     <div class="nav-fab" onclick="event.stopPropagation();toggleFabMenu()">
         <span class="material-symbols-outlined">add</span>
@@ -6281,6 +6282,16 @@ function loadUserUI(){
     setSafeHTML('profile-name-display', nameHtml); // মেইন প্রোফাইল নাম ও ব্যাজ
     setSafeHTML('profile-avatar-big', avHtml);
     
+       // 🚀 নেভিগেশন বারে ইউজারের ছবি আপডেট করার লজিক
+    const navPicContainer = document.getElementById('nav-profile-pic-container');
+    if (navPicContainer) {
+        if (currentUserData.avatar) {
+            navPicContainer.innerHTML = `<img src="${currentUserData.avatar}" style="width: 100%; height: 100%; object-fit: cover;">`;
+        } else {
+            navPicContainer.innerHTML = `<span class="material-symbols-outlined" style="font-size: 18px; color: var(--text-muted);">person</span>`;
+        }
+    }
+
     const bioEl=document.getElementById('profile-bio-display');
     if(bioEl)bioEl.textContent=currentUserData.bio||'';
     
