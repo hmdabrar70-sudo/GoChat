@@ -2288,6 +2288,33 @@ body:not(.light-mode) #splash-screen {
     </div>
 </div>
 
+<div class="modal-overlay" id="logout-confirm-modal" style="z-index: 10006;">
+    <div class="modal-box" style="text-align: center; max-width: 320px;">
+        <span class="material-symbols-outlined" style="font-size: 50px; color: var(--danger); margin-bottom: 15px;">logout</span>
+        <div class="modal-title" style="font-size: 20px; margin-bottom: 10px;">Log Out?</div>
+        <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 25px;">Are you sure you want to log out of your account?</p>
+        <div style="display: flex; gap: 12px; justify-content: center;">
+            <button class="btn-auth-google" style="flex: 1; border: none; background: var(--surface-2); color: var(--text);" onclick="closeLogoutModal()">Cancel</button>
+            <button class="btn-primary" style="flex: 1; background: var(--danger); box-shadow: 0 4px 15px rgba(255, 68, 68, 0.3);" onclick="confirmLogoutAction()">Yes, Log Out</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="login-success-modal" style="z-index: 10007;">
+    <div class="modal-box" style="text-align: center; max-width: 320px; padding: 30px 20px;">
+        <div style="width: 80px; height: 80px; background: linear-gradient(135deg, var(--success), #2ecc71); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px auto; box-shadow: 0 4px 20px rgba(46, 204, 113, 0.4); animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;">
+            <span class="material-symbols-outlined" style="font-size: 45px; color: white;">check_circle</span>
+        </div>
+        <div class="modal-title" style="font-size: 22px; margin-bottom: 10px;">Login Successful!</div>
+        <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 25px;">Welcome back to GoChat! Connect and share your moments.</p>
+        <button class="btn-primary" style="width: 100%; border-radius: 25px; font-weight: bold;" onclick="closeLoginSuccessModal()">Continue to Feed</button>
+    </div>
+</div>
+    @keyframes popIn {
+        0% { transform: scale(0.5); opacity: 0; }
+        100% { transform: scale(1); opacity: 1; }
+    }
+
 <div class="modal-overlay" id="leaderboard-modal">
 <div class="modal-box" style="max-height:85vh;display:flex;flex-direction:column;padding:20px 16px;">
 <button class="modal-close" onclick="closeLeaderboard()"><span class="material-symbols-outlined">close</span></button>
@@ -2926,13 +2953,44 @@ document.getElementById('leaderboard-modal').classList.remove('open');
 
 // ===== AUTH FUNCTIONS =====
 async function loginWithEmail(){
-const email=document.getElementById('auth-email').value.trim();
-const pass=document.getElementById('auth-password').value;
-const msg=document.getElementById('auth-msg');
-if(!email||!pass){msg.textContent='Please enter email and password.';msg.className='auth-msg error';return;}
-msg.textContent='Logging in...';msg.className='auth-msg success';
-try{await auth.signInWithEmailAndPassword(email,pass);}
-catch(e){msg.textContent='Login failed: '+e.message;msg.className='auth-msg error';}
+    const email=document.getElementById('auth-email').value.trim();
+    const pass=document.getElementById('auth-password').value;
+    const msg=document.getElementById('auth-msg');
+    
+    if(!email||!pass){
+        msg.textContent='Please enter email and password.';
+        msg.className='auth-msg error';
+        return;
+    }
+    
+    msg.textContent='Authenticating...';
+    msg.className='auth-msg success';
+    
+    try {
+        await auth.signInWithEmailAndPassword(email, pass);
+        
+        // 🚀 লগইন সফল হলে ফর্মের লেখা মুছে সুন্দর পপআপটি দেখাবে
+        document.getElementById('auth-password').value = '';
+        msg.textContent = '';
+        
+        const successModal = document.getElementById('login-success-modal');
+        if(successModal) successModal.classList.add('open');
+        
+        // 🚀 ৩ সেকেন্ড পর ইউজার কন্টিনিউ বাটনে ক্লিক না করলেও নিজে থেকেই মডাল বন্ধ হয়ে ফিডে চলে যাবে
+        setTimeout(() => {
+            if(successModal) successModal.classList.remove('open');
+        }, 3000);
+        
+    } catch(e) {
+        msg.textContent='Login failed: '+e.message;
+        msg.className='auth-msg error';
+    }
+}
+
+// 🚀 লগইন মডাল বন্ধ করার ম্যানুয়াল ফাংশন (এটি loginWithEmail এর ঠিক নিচেই থাকবে)
+function closeLoginSuccessModal() {
+    const successModal = document.getElementById('login-success-modal');
+    if(successModal) successModal.classList.remove('open');
 }
 
 async function loginWithGoogle() {
@@ -3015,18 +3073,32 @@ createdAt:firebase.firestore.FieldValue.serverTimestamp()
 }catch(e){msg.textContent='Registration failed: '+e.message;msg.className='auth-msg error';}
 }
 
-async function doLogout(){
-try{
-if(currentUser){
-await db.collection('users').doc(currentUser.uid).update({
-online:false,
-lastSeen:firebase.firestore.FieldValue.serverTimestamp()
-});
+// === স্মার্ট লগআউট সিস্টেম ===
+function doLogout() {
+    // সরাসরি লগআউট না করে পপআপ ওপেন করবে
+    document.getElementById('logout-confirm-modal').classList.add('open');
 }
-await auth.signOut();
-}catch(e){}
-window.location.reload();
+
+function closeLogoutModal() {
+    document.getElementById('logout-confirm-modal').classList.remove('open');
 }
+
+function confirmLogoutAction() {
+    closeLogoutModal();
+    showToast("Logging out securely...");
+    
+    if(currentUser){
+        db.collection('users').doc(currentUser.uid).update({
+            online:false,
+            lastSeen:firebase.firestore.FieldValue.serverTimestamp()
+        }).then(()=>{
+            auth.signOut();
+        }).catch(()=>{ auth.signOut(); });
+    }else{
+        auth.signOut();
+    }
+}
+
 
 async function handleDeleteAccount(){
 if(!confirm("Are you absolutely sure? This action is permanent and will delete ALL your data including posts, messages, and stories."))return;
