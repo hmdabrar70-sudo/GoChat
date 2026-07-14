@@ -3191,8 +3191,16 @@ onlineStatusInterval=setInterval(updateOnlineStatus,60000);
 setInterval(async () => {
     if (!currentUser) return;
     try {
+                // 🚀 শুধু তাদেরকেই খুঁজবে যারা অনলাইনে আছে এবং সেটিং অফ করেনি
         const snap = await db.collection('users').where('online', '==', true).get();
-        const onlineUids = snap.docs.map(d => d.id);
+        const onlineUids = [];
+        
+        snap.forEach(d => {
+            const data = d.data();
+            if (data.showActiveStatus !== false) {
+                onlineUids.push(d.id);
+            }
+        });
         
         if (allUsersCache) {
             allUsersCache.forEach(u => { u.online = onlineUids.includes(u.id); });
@@ -4393,14 +4401,16 @@ async function viewUserProfile(uid){
     const avHtml=u.avatar?`<img src="${u.avatar}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`:avatarInitial(u.name);
     document.getElementById('other-profile-avatar').innerHTML=avHtml;
     
-    // --- প্রোফাইলের ছবির পাশে অনলাইন বাতি যুক্ত করা ---
+        // --- প্রোফাইলের ছবির পাশে অনলাইন বাতি যুক্ত করা ---
     const profileWrap = document.getElementById('other-profile-avatar').parentElement;
     const existingDot = profileWrap.querySelector('.online-dot');
     if (existingDot) existingDot.remove(); // আগে থাকলে মুছে ফেলবে
-    if (u.online === true) {
+    
+    // 🚀 স্মার্ট চেক: ইউজার অনলাইনে আছে কি না এবং তার সেটিং অফ করা কি না
+    if (u.online === true && u.showActiveStatus !== false) {
         profileWrap.insertAdjacentHTML('beforeend', '<div class="online-dot" style="width:20px; height:20px; bottom:2px; right:2px; border:4px solid var(--bg);"></div>');
     }
-    // ------------------------------------------------
+
 
     document.getElementById('other-profile-bio').textContent=u.bio||'';
 
@@ -4511,9 +4521,10 @@ function openChat(chatId, otherUid, otherName, otherAvatar){
     const safeName=escapeHTML(otherName);
     
     // --- আপডেট: প্রোফাইল পিকচার ও অনলাইন স্ট্যাটাস হ্যান্ডলিং (ভেরিফাইড ব্যাজ রিমুভড) ---
-    const chatAvatarEl = document.getElementById('chat-avatar');
+        const chatAvatarEl = document.getElementById('chat-avatar');
     const otherUser = allUsersCache ? allUsersCache.find(u => u.id === otherUid) : null;
-    const isOnline = otherUser && otherUser.online === true && otherUid !== 'group';
+    // 🚀 স্মার্ট চেক: চ্যাট ওপেন করলে যেন অফলাইন দেখায় যদি সেটিং অফ থাকে
+    const isOnline = otherUser && otherUser.online === true && otherUser.showActiveStatus !== false && otherUid !== 'group';
     const onlineIndicator = isOnline ? '<div class="online-dot" style="bottom: 0px; right: 0px; border: 2px solid var(--surface);"></div>' : '';
 
     if (otherAvatar && otherAvatar !== 'undefined' && otherAvatar !== '') {
@@ -5150,8 +5161,9 @@ function loadMessages(){
                 avHtml = chat.otherAv ? `<img src="${chat.otherAv}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">` : avatarInitial(chat.otherName);
             }
             
-            const chatUser = allUsersCache ? allUsersCache.find(u => u.id === chat.otherUid) : null;
-            const isOnline = (!chat.isGroup && chatUser && chatUser.online === true);
+                        const chatUser = allUsersCache ? allUsersCache.find(u => u.id === chat.otherUid) : null;
+            // 🚀 স্মার্ট চেক: মেসেজ লিস্টেও সেটিং ভেরিফাই করবে
+            const isOnline = (!chat.isGroup && chatUser && chatUser.online === true && chatUser.showActiveStatus !== false);
             const onlineIndicator = isOnline ? '<div class="online-dot"></div>' : '';
 
             html += `<div class="msg-item ${chat.isPinned?'pinned':''} ${chat.isMuted?'muted':''}" data-other-uid="${chat.otherUid}" onclick="openChat('${chat.id}','${chat.otherUid}','${escapeHTML(chat.otherName)}','${chat.isGroup ? '' : escapeHTML(chat.otherAv)}')">
@@ -7747,23 +7759,23 @@ async function submitTextStory() {
         btn.disabled = false;
     }
 }
-// Active Status টগল করার লজিক
+// Active Status টগল করার লজিক (Updated & Instant)
 async function toggleActiveStatus() {
     if (!currentUser) return;
     
-    // বর্তমান স্টেট চেক করা (undefined বা true থাকলে ON)
     const currentStatus = currentUserData.showActiveStatus !== false; 
     const newStatus = !currentStatus;
     
-    // ডাটাবেসে আপডেট
+    // 🚀 ডাটাবেসে একসাথেই সেটিং এবং অনলাইন স্ট্যাটাস আপডেট করে দেবে
     await db.collection('users').doc(currentUser.uid).update({
-        showActiveStatus: newStatus
+        showActiveStatus: newStatus,
+        online: newStatus 
     });
     
     // লোকাল ডাটা আপডেট
     currentUserData.showActiveStatus = newStatus;
+    currentUserData.online = newStatus;
     
-    // UI আপডেট
     updateActiveStatusUI();
     showToast(`Active Status is now ${newStatus ? 'ON' : 'OFF'}`);
 }
