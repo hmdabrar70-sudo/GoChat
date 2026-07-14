@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1721,9 +1721,9 @@ body:not(.light-mode) #splash-screen {
             <div class="auth-title-welcome">Welcome back to</div>
             <div class="auth-logo">✦ GoChat</div>
             <div class="auth-sub">Connect and share your moments</div>
-                        <div class="auth-input-group">
-                <label>Email or Phone</label>
-                <input type="text" id="auth-email" placeholder="example@email.com or +880...">
+            <div class="auth-input-group">
+                <label>Email Address</label>
+                <input type="email" id="auth-email" placeholder="example@email.com">
             </div>
             <div class="auth-input-group" style="position: relative;">
                 <label>Password</label>
@@ -1736,71 +1736,33 @@ body:not(.light-mode) #splash-screen {
             <div style="text-align:center; margin-top: 20px; color:#5a5a70;">
                 New to GoChat? <span style="color:#ff7e67; font-weight:700; cursor:pointer;" onclick="showRegister()">Register</span>
             </div>
-                       <button class="btn-auth-google" onclick="loginWithGoogle()">
+            <button class="btn-auth-google" onclick="loginWithGoogle()">
                 <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" alt="Google" style="width:20px;height:20px;">
                 Continue with Google
             </button>
-            
-            <button class="btn-auth-google" style="margin-top: 10px;" onclick="showPhoneLoginStep()">
-                <span class="material-symbols-outlined" style="font-size:20px; color:#1a1a2e;">call</span>
-                Continue with Phone
-            </button>
         </div>
 
-        <div id="phone-login-step" style="display:none;">
-            <h2 class="auth-title-welcome">Phone Login</h2>
-            <p class="auth-sub">Enter your phone number</p>
-            <div id="recaptcha-container"></div>
-            
-            <div id="phone-input-section">
-                <div class="auth-input-group">
-                    <label>Phone Number (with +880)</label>
-                    <input type="tel" id="auth-phone-number" placeholder="+8801XXXXXXXXX">
-                </div>
-                <button class="btn-auth-primary" onclick="sendPhoneOTP()" id="btn-send-otp">Send OTP</button>
-                <button class="btn-auth-google" style="margin-top:10px; border:none;" onclick="backToLoginFromPhone()">Back to Login</button>
-            </div>
-            
-            <div id="otp-input-section" style="display:none;">
-                <div class="auth-input-group">
-                    <label>Enter OTP</label>
-                    <input type="number" id="auth-otp" placeholder="123456">
-                </div>
-                <button class="btn-auth-primary" onclick="verifyPhoneOTP()" id="btn-verify-otp">Verify OTP</button>
-                <button class="btn-auth-google" style="margin-top:10px; border:none;" onclick="backToPhoneInput()">Cancel</button>
-            </div>
-        </div>
-
-                <div id="registration-steps" style="display:none;">
+        <div id="registration-steps" style="display:none;">
             <div id="step-1">
                 <h2 class="auth-title-welcome">Create account</h2>
                 <p class="auth-sub">Step 1: Basic Information</p>
                 <div class="auth-input-group"><label>First Name</label><input type="text" id="reg-fname" placeholder="First Name"></div>
                 <div class="auth-input-group"><label>Last Name</label><input type="text" id="reg-lname" placeholder="Last Name"></div>
-                <div class="auth-input-group"><label>Email or Phone</label><input type="text" id="reg-email" placeholder="email@example.com or +880..."></div>
+                <div class="auth-input-group"><label>Email</label><input type="email" id="reg-email" placeholder="email@example.com"></div>
                 <button class="btn-auth-primary" onclick="goToStep2()">Next</button>
                 <button class="btn-auth-google" style="margin-top:10px; border:none;" onclick="backToLogin()">Back to Login</button>
             </div>
-            
             <div id="step-2" style="display:none;">
                 <h2 class="auth-title-welcome">Security</h2>
                 <p class="auth-sub">Step 2: Setup Password</p>
                 <div class="auth-input-group"><label>Password</label><input type="password" id="reg-pass" placeholder="••••••••"></div>
                 <div class="auth-input-group"><label>Confirm Password</label><input type="password" id="reg-confirm" placeholder="••••••••"></div>
-                <button class="btn-auth-primary" onclick="completeRegistration()">Create Account</button>
-                <button class="btn-auth-google" style="margin-top:10px; border:none;" onclick="backToStep1()">Back</button>
-            </div>
-
-            <div id="step-3-otp" style="display:none;">
-                <h2 class="auth-title-welcome">Verification</h2>
-                <p class="auth-sub">Step 2: Enter OTP sent to your phone</p>
-                <div id="reg-recaptcha-container"></div>
-                <div class="auth-input-group"><label>OTP Code</label><input type="number" id="reg-otp" placeholder="123456"></div>
-                <button class="btn-auth-primary" id="btn-reg-verify-otp" onclick="completePhoneRegistration()">Verify & Create</button>
-                <button class="btn-auth-google" style="margin-top:10px; border:none;" onclick="backToStep1()">Cancel & Go Back</button>
+                <button class="btn-auth-primary" onclick="completeRegistration()">Let's go</button>
             </div>
         </div>
-
+        <div id="auth-msg" class="auth-msg"></div>
+    </div>
+</div>
 
 
 <div id="app-screen">
@@ -2963,141 +2925,14 @@ document.getElementById('leaderboard-modal').classList.remove('open');
 }
 
 // ===== AUTH FUNCTIONS =====
-let confirmationResult = null;
-
-function showPhoneLoginStep() {
-    document.getElementById('login-form').style.display = 'none';
-    document.getElementById('registration-steps').style.display = 'none';
-    document.getElementById('phone-login-step').style.display = 'block';
-    
-    // reCAPTCHA ইনিশিয়ালাইজ করা (রোবট চেকিংয়ের জন্য)
-    if (!window.recaptchaVerifier) {
-        window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', {
-            'size': 'invisible'
-        });
-    }
-}
-
-function backToLoginFromPhone() {
-    document.getElementById('phone-login-step').style.display = 'none';
-    document.getElementById('login-form').style.display = 'block';
-}
-
-function backToPhoneInput() {
-    document.getElementById('otp-input-section').style.display = 'none';
-    document.getElementById('phone-input-section').style.display = 'block';
-}
-
-async function sendPhoneOTP() {
-    const phone = document.getElementById('auth-phone-number').value.trim();
-    
-    // নম্বর চেক করা (অবশ্যই +880 সহ হতে হবে)
-    if (!phone || phone.length < 11 || !phone.startsWith('+')) { 
-        showToast("Enter a valid phone number with country code (e.g., +880)!"); 
-        return; 
-    }
-    
-    const btn = document.getElementById('btn-send-otp');
-    btn.textContent = "Sending..."; 
-    btn.disabled = true;
-    
-    try {
-        const appVerifier = window.recaptchaVerifier;
-        confirmationResult = await auth.signInWithPhoneNumber(phone, appVerifier);
-        showToast("OTP Sent Successfully!");
-        
-        document.getElementById('phone-input-section').style.display = 'none';
-        document.getElementById('otp-input-section').style.display = 'block';
-    } catch (error) {
-        console.error(error);
-        alert("Error: " + error.message);
-        // এরর হলে reCAPTCHA রিসেট করা
-        if (window.recaptchaVerifier) {
-            window.recaptchaVerifier.render().then(widgetId => grecaptcha.reset(widgetId));
-        }
-    } finally {
-        btn.textContent = "Send OTP"; 
-        btn.disabled = false;
-    }
-}
-
-async function verifyPhoneOTP() {
-    const code = document.getElementById('auth-otp').value.trim();
-    if (!code) { showToast("Enter OTP!"); return; }
-    
-    const btn = document.getElementById('btn-verify-otp');
-    btn.textContent = "Verifying..."; 
-    btn.disabled = true;
-    
-    try {
-        const result = await confirmationResult.confirm(code);
-        const user = result.user;
-        
-        // ডাটাবেসে ইউজার আছে কি না চেক করা, না থাকলে নতুন করে অ্যাকাউন্ট তৈরি করা
-        const doc = await db.collection('users').doc(user.uid).get();
-        if (!doc.exists) {
-            await db.collection('users').doc(user.uid).set({
-                name: user.phoneNumber, // ডিফল্ট নাম হিসেবে ফোন নম্বর বসবে
-                email: '', phone: user.phoneNumber,
-                avatar: '', bio: '', location: '', hometown: '', relationship: '', gender: '',
-                followers: [], following: [], friends: [], sentRequests: [], receivedRequests: [],
-                blockedUsers: [], mutedChats: [], pinnedChats: [], archivedChats: [],
-                online: true, points: 20, loginStreak: 1,
-                lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
-        }
-        showToast("Phone Login Successful!");
-        // লগইন সফল হলে আপনার অ্যাপের existing লিসেনার অটোমেটিক মেইন পেজ ওপেন করে দেবে
-    } catch (error) {
-        showToast("Invalid OTP! Please try again.");
-    } finally {
-        btn.textContent = "Verify OTP"; 
-        btn.disabled = false;
-    }
-}
-
 async function loginWithEmail(){
-    const inputVal = document.getElementById('auth-email').value.trim();
-    const pass = document.getElementById('auth-password').value;
-    const msg = document.getElementById('auth-msg');
-
-    if(!inputVal) {
-        msg.textContent = 'Please enter email or phone number.';
-        msg.className = 'auth-msg error';
-        return;
-    }
-
-    // 🚀 স্মার্ট লজিক: চেক করবে এটা কি ফোন নম্বর নাকি ইমেইল
-    // যদি @ না থাকে এবং শুধুমাত্র সংখ্যা বা + দিয়ে শুরু হয়, তবে সেটা ফোন নম্বর
-    const isPhone = /^[\d+\-\s]+$/.test(inputVal) && !inputVal.includes('@');
-
-    if (isPhone) {
-        // যদি ফোন নম্বর হয়, সরাসরি OTP স্ক্রিন ওপেন করে OTP সেন্ড করে দেবে
-        msg.textContent = 'Switching to Phone Login...';
-        msg.className = 'auth-msg success';
-        
-        document.getElementById('auth-phone-number').value = inputVal; // hidden phone field-এ ভ্যালু সেট
-        showPhoneLoginStep(); 
-        sendPhoneOTP(); // স্বয়ংক্রিয়ভাবে OTP সেন্ড করে দেবে
-        return;
-    }
-
-    // আর যদি ইমেইল হয়, তবে আগের মতোই পাসওয়ার্ড চেক করবে
-    if(!pass) {
-        msg.textContent = 'Please enter password for email login.';
-        msg.className = 'auth-msg error';
-        return;
-    }
-
-    msg.textContent = 'Logging in...';
-    msg.className = 'auth-msg success';
-    try {
-        await auth.signInWithEmailAndPassword(inputVal, pass);
-    } catch(e) {
-        msg.textContent = 'Login failed: ' + e.message;
-        msg.className = 'auth-msg error';
-    }
+const email=document.getElementById('auth-email').value.trim();
+const pass=document.getElementById('auth-password').value;
+const msg=document.getElementById('auth-msg');
+if(!email||!pass){msg.textContent='Please enter email and password.';msg.className='auth-msg error';return;}
+msg.textContent='Logging in...';msg.className='auth-msg success';
+try{await auth.signInWithEmailAndPassword(email,pass);}
+catch(e){msg.textContent='Login failed: '+e.message;msg.className='auth-msg error';}
 }
 
 async function loginWithGoogle() {
@@ -7819,45 +7654,6 @@ function goToStep2() {
     document.getElementById('step-2').style.display = 'block';
 }
 
-// ===== SMART REGISTRATION SYSTEM (Email & Phone) =====
-let regConfirmationResult = null; // Phone OTP এর জন্য
-
-function goToStep2() {
-    const fname = document.getElementById('reg-fname').value.trim();
-    const lname = document.getElementById('reg-lname').value.trim();
-    const contact = document.getElementById('reg-email').value.trim();
-
-    if(!fname || !lname || !contact) {
-        showToast("Please fill all fields!");
-        return;
-    }
-
-    // 🚀 স্মার্ট লজিক: চেক করবে এটা ফোন নম্বর নাকি ইমেইল
-    const isPhone = /^[\d+\-\s]+$/.test(contact) && !contact.includes('@');
-
-    if (isPhone) {
-        if (contact.length < 11 || !contact.startsWith('+')) { 
-            showToast("Enter a valid phone number with country code (e.g., +880)!"); 
-            return; 
-        }
-        // ফোন নম্বর হলে OTP স্ক্রিন ওপেন করবে
-        document.getElementById('step-1').style.display = 'none';
-        document.getElementById('step-3-otp').style.display = 'block';
-        sendRegPhoneOTP(contact);
-    } else {
-        // ইমেইল হলে পাসওয়ার্ড স্ক্রিন ওপেন করবে
-        document.getElementById('step-1').style.display = 'none';
-        document.getElementById('step-2').style.display = 'block';
-    }
-}
-
-function backToStep1() {
-    document.getElementById('step-2').style.display = 'none';
-    document.getElementById('step-3-otp').style.display = 'none';
-    document.getElementById('step-1').style.display = 'block';
-}
-
-// ----------------- EMAIL REGISTRATION -----------------
 async function completeRegistration() {
     const fname = document.getElementById('reg-fname').value.trim();
     const lname = document.getElementById('reg-lname').value.trim();
@@ -7876,11 +7672,8 @@ async function completeRegistration() {
 
         await db.collection('users').doc(user.uid).set({
             name: fullName,
-            email: user.email, phone: '',
-            avatar: '', bio: '', location: '', hometown: '', relationship: '', gender: '', profession: '',
-            friends: [], followers: [], following: [],
-            blockedUsers: [], mutedChats: [], pinnedChats: [], archivedChats: [],
-            online: true, points: 20, loginStreak: 1,
+            email: user.email,
+            avatar: '', bio: '', friends: [], followers: [], following: [],
             createdAt: firebase.firestore.FieldValue.serverTimestamp()
         });
         showToast("Account created successfully!");
@@ -7888,69 +7681,6 @@ async function completeRegistration() {
         showToast("Error: " + e.message);
     }
 }
-
-// ----------------- PHONE REGISTRATION -----------------
-async function sendRegPhoneOTP(phone) {
-    if (!window.recaptchaVerifierReg) {
-        window.recaptchaVerifierReg = new firebase.auth.RecaptchaVerifier('reg-recaptcha-container', {
-            'size': 'invisible'
-        });
-    }
-    try {
-        showToast("Sending OTP...");
-        regConfirmationResult = await auth.signInWithPhoneNumber(phone, window.recaptchaVerifierReg);
-        showToast("OTP Sent Successfully!");
-    } catch (error) {
-        console.error(error);
-        alert("Error: " + error.message);
-        if (window.recaptchaVerifierReg) {
-            window.recaptchaVerifierReg.render().then(widgetId => grecaptcha.reset(widgetId));
-        }
-        backToStep1(); // ফেইল করলে আবার প্রথম ধাপে পাঠিয়ে দেবে
-    }
-}
-
-async function completePhoneRegistration() {
-    const code = document.getElementById('reg-otp').value.trim();
-    const fname = document.getElementById('reg-fname').value.trim();
-    const lname = document.getElementById('reg-lname').value.trim();
-    
-    if (!code) { showToast("Enter OTP!"); return; }
-    
-    const btn = document.getElementById('btn-reg-verify-otp');
-    btn.textContent = "Verifying..."; 
-    btn.disabled = true;
-    
-    try {
-        const result = await regConfirmationResult.confirm(code);
-        const user = result.user;
-        const fullName = fname + ' ' + lname;
-        
-        // চেক করা ডাটাবেসে ইউজার আছে কি না
-        const doc = await db.collection('users').doc(user.uid).get();
-        if (!doc.exists) {
-            await db.collection('users').doc(user.uid).set({
-                name: fullName,
-                email: '', phone: user.phoneNumber,
-                avatar: '', bio: '', location: '', hometown: '', relationship: '', gender: '', profession: '',
-                friends: [], followers: [], following: [],
-                blockedUsers: [], mutedChats: [], pinnedChats: [], archivedChats: [],
-                online: true, points: 20, loginStreak: 1,
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
-        } else {
-            // যদি আগে থেকেই অ্যাকাউন্ট থাকে তবে শুধু নাম আপডেট হবে
-            await db.collection('users').doc(user.uid).update({ name: fullName });
-        }
-        showToast("Account created successfully!");
-    } catch (error) {
-        showToast("Invalid OTP! Please try again.");
-    } finally {
-        btn.textContent = "Verify & Create"; 
-        btn.disabled = false;
-    }
-}
-
 // ===== TEXT STORY LOGIC =====
 let currentTextStoryBg = 'linear-gradient(135deg, #7c5cff 0%, #c084fc 100%)';
 
