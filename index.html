@@ -5961,18 +5961,26 @@ if(p.uid === currentUser?.uid){
 }
 postDropdownHtml += `</div></div>`;
 
+    // 🚀 কুইক ফলো বাটন লজিক
+    const isMePost = (p.uid === currentUser?.uid);
+    const isAlreadyFollowing = currentUserData?.following?.includes(p.uid);
+    let quickFollowBtn = '';
+    
+    // যদি নিজের পোস্ট না হয় এবং আগে থেকে ফলো করা না থাকে, তবেই ফলো বাটন দেখাবে
+    if (!isMePost && !isAlreadyFollowing) {
+        quickFollowBtn = `<span onclick="event.stopPropagation(); toggleFollow('${p.uid}'); this.style.display='none';" style="color: var(--accent); font-size: 12px; font-weight: 700; cursor: pointer; margin-left: 8px; padding: 2px 10px; background: var(--surface-2); border-radius: 12px; border: 1px solid var(--accent); transition: all 0.2s;">Follow</span>`;
+    }
+
 return`<div class="post-card">
 <div class="post-header">
 <div class="avatar" style="width:44px;height:44px;cursor:pointer;" onclick="viewUserProfile('${p.uid}')">${av}</div>
 <div style="flex:1;">
 
-<!-- নামের আপডেটটি এখানে যোগ করা হয়েছে -->
-<div class="post-name" style="flex-wrap: wrap; line-height: 1.4;">
+<div class="post-name" style="flex-wrap: wrap; line-height: 1.4; align-items: center;">
     <span style="cursor:pointer; display:flex; align-items:center; gap:4px;" onclick="viewUserProfile('${p.uid}')">${safeName} ${vBadge}</span>
+    ${quickFollowBtn}
     ${withText}
 </div>
-<!-- আপডেট শেষ -->
-
 <div class="post-time">${getRelativeTime(p.createdAt)}</div>
 </div>
 ${postDropdownHtml}
