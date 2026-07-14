@@ -3082,9 +3082,10 @@ function updateOnlineStatus(){
                 lastSeen: firebase.firestore.FieldValue.serverTimestamp()
             }).catch(()=>{});
         } else {
-            // OFF থাকলে অনলাইনে দেখাবে না
+            // OFF থাকলে অনলাইনে দেখাবে না (সাথে লাস্ট সিন আপডেট করবে)
             db.collection('users').doc(currentUser.uid).update({
-                online: false
+                online: false,
+                lastSeen: firebase.firestore.FieldValue.serverTimestamp()
             }).catch(()=>{});
         }
     }
@@ -3163,42 +3164,66 @@ db.collection('system').doc('announcement').onSnapshot(doc => {
 
 // ===== AUTH STATE LISTENER =====
 auth.onAuthStateChanged(async(user)=>{
-// ফায়ারবেস চেকিং শেষ হলে স্প্ল্যাশ স্ক্রিন হাইড করার ম্যাজিক
 
+// 🚀 স্প্ল্যাশ স্ক্রিন সরানোর স্মার্ট ম্যাজিক
+const removeSplash = () => {
+    const splash = document.getElementById('splash-screen');
+    if (splash && splash.style.display !== 'none') { 
+        splash.style.opacity = '0'; 
+        setTimeout(() => splash.style.display = 'none', 500); 
+    }
+};
 
 if(user){
 currentUser=user;
+
+// 🚀 ইউজার লগইন থাকলে সাথে সাথেই মেইন স্ক্রিন অন করে দেবো, যাতে ফিডের স্কেলেটন লোডিং দেখা যায়
+document.getElementById('auth-screen').style.display='none';
+document.getElementById('app-screen').style.display='block';
+
+// 🚀 ম্যাক্সিমাম ১.৫ সেকেন্ডের একটা টাইমার, যাতে ডাটাবেস স্লো থাকলেও অ্যাপ আটকে না থাকে
+const splashFallbackTimer = setTimeout(removeSplash, 1500);
+
 try{
 const snap=await db.collection('users').doc(user.uid).get();
 currentUserData=snap.exists?snap.data():{name:user.email.split('@')[0],email:user.email};
 }catch(e){currentUserData={name:user.email.split('@')[0],email:user.email};}
 
-await checkAndUpdateStreak();
-document.getElementById('auth-screen').style.display='none';
-document.getElementById('app-screen').style.display='block';
-// লগইন থাকলে মেইন পেজ রেডি হওয়ার পর স্প্ল্যাশ সরবে
-setTimeout(() => {
-    const splash = document.getElementById('splash-screen');
-    if (splash) { splash.style.opacity = '0'; setTimeout(() => splash.style.display = 'none', 500); }
-}, 200);
+// 🚀 ডাটাবেস লোড হয়ে গেলে টাইমার ক্যানসেল করে সাথে সাথেই স্প্ল্যাশ সরিয়ে দেবে
+clearTimeout(splashFallbackTimer);
+removeSplash();
+
+// 🚀 ব্যাকগ্রাউন্ডে স্ট্রাইক আপডেট হবে, এর জন্য অ্যাপের লোডিং আটকে থাকবে না (await রিমুভড)
+checkAndUpdateStreak();
+
 setTimeout(() => { isAppReadyForNotifs = true; }, 3000); 
 
 await updateOnlineStatus();
 if(onlineStatusInterval)clearInterval(onlineStatusInterval);
 onlineStatusInterval=setInterval(updateOnlineStatus,60000);
 
-// --- রিয়েল-টাইম অনলাইন স্ট্যাটাস সিঙ্ক (প্রতি ৩০ সেকেন্ডে) ---
+// --- 🚀 রিয়েল-টাইম অ্যাডভান্সড অনলাইন সিঙ্ক (Ghost User Filter) ---
 setInterval(async () => {
     if (!currentUser) return;
     try {
-                // 🚀 শুধু তাদেরকেই খুঁজবে যারা অনলাইনে আছে এবং সেটিং অফ করেনি
         const snap = await db.collection('users').where('online', '==', true).get();
         const onlineUids = [];
+        const now = Date.now();
         
         snap.forEach(d => {
             const data = d.data();
+            // ১. চেক করবে ইউজার সেটিং থেকে বাতি বন্ধ করেছে কিনা
             if (data.showActiveStatus !== false) {
-                onlineUids.push(d.id);
+                // ২. ঘোস্ট ইউজার চেক: ইউজারের লাস্ট সিন কি ৩ মিনিটের বেশি পুরনো?
+                const lastSeenTime = data.lastSeen?.toMillis ? data.lastSeen.toMillis() : now;
+                const timeDiff = now - lastSeenTime;
+                
+                if (timeDiff < 180000) { // 180000 ms = 3 মিনিট
+                    onlineUids.push(d.id);
+                } else {
+                    // যদি ৩ মিনিটের বেশি হয়, তারমানে সে ভুল করে অফলাইনে আটকে গেছে (Ghost)
+                    d.ref.update({ online: false }).catch(()=>{});
+                }
             }
         });
         
@@ -3219,6 +3244,7 @@ setInterval(async () => {
             }
         }
 
+        // মেসেজ লিস্টে বাতি আপডেট
         document.querySelectorAll('.msg-item').forEach(item => {
             const uid = item.getAttribute('data-other-uid');
             if (uid && uid !== 'group') {
@@ -3235,15 +3261,31 @@ setInterval(async () => {
         });
     } catch (e) {}
 }, 30000);
-// ---------------------------------------------------------
+
+
+// 🚀 স্মার্ট ভিজিবিলিটি ট্র্যাকার (অ্যাপ মিনিমাইজ করলে বা ব্যাকগ্রাউন্ডে গেলে অফলাইন)
+function handleAppVisibility() {
+    if (!currentUser) return;
+    if (document.visibilityState === 'visible') {
+        updateOnlineStatus(); // অ্যাপে ঢুকলে বা স্ক্রিন অন করলে আবার অনলাইন
+    } else {
+        // অ্যাপ থেকে বের হলে বা মিনিমাইজ করলে সাথে সাথে অফলাইন
+        db.collection('users').doc(currentUser.uid).update({
+            online: false,
+            lastSeen: firebase.firestore.FieldValue.serverTimestamp()
+        }).catch(()=>{});
+    }
+}
+document.addEventListener("visibilitychange", handleAppVisibility);
+window.addEventListener("pagehide", handleAppVisibility);
 
 window.addEventListener('beforeunload',()=>{
-if(currentUser){
-db.collection('users').doc(currentUser.uid).update({
-online:false,
-lastSeen:firebase.firestore.FieldValue.serverTimestamp()
-}).catch(()=>{});
-}
+    if(currentUser){
+        db.collection('users').doc(currentUser.uid).update({
+            online: false,
+            lastSeen: firebase.firestore.FieldValue.serverTimestamp()
+        }).catch(()=>{});
+    }
 });
 
 loadUserUI(); loadFeed(); loadMessages(); loadStories(); cleanupExpiredPosts(); fixMissingNamesInChats();
@@ -3328,10 +3370,7 @@ currentUser=null;currentUserData=null;
 document.getElementById('auth-screen').style.display='flex';
 document.getElementById('app-screen').style.display='none';
 // লগআউট থাকলে লগইন পেজ রেডি হওয়ার পর স্প্ল্যাশ সরবে
-setTimeout(() => {
-    const splash = document.getElementById('splash-screen');
-    if (splash) { splash.style.opacity = '0'; setTimeout(() => splash.style.display = 'none', 500); }
-}, 200);
+removeSplash();
 
 if(feedUnsub)feedUnsub();
 if(notifUnsub)notifUnsub();
