@@ -6092,11 +6092,22 @@ if(p.uid === currentUser?.uid){
         <span class="material-symbols-outlined">delete</span> Delete Post
     </div>`;
 } else {
-    // অন্যের পোস্টের জন্য অপশন (আপনার হারানো আপডেট)
+    // 🚀 স্মার্ট চেক: আগে থেকে সেভ করা থাকলে 'Unsave' দেখাবে, নাহলে 'Save' দেখাবে
+    const isAlreadySaved = currentUserData?.savedPosts?.includes(pid);
+    
+    if (isAlreadySaved) {
+        postDropdownHtml += `
+        <div class="chat-dropdown-item" onclick="unsavePost('${pid}')">
+            <span class="material-symbols-outlined" style="color: var(--danger);">bookmark_remove</span> Remove from Saved
+        </div>`;
+    } else {
+        postDropdownHtml += `
+        <div class="chat-dropdown-item" onclick="markInterested('${pid}')">
+            <span class="material-symbols-outlined" style="color: #f59e0b;">star</span> Interested (Save)
+        </div>`;
+    }
+    
     postDropdownHtml += `
-    <div class="chat-dropdown-item" onclick="markInterested('${pid}')">
-        <span class="material-symbols-outlined" style="color: #f59e0b;">star</span> Interested
-    </div>
     <div class="chat-dropdown-item" onclick="markNotInterested('${pid}', this)">
         <span class="material-symbols-outlined">visibility_off</span> Not Interested
     </div>`;
@@ -8159,6 +8170,33 @@ async function loadSavedPosts() {
     } catch (error) {
         console.error("Error loading saved posts:", error);
         container.innerHTML = '<div style="text-align:center; padding: 40px; color: var(--danger);">Failed to load saved posts. Please try again.</div>';
+    }
+}
+// ==========================================
+// 🚀 UNSAVE POST LOGIC
+// ==========================================
+async function unsavePost(postId) {
+    closeAllDropdowns();
+    if (!currentUser || !currentUserData.savedPosts) return;
+
+    // ১. লোকাল ডাটাবেস থেকে রিমুভ করা
+    currentUserData.savedPosts = currentUserData.savedPosts.filter(id => id !== postId);
+    
+    try {
+        // ২. ফায়ারবেস থেকে পার্মানেন্টলি রিমুভ করা
+        await db.collection('users').doc(currentUser.uid).update({
+            savedPosts: firebase.firestore.FieldValue.arrayRemove(postId)
+        });
+        showToast("Post removed from saved items!");
+        
+        // ৩. 🚀 ম্যাজিক: যদি ইউজার 'Saved Items' স্ক্রিনের ভেতরেই থাকে, তবে সাথে সাথে পেজ রিফ্রেশ হয়ে পোস্টটা গায়েব হয়ে যাবে
+        const savedScreen = document.getElementById('saved-items-screen');
+        if (savedScreen && savedScreen.style.display !== 'none') {
+            loadSavedPosts();
+        }
+    } catch(e) {
+        console.error("Error unsaving post:", e);
+        showToast("Failed to remove post.");
     }
 }
 </script>
