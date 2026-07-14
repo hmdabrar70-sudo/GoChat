@@ -2271,9 +2271,6 @@ body:not(.light-mode) #splash-screen {
 <div class="chat-input-bar" id="chat-input-area">
 <div id="reply-preview-container"></div>
 <input type="text" id="chat-input" placeholder="Message..." onkeypress="if(event.key==='Enter')sendMsg()">
-<button type="button" onclick="startVoiceToText()" style="background:none;border:none;cursor:pointer;color:var(--accent);margin-left: 5px;">
-<span class="material-symbols-outlined">mic</span>
-</button>
 <label for="chat-img-input" style="cursor:pointer;color:var(--accent);padding:8px;display:flex;">
 <span class="material-symbols-outlined" style="font-size:24px;">image</span>
 </label>
@@ -6371,26 +6368,6 @@ console.log('Cleanup error:', e);
 }
 
 setInterval(cleanupExpiredPosts, 30 * 60 * 1000);
-
-// Voice to Text
-function startVoiceToText() {
-if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-showToast('Voice input not supported in this browser');
-return;
-}
-const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-recognition.lang = 'bn-BD';
-recognition.interimResults = false;
-recognition.onstart = () => showToast("Listening...");
-recognition.onresult = (event) => {
-const transcript = event.results[0][0].transcript;
-const inputField = document.getElementById('chat-input');
-inputField.value = transcript;
-setTypingStatus(true);
-};
-recognition.onerror = (event) => showToast("Error: " + event.error);
-recognition.start();
-}
 
 document.addEventListener('DOMContentLoaded', () => {
 const chatInput = document.getElementById('chat-input');
