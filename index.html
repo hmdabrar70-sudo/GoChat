@@ -2201,6 +2201,35 @@ body:not(.light-mode) #splash-screen {
         </div>
     </div>
 </div>
+<div class="modal-overlay" id="group-info-modal" style="z-index: 10005;">
+    <div class="modal-box" style="display:flex; flex-direction:column; max-height:85vh; padding: 0;">
+        <div class="chat-topbar" style="padding: 16px 20px;">
+            <div class="chat-back" onclick="closeGroupInfoModal()"><span class="material-symbols-outlined">arrow_back</span></div>
+            <div class="chat-name" id="group-info-name" style="font-weight: 800; font-size: 18px;">Group Info</div>
+        </div>
+        <div style="padding: 20px; overflow-y: auto; flex: 1;">
+            
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 15px;">
+                <h4 style="color:var(--text); margin:0;">Members (<span id="group-member-count">0</span>)</h4>
+                <button class="btn-outline" style="padding: 6px 12px; font-size:12px; margin:0;" onclick="openAddGroupMemberUI()">
+                    <span class="material-symbols-outlined" style="font-size:16px;">person_add</span> Add
+                </button>
+            </div>
+            
+            <div id="add-group-member-ui" style="display:none; background: var(--surface-2); padding: 12px; border-radius: 12px; margin-bottom: 15px; border: 1px solid var(--border);">
+                <div style="font-size: 13px; font-weight: 700; color: var(--text-muted); margin-bottom: 10px;">Select friends to add:</div>
+                <div id="add-group-member-list" style="max-height: 180px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px;"></div>
+                <button class="btn-primary" style="padding: 10px; font-size: 13px; margin:0;" onclick="confirmAddGroupMembers()">Add Selected</button>
+            </div>
+
+            <div id="group-member-list" style="display: flex; flex-direction: column; gap: 10px;"></div>
+            
+            <button class="btn-outline" style="width: 100%; margin-top: 25px; border-color: var(--danger); color: var(--danger); background: rgba(255, 77, 106, 0.05);" onclick="leaveCurrentGroup()">
+                <span class="material-symbols-outlined">logout</span> Leave Group
+            </button>
+        </div>
+    </div>
+</div>
 <div class="modal-overlay" id="share-modal" style="z-index: 1005;">
     <div class="modal-box" style="text-align: center; padding: 24px; max-width: 320px;">
         <button class="modal-close" onclick="closeShareModal()">
@@ -4758,6 +4787,18 @@ function openChat(chatId, otherUid, otherName, otherAvatar){
     currentChatId=chatId;
     currentChatOtherUid=otherUid;
     document.getElementById('chat-screen').classList.add('open');
+        // 🚀 Group Security: রিমুভ হলে বা লিভ নিলে সাথে সাথে চ্যাট থেকে বের করে দেবে
+    if (otherUid === 'group') {
+        db.collection('chats').doc(chatId).onSnapshot(doc => {
+            if (doc.exists && doc.data().members && !doc.data().members.includes(currentUser.uid)) {
+                if (currentChatId === chatId && document.getElementById('chat-screen').classList.contains('open')) {
+                    closeChat();
+                    showToast("You are no longer a member of this group.");
+                }
+            }
+        });
+    }
+
     
     // চ্যাট ওপেন করলেই মেসেজ 'Read' হয়ে যাবে
     db.collection('chats').doc(chatId).set({ isRead: true }, { merge: true });
@@ -7044,7 +7085,8 @@ async function executeDelete(type) {
 function viewProfileFromChat() {
     document.getElementById('chat-delete-menu').style.display = 'none';
     if (currentChatOtherUid === 'group') {
-        showToast("Cannot view profile for a group.");
+        // 🚀 গ্রুপ হলে নতুন মডাল ওপেন হবে
+        openGroupInfoModal(currentChatId);
         return;
     }
         
@@ -8385,6 +8427,181 @@ async function setChatWallpaper(color) {
     }
     
     closeWallpaperPicker(); // মডাল বন্ধ করা
+}
+// ==========================================
+// 🚀 ADVANCED GROUP CHAT LOGIC (Members, Add, Remove, Leave)
+// ==========================================
+let activeGroupData = null;
+let activeGroupId = null;
+let newMembersToGroup = [];
+
+async function openGroupInfoModal(groupId) {
+    activeGroupId = groupId;
+    document.getElementById('group-info-modal').classList.add('open');
+    document.getElementById('add-group-member-ui').style.display = 'none';
+    await loadGroupMembers();
+}
+
+function closeGroupInfoModal() {
+    document.getElementById('group-info-modal').classList.remove('open');
+    activeGroupId = null;
+    activeGroupData = null;
+}
+
+async function loadGroupMembers() {
+    const list = document.getElementById('group-member-list');
+    list.innerHTML = '<div class="loading"><span class="material-symbols-outlined">autorenew</span> Loading members...</div>';
+    
+    try {
+        const doc = await db.collection('chats').doc(activeGroupId).get();
+        if(!doc.exists) return;
+        activeGroupData = doc.data();
+        
+        document.getElementById('group-info-name').textContent = activeGroupData.groupName || 'Group Info';
+        document.getElementById('group-member-count').textContent = (activeGroupData.members || []).length;
+        
+        const members = activeGroupData.members || [];
+        const isAdmin = activeGroupData.admin === currentUser.uid;
+        
+        let html = '';
+        if(!allUsersCache) await fetchAllUsers();
+        
+        members.forEach(uid => {
+            const u = allUsersCache.find(user => user.id === uid) || { name: 'Unknown User', avatar: '' };
+            const safeName = escapeHTML(u.name);
+            const avHtml = u.avatar ? `<img src="${u.avatar}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">` : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:var(--gradient);color:#fff;font-weight:bold;">${safeName[0].toUpperCase()}</div>`;
+            
+            let roleBadge = '';
+            if(uid === activeGroupData.admin) {
+                roleBadge = '<span style="font-size:10px; background:var(--accent); color:white; padding:3px 8px; border-radius:12px; margin-left:8px; font-weight:bold;">Admin</span>';
+            } else if (uid === currentUser.uid) {
+                roleBadge = '<span style="font-size:10px; background:var(--surface-2); color:var(--text); padding:3px 8px; border-radius:12px; margin-left:8px; border: 1px solid var(--border);">You</span>';
+            }
+
+            let removeBtn = '';
+            // 🚀 শুধু অ্যাডমিন অন্য মেম্বারদের রিমুভ করতে পারবে
+            if(isAdmin && uid !== currentUser.uid) {
+                removeBtn = `<button class="btn-outline" style="padding:6px 12px; font-size:11px; border-color:var(--danger); color:var(--danger); margin:0;" onclick="removeGroupMember('${uid}', '${safeName}')">Remove</button>`;
+            }
+            
+            html += `
+            <div class="msg-item" style="margin: 0; padding: 12px; cursor:default;">
+                <div class="avatar sm">${avHtml}</div>
+                <div class="msg-info" style="margin-left:12px; display:flex; align-items:center;">
+                    <div class="msg-name" style="margin:0;">${safeName} ${roleBadge}</div>
+                </div>
+                ${removeBtn}
+            </div>`;
+        });
+        
+        list.innerHTML = html;
+    } catch(e) {
+        list.innerHTML = '<div class="empty-feed">Failed to load members</div>';
+    }
+}
+
+async function removeGroupMember(uid, name) {
+    if(!confirm(`Are you sure you want to remove ${name} from the group?`)) return;
+    try {
+        // ফায়ারবেস থেকে মেম্বার রিমুভ করা
+        await db.collection('chats').doc(activeGroupId).update({
+            members: firebase.firestore.FieldValue.arrayRemove(uid),
+            lastMsg: `${name} was removed by Admin`,
+            lastAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        showToast("Member removed!");
+        loadGroupMembers(); // লিস্ট রিফ্রেশ
+    } catch(e) { showToast("Error removing member"); }
+}
+
+async function leaveCurrentGroup() {
+    if(!confirm("Are you sure you want to leave this group? You will lose access to all messages.")) return;
+    try {
+        const safeName = currentUserData.name || 'A member';
+        await db.collection('chats').doc(activeGroupId).update({
+            members: firebase.firestore.FieldValue.arrayRemove(currentUser.uid),
+            lastMsg: `${safeName} left the group`,
+            lastAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        showToast("You left the group");
+        closeGroupInfoModal();
+        closeChat(); 
+    } catch(e) { showToast("Error leaving group"); }
+}
+
+async function openAddGroupMemberUI() {
+    const ui = document.getElementById('add-group-member-ui');
+    const list = document.getElementById('add-group-member-list');
+    ui.style.display = 'block';
+    newMembersToGroup = [];
+    
+    const friends = currentUserData.friends || [];
+    const currentMembers = activeGroupData.members || [];
+    
+    // যারা অলরেডি গ্রুপে আছে তাদের বাদ দিয়ে ফ্রেন্ড লিস্ট বানানো
+    const availableFriends = friends.filter(fId => !currentMembers.includes(fId));
+    
+    if(availableFriends.length === 0) {
+        list.innerHTML = '<div style="font-size:13px; color:var(--danger); text-align:center; padding: 10px;">No new friends available to add.</div>';
+        return;
+    }
+    
+    list.innerHTML = '<div class="loading"><span class="material-symbols-outlined">autorenew</span> Loading friends...</div>';
+    if(!allUsersCache) await fetchAllUsers();
+    
+    let html = '';
+    availableFriends.forEach(uid => {
+        const u = allUsersCache.find(user => user.id === uid) || { name: 'Unknown User', avatar: '' };
+        const safeName = escapeHTML(u.name);
+        const avHtml = u.avatar ? `<img src="${u.avatar}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">` : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:var(--gradient);color:#fff;font-weight:bold;">${safeName[0].toUpperCase()}</div>`;
+        
+        html += `
+        <div class="msg-item" onclick="toggleNewGroupMember('${uid}', this)" style="margin: 0; padding: 10px; cursor: pointer; border-radius: 8px;">
+            <div class="avatar sm" style="width:36px; height:36px;">${avHtml}</div>
+            <div class="msg-info" style="margin-left:12px; font-size:14px; font-weight:bold;">${safeName}</div>
+            <input type="checkbox" value="${uid}" style="pointer-events:none; width:18px; height:18px; accent-color: var(--accent);">
+        </div>`;
+    });
+    list.innerHTML = html;
+}
+
+function toggleNewGroupMember(uid, element) {
+    const checkbox = element.querySelector('input[type="checkbox"]');
+    if(newMembersToGroup.includes(uid)) {
+        newMembersToGroup = newMembersToGroup.filter(id => id !== uid);
+        checkbox.checked = false;
+    } else {
+        newMembersToGroup.push(uid);
+        checkbox.checked = true;
+    }
+}
+
+async function confirmAddGroupMembers() {
+    if(newMembersToGroup.length === 0) {
+        showToast("Select at least one friend to add!");
+        return;
+    }
+    const btn = document.querySelector('#add-group-member-ui button');
+    const originalText = btn.textContent;
+    btn.textContent = "Adding...";
+    btn.disabled = true;
+    
+    try {
+        // নির্বাচিত সব ফ্রেন্ডকে একবারে গ্রুপে অ্যাড করা
+        await db.collection('chats').doc(activeGroupId).update({
+            members: firebase.firestore.FieldValue.arrayUnion(...newMembersToGroup),
+            lastMsg: `${currentUserData.name} added new members`,
+            lastAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        showToast("Members added successfully!");
+        document.getElementById('add-group-member-ui').style.display = 'none';
+        loadGroupMembers(); // মেম্বার লিস্ট রিফ্রেশ করা
+    } catch(e) {
+        showToast("Error adding members");
+    } finally {
+        btn.textContent = originalText;
+        btn.disabled = false;
+    }
 }
 </script>
 </body>
