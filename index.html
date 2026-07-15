@@ -2911,6 +2911,7 @@ let currentStoryIndex=0;
 let storyTimer=null;
 let composeImages=[];
 let currentReplyMsgId=null;
+let replyToMsgData=null; // 🚀 Reply Preview Data Store
 let currentForwardMsgData=null;
 let currentOtherProfileUid=null;
 let onlineStatusInterval=null;
@@ -4925,9 +4926,23 @@ function openChat(chatId, otherUid, otherName, otherAvatar){
             }else{
                 content=escapeHTML(m.text||'');
             }
+            // 🚀 রিপ্লাই মেসেজ প্রিভিউ ইন চ্যাট
             let replyHtml='';
             if(m.replyTo){
-                replyHtml=`<div style="font-size:12px;opacity:0.7;margin-bottom:6px;padding:6px 10px;background:rgba(255,255,255,0.1);border-radius:8px;border-left:2px solid var(--accent);">Replying to a message</div>`;
+                let repName = m.replySender ? escapeHTML(m.replySender) : 'Someone';
+                let repText = m.replyText ? escapeHTML(m.replyText) : 'Replying to a message';
+                if(repText.length > 50) repText = repText.substring(0, 50) + '...';
+                
+                // নিজের এবং অন্যের মেসেজের জন্য আলাদা ডিজাইন
+                let repBg = isMine ? 'rgba(0,0,0,0.25)' : 'var(--surface-2)';
+                let borderCol = isMine ? 'rgba(255,255,255,0.8)' : 'var(--accent)';
+                let nameCol = isMine ? '#fff' : 'var(--accent)';
+                let textCol = isMine ? 'rgba(255,255,255,0.8)' : 'var(--text-secondary)';
+                
+                replyHtml=`<div onclick="scrollToMessage('${m.replyTo}')" style="cursor:pointer; opacity:0.95; margin-bottom:8px; padding:8px 12px; background:${repBg}; border-radius:8px; border-left:3px solid ${borderCol}; display:flex; flex-direction:column; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                    <strong style="color:${nameCol}; font-size:11px; margin-bottom:3px; letter-spacing:0.3px;">${repName}</strong>
+                    <span style="font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color: ${textCol};">${repText}</span>
+                </div>`;
             }
 
             let timeString = 'Sending...';
@@ -5187,12 +5202,39 @@ function showMessageMenu(event, msgId) {
 }
 
 
-function replyToMessage(msgId) {
-currentReplyMsgId = msgId;
-const input = document.getElementById('chat-input');
-input.focus();
-input.placeholder = 'Replying to message...';
-showToast('Replying to message');
+async function replyToMessage(msgId) {
+    currentReplyMsgId = msgId;
+    const input = document.getElementById('chat-input');
+    input.focus();
+    
+    // 🚀 অরিজিনাল মেসেজ ডাটাবেস থেকে এনে প্রিভিউ দেখানো
+    try {
+        const doc = await db.collection('chats').doc(currentChatId).collection('messages').doc(msgId).get();
+        if(doc.exists) {
+            replyToMsgData = doc.data();
+            let shortText = replyToMsgData.text ? escapeHTML(replyToMsgData.text) : '📷 Photo';
+            if(shortText.length > 50) shortText = shortText.substring(0, 50) + '...';
+            
+            const container = document.getElementById('reply-preview-container');
+            container.innerHTML = `
+                <div class="reply-preview" style="display:flex; justify-content:space-between; align-items:center; background:var(--surface-2); padding:10px 14px; border-left:4px solid var(--accent); border-radius:12px; margin-bottom:8px; width:100%; border: 1px solid var(--border);">
+                    <div style="display:flex; flex-direction:column; overflow:hidden;">
+                        <span style="font-size:12px; font-weight:800; color:var(--accent); margin-bottom:2px;">Replying to ${escapeHTML(replyToMsgData.senderName || 'User')}</span>
+                        <span style="font-size:13px; color:var(--text-secondary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${shortText}</span>
+                    </div>
+                    <span class="material-symbols-outlined" style="cursor:pointer; color:var(--text-muted); padding:6px; background:rgba(0,0,0,0.2); border-radius:50%;" onclick="cancelReply()">close</span>
+                </div>
+            `;
+            input.placeholder = 'Reply to ' + (replyToMsgData.senderName || 'User') + '...';
+        }
+    } catch(e) { console.error(e); }
+}
+
+function cancelReply() {
+    currentReplyMsgId = null;
+    replyToMsgData = null;
+    document.getElementById('reply-preview-container').innerHTML = '';
+    document.getElementById('chat-input').placeholder = 'Message...';
 }
 
 async function forwardMessage(msgId) {
@@ -5282,10 +5324,17 @@ senderName: currentUserData.name || 'User', // <-- ফায়ারবেসে �
 text:text,
 createdAt:firebase.firestore.FieldValue.serverTimestamp()
 };
-if(currentReplyMsgId){
-msgData.replyTo=currentReplyMsgId;
-currentReplyMsgId=null;
-inp.placeholder='Message...';
+// 🚀 রিপ্লাইয়ের বিস্তারিত তথ্য মেসেজের সাথে সেভ হবে
+if(currentReplyMsgId && replyToMsgData){
+    msgData.replyTo = currentReplyMsgId;
+    msgData.replySender = replyToMsgData.senderName || 'User';
+    msgData.replyText = replyToMsgData.text || '📷 Photo';
+    
+    // রিসেট করা
+    currentReplyMsgId = null;
+    replyToMsgData = null;
+    document.getElementById('reply-preview-container').innerHTML = '';
+    inp.placeholder = 'Message...';
 }
 await db.collection('chats').doc(currentChatId).collection('messages').add(msgData);
 
@@ -5317,6 +5366,25 @@ if(!file||!currentChatId)return;
 showToast('Uploading image...');
 try{
 const url=await uploadToCloudinary(file,false);
+let imageMsgData = {
+    uid:currentUser.uid,
+    senderName: currentUserData.name || 'User',
+    text:'',
+    imageUrl:url,
+    createdAt:firebase.firestore.FieldValue.serverTimestamp()
+};
+
+// 🚀 ইমেজের সাথেও রিপ্লাই ডাটা সেভ হবে
+if(currentReplyMsgId && replyToMsgData){
+    imageMsgData.replyTo = currentReplyMsgId;
+    imageMsgData.replySender = replyToMsgData.senderName || 'User';
+    imageMsgData.replyText = replyToMsgData.text || '📷 Photo';
+    
+    currentReplyMsgId = null;
+    replyToMsgData = null;
+    document.getElementById('reply-preview-container').innerHTML = '';
+    document.getElementById('chat-input').placeholder = 'Message...';
+}
 await db.collection('chats').doc(currentChatId).collection('messages').add({
 uid:currentUser.uid,
 senderName: currentUserData.name || 'User', // <-- ছবির সাথে নাম সেভ হবে
@@ -8894,6 +8962,29 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 });
+// 🚀 Click to Scroll and Highlight Message
+function scrollToMessage(msgId) {
+    const targetMsg = document.querySelector(`.chat-bubble-wrapper[data-msgid="${msgId}"] .chat-bubble`);
+    if(targetMsg) {
+        // মেসেজে স্ক্রল করবে
+        targetMsg.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        
+        // চমৎকার হাইলাইট ইফেক্ট
+        const originalBg = targetMsg.style.background;
+        const originalShadow = targetMsg.style.boxShadow;
+        
+        targetMsg.style.background = 'var(--accent-glow)';
+        targetMsg.style.boxShadow = '0 0 15px var(--accent)';
+        targetMsg.style.transition = 'all 0.5s ease';
+        
+        setTimeout(() => {
+            targetMsg.style.background = originalBg;
+            targetMsg.style.boxShadow = originalShadow;
+        }, 1500);
+    } else {
+        showToast("Message is too old or has been deleted.");
+    }
+}
 </script>
 </body>
 </html>
