@@ -4962,21 +4962,6 @@ function openChat(chatId, otherUid, otherName, otherAvatar){
                 senderNameHtml = `<div style="font-size: 12px; font-weight: 800; color: #ff7e67; margin-bottom: 6px; cursor: pointer;" onclick="viewUserProfile('${m.uid}')">${escapeHTML(m.senderName)}</div>`;
             }
 
-            if (m.deletedFor && m.deletedFor.includes(currentUser.uid)) {
-                return ''; 
-            }
-
-            return `<div class="chat-bubble-wrapper ${isMine?'mine':'theirs'}" data-msgid="${d.id}" 
-            ontouchstart="handleMsgTouchStart('${d.id}', event)" 
-            ontouchmove="handleMsgTouchMove(event)"
-            ontouchend="handleMsgTouchEnd('${d.id}', event)" 
-            ontouchcancel="handleMsgTouchEnd('${d.id}', event)"
-            onmousedown="handleMsgTouchStart('${d.id}', event)" 
-            onmouseup="handleMsgTouchEnd('${d.id}', event)" 
-            onmouseleave="handleMsgTouchEnd('${d.id}', event)"
-            oncontextmenu="event.preventDefault(); return false;"
-            onclick="handleMsgClick('${d.id}')">
-
                     // 🚀 আপডেট ২: Message Bubble Avatar Fix
         let msgAvatarHtml = '';
         if (!isMine) {
@@ -5008,6 +4993,28 @@ function openChat(chatId, otherUid, otherName, otherAvatar){
             </div>
             ${reactionsHtml}
         </div>`;
+
+
+            return `<div class="chat-bubble-wrapper ${isMine?'mine':'theirs'}" data-msgid="${d.id}" 
+            ontouchstart="handleMsgTouchStart('${d.id}', event)" 
+            ontouchmove="handleMsgTouchMove(event)"
+            ontouchend="handleMsgTouchEnd('${d.id}', event)" 
+            ontouchcancel="handleMsgTouchEnd('${d.id}', event)"
+            onmousedown="handleMsgTouchStart('${d.id}', event)" 
+            onmouseup="handleMsgTouchEnd('${d.id}', event)" 
+            onmouseleave="handleMsgTouchEnd('${d.id}', event)"
+            oncontextmenu="event.preventDefault(); return false;"
+            onclick="handleMsgClick('${d.id}')">
+
+            <div class="chat-bubble ${isMine?'mine':'theirs'}" ondblclick="showReactionPicker(event,'${d.id}')">
+            ${senderNameHtml}
+            ${replyHtml}
+            ${content}
+            ${timeAndReceiptHtml}
+            </div>
+            ${reactionsHtml}
+            </div>`;
+        }).join(''); 
         
         list.scrollTop=list.scrollHeight;
         
