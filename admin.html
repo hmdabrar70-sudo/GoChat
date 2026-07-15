@@ -18,12 +18,16 @@
         .btn-danger:hover { background: #bb2d3b; }
         .btn-success { background: #198754; color: white; }
         .btn-success:hover { background: #157347; }
-        .btn-warning { background: #f59e0b; color: white; }
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 50; align-items: center; justify-content: center; }
         .modal.active { display: flex; }
         .toast { position: fixed; bottom: 20px; right: 20px; padding: 12px 20px; border-radius: 8px; color: white; z-index: 100; animation: slideIn 0.3s; }
         @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
-        .post-preview-img { width: 100%; height: 150px; object-fit: cover; border-radius: 8px; margin-top: 8px; }
+        .switch { position: relative; display: inline-block; width: 50px; height: 24px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 34px; }
+        .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: #1877f2; }
+        input:checked + .slider:before { transform: translateX(26px); }
     </style>
 </head>
 <body class="bg-gray-100">
@@ -60,7 +64,6 @@
             <nav class="mt-6 px-4 space-y-2">
                 <a href="#" onclick="showSection('dashboard')" class="sidebar-link active flex items-center gap-3 py-3 px-4 rounded-lg"><i class="fas fa-chart-line w-5"></i> Dashboard</a>
                 <a href="#" onclick="showSection('users')" class="sidebar-link flex items-center gap-3 py-3 px-4 rounded-lg"><i class="fas fa-users w-5"></i> Users Management</a>
-                <a href="#" onclick="showSection('banned')" class="sidebar-link flex items-center gap-3 py-3 px-4 rounded-lg"><i class="fas fa-ban w-5"></i> Banned Users</a>
                 <a href="#" onclick="showSection('reports')" class="sidebar-link flex items-center gap-3 py-3 px-4 rounded-lg"><i class="fas fa-flag w-5"></i> Post Reports</a>
                 <a href="#" onclick="showSection('settings')" class="sidebar-link flex items-center gap-3 py-3 px-4 rounded-lg"><i class="fas fa-cog w-5"></i> System Settings</a>
                 <a href="#" onclick="logout()" class="sidebar-link flex items-center gap-3 py-3 px-4 rounded-lg text-red-500 hover:text-red-600 mt-8"><i class="fas fa-sign-out-alt w-5"></i> Logout</a>
@@ -91,15 +94,6 @@
                 <div id="usersListContainer" class="space-y-4"></div>
             </div>
 
-            <!-- Banned Users Section (NEW) -->
-            <div id="bannedSection" class="section hidden">
-                <h2 class="text-3xl font-bold text-gray-800 mb-6">Banned Users List</h2>
-                <div class="card p-4 mb-6 bg-red-50 border-red-200">
-                    <p class="text-red-600 text-sm"><i class="fas fa-exclamation-circle"></i> These users are currently banned and cannot access the app.</p>
-                </div>
-                <div id="bannedListContainer" class="space-y-4"></div>
-            </div>
-
             <!-- Post Reports Section -->
             <div id="reportsSection" class="section hidden">
                 <h2 class="text-3xl font-bold text-gray-800 mb-6">Post Reports Management</h2>
@@ -122,9 +116,9 @@
                             <h3 class="text-lg font-bold text-gray-800">Maintenance Mode</h3>
                             <p class="text-sm text-gray-500">Turn this on to restrict access to the app for all users except admins.</p>
                         </div>
-                        <label class="switch" style="position: relative; display: inline-block; width: 50px; height: 24px;">
-                            <input type="checkbox" id="maintenanceToggle" onchange="toggleMaintenanceMode()" style="opacity: 0; width: 0; height: 0;">
-                            <span class="slider" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 34px;"></span>
+                        <label class="switch">
+                            <input type="checkbox" id="maintenanceToggle" onchange="toggleMaintenanceMode()">
+                            <span class="slider"></span>
                         </label>
                     </div>
                 </div>
@@ -132,7 +126,14 @@
                 <!-- Global Announcement -->
                 <div class="card p-6">
                     <h3 class="text-lg font-bold text-gray-800 mb-4">Global Announcement</h3>
-                    <textarea id="announcementText" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 mb-4" placeholder="Type a message to show all users..."></textarea>
+                    <div class="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg hidden" id="currentAnnouncementBox">
+                        <p class="text-sm text-blue-800 font-semibold mb-1">Current Active Announcement:</p>
+                        <p id="currentAnnouncementText" class="text-gray-700 italic"></p>
+                        <button onclick="deleteAnnouncement()" class="mt-3 text-xs bg-red-100 text-red-600 px-3 py-1 rounded hover:bg-red-200 font-bold">
+                            <i class="fas fa-trash"></i> Delete Announcement
+                        </button>
+                    </div>
+                    <textarea id="announcementText" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 mb-4" placeholder="Type a new message to show all users..."></textarea>
                     <button onclick="sendAnnouncement()" class="btn-primary px-6 py-2 rounded-lg">Send Announcement</button>
                 </div>
             </div>
@@ -170,7 +171,7 @@
         const auth = firebase.auth();
         const db = firebase.firestore();
         let allUsers = []; 
-        const MASTER_KEY = "sabbir@hm@d"; 
+        const MASTER_KEY = "admin123"; 
 
         // ===== AUTH LOGIC =====
         function signInWithGoogle() {
@@ -213,12 +214,11 @@
 
         function filterUsers() {
             const term = document.getElementById('searchInput').value.toLowerCase();
-            // Show only active users in main list
             const filtered = allUsers.filter(u => !u.isBanned && (u.name?.toLowerCase().includes(term) || u.id.includes(term)));
             renderUserList(filtered, 'usersListContainer', false);
         }
 
-        function renderUserList(users, containerId, isBannedView) {
+        function renderUserList(users, containerId, isBanned) {
             const c = document.getElementById(containerId);
             if (!users.length) { c.innerHTML = '<div class="text-center text-gray-500 py-8">No users found.</div>'; return; }
             
@@ -233,9 +233,8 @@
                         </div>
                     </div>
                     <div class="flex gap-2">
-                        ${!isBannedView ? 
-                            `<button onclick="openUserPosts('${u.id}', '${u.name}')" class="bg-purple-100 text-purple-600 px-3 py-1 rounded text-sm hover:bg-purple-200"><i class="fas fa-images"></i> Posts</button>
-                             <button onclick="openVerifyModal('${u.id}', '${u.name}', ${u.isVerified || false})" class="bg-blue-100 text-blue-600 px-3 py-1 rounded text-sm hover:bg-blue-200"><i class="fas fa-badge-check"></i> ${u.isVerified ? 'Unverify' : 'Verify'}</button>
+                        ${!isBanned ? 
+                            `<button onclick="openVerifyModal('${u.id}', '${u.name}', ${u.isVerified || false})" class="bg-blue-100 text-blue-600 px-3 py-1 rounded text-sm hover:bg-blue-200"><i class="fas fa-badge-check"></i> ${u.isVerified ? 'Unverify' : 'Verify'}</button>
                              <button onclick="openBanModal('${u.id}', '${u.email}')" class="btn-danger px-3 py-1 rounded text-sm"><i class="fas fa-ban"></i> Ban</button>` 
                             : 
                             `<button onclick="openUnbanModal('${u.id}', '${u.email}')" class="btn-success px-3 py-1 rounded text-sm"><i class="fas fa-check"></i> Unban</button>
@@ -254,70 +253,138 @@
             document.getElementById('statBannedUsers').innerText = banned;
         }
 
-        // ===== NEW FEATURE: BANNED USERS LIST =====
-        function loadBannedUsers() {
-            const bannedUsers = allUsers.filter(u => u.isBanned === true);
-            renderUserList(bannedUsers, 'bannedListContainer', true);
+        // ===== SYSTEM SETTINGS & ANNOUNCEMENT LOGIC =====
+        function loadSystemSettings() {
+            // Load Maintenance Mode
+            db.collection('system').doc('settings').get().then(doc => {
+                if (doc.exists) {
+                    document.getElementById('maintenanceToggle').checked = doc.data().maintenanceMode || false;
+                }
+            });
+            
+            // Load Announcement
+            db.collection('system').doc('announcement').get().then(doc => {
+                if (doc.exists && doc.data().message) {
+                    document.getElementById('announcementText').value = doc.data().message;
+                    document.getElementById('currentAnnouncementBox').classList.remove('hidden');
+                    document.getElementById('currentAnnouncementText').innerText = doc.data().message;
+                } else {
+                    document.getElementById('currentAnnouncementBox').classList.add('hidden');
+                    document.getElementById('announcementText').value = '';
+                }
+            });
         }
 
-        // ===== NEW FEATURE: USER POSTS MANAGEMENT =====
-        async function openUserPosts(uid, userName) {
-            document.getElementById('modalTitle').innerText = `Manage Posts: ${userName}`;
-            document.getElementById('modalBody').innerHTML = '<div class="text-center py-4"><i class="fas fa-spinner fa-spin"></i> Loading posts...</div>';
-            document.getElementById('actionModal').classList.add('active');
+        function toggleMaintenanceMode() {
+            const isEnabled = document.getElementById('maintenanceToggle').checked;
+            db.collection('system').doc('settings').set({
+                maintenanceMode: isEnabled,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            }, { merge: true }).then(() => {
+                showToast(isEnabled ? "Maintenance Mode ON" : "Maintenance Mode OFF", "success");
+            });
+        }
+
+        function sendAnnouncement() {
+            const msg = document.getElementById('announcementText').value.trim();
+            if(!msg) return showToast("Message cannot be empty", "error");
             
-            try {
-                const snap = await db.collection('posts').where('uid', '==', uid).orderBy('createdAt', 'desc').get();
-                if (snap.empty) {
-                    document.getElementById('modalBody').innerHTML = '<div class="text-center text-gray-500 py-4">No posts found for this user.</div>';
+            db.collection('system').doc('announcement').set({
+                message: msg,
+                sentAt: firebase.firestore.FieldValue.serverTimestamp()
+            }).then(() => {
+                showToast("Announcement sent to all users!", "success");
+                loadSystemSettings(); // Refresh UI to show delete button
+            });
+        }
+
+        // NEW: Delete Announcement Function
+        function deleteAnnouncement() {
+            if(!confirm("Are you sure you want to delete this announcement? Users will no longer see it.")) return;
+            
+            db.collection('system').doc('announcement').delete().then(() => {
+                document.getElementById('announcementText').value = '';
+                document.getElementById('currentAnnouncementBox').classList.add('hidden');
+                showToast("Announcement deleted successfully!", "success");
+            }).catch(e => {
+                showToast("Error deleting announcement", "error");
+            });
+        }
+
+        // ===== POST REPORT MANAGEMENT =====
+        function loadReports() {
+            const container = document.getElementById('reportsListContainer');
+            container.innerHTML = '<div class="text-center py-4"><i class="fas fa-spinner fa-spin"></i> Loading reports...</div>';
+            
+            db.collection('reports').orderBy('createdAt', 'desc').get().then(snap => {
+                if(snap.empty) {
+                    container.innerHTML = '<div class="text-center text-gray-500 py-8">No reports found.</div>';
                     return;
                 }
                 
-                let html = '<div class="space-y-4 max-h-96 overflow-y-auto pr-2">';
+                let html = '';
                 snap.forEach(doc => {
-                    const p = doc.data();
-                    const safeTitle = escapeHTML(p.title || 'No caption');
-                    const imgUrl = p.imgUrls ? p.imgUrls[0] : (p.imgUrl || '');
-                    
+                    const r = doc.data();
                     html += `
-                        <div class="border border-gray-200 rounded-lg p-3 flex gap-3 bg-gray-50">
-                            <div class="w-20 h-20 flex-shrink-0 bg-gray-200 rounded overflow-hidden">
-                                ${imgUrl ? `<img src="${escapeHTML(imgUrl)}" class="w-full h-full object-cover">` : '<div class="flex items-center justify-center h-full text-gray-400"><i class="fas fa-image"></i></div>'}
-                            </div>
-                            <div class="flex-1 min-w-0">
-                                <p class="text-sm font-semibold text-gray-800 truncate">${safeTitle}</p>
-                                <p class="text-xs text-gray-500 mt-1">Likes: ${p.likes || 0} • Comments: ${(p.comments || []).length}</p>
-                                <button onclick="deletePostById('${doc.id}')" class="mt-2 text-xs bg-red-100 text-red-600 px-2 py-1 rounded hover:bg-red-200">
-                                    <i class="fas fa-trash"></i> Delete Post
-                                </button>
+                        <div class="card p-4 border-l-4 border-yellow-500">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <h4 class="font-bold text-gray-800">Reported Post ID: ${r.postId}</h4>
+                                    <p class="text-sm text-gray-600">Reason: <span class="font-semibold text-red-500">${r.reason || 'Not specified'}</span></p>
+                                    <p class="text-xs text-gray-400">Reported by: ${r.reportedBy || 'Anonymous'} • ${new Date(r.createdAt?.seconds * 1000).toLocaleString()}</p>
+                                </div>
+                                <div class="flex gap-2">
+                                    <button onclick="deleteReportedPost('${r.postId}', '${doc.id}')" class="btn-danger px-3 py-1 rounded text-sm">Delete Post</button>
+                                    <button onclick="dismissReport('${doc.id}')" class="bg-gray-200 text-gray-700 px-3 py-1 rounded text-sm">Dismiss</button>
+                                </div>
                             </div>
                         </div>
                     `;
                 });
-                html += '</div>';
-                document.getElementById('modalBody').innerHTML = html;
-            } catch (e) {
-                document.getElementById('modalBody').innerHTML = '<div class="text-red-500 text-center">Error loading posts.</div>';
-            }
+                container.innerHTML = html;
+            });
         }
 
-        async function deletePostById(postId) {
+        function deleteReportedPost(postId, reportId) {
             if(!confirm("Are you sure you want to delete this post?")) return;
-            try {
-                await db.collection('posts').doc(postId).delete();
+            
+            db.collection('posts').doc(postId).delete().then(() => {
+                db.collection('reports').doc(reportId).delete();
                 showToast("Post deleted successfully", "success");
-                // Reload the modal content to reflect changes
-                const title = document.getElementById('modalTitle').innerText;
-                const uid = title.split(': ')[1]; // Extract UID from title if needed, or pass it differently
-                // For simplicity, we just close and let admin reopen, or we could reload logic here.
-                // Let's just remove the element from DOM for smooth UX
-                event.target.closest('.border').remove();
-            } catch (e) {
-                showToast("Error deleting post", "error");
-            }
+                loadReports();
+            }).catch(e => showToast("Error: " + e.message, "error"));
         }
 
-        // ===== BAN/UNBAN LOGIC =====
+        function dismissReport(reportId) {
+            db.collection('reports').doc(reportId).delete().then(() => {
+                showToast("Report dismissed", "success");
+                loadReports();
+            });
+        }
+
+        // ===== VERIFICATION BADGE MANAGEMENT =====
+        function openVerifyModal(uid, name, isVerified) {
+            const action = isVerified ? 'Remove' : 'Add';
+            document.getElementById('modalTitle').innerText = `${action} Verification Badge`;
+            document.getElementById('modalBody').innerHTML = `
+                <p>Do you want to ${isVerified ? 'remove' : 'grant'} the verified badge for <strong>${name}</strong>?</p>
+                <p class="text-sm text-gray-500 mt-2">This will ${isVerified ? 'hide' : 'show'} the blue tick icon next to their name in the app.</p>
+            `;
+            document.getElementById('confirmBtn').onclick = () => performVerify(uid, !isVerified);
+            document.getElementById('actionModal').classList.add('active');
+        }
+
+        function performVerify(uid, setVerified) {
+            db.collection('users').doc(uid).update({
+                isVerified: setVerified
+            }).then(() => {
+                closeModal();
+                showToast(setVerified ? "User Verified!" : "Verification Removed (Unverified)", "success");
+                loadUsersData();
+            }).catch(e => showToast("Error: " + e.message, "error"));
+        }
+
+        // ===== BAN/UNBAN/DELETE LOGIC =====
         function openBanModal(uid, email) {
             document.getElementById('modalTitle').innerText = "Ban User";
             document.getElementById('modalBody').innerHTML = `<p>Ban <strong>${email}</strong>?</p><textarea id="banReason" class="w-full border p-2 mt-2 rounded" placeholder="Reason..."></textarea>`;
@@ -344,9 +411,7 @@
             try {
                 await db.collection('users').doc(uid).update({ isBanned: false });
                 if(email) await db.collection('banned_emails').doc(email).delete();
-                closeModal(); showToast("User unbanned successfully!", "success"); 
-                loadUsersData(); // Refresh main list
-                loadBannedUsers(); // Refresh banned list if visible
+                closeModal(); showToast("User unbanned successfully!", "success"); loadUsersData();
             } catch (e) { showToast("Error: " + e.message, "error"); }
         }
 
@@ -370,93 +435,12 @@
             } catch (e) { showToast("Error: " + e.message, "error"); }
         }
 
-        // ===== OTHER FEATURES (Reports, Settings, etc.) =====
-        function loadSystemSettings() {
-            db.collection('system').doc('settings').get().then(doc => {
-                if (doc.exists) document.getElementById('maintenanceToggle').checked = doc.data().maintenanceMode || false;
-            });
-            db.collection('system').doc('announcement').get().then(doc => {
-                if (doc.exists) document.getElementById('announcementText').value = doc.data().message || '';
-            });
-        }
-
-        function toggleMaintenanceMode() {
-            const isEnabled = document.getElementById('maintenanceToggle').checked;
-            db.collection('system').doc('settings').set({ maintenanceMode: isEnabled }, { merge: true }).then(() => {
-                showToast(isEnabled ? "Maintenance Mode ON" : "Maintenance Mode OFF", "success");
-            });
-        }
-
-        function sendAnnouncement() {
-            const msg = document.getElementById('announcementText').value.trim();
-            if(!msg) return showToast("Message cannot be empty", "error");
-            db.collection('system').doc('announcement').set({ message: msg }, { merge: true }).then(() => {
-                showToast("Announcement sent!", "success");
-            });
-        }
-
-        function loadReports() {
-            const container = document.getElementById('reportsListContainer');
-            container.innerHTML = '<div class="text-center py-4"><i class="fas fa-spinner fa-spin"></i> Loading reports...</div>';
-            db.collection('reports').orderBy('createdAt', 'desc').get().then(snap => {
-                if(snap.empty) { container.innerHTML = '<div class="text-center text-gray-500 py-8">No reports found.</div>'; return; }
-                let html = '';
-                snap.forEach(doc => {
-                    const r = doc.data();
-                    html += `
-                        <div class="card p-4 border-l-4 border-yellow-500">
-                            <div class="flex justify-between items-start">
-                                <div>
-                                    <h4 class="font-bold text-gray-800">Reported Post ID: ${r.postId}</h4>
-                                    <p class="text-sm text-gray-600">Reason: <span class="font-semibold text-red-500">${r.reason || 'Not specified'}</span></p>
-                                </div>
-                                <div class="flex gap-2">
-                                    <button onclick="deleteReportedPost('${r.postId}', '${doc.id}')" class="btn-danger px-3 py-1 rounded text-sm">Delete Post</button>
-                                    <button onclick="dismissReport('${doc.id}')" class="bg-gray-200 text-gray-700 px-3 py-1 rounded text-sm">Dismiss</button>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                });
-                container.innerHTML = html;
-            });
-        }
-
-        function deleteReportedPost(postId, reportId) {
-            if(!confirm("Delete this post?")) return;
-            db.collection('posts').doc(postId).delete().then(() => {
-                db.collection('reports').doc(reportId).delete();
-                showToast("Post deleted", "success"); loadReports();
-            });
-        }
-
-        function dismissReport(reportId) {
-            db.collection('reports').doc(reportId).delete().then(() => {
-                showToast("Report dismissed", "success"); loadReports();
-            });
-        }
-
-        function openVerifyModal(uid, name, isVerified) {
-            const action = isVerified ? 'Remove' : 'Add';
-            document.getElementById('modalTitle').innerText = `${action} Verification Badge`;
-            document.getElementById('modalBody').innerHTML = `<p>Do you want to ${isVerified ? 'remove' : 'grant'} the verified badge for <strong>${name}</strong>?</p>`;
-            document.getElementById('confirmBtn').onclick = () => performVerify(uid, !isVerified);
-            document.getElementById('actionModal').classList.add('active');
-        }
-
-        function performVerify(uid, setVerified) {
-            db.collection('users').doc(uid).update({ isVerified: setVerified }).then(() => {
-                closeModal(); showToast(setVerified ? "User Verified!" : "Unverified", "success"); loadUsersData();
-            });
-        }
-
         // ===== UI UTILS =====
         function showSection(id) {
             document.querySelectorAll('.section').forEach(el => el.classList.add('hidden'));
             document.getElementById(id + 'Section').classList.remove('hidden');
             document.querySelectorAll('.sidebar-link').forEach(el => el.classList.remove('active'));
             event.currentTarget.classList.add('active');
-            if(id === 'banned') loadBannedUsers();
             if(id === 'reports') loadReports();
         }
         function closeModal() { document.getElementById('actionModal').classList.remove('active'); }
@@ -467,7 +451,6 @@
             document.body.appendChild(t);
             setTimeout(() => t.remove(), 3000);
         }
-        function escapeHTML(str){ return str ? String(str).replace(/[&<>"']/g, function(m){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]; }) : ''; }
     </script>
 </body>
 </html>
