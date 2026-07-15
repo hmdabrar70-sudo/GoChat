@@ -2729,9 +2729,36 @@ body:not(.light-mode) #splash-screen {
             </button>
         </div>
         
+        <!-- 🚀 Wallpaper Button -->
+        <button class="btn-outline" onclick="openWallpaperPicker()" style="margin:0 0 12px 0; width: 100%; border-radius: 16px; padding: 12px; font-size: 14px; border: none; background: var(--surface-2); color: var(--text);">
+            <span class="material-symbols-outlined">wallpaper</span> Wallpaper
+        </button>
+
         <button class="btn-primary" onclick="clearChatFromQP()" style="margin:0; width: 100%; border-radius: 16px; padding: 14px; font-size: 15px; background: rgba(255, 77, 106, 0.1); color: var(--danger); box-shadow: none;">
             <span class="material-symbols-outlined">mop</span> Clear Chat
         </button>
+    </div>
+</div>
+
+<!-- 🚀 Wallpaper Color Picker Modal -->
+<div class="modal-overlay" id="wallpaper-modal" style="z-index: 100001; align-items: flex-end;" onclick="if(event.target===this) closeWallpaperPicker()">
+    <div class="modal-box" style="margin-top:auto; border-radius: 24px 24px 0 0; padding:24px 20px; width: 100%; text-align: center; background: var(--surface);">
+        <div style="font-weight: 800; font-size: 18px; margin-bottom: 15px; color: var(--text);">Chat Wallpaper</div>
+        <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px;">Choose a background for this chat. Only you will see it.</p>
+        
+        <div class="bg-color-picker show" style="display:flex; flex-wrap: wrap; justify-content: center; gap: 12px; padding: 10px 0; background:transparent;">
+            <div class="color-circle" style="background: var(--bg); border: 2px solid var(--border);" onclick="setChatWallpaper('default')"></div>
+            <div class="color-circle" style="background: #1a1a2e;" onclick="setChatWallpaper('#1a1a2e')"></div>
+            <div class="color-circle" style="background: #0f172a;" onclick="setChatWallpaper('#0f172a')"></div>
+            <div class="color-circle" style="background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);" onclick="setChatWallpaper('linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%)')"></div>
+            <div class="color-circle" style="background: linear-gradient(120deg, #a1c4fd 0%, #c2e9fb 100%);" onclick="setChatWallpaper('linear-gradient(120deg, #a1c4fd 0%, #c2e9fb 100%)')"></div>
+            <div class="color-circle" style="background: linear-gradient(to right, #43e97b 0%, #38f9d7 100%);" onclick="setChatWallpaper('linear-gradient(to right, #43e97b 0%, #38f9d7 100%)')"></div>
+            <div class="color-circle" style="background: linear-gradient(to right, #fa709a 0%, #fee140 100%);" onclick="setChatWallpaper('linear-gradient(to right, #fa709a 0%, #fee140 100%)')"></div>
+            <div class="color-circle" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);" onclick="setChatWallpaper('linear-gradient(135deg, #667eea 0%, #764ba2 100%)')"></div>
+            <div class="color-circle" style="background: linear-gradient(to right, #0f2027, #203a43, #2c5364);" onclick="setChatWallpaper('linear-gradient(to right, #0f2027, #203a43, #2c5364)')"></div>
+        </div>
+        
+        <button class="btn-outline" onclick="closeWallpaperPicker()" style="width:100%; margin-top: 20px; border:none; background: var(--surface-2); color: var(--text);">Cancel</button>
     </div>
 </div>
 
@@ -4736,6 +4763,14 @@ function openChat(chatId, otherUid, otherName, otherAvatar){
     
     setupTypingIndicator(chatId, otherUid);
     
+        // 🚀 Chat Wallpaper Set Logic
+    const chatMessagesEl = document.getElementById('chat-messages');
+    if (currentUserData.chatWallpapers && currentUserData.chatWallpapers[chatId]) {
+        chatMessagesEl.style.background = currentUserData.chatWallpapers[chatId];
+    } else {
+        chatMessagesEl.style.background = ''; // ডিফল্ট ব্যাকগ্রাউন্ড
+    }
+
     if(chatUnsub)chatUnsub();
     chatUnsub=db.collection('chats').doc(chatId).collection('messages').orderBy('createdAt').onSnapshot(snap=>{
         const list=document.getElementById('chat-messages');
@@ -8258,6 +8293,48 @@ async function unsavePost(postId) {
         console.error("Error unsaving post:", e);
         showToast("Failed to remove post.");
     }
+}
+// ==========================================
+// 🚀 CHAT WALLPAPER SYSTEM LOGIC
+// ==========================================
+function openWallpaperPicker() {
+    closeQuickProfile(); // আগের পপআপটা বন্ধ করবে
+    document.getElementById('wallpaper-modal').classList.add('open');
+}
+
+function closeWallpaperPicker() {
+    document.getElementById('wallpaper-modal').classList.remove('open');
+}
+
+async function setChatWallpaper(color) {
+    if (!currentUser || !currentChatId) return;
+
+    // ১. লোকাল ডাটা আপডেট
+    if (!currentUserData.chatWallpapers) currentUserData.chatWallpapers = {};
+    currentUserData.chatWallpapers[currentChatId] = color;
+
+    // ২. UI তে সাথে সাথেই কালার পাল্টে যাবে (পেজ রিফ্রেশ ছাড়াই)
+    const chatMessagesEl = document.getElementById('chat-messages');
+    if (color === 'default') {
+        chatMessagesEl.style.background = '';
+    } else {
+        chatMessagesEl.style.background = color;
+    }
+
+    // ৩. ফায়ারবেস ডাটাবেসে সেভ করা (যাতে শুধু এই ইউজারের কাছেই থাকে)
+    try {
+        await db.collection('users').doc(currentUser.uid).set({
+            chatWallpapers: {
+                [currentChatId]: color === 'default' ? firebase.firestore.FieldValue.delete() : color
+            }
+        }, { merge: true });
+        
+        showToast("Wallpaper updated!");
+    } catch(e) {
+        showToast("Failed to update wallpaper");
+    }
+    
+    closeWallpaperPicker(); // মডাল বন্ধ করা
 }
 </script>
 </body>
