@@ -4839,22 +4839,38 @@ function openChat(chatId, otherUid, otherName, otherAvatar){
         
     const safeName=escapeHTML(otherName);
     
-    // --- আপডেট: প্রোফাইল পিকচার ও অনলাইন স্ট্যাটাস হ্যান্ডলিং (ভেরিফাইড ব্যাজ রিমুভড) ---
-        const chatAvatarEl = document.getElementById('chat-avatar');
-    const otherUser = allUsersCache ? allUsersCache.find(u => u.id === otherUid) : null;
-    // 🚀 স্মার্ট চেক: চ্যাট ওপেন করলে যেন অফলাইন দেখায় যদি সেটিং অফ থাকে
-    const isOnline = otherUser && otherUser.online === true && otherUser.showActiveStatus !== false && otherUid !== 'group';
-    const onlineIndicator = isOnline ? '<div class="online-dot" style="bottom: 0px; right: 0px; border: 2px solid var(--surface);"></div>' : '';
+     // --- 🚀 আপডেট ১: হেডারের লাইভ প্রোফাইল পিকচার ফিক্স ---
+    const chatAvatarEl = document.getElementById('chat-avatar');
+    let finalOtherName = otherName;
+    let finalOtherAvatar = otherAvatar;
 
-    if (otherAvatar && otherAvatar !== 'undefined' && otherAvatar !== '') {
-        chatAvatarEl.innerHTML = `<img src="${escapeHTML(otherAvatar)}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">${onlineIndicator}`;
+    if (otherUid === 'group') {
+        db.collection('chats').doc(chatId).get().then(doc => {
+            if (doc.exists) {
+                const gName = doc.data().groupName || 'Group Chat';
+                const gAv = doc.data().groupAvatar || '';
+                document.getElementById('chat-name-display').textContent = gName;
+                chatAvatarEl.innerHTML = gAv ? `<img src="${escapeHTML(gAv)}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">` : `<div style="width:100%;height:100%;background:var(--gradient-orange);color:white;display:flex;align-items:center;justify-content:center;border-radius:50%;"><span class="material-symbols-outlined" style="font-size: 20px;">groups</span></div>`;
+            }
+        });
     } else {
-        // যদি ছবি না থাকে, তবে নামের প্রথম অক্ষর দিয়ে অবতার তৈরি হবে
-        chatAvatarEl.innerHTML = `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:var(--gradient);color:#fff;font-weight:bold;border-radius:50%;">${avatarInitial(otherName)}</div>${onlineIndicator}`;
+        const liveUser = allUsersCache ? allUsersCache.find(u => u.id === otherUid) : null;
+        if (liveUser) {
+            finalOtherName = liveUser.name || finalOtherName;
+            finalOtherAvatar = liveUser.avatar || '';
+        }
+        
+        document.getElementById('chat-name-display').textContent = finalOtherName;
+        const isOnline = liveUser && liveUser.online === true && liveUser.showActiveStatus !== false;
+        const onlineIndicator = isOnline ? '<div class="online-dot" style="bottom: 0px; right: 0px; border: 2px solid var(--surface);"></div>' : '';
+
+        if (finalOtherAvatar && finalOtherAvatar !== 'undefined' && finalOtherAvatar !== '') {
+            chatAvatarEl.innerHTML = `<img src="${escapeHTML(finalOtherAvatar)}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">${onlineIndicator}`;
+        } else {
+            chatAvatarEl.innerHTML = `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:var(--gradient);color:#fff;font-weight:bold;font-size:16px;border-radius:50%;">${avatarInitial(finalOtherName)}</div>${onlineIndicator}`;
+        }
     }
-    
-    // নামের পাশে ভেরিফাইড ব্যাজ আর থাকবে না
-    document.getElementById('chat-name-display').innerHTML = safeName;
+
     
     setupTypingIndicator(chatId, otherUid);
     
@@ -4961,15 +4977,37 @@ function openChat(chatId, otherUid, otherName, otherAvatar){
             oncontextmenu="event.preventDefault(); return false;"
             onclick="handleMsgClick('${d.id}')">
 
-            <div class="chat-bubble ${isMine?'mine':'theirs'}" ondblclick="showReactionPicker(event,'${d.id}')">
-            ${senderNameHtml}
-            ${replyHtml}
-            ${content}
-            ${timeAndReceiptHtml}
+                    // 🚀 আপডেট ২: Message Bubble Avatar Fix
+        let msgAvatarHtml = '';
+        if (!isMine) {
+            let sAv = finalOtherAvatar;
+            let sNm = finalOtherName;
+            if (otherUid === 'group') {
+                const sUser = allUsersCache ? allUsersCache.find(u => u.id === m.sender) : null;
+                sAv = sUser ? sUser.avatar : '';
+                sNm = sUser ? sUser.name : (m.senderName || '?');
+            }
+            if (sAv && sAv !== 'undefined' && sAv !== '') {
+                msgAvatarHtml = `<div class="avatar sm" style="align-self: flex-end; margin-right: 8px; flex-shrink:0;"><img src="${escapeHTML(sAv)}"></div>`;
+            } else {
+                msgAvatarHtml = `<div class="avatar sm" style="align-self: flex-end; margin-right: 8px; flex-shrink:0; font-size:12px; background:var(--surface-2); color:var(--text); border:1px solid var(--border);">${avatarInitial(sNm)}</div>`;
+            }
+        }
+
+        if (m.deletedFor && m.deletedFor.includes(currentUser.uid)) { return ''; }
+
+        return `<div class="chat-bubble-wrapper ${isMine?'mine':'theirs'}" data-msgid="${d.id}" ontouchstart="handleMsgTouchStart('${d.id}', event)" ontouchmove="handleMsgTouchMove(event)" ontouchend="handleMsgTouchEnd('${d.id}', event)" ontouchcancel="handleMsgTouchEnd('${d.id}', event)" onmousedown="handleMsgTouchStart('${d.id}', event)" onmouseup="handleMsgTouchEnd('${d.id}', event)" onmouseleave="handleMsgTouchEnd('${d.id}', event)" oncontextmenu="event.preventDefault(); return false;" onclick="handleMsgClick('${d.id}')">
+            <div style="display:flex; flex-direction:row; align-items:flex-end; width:100%; ${isMine?'justify-content:flex-end;':''}">
+                ${!isMine ? msgAvatarHtml : ''}
+                <div class="chat-bubble ${isMine?'mine':'theirs'}" ondblclick="showReactionPicker(event,'${d.id}')">
+                    ${senderNameHtml}
+                    ${replyHtml}
+                    ${content}
+                    ${timeAndReceiptHtml}
+                </div>
             </div>
             ${reactionsHtml}
-            </div>`;
-        }).join(''); 
+        </div>`;
         
         list.scrollTop=list.scrollHeight;
         
