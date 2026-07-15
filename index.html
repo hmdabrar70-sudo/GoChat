@@ -4932,17 +4932,18 @@ function openChat(chatId, otherUid, otherName, otherAvatar){
                 let repName = m.replySender ? escapeHTML(m.replySender) : 'Someone';
                 let repText = m.replyText ? escapeHTML(m.replyText) : 'Replying to a message';
                 if(repText.length > 50) repText = repText.substring(0, 50) + '...';
-                         // নিজের এবং অন্যের মেসেজের জন্য আলাদা ডিজাইন
-                        let repBg = isMine ? 'rgba(0,0,0,0.25)' : 'var(--surface-2)';
-                        let borderCol = isMine ? 'rgba(255,255,255,0.8)' : 'var(--accent)';
-                        let nameCol = isMine ? '#fff' : 'var(--accent)';
-                        let textCol = isMine ? 'rgba(255,255,255,0.8)' : 'var(--text-secondary)';
+// নিজের এবং অন্যের মেসেজের জন্য আলাদা ডিজাইন
+let repBg = isMine ? 'rgba(0,0,0,0.25)' : 'var(--surface-2)';
+let borderCol = isMine ? 'rgba(255,255,255,0.8)' : 'var(--accent)';
+let nameCol = isMine ? '#fff' : 'var(--accent)';
+let textCol = isMine ? 'rgba(255,255,255,0.8)' : 'var(--text-secondary)';
 
-                        replyHtml=`<div onclick="scrollToMessage('${m.replyTo}')" style="cursor:pointer; opacity:0.95; margin-bottom:8px; padding:8px 10px; background:${repBg}; border-radius:8px; border-left:3px solid ${borderCol}; display:flex; flex-direction:column; box-shadow: 0 2px 4px rgba(0,0,0,0.1); width: 100%; box-sizing: border-box; overflow: hidden;">
-                            <div style="color:${nameCol}; font-size:11px; font-weight:bold; margin-bottom:3px; letter-spacing:0.3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; width:100%;">${repName}</div>
-                            <div style="font-size:13px; color:${textCol}; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; word-break:break-word; white-space:normal; width:100%;">${repText}</div>
-                        </div>`;           
-            }
+replyHtml = `
+    <div onclick="scrollToMessage('${m.replyTo}')" style="cursor:pointer; opacity:0.95; margin-bottom:8px; padding:8px 10px; background:${repBg}; border-radius:8px; border-left:3px solid ${borderCol}; display:flex; flex-direction:column; box-shadow: 0 2px 4px rgba(0,0,0,0.1); width: 100%; box-sizing: border-box; overflow: hidden;">
+        <div style="color:${nameCol}; font-size:11px; font-weight:bold; margin-bottom:3px; letter-spacing:0.3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; width:100%;">${repName}</div>
+        <div style="font-size:13px; color:${textCol}; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; word-break:break-word; white-space:normal; width:100%;">${repText}</div>
+    </div>`;
+      }
 
             let timeString = 'Sending...';
             if (m.createdAt) {
@@ -5214,19 +5215,18 @@ async function replyToMessage(msgId) {
             let shortText = replyToMsgData.text ? escapeHTML(replyToMsgData.text) : '📷 Photo';
             if(shortText.length > 50) shortText = shortText.substring(0, 50) + '...';
             
-                                                    const container = document.getElementById('reply-preview-container');
-                    container.innerHTML = `
-                        <div class="reply-preview" style="display:flex; justify-content:space-between; align-items:center; background:var(--surface-2); padding:10px 14px; border-left:4px solid var(--accent); border-radius:12px; margin-bottom:8px; width:100%; border: 1px solid var(--border); box-sizing: border-box; overflow: hidden;">
-                            <div style="display:flex; flex-direction:column; overflow:hidden; flex:1; padding-right:10px;">
-                                <div style="font-size:12px; font-weight:800; color:var(--accent); margin-bottom:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; width:100%;">Replying to ${escapeHTML(replyToMsgData.senderName || 'User')}</div>
-                                <div style="font-size:13px; color:var(--text-secondary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; width:100%;">${shortText}</div>
-                            </div>
-                            <div onclick="cancelReply()" style="cursor:pointer; color:var(--text-muted); background:rgba(0,0,0,0.2); width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
-                                <span class="material-symbols-outlined" style="font-size:16px;">close</span>
-                            </div>
-                        </div>
-                    `;
-
+            const container = document.getElementById('reply-preview-container');
+container.innerHTML = `
+    <div class="reply-preview" style="display:flex; justify-content:space-between; align-items:center; background:var(--surface-2); padding:10px 14px; border-left:4px solid var(--accent); border-radius:12px; margin-bottom:8px; width:100%; border: 1px solid var(--border); box-sizing: border-box; overflow: hidden;">
+        <div style="display:flex; flex-direction:column; overflow:hidden; flex:1; min-width:0; padding-right:10px;">
+            <div style="font-size:12px; font-weight:800; color:var(--accent); margin-bottom:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; width:100%;">Replying to ${escapeHTML(replyToMsgData.senderName || 'User')}</div>
+            <div style="font-size:13px; color:var(--text-secondary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; width:100%;">${shortText}</div>
+        </div>
+        <div onclick="cancelReply()" style="cursor:pointer; color:var(--text-muted); background:rgba(0,0,0,0.2); width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+            <span class="material-symbols-outlined" style="font-size:16px;">close</span>
+        </div>
+    </div>
+`;
             input.placeholder = 'Reply to ' + (replyToMsgData.senderName || 'User') + '...';
         }
     } catch(e) { console.error(e); }
