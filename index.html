@@ -2496,6 +2496,15 @@ body:not(.light-mode) #splash-screen {
                 </div>
                 <div id="active-status-toggle" class="toggle-switch success"></div>
             </div>
+            
+                        <div class="settings-list-item" onclick="toggleMessageSound()">
+                <div style="display:flex; align-items:center; gap:16px;">
+                    <span class="material-symbols-outlined" style="font-size: 22px; color: #3b82f6;">volume_up</span>
+                    <span style="font-weight:600; font-size:14px;">Message Sound</span>
+                </div>
+                <div id="message-sound-toggle" class="toggle-switch"></div>
+            </div>
+
             <div class="settings-list-item" onclick="closeMainMenu(); openGallery();">
                 <div style="display:flex; align-items:center; gap:16px;">
                     <span class="material-symbols-outlined" style="font-size: 22px; color: #3b82f6;">photo_library</span>
@@ -3510,6 +3519,10 @@ if(onlineStatusInterval)clearInterval(onlineStatusInterval);
 // নতুন মেইন মেনু ওপেন এবং ক্লোজ করার লজিক
 function openMainMenu() {
     document.getElementById('main-menu-screen').style.display = 'flex';
+    // 🚀 মেনু ওপেন হলে সব সুইচের স্টেট আপডেট করে দেবে
+    if (typeof updatePrivateAccountUI === 'function') updatePrivateAccountUI();
+    if (typeof updateActiveStatusUI === 'function') updateActiveStatusUI();
+    if (typeof updateMessageSoundUI === 'function') updateMessageSoundUI();
 }
 
 function closeMainMenu() {
@@ -5107,7 +5120,9 @@ function showInAppMessageNotification(chatId, data) {
     const container = document.getElementById('in-app-notif-container');
     if (!container) return;
 
-    notifSound.play().catch(e => console.log('Sound blocked until user interaction'));
+     if (currentUserData && currentUserData.messageSound !== false) {
+        notifSound.play().catch(e => console.log('Sound blocked until user interaction'));
+    }
 
     const popup = document.createElement('div');
     popup.className = 'msg-popup';
@@ -8108,6 +8123,38 @@ function updatePrivateAccountUI() {
     const toggleEl = document.getElementById('private-account-toggle');
     if (toggleEl) {
         const isOn = (currentUserData.isPrivate === true);
+        if (isOn) {
+            toggleEl.classList.add('active');
+        } else {
+            toggleEl.classList.remove('active');
+        }
+    }
+}
+// === 🚀 Message Sound Toggle Logic ===
+async function toggleMessageSound() {
+    if (!currentUser) return;
+    
+    // ডিফল্টভাবে সাউন্ড ON থাকে, তাই undefined হলে true ধরবো
+    const currentStatus = currentUserData.messageSound !== false; 
+    const newStatus = !currentStatus;
+    
+    // ডাটাবেসে আপডেট
+    await db.collection('users').doc(currentUser.uid).update({
+        messageSound: newStatus
+    });
+    
+    // লোকাল ডাটা আপডেট
+    currentUserData.messageSound = newStatus;
+    
+    // UI আপডেট
+    updateMessageSoundUI();
+    showToast(`Message Sound is now ${newStatus ? 'ON' : 'OFF'}`);
+}
+
+function updateMessageSoundUI() {
+    const toggleEl = document.getElementById('message-sound-toggle');
+    if (toggleEl) {
+        const isOn = (currentUserData.messageSound !== false); // ডিফল্ট ON
         if (isOn) {
             toggleEl.classList.add('active');
         } else {
