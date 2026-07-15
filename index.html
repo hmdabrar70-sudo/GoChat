@@ -2003,7 +2003,9 @@ body:not(.light-mode) #splash-screen {
         </div>
         
         <div class="nav-item" onclick="event.stopPropagation();toggleFabMenu()">
-            <span class="material-symbols-outlined" style="font-size: 28px; color: var(--text);">add_box</span>
+            <div style="width: 32px; height: 32px; border: 2px solid var(--text); border-radius: 10px; display: flex; align-items: center; justify-content: center; transition: transform 0.2s ease; background: transparent;">
+                <span class="material-symbols-outlined" style="color: var(--text); font-size: 24px; font-weight: 700;">add</span>
+            </div>
         </div>
         
         <div class="nav-item" id="nav-messages" onclick="showPage('messages')">
@@ -2518,7 +2520,7 @@ body:not(.light-mode) #splash-screen {
                     <span class="material-symbols-outlined" style="font-size: 22px;">dark_mode</span>
                     <span style="font-weight:600; font-size:14px;">Dark Mode</span>
                 </div>
-                <span class="material-symbols-outlined" style="color:var(--text-muted); font-size: 20px;">chevron_right</span>
+                <div id="dark-mode-toggle" class="toggle-switch"></div>
             </div>
         </div>
 
@@ -2907,9 +2909,29 @@ usersCacheTimestamp = now;
 return allUsersCache;
 }
 
-function toggleDarkMode(){
-document.body.classList.toggle('light-mode');
-localStorage.setItem('theme',document.body.classList.contains('light-mode')?'light':'dark');
+// === 🚀 Dark Mode Toggle Logic ===
+function toggleDarkMode() {
+    document.body.classList.toggle('light-mode');
+    const isLight = document.body.classList.contains('light-mode');
+    
+    // লোকাল স্টোরেজে সেভ করা
+    localStorage.setItem('theme', isLight ? 'light' : 'dark');
+    
+    // UI আপডেট করা
+    updateDarkModeUI();
+    showToast(`Dark Mode is now ${isLight ? 'OFF' : 'ON'}`);
+}
+
+function updateDarkModeUI() {
+    const toggleEl = document.getElementById('dark-mode-toggle');
+    if (toggleEl) {
+        const isLight = document.body.classList.contains('light-mode');
+        if (!isLight) {
+            toggleEl.classList.add('active'); // ডার্ক মোড অন থাকলে বাটন অন হবে
+        } else {
+            toggleEl.classList.remove('active'); // লাইট মোড হলে বাটন অফ হবে
+        }
+    }
 }
 
 function toggleSettingsMenu(){
@@ -3550,6 +3572,7 @@ function openMainMenu() {
     if (typeof updatePrivateAccountUI === 'function') updatePrivateAccountUI();
     if (typeof updateActiveStatusUI === 'function') updateActiveStatusUI();
     if (typeof updateMessageSoundUI === 'function') updateMessageSoundUI();
+    if (typeof updateDarkModeUI === 'function') updateDarkModeUI(); // ডার্ক মোড আপডেট
 }
 
 function closeMainMenu() {
@@ -4763,12 +4786,17 @@ function openChat(chatId, otherUid, otherName, otherAvatar){
     
     setupTypingIndicator(chatId, otherUid);
     
-        // 🚀 Chat Wallpaper Set Logic
+        // 🚀 Chat Wallpaper Set Logic (Full Screen Update)
+    const chatScreenEl = document.getElementById('chat-screen');
     const chatMessagesEl = document.getElementById('chat-messages');
+    
     if (currentUserData.chatWallpapers && currentUserData.chatWallpapers[chatId]) {
-        chatMessagesEl.style.background = currentUserData.chatWallpapers[chatId];
+        const bg = currentUserData.chatWallpapers[chatId];
+        chatScreenEl.style.background = bg; // পুরো স্ক্রিনে কালার বসবে
+        chatMessagesEl.style.background = 'transparent'; // মাঝখানের সাদা অংশ গায়েব হবে
     } else {
-        chatMessagesEl.style.background = ''; // ডিফল্ট ব্যাকগ্রাউন্ড
+        chatScreenEl.style.background = ''; // ডিফল্ট
+        chatMessagesEl.style.background = ''; // ডিফল্ট
     }
 
     if(chatUnsub)chatUnsub();
@@ -8314,11 +8342,15 @@ async function setChatWallpaper(color) {
     currentUserData.chatWallpapers[currentChatId] = color;
 
     // ২. UI তে সাথে সাথেই কালার পাল্টে যাবে (পেজ রিফ্রেশ ছাড়াই)
+    const chatScreenEl = document.getElementById('chat-screen');
     const chatMessagesEl = document.getElementById('chat-messages');
+    
     if (color === 'default') {
+        chatScreenEl.style.background = '';
         chatMessagesEl.style.background = '';
     } else {
-        chatMessagesEl.style.background = color;
+        chatScreenEl.style.background = color;
+        chatMessagesEl.style.background = 'transparent';
     }
 
     // ৩. ফায়ারবেস ডাটাবেসে সেভ করা (যাতে শুধু এই ইউজারের কাছেই থাকে)
