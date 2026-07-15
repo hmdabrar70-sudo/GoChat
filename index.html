@@ -2205,10 +2205,35 @@ body:not(.light-mode) #splash-screen {
     <div class="modal-box" style="display:flex; flex-direction:column; max-height:85vh; padding: 0;">
         <div class="chat-topbar" style="padding: 16px 20px;">
             <div class="chat-back" onclick="closeGroupInfoModal()"><span class="material-symbols-outlined">arrow_back</span></div>
-            <div class="chat-name" id="group-info-name" style="font-weight: 800; font-size: 18px;">Group Info</div>
+            <div class="chat-name" style="font-weight: 800; font-size: 18px;">Group Info</div>
         </div>
-        <div style="padding: 20px; overflow-y: auto; flex: 1;">
+        
+        <div style="padding: 20px 20px 0; text-align: center;">
+            <div style="position:relative; display:inline-block;">
+                <div class="avatar xl" id="group-info-avatar" style="width:80px; height:80px; margin: 0 auto; border:3px solid var(--bg); box-shadow:var(--shadow-sm);">?</div>
+                <label for="group-avatar-upload" id="group-avatar-edit-btn" style="display:none; position:absolute; bottom:0; right:0; background:var(--gradient); width:28px; height:28px; border-radius:50%; align-items:center; justify-content:center; color:white; cursor:pointer; border:2px solid var(--bg);">
+                    <span class="material-symbols-outlined" style="font-size:14px;">edit</span>
+                </label>
+                <input type="file" id="group-avatar-upload" accept="image/*" style="display:none;" onchange="updateGroupAvatar(this)">
+            </div>
+            <div style="display:flex; justify-content:center; align-items:center; gap:8px; margin-top:12px;">
+                <div id="group-info-name" style="font-size: 20px; font-weight: 800; color: var(--text);">Group Name</div>
+                <span class="material-symbols-outlined" id="group-name-edit-btn" style="display:none; font-size:18px; color:var(--text-muted); cursor:pointer;" onclick="editGroupName()">edit</span>
+            </div>
             
+            <div style="display:flex; gap:10px; justify-content:center; margin-top:16px; border-bottom: 1px solid var(--border); padding-bottom: 20px;">
+                <button class="btn-outline" style="padding:8px 16px; font-size:13px; border-radius:20px; border-color:var(--text-muted); color:var(--text);" onclick="toggleGroupMedia()">
+                    <span class="material-symbols-outlined" style="font-size:18px;">perm_media</span> Shared Media
+                </button>
+            </div>
+        </div>
+
+        <div id="group-shared-media" style="display:none; padding:15px; border-bottom: 1px solid var(--border); background: var(--surface-2);">
+            <div style="font-size: 13px; font-weight: 700; color: var(--text-muted); margin-bottom: 10px;">Shared Media</div>
+            <div id="group-media-grid" style="display:grid; grid-template-columns:repeat(3,1fr); gap:4px; max-height:200px; overflow-y:auto;"></div>
+        </div>
+
+        <div style="padding: 20px; overflow-y: auto; flex: 1;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 15px;">
                 <h4 style="color:var(--text); margin:0;">Members (<span id="group-member-count">0</span>)</h4>
                 <button class="btn-outline" style="padding: 6px 12px; font-size:12px; margin:0;" onclick="openAddGroupMemberUI()">
@@ -2283,29 +2308,34 @@ body:not(.light-mode) #splash-screen {
     <span class="material-symbols-outlined" onclick="toggleChatDeleteMenu()" style="cursor: pointer; padding: 8px;">more_vert</span>
     
     <div id="chat-delete-menu" class="chat-list-menu" style="top: 100%; right: 0; transform: none; display: none; width: max-content;">
-        
         <div class="chat-dropdown-item" onclick="viewProfileFromChat()">
-            <span class="material-symbols-outlined" style="color: var(--accent);">account_circle</span>
-            View Profile
+            <span class="material-symbols-outlined" style="color: var(--accent);">account_circle</span> View Profile
         </div>
-        
         <div class="chat-dropdown-item danger" onclick="clearChatForMe()">
-            <span class="material-symbols-outlined">mop</span> 
-            Clear Chat
+            <span class="material-symbols-outlined">mop</span> Clear Chat
         </div>
-
         <div class="chat-dropdown-item danger" onclick="blockUserFromChat()">
-            <span class="material-symbols-outlined">block</span>
-            Block User
+            <span class="material-symbols-outlined">block</span> Block User
         </div>
-
     </div>
 </div>
 </div>
+
+<div id="group-pinned-msg-bar" style="display:none; background: var(--surface-2); padding: 10px 16px; border-bottom: 1px solid var(--border); border-left: 4px solid var(--accent); align-items:center; justify-content:space-between; z-index: 10;">
+    <div style="flex:1; overflow:hidden; cursor:pointer;" onclick="scrollToPinnedMsg()">
+        <div style="font-size: 11px; color: var(--accent); font-weight: 800; margin-bottom: 2px; display:flex; align-items:center; gap:4px;"><span class="material-symbols-outlined" style="font-size:12px;">push_pin</span> Pinned Message</div>
+        <div id="group-pinned-msg-text" style="font-size: 13px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Loading...</div>
+    </div>
+    <span class="material-symbols-outlined" id="unpin-msg-btn" style="color:var(--text-muted); font-size:20px; padding:4px; cursor:pointer; display:none;" onclick="unpinGroupMessage()">close</span>
+</div>
+
 <div class="chat-messages" id="chat-messages"></div>
-<div class="chat-input-bar" id="chat-input-area">
+<div class="chat-input-bar" id="chat-input-area" style="position:relative;">
+    
+    <div class="mention-dropdown" id="chat-mention-dropdown" style="bottom: 100%; top: auto; left: 0; width: 100%; margin-bottom: 10px;"></div>
+    
 <div id="reply-preview-container"></div>
-<input type="text" id="chat-input" placeholder="Message..." onkeypress="if(event.key==='Enter')sendMsg()">
+<input type="text" id="chat-input" placeholder="Message..." autocomplete="off" onkeypress="if(event.key==='Enter')sendMsg()">
 <label for="chat-img-input" style="cursor:pointer;color:var(--accent);padding:8px;display:flex;">
 <span class="material-symbols-outlined" style="font-size:24px;">image</span>
 </label>
@@ -4855,6 +4885,24 @@ function openChat(chatId, otherUid, otherName, otherAvatar){
             const m=d.data();
             const isMine=m.uid===currentUser.uid;
             let content='';
+                        let safeText = escapeHTML(m.text||'');
+            // 🚀 4. Mention System Render in Chat
+            if (currentChatOtherUid === 'group' && allUsersCache) {
+                const sortedUsers = [...allUsersCache].sort((a, b) => (b.name || '').length - (a.name || '').length);
+                sortedUsers.forEach(u => {
+                    if (u.name) {
+                        const regex = new RegExp(`@${u.name.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&')}`, 'gi');
+                        safeText = safeText.replace(regex, `<strong style="color:var(--accent); cursor:pointer;" onclick="event.stopPropagation(); viewUserProfile('${u.id}')">@${u.name}</strong>`);
+                    }
+                });
+            }
+
+            if(m.imageUrl){
+                const safeUrl = escapeHTML(m.imageUrl);
+                content=`${m.text?`<div>${safeText}</div>`:''}<img src="${safeUrl}" onclick="openImageZoom('${safeUrl}')">`;
+            }else{
+                content=safeText;
+            }
             if(m.imageUrl){
                 const safeUrl = escapeHTML(m.imageUrl);
                 content=`${m.text?`<div>${escapeHTML(m.text)}</div>`:''}<img src="${safeUrl}" onclick="openImageZoom('${safeUrl}')">`;
@@ -4935,28 +4983,57 @@ function openChat(chatId, otherUid, otherName, otherAvatar){
 }
 
 function setupTypingIndicator(chatId, otherUid) {
-const typingRef = db.collection('chats').doc(chatId);
-if (onlineUnsub) onlineUnsub();
-onlineUnsub = typingRef.onSnapshot(doc => {
-if (!doc.exists) return;
-const data = doc.data();
-const typingUser = data.typing;
-const typingEl = document.getElementById('typing-indicator');
-if (typingUser && typingUser !== currentUser.uid && typingUser === otherUid) {
-if (!typingEl) {
-const indicator = document.createElement('div');
-indicator.id = 'typing-indicator';
-indicator.className = 'typing-indicator';
-indicator.innerHTML = '<span></span><span></span><span></span>';
-document.getElementById('chat-messages').appendChild(indicator);
+    const chatRef = db.collection('chats').doc(chatId);
+    if (onlineUnsub) onlineUnsub();
+    onlineUnsub = chatRef.onSnapshot(doc => {
+        if (!doc.exists) return;
+        const data = doc.data();
+        
+        // --- 🚀 6. Pinned Message Logic ---
+        const pinBar = document.getElementById('group-pinned-msg-bar');
+        if(data.pinnedMsg) {
+            if(pinBar) {
+                pinBar.style.display = 'flex';
+                document.getElementById('group-pinned-msg-text').textContent = data.pinnedMsg.text;
+                const unpinBtn = document.getElementById('unpin-msg-btn');
+                const admins = data.admins || [data.admin];
+                if(data.isGroup && admins.includes(currentUser.uid)) {
+                    unpinBtn.style.display = 'block';
+                } else {
+                    unpinBtn.style.display = 'none';
+                }
+            }
+        } else {
+            if(pinBar) pinBar.style.display = 'none';
+        }
+        
+        // --- 🚀 4. Group Mention Setup (Load Members) ---
+        if(data.isGroup && data.members) {
+            mentionData.friends = data.members.map(uid => {
+                const u = allUsersCache ? allUsersCache.find(user => user.id === uid) : null;
+                return { uid, name: u ? u.name : 'User', avatar: u ? u.avatar : '' };
+            });
+        }
+
+        // --- Typing Logic ---
+        const typingUser = data.typing;
+        const typingEl = document.getElementById('typing-indicator');
+        if (typingUser && typingUser !== currentUser.uid && (typingUser === otherUid || data.isGroup)) {
+            if (!typingEl) {
+                const indicator = document.createElement('div');
+                indicator.id = 'typing-indicator';
+                indicator.className = 'typing-indicator';
+                indicator.innerHTML = '<span></span><span></span><span></span>';
+                document.getElementById('chat-messages').appendChild(indicator);
+            }
+            const list = document.getElementById('chat-messages');
+            list.scrollTop = list.scrollHeight;
+        } else {
+            if (typingEl) typingEl.remove();
+        }
+    });
 }
-const list = document.getElementById('chat-messages');
-list.scrollTop = list.scrollHeight;
-} else {
-if (typingEl) typingEl.remove();
-}
-});
-}
+
 
 function setTypingStatus(isTyping) {
 if (!currentChatId || !currentUser) return;
@@ -5036,7 +5113,12 @@ function showMessageMenu(event, msgId) {
     const alignPosition = isMine ? 'right: 35px;' : 'left: 35px;';
     
     menu.style.cssText = `position:absolute; top: 10px; ${alignPosition} background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:6px; z-index:99999; box-shadow:var(--shadow-lg); width: 150px;`;
-    
+        // 🚀 Pinned logic
+    let pinOption = '';
+    if(currentChatOtherUid === 'group') {
+         pinOption = `<div style="padding:10px 12px;cursor:pointer;font-size:14px;font-weight:600;border-radius:8px; display:flex; gap:10px; align-items:center; color:var(--text);" onclick="pinGroupMessage('${msgId}')"><span class="material-symbols-outlined" style="font-size:18px;">push_pin</span> Pin to Group</div>`;
+    }
+
     menu.innerHTML = `
     <div style="padding:10px 12px;cursor:pointer;font-size:14px;font-weight:600;border-radius:8px; display:flex; gap:10px; align-items:center; color:var(--text);" onclick="replyToMessage('${msgId}')">
         <span class="material-symbols-outlined" style="font-size:18px;">reply</span> Reply
@@ -8458,11 +8540,17 @@ async function loadGroupMembers() {
         activeGroupData = doc.data();
         
         document.getElementById('group-info-name').textContent = activeGroupData.groupName || 'Group Info';
+        document.getElementById('group-info-avatar').innerHTML = activeGroupData.groupAvatar ? `<img src="${activeGroupData.groupAvatar}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">` : `<span class="material-symbols-outlined" style="font-size:40px; color:white;">groups</span>`;
         document.getElementById('group-member-count').textContent = (activeGroupData.members || []).length;
         
         const members = activeGroupData.members || [];
-        const isAdmin = activeGroupData.admin === currentUser.uid;
+        const admins = activeGroupData.admins || [activeGroupData.admin]; // 🚀 3. Multiple Admins Support
+        const isMeAdmin = admins.includes(currentUser.uid);
         
+        // অ্যাডমিন হলে এডিট বাটন দেখাবে
+        document.getElementById('group-avatar-edit-btn').style.display = isMeAdmin ? 'flex' : 'none';
+        document.getElementById('group-name-edit-btn').style.display = isMeAdmin ? 'block' : 'none';
+
         let html = '';
         if(!allUsersCache) await fetchAllUsers();
         
@@ -8471,17 +8559,23 @@ async function loadGroupMembers() {
             const safeName = escapeHTML(u.name);
             const avHtml = u.avatar ? `<img src="${u.avatar}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">` : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:var(--gradient);color:#fff;font-weight:bold;">${safeName[0].toUpperCase()}</div>`;
             
+            const isUserAdmin = admins.includes(uid);
             let roleBadge = '';
-            if(uid === activeGroupData.admin) {
-                roleBadge = '<span style="font-size:10px; background:var(--accent); color:white; padding:3px 8px; border-radius:12px; margin-left:8px; font-weight:bold;">Admin</span>';
+            if(isUserAdmin) {
+                roleBadge = '<span style="font-size:10px; background:var(--accent); color:white; padding:3px 8px; border-radius:12px; margin-left:8px; font-weight:bold;">Admin 👑</span>';
             } else if (uid === currentUser.uid) {
                 roleBadge = '<span style="font-size:10px; background:var(--surface-2); color:var(--text); padding:3px 8px; border-radius:12px; margin-left:8px; border: 1px solid var(--border);">You</span>';
             }
 
-            let removeBtn = '';
-            // 🚀 শুধু অ্যাডমিন অন্য মেম্বারদের রিমুভ করতে পারবে
-            if(isAdmin && uid !== currentUser.uid) {
-                removeBtn = `<button class="btn-outline" style="padding:6px 12px; font-size:11px; border-color:var(--danger); color:var(--danger); margin:0;" onclick="removeGroupMember('${uid}', '${safeName}')">Remove</button>`;
+            let adminBtns = '';
+            if(isMeAdmin && uid !== currentUser.uid) {
+                if(!isUserAdmin) {
+                    adminBtns += `<button class="btn-outline" style="padding:6px 10px; font-size:11px; margin:0 4px 0 0;" onclick="makeGroupAdmin('${uid}', '${safeName}')">Make Admin</button>`;
+                } else if(uid !== activeGroupData.admin) { 
+                    // Main creator cannot be demoted
+                    adminBtns += `<button class="btn-outline" style="padding:6px 10px; font-size:11px; margin:0 4px 0 0; color:#f59e0b; border-color:#f59e0b;" onclick="removeGroupAdmin('${uid}', '${safeName}')">Demote</button>`;
+                }
+                adminBtns += `<button class="btn-outline" style="padding:6px 10px; font-size:11px; border-color:var(--danger); color:var(--danger); margin:0;" onclick="removeGroupMember('${uid}', '${safeName}')">Remove</button>`;
             }
             
             html += `
@@ -8490,7 +8584,7 @@ async function loadGroupMembers() {
                 <div class="msg-info" style="margin-left:12px; display:flex; align-items:center;">
                     <div class="msg-name" style="margin:0;">${safeName} ${roleBadge}</div>
                 </div>
-                ${removeBtn}
+                <div style="display:flex;">${adminBtns}</div>
             </div>`;
         });
         
@@ -8603,6 +8697,135 @@ async function confirmAddGroupMembers() {
         btn.disabled = false;
     }
 }
+// ==========================================
+// 🚀 NEW GROUP FEATURES (Edit, Admins, Media, Pin, Mention)
+// ==========================================
+
+async function updateGroupAvatar(input) {
+    const file = input.files[0];
+    if(!file || !activeGroupId) return;
+    showToast('Uploading group photo...');
+    try {
+        const url = await uploadToCloudinary(file, false);
+        await db.collection('chats').doc(activeGroupId).update({
+            groupAvatar: url,
+            lastMsg: `${currentUserData.name} updated the group photo`,
+            lastAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        activeGroupData.groupAvatar = url;
+        document.getElementById('group-info-avatar').innerHTML = `<img src="${url}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
+        showToast('Group photo updated!');
+        document.getElementById('chat-avatar').innerHTML = `<img src="${url}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
+    } catch(e) { showToast('Upload failed'); }
+}
+
+async function editGroupName() {
+    const newName = prompt("Enter new group name:", activeGroupData.groupName);
+    if(!newName || newName.trim() === "" || !activeGroupId) return;
+    try {
+        await db.collection('chats').doc(activeGroupId).update({
+            groupName: newName.trim(),
+            lastMsg: `${currentUserData.name} changed the group name`,
+            lastAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        activeGroupData.groupName = newName.trim();
+        document.getElementById('group-info-name').textContent = newName.trim();
+        document.getElementById('chat-name-display').textContent = newName.trim();
+        showToast('Group name updated!');
+    } catch(e) { showToast('Update failed'); }
+}
+
+async function makeGroupAdmin(uid, name) {
+    if(!confirm(`Make ${name} an admin?`)) return;
+    try {
+        await db.collection('chats').doc(activeGroupId).update({
+            admins: firebase.firestore.FieldValue.arrayUnion(uid)
+        });
+        showToast(`${name} is now an admin!`);
+        loadGroupMembers();
+    } catch(e) { showToast('Failed to make admin'); }
+}
+
+async function removeGroupAdmin(uid, name) {
+    if(!confirm(`Remove ${name} from admins?`)) return;
+    try {
+        await db.collection('chats').doc(activeGroupId).update({
+            admins: firebase.firestore.FieldValue.arrayRemove(uid)
+        });
+        showToast(`${name} is no longer an admin!`);
+        loadGroupMembers();
+    } catch(e) { showToast('Failed to remove admin'); }
+}
+
+async function toggleGroupMedia() {
+    const mediaCont = document.getElementById('group-shared-media');
+    if(mediaCont.style.display === 'block') {
+        mediaCont.style.display = 'none';
+        return;
+    }
+    mediaCont.style.display = 'block';
+    const grid = document.getElementById('group-media-grid');
+    grid.innerHTML = '<div class="loading" style="grid-column:1/-1;"><span class="material-symbols-outlined">autorenew</span> Loading...</div>';
+    try {
+        const snap = await db.collection('chats').doc(activeGroupId).collection('messages').where('imageUrl', '!=', '').orderBy('createdAt', 'desc').limit(20).get();
+        let html = '';
+        snap.forEach(d => {
+            const url = d.data().imageUrl;
+            if(url) html += `<img src="${escapeHTML(url)}" style="width:100%; aspect-ratio:1; object-fit:cover; border-radius:8px; cursor:pointer;" onclick="openImageZoom('${escapeHTML(url)}')">`;
+        });
+        grid.innerHTML = html || '<div style="grid-column:1/-1; text-align:center; font-size:12px; color:var(--text-muted);">No shared media</div>';
+    } catch(e) { grid.innerHTML = '<div style="grid-column:1/-1; text-align:center; font-size:12px; color:var(--danger);">Error loading media</div>'; }
+}
+
+async function pinGroupMessage(msgId) {
+    const doc = await db.collection('chats').doc(currentChatId).collection('messages').doc(msgId).get();
+    if(!doc.exists) return;
+    const data = doc.data();
+    let text = data.text || '📷 Photo';
+    try {
+        await db.collection('chats').doc(currentChatId).update({
+            pinnedMsg: { id: msgId, text: text, sender: data.senderName }
+        });
+        showToast("Message Pinned!");
+    } catch(e) { showToast("Failed to pin message"); }
+}
+
+async function unpinGroupMessage() {
+    if(!confirm("Unpin this message?")) return;
+    try {
+        await db.collection('chats').doc(currentChatId).update({
+            pinnedMsg: firebase.firestore.FieldValue.delete()
+        });
+        showToast("Message Unpinned!");
+    } catch(e) { showToast("Failed to unpin message"); }
+}
+
+function scrollToPinnedMsg() {
+    showToast("Scroll to message feature coming soon!");
+}
+
+// 🚀 চ্যাট ইনপুটে মেনশন সাপোর্ট (Event Listener)
+document.addEventListener('DOMContentLoaded', () => {
+  const chatInputBox = document.getElementById('chat-input');
+  if (chatInputBox) {
+    chatInputBox.addEventListener('input', (e) => {
+      if(currentChatOtherUid === 'group') {
+        handleMentionInput(e.target, 'chat-mention-dropdown', e);
+      }
+    });
+    chatInputBox.addEventListener('keydown', (e) => {
+      if(currentChatOtherUid === 'group') {
+        handleMentionKeydown(e, 'chat-mention-dropdown');
+      }
+    });
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('#chat-mention-dropdown') && e.target !== chatInputBox) {
+        const dropdown = document.getElementById('chat-mention-dropdown');
+        if (dropdown) hideMentionDropdown(dropdown);
+      }
+    });
+  }
+});
 </script>
 </body>
 </html>
