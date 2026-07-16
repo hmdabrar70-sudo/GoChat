@@ -1748,6 +1748,11 @@ body:not(.light-mode) #splash-screen {
 .messenger-menu-item:hover { background: var(--surface-2); }
 .messenger-menu-item i { font-size: 24px; }
 .messenger-drag-handle { width: 40px; height: 5px; background: var(--border); border-radius: 5px; margin: 0 auto 15px; }
+/* 🚀 Advanced Privacy Image Block CSS */
+.privacy-restricted-img {
+    pointer-events: none !important;
+    filter: drop-shadow(0 0 2px rgba(0,0,0,0.5));
+}
 </style>
 </head>
 <body>
@@ -4989,9 +4994,16 @@ function openChat(chatId, otherUid, otherName, otherAvatar){
                 });
             }
 
+            // 🚀 Advanced Privacy Logic for Images
             if(m.imageUrl){
                 const safeUrl = escapeHTML(m.imageUrl);
-                content=`${m.text?`<div>${safeText}</div>`:''}<img src="${safeUrl}" onclick="openImageZoom('${safeUrl}')">`;
+                // যদি মেসেজটি আপনার হয়, তবে ডাউনলোড করা যাবে। আর যদি অন্যের হয় এবং Advanced Privacy অন থাকে, তবে ডাউনলোড ব্লক করা হবে।
+                const isPrivacyOn = document.getElementById('advanced-privacy-toggle')?.classList.contains('active');
+                const canDownload = isMine || !isPrivacyOn;
+                
+                const imgClass = canDownload ? '' : 'privacy-restricted-img';
+                
+                content=`${m.text?`<div>${safeText}</div>`:''}<img class="${imgClass}" src="${safeUrl}" onclick="openImageZoom('${safeUrl}')">`;
             }else{
                 content=safeText;
             }
@@ -9188,24 +9200,70 @@ function messengerCopy() {
     }
 }
 
+// 🚀 UPDATE: Forward Logic Fixed
 function messengerForward() {
     closeMessengerMenu();
-    const wrapper = document.querySelector(`.chat-bubble-wrapper[data-msgid="${currentMessengerMsgId}"]`);
-    if(wrapper) {
-        const textEl = wrapper.querySelector('.chat-bubble');
-        const text = textEl ? textEl.innerText.trim() : '';
-        openForwardModal(text, ''); 
+    // সরাসরি আগের তৈরি করা ফরওয়ার্ড ফাংশনটি কল করা হলো
+    if (currentMessengerMsgId) {
+        forwardMessage(currentMessengerMsgId); 
     }
 }
 
-function messengerPin() {
+// 🚀 UPDATE: Pin Message Logic Fixed
+async function messengerPin() {
     closeMessengerMenu();
-    showToast('Message Pinned!');
+    if (!currentMessengerMsgId) return;
+
+    // যদি আপনার ফাইলে আগে থেকেই pinMessage নামের কোনো ফাংশন থেকে থাকে, তবে এটি সরাসরি সেটিকে কল করবে
+    if (typeof pinMessage === 'function') {
+        pinMessage(currentMessengerMsgId);
+        return;
+    }
+
+    // আর যদি আলাদা ফাংশন না থাকে, তবে এই কোডটি সরাসরি ফায়ারবেস ডাটাবেসে মেসেজটি পিন করবে
+    const wrapper = document.querySelector(`.chat-bubble-wrapper[data-msgid="${currentMessengerMsgId}"]`);
+    if (wrapper) {
+        const textEl = wrapper.querySelector('.chat-bubble');
+        const text = textEl ? textEl.innerText.trim() : '📸 Image / Media';
+        
+        try {
+            await db.collection('chats').doc(currentChatId).update({
+                pinnedMsgId: currentMessengerMsgId,
+                pinnedMsgText: text
+            });
+            showToast('Message pinned successfully!');
+        } catch (error) {
+            console.error("Error pinning message: ", error);
+            showToast('Failed to pin message.');
+        }
+    }
 }
 
+// 🚀 UPDATE: Delete for Everyone & Delete for Me Logic
 function messengerDelete() {
     closeMessengerMenu();
-    if(currentMessengerMsgId) deleteMessage(currentMessengerMsgId);
+    if (!currentMessengerMsgId) return;
+
+    const wrapper = document.querySelector(`.chat-bubble-wrapper[data-msgid="${currentMessengerMsgId}"]`);
+    const isMine = wrapper && wrapper.classList.contains('mine');
+
+    // মেসেঞ্জারের মতো ডিলিট মডাল ওপেন হবে
+    isMsgSelectionMode = true; // মডালটি বুঝতে পারবে যে মেসেজ সিলেক্ট হয়েছে
+    selectedMsgIds = [currentMessengerMsgId]; // যে মেসেজটি ডিলিট করতে চান তার আইডি সেভ করা হলো
+
+    const btnEveryone = document.getElementById('btn-delete-everyone');
+    const sheetTitle = document.getElementById('delete-sheet-title');
+    
+    if(!isMine) {
+        if(btnEveryone) btnEveryone.style.display = 'none';
+        if(sheetTitle) sheetTitle.textContent = "Can't delete others' messages for everyone";
+    } else {
+        if(btnEveryone) btnEveryone.style.display = 'flex';
+        if(sheetTitle) sheetTitle.textContent = "Delete message?";
+    }
+    
+    const modal = document.getElementById('delete-sheet-modal');
+    if(modal) modal.classList.add('open');
 }
 </script>
 </body>
