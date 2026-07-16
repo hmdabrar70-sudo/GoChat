@@ -1739,19 +1739,20 @@ body:not(.light-mode) #splash-screen {
     pointer-events: none !important;
     filter: drop-shadow(0 0 2px rgba(0,0,0,0.5));
 }
-/* 🚀 Messenger Style Message Menu CSS */
-.messenger-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100000; backdrop-filter: blur(2px); }
-.messenger-overlay.show { display: block; animation: fadeIn 0.2s ease; }
-.messenger-msg-menu { position: fixed; bottom: -100%; left: 0; width: 100%; background: var(--surface); border-radius: 24px 24px 0 0; padding: 15px 20px 30px; box-shadow: 0 -4px 20px rgba(0,0,0,0.15); z-index: 100001; transition: bottom 0.3s cubic-bezier(0.2, 0.8, 0.2, 1); display: flex; flex-direction: column; gap: 5px; }
-.messenger-msg-menu.show { bottom: 0; }
-.messenger-menu-item { display: flex; align-items: center; gap: 14px; padding: 14px 16px; font-size: 15.5px; font-weight: 600; cursor: pointer; border-radius: 12px; color: var(--text); transition: background 0.2s; }
-.messenger-menu-item:hover { background: var(--surface-2); }
-.messenger-menu-item i { font-size: 24px; }
-.messenger-drag-handle { width: 40px; height: 5px; background: var(--border); border-radius: 5px; margin: 0 auto 15px; }
-/* 🚀 Advanced Privacy Image Block CSS */
-.privacy-restricted-img {
+/* 🚀 Advanced Privacy CSS Fixed */
+.privacy-restricted {
+    -webkit-user-select: none !important;
+    user-select: none !important;
+}
+
+/* শুধু অপর পক্ষের ছবিগুলো ব্লক হবে, আপনার নিজের (.mine) ছবিগুলো উন্মুক্ত থাকবে */
+.privacy-restricted .chat-bubble-wrapper:not(.mine) img {
     pointer-events: none !important;
     filter: drop-shadow(0 0 2px rgba(0,0,0,0.5));
+}
+
+.privacy-restricted .chat-bubble-wrapper.mine img {
+    pointer-events: auto !important; /* আপনার নিজের ছবি ডাউনলোডের জন্য চালু থাকবে */
 }
 </style>
 </head>
@@ -2449,7 +2450,7 @@ body:not(.light-mode) #splash-screen {
 </div>
 </div>
 
-<div class="modal-overlay" id="forward-modal">
+<div class="modal-overlay" id="forward-modal" style="z-index: 999999 !important;">
 <div class="modal-box" style="max-height:80vh;display:flex;flex-direction:column;">
 <button class="modal-close" onclick="closeForwardModal()"><span class="material-symbols-outlined">close</span></button>
 <div class="modal-title">Forward Message</div>
@@ -2921,9 +2922,6 @@ body:not(.light-mode) #splash-screen {
     </div>
     <div class="messenger-menu-item" onclick="messengerForward()">
         <i class="ph ph-share-fat"></i> Forward
-    </div>
-    <div class="messenger-menu-item" onclick="messengerPin()">
-        <i class="ph ph-push-pin"></i> Pin
     </div>
     <div class="messenger-menu-item" style="color: var(--danger);" onclick="messengerDelete()">
         <i class="ph ph-trash"></i> Remove
@@ -9206,36 +9204,6 @@ function messengerForward() {
     // সরাসরি আগের তৈরি করা ফরওয়ার্ড ফাংশনটি কল করা হলো
     if (currentMessengerMsgId) {
         forwardMessage(currentMessengerMsgId); 
-    }
-}
-
-// 🚀 UPDATE: Pin Message Logic Fixed
-async function messengerPin() {
-    closeMessengerMenu();
-    if (!currentMessengerMsgId) return;
-
-    // যদি আপনার ফাইলে আগে থেকেই pinMessage নামের কোনো ফাংশন থেকে থাকে, তবে এটি সরাসরি সেটিকে কল করবে
-    if (typeof pinMessage === 'function') {
-        pinMessage(currentMessengerMsgId);
-        return;
-    }
-
-    // আর যদি আলাদা ফাংশন না থাকে, তবে এই কোডটি সরাসরি ফায়ারবেস ডাটাবেসে মেসেজটি পিন করবে
-    const wrapper = document.querySelector(`.chat-bubble-wrapper[data-msgid="${currentMessengerMsgId}"]`);
-    if (wrapper) {
-        const textEl = wrapper.querySelector('.chat-bubble');
-        const text = textEl ? textEl.innerText.trim() : '📸 Image / Media';
-        
-        try {
-            await db.collection('chats').doc(currentChatId).update({
-                pinnedMsgId: currentMessengerMsgId,
-                pinnedMsgText: text
-            });
-            showToast('Message pinned successfully!');
-        } catch (error) {
-            console.error("Error pinning message: ", error);
-            showToast('Failed to pin message.');
-        }
     }
 }
 
