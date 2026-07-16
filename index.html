@@ -2704,6 +2704,107 @@ body:not(.light-mode) #splash-screen {
     color: white; font-size: 32px; 
     background: var(--accent); border-radius: 50%;
 }
+#quick-profile-modal {
+    background: rgba(0, 0, 0, 0.6) !important;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+/* মডালের ভেতরের কার্ড */
+#quick-profile-modal .modal-box {
+    background: var(--surface) !important;
+    border-radius: 32px 32px 0 0 !important;
+    padding: 32px 24px 40px !important;
+    box-shadow: 0 -10px 40px rgba(0,0,0,0.3) !important;
+    animation: slideUpModal 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    border-top: 1px solid var(--border-light);
+}
+
+@keyframes slideUpModal {
+    from { transform: translateY(100%); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+/* প্রোফাইল ছবি */
+#qp-avatar {
+    width: 90px !important;
+    height: 90px !important;
+    border: 4px solid var(--surface) !important;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.15) !important;
+    margin-bottom: 16px !important;
+}
+
+/* নামের স্টাইল */
+#qp-name {
+    font-size: 24px !important;
+    font-weight: 800 !important;
+    color: var(--text) !important;
+    margin-bottom: 28px !important;
+    letter-spacing: -0.5px;
+}
+
+/* বাটন গ্রিড লেআউট */
+.qp-grid {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 12px !important;
+    margin-bottom: 12px !important;
+}
+
+/* সাধারণ বাটন স্টাইল */
+.qp-btn {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 10px !important;
+    padding: 16px !important;
+    border-radius: 20px !important;
+    font-size: 15px !important;
+    font-weight: 700 !important;
+    transition: all 0.2s ease !important;
+    border: none !important;
+    cursor: pointer !important;
+}
+
+.qp-btn:active {
+    transform: scale(0.96) !important;
+}
+
+/* প্রাইমারি বাটন (View Profile) */
+.qp-btn-primary {
+    background: var(--gradient) !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 15px rgba(124, 92, 255, 0.3) !important;
+}
+
+/* সেকেন্ডারি বাটন (Mute, Archive) */
+.qp-btn-secondary {
+    background: var(--surface-2) !important;
+    color: var(--text) !important;
+    border: 1px solid var(--border) !important;
+}
+
+/* ডেঞ্জারাস বাটন (Block) */
+.qp-btn-danger-outline {
+    background: rgba(255, 77, 106, 0.08) !important;
+    color: var(--danger) !important;
+    border: 1px solid rgba(255, 77, 106, 0.2) !important;
+}
+
+/* ফুল উইডথ বাটন (Wallpaper) */
+.qp-btn-full {
+    width: 100% !important;
+    margin-bottom: 12px !important;
+}
+
+/* ক্লিয়ার চ্যাট বাটন */
+.qp-btn-clear {
+    width: 100% !important;
+    background: rgba(255, 77, 106, 0.12) !important;
+    color: var(--danger) !important;
+    padding: 18px !important;
+    font-size: 16px !important;
+}
 </style>
 
 <style>
@@ -2867,6 +2968,44 @@ body:not(.light-mode) #splash-screen {
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
+<div class="modal-overlay" id="quick-profile-modal" style="z-index: 100000; align-items: flex-end;" onclick="if(event.target===this) closeQuickProfile()">
+    <div class="modal-box" style="margin-top:auto; text-align: center; background: var(--surface);">
+        <!-- হ্যান্ডেল বার -->
+        <div style="width: 48px; height: 5px; background: var(--border); border-radius: 10px; margin: 0 auto 24px;"></div>
+        
+        <!-- প্রোফাইল ছবি -->
+        <div class="avatar xl" id="qp-avatar" style="margin: 0 auto 16px; border: 4px solid var(--bg); box-shadow: var(--shadow-md);">?</div>
+        
+        <!-- নাম -->
+        <div id="qp-name" style="font-size: 24px; font-weight: 800; color: var(--text); margin-bottom: 28px;">User Name</div>
+        
+        <!-- বাটন গ্রিড -->
+        <div class="qp-grid">
+            <button class="qp-btn qp-btn-primary" onclick="goToFullProfile()">
+                <span class="material-symbols-outlined" style="font-size: 22px;">person</span> View Profile
+            </button>
+            <button class="qp-btn qp-btn-secondary" id="qp-mute-btn" onclick="toggleMuteFromQP()">
+                <span class="material-symbols-outlined" style="font-size: 22px;">notifications_off</span> Mute
+            </button>
+            <button class="qp-btn qp-btn-secondary" onclick="archiveFromQP()">
+                <span class="material-symbols-outlined" style="font-size: 22px;">archive</span> Archive
+            </button>
+            <button class="qp-btn qp-btn-danger-outline" onclick="blockFromQP()">
+                <span class="material-symbols-outlined" style="font-size: 22px;">block</span> Block
+            </button>
+        </div>
+
+        <!-- ওয়ালপেপার বাটন -->
+        <button class="qp-btn qp-btn-secondary qp-btn-full" onclick="openWallpaperPicker()">
+            <span class="material-symbols-outlined" style="font-size: 22px;">wallpaper</span> Wallpaper
+        </button>
+
+        <!-- ক্লিয়ার চ্যাট বাটন -->
+        <button class="qp-btn qp-btn-clear" onclick="clearChatFromQP()">
+            <span class="material-symbols-outlined" style="font-size: 24px;">mop</span> Clear Chat
+        </button>
+    </div>
+</div>
 <script>
 // ===== CONSTANTS =====
 const MY_SPECIAL_EMAIL="hbmabrar@gmail.com";
@@ -9047,6 +9186,68 @@ list.innerHTML = html || '<div style="font-size:13px; color:var(--text-muted); t
 } catch (e) {
 list.innerHTML = '<div style="font-size:13px; color:var(--danger); text-align:center;">Failed to load</div>';
 }
+}
+function viewProfileFromChat() {
+    document.getElementById('chat-delete-menu').style.display = 'none';
+    if (currentChatOtherUid === 'group') {
+        openGroupInfoModal(currentChatId);
+        return;
+    }
+    
+    const nameText = document.getElementById('chat-name-display').innerText;
+    const avatarHtml = document.getElementById('chat-avatar').innerHTML;
+    
+    const otherUser = allUsersCache ? allUsersCache.find(u => u.id === currentChatOtherUid) : null;
+    const isV = otherUser ? otherUser.isVerified : false;
+    const vBadge = getVerifiedBadge(otherUser ? otherUser.email : '', isV);
+    
+    document.getElementById('qp-name').innerHTML = nameText + vBadge;
+    document.getElementById('qp-avatar').innerHTML = avatarHtml;
+    
+    const isMuted = currentUserData.mutedChats?.includes(currentChatId);
+    const muteBtn = document.getElementById('qp-mute-btn');
+    if (isMuted) {
+        muteBtn.innerHTML = '<span class="material-symbols-outlined" style="font-size: 22px;">notifications_active</span> Unmute';
+    } else {
+        muteBtn.innerHTML = '<span class="material-symbols-outlined" style="font-size: 22px;">notifications_off</span> Mute';
+    }
+    
+    document.getElementById('quick-profile-modal').classList.add('open');
+}
+
+function closeQuickProfile() {
+    document.getElementById('quick-profile-modal').classList.remove('open');
+}
+
+function goToFullProfile() {
+    closeQuickProfile();
+    const profilePage = document.getElementById('page-other-profile');
+    if(profilePage) {
+        profilePage.classList.add('open');
+        viewUserProfile(currentChatOtherUid);
+    }
+    setTimeout(() => { closeChat(); }, 50);
+}
+
+async function toggleMuteFromQP() {
+    await muteChat(currentChatId);
+    closeQuickProfile();
+}
+
+async function archiveFromQP() {
+    await archiveChat(currentChatId);
+    closeQuickProfile();
+    closeChat();
+}
+
+async function blockFromQP() {
+    closeQuickProfile();
+    await blockUserFromChat();
+}
+
+async function clearChatFromQP() {
+    closeQuickProfile();
+    await clearChatForMe();
 }
 </script>
 </body>
