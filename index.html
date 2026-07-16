@@ -1730,16 +1730,26 @@ body:not(.light-mode) #splash-screen {
     background: var(--success);
     border-color: var(--success);
 }
-/* 🚀 Advanced Privacy CSS Final Fix */
-.privacy-restricted .chat-bubble-wrapper.theirs {
+/* =========================================
+ADVANCED PRIVACY PROTECTION CSS
+========================================= */
+.privacy-restricted .chat-bubble {
     -webkit-user-select: none !important;
     user-select: none !important;
-    pointer-events: none !important;
+    -webkit-touch-callout: none !important;
+    pointer-events: auto; /* ক্লিক কাজ করবে কিন্তু টেক্সট সিলেক্ট হবে না */
 }
-.privacy-restricted .chat-bubble-wrapper.mine {
-    -webkit-user-select: auto !important;
-    user-select: auto !important;
-    pointer-events: auto !important;
+
+/* ইমেজের ওপর লং-প্রেস বা সেভ অপশন বন্ধ করার জন্য */
+.privacy-restricted .chat-bubble img {
+    pointer-events: none !important;
+    -webkit-user-drag: none !important;
+}
+
+/* মোবাইলে কপি/শেয়ার মেনু আসা বন্ধ করতে */
+.privacy-restricted {
+    -webkit-user-select: none !important;
+    user-select: none !important;
 }
 </style>
 </head>
@@ -4924,6 +4934,23 @@ function openChat(chatId, otherUid, otherName, otherAvatar){
 
     
     setupTypingIndicator(chatId, otherUid);
+    
+    // 🚀 Check and Apply Advanced Privacy on Chat Load
+    db.collection('chats').doc(chatId).get().then(doc => {
+        if (doc.exists && doc.data().advancedPrivacy === true) {
+            const chatMessagesEl = document.getElementById('chat-messages');
+            const toggleBtn = document.getElementById('advanced-privacy-toggle');
+            
+            if (chatMessagesEl) chatMessagesEl.classList.add('privacy-restricted');
+            if (toggleBtn) toggleBtn.classList.add('active');
+        } else {
+            const chatMessagesEl = document.getElementById('chat-messages');
+            const toggleBtn = document.getElementById('advanced-privacy-toggle');
+            
+            if (chatMessagesEl) chatMessagesEl.classList.remove('privacy-restricted');
+            if (toggleBtn) toggleBtn.classList.remove('active');
+        }
+    });
     
         // 🚀 Chat Wallpaper Set Logic (100% Working Full Screen)
     const chatScreenEl = document.getElementById('chat-screen');
@@ -9048,22 +9075,43 @@ function closeAdvancedPrivacy() {
     document.getElementById('advanced-privacy-modal').classList.remove('open');
 }
 
-// 🚀 Advanced Privacy Logic
+//  Advanced Privacy Logic (Updated & Fixed)
 async function toggleAdvancedPrivacy() {
     if (!currentChatId) return;
+    
     const toggle = document.getElementById('advanced-privacy-toggle');
-    const isOn = !toggle.classList.contains('active'); 
-    
-    await db.collection('chats').doc(currentChatId).set({
-        advancedPrivacy: isOn
-    }, { merge: true });
-    
-    if (isOn) {
-        toggle.classList.add('active');
-        document.getElementById('chat-messages').classList.add('privacy-restricted');
-    } else {
-        toggle.classList.remove('active');
-        document.getElementById('chat-messages').classList.remove('privacy-restricted');
+    // চেক করবে বর্তমানে অন নাকি অফ
+    const isCurrentlyOn = toggle.classList.contains('active');
+    const newStatus = !isCurrentlyOn;
+
+    try {
+        // ১. ডাটাবেসে স্ট্যাটাস আপডেট করা
+        await db.collection('chats').doc(currentChatId).set({
+            advancedPrivacy: newStatus
+        }, { merge: true });
+
+        // ২. টগল বাটনের কালার চেঞ্জ করা
+        if (newStatus) {
+            toggle.classList.add('active');
+            showToast("🔒 Advanced Privacy ON");
+        } else {
+            toggle.classList.remove('active');
+            showToast("🔓 Advanced Privacy OFF");
+        }
+
+        // . চ্যাট স্ক্রিনে প্রোটেকশন ক্লাস যোগ/রিমুভ করা
+        const chatMessagesEl = document.getElementById('chat-messages');
+        if (chatMessagesEl) {
+            if (newStatus) {
+                chatMessagesEl.classList.add('privacy-restricted');
+            } else {
+                chatMessagesEl.classList.remove('privacy-restricted');
+            }
+        }
+
+    } catch (e) {
+        console.error("Privacy update failed:", e);
+        showToast("Failed to update privacy settings");
     }
 }
 </script>
