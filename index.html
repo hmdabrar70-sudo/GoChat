@@ -1730,14 +1730,16 @@ body:not(.light-mode) #splash-screen {
     background: var(--success);
     border-color: var(--success);
 }
-/* 🚀 Advanced Privacy CSS */
-.privacy-restricted {
+/* 🚀 Advanced Privacy CSS Final Fix */
+.privacy-restricted .chat-bubble-wrapper.theirs {
     -webkit-user-select: none !important;
     user-select: none !important;
-}
-.privacy-restricted img {
     pointer-events: none !important;
-    filter: drop-shadow(0 0 2px rgba(0,0,0,0.5));
+}
+.privacy-restricted .chat-bubble-wrapper.mine {
+    -webkit-user-select: auto !important;
+    user-select: auto !important;
+    pointer-events: auto !important;
 }
 </style>
 </head>
@@ -2435,7 +2437,7 @@ body:not(.light-mode) #splash-screen {
 </div>
 </div>
 
-<div class="modal-overlay" id="forward-modal" style="z-index: 999999 !important;">
+<div class="modal-overlay" id="forward-modal">
 <div class="modal-box" style="max-height:80vh;display:flex;flex-direction:column;">
 <button class="modal-close" onclick="closeForwardModal()"><span class="material-symbols-outlined">close</span></button>
 <div class="modal-title">Forward Message</div>
@@ -2702,23 +2704,6 @@ body:not(.light-mode) #splash-screen {
     color: white; font-size: 32px; 
     background: var(--accent); border-radius: 50%;
 }
-/* 🚀 Advanced Privacy CSS Final Fix */
-.privacy-restricted .chat-bubble-wrapper.theirs {
-    -webkit-user-select: none !important;
-    user-select: none !important;
-}
-.privacy-restricted .chat-bubble-wrapper.theirs img {
-    pointer-events: none !important;
-    filter: drop-shadow(0 0 2px rgba(0,0,0,0.5));
-}
-/* নিজের মেসেজ কপি বা ডাউনলোড করা যাবে */
-.privacy-restricted .chat-bubble-wrapper.mine {
-    -webkit-user-select: auto !important;
-    user-select: auto !important;
-}
-.privacy-restricted .chat-bubble-wrapper.mine img {
-    pointer-events: auto !important; 
-}
 </style>
 
 <style>
@@ -2913,21 +2898,6 @@ body:not(.light-mode) #splash-screen {
     </div>
     <div id="saved-posts-container" style="padding: 15px; padding-bottom: 80px; max-width: 600px; margin: 0 auto;">
         </div>
-</div>
-<div class="messenger-overlay" id="messenger-overlay" onclick="closeMessengerMenu()"></div>
-<div class="messenger-msg-menu" id="messenger-msg-menu">
-    <div class="messenger-drag-handle"></div> <div class="messenger-menu-item" onclick="messengerReply()">
-        <i class="ph ph-arrow-u-down-left"></i> Reply
-    </div>
-    <div class="messenger-menu-item" onclick="messengerCopy()">
-        <i class="ph ph-copy"></i> Copy Text
-    </div>
-    <div class="messenger-menu-item" onclick="messengerForward()">
-        <i class="ph ph-share-fat"></i> Forward
-    </div>
-    <div class="messenger-menu-item" style="color: var(--danger);" onclick="messengerDelete()">
-        <i class="ph ph-trash"></i> Remove
-    </div>
 </div>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
@@ -4994,16 +4964,9 @@ function openChat(chatId, otherUid, otherName, otherAvatar){
                 });
             }
 
-            // 🚀 Advanced Privacy Logic for Images
             if(m.imageUrl){
                 const safeUrl = escapeHTML(m.imageUrl);
-                // যদি মেসেজটি আপনার হয়, তবে ডাউনলোড করা যাবে। আর যদি অন্যের হয় এবং Advanced Privacy অন থাকে, তবে ডাউনলোড ব্লক করা হবে।
-                const isPrivacyOn = document.getElementById('advanced-privacy-toggle')?.classList.contains('active');
-                const canDownload = isMine || !isPrivacyOn;
-                
-                const imgClass = canDownload ? '' : 'privacy-restricted-img';
-                
-                content=`${m.text?`<div>${safeText}</div>`:''}<img class="${imgClass}" src="${safeUrl}" onclick="openImageZoom('${safeUrl}')">`;
+                content=`${m.text?`<div>${safeText}</div>`:''}<img src="${safeUrl}" onclick="openImageZoom('${safeUrl}')">`;
             }else{
                 content=safeText;
             }
@@ -5135,16 +5098,6 @@ function setupTypingIndicator(chatId, otherUid) {
     onlineUnsub = chatRef.onSnapshot(doc => {
         if (!doc.exists) return;
         const data = doc.data();
-        const toggleBtn = document.getElementById('advanced-privacy-toggle');
-        const chatBox = document.getElementById('chat-messages');
-        if(data.advancedPrivacy) {
-            if(toggleBtn) toggleBtn.classList.add('active');
-            if(chatBox) chatBox.classList.add('privacy-restricted');
-        } else {
-            if(toggleBtn) toggleBtn.classList.remove('active');
-            if(chatBox) chatBox.classList.remove('privacy-restricted');
-        }
-
         
         // --- 🚀 6. Pinned Message Logic ---
         const pinBar = document.getElementById('group-pinned-msg-bar');
@@ -5212,62 +5165,27 @@ typing: null
 }
 }
 
-// 🚀 UPDATE 1: Messenger Style Reaction Picker
 function showReactionPicker(event, msgId) {
-    if(event.stopPropagation) event.stopPropagation();
-    
-    const existing = document.querySelector('.reaction-picker');
-    if (existing) existing.remove();
-
-    const wrapper = event.currentTarget.closest('.chat-bubble-wrapper');
-    const picker = document.createElement('div');
-    
-    picker.className = 'reaction-picker show animate__animated animate__zoomIn animate__faster';
-    picker.style.cssText = `
-        position: absolute;
-        bottom: calc(100% + 5px);
-        ${wrapper.classList.contains('mine') ? 'right: 0;' : 'left: 0;'}
-        background: var(--surface);
-        padding: 8px 14px;
-        border-radius: 30px;
-        display: flex;
-        gap: 12px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.15);
-        z-index: 100002;
-        border: 1px solid var(--border);
-        align-items: center;
-    `;
-
-    // মেসেঞ্জারের অরিজিনাল ইমোজিগুলো
-    picker.innerHTML = `
-        ${['❤️', '😆', '😮', '😢', '😠', '👍'].map(emoji => `
-            <span class="reaction-emoji" 
-                  style="cursor:pointer; font-size: 24px; transition: transform 0.2s;"
-                  onmouseover="this.style.transform='scale(1.3)'" 
-                  onmouseout="this.style.transform='scale(1)'"
-                  onclick="toggleMessageReaction('${msgId}','${emoji}'); closeMessengerMenu();">
-                  ${emoji}
-            </span>
-        `).join('')}
-        <div style="width: 1px; height: 24px; background: var(--border); margin: 0 2px;"></div>
-        <span class="reaction-emoji" 
-              style="cursor:pointer; font-size: 20px; color: var(--text-muted); background: var(--surface-2); border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;" 
-              onclick="showToast('More emojis coming soon!'); closeMessengerMenu();">
-              <i class="ph ph-plus"></i>
-        </span>
-    `;
-
-    wrapper.style.position = 'relative'; 
-    wrapper.appendChild(picker);
-
-    setTimeout(() => {
-        document.addEventListener('click', function closePicker(e) {
-            if (!picker.contains(e.target)) {
-                picker.remove();
-                document.removeEventListener('click', closePicker);
-            }
-        });
-    }, 100);
+event.stopPropagation();
+const existing = document.querySelector('.reaction-picker.show');
+if (existing) existing.remove();
+const wrapper = event.currentTarget.closest('.chat-bubble-wrapper');
+const picker = document.createElement('div');
+picker.className = 'reaction-picker show';
+picker.innerHTML = `
+<span class="reaction-emoji" onclick="toggleMessageReaction('${msgId}','❤️')">❤️</span>
+<span class="reaction-emoji" onclick="toggleMessageReaction('${msgId}','😂')">😂</span>
+<span class="reaction-emoji" onclick="toggleMessageReaction('${msgId}','😮')">😮</span>
+<span class="reaction-emoji" onclick="toggleMessageReaction('${msgId}','😢')">😢</span>
+<span class="reaction-emoji" onclick="toggleMessageReaction('${msgId}','👍')">👍</span>
+`;
+wrapper.appendChild(picker);
+setTimeout(() => {
+document.addEventListener('click', function closePicker() {
+picker.remove();
+document.removeEventListener('click', closePicker);
+}, { once: true });
+}, 100);
 }
 
 async function toggleMessageReaction(msgId, emoji) {
@@ -5369,43 +5287,34 @@ function cancelReply() {
     document.getElementById('chat-input').placeholder = 'Message...';
 }
 
-// 🚀 UPDATE: Forward Modal Z-Index Fix
 async function forwardMessage(msgId) {
-    if (!checkRateLimit()) return;
-    const doc = await db.collection('chats').doc(currentChatId).collection('messages').doc(msgId).get();
-    if (!doc.exists) return;
-    currentForwardMsgData = doc.data();
-    
-    // 🚀 জোর করে মডালটিকে চ্যাটের সবার উপরে নিয়ে আসা হলো
-    const modal = document.getElementById('forward-modal');
-    modal.style.zIndex = '9999999';
-    modal.classList.add('open');
-    
-    const friends = currentUserData.friends || [];
-    const list = document.getElementById('forward-friends-list');
-    if (friends.length === 0) {
-        list.innerHTML = '<div class="empty-feed">No friends to forward to</div>';
-        return;
-    }
-    list.innerHTML = '<div class="loading">Loading friends...</div>';
-    
-    const friendDocs = friends.map(fId => db.collection('users').doc(fId).get());
-    const snapshots = await Promise.all(friendDocs);
-    let html = '';
-    snapshots.forEach((fDoc, index) => {
-        if (fDoc.exists) {
-            const u = fDoc.data();
-            const safeName = escapeHTML(u.name);
-            const avHtml = u.avatar ? `<img src="${u.avatar}">` : avatarInitial(u.name);
-            html += `<div class="forward-friend-item" onclick="doForwardMessage('${friends[index]}')">
-            <div class="avatar sm">${avHtml}</div>
-            <div style="font-weight:600;font-size:14px;">${safeName}</div>
-            </div>`;
-        }
-    });
-    list.innerHTML = html;
+if (!checkRateLimit()) return;
+const doc = await db.collection('chats').doc(currentChatId).collection('messages').doc(msgId).get();
+if (!doc.exists) return;
+currentForwardMsgData = doc.data();
+document.getElementById('forward-modal').classList.add('open');
+const friends = currentUserData.friends || [];
+const list = document.getElementById('forward-friends-list');
+if (friends.length === 0) {
+list.innerHTML = '<div class="empty-feed">No friends to forward to</div>';
+return;
 }
-
+const friendDocs = friends.map(fId => db.collection('users').doc(fId).get());
+const snapshots = await Promise.all(friendDocs);
+let html = '';
+snapshots.forEach((fDoc, index) => {
+if (fDoc.exists) {
+const u = fDoc.data();
+const safeName = escapeHTML(u.name);
+const avHtml = u.avatar ? `<img src="${u.avatar}">` : avatarInitial(u.name);
+html += `<div class="forward-friend-item" onclick="doForwardMessage('${friends[index]}')">
+<div class="avatar sm">${avHtml}</div>
+<div style="font-weight:600;font-size:14px;">${safeName}</div>
+</div>`;
+}
+});
+list.innerHTML = html;
+}
 
 async function doForwardMessage(toUid) {
 if (!currentForwardMsgData) return;
@@ -9139,121 +9048,23 @@ function closeAdvancedPrivacy() {
     document.getElementById('advanced-privacy-modal').classList.remove('open');
 }
 
-// 🚀 UPDATE: Advanced Privacy Database Sync
+// 🚀 Advanced Privacy Logic
 async function toggleAdvancedPrivacy() {
-    if(!currentChatId) return;
+    if (!currentChatId) return;
     const toggle = document.getElementById('advanced-privacy-toggle');
-    const isOn = !toggle.classList.contains('active'); // Toggle state
+    const isOn = !toggle.classList.contains('active'); 
     
-    try {
-        await db.collection('chats').doc(currentChatId).set({
-            advancedPrivacy: isOn
-        }, { merge: true });
-        showToast(isOn ? "Advanced Privacy is ON" : "Advanced Privacy is OFF");
-    } catch(e) {
-        showToast("Error updating privacy");
-    }
-}
-
-// 🚀 UPDATE 2: Messenger Long Press Logic
-function handleMsgTouchStart(msgId, event) {
-    if(isMsgSelectionMode) return;
-    if(event && event.touches) {
-        touchStartX = event.touches[0].clientX;
-        touchStartY = event.touches[0].clientY;
-    }
-    isSwiping = false;
-    const targetElement = event.currentTarget; 
+    await db.collection('chats').doc(currentChatId).set({
+        advancedPrivacy: isOn
+    }, { merge: true });
     
-    msgPressTimer = setTimeout(() => {
-        if(!isSwiping) {
-            if(navigator.vibrate) navigator.vibrate(50);
-            
-            showReactionPicker({
-                stopPropagation: () => {},
-                currentTarget: targetElement
-            }, msgId);
-            
-            openMessengerMenu(msgId);
-        }
-    }, 500);
-}
-
-// 🚀 UPDATE 3: Messenger Menu Actions & Features
-let currentMessengerMsgId = null;
-
-function openMessengerMenu(msgId) {
-    currentMessengerMsgId = msgId;
-    document.getElementById('messenger-overlay').classList.add('show');
-    document.getElementById('messenger-msg-menu').classList.add('show');
-}
-
-function closeMessengerMenu() {
-    const overlay = document.getElementById('messenger-overlay');
-    const menu = document.getElementById('messenger-msg-menu');
-    if(overlay) overlay.classList.remove('show');
-    if(menu) menu.classList.remove('show');
-    const picker = document.querySelector('.reaction-picker');
-    if(picker) picker.remove(); 
-}
-
-function messengerReply() {
-    closeMessengerMenu();
-    if(currentMessengerMsgId) replyToMessage(currentMessengerMsgId);
-}
-
-function messengerCopy() {
-    closeMessengerMenu();
-    const wrapper = document.querySelector(`.chat-bubble-wrapper[data-msgid="${currentMessengerMsgId}"]`);
-    if(wrapper) {
-        const textEl = wrapper.querySelector('.chat-bubble');
-        const text = textEl ? textEl.innerText.trim() : '';
-        if(text) {
-            navigator.clipboard.writeText(text).then(() => {
-                showToast('Message copied to clipboard!');
-            }).catch(err => {
-                showToast('Failed to copy text.');
-            });
-        } else {
-            showToast('No text to copy.');
-        }
-    }
-}
-
-// 🚀 UPDATE: Forward Logic Fixed
-function messengerForward() {
-    closeMessengerMenu();
-    // সরাসরি আগের তৈরি করা ফরওয়ার্ড ফাংশনটি কল করা হলো
-    if (currentMessengerMsgId) {
-        forwardMessage(currentMessengerMsgId); 
-    }
-}
-
-// 🚀 UPDATE: Delete for Everyone & Delete for Me Logic
-function messengerDelete() {
-    closeMessengerMenu();
-    if (!currentMessengerMsgId) return;
-
-    const wrapper = document.querySelector(`.chat-bubble-wrapper[data-msgid="${currentMessengerMsgId}"]`);
-    const isMine = wrapper && wrapper.classList.contains('mine');
-
-    // মেসেঞ্জারের মতো ডিলিট মডাল ওপেন হবে
-    isMsgSelectionMode = true; // মডালটি বুঝতে পারবে যে মেসেজ সিলেক্ট হয়েছে
-    selectedMsgIds = [currentMessengerMsgId]; // যে মেসেজটি ডিলিট করতে চান তার আইডি সেভ করা হলো
-
-    const btnEveryone = document.getElementById('btn-delete-everyone');
-    const sheetTitle = document.getElementById('delete-sheet-title');
-    
-    if(!isMine) {
-        if(btnEveryone) btnEveryone.style.display = 'none';
-        if(sheetTitle) sheetTitle.textContent = "Can't delete others' messages for everyone";
+    if (isOn) {
+        toggle.classList.add('active');
+        document.getElementById('chat-messages').classList.add('privacy-restricted');
     } else {
-        if(btnEveryone) btnEveryone.style.display = 'flex';
-        if(sheetTitle) sheetTitle.textContent = "Delete message?";
+        toggle.classList.remove('active');
+        document.getElementById('chat-messages').classList.remove('privacy-restricted');
     }
-    
-    const modal = document.getElementById('delete-sheet-modal');
-    if(modal) modal.classList.add('open');
 }
 </script>
 </body>
