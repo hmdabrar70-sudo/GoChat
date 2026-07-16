@@ -4926,24 +4926,27 @@ function openChat(chatId, otherUid, otherName, otherAvatar){
             }else{
                 content=escapeHTML(m.text||'');
             }
-            // 🚀 রিপ্লাই মেসেজ প্রিভিউ ইন চ্যাট
-            let replyHtml='';
-            if(m.replyTo){
-                let repName = m.replySender ? escapeHTML(m.replySender) : 'Someone';
-                let repText = m.replyText ? escapeHTML(m.replyText) : 'Replying to a message';
-                if(repText.length > 50) repText = repText.substring(0, 50) + '...';
+                        // 🚀 UPDATE 2: Modern Reply Bubble Design
+            if(m.replyTo) {
+                let repText = m.replyToText || '📸 Image';
+                let repName = m.replyToSender || 'User';
                 
-                // নিজের এবং অন্যের মেসেজের জন্য আলাদা ডিজাইন
-                let repBg = isMine ? 'rgba(0,0,0,0.25)' : 'var(--surface-2)';
-                let borderCol = isMine ? 'rgba(255,255,255,0.8)' : 'var(--accent)';
+                let repBg = isMine ? 'rgba(255,255,255,0.15)' : 'rgba(108, 92, 231, 0.1)';
+                let borderCol = isMine ? '#fff' : 'var(--accent)';
                 let nameCol = isMine ? '#fff' : 'var(--accent)';
-                let textCol = isMine ? 'rgba(255,255,255,0.8)' : 'var(--text-secondary)';
-                
-                replyHtml=`<div onclick="scrollToMessage('${m.replyTo}')" style="cursor:pointer; opacity:0.95; margin-bottom:8px; padding:8px 12px; background:${repBg}; border-radius:8px; border-left:3px solid ${borderCol}; display:flex; flex-direction:column; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                    <strong style="color:${nameCol}; font-size:11px; margin-bottom:3px; letter-spacing:0.3px;">${repName}</strong>
-                    <span style="font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color: ${textCol};">${repText}</span>
+                let textCol = isMine ? 'rgba(255,255,255,0.9)' : 'var(--text-secondary)';
+
+                replyHtml = `
+                <div onclick="scrollToMessage('${m.replyTo}')" style="cursor:pointer; margin-bottom:6px; padding:6px 10px; background:${repBg}; border-radius:6px; border-left:3px solid ${borderCol}; display:flex; flex-direction:column; transition: opacity 0.2s;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">
+                    <div style="color:${nameCol}; font-size:11px; font-weight:800; display:flex; align-items:center; gap:4px; margin-bottom:2px;">
+                        ${repName}
+                    </div>
+                    <div style="font-size:12px; color:${textCol}; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; word-break:break-word; line-height: 1.4;">
+                        ${repText}
+                    </div>
                 </div>`;
             }
+
 
             let timeString = 'Sending...';
             if (m.createdAt) {
@@ -5202,39 +5205,47 @@ function showMessageMenu(event, msgId) {
 }
 
 
+// 🚀 UPDATE 1: Modern Fast Reply Preview
 async function replyToMessage(msgId) {
     currentReplyMsgId = msgId;
-    const input = document.getElementById('chat-input');
-    input.focus();
+    const container = document.getElementById('reply-preview-container');
     
-    // 🚀 অরিজিনাল মেসেজ ডাটাবেস থেকে এনে প্রিভিউ দেখানো
-    try {
-        const doc = await db.collection('chats').doc(currentChatId).collection('messages').doc(msgId).get();
-        if(doc.exists) {
-            replyToMsgData = doc.data();
-            let shortText = replyToMsgData.text ? escapeHTML(replyToMsgData.text) : '📷 Photo';
-            if(shortText.length > 50) shortText = shortText.substring(0, 50) + '...';
-            
-            const container = document.getElementById('reply-preview-container');
-            container.innerHTML = `
-                <div class="reply-preview" style="display:flex; justify-content:space-between; align-items:center; background:var(--surface-2); padding:10px 14px; border-left:4px solid var(--accent); border-radius:12px; margin-bottom:8px; width:100%; border: 1px solid var(--border);">
-                    <div style="display:flex; flex-direction:column; overflow:hidden;">
-                        <span style="font-size:12px; font-weight:800; color:var(--accent); margin-bottom:2px;">Replying to ${escapeHTML(replyToMsgData.senderName || 'User')}</span>
-                        <span style="font-size:13px; color:var(--text-secondary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${shortText}</span>
+    // লোডিং স্টেট (যাতে ইউজার বুঝতে পারে কাজ হচ্ছে)
+    container.innerHTML = `<div style="padding: 10px; font-size: 12px; color: var(--accent);">Loading reply...</div>`;
+    
+    const docSnap = await db.collection('chats').doc(currentChatId).collection('messages').doc(msgId).get();
+    
+    if(docSnap.exists) {
+        currentReplyMsgData = docSnap.data();
+        let shortText = currentReplyMsgData.text || '📸 Image';
+        
+        container.innerHTML = `
+            <div class="reply-preview animate__animated animate__fadeInUp" style="display:flex; justify-content:space-between; align-items:center; background: rgba(var(--surface-2-rgb, 30,30,30), 0.8); backdrop-filter: blur(10px); padding:8px 12px; border-left: 4px solid var(--accent); border-radius: 12px 12px 4px 4px; margin-bottom: 5px; width: 100%; box-shadow: 0 -4px 15px rgba(0,0,0,0.1);">
+                <div style="display:flex; flex-direction:column; overflow:hidden; flex:1; min-width:0;">
+                    <div style="font-size:11px; font-weight:800; color:var(--accent); display:flex; align-items:center; gap:4px;">
+                        <i class="ph ph-arrow-u-down-left"></i> ${escapeHTML(currentReplyMsgData.senderName || 'User')}
                     </div>
-                    <span class="material-symbols-outlined" style="cursor:pointer; color:var(--text-muted); padding:6px; background:rgba(0,0,0,0.2); border-radius:50%;" onclick="cancelReply()">close</span>
+                    <div style="font-size:13px; color:var(--text-secondary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top: 2px;">
+                        ${shortText}
+                    </div>
                 </div>
-            `;
-            input.placeholder = 'Reply to ' + (replyToMsgData.senderName || 'User') + '...';
-        }
-    } catch(e) { console.error(e); }
+                <div onclick="cancelReply()" style="cursor:pointer; color:var(--text-muted); padding: 5px; border-radius: 50%; display:flex; align-items:center; justify-content:center; flex-shrink:0; transition: background 0.2s;" onmouseover="this.style.background='rgba(255,0,0,0.1)'" onmouseout="this.style.background='transparent'">
+                    <i class="ph ph-x" style="font-size: 18px; color: var(--text-secondary);"></i>
+                </div>
+            </div>
+        `;
+        document.getElementById('chat-input').focus();
+    }
 }
 
 function cancelReply() {
     currentReplyMsgId = null;
-    replyToMsgData = null;
-    document.getElementById('reply-preview-container').innerHTML = '';
-    document.getElementById('chat-input').placeholder = 'Message...';
+    currentReplyMsgData = null;
+    const container = document.getElementById('reply-preview-container');
+    if(container.firstChild) {
+        container.firstChild.classList.replace('animate__fadeInUp', 'animate__fadeOutDown');
+        setTimeout(() => container.innerHTML = '', 300); // স্মুথ ক্লোজিং
+    }
 }
 
 async function forwardMessage(msgId) {
@@ -8963,26 +8974,25 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 // 🚀 Click to Scroll and Highlight Message
+// 🚀 UPDATE 3: Smooth Scroll & Pulse Animation
 function scrollToMessage(msgId) {
-    const targetMsg = document.querySelector(`.chat-bubble-wrapper[data-msgid="${msgId}"] .chat-bubble`);
-    if(targetMsg) {
-        // মেসেজে স্ক্রল করবে
-        targetMsg.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    const el = document.getElementById('msg-'+msgId);
+    if(el) {
+        // মেসেজটি ঠিক মাঝখানে আনবে
+        el.scrollIntoView({behavior: 'smooth', block:'center'});
         
-        // চমৎকার হাইলাইট ইফেক্ট
-        const originalBg = targetMsg.style.background;
-        const originalShadow = targetMsg.style.boxShadow;
-        
-        targetMsg.style.background = 'var(--accent-glow)';
-        targetMsg.style.boxShadow = '0 0 15px var(--accent)';
-        targetMsg.style.transition = 'all 0.5s ease';
+        // আধুনিক পালস এবং হাইলাইট এনিমেশন
+        el.style.transition = 'all 0.4s ease';
+        el.style.backgroundColor = 'rgba(108, 92, 231, 0.4)';
+        el.style.transform = 'scale(1.02)';
+        el.style.borderRadius = '8px';
         
         setTimeout(() => {
-            targetMsg.style.background = originalBg;
-            targetMsg.style.boxShadow = originalShadow;
-        }, 1500);
+            el.style.backgroundColor = 'transparent';
+            el.style.transform = 'scale(1)';
+        }, 1200);
     } else {
-        showToast("Message is too old or has been deleted.");
+        showToast("Message is too old or not loaded yet.");
     }
 }
 </script>
