@@ -1739,14 +1739,6 @@ body:not(.light-mode) #splash-screen {
     pointer-events: none !important;
     filter: drop-shadow(0 0 2px rgba(0,0,0,0.5));
 }
-/* 🚀 TikTok Style Message Menu CSS */
-.tiktok-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 100000; }
-.tiktok-overlay.show { display: block; animation: fadeIn 0.2s ease; }
-.tiktok-msg-menu { position: fixed; bottom: -100%; left: 0; width: 100%; background: var(--surface); border-radius: 24px 24px 0 0; padding: 20px; box-shadow: 0 -4px 20px rgba(0,0,0,0.2); z-index: 100001; transition: bottom 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); display: flex; flex-direction: column; gap: 5px; }
-.tiktok-msg-menu.show { bottom: 0; }
-.tiktok-msg-menu-item { display: flex; align-items: center; gap: 12px; padding: 14px 16px; font-size: 15px; font-weight: 600; cursor: pointer; border-radius: 12px; color: var(--text); transition: background 0.2s; }
-.tiktok-msg-menu-item:hover { background: var(--surface-2); }
-.tiktok-msg-menu-item .material-symbols-outlined { font-size: 22px; }
 </style>
 </head>
 <body>
@@ -2856,26 +2848,6 @@ body:not(.light-mode) #splash-screen {
             Only you <input type="radio" name="privacy" id="priv-onlyme" style="width:18px;height:18px;">
         </div>
         <p style="font-size:12px; color:var(--text-muted); margin-top:20px;">If you select "Only you", other users will only see mutual friends.</p>
-    </div>
-</div>
-
-<div class="tiktok-overlay" id="tiktok-overlay" onclick="closeTikTokMessageMenu()"></div>
-<div class="tiktok-msg-menu" id="tiktok-msg-menu">
-    <div style="font-size: 16px; font-weight: 800; text-align: center; margin-bottom: 10px; color: var(--text);">More</div>
-    <div class="tiktok-msg-menu-item" onclick="tiktokReply()">
-        <span class="material-symbols-outlined">reply</span> Reply
-    </div>
-    <div class="tiktok-msg-menu-item" onclick="tiktokPin()">
-        <span class="material-symbols-outlined">push_pin</span> Pin
-    </div>
-    <div class="tiktok-msg-menu-item" onclick="tiktokForward()">
-        <span class="material-symbols-outlined">forward</span> Forward
-    </div>
-    <div class="tiktok-msg-menu-item" style="color: var(--warning);" onclick="tiktokReport()">
-        <span class="material-symbols-outlined">report</span> Report
-    </div>
-    <div class="tiktok-msg-menu-item" style="color: var(--danger);" onclick="tiktokDelete()">
-        <span class="material-symbols-outlined">delete</span> Delete
     </div>
 </div>
 
@@ -5191,60 +5163,27 @@ typing: null
 }
 }
 
-// 🚀 UPDATE 1: TikTok Style Reaction Picker
 function showReactionPicker(event, msgId) {
-    if(event.stopPropagation) event.stopPropagation();
-    
-    const existing = document.querySelector('.reaction-picker');
-    if (existing) existing.remove();
-
-    const wrapper = event.currentTarget.closest('.chat-bubble-wrapper');
-    const picker = document.createElement('div');
-    
-    picker.className = 'reaction-picker show animate__animated animate__zoomIn';
-    picker.style.cssText = `
-        position: absolute;
-        bottom: calc(100% + 5px);
-        left: 0;
-        background: var(--surface);
-        padding: 10px 14px;
-        border-radius: 30px;
-        display: flex;
-        gap: 12px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-        z-index: 1000;
-        border: 1px solid var(--border);
-        align-items: center;
-    `;
-
-    // টিকটকের নির্দিষ্ট ইমোজিগুলো
-    picker.innerHTML = `
-        ${['💚', '😯', '😲', '🤬', '🤝'].map(emoji => `
-            <span class="reaction-emoji" 
-                  style="cursor:pointer; font-size: 24px; transition: transform 0.2s;"
-                  onmouseover="this.style.transform='scale(1.3)'" 
-                  onmouseout="this.style.transform='scale(1)'"
-                  onclick="toggleMessageReaction('${msgId}','${emoji}'); closeTikTokMessageMenu();">
-                  ${emoji}
-            </span>
-        `).join('')}
-        <div style="width: 1px; height: 24px; background: var(--border); margin: 0 4px;"></div>
-        <span class="reaction-emoji" 
-              style="cursor:pointer; font-size: 20px; color: var(--text-muted); background: var(--surface-2); border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;" 
-              onclick="showToast('More emojis coming soon!'); closeTikTokMessageMenu();">➕</span>
-    `;
-
-    wrapper.style.position = 'relative'; 
-    wrapper.appendChild(picker);
-
-    setTimeout(() => {
-        document.addEventListener('click', function closePicker(e) {
-            if (!picker.contains(e.target)) {
-                picker.remove();
-                document.removeEventListener('click', closePicker);
-            }
-        });
-    }, 100);
+event.stopPropagation();
+const existing = document.querySelector('.reaction-picker.show');
+if (existing) existing.remove();
+const wrapper = event.currentTarget.closest('.chat-bubble-wrapper');
+const picker = document.createElement('div');
+picker.className = 'reaction-picker show';
+picker.innerHTML = `
+<span class="reaction-emoji" onclick="toggleMessageReaction('${msgId}','❤️')">❤️</span>
+<span class="reaction-emoji" onclick="toggleMessageReaction('${msgId}','😂')">😂</span>
+<span class="reaction-emoji" onclick="toggleMessageReaction('${msgId}','😮')">😮</span>
+<span class="reaction-emoji" onclick="toggleMessageReaction('${msgId}','😢')">😢</span>
+<span class="reaction-emoji" onclick="toggleMessageReaction('${msgId}','👍')">👍</span>
+`;
+wrapper.appendChild(picker);
+setTimeout(() => {
+document.addEventListener('click', function closePicker() {
+picker.remove();
+document.removeEventListener('click', closePicker);
+}, { once: true });
+}, 100);
 }
 
 async function toggleMessageReaction(msgId, emoji) {
@@ -7260,7 +7199,6 @@ let touchStartX = 0;
 let touchStartY = 0;
 let isSwiping = false;
 
-// 🚀 UPDATE 2: TikTok Long Press & Menu Logic
 function handleMsgTouchStart(msgId, event) {
     if(isMsgSelectionMode) return;
     if(event && event.touches) {
@@ -7268,23 +7206,8 @@ function handleMsgTouchStart(msgId, event) {
         touchStartY = event.touches[0].clientY;
     }
     isSwiping = false;
-    
-    // ইভেন্ট টার্গেট সেভ করে রাখা হলো
-    const targetElement = event.currentTarget; 
-    
     msgPressTimer = setTimeout(() => {
-        if(!isSwiping) {
-            if(navigator.vibrate) navigator.vibrate(50); // টিকটকের মতো হ্যাপটিক ভাইব্রেশন
-            
-            // ১. রিয়্যাকশন পিকার ওপেন করা
-            showReactionPicker({
-                stopPropagation: () => {},
-                currentTarget: targetElement
-            }, msgId);
-            
-            // ২. টিকটকের More মেনু নিচ থেকে ওপেন করা
-            openTikTokMessageMenu(msgId);
-        }
+        if(!isSwiping) enterSelectionMode(msgId);
     }, 500);
 }
 
@@ -9137,140 +9060,6 @@ function toggleAdvancedPrivacy() {
         chatBox.classList.remove('privacy-restricted');
         showToast("Advanced Privacy is OFF.");
     }
-}
-// 🚀 UPDATE 3: TikTok Menu Actions
-let currentTikTokMsgId = null;
-
-function openTikTokMessageMenu(msgId) {
-    currentTikTokMsgId = msgId;
-    document.getElementById('tiktok-overlay').classList.add('show');
-    document.getElementById('tiktok-msg-menu').classList.add('show');
-}
-
-function closeTikTokMessageMenu() {
-    document.getElementById('tiktok-overlay').classList.remove('show');
-    document.getElementById('tiktok-msg-menu').classList.remove('show');
-    const picker = document.querySelector('.reaction-picker');
-    if(picker) picker.remove(); // মেনু বন্ধ হলে ইমোজি বক্সও বন্ধ হবে
-}
-
-function tiktokReply() {
-    closeTikTokMessageMenu();
-    if(currentTikTokMsgId) replyToMessage(currentTikTokMsgId);
-}
-
-function tiktokPin() {
-    closeTikTokMessageMenu();
-    showToast('Message Pinned!');
-}
-
-function tiktokForward() {
-    closeTikTokMessageMenu();
-    const wrapper = document.querySelector(`.chat-bubble-wrapper[data-msgid="${currentTikTokMsgId}"]`);
-    if(wrapper) {
-        const textEl = wrapper.querySelector('.chat-bubble');
-        const text = textEl ? textEl.innerText.trim() : '';
-        openForwardModal(text, ''); // আপনার তৈরি করা ফরওয়ার্ড মডালটি কল করবে
-    }
-}
-
-function tiktokReport() {
-    closeTikTokMessageMenu();
-    showToast('Message Reported successfully!');
-}
-
-function tiktokDelete() {
-    closeTikTokMessageMenu();
-    if(currentTikTokMsgId) deleteMessage(currentTikTokMsgId);
-}// 🚀 UPDATE 3: TikTok Menu Actions
-let currentTikTokMsgId = null;
-
-function openTikTokMessageMenu(msgId) {
-    currentTikTokMsgId = msgId;
-    document.getElementById('tiktok-overlay').classList.add('show');
-    document.getElementById('tiktok-msg-menu').classList.add('show');
-}
-
-function closeTikTokMessageMenu() {
-    document.getElementById('tiktok-overlay').classList.remove('show');
-    document.getElementById('tiktok-msg-menu').classList.remove('show');
-    const picker = document.querySelector('.reaction-picker');
-    if(picker) picker.remove(); // মেনু বন্ধ হলে ইমোজি বক্সও বন্ধ হবে
-}
-
-function tiktokReply() {
-    closeTikTokMessageMenu();
-    if(currentTikTokMsgId) replyToMessage(currentTikTokMsgId);
-}
-
-function tiktokPin() {
-    closeTikTokMessageMenu();
-    showToast('Message Pinned!');
-}
-
-function tiktokForward() {
-    closeTikTokMessageMenu();
-    const wrapper = document.querySelector(`.chat-bubble-wrapper[data-msgid="${currentTikTokMsgId}"]`);
-    if(wrapper) {
-        const textEl = wrapper.querySelector('.chat-bubble');
-        const text = textEl ? textEl.innerText.trim() : '';
-        openForwardModal(text, ''); // আপনার তৈরি করা ফরওয়ার্ড মডালটি কল করবে
-    }
-}
-
-function tiktokReport() {
-    closeTikTokMessageMenu();
-    showToast('Message Reported successfully!');
-}
-
-function tiktokDelete() {
-    closeTikTokMessageMenu();
-    if(currentTikTokMsgId) deleteMessage(currentTikTokMsgId);
-}
-// 🚀 UPDATE 3: TikTok Menu Actions
-let currentTikTokMsgId = null;
-
-function openTikTokMessageMenu(msgId) {
-    currentTikTokMsgId = msgId;
-    document.getElementById('tiktok-overlay').classList.add('show');
-    document.getElementById('tiktok-msg-menu').classList.add('show');
-}
-
-function closeTikTokMessageMenu() {
-    document.getElementById('tiktok-overlay').classList.remove('show');
-    document.getElementById('tiktok-msg-menu').classList.remove('show');
-    const picker = document.querySelector('.reaction-picker');
-    if(picker) picker.remove(); // মেনু বন্ধ হলে ইমোজি বক্সও বন্ধ হবে
-}
-
-function tiktokReply() {
-    closeTikTokMessageMenu();
-    if(currentTikTokMsgId) replyToMessage(currentTikTokMsgId);
-}
-
-function tiktokPin() {
-    closeTikTokMessageMenu();
-    showToast('Message Pinned!');
-}
-
-function tiktokForward() {
-    closeTikTokMessageMenu();
-    const wrapper = document.querySelector(`.chat-bubble-wrapper[data-msgid="${currentTikTokMsgId}"]`);
-    if(wrapper) {
-        const textEl = wrapper.querySelector('.chat-bubble');
-        const text = textEl ? textEl.innerText.trim() : '';
-        openForwardModal(text, ''); // আপনার তৈরি করা ফরওয়ার্ড মডালটি কল করবে
-    }
-}
-
-function tiktokReport() {
-    closeTikTokMessageMenu();
-    showToast('Message Reported successfully!');
-}
-
-function tiktokDelete() {
-    closeTikTokMessageMenu();
-    if(currentTikTokMsgId) deleteMessage(currentTikTokMsgId);
 }
 </script>
 </body>
