@@ -1739,6 +1739,15 @@ body:not(.light-mode) #splash-screen {
     pointer-events: none !important;
     filter: drop-shadow(0 0 2px rgba(0,0,0,0.5));
 }
+/* 🚀 Messenger Style Message Menu CSS */
+.messenger-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100000; backdrop-filter: blur(2px); }
+.messenger-overlay.show { display: block; animation: fadeIn 0.2s ease; }
+.messenger-msg-menu { position: fixed; bottom: -100%; left: 0; width: 100%; background: var(--surface); border-radius: 24px 24px 0 0; padding: 15px 20px 30px; box-shadow: 0 -4px 20px rgba(0,0,0,0.15); z-index: 100001; transition: bottom 0.3s cubic-bezier(0.2, 0.8, 0.2, 1); display: flex; flex-direction: column; gap: 5px; }
+.messenger-msg-menu.show { bottom: 0; }
+.messenger-menu-item { display: flex; align-items: center; gap: 14px; padding: 14px 16px; font-size: 15.5px; font-weight: 600; cursor: pointer; border-radius: 12px; color: var(--text); transition: background 0.2s; }
+.messenger-menu-item:hover { background: var(--surface-2); }
+.messenger-menu-item i { font-size: 24px; }
+.messenger-drag-handle { width: 40px; height: 5px; background: var(--border); border-radius: 5px; margin: 0 auto 15px; }
 </style>
 </head>
 <body>
@@ -2896,6 +2905,24 @@ body:not(.light-mode) #splash-screen {
     </div>
     <div id="saved-posts-container" style="padding: 15px; padding-bottom: 80px; max-width: 600px; margin: 0 auto;">
         </div>
+</div>
+<div class="messenger-overlay" id="messenger-overlay" onclick="closeMessengerMenu()"></div>
+<div class="messenger-msg-menu" id="messenger-msg-menu">
+    <div class="messenger-drag-handle"></div> <div class="messenger-menu-item" onclick="messengerReply()">
+        <i class="ph ph-arrow-u-down-left"></i> Reply
+    </div>
+    <div class="messenger-menu-item" onclick="messengerCopy()">
+        <i class="ph ph-copy"></i> Copy Text
+    </div>
+    <div class="messenger-menu-item" onclick="messengerForward()">
+        <i class="ph ph-share-fat"></i> Forward
+    </div>
+    <div class="messenger-menu-item" onclick="messengerPin()">
+        <i class="ph ph-push-pin"></i> Pin
+    </div>
+    <div class="messenger-menu-item" style="color: var(--danger);" onclick="messengerDelete()">
+        <i class="ph ph-trash"></i> Remove
+    </div>
 </div>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
@@ -5163,27 +5190,62 @@ typing: null
 }
 }
 
+// 🚀 UPDATE 1: Messenger Style Reaction Picker
 function showReactionPicker(event, msgId) {
-event.stopPropagation();
-const existing = document.querySelector('.reaction-picker.show');
-if (existing) existing.remove();
-const wrapper = event.currentTarget.closest('.chat-bubble-wrapper');
-const picker = document.createElement('div');
-picker.className = 'reaction-picker show';
-picker.innerHTML = `
-<span class="reaction-emoji" onclick="toggleMessageReaction('${msgId}','❤️')">❤️</span>
-<span class="reaction-emoji" onclick="toggleMessageReaction('${msgId}','😂')">😂</span>
-<span class="reaction-emoji" onclick="toggleMessageReaction('${msgId}','😮')">😮</span>
-<span class="reaction-emoji" onclick="toggleMessageReaction('${msgId}','😢')">😢</span>
-<span class="reaction-emoji" onclick="toggleMessageReaction('${msgId}','👍')">👍</span>
-`;
-wrapper.appendChild(picker);
-setTimeout(() => {
-document.addEventListener('click', function closePicker() {
-picker.remove();
-document.removeEventListener('click', closePicker);
-}, { once: true });
-}, 100);
+    if(event.stopPropagation) event.stopPropagation();
+    
+    const existing = document.querySelector('.reaction-picker');
+    if (existing) existing.remove();
+
+    const wrapper = event.currentTarget.closest('.chat-bubble-wrapper');
+    const picker = document.createElement('div');
+    
+    picker.className = 'reaction-picker show animate__animated animate__zoomIn animate__faster';
+    picker.style.cssText = `
+        position: absolute;
+        bottom: calc(100% + 5px);
+        ${wrapper.classList.contains('mine') ? 'right: 0;' : 'left: 0;'}
+        background: var(--surface);
+        padding: 8px 14px;
+        border-radius: 30px;
+        display: flex;
+        gap: 12px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+        z-index: 100002;
+        border: 1px solid var(--border);
+        align-items: center;
+    `;
+
+    // মেসেঞ্জারের অরিজিনাল ইমোজিগুলো
+    picker.innerHTML = `
+        ${['❤️', '😆', '😮', '😢', '😠', '👍'].map(emoji => `
+            <span class="reaction-emoji" 
+                  style="cursor:pointer; font-size: 24px; transition: transform 0.2s;"
+                  onmouseover="this.style.transform='scale(1.3)'" 
+                  onmouseout="this.style.transform='scale(1)'"
+                  onclick="toggleMessageReaction('${msgId}','${emoji}'); closeMessengerMenu();">
+                  ${emoji}
+            </span>
+        `).join('')}
+        <div style="width: 1px; height: 24px; background: var(--border); margin: 0 2px;"></div>
+        <span class="reaction-emoji" 
+              style="cursor:pointer; font-size: 20px; color: var(--text-muted); background: var(--surface-2); border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;" 
+              onclick="showToast('More emojis coming soon!'); closeMessengerMenu();">
+              <i class="ph ph-plus"></i>
+        </span>
+    `;
+
+    wrapper.style.position = 'relative'; 
+    wrapper.appendChild(picker);
+
+    setTimeout(() => {
+        document.addEventListener('click', function closePicker(e) {
+            if (!picker.contains(e.target)) {
+                picker.remove();
+                document.removeEventListener('click', closePicker);
+            }
+        });
+    }, 100);
 }
 
 async function toggleMessageReaction(msgId, emoji) {
@@ -9060,6 +9122,90 @@ function toggleAdvancedPrivacy() {
         chatBox.classList.remove('privacy-restricted');
         showToast("Advanced Privacy is OFF.");
     }
+}
+// 🚀 UPDATE 2: Messenger Long Press Logic
+function handleMsgTouchStart(msgId, event) {
+    if(isMsgSelectionMode) return;
+    if(event && event.touches) {
+        touchStartX = event.touches[0].clientX;
+        touchStartY = event.touches[0].clientY;
+    }
+    isSwiping = false;
+    const targetElement = event.currentTarget; 
+    
+    msgPressTimer = setTimeout(() => {
+        if(!isSwiping) {
+            if(navigator.vibrate) navigator.vibrate(50);
+            
+            showReactionPicker({
+                stopPropagation: () => {},
+                currentTarget: targetElement
+            }, msgId);
+            
+            openMessengerMenu(msgId);
+        }
+    }, 500);
+}
+
+// 🚀 UPDATE 3: Messenger Menu Actions & Features
+let currentMessengerMsgId = null;
+
+function openMessengerMenu(msgId) {
+    currentMessengerMsgId = msgId;
+    document.getElementById('messenger-overlay').classList.add('show');
+    document.getElementById('messenger-msg-menu').classList.add('show');
+}
+
+function closeMessengerMenu() {
+    const overlay = document.getElementById('messenger-overlay');
+    const menu = document.getElementById('messenger-msg-menu');
+    if(overlay) overlay.classList.remove('show');
+    if(menu) menu.classList.remove('show');
+    const picker = document.querySelector('.reaction-picker');
+    if(picker) picker.remove(); 
+}
+
+function messengerReply() {
+    closeMessengerMenu();
+    if(currentMessengerMsgId) replyToMessage(currentMessengerMsgId);
+}
+
+function messengerCopy() {
+    closeMessengerMenu();
+    const wrapper = document.querySelector(`.chat-bubble-wrapper[data-msgid="${currentMessengerMsgId}"]`);
+    if(wrapper) {
+        const textEl = wrapper.querySelector('.chat-bubble');
+        const text = textEl ? textEl.innerText.trim() : '';
+        if(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                showToast('Message copied to clipboard!');
+            }).catch(err => {
+                showToast('Failed to copy text.');
+            });
+        } else {
+            showToast('No text to copy.');
+        }
+    }
+}
+
+function messengerForward() {
+    closeMessengerMenu();
+    const wrapper = document.querySelector(`.chat-bubble-wrapper[data-msgid="${currentMessengerMsgId}"]`);
+    if(wrapper) {
+        const textEl = wrapper.querySelector('.chat-bubble');
+        const text = textEl ? textEl.innerText.trim() : '';
+        openForwardModal(text, ''); 
+    }
+}
+
+function messengerPin() {
+    closeMessengerMenu();
+    showToast('Message Pinned!');
+}
+
+function messengerDelete() {
+    closeMessengerMenu();
+    if(currentMessengerMsgId) deleteMessage(currentMessengerMsgId);
 }
 </script>
 </body>
