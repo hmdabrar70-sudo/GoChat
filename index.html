@@ -1739,21 +1739,6 @@ body:not(.light-mode) #splash-screen {
     pointer-events: none !important;
     filter: drop-shadow(0 0 2px rgba(0,0,0,0.5));
 }
-/* 🚀 Advanced Privacy CSS Fixed */
-.privacy-restricted {
-    -webkit-user-select: none !important;
-    user-select: none !important;
-}
-
-/* শুধু অপর পক্ষের ছবিগুলো ব্লক হবে, আপনার নিজের (.mine) ছবিগুলো উন্মুক্ত থাকবে */
-.privacy-restricted .chat-bubble-wrapper:not(.mine) img {
-    pointer-events: none !important;
-    filter: drop-shadow(0 0 2px rgba(0,0,0,0.5));
-}
-
-.privacy-restricted .chat-bubble-wrapper.mine img {
-    pointer-events: auto !important; /* আপনার নিজের ছবি ডাউনলোডের জন্য চালু থাকবে */
-}
 </style>
 </head>
 <body>
@@ -2716,6 +2701,23 @@ body:not(.light-mode) #splash-screen {
 .gallery-item .select-icon {
     color: white; font-size: 32px; 
     background: var(--accent); border-radius: 50%;
+}
+/* 🚀 Advanced Privacy CSS Final Fix */
+.privacy-restricted .chat-bubble-wrapper.theirs {
+    -webkit-user-select: none !important;
+    user-select: none !important;
+}
+.privacy-restricted .chat-bubble-wrapper.theirs img {
+    pointer-events: none !important;
+    filter: drop-shadow(0 0 2px rgba(0,0,0,0.5));
+}
+/* নিজের মেসেজ কপি বা ডাউনলোড করা যাবে */
+.privacy-restricted .chat-bubble-wrapper.mine {
+    -webkit-user-select: auto !important;
+    user-select: auto !important;
+}
+.privacy-restricted .chat-bubble-wrapper.mine img {
+    pointer-events: auto !important; 
 }
 </style>
 
@@ -5133,6 +5135,16 @@ function setupTypingIndicator(chatId, otherUid) {
     onlineUnsub = chatRef.onSnapshot(doc => {
         if (!doc.exists) return;
         const data = doc.data();
+        const toggleBtn = document.getElementById('advanced-privacy-toggle');
+        const chatBox = document.getElementById('chat-messages');
+        if(data.advancedPrivacy) {
+            if(toggleBtn) toggleBtn.classList.add('active');
+            if(chatBox) chatBox.classList.add('privacy-restricted');
+        } else {
+            if(toggleBtn) toggleBtn.classList.remove('active');
+            if(chatBox) chatBox.classList.remove('privacy-restricted');
+        }
+
         
         // --- 🚀 6. Pinned Message Logic ---
         const pinBar = document.getElementById('group-pinned-msg-bar');
@@ -5357,34 +5369,43 @@ function cancelReply() {
     document.getElementById('chat-input').placeholder = 'Message...';
 }
 
+// 🚀 UPDATE: Forward Modal Z-Index Fix
 async function forwardMessage(msgId) {
-if (!checkRateLimit()) return;
-const doc = await db.collection('chats').doc(currentChatId).collection('messages').doc(msgId).get();
-if (!doc.exists) return;
-currentForwardMsgData = doc.data();
-document.getElementById('forward-modal').classList.add('open');
-const friends = currentUserData.friends || [];
-const list = document.getElementById('forward-friends-list');
-if (friends.length === 0) {
-list.innerHTML = '<div class="empty-feed">No friends to forward to</div>';
-return;
+    if (!checkRateLimit()) return;
+    const doc = await db.collection('chats').doc(currentChatId).collection('messages').doc(msgId).get();
+    if (!doc.exists) return;
+    currentForwardMsgData = doc.data();
+    
+    // 🚀 জোর করে মডালটিকে চ্যাটের সবার উপরে নিয়ে আসা হলো
+    const modal = document.getElementById('forward-modal');
+    modal.style.zIndex = '9999999';
+    modal.classList.add('open');
+    
+    const friends = currentUserData.friends || [];
+    const list = document.getElementById('forward-friends-list');
+    if (friends.length === 0) {
+        list.innerHTML = '<div class="empty-feed">No friends to forward to</div>';
+        return;
+    }
+    list.innerHTML = '<div class="loading">Loading friends...</div>';
+    
+    const friendDocs = friends.map(fId => db.collection('users').doc(fId).get());
+    const snapshots = await Promise.all(friendDocs);
+    let html = '';
+    snapshots.forEach((fDoc, index) => {
+        if (fDoc.exists) {
+            const u = fDoc.data();
+            const safeName = escapeHTML(u.name);
+            const avHtml = u.avatar ? `<img src="${u.avatar}">` : avatarInitial(u.name);
+            html += `<div class="forward-friend-item" onclick="doForwardMessage('${friends[index]}')">
+            <div class="avatar sm">${avHtml}</div>
+            <div style="font-weight:600;font-size:14px;">${safeName}</div>
+            </div>`;
+        }
+    });
+    list.innerHTML = html;
 }
-const friendDocs = friends.map(fId => db.collection('users').doc(fId).get());
-const snapshots = await Promise.all(friendDocs);
-let html = '';
-snapshots.forEach((fDoc, index) => {
-if (fDoc.exists) {
-const u = fDoc.data();
-const safeName = escapeHTML(u.name);
-const avHtml = u.avatar ? `<img src="${u.avatar}">` : avatarInitial(u.name);
-html += `<div class="forward-friend-item" onclick="doForwardMessage('${friends[index]}')">
-<div class="avatar sm">${avHtml}</div>
-<div style="font-weight:600;font-size:14px;">${safeName}</div>
-</div>`;
-}
-});
-list.innerHTML = html;
-}
+
 
 async function doForwardMessage(toUid) {
 if (!currentForwardMsgData) return;
@@ -9118,21 +9139,22 @@ function closeAdvancedPrivacy() {
     document.getElementById('advanced-privacy-modal').classList.remove('open');
 }
 
-function toggleAdvancedPrivacy() {
+// 🚀 UPDATE: Advanced Privacy Database Sync
+async function toggleAdvancedPrivacy() {
+    if(!currentChatId) return;
     const toggle = document.getElementById('advanced-privacy-toggle');
-    toggle.classList.toggle('active');
-    isAdvancedPrivacyOn = toggle.classList.contains('active');
+    const isOn = !toggle.classList.contains('active'); // Toggle state
     
-    const chatBox = document.getElementById('chat-messages');
-    
-    if(isAdvancedPrivacyOn) {
-        chatBox.classList.add('privacy-restricted');
-        showToast("Advanced Privacy is ON.");
-    } else {
-        chatBox.classList.remove('privacy-restricted');
-        showToast("Advanced Privacy is OFF.");
+    try {
+        await db.collection('chats').doc(currentChatId).set({
+            advancedPrivacy: isOn
+        }, { merge: true });
+        showToast(isOn ? "Advanced Privacy is ON" : "Advanced Privacy is OFF");
+    } catch(e) {
+        showToast("Error updating privacy");
     }
 }
+
 // 🚀 UPDATE 2: Messenger Long Press Logic
 function handleMsgTouchStart(msgId, event) {
     if(isMsgSelectionMode) return;
