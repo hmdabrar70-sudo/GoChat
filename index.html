@@ -6234,18 +6234,188 @@ async function openSinglePostView(pid) {
     }
 }
 
-async function pinPost(postId){
-closeAllDropdowns();
-try{
-const ref=db.collection('posts').doc(postId);
-const doc=await ref.get();
-if(doc.exists){
-const isPinned=doc.data().isPinned||false;
-await ref.update({isPinned:!isPinned});
-showToast(isPinned?'Post unpinned':'Post pinned!');
-loadMyPosts();
+async function pinPost(postId) {
+    // সব ড্রপডাউন বন্ধ করুন
+    closeAllDropdowns();
+    
+    try {
+        // লোডিং স্টেট দেখান
+        showLoadingIndicator(postId);
+        
+        const ref = db.collection('posts').doc(postId);
+        const doc = await ref.get();
+        
+        if (!doc.exists) {
+            throw new Error('Post not found');
+        }
+        
+        const postData = doc.data();
+        const currentPinnedState = postData.isPinned || false;
+        const newPinnedState = !currentPinnedState;
+        
+        // ব্যাচ রাইট ব্যবহার করে অ্যাটমিক অপারেশন
+        const batch = db.batch();
+        
+        // পোস্ট আপডেট করুন
+        batch.update(ref, {
+            isPinned: newPinnedState,
+            pinnedAt: newPinnedState ? firebase.firestore.FieldValue.serverTimestamp() : null,
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        
+        // ইউজারের পিন করা পোস্ট কাউন্ট আপডেট করুন (ঐচ্ছিক)
+        if (postData.userId) {
+            const userRef = db.collection('users').doc(postData.userId);
+            const userDoc = await userRef.get();
+            
+            if (userDoc.exists) {
+                const userData = userDoc.data();
+                const currentPinnedCount = userData.pinnedPostsCount || 0;
+                
+                batch.update(userRef, {
+                    pinnedPostsCount: newPinnedState ? 
+                        currentPinnedCount + 1 : 
+                        Math.max(0, currentPinnedCount - 1),
+                    lastActivity: firebase.firestore.FieldValue.serverTimestamp()
+                });
+            }
+        }
+        
+        // ব্যাচ কমিট করুন
+        await batch.commit();
+        
+        // UI আপডেট করুন
+        updatePinUI(postId, newPinnedState);
+        
+        // সাকসেস মেসেজ দেখান
+        showToast({
+            message: newPinnedState ? '📌 Post pinned successfully!' : '📍 Post unpinned',
+            type: 'success',
+            duration: 3000
+        });
+        
+        // পোস্ট লিস্ট রিফ্রেশ করুন
+        await refreshPostList();
+        
+        // অ্যানালিটিক্স ট্র্যাক করুন (ঐচ্ছিক)
+        trackEvent('post_pin_toggle', {
+            postId: postId,
+            action: newPinnedState ? 'pinned' : 'unpinned',
+            userId: postData.userId
+        });
+        
+    } catch (error) {
+        console.error('Pin post error:', error);
+        
+        // এরর মেসেজ দেখান
+        showToast({
+            message: getErrorMessage(error),
+            type: 'error',
+            duration: 5000
+        });
+        
+        // UI রিসেট করুন
+        resetPinUI(postId);
+    } finally {
+        // লোডিং স্টেট রিমুভ করুন
+        hideLoadingIndicator(postId);
+    }
 }
-}catch(e){showToast('Failed to pin post');}
+
+// হেল্পার ফাংশনগুলো
+function showLoadingIndicator(postId) {
+    const postElement = document.querySelector(`[data-post-id="${postId}"]`);
+    if (postElement) {
+        postElement.classList.add('pinning');
+        const pinButton = postElement.querySelector('.pin-button');
+        if (pinButton) {
+            pinButton.innerHTML = '<span class="loading-spinner"></span>';
+            pinButton.disabled = true;
+        }
+    }
+}
+
+function hideLoadingIndicator(postId) {
+    const postElement = document.querySelector(`[data-post-id="${postId}"]`);
+    if (postElement) {
+        postElement.classList.remove('pinning');
+        const pinButton = postElement.querySelector('.pin-button');
+        if (pinButton) {
+            pinButton.disabled = false;
+            // পিন বাটন রিসেট করুন
+            updatePinButtonIcon(postElement, postElement.dataset.isPinned === 'true');
+        }
+    }
+}
+
+function updatePinUI(postId, isPinned) {
+    const postElement = document.querySelector(`[data-post-id="${postId}"]`);
+    if (postElement) {
+        postElement.dataset.isPinned = isPinned.toString();
+        
+        if (isPinned) {
+            postElement.classList.add('pinned');
+            // পিন আইকন আপডেট করুন
+            const pinIcon = postElement.querySelector('.pin-icon');
+            if (pinIcon) {
+                pinIcon.innerHTML = '📌';
+                pinIcon.classList.add('pinned-active');
+            }
+        } else {
+            postElement.classList.remove('pinned');
+            const pinIcon = postElement.querySelector('.pin-icon');
+            if (pinIcon) {
+                pinIcon.innerHTML = '📍';
+                pinIcon.classList.remove('pinned-active');
+            }
+        }
+    }
+}
+
+function resetPinUI(postId) {
+    const postElement = document.querySelector(`[data-post-id="${postId}"]`);
+    if (postElement) {
+        const isCurrentlyPinned = postElement.dataset.isPinned === 'true';
+        updatePinUI(postId, isCurrentlyPinned);
+    }
+}
+
+function updatePinButtonIcon(element, isPinned) {
+    const pinButton = element.querySelector('.pin-button');
+    if (pinButton) {
+        pinButton.innerHTML = isPinned ? 
+            '<span class="pin-icon pinned-active">📌</span>' : 
+            '<span class="pin-icon">📍</span>';
+    }
+}
+
+function getErrorMessage(error) {
+    switch (error.code) {
+        case 'permission-denied':
+            return '❌ You don\'t have permission to pin this post';
+        case 'not-found':
+            return '❌ Post not found';
+        case 'network-error':
+            return '🌐 Network error. Please check your connection';
+        default:
+            return '❌ Failed to pin post. Please try again';
+    }
+}
+
+function trackEvent(eventName, eventData) {
+    // Firebase Analytics বা অন্য অ্যানালিটিক্স সার্ভিসে ইভেন্ট পাঠান
+    if (typeof analytics !== 'undefined') {
+        analytics.logEvent(eventName, eventData);
+    }
+}
+
+async function refreshPostList() {
+    // পোস্ট লিস্ট রিফ্রেশ করার লজিক
+    if (typeof loadMyPosts === 'function') {
+        await loadMyPosts();
+    } else if (typeof loadPosts === 'function') {
+        await loadPosts();
+    }
 }
 
 async function submitPost(){
@@ -7076,81 +7246,163 @@ async function deleteChatForEveryone() {
         alert("Failed to delete chat. Please try again.");
     }
 }
-// ===== Password Visibility Toggle =====
+// ===== Password Visibility Toggle (Improved) =====
 function togglePasswordVisibility() {
-    // আপনার কোডের auth-password আইডিটা ব্যবহার করা হলো
+    // এলিমেন্টগুলো সিলেক্ট করুন
     const passwordInput = document.getElementById('auth-password');
     const eyeIcon = document.getElementById('toggle-eye');
 
-    if (passwordInput.type === 'password') {
-        passwordInput.type = 'text'; // পাসওয়ার্ড দেখাবে
-        eyeIcon.innerText = 'visibility_off'; // চোখটা কাটা দেখাবে
-    } else {
-        passwordInput.type = 'password'; // আবার হাইড করে দেবে
-        eyeIcon.innerText = 'visibility'; // স্বাভাবিক চোখ হয়ে যাবে
+    // যদি এলিমেন্টগুলো না পাওয়া যায়, তাহলে ফাংশন থেকে বেরিয়ে যান (Error Prevention)
+    if (!passwordInput || !eyeIcon) {
+        console.warn('Password toggle elements not found.');
+        return;
     }
+
+    // বর্তমান স্টেট চেক করুন
+    const isPasswordHidden = passwordInput.type === 'password';
+
+    // স্টেট পরিবর্তন করুন
+    if (isPasswordHidden) {
+        passwordInput.type = 'text'; // পাসওয়ার্ড দেখাবে
+        
+        // আইকন আপডেট (Material Icons বা টেক্সট হিসেবে)
+        eyeIcon.innerText = 'visibility_off'; 
+        
+        // অ্যাক্সেসিবিলিটির জন্য aria-label আপডেট করুন
+        eyeIcon.setAttribute('aria-label', 'Hide password');
+        passwordInput.setAttribute('aria-label', 'Password visible');
+        
+    } else {
+        passwordInput.type = 'password'; // পাসওয়ার্ড হাইড করবে
+        
+        // আইকন আপডেট
+        eyeIcon.innerText = 'visibility';
+        
+        // অ্যাক্সেসিবিলিটির জন্য aria-label আপডেট করুন
+        eyeIcon.setAttribute('aria-label', 'Show password');
+        passwordInput.setAttribute('aria-label', 'Password hidden');
+    }
+
+    // ফোকাস ম্যানেজমেন্ট: ইনপুটে ফোকাস রাখুন যাতে ইউজার টাইপ করতে পারে
+    passwordInput.focus();
 }
 // ===== GROUP CHAT LOGIC (STEP 2: Create & Load Friends) =====
 let selectedGroupFriends = [];
 
 async function openCreateGroupModal() {
-    document.getElementById('create-group-modal').style.display = 'flex';
-    selectedGroupFriends = []; // মডাল ওপেন হলে সিলেকশন ফাঁকা হবে
-    document.getElementById('group-name-input').value = ''; // নাম ফাঁকা হবে
-    await loadFriendsForGroup(); // বন্ধুদের লিস্ট লোড করবে
+    const modal = document.getElementById('create-group-modal');
+    const nameInput = document.getElementById('group-name-input');
+    
+    if (!modal || !nameInput) return; // এলিমেন্ট না থাকলে বেরিয়ে যান
+
+    // UI রিসেট করুন
+    selectedGroupFriends = []; 
+    nameInput.value = ''; 
+    nameInput.focus(); // ইউজার সরাসরি নাম টাইপ করতে পারবে
+    
+    // মডাল দেখান
+    modal.style.display = 'flex';
+    
+    // বন্ধুদের লিস্ট লোড করুন (অ্যাসিনক্রোনাস)
+    await loadFriendsForGroup();
 }
 
+// ===== মডাল বন্ধ করা =====
 function closeCreateGroupModal() {
-    document.getElementById('create-group-modal').style.display = 'none';
+    const modal = document.getElementById('create-group-modal');
+    if (modal) {
+        modal.style.display = 'none';
+        // মেমোরি ক্লিনআপ: সিলেকশন রিসেট করা ভালো প্র্যাকটিস
+        selectedGroupFriends = []; 
+    }
 }
 
+// ===== বন্ধুদের লিস্ট লোড করা (আপডেটেড) =====
 async function loadFriendsForGroup() {
-    const list = document.getElementById('group-friends-list');
-    const friends = currentUserData.friends || [];
+    const listContainer = document.getElementById('group-friends-list');
+    if (!listContainer) return;
 
-    if (friends.length === 0) {
-        list.innerHTML = '<div style="text-align:center; color:var(--text-muted); font-size:13px; margin-top:20px;">You have no friends to add.</div>';
-        return;
-    }
-
-    list.innerHTML = '<div class="loading" style="text-align:center; padding: 20px;"><span class="material-symbols-outlined">autorenew</span> Loading friends...</div>';
+    // লোডিং স্টেট দেখান
+    listContainer.innerHTML = '<div class="loading" style="text-align:center; padding: 20px; color: var(--text-muted);"><span class="material-symbols-outlined">autorenew</span> Loading friends...</div>';
 
     try {
+        const friends = currentUserData?.friends || [];
+
+        if (friends.length === 0) {
+            listContainer.innerHTML = '<div style="text-align:center; color:var(--text-muted); font-size:13px; margin-top:20px;">You have no friends to add.</div>';
+            return;
+        }
+
+        // সব বন্ধুর ডকুমেন্ট একসাথে ফেচ করুন (Parallel Fetching)
         const friendDocs = friends.map(uid => db.collection('users').doc(uid).get());
         const snapshots = await Promise.all(friendDocs);
         
         let html = '';
+        let validFriendCount = 0;
+
         snapshots.forEach((doc, index) => {
             if (doc.exists) {
                 const u = doc.data();
                 const uid = friends[index];
-                const safeName = escapeHTML(u.name);
-                const avHtml = u.avatar ? `<img src="${u.avatar}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">` : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:var(--gradient);color:#fff;font-weight:bold;">${safeName[0].toUpperCase()}</div>`;
                 
-                // বন্ধুদের লিস্ট এবং টিক দেওয়ার চেক-বক্স
+                // XSS প্রোটেকশন: নাম এスケপ করা
+                const safeName = escapeHTML(u.name || 'Unknown User');
+                const initial = safeName.charAt(0).toUpperCase();
+                
+                // অ্যাভাটার তৈরি (ইমেজ বা প্লেসহোল্ডার)
+                let avHtml;
+                if (u.avatar && u.avatar.trim() !== '') {
+                    avHtml = `<img src="${escapeHTML(u.avatar)}" alt="${safeName}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
+                } else {
+                    // গ্র্যাডিয়েন্ট ব্যাকগ্রাউন্ড সহ প্লেসহোল্ডার
+                    avHtml = `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:var(--gradient, linear-gradient(45deg, #6a11cb, #2575fc));color:#fff;font-weight:bold;font-size:16px;">${initial}</div>`;
+                }
+                
+                // চেকবক্স স্টেট চেক করুন (যদি আগে থেকে সিলেক্টেড থাকে)
+                const isChecked = selectedGroupFriends.includes(uid) ? 'checked' : '';
+
+                // HTML জেনারেট করুন
                 html += `
-                <div class="msg-item" onclick="toggleGroupFriend('${uid}', this)" style="margin: 0; padding: 10px; cursor: pointer; border-radius: 8px;">
-                    <div class="avatar sm">${avHtml}</div>
-                    <div class="msg-info" style="margin-left:10px;">${safeName}</div>
-                    <input type="checkbox" value="${uid}" style="pointer-events:none; width:18px; height:18px; accent-color: #8a2be2;">
+                <div class="msg-item" onclick="toggleGroupFriend('${uid}', this)" 
+                     style="margin: 5px 0; padding: 10px; cursor: pointer; border-radius: 8px; display: flex; align-items: center; transition: background 0.2s;"
+                     onmouseover="this.style.background='rgba(0,0,0,0.03)'" 
+                     onmouseout="this.style.background='transparent'">
+                    
+                    <div class="avatar sm" style="width: 40px; height: 40px; margin-right: 10px; flex-shrink: 0;">${avHtml}</div>
+                    
+                    <div class="msg-info" style="flex-grow: 1; font-weight: 500;">${safeName}</div>
+                    
+                    <input type="checkbox" value="${uid}" ${isChecked} 
+                           style="pointer-events:none; width:18px; height:18px; accent-color: #8a2be2; cursor: pointer;">
                 </div>`;
+                
+                validFriendCount++;
             }
         });
-        list.innerHTML = html;
+
+        if (validFriendCount === 0) {
+             listContainer.innerHTML = '<div style="text-align:center; color:var(--text-muted); font-size:13px; margin-top:20px;">No valid friends found.</div>';
+        } else {
+            listContainer.innerHTML = html;
+        }
+
     } catch (error) {
-        list.innerHTML = '<div style="text-align:center; color:var(--danger); font-size:13px;">Failed to load friends.</div>';
+        console.error('Error loading friends:', error);
+        listContainer.innerHTML = '<div style="text-align:center; color:var(--danger); font-size:13px; padding: 20px;">Failed to load friends. Please try again.</div>';
     }
 }
 
-function toggleGroupFriend(uid, element) {
-    const checkbox = element.querySelector('input[type="checkbox"]');
-    if (selectedGroupFriends.includes(uid)) {
-        selectedGroupFriends = selectedGroupFriends.filter(id => id !== uid);
-        checkbox.checked = false; // টিক মুছে যাবে
-    } else {
-        selectedGroupFriends.push(uid);
-        checkbox.checked = true; // টিক বসবে
-    }
+// ===== হেল্পার ফাংশন: HTML এскеপ করা (XSS প্রতিরোধের জন্য) =====
+function escapeHTML(str) {
+    if (!str) return '';
+    return str.replace(/[&<>'"]/g, 
+        tag => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            "'": '&#39;',
+            '"': '&quot;'
+        }[tag]));
 }
 
 async function createGroupAction() {
