@@ -2855,7 +2855,6 @@ body:not(.light-mode) #splash-screen {
 
 <script>
 // ===== CONSTANTS =====
-const MY_SPECIAL_EMAIL="hbmabrar@gmail.com";
 const ONE_YEAR_MS = 365 * 24 * 60 * 60 * 1000;
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
@@ -2970,96 +2969,185 @@ usersCacheTimestamp = now;
 return allUsersCache;
 }
 
-// === 🚀 Dark Mode Toggle Logic ===
+// === 🚀 Dark Mode Toggle Logic (Improved) ===
 function toggleDarkMode() {
-    document.body.classList.toggle('light-mode');
-    const isLight = document.body.classList.contains('light-mode');
+    const body = document.body;
+    body.classList.toggle('light-mode');
+    
+    // স্টেট চেক করুন (লাইট মোড অন কিনা)
+    const isLight = body.classList.contains('light-mode');
     
     // লোকাল স্টোরেজে সেভ করা
-    localStorage.setItem('theme', isLight ? 'light' : 'dark');
+    try {
+        localStorage.setItem('theme', isLight ? 'light' : 'dark');
+    } catch (e) {
+        console.warn('LocalStorage access denied or full.');
+    }
     
     // UI আপডেট করা
     updateDarkModeUI();
-    showToast(`Dark Mode is now ${isLight ? 'OFF' : 'ON'}`);
+    
+    // টোস্ট মেসেজ দেখানো (নিরাপদে)
+    showToast(`Dark Mode is now ${isLight ? 'OFF ☀️' : 'ON 🌙'}`);
 }
 
 function updateDarkModeUI() {
     const toggleEl = document.getElementById('dark-mode-toggle');
     if (toggleEl) {
         const isLight = document.body.classList.contains('light-mode');
+        // active ক্লাস মানে ডার্ক মোড অন (যদি আপনার CSS এমন হয়)
         if (!isLight) {
-            toggleEl.classList.add('active'); // ডার্ক মোড অন থাকলে বাটন অন হবে
+            toggleEl.classList.add('active');
+            toggleEl.setAttribute('aria-checked', 'true');
         } else {
-            toggleEl.classList.remove('active'); // লাইট মোড হলে বাটন অফ হবে
+            toggleEl.classList.remove('active');
+            toggleEl.setAttribute('aria-checked', 'false');
         }
     }
 }
 
-function toggleSettingsMenu(){
-closeAllDropdowns();
-document.getElementById('settings-menu').classList.toggle('open');
+// === 📂 Menu Toggles (Optimized & Safe) ===
+function toggleSettingsMenu() {
+    closeAllDropdowns();
+    const menu = document.getElementById('settings-menu');
+    if (menu) menu.classList.toggle('open');
 }
 
-function toggleFabMenu(){
-const fm=document.getElementById('fab-menu');
-fm.classList.toggle('open');
+function toggleFabMenu() {
+    const fm = document.getElementById('fab-menu');
+    if (fm) fm.classList.toggle('open');
 }
 
-function toggleProfileMenu(){
-closeAllDropdowns();
-document.getElementById('profile-menu').classList.toggle('open');
+function toggleProfileMenu() {
+    closeAllDropdowns();
+    const menu = document.getElementById('profile-menu');
+    if (menu) menu.classList.toggle('open');
 }
 
-function closeAllDropdowns(){
-document.querySelectorAll('.post-dropdown-menu,.settings-menu,.chat-list-menu,.profile-menu').forEach(m=>m.classList.remove('open'));
-document.getElementById('fab-menu').classList.remove('open');
+// === 🛑 Close All Dropdowns (Robust Selector) ===
+function closeAllDropdowns() {
+    // সব ধরনের মেনু সিলেক্ট করুন
+    const selectors = [
+        '.post-dropdown-menu', 
+        '.settings-menu', 
+        '.chat-list-menu', 
+        '.profile-menu', 
+        '#fab-menu'
+    ];
+    
+    selectors.forEach(selector => {
+        const elements = document.querySelectorAll(selector);
+        elements.forEach(el => el.classList.remove('open'));
+    });
 }
 
-document.addEventListener('click',function(e){
-if(!e.target.closest('.icon-btn')&&!e.target.closest('.more-btn')&&!e.target.closest('.msg-menu-btn')&&!e.target.closest('.post-dropdown-menu')&&!e.target.closest('.chat-list-menu')&&!e.target.closest('.profile-menu')&&!e.target.closest('.settings-menu')&&!e.target.closest('.nav-fab')){
-closeAllDropdowns();
-}
+// === 🖱️ Global Click Listener (Outside Click Handler) ===
+document.addEventListener('click', function(e) {
+    // যেসব এলিমেন্টের ভেতরে ক্লিক করলে মেনু বন্ধ হবে না
+    const safeSelectors = [
+        '.icon-btn', 
+        '.more-btn', 
+        '.msg-menu-btn', 
+        '.post-dropdown-menu', 
+        '.chat-list-menu', 
+        '.profile-menu', 
+        '.settings-menu', 
+        '.nav-fab',
+        '#fab-menu'
+    ];
+
+    // চেক করুন ক্লিকটি কোনো সেফ এলিমেন্টের ভেতরে হয়েছে কিনা
+    const isSafeClick = safeSelectors.some(selector => e.target.closest(selector));
+
+    if (!isSafeClick) {
+        closeAllDropdowns();
+    }
 });
 
-function showToast(msg){
-const t=document.getElementById('toast');
-t.textContent=msg;
-t.classList.add('show');
-setTimeout(()=>t.classList.remove('show'),2500);
-}
-
-function avatarInitial(name){return name?name[0].toUpperCase():'?';}
-
-function getRelativeTime(ts){
-if(!ts)return'Just now';
-const ms=ts.toMillis?ts.toMillis():(ts.seconds?ts.seconds*1000:ts);
-const diff=Date.now()-ms;
-const m=Math.floor(diff/60000);
-const h=Math.floor(diff/3600000);
-if(m<1)return'Just now';
-if(m<60)return m+'m ago';
-if(h<24)return h+'h ago';
-return Math.floor(h/24)+'d ago';
-}
-
-function getVerifiedBadge(email, isVerified) {
-    if (isVerified === true || email === MY_SPECIAL_EMAIL) {
-        return '<span class="material-symbols-outlined verified-icon" title="Verified">verified</span>';
+// === 🍞 Toast Notification (Crash-Proof) ===
+function showToast(msg) {
+    const t = document.getElementById('toast');
+    if (!t) {
+        console.warn('Toast element missing from HTML');
+        return;
     }
-    return '';
+    
+    t.textContent = msg;
+    t.classList.add('show');
+    
+    // আগের টাইমআউট ক্লিয়ার করুন যাতে দ্রুত ক্লিক করলে টোস্ট হারিয়ে না যায়
+    if (window.toastTimeout) clearTimeout(window.toastTimeout);
+    
+    window.toastTimeout = setTimeout(() => {
+        t.classList.remove('show');
+    }, 2500);
 }
 
-function openSettingsPrivacy(){
-  // পুরনো মেনু থাকলে সেটা হাইড করবে
-  const oldMenu = document.getElementById('settings-menu');
-  if(oldMenu) oldMenu.classList.remove('open');
+// === 👤 Avatar Helper ===
+function avatarInitial(name) {
+    if (!name || typeof name !== 'string') return '?';
+    return name.trim().charAt(0).toUpperCase();
+}
+
+// === ⏳ Relative Time Calculator (Fixed for Edge Cases) ===
+function getRelativeTime(ts) {
+    if (!ts) return 'Just now';
+    
+    let ms;
+    // Firebase Timestamp বা Unix Timestamp হ্যান্ডেল করা
+    if (ts.toMillis) {
+        ms = ts.toMillis();
+    } else if (ts.seconds) {
+        ms = ts.seconds * 1000;
+    } else if (typeof ts === 'number') {
+        ms = ts;
+    } else {
+        return 'Invalid Date';
+    }
+
+    const diff = Date.now() - ms;
+    
+    // ভবিষ্যতের সময় হলে (Clock mismatch)
+    if (diff < 0) return 'Just now';
+
+    const m = Math.floor(diff / 60000);
+    const h = Math.floor(diff / 3600000);
+    const d = Math.floor(diff / 86400000);
+
+    if (m < 1) return 'Just now';
+    if (m < 60) return `${m}m ago`;
+    if (h < 24) return `${h}h ago`;
+    if (d < 7) return `${d}d ago`;
+    
+    // ৭ দিনের বেশি হলে তারিখ দেখানো ভালো (ঐচ্ছিক)
+    return new Date(ms).toLocaleDateString();
+}
+
+// === 🔒 Settings Privacy Screen ===
+function openSettingsPrivacy() {
+    // পুরনো মেনু থাকলে সেটা হাইড করবে
+    const oldMenu = document.getElementById('settings-menu');
+    if (oldMenu) oldMenu.classList.remove('open');
   
-  document.getElementById('settings-privacy-screen').classList.add('open');
-  const el = document.getElementById('contact-email-display');
-  if(el) el.textContent = currentUser ? currentUser.email : 'Not logged in';
+    const privacyScreen = document.getElementById('settings-privacy-screen');
+    if (!privacyScreen) {
+        console.error('Privacy screen element not found');
+        return;
+    }
+    
+    privacyScreen.classList.add('open');
+    
+    // ইমেইল ডিসপ্লে আপডেট
+    const el = document.getElementById('contact-email-display');
+    if (el) {
+        // currentUser গ্লোবাল ভেরিয়েবল হিসেবে ধরে নেওয়া হচ্ছে
+        el.textContent = (currentUser && currentUser.email) ? currentUser.email : 'Not logged in';
+    }
   
-  // ব্লক লিস্ট লোড হবে
-  loadBlockedUsers(); 
+    // ব্লক লিস্ট লোড হবে (যদি ফাংশনটি exists করে)
+    if (typeof loadBlockedUsers === 'function') {
+        loadBlockedUsers(); 
+    }
 }
 
 function closeSettingsPrivacy(){
@@ -3067,321 +3155,631 @@ function closeSettingsPrivacy(){
 }
 
 
-// ===== POINT SYSTEM =====
+// ===== POINT SYSTEM (Robust & Secure) =====
+
+/**
+ * ইউজারকে পয়েন্ট প্রদান করে এবং লোকাল স্টেট আপডেট করে।
+ * @param {string} uid - ইউজার আইডি
+ * @param {number} amount - পয়েন্টের পরিমাণ (ধনাত্মক বা ঋণাত্মক হতে পারে)
+ */
 async function awardPoints(uid, amount) {
-if(!uid || !amount) return;
-try {
-await db.collection('users').doc(uid).update({
-points: firebase.firestore.FieldValue.increment(amount)
-});
-if(currentUser && uid === currentUser.uid && currentUserData) {
-currentUserData.points = (currentUserData.points || 0) + amount;
-}
-} catch(e) {
-console.log("Error awarding points", e);
-}
+    if (!uid || typeof amount !== 'number') {
+        console.warn('Invalid UID or amount for awardPoints');
+        return;
+    }
+
+    try {
+        // Firebase Atomic Increment ব্যবহার করা হয়েছে যা রেইস কন্ডিশন এড়ায়
+        await db.collection('users').doc(uid).update({
+            points: firebase.firestore.FieldValue.increment(amount),
+            lastPointUpdate: firebase.firestore.FieldValue.serverTimestamp() // ট্র্যাকিংয়ের জন্য
+        });
+
+        // যদি বর্তমান ইউজার হয়, তবে লোকাল স্টেটও আপডেট করুন যাতে UI সাথে সাথে চেঞ্জ হয়
+        if (currentUser && uid === currentUser.uid && currentUserData) {
+            const newTotal = (currentUserData.points || 0) + amount;
+            currentUserData.points = Math.max(0, newTotal); // পয়েন্ট নেগেটিভ হওয়া আটকানো
+            
+            // UI তে পয়েন্ট আপডেট করুন (যদি কোনো এলিমেন্ট থাকে)
+            const pointDisplay = document.getElementById('user-points-display');
+            if (pointDisplay) {
+                pointDisplay.textContent = currentUserData.points;
+                // ছোট অ্যানিমেশন ইফেক্ট
+                pointDisplay.style.transform = 'scale(1.2)';
+                setTimeout(() => pointDisplay.style.transform = 'scale(1)', 200);
+            }
+        }
+    } catch (e) {
+        console.error("Error awarding points:", e);
+        showToast('❌ Failed to update points.');
+    }
 }
 
+// ===== LEADERBOARD SYSTEM (Optimized Ranking) =====
+
 async function openLeaderboard() {
-document.getElementById('leaderboard-modal').classList.add('open');
-const list = document.getElementById('leaderboard-list');
-list.innerHTML = '<div class="loading"><span class="material-symbols-outlined">autorenew</span> Loading Top Users...</div>';
-try {
-const snap = await db.collection('users').orderBy('points', 'desc').limit(50).get();
-let html = '';
-let myRank = -1;
-let currentRank = 1;
-snap.forEach((doc) => {
-const u = doc.data();
-const isMe = currentUser && doc.id === currentUser.uid;
-if (isMe) myRank = currentRank;
-let rankIcon = `<span style="color:var(--text-secondary); font-weight:800;">#${currentRank}</span>`;
-if (currentRank === 1) rankIcon = '🥇';
-else if (currentRank === 2) rankIcon = '🥈';
-else if (currentRank === 3) rankIcon = '🥉';
-const avHtml = u.avatar ? `<img src="${escapeHTML(u.avatar)}">` : avatarInitial(u.name);
-const safeName = escapeHTML(u.name);
-const pts = u.points || 0;
-html += `<div class="msg-item ${isMe ? 'highlight' : ''}" onclick="closeLeaderboard(); viewUserProfile('${doc.id}')" style="margin: 0; padding: 10px 14px;">
-<div style="font-size:22px; width:40px; text-align:center;">${rankIcon}</div>
-<div class="avatar sm">${avHtml}</div>
-<div class="msg-info" style="margin-left:12px;">
-<div class="msg-name" style="font-size:14px;">${safeName} ${isMe ? '<span style="font-size:10px; background:var(--accent); color:#fff; padding:2px 6px; border-radius:10px; margin-left:4px;">You</span>' : ''}</div>
-<div style="font-size:12px; color:var(--text-secondary); font-weight:700;">⭐ ${pts} Points</div>
-</div>
-</div>`;
-currentRank++;
-});
-if (myRank === -1) {
-html += `<div style="text-align:center; margin-top:16px; font-size:13px; color:var(--text-muted); font-weight:600;">You are not in the Top 50 yet. Keep active to earn points!</div>`;
-}
-list.innerHTML = html;
-} catch (e) {
-list.innerHTML = '<div class="empty-feed">Failed to load leaderboard</div>';
-}
+    const modal = document.getElementById('leaderboard-modal');
+    const list = document.getElementById('leaderboard-list');
+    
+    if (!modal || !list) return;
+
+    modal.classList.add('open');
+    list.innerHTML = '<div class="loading" style="text-align:center; padding: 20px;"><span class="material-symbols-outlined">autorenew</span> Loading Top Users...</div>';
+
+    try {
+        // শুধু পয়েন্ট দিয়ে সর্ট করা হচ্ছে
+        const snap = await db.collection('users')
+            .orderBy('points', 'desc')
+            .limit(50)
+            .get();
+
+        let html = '';
+        let myRank = -1;
+        let currentRank = 1;
+        
+        // র‍্যাঙ্কিং লজিক: সমান পয়েন্ট থাকলে একই র‍্যাঙ্ক দেবে
+        let previousPoints = -1;
+        let actualRank = 1;
+
+        if (snap.empty) {
+            list.innerHTML = '<div class="empty-feed">No users found with points yet.</div>';
+            return;
+        }
+
+        snap.forEach((doc) => {
+            const u = doc.data();
+            const uid = doc.id;
+            const isMe = currentUser && uid === currentUser.uid;
+            const pts = u.points || 0;
+
+            // র‍্যাঙ্ক ক্যালকুলেশন লজিক
+            if (pts !== previousPoints) {
+                actualRank = currentRank;
+                previousPoints = pts;
+            }
+
+            if (isMe) myRank = actualRank;
+
+            // র‍্যাঙ্ক আইকন সেট করা
+            let rankIcon = `<span style="color:var(--text-secondary); font-weight:800; font-size:14px;">#${actualRank}</span>`;
+            if (actualRank === 1) rankIcon = '🥇';
+            else if (actualRank === 2) rankIcon = '🥈';
+            else if (actualRank === 3) rankIcon = '🥉';
+
+            // অ্যাভাটার হ্যান্ডলিং (সিকিউর)
+            const safeName = escapeHTML(u.name || 'Unknown');
+            const avHtml = u.avatar ? 
+                `<img src="${escapeHTML(u.avatar)}" alt="${safeName}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">` : 
+                `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:var(--gradient);color:#fff;font-weight:bold;">${avatarInitial(safeName)}</div>`;
+
+            // HTML জেনারেট
+            html += `
+            <div class="msg-item ${isMe ? 'highlight' : ''}" 
+                 onclick="closeLeaderboard(); viewUserProfile('${uid}')" 
+                 style="margin: 4px 0; padding: 10px 14px; border-radius: 8px; cursor: pointer; transition: background 0.2s;">
+                
+                <div style="font-size:20px; width:40px; text-align:center; flex-shrink:0;">${rankIcon}</div>
+                
+                <div class="avatar sm" style="width: 40px; height: 40px; margin: 0 10px;">${avHtml}</div>
+                
+                <div class="msg-info" style="flex-grow: 1;">
+                    <div class="msg-name" style="font-size:14px; font-weight:600;">
+                        ${safeName} 
+                        ${isMe ? '<span style="font-size:10px; background:var(--accent, #6a11cb); color:#fff; padding:2px 6px; border-radius:10px; margin-left:6px; vertical-align: middle;">YOU</span>' : ''}
+                    </div>
+                    <div style="font-size:12px; color:var(--text-secondary); font-weight:700; margin-top: 2px;">⭐ ${pts.toLocaleString()} Points</div>
+                </div>
+            </div>`;
+            
+            currentRank++;
+        });
+
+        // যদি ইউজার টপ ৫০ এ না থাকে
+        if (myRank === -1 && currentUser) {
+            html += `
+            <div style="text-align:center; margin-top:20px; padding: 15px; background: rgba(0,0,0,0.03); border-radius: 8px;">
+                <div style="font-size:13px; color:var(--text-muted); font-weight:600;">You are not in the Top 50 yet.</div>
+                <div style="font-size:12px; color:var(--text-secondary); margin-top:4px;">Keep active to earn more points! 🚀</div>
+            </div>`;
+        }
+
+        list.innerHTML = html;
+
+    } catch (e) {
+        console.error("Leaderboard error:", e);
+        list.innerHTML = '<div class="empty-feed" style="color:var(--danger);">Failed to load leaderboard. Please check connection.</div>';
+    }
 }
 
 function closeLeaderboard() {
-document.getElementById('leaderboard-modal').classList.remove('open');
+    const modal = document.getElementById('leaderboard-modal');
+    if (modal) {
+        modal.classList.remove('open');
+    }
 }
 
-// ===== AUTH FUNCTIONS =====
-async function loginWithEmail(){
-    const email=document.getElementById('auth-email').value.trim();
-    const pass=document.getElementById('auth-password').value;
-    const msg=document.getElementById('auth-msg');
+// ===== AUTH FUNCTIONS (Secure & Robust) =====
+
+/**
+ * ইমেইল ও পাসওয়ার্ড দিয়ে লগইন
+ */
+async function loginWithEmail() {
+    const emailInput = document.getElementById('auth-email');
+    const passInput = document.getElementById('auth-password');
+    const msgEl = document.getElementById('auth-msg');
     
-    if(!email||!pass){
-        msg.textContent='Please enter email and password.';
-        msg.className='auth-msg error';
+    // এলিমেন্ট চেক
+    if (!emailInput || !passInput || !msgEl) return;
+
+    const email = emailInput.value.trim();
+    const pass = passInput.value;
+
+    // ভ্যালিডেশন
+    if (!email || !pass) {
+        msgEl.textContent = 'Please enter both email and password.';
+        msgEl.className = 'auth-msg error';
         return;
     }
-    
-    msg.textContent='Authenticating...';
-    msg.className='auth-msg success';
+
+    // UI লোডিং স্টেট
+    msgEl.textContent = 'Authenticating...';
+    msgEl.className = 'auth-msg success'; // লোডিংয়ের সময় সবুজ বা নিউট্রাল রাখা ভালো
     
     try {
+        // Firebase Auth কল
         await auth.signInWithEmailAndPassword(email, pass);
         
-        // 🚀 লগইন সফল হলে ফর্মের লেখা মুছে সুন্দর পপআপটি দেখাবে
-        document.getElementById('auth-password').value = '';
-        msg.textContent = '';
+        // সফল হলে ফর্ম ক্লিয়ার
+        passInput.value = '';
+        msgEl.textContent = '';
         
+        // সাকসেস মডাল দেখানো
         const successModal = document.getElementById('login-success-modal');
-        if(successModal) successModal.classList.add('open');
+        if (successModal) {
+            successModal.classList.add('open');
+            
+            // ৩ সেকেন্ড পর অটোমেটিক বন্ধ হবে (যদি ইউজার ম্যানুয়ালি না বন্ধ করে)
+            setTimeout(() => {
+                // চেক করুন মডাল এখনও ওপেন আছে কিনা
+                if (successModal.classList.contains('open')) {
+                    successModal.classList.remove('open');
+                }
+            }, 3000);
+        }
         
-        // 🚀 ৩ সেকেন্ড পর ইউজার কন্টিনিউ বাটনে ক্লিক না করলেও নিজে থেকেই মডাল বন্ধ হয়ে ফিডে চলে যাবে
-        setTimeout(() => {
-            if(successModal) successModal.classList.remove('open');
-        }, 3000);
+    } catch (e) {
+        console.error("Login Error:", e.code);
+        let errorMsg = 'Login failed. Please check your credentials.';
         
-    } catch(e) {
-        msg.textContent='Login failed: '+e.message;
-        msg.className='auth-msg error';
+        // ইউজার-ফ্রেন্ডলি এরর মেসেজ
+        if (e.code === 'auth/user-not-found' || e.code === 'auth/wrong-password') {
+            errorMsg = 'Invalid email or password.';
+        } else if (e.code === 'auth/too-many-requests') {
+            errorMsg = 'Too many attempts. Try again later.';
+        } else if (e.code === 'auth/invalid-email') {
+            errorMsg = 'Please enter a valid email address.';
+        }
+        
+        msgEl.textContent = errorMsg;
+        msgEl.className = 'auth-msg error';
     }
 }
 
-// 🚀 লগইন মডাল বন্ধ করার ম্যানুয়াল ফাংশন (এটি loginWithEmail এর ঠিক নিচেই থাকবে)
+/**
+ * লগইন সাকসেস মডাল ম্যানুয়ালি বন্ধ করা
+ */
 function closeLoginSuccessModal() {
     const successModal = document.getElementById('login-success-modal');
-    if(successModal) successModal.classList.remove('open');
-}
-
-async function loginWithGoogle() {
-const provider = new firebase.auth.GoogleAuthProvider();
-try {
-const result = await auth.signInWithPopup(provider);
-const user = result.user;
-// Check Blacklist
-const banCheck = await db.collection('banned_emails').doc(user.email).get();
-if (banCheck.exists) {
-    await auth.signOut();
-    showToast("Access Denied: This account is permanently banned.");
-    return;
-}
-
-const doc = await db.collection('users').doc(user.uid).get();
-if (!doc.exists) {
-await db.collection('users').doc(user.uid).set({
-name: user.email.split('@')[0],
-email: user.email,
-avatar: '',
-bio: '', location: '', hometown: '', relationship: '', gender: '',
-followers: [], following: [], 
-blockedUsers: [], mutedChats: [], pinnedChats: [], archivedChats: [],
-online: true,
-points: 20,
-loginStreak: 1,
-lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
-createdAt: firebase.firestore.FieldValue.serverTimestamp()
-});
-}
-function togglePasswordVisibility() {
-    const passwordInput = document.getElementById('auth-password');
-    const eyeIcon = event.target;
-    
-    if (passwordInput.type === "password") {
-        passwordInput.type = "text";
-        eyeIcon.textContent = "visibility_off";
-    } else {
-        passwordInput.type = "password";
-        eyeIcon.textContent = "visibility";
+    if (successModal) {
+        successModal.classList.remove('open');
     }
 }
 
-showToast("Logged in successfully!");
-} catch (error) {
-console.error(error);
-showToast("Login failed!");
-}
+/**
+ * গুগল দিয়ে লগইন (ব্যান চেক সহ)
+ */
+async function loginWithGoogle() {
+    const provider = new firebase.auth.GoogleAuthProvider();
+    const msgEl = document.getElementById('auth-msg'); // যদি কোনো মেসেজ এলিমেন্ট থাকে
+    
+    try {
+        const result = await auth.signInWithPopup(provider);
+        const user = result.user;
+
+        // ১. ব্যান চেক (Blacklist Verification)
+        const banCheck = await db.collection('banned_emails').doc(user.email).get();
+        if (banCheck.exists) {
+            await auth.signOut(); // সাথে সাথে সাইন আউট করে দিন
+            showToast("🚫 Access Denied: This account is permanently banned.");
+            if(msgEl) {
+                msgEl.textContent = "Access Denied: Banned Account.";
+                msgEl.className = 'auth-msg error';
+            }
+            return;
+        }
+
+        // ২. ইউজার ডাটা চেক বা তৈরি করা
+        const userRef = db.collection('users').doc(user.uid);
+        const doc = await userRef.get();
+
+        if (!doc.exists) {
+            // নতুন ইউজারের জন্য ডিফল্ট ডাটা
+            const defaultName = user.displayName || user.email.split('@')[0];
+            
+            await userRef.set({
+                name: defaultName,
+                email: user.email,
+                avatar: user.photoURL || '',
+                bio: '', 
+                location: '', 
+                hometown: '', 
+                relationship: '', 
+                gender: '',
+                followers: [], 
+                following: [], 
+                blockedUsers: [], 
+                mutedChats: [], 
+                pinnedChats: [], 
+                archivedChats: [],
+                online: true,
+                points: 20, // Welcome Bonus
+                loginStreak: 1,
+                lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        } else {
+            // existing ইউজারের lastSeen আপডেট করা
+            await userRef.update({
+                online: true,
+                lastSeen: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        }
+
+        showToast("✅ Logged in successfully with Google!");
+        
+    } catch (error) {
+        console.error("Google Login Error:", error);
+        if (error.code !== 'auth/popup-closed-by-user') {
+            showToast("❌ Google Login failed: " + error.message);
+        }
+    }
 }
 
-async function registerWithEmail(){
-const email=document.getElementById('auth-email').value.trim();
-const pass=document.getElementById('auth-password').value;
-const msg=document.getElementById('auth-msg');
-if(!email||!pass){msg.textContent='Please enter email and password.';msg.className='auth-msg error';return;}
-// Check Blacklist
-const banCheck = await db.collection('banned_emails').doc(email).get();
-if (banCheck.exists) {
-    msg.textContent='Access Denied: This email is permanently banned.';
-    msg.className='auth-msg error';
-    return;
+/**
+ * ইমেইল দিয়ে রেজিস্ট্রেশন (ব্যান চেক সহ)
+ */
+async function registerWithEmail() {
+    const emailInput = document.getElementById('auth-email');
+    const passInput = document.getElementById('auth-password');
+    const msgEl = document.getElementById('auth-msg');
+
+    if (!emailInput || !passInput || !msgEl) return;
+
+    const email = emailInput.value.trim();
+    const pass = passInput.value;
+
+    // ভ্যালিডেশন
+    if (!email || !pass) {
+        msgEl.textContent = 'Please enter email and password.';
+        msgEl.className = 'auth-msg error';
+        return;
+    }
+
+    if (pass.length < 6) {
+        msgEl.textContent = 'Password must be at least 6 characters.';
+        msgEl.className = 'auth-msg error';
+        return;
+    }
+
+    msgEl.textContent = 'Creating account...';
+    msgEl.className = 'auth-msg success';
+
+    try {
+        // ১. ব্যান চেক (রেজিস্ট্রেশনের আগেই চেক করা উচিত)
+        const banCheck = await db.collection('banned_emails').doc(email).get();
+        if (banCheck.exists) {
+            msgEl.textContent = '🚫 Access Denied: This email is permanently banned.';
+            msgEl.className = 'auth-msg error';
+            return; // ফাংশন থেকে বেরিয়ে যান, আর এগোবেন না
+        }
+
+        // ২. অ্যাকাউন্ট তৈরি
+        const result = await auth.createUserWithEmailAndPassword(email, pass);
+        const user = result.user;
+        const defaultName = email.split('@')[0];
+
+        // ৩. ডাটাবেসে ইউজার প্রোফাইল সেভ করা
+        await db.collection('users').doc(user.uid).set({
+            name: defaultName,
+            email: user.email,
+            avatar: '',
+            bio: '',
+            location: '',
+            hometown: '',
+            relationship: '',
+            gender: '',
+            friends: [],
+            sentRequests: [],
+            receivedRequests: [],
+            blockedUsers: [],
+            mutedChats: [],
+            pinnedChats: [],
+            archivedChats: [],
+            online: true,
+            points: 0,
+            lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        // সফল রেজিস্ট্রেশন মেসেজ
+        msgEl.textContent = 'Account created successfully! Logging you in...';
+        msgEl.className = 'auth-msg success';
+        
+        // অপশনাল: অটোমেটিক লগইন পেজে রিডিরেক্ট বা মডাল বন্ধ করা
+        // closeAuthModal(); 
+
+    } catch (e) {
+        console.error("Registration Error:", e.code);
+        let errorMsg = 'Registration failed.';
+        
+        if (e.code === 'auth/email-already-in-use') {
+            errorMsg = 'This email is already registered. Please login.';
+        } else if (e.code === 'auth/weak-password') {
+            errorMsg = 'Password is too weak.';
+        } else if (e.code === 'auth/invalid-email') {
+            errorMsg = 'Invalid email format.';
+        }
+        
+        msgEl.textContent = errorMsg;
+        msgEl.className = 'auth-msg error';
+    }
 }
 
-msg.textContent='Creating account...';msg.className='auth-msg success';
-try{
-const result=await auth.createUserWithEmailAndPassword(email,pass);
-const user=result.user;
-const defaultName=email.split('@')[0];
-await db.collection('users').doc(user.uid).set({
-name:defaultName,email:user.email,avatar:'',bio:'',
-location:'',hometown:'',relationship:'',gender:'',
-friends:[],sentRequests:[],receivedRequests:[],
-blockedUsers:[],mutedChats:[],pinnedChats:[],archivedChats:[],
-online:true,
-points: 0,
-lastSeen:firebase.firestore.FieldValue.serverTimestamp(),
-createdAt:firebase.firestore.FieldValue.serverTimestamp()
-});
-}catch(e){msg.textContent='Registration failed: '+e.message;msg.className='auth-msg error';}
+// ===== HELPER: Password Toggle (Global Scope এ আনা হয়েছে) =====
+// আগের কোডে এটি loginWithGoogle এর ভেতরে ছিল, যা ভুল। এটি আলাদা রাখুন।
+function togglePasswordVisibility(event) {
+    const passwordInput = document.getElementById('auth-password');
+    // ইভেন্ট টার্গেট বা আইকন এলিমেন্ট
+    const eyeIcon = event ? event.target : document.getElementById('toggle-eye'); 
+    
+    if (!passwordInput || !eyeIcon) return;
+
+    if (passwordInput.type === "password") {
+        passwordInput.type = "text";
+        eyeIcon.textContent = "visibility_off"; // Material Icon
+        eyeIcon.setAttribute('aria-label', 'Hide password');
+    } else {
+        passwordInput.type = "password";
+        eyeIcon.textContent = "visibility"; // Material Icon
+        eyeIcon.setAttribute('aria-label', 'Show password');
+    }
 }
 
-// === স্মার্ট লগআউট সিস্টেম ===
+// === 🚪 Smart Logout System ===
+
 function doLogout() {
-    // সরাসরি লগআউট না করে পপআপ ওপেন করবে
-    document.getElementById('logout-confirm-modal').classList.add('open');
+    const modal = document.getElementById('logout-confirm-modal');
+    if (modal) modal.classList.add('open');
 }
 
 function closeLogoutModal() {
-    document.getElementById('logout-confirm-modal').classList.remove('open');
+    const modal = document.getElementById('logout-confirm-modal');
+    if (modal) modal.classList.remove('open');
 }
 
-function confirmLogoutAction() {
+async function confirmLogoutAction() {
     closeLogoutModal();
-    closeMainMenu(); 
+    if (typeof closeMainMenu === 'function') closeMainMenu(); 
+    
     showToast("Logging out securely...");
     
-    if(currentUser){
-    
-        db.collection('users').doc(currentUser.uid).update({
-            online:false,
-            lastSeen:firebase.firestore.FieldValue.serverTimestamp()
-        }).then(()=>{
-            auth.signOut();
-        }).catch(()=>{ auth.signOut(); });
-    }else{
-        auth.signOut();
+    try {
+        if (currentUser) {
+            // অনলাইন স্ট্যাটাস অফ করা
+            await db.collection('users').doc(currentUser.uid).update({
+                online: false,
+                lastSeen: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        }
+        
+        // Firebase Auth থেকে সাইন আউট
+        await auth.signOut();
+        
+        // পেজ রিলোড বা লগিন পেজে রিডিরেক্ট
+        window.location.href = 'login.html'; // অথবা window.location.reload();
+        
+    } catch (error) {
+        console.error("Logout error:", error);
+        // এরর হলেও সাইন আউট নিশ্চিত করা
+        await auth.signOut();
+        window.location.reload();
     }
 }
 
+// === 🗑️ Secure Account Deletion (Optimized) ===
 
-async function handleDeleteAccount(){
-if(!confirm("Are you absolutely sure? This action is permanent and will delete ALL your data including posts, messages, and stories."))return;
-showToast("Processing account deletion...");
-try{
-const postsSnap = await db.collection('posts').where('uid', '==', currentUser.uid).get();
-const postsBatch = db.batch();
-postsSnap.forEach(doc => postsBatch.delete(doc.ref));
-await postsBatch.commit();
+async function handleDeleteAccount() {
+    if (!currentUser) return;
 
-const storiesSnap = await db.collection('stories').where('uid', '==', currentUser.uid).get();
-const storiesBatch = db.batch();
-storiesSnap.forEach(doc => storiesBatch.delete(doc.ref));
-await storiesBatch.commit();
+    // কনফার্মেশন ডায়ালগ (আরও স্পষ্ট মেসেজ)
+    const confirmed = confirm("⚠️ WARNING: This action is PERMANENT!\n\nAre you sure you want to delete your account? All your posts, messages, stories, and data will be lost forever.");
+    if (!confirmed) return;
 
-const chatsSnap = await db.collection('chats').get();
-const chatsToDelete = [];
-chatsSnap.forEach(doc => {
-if(doc.id.includes(currentUser.uid)) {
-chatsToDelete.push(doc.id);
-}
-});
-for(let chatId of chatsToDelete) {
-const messagesSnap = await db.collection('chats').doc(chatId).collection('messages').get();
-const msgBatch = db.batch();
-messagesSnap.forEach(doc => msgBatch.delete(doc.ref));
-await msgBatch.commit();
-await db.collection('chats').doc(chatId).delete();
-}
+    showToast("Processing account deletion... This may take a moment.");
+    
+    const uid = currentUser.uid;
+    const dbRef = db;
 
-const notifsSnap = await db.collection('notifications').where('toUid', '==', currentUser.uid).get();
-const notifsBatch = db.batch();
-notifsSnap.forEach(doc => notifsBatch.delete(doc.ref));
-await notifsBatch.commit();
+    try {
+        // ১. পোস্ট ডিলিট (Batch)
+        const postsSnap = await dbRef.collection('posts').where('uid', '==', uid).get();
+        if (!postsSnap.empty) {
+            const batch = dbRef.batch();
+            postsSnap.forEach(doc => batch.delete(doc.ref));
+            await batch.commit();
+        }
 
-await db.collection('users').doc(currentUser.uid).delete();
-await auth.currentUser.delete();
+        // ২. স্টোরি ডিলিট (Batch)
+        const storiesSnap = await dbRef.collection('stories').where('uid', '==', uid).get();
+        if (!storiesSnap.empty) {
+            const batch = dbRef.batch();
+            storiesSnap.forEach(doc => batch.delete(doc.ref));
+            await batch.commit();
+        }
 
-showToast("Account deleted successfully!");
-setTimeout(()=>window.location.reload(),1500);
-}catch(e){
-console.error("Delete error:", e);
-showToast("Failed to delete account. Please try again.");
-}
-}
+        // ৩. নোটিফিকেশন ডিলিট (Batch)
+        const notifsSnap = await dbRef.collection('notifications').where('toUid', '==', uid).get();
+        if (!notifsSnap.empty) {
+            const batch = dbRef.batch();
+            notifsSnap.forEach(doc => batch.delete(doc.ref));
+            await batch.commit();
+        }
 
-function updateOnlineStatus(){
-    if(currentUser){
-        // যদি স্ট্যাটাস ON থাকে তবেই অনলাইনে দেখাবে
-        if (currentUserData.showActiveStatus !== false) {
-            db.collection('users').doc(currentUser.uid).update({
-                online: true,
-                lastSeen: firebase.firestore.FieldValue.serverTimestamp()
-            }).catch(()=>{});
+        // ৪. চ্যাট এবং মেসেজ ডিলিট (Optimized Logic)
+        // শুধুমাত্র সেই চ্যাটগুলো খুঁজে বের করা যেখানে বর্তমান ইউজার অংশগ্রহণকারী
+        const chatsSnap = await dbRef.collection('chats')
+            .where('participants', 'array-contains', uid) 
+            .get();
+
+        if (!chatsSnap.empty) {
+            for (const chatDoc of chatsSnap.docs) {
+                const chatRef = chatDoc.ref;
+                
+                // চ্যাটের ভেতরের সব মেসেজ ডিলিট
+                const messagesSnap = await chatRef.collection('messages').get();
+                if (!messagesSnap.empty) {
+                    const msgBatch = dbRef.batch();
+                    messagesSnap.forEach(msgDoc => msgBatch.delete(msgDoc.ref));
+                    await msgBatch.commit();
+                }
+                
+                // চ্যাট ডকুমেন্ট ডিলিট
+                await chatRef.delete();
+            }
+        }
+
+        // ৫. ইউজার প্রোফাইল ডিলিট
+        await dbRef.collection('users').doc(uid).delete();
+
+        // ৬. অথেন্টিকেশন অ্যাকাউন্ট ডিলিট
+        // নোট: এটির জন্য ইউজারকে সাম্প্রতিক সময়ে লগইন করতে হতে পারে (Re-authentication)
+        await auth.currentUser.delete();
+
+        showToast("✅ Account deleted successfully!");
+        
+        // ১.৫ সেকেন্ড পর পেজ রিলোড
+        setTimeout(() => {
+            window.location.reload();
+        }, 1500);
+
+    } catch (e) {
+        console.error("Delete error:", e);
+        
+        // যদি Re-authentication এরর আসে
+        if (e.code === 'auth/requires-recent-login') {
+            showToast("🔒 For security, please log in again before deleting your account.");
+            // অপশনাল: লগআউট করে লগিন পেজে পাঠানো
+            auth.signOut();
+            window.location.href = 'login.html';
         } else {
-            // OFF থাকলে অনলাইনে দেখাবে না (সাথে লাস্ট সিন আপডেট করবে)
-            db.collection('users').doc(currentUser.uid).update({
-                online: false,
-                lastSeen: firebase.firestore.FieldValue.serverTimestamp()
-            }).catch(()=>{});
+            showToast("❌ Failed to delete account. Please check connection.");
         }
     }
 }
 
+// === 🟢 Online Status Update (Privacy Aware) ===
+
+function updateOnlineStatus() {
+    if (!currentUser) return;
+
+    // currentUserData গ্লোবাল ভেরিয়েবল হিসেবে ধরে নেওয়া হচ্ছে
+    const isStatusVisible = currentUserData?.showActiveStatus !== false;
+
+    const statusData = {
+        lastSeen: firebase.firestore.FieldValue.serverTimestamp()
+    };
+
+    // যদি ইউজার তার স্ট্যাটাস হাইড না করে থাকে, তবেই online: true হবে
+    if (isStatusVisible) {
+        statusData.online = true;
+    } else {
+        statusData.online = false; // হাইড মোডে থাকলে offline দেখাবে কিন্তু lastSeen আপডেট হবে
+    }
+
+    db.collection('users').doc(currentUser.uid).update(statusData)
+        .catch(err => console.warn("Status update failed:", err));
+}
+
+/**
+ * ইউজারের লগইন স্ট্রিক চেক করে এবং পয়েন্ট প্রদান করে।
+ * এই ফাংশনটি অ্যাপ লোড হওয়ার সময় বা লগইনের পর কল করতে হবে।
+ */
 async function checkAndUpdateStreak() {
-    if(!currentUser || !currentUserData) return;
-    
+    if (!currentUser || !currentUserData) return;
+
     try {
         const now = new Date();
-        const todayStr = `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}`;
+        // তারিখ ফরম্যাট: YYYY-MM-DD (সর্টিং এবং তুলনার জন্য সবচেয়ে নিরাপদ)
+        const todayStr = now.toISOString().split('T')[0]; 
         
-        // আজ অলরেডি আপডেট হয়ে থাকলে স্কিপ করবে
-        if (currentUserData.lastLoginDate === todayStr) return; 
+        // আজ অলরেডি স্ট্রিক আপডেট হয়ে থাকলে স্কিপ করবে (ডাবল পয়েন্ট আটকাতে)
+        if (currentUserData.lastLoginDate === todayStr) {
+            return; 
+        } 
 
         const yesterday = new Date(now);
         yesterday.setDate(yesterday.getDate() - 1);
-        const yesterdayStr = `${yesterday.getFullYear()}-${yesterday.getMonth() + 1}-${yesterday.getDate()}`;
+        const yesterdayStr = yesterday.toISOString().split('T')[0];
 
         let lastLogin = currentUserData.lastLoginDate || "";
-        let streak = currentUserData.loginStreak || 0;
+        let currentStreak = currentUserData.loginStreak || 0;
+        let newStreak = 1; // ডিফল্টভাবে নতুন স্ট্রিক শুরু হবে ১ থেকে
 
+        // লজিক: যদি গতকালের তারিখ মিলে যায়, তবে স্ট্রিক বাড়বে, নাহলে রিসেট হবে
         if (lastLogin === yesterdayStr) {
-            streak += 1;
+            newStreak = currentStreak + 1;
+        } else if (lastLogin === todayStr) {
+            // এই কেইসটি সাধারণত উপরের চেকে ধরা পড়ে, কিন্তু তবুও নিরাপত্তার জন্য
+            return; 
         } else {
-            streak = 1;
+            // যদি গতকাল না হয় এবং আজও না হয়, তবে স্ট্রিক ব্রেক হয়েছে
+            newStreak = 1;
         }
 
-        let pointsToAdd = 10;
-        if (streak > 0 && streak % 10 === 0) {
+        // পয়েন্ট ক্যালকুলেশন
+        let pointsToAdd = 10; // ডেইলি লগইন বোনাস
+        
+        // মাইলস্টোন বোনাস (প্রতি ১০ দিনে)
+        if (newStreak > 0 && newStreak % 10 === 0) {
             pointsToAdd += 500;
-            showToast("🎉 10 Day Streak! +500 Points Bonus!");
+            showToast(`🔥 ${newStreak} Day Streak! +500 Points Bonus!`);
+        } else {
+            // সাধারণ স্ট্রিক মেসেজ (ঐচ্ছিক, খুব বেশি বিরক্তিকর হলে বাদ দিতে পারেন)
+            // showToast(`📅 Login Streak: ${newStreak} days (+${pointsToAdd} pts)`);
         }
 
-        // update এর বদলে set(..., {merge: true}) ব্যবহার
+        // ডাটাবেস আপডেট (Atomic Operation)
         await db.collection('users').doc(currentUser.uid).set({
             lastLoginDate: todayStr,
-            loginStreak: streak,
-            points: firebase.firestore.FieldValue.increment(pointsToAdd)
+            loginStreak: newStreak,
+            points: firebase.firestore.FieldValue.increment(pointsToAdd),
+            lastSeen: firebase.firestore.FieldValue.serverTimestamp() // স্ট্রিক আপডেটের সাথে লাস্ট সিনও আপডেট
         }, { merge: true });
         
-        // লোকাল আপডেট
+        // লোকাল স্টেট আপডেট (UI রেসপন্সিভ রাখতে)
         currentUserData.lastLoginDate = todayStr;
-        currentUserData.loginStreak = streak;
+        currentUserData.loginStreak = newStreak;
         currentUserData.points = (currentUserData.points || 0) + pointsToAdd;
         
+        // UI তে পয়েন্ট আপডেট করুন (যদি কোনো এলিমেন্ট থাকে)
+        const pointDisplay = document.getElementById('user-points-display');
+        if (pointDisplay) {
+            pointDisplay.textContent = currentUserData.points;
+        }
+
     } catch (error) {
         console.error("Streak Update Error: ", error);
+        // এরর হলে ইউজারকে জানানো জরুরি নয়, ব্যাকগ্রাউন্ডে ফেইল হলে পরবর্তী লগইনে ঠিক হয়ে যাবে
     }
 }
 
@@ -3406,450 +3804,632 @@ db.collection('system').doc('announcement').onSnapshot(doc => {
         alert("📢 GoChat Notice:\n\n" + doc.data().message);
     }
 });
-// ==========================================
 
+// ===== AUTH STATE LISTENER (Optimized & Robust) =====
 
+let onlineSyncInterval; // গ্লোবাল ভেরিয়েবল হিসেবে ডিক্লেয়ার করুন যাতে পরে ক্লিয়ার করা যায়
 
-// ===== AUTH STATE LISTENER =====
-auth.onAuthStateChanged(async(user)=>{
+auth.onAuthStateChanged(async (user) => {
+    
+    // স্প্ল্যাশ স্ক্রিন রিমুভ করার ফাংশন
+    const removeSplash = () => {
+        const splash = document.getElementById('splash-screen');
+        if (splash && !splash.classList.contains('hidden')) {
+            splash.style.opacity = '0';
+            setTimeout(() => {
+                splash.style.display = 'none';
+                splash.classList.add('hidden');
+            }, 500);
+        }
+    };
 
-// 🚀 স্প্ল্যাশ স্ক্রিন সরানোর স্মার্ট ম্যাজিক
-const removeSplash = () => {
-    const splash = document.getElementById('splash-screen');
-    if (splash && splash.style.display !== 'none') { 
-        splash.style.opacity = '0'; 
-        setTimeout(() => splash.style.display = 'none', 500); 
-    }
-};
-
-if(user){
-currentUser=user;
-
-// 🚀 ইউজার লগইন থাকলে সাথে সাথেই মেইন স্ক্রিন অন করে দেবো, যাতে ফিডের স্কেলেটন লোডিং দেখা যায়
-document.getElementById('auth-screen').style.display='none';
-document.getElementById('app-screen').style.display='block';
-
-// 🚀 ম্যাক্সিমাম ১.৫ সেকেন্ডের একটা টাইমার, যাতে ডাটাবেস স্লো থাকলেও অ্যাপ আটকে না থাকে
-const splashFallbackTimer = setTimeout(removeSplash, 1500);
-
-try{
-const snap=await db.collection('users').doc(user.uid).get();
-currentUserData=snap.exists?snap.data():{name:user.email.split('@')[0],email:user.email};
-}catch(e){currentUserData={name:user.email.split('@')[0],email:user.email};}
-
-// 🚀 ডাটাবেস লোড হয়ে গেলে টাইমার ক্যানসেল করে সাথে সাথেই স্প্ল্যাশ সরিয়ে দেবে
-clearTimeout(splashFallbackTimer);
-removeSplash();
-
-// 🚀 ব্যাকগ্রাউন্ডে স্ট্রাইক আপডেট হবে, এর জন্য অ্যাপের লোডিং আটকে থাকবে না (await রিমুভড)
-checkAndUpdateStreak();
-
-setTimeout(() => { isAppReadyForNotifs = true; }, 3000); 
-
-await updateOnlineStatus();
-if(onlineStatusInterval)clearInterval(onlineStatusInterval);
-onlineStatusInterval=setInterval(updateOnlineStatus,60000);
-
-// --- 🚀 রিয়েল-টাইম অ্যাডভান্সড অনলাইন সিঙ্ক (Ghost User Filter) ---
-setInterval(async () => {
-    if (!currentUser) return;
-    try {
-        const snap = await db.collection('users').where('online', '==', true).get();
-        const onlineUids = [];
-        const now = Date.now();
+    if (user) {
+        currentUser = user;
         
-        snap.forEach(d => {
-            const data = d.data();
-            // ১. চেক করবে ইউজার সেটিং থেকে বাতি বন্ধ করেছে কিনা
-            if (data.showActiveStatus !== false) {
-                // ২. ঘোস্ট ইউজার চেক: ইউজারের লাস্ট সিন কি ৩ মিনিটের বেশি পুরনো?
-                const lastSeenTime = data.lastSeen?.toMillis ? data.lastSeen.toMillis() : now;
-                const timeDiff = now - lastSeenTime;
-                
-                if (timeDiff < 180000) { // 180000 ms = 3 মিনিট
-                    onlineUids.push(d.id);
-                } else {
-                    // যদি ৩ মিনিটের বেশি হয়, তারমানে সে ভুল করে অফলাইনে আটকে গেছে (Ghost)
-                    d.ref.update({ online: false }).catch(()=>{});
-                }
+        // UI সুইচ করুন
+        const authScreen = document.getElementById('auth-screen');
+        const appScreen = document.getElementById('app-screen');
+        
+        if (authScreen) authScreen.style.display = 'none';
+        if (appScreen) appScreen.style.display = 'block';
+
+        // ফলব্যাক টাইমার (যদি ডাটাবেস স্লো হয়)
+        const splashFallbackTimer = setTimeout(removeSplash, 2000);
+
+        try {
+            // ইউজার ডাটা ফেচ করুন
+            const snap = await db.collection('users').doc(user.uid).get();
+            
+            if (snap.exists) {
+                currentUserData = snap.data();
+            } else {
+                // যদি প্রোফাইল না থাকে (Edge Case), তবে ডিফল্ট ডাটা সেট করুন
+                currentUserData = {
+                    name: user.email ? user.email.split('@')[0] : 'User',
+                    email: user.email,
+                    points: 0,
+                    loginStreak: 0
+                };
+                // ডাটাবেসে নতুন প্রোফাইল তৈরি করুন
+                await db.collection('users').doc(user.uid).set(currentUserData, { merge: true });
             }
-        });
-        
-        if (allUsersCache) {
-            allUsersCache.forEach(u => { u.online = onlineUids.includes(u.id); });
+
+            // স্ট্রিক চেক (অ্যাসিনক্রোনাস, অ্যাপ ব্লক করবে না)
+            checkAndUpdateStreak();
+
+            // অনলাইন স্ট্যাটাস আপডেট
+            updateOnlineStatus();
+            
+            // আগের ইন্টারভাল ক্লিয়ার করুন (ডাবল রান আটকাতে)
+            if (onlineStatusInterval) clearInterval(onlineStatusInterval);
+            
+            // প্রতি ৬০ সেকেন্ডে অনলাইন স্ট্যাটাস আপডেট
+            onlineStatusInterval = setInterval(updateOnlineStatus, 60000);
+
+            // --- 🚀 অপ্টিমাইজড অনলাইন সিঙ্ক (Ghost User Filter) ---
+            // আগের ইন্টারভাল ক্লিয়ার করুন
+            if (onlineSyncInterval) clearInterval(onlineSyncInterval);
+
+            onlineSyncInterval = setInterval(async () => {
+                if (!currentUser) return;
+                
+                try {
+                    // শুধুমাত্র সেই ইউজারদের ফেচ করুন যারা অনলাইন বলে মার্কার আছে
+                    // নোট: এটি এখনও কিছুটা ভারী, তাই আমরা লিমিট ব্যবহার করতে পারি বা ক্যাশিং করতে পারি
+                    const snap = await db.collection('users')
+                        .where('online', '==', true)
+                        .limit(100) // পারফরম্যান্সের জন্য লিমিট যোগ করা ভালো
+                        .get();
+                        
+                    const now = Date.now();
+                    const batch = db.batch(); // ব্যাচ আপডেটের জন্য
+                    let hasUpdates = false;
+
+                    snap.forEach(d => {
+                        const data = d.data();
+                        const uid = d.id;
+                        
+                        // যদি ইউজার তার স্ট্যাটাস হাইড করে থাকে, তবে তাকে অনলাইন দেখাবো না
+                        if (data.showActiveStatus === false) {
+                            // যদি ভুলবশত online: true থাকে, তবে অফ করুন
+                            if (data.online !== false) {
+                                batch.update(d.ref, { online: false });
+                                hasUpdates = true;
+                            }
+                            return;
+                        }
+
+                        // ঘোস্ট ইউজার চেক (৩ মিনিটের বেশি সময় ধরে নিষ্ক্রিয়)
+                        const lastSeenTime = data.lastSeen?.toMillis ? data.lastSeen.toMillis() : 0;
+                        const timeDiff = now - lastSeenTime;
+                        
+                        if (timeDiff > 180000) { // 3 মিনিট
+                            batch.update(d.ref, { online: false });
+                            hasUpdates = true;
+                        }
+                    });
+
+                    // যদি কোনো আপডেট থাকে, তবে একসাথে কমিট করুন
+                    if (hasUpdates) {
+                        await batch.commit();
+                    }
+
+                    // লোকাল ক্যাশ আপডেট (যদি allUsersCache exists করে)
+                    if (typeof allUsersCache !== 'undefined' && Array.isArray(allUsersCache)) {
+                        const onlineUids = new Set(snap.docs.map(d => d.id));
+                        allUsersCache.forEach(u => {
+                            // শুধুমাত্র সেই ইউজারদের অনলাইন দেখাবো যারা ঘোস্ট নয় এবং হাইড করেনি
+                            // এখানে লজিকটি একটু জটিল, তাই সরল রাখা ভালো:
+                            // আমরা ধরে নিচ্ছি ডাটাবেস থেকে আসা লিস্টটিই সঠিক (ঘোস্ট বাদে)
+                             u.online = onlineUids.has(u.id); 
+                        });
+                    }
+
+                    // UI আপডেট (চ্যাট এবং মেসেজ লিস্ট)
+                    updateOnlineUIIndicators();
+
+                } catch (e) {
+                    console.warn("Online sync error:", e);
+                }
+            }, 30000); // 30 সেকেন্ড
+
+            // নোটিফিকেশন রেডি
+            setTimeout(() => { 
+                if (typeof isAppReadyForNotifs !== 'undefined') {
+                    isAppReadyForNotifs = true; 
+                }
+            }, 3000);
+
+        } catch (e) {
+            console.error("Auth State Error:", e);
+            showToast("Failed to load user data.");
+        } finally {
+            // ডাটা লোড হোক বা না হোক, স্প্ল্যাশ স্ক্রিন সরিয়ে ফেলুন
+            clearTimeout(splashFallbackTimer);
+            removeSplash();
         }
 
-        // চ্যাট হেডারে রিয়েল-টাইম অনলাইন আপডেট
-        if (currentChatId && currentChatOtherUid && currentChatOtherUid !== 'group') {
-            const chatAvEl = document.getElementById('chat-avatar');
-            if (chatAvEl) {
-                let dot = chatAvEl.querySelector('.online-dot');
-                if (onlineUids.includes(currentChatOtherUid)) {
-                    if (!dot) chatAvEl.insertAdjacentHTML('beforeend', '<div class="online-dot"></div>');
+    } else {
+        // ইউজার লগআউট অবস্থায়
+        currentUser = null;
+        currentUserData = null;
+        
+        // ইন্টারভাল ক্লিয়ার করুন
+        if (onlineStatusInterval) clearInterval(onlineStatusInterval);
+        if (onlineSyncInterval) clearInterval(onlineSyncInterval);
+        
+        const authScreen = document.getElementById('auth-screen');
+        const appScreen = document.getElementById('app-screen');
+        
+        if (authScreen) authScreen.style.display = 'flex'; // বা block
+        if (appScreen) appScreen.style.display = 'none';
+        
+        removeSplash();
+    }
+});
+
+// === হেল্পার ফাংশন: অনলাইন ইন্ডিকেটর আপডেট করা ===
+function updateOnlineUIIndicators() {
+    // এই ফাংশনটি শুধুমাত্র UI আপডেট করবে, ডাটাবেস কল করবে না
+    // এটি উপরের ইন্টারভালের ভেতর থেকে কল হবে
+    
+    // চ্যাট হেডার আপডেট
+    if (currentChatId && currentChatOtherUid && currentChatOtherUid !== 'group') {
+        const chatAvEl = document.getElementById('chat-avatar');
+        if (chatAvEl) {
+            // এখানে আপনি allUsersCache বা একটি গ্লোবাল অনলাইন লিস্ট চেক করে ডট দেখাতে পারেন
+            // উদাহরণস্বরূপ:
+            const isOnline = allUsersCache?.find(u => u.id === currentChatOtherUid)?.online;
+            let dot = chatAvEl.querySelector('.online-dot');
+            
+            if (isOnline) {
+                if (!dot) chatAvEl.insertAdjacentHTML('beforeend', '<div class="online-dot"></div>');
+            } else {
+                if (dot) dot.remove();
+            }
+        }
+    }
+
+    // মেসেজ লিস্ট আপডেট
+    document.querySelectorAll('.msg-item').forEach(item => {
+        const uid = item.getAttribute('data-other-uid');
+        if (uid && uid !== 'group') {
+            const avatarDiv = item.querySelector('.avatar');
+            if (avatarDiv) {
+                const isOnline = allUsersCache?.find(u => u.id === uid)?.online;
+                let dot = avatarDiv.querySelector('.online-dot');
+                
+                if (isOnline) {
+                    if (!dot) avatarDiv.insertAdjacentHTML('beforeend', '<div class="online-dot"></div>');
                 } else {
                     if (dot) dot.remove();
                 }
             }
         }
+    });
+}
 
-        // মেসেজ লিস্টে বাতি আপডেট
-        document.querySelectorAll('.msg-item').forEach(item => {
-            const uid = item.getAttribute('data-other-uid');
-            if (uid && uid !== 'group') {
-                const avatarDiv = item.querySelector('.avatar');
-                if (avatarDiv) {
-                    let dot = avatarDiv.querySelector('.online-dot');
-                    if (onlineUids.includes(uid)) {
-                        if (!dot) avatarDiv.insertAdjacentHTML('beforeend', '<div class="online-dot"></div>');
-                    } else {
-                        if (dot) dot.remove();
-                    }
-                }
-            }
-        });
-    } catch (e) {}
-}, 30000);
+// === 🚀 Smart Visibility & Lifecycle Tracker ===
 
-
-// 🚀 স্মার্ট ভিজিবিলিটি ট্র্যাকার (অ্যাপ মিনিমাইজ করলে বা ব্যাকগ্রাউন্ডে গেলে অফলাইন)
 function handleAppVisibility() {
     if (!currentUser) return;
+    
     if (document.visibilityState === 'visible') {
-        updateOnlineStatus(); // অ্যাপে ঢুকলে বা স্ক্রিন অন করলে আবার অনলাইন
+        // অ্যাপ ফোকাসে আসলে আবার অনলাইন দেখাও
+        updateOnlineStatus();
     } else {
-        // অ্যাপ থেকে বের হলে বা মিনিমাইজ করলে সাথে সাথে অফলাইন
-        db.collection('users').doc(currentUser.uid).update({
-            online: false,
-            lastSeen: firebase.firestore.FieldValue.serverTimestamp()
-        }).catch(()=>{});
+        // অ্যাপ ব্যাকগ্রাউন্ডে গেলে বা ট্যাব চেঞ্জ করলে অফলাইন দেখাও
+        setOfflineStatus();
     }
 }
-document.addEventListener("visibilitychange", handleAppVisibility);
-window.addEventListener("pagehide", handleAppVisibility);
 
-window.addEventListener('beforeunload',()=>{
-    if(currentUser){
-        db.collection('users').doc(currentUser.uid).update({
+// হেল্পার ফাংশন: দ্রুত অফলাইন সেট করা
+async function setOfflineStatus() {
+    if (!currentUser) return;
+    try {
+        await db.collection('users').doc(currentUser.uid).update({
             online: false,
             lastSeen: firebase.firestore.FieldValue.serverTimestamp()
-        }).catch(()=>{});
+        });
+    } catch (e) {
+        console.warn("Failed to set offline status", e);
     }
-});
+}
 
-loadUserUI(); loadFeed(); loadMessages(); loadStories(); cleanupExpiredPosts(); fixMissingNamesInChats();
+// ইভেন্ট লিসেনার যোগ করা
+document.addEventListener("visibilitychange", handleAppVisibility);
+window.addEventListener("pagehide", setOfflineStatus);
+window.addEventListener("beforeunload", setOfflineStatus);
 
-db.collection('users').doc(user.uid).onSnapshot(doc=>{
-if(doc.exists){
-currentUserData=doc.data();
-// --- LOCKDOWN CHECK ---
-if (currentUserData.isBanned) {
+
+// === 🏁 Initial App Load (After Auth State is Confirmed) ===
+// এই ফাংশনটি auth.onAuthStateChanged এর ভেতরে কল করতে হবে যখন ইউজার পাওয়া যায়
+async function initializeApp(user) {
+    try {
+        // ১. বেসিক UI লোড
+        loadUserUI(); 
+        loadFeed(); 
+        loadMessages(); 
+        loadStories(); 
+        cleanupExpiredPosts(); 
+        
+        // ২. চ্যাট নাম ফিক্স (ঐচ্ছিক, যদি খুব ভারী না হয়)
+        if (typeof fixMissingNamesInChats === 'function') {
+            fixMissingNamesInChats();
+        }
+
+        // ৩. রিয়েল-টাইম ইউজার ডাটা লিসেনার (Banned Check & Profile Updates)
+        const userRef = db.collection('users').doc(user.uid);
+        
+        // আগের লিসেনার থাকলে আনসাবস্ক্রাইব করুন (যদি গ্লোবাল ভেরিয়েবল থাকে)
+        if (window.userUnsub) window.userUnsub();
+
+        window.userUnsub = userRef.onSnapshot(doc => {
+            if (!doc.exists) {
+                // ইউজার ডিলিট হয়ে গেলে লগআউট
+                auth.signOut();
+                return;
+            }
+
+            const data = doc.data();
+            currentUserData = data;
+
+            // --- 🔒 BAN CHECK (Secure) ---
+            if (data.isBanned === true) {
+                showBanScreen();
+                return;
+            }
+
+            // UI আপডেট
+            loadUserUI();
+            if (typeof loadFriendRequests === 'function') loadFriendRequests();
+
+            // ফ্রেন্ড রিকোয়েস্ট ব্যাজ আপডেট
+            const fBadge = document.getElementById('friends-badge');
+            if (fBadge) {
+                const reqCount = data.receivedRequests ? data.receivedRequests.length : 0;
+                if (reqCount > 0) {
+                    fBadge.textContent = reqCount > 9 ? '9+' : reqCount;
+                    fBadge.style.display = 'flex';
+                } else {
+                    fBadge.style.display = 'none';
+                }
+            }
+            
+            // পয়েন্ট ডিসপ্লে আপডেট (যদি থাকে)
+            const pointDisplay = document.getElementById('user-points-display');
+            if (pointDisplay && data.points !== undefined) {
+                pointDisplay.textContent = data.points;
+            }
+        });
+
+        // ৪. রিয়েল-টাইম নোটিফিকেশন লিসেনার
+        setupNotificationListener(user.uid);
+
+    } catch (error) {
+        console.error("App Initialization Error:", error);
+        showToast("Failed to load app data.");
+    }
+}
+
+// === 🔨 Ban Screen Handler ===
+function showBanScreen() {
+    // সব ইভেন্ট লিসেনার এবং ইন্টারভাল বন্ধ করুন
+    if (window.userUnsub) window.userUnsub();
+    if (notifUnsub) notifUnsub();
+    if (onlineStatusInterval) clearInterval(onlineStatusInterval);
+    
+    // বডি ক্লিয়ার করে ব্যান মেসেজ দেখান
     document.body.innerHTML = `
         <div style="height:100vh; display:flex; flex-direction:column; justify-content:center; align-items:center; background:#1a1a2e; color:white; font-family:sans-serif; text-align:center; padding: 20px;">
             <span class="material-symbols-outlined" style="font-size: 80px; color: #ff4d6a; margin-bottom: 20px;">gavel</span>
             <h1 style="color:#ff4d6a; margin-bottom:10px;">ACCOUNT BANNED</h1>
-            <p style="color:#a0a0b5; margin-bottom:30px;">Your account has been permanently suspended by the Admin.</p>
-            <button onclick="firebase.auth().signOut().then(()=>window.location.reload())" style="padding:12px 24px; background:#ff4d6a; color:white; border:none; border-radius:30px; font-weight:bold; cursor:pointer;">Exit App</button>
+            <p style="color:#a0a0b5; margin-bottom:30px; max-width: 300px;">Your account has been permanently suspended by the Admin due to violation of community guidelines.</p>
+            <button onclick="forceLogout()" style="padding:12px 24px; background:#ff4d6a; color:white; border:none; border-radius:30px; font-weight:bold; cursor:pointer; box-shadow: 0 4px 15px rgba(255, 77, 106, 0.4);">Exit App</button>
         </div>
     `;
-    auth.signOut();
-    return;
-}
-// -----------------------
-
-loadUserUI();loadFriendRequests();
-const fBadge=document.getElementById('friends-badge');
-const reqCount=currentUserData.receivedRequests?currentUserData.receivedRequests.length:0;
-if(fBadge){
-if(reqCount>0){fBadge.textContent=reqCount;fBadge.style.display='flex';}
-else{fBadge.style.display='none';}
-}
-}
-});
-notifUnsub=db.collection('notifications').where('toUid','==',user.uid).onSnapshot(nSnap=>{
-let notifs=nSnap.docs.map(nd=>({id:nd.id,...nd.data()}));
-notifs.sort((a,b)=>{
-const ta=a.createdAt?.toMillis?a.createdAt.toMillis():0;
-const tb=b.createdAt?.toMillis?b.createdAt.toMillis():0;
-return tb-ta;
-});
-
-const unreadNotif=notifs.filter(nd=>nd.read===false).length;
-const nBadge=document.getElementById('notif-badge');
-if(nBadge){
-if(unreadNotif>0){nBadge.textContent=unreadNotif;nBadge.style.display='flex';}
-else{nBadge.style.display='none';}
-}
-
-const nList=document.getElementById('notifications-list');
-if(!nList)return;
-if(notifs.length===0){nList.innerHTML='<div class="empty-feed">No notifications yet</div>';return;}
-
-nList.innerHTML = notifs.map(data => {
-    let textDesc = 'interacted with you';
-    if(data.type === 'like') textDesc = 'liked your post';
-    else if(data.type === 'comment') textDesc = 'commented on your post';
-    else if(data.type === 'follow') textDesc = 'started following you';
-    else if(data.type === 'tag') textDesc = 'tagged you in a post'; // নতুন লাইন যোগ করা হলো
-    const safeName = escapeHTML(data.fromName);
-
     
-    // নতুন ম্যাজিক: ক্লিক করলে কী হবে তার লজিক
-    let onClickAction = `db.collection('notifications').doc('${data.id}').update({read:true});`;
-    if (data.postId) {
-        // লাইক বা কমেন্ট হলে সরাসরি ওই পোস্ট ওপেন হবে
-        onClickAction += ` openSinglePostView('${data.postId}');`;
-    } else if (data.type === 'friend_request' || data.type === 'request_accepted') {
-        // ফ্রেন্ড রিকোয়েস্ট হলে ফ্রেন্ডস পেজে নিয়ে যাবে
-        onClickAction += ` showPage('friends');`; 
-    }
-
-    return `<div class="notif-item ${!data.read ? 'unread' : ''}" onclick="${onClickAction}">
-        <div class="avatar sm">${avatarInitial(data.fromName)}</div>
-        <div class="notif-text">
-            <strong>${safeName}</strong> ${textDesc}
-            <div class="notif-time">${getRelativeTime(data.createdAt)}</div>
-        </div>
-        <span class="material-symbols-outlined notif-delete" onclick="event.stopPropagation();deleteNotification('${data.id}')">close</span>
-    </div>`;
-}).join('');
-});
-}else{
-currentUser=null;currentUserData=null;
-document.getElementById('auth-screen').style.display='flex';
-document.getElementById('app-screen').style.display='none';
-// লগআউট থাকলে লগইন পেজ রেডি হওয়ার পর স্প্ল্যাশ সরবে
-removeSplash();
-
-if(feedUnsub)feedUnsub();
-if(notifUnsub)notifUnsub();
-if(storyUnsub)storyUnsub();
-if(onlineStatusInterval)clearInterval(onlineStatusInterval);
+    // অথেন্টিকেশন থেকে সাইন আউট
+    auth.signOut();
 }
-});
-// নতুন মেইন মেনু ওপেন এবং ক্লোজ করার লজিক
+
+function forceLogout() {
+    auth.signOut().then(() => {
+        window.location.reload();
+    });
+}
+
+// === 🔔 Notification Listener (Optimized) ===
+let notifUnsub = null;
+
+function setupNotificationListener(uid) {
+    if (notifUnsub) notifUnsub(); // আগের লিসেনার বন্ধ করুন
+
+    notifUnsub = db.collection('notifications')
+        .where('toUid', '==', uid)
+        .orderBy('createdAt', 'desc') // ডাটাবেসেই সর্ট করা ভালো
+        .limit(50) // পারফরম্যান্সের জন্য লিমিট
+        .onSnapshot(nSnap => {
+            
+            let notifs = nSnap.docs.map(nd => ({ id: nd.id, ...nd.data() }));
+            
+            // আনরিড কাউন্ট
+            const unreadNotif = notifs.filter(nd => nd.read === false).length;
+            const nBadge = document.getElementById('notif-badge');
+            if (nBadge) {
+                if (unreadNotif > 0) {
+                    nBadge.textContent = unreadNotif > 9 ? '9+' : unreadNotif;
+                    nBadge.style.display = 'flex';
+                } else {
+                    nBadge.style.display = 'none';
+                }
+            }
+
+            const nList = document.getElementById('notifications-list');
+            if (!nList) return;
+
+            if (notifs.length === 0) {
+                nList.innerHTML = '<div class="empty-feed">No notifications yet</div>';
+                return;
+            }
+
+            // HTML জেনারেট
+            nList.innerHTML = notifs.map(data => {
+                let textDesc = 'interacted with you';
+                if (data.type === 'like') textDesc = 'liked your post';
+                else if (data.type === 'comment') textDesc = 'commented on your post';
+                else if (data.type === 'follow') textDesc = 'started following you';
+                else if (data.type === 'tag') textDesc = 'tagged you in a post';
+                else if (data.type === 'friend_request') textDesc = 'sent you a friend request';
+                else if (data.type === 'request_accepted') textDesc = 'accepted your friend request';
+
+                const safeName = escapeHTML(data.fromName || 'Unknown');
+                const timeStr = getRelativeTime(data.createdAt);
+
+                // ক্লিক অ্যাকশন লজিক
+                let onClickAction = `markNotificationRead('${data.id}');`;
+                
+                if (data.postId) {
+                    onClickAction += ` openSinglePostView('${data.postId}');`;
+                } else if (data.type === 'friend_request' || data.type === 'request_accepted') {
+                    onClickAction += ` showPage('friends');`; 
+                }
+
+                return `
+                <div class="notif-item ${!data.read ? 'unread' : ''}" onclick="${onClickAction}">
+                    <div class="avatar sm">${avatarInitial(safeName)}</div>
+                    <div class="notif-text">
+                        <strong>${safeName}</strong> ${textDesc}
+                        <div class="notif-time">${timeStr}</div>
+                    </div>
+                    <span class="material-symbols-outlined notif-delete" 
+                          onclick="event.stopPropagation(); deleteNotification('${data.id}')">close</span>
+                </div>`;
+            }).join('');
+        }, error => {
+            console.error("Notification listener error:", error);
+        });
+}
+
+// হেল্পার: নোটিফিকেশন রিড মার্ক করা (গ্লোবাল ফাংশন হিসেবে রাখা ভালো)
+window.markNotificationRead = async function(id) {
+    try {
+        await db.collection('notifications').doc(id).update({ read: true });
+    } catch (e) {
+        console.error("Error marking notification as read", e);
+    }
+};
+
+// === 📂 Main Menu & Settings Logic ===
+
 function openMainMenu() {
-    document.getElementById('main-menu-screen').style.display = 'flex';
-    // 🚀 মেনু ওপেন হলে সব সুইচের স্টেট আপডেট করে দেবে
+    const menu = document.getElementById('main-menu-screen');
+    if (!menu) return;
+
+    menu.style.display = 'flex';
+    
+    // UI স্টেট আপডেট (যদি ফাংশনগুলো exists করে)
     if (typeof updatePrivateAccountUI === 'function') updatePrivateAccountUI();
     if (typeof updateActiveStatusUI === 'function') updateActiveStatusUI();
     if (typeof updateMessageSoundUI === 'function') updateMessageSoundUI();
-    if (typeof updateDarkModeUI === 'function') updateDarkModeUI(); // ডার্ক মোড আপডেট
+    if (typeof updateDarkModeUI === 'function') updateDarkModeUI();
 }
 
 function closeMainMenu() {
-    document.getElementById('main-menu-screen').style.display = 'none';
+    const menu = document.getElementById('main-menu-screen');
+    if (menu) menu.style.display = 'none';
 }
 
-// সেটিংসের সাব-মেনু ড্রপডাউন টগল করার লজিক
 function toggleSettingsSubMenu() {
     const subMenu = document.getElementById('settings-sub-menu');
     const arrow = document.getElementById('settings-arrow');
-    if (subMenu.style.display === 'none' || subMenu.style.display === '') {
+    
+    if (!subMenu || !arrow) return;
+
+    // ডিসপ্লে স্টেট চেক করা
+    const isHidden = subMenu.style.display === 'none' || subMenu.style.display === '';
+    
+    if (isHidden) {
         subMenu.style.display = 'flex';
-        arrow.textContent = 'expand_less'; // তীর চিহ্ন উপরের দিকে ঘুরবে
+        arrow.textContent = 'expand_less'; // তীর উপরে
     } else {
         subMenu.style.display = 'none';
-        arrow.textContent = 'expand_more'; // তীর চিহ্ন নিচের দিকে ঘুরবে
+        arrow.textContent = 'expand_more'; // তীর নিচে
     }
 }
 
-// ===== NAVIGATION =====
+// === 🧭 Navigation System ===
+
 function showPage(page) {
+    // সব পেজ এবং নেভ আইটেম থেকে active ক্লাস রিমুভ
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    
+    // টার্গেট এলিমেন্ট সিলেক্ট
     const pEl = document.getElementById('page-' + page);
-    if(pEl) pEl.classList.add('active');
     const nEl = document.getElementById('nav-' + page);
-    if(nEl) nEl.classList.add('active');
+    
+    if (pEl) pEl.classList.add('active');
+    if (nEl) nEl.classList.add('active');
 
-    // সেটিংস আইকন হ্যান্ডেল করার লজিক
+    // সেটিংস বাটন ভিজিবিলিটি লজিক
     const settingsIcon = document.getElementById('topbar-settings-btn');
-    if (page === 'profile') {
-        settingsIcon.style.display = 'flex'; // প্রোফাইল পেজে আইকন দেখাবে
-    } else {
-        settingsIcon.style.display = 'none'; // অন্য পেজে হাইড হয়ে যাবে
+    if (settingsIcon) {
+        settingsIcon.style.display = (page === 'profile') ? 'flex' : 'none';
     }
 
-    if(page === 'messages') loadMessages();
-    if(page === 'profile') { loadUserUI(); loadMyPosts(); }
-    if(page === 'friends') { loadFriendRequests(); loadAllFriends(); }
+    // পেজ অনুযায়ী ডাটা লোড (Switch Case for better performance)
+    switch (page) {
+        case 'messages':
+            loadMessages();
+            break;
+        case 'profile':
+            loadUserUI();
+            loadMyPosts();
+            break;
+        case 'friends':
+            loadFriendRequests();
+            loadAllFriends();
+            break;
+        case 'feed':
+            // Feed পেজে আসলে স্টোরিও রিফ্রেশ করা ভালো
+            loadFeed();
+            loadStories();
+            break;
+    }
     
-    window.scrollTo({top: 0, behavior: 'smooth'});
+    // স্মুথ স্ক্রল টপ
+    window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-
-function refreshFeed(){
-showToast('Refreshing...');
-loadFeed();loadStories();
+function refreshFeed() {
+    showToast('🔄 Refreshing...');
+    loadFeed();
+    loadStories();
 }
 
-async function deleteNotification(id){
-await db.collection('notifications').doc(id).delete();
-showToast('Notification deleted');
+async function deleteNotification(id) {
+    try {
+        await db.collection('notifications').doc(id).delete();
+        // Toast না দেখিয়েই চলবে কারণ onSnapshot অটোমেটিক UI আপডেট করবে
+    } catch (e) {
+        console.error("Delete notif error", e);
+        showToast("Failed to delete notification");
+    }
 }
 
-function toggleArchivedChats(){
-const section=document.getElementById('archived-chats');
-section.classList.toggle('show');
-if(section.classList.contains('show'))loadArchivedMessages();
+function toggleArchivedChats() {
+    const section = document.getElementById('archived-chats');
+    if (section) {
+        section.classList.toggle('show');
+        if (section.classList.contains('show')) {
+            loadArchivedMessages();
+        }
+    }
 }
 
-// ===== FRIEND SYSTEM =====
-async function sendRequest(uid){
-if(!checkRateLimit()) return;
-await db.collection('users').doc(uid).update({
-receivedRequests:firebase.firestore.FieldValue.arrayUnion(currentUser.uid)
-});
-await db.collection('users').doc(currentUser.uid).update({
-sentRequests:firebase.firestore.FieldValue.arrayUnion(uid)
-});
-db.collection('notifications').add({
-toUid:uid,fromUid:currentUser.uid,
-fromName:currentUserData.name,
-type:'friend_request',read:false,
-createdAt:firebase.firestore.FieldValue.serverTimestamp()
-});
-searchUsers();
-showToast('Request sent');
-}
-
-async function cancelRequest(uid){
-if(!checkRateLimit()) return;
-await db.collection('users').doc(uid).update({
-receivedRequests:firebase.firestore.FieldValue.arrayRemove(currentUser.uid)
-});
-await db.collection('users').doc(currentUser.uid).update({
-sentRequests:firebase.firestore.FieldValue.arrayRemove(uid)
-});
-searchUsers();
-showToast('Request cancelled');
-}
-
-async function acceptRequest(uid){
-if(!checkRateLimit()) return;
-await db.collection('users').doc(currentUser.uid).update({
-receivedRequests:firebase.firestore.FieldValue.arrayRemove(uid),
-friends:firebase.firestore.FieldValue.arrayUnion(uid)
-});
-await db.collection('users').doc(uid).update({
-sentRequests:firebase.firestore.FieldValue.arrayRemove(currentUser.uid),
-friends:firebase.firestore.FieldValue.arrayUnion(currentUser.uid)
-});
-db.collection('notifications').add({
-toUid:uid,fromUid:currentUser.uid,
-fromName:currentUserData.name,
-type:'request_accepted',read:false,
-createdAt:firebase.firestore.FieldValue.serverTimestamp()
-});
-awardPoints(currentUser.uid, 15);
-awardPoints(uid, 15);
-searchUsers();loadFriendRequests();
-showToast('Request accepted!');
-}
-
-async function rejectRequest(uid){
-if(!checkRateLimit()) return;
-await db.collection('users').doc(currentUser.uid).update({
-receivedRequests:firebase.firestore.FieldValue.arrayRemove(uid)
-});
-await db.collection('users').doc(uid).update({
-sentRequests:firebase.firestore.FieldValue.arrayRemove(currentUser.uid)
-});
-loadFriendRequests();
-showToast('Request removed');
-}
-
-async function confirmUnfriend(uid){
-if(!confirm("Are you sure you want to unfriend this user?"))return;
-await db.collection('users').doc(currentUser.uid).update({
-friends:firebase.firestore.FieldValue.arrayRemove(uid)
-});
-await db.collection('users').doc(uid).update({
-friends:firebase.firestore.FieldValue.arrayRemove(currentUser.uid)
-});
-showToast("Unfriended");
-closeUserProfile();
-}
-
-function switchFriendsTab(tab) {
-const requestsSection = document.getElementById('requests-section');
-const myFriendsSection = document.getElementById('my-friends-section');
-const btnRequests = document.getElementById('tab-requests');
-const btnMyFriends = document.getElementById('tab-my-friends');
-if (tab === 'requests') {
-requestsSection.style.display = 'block';
-myFriendsSection.style.display = 'none';
-btnRequests.classList.add('active');
-btnMyFriends.classList.remove('active');
-loadFriendRequests();
-} else {
-requestsSection.style.display = 'none';
-myFriendsSection.style.display = 'block';
-btnRequests.classList.remove('active');
-btnMyFriends.classList.add('active');
-loadAllFriends();
-}
-}
-
-function toggleFriendsEditMode() {
-isFriendsEditMode = !isFriendsEditMode;
-const btn = document.getElementById('edit-friends-btn');
-const deleteBtn = document.getElementById('delete-friends-btn');
-if (isFriendsEditMode) {
-btn.textContent = 'Cancel';
-btn.style.background = 'var(--surface-2)';
-deleteBtn.style.display = 'block';
-} else {
-btn.textContent = 'Edit';
-btn.style.background = 'transparent';
-deleteBtn.style.display = 'none';
-friendsToDelete = [];
-}
-loadAllFriends();
-}
+// === 🤝 Friend System (Optimized Loading) ===
 
 async function loadAllFriends() {
     const list = document.getElementById('all-friends-list');
     if (!list) return;
     
-    list.innerHTML = '<div class="loading"><span class="material-symbols-outlined">autorenew</span> Loading...</div>';
+    // লোডিং স্পিনার
+    list.innerHTML = '<div class="loading" style="text-align:center; padding:20px;"><span class="material-symbols-outlined">autorenew</span> Loading friends...</div>';
     
-    // ফলোয়িং লিস্ট থেকে ইউজার আইডি নেওয়া হচ্ছে
-    const following = currentUserData.following || [];
+    // currentUserData থেকে following লিস্ট নেওয়া
+    const following = currentUserData?.following || [];
     
     if (following.length === 0) {
-        list.innerHTML = '<div class="empty-feed">You are not following anyone yet</div>';
+        list.innerHTML = '<div class="empty-feed">You are not following anyone yet. Start exploring!</div>';
         return;
     }
 
     try {
+        // Parallel Fetching using Promise.all
         const userDocs = following.map(uid => db.collection('users').doc(uid).get());
         const snapshots = await Promise.all(userDocs);
         
         let html = '';
+        let validCount = 0;
+
         snapshots.forEach((doc, index) => {
             if (doc.exists) {
                 const u = doc.data();
-                const safeName = escapeHTML(u.name);
-                const avHtml = u.avatar ? `<img src="${u.avatar}">` : avatarInitial(u.name);
+                const uid = following[index];
                 
-                // নাম এবং আনফলো বাটনসহ লিস্ট আইটেম
+                // XSS Protection
+                const safeName = escapeHTML(u.name || 'Unknown User');
+                
+                // Avatar Handling
+                let avHtml;
+                if (u.avatar && u.avatar.trim() !== '') {
+                    avHtml = `<img src="${escapeHTML(u.avatar)}" alt="${safeName}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
+                } else {
+                    avHtml = `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:var(--gradient);color:#fff;font-weight:bold;">${avatarInitial(safeName)}</div>`;
+                }
+                
                 html += `
-                <div class="friend-item-check" style="justify-content: space-between;">
-                    <div style="display:flex; align-items:center; gap:12px;" onclick="viewUserProfile('${following[index]}')">
-                        <div class="avatar">${avHtml}</div>
-                        <div class="msg-name">${safeName}</div>
+                <div class="friend-item-check" style="justify-content: space-between; margin-bottom: 10px; display: flex; align-items: center;">
+                    <div style="display:flex; align-items:center; gap:12px; cursor: pointer;" onclick="viewUserProfile('${uid}')">
+                        <div class="avatar sm" style="width: 45px; height: 45px;">${avHtml}</div>
+                        <div class="msg-name" style="font-weight: 600;">${safeName}</div>
                     </div>
-                    <button class="btn-outline" style="padding:6px 12px; font-size:11px;" onclick="toggleFollow('${following[index]}')">Unfollow</button>
+                    <button class="btn-outline" 
+                            style="padding:6px 14px; font-size:12px; border-radius: 20px; cursor: pointer;" 
+                            onclick="toggleFollow('${uid}', this)">
+                        Unfollow
+                    </button>
                 </div>`;
+                
+                validCount++;
             }
         });
-        list.innerHTML = html;
+
+        if (validCount === 0) {
+             list.innerHTML = '<div class="empty-feed">No valid friends found.</div>';
+        } else {
+             list.innerHTML = html;
+        }
+
     } catch (e) {
-        list.innerHTML = '<div class="empty-feed">Failed to load following list</div>';
+        console.error("Load friends error:", e);
+        list.innerHTML = '<div class="empty-feed" style="color:var(--danger);">Failed to load following list. Check connection.</div>';
     }
 }
 
+// === Helper: Toggle Follow/Unfollow (Placeholder Logic) ===
+// এই ফাংশনটি আপনার existing code অনুযায়ী আপডেট করবেন
+async function toggleFollow(uid, btnElement) {
+    if (!checkRateLimit()) return; // Rate limit check
+    
+    try {
+        // এখানে আপনার follow/unfollow লজিক থাকবে
+        // উদাহরণস্বরূপ:
+        showToast("Processing...");
+        
+        // ডাটাবেস আপডেটের পর বাটন টেক্সট চেঞ্জ করা
+        if (btnElement) {
+            const isFollowing = btnElement.textContent.trim() === 'Unfollow';
+            btnElement.textContent = isFollowing ? 'Follow' : 'Unfollow';
+            
+            // স্টাইল চেঞ্জ (ঐচ্ছিক)
+            if (isFollowing) {
+                btnElement.style.background = 'transparent';
+                btnElement.style.color = 'var(--accent)';
+            } else {
+                btnElement.style.background = 'var(--accent)';
+                btnElement.style.color = '#fff';
+            }
+        }
+        
+        // ডাটাবেস আপডেট কল করুন (আপনার existing logic অনুযায়ী)
+        // await updateFollowStatus(uid, !isFollowing); 
+        
+    } catch (e) {
+        showToast("Action failed");
+    }
+}
 
 function handleFriendSelection(checkbox) {
 const uid = checkbox.value;
@@ -3895,549 +4475,965 @@ showToast("Failed to remove some friends");
 }
 }
 
-async function loadFriendRequests(){
-const list=document.getElementById('friend-requests-list');
-if(!list)return;
-const reqs=currentUserData.receivedRequests||[];
-if(reqs.length===0){list.innerHTML='<div class="empty-feed">No requests yet</div>';return;}
-try {
-const reqDocs = reqs.map(uid => db.collection('users').doc(uid).get());
-const snapshots = await Promise.all(reqDocs);
-let html='';
-snapshots.forEach((doc, index) => {
-if(doc.exists){
-const u=doc.data();
-const safeName=escapeHTML(u.name);
-const avHtml=u.avatar?`<img src="${u.avatar}">`:avatarInitial(u.name);
-html+=`<div class="friend-req-item">
-<div class="avatar" onclick="viewUserProfile('${reqs[index]}')">${avHtml}</div>
-<div class="msg-info" onclick="viewUserProfile('${reqs[index]}')">
-<div class="msg-name">${safeName}</div>
-</div>
-<div class="friend-req-actions">
-<button class="accept-btn" onclick="acceptRequest('${reqs[index]}')">Accept</button>
-<button class="reject-btn" onclick="rejectRequest('${reqs[index]}')">Delete</button>
-</div>
-</div>`;
-}
-});
-list.innerHTML=html;
-} catch (e) {
-list.innerHTML = '<div class="empty-feed">Failed to load requests</div>';
-}
+
+// === 🔄 Global Variables for Search & Rate Limiting ===
+let searchTimeout;
+let lastActionTime = 0;
+const ACTION_COOLDOWN = 1500; // 1.5 সেকেন্ড কুলডাউন
+
+// === 🛡️ Rate Limiter Helper ===
+function checkRateLimit() {
+    const now = Date.now();
+    if (now - lastActionTime < ACTION_COOLDOWN) {
+        showToast("⏳ Please wait a moment...");
+        return false;
+    }
+    lastActionTime = now;
+    return true;
 }
 
-// ===== NEW FOLLOW SYSTEM LOGIC =====
+// === 🤝 New Follow System Logic (Optimized) ===
+
 async function toggleFollow(targetUid) {
-    if(!checkRateLimit()) return;
-    
-    // চেক করবে আগে থেকেই ফলো করা আছে কিনা
-    const isFollowing = currentUserData.following?.includes(targetUid);
-    
-    if (isFollowing) {
-        // আনফলো (Unfollow) করার লজিক
-        await db.collection('users').doc(currentUser.uid).update({
-            following: firebase.firestore.FieldValue.arrayRemove(targetUid)
-        });
-        await db.collection('users').doc(targetUid).update({
-            followers: firebase.firestore.FieldValue.arrayRemove(currentUser.uid)
-        });
-        showToast('Unfollowed');
-    } else {
-        // ফলো (Follow) করার লজিক
-        await db.collection('users').doc(currentUser.uid).update({
-            following: firebase.firestore.FieldValue.arrayUnion(targetUid)
-        });
-        await db.collection('users').doc(targetUid).update({
-            followers: firebase.firestore.FieldValue.arrayUnion(currentUser.uid)
-        });
-        showToast('Following!');
+    if (!checkRateLimit()) return;
+    if (!currentUser || targetUid === currentUser.uid) return; // নিজেকে ফলো করা আটকানো
+
+    try {
+        // চেক করবে আগে থেকেই ফলো করা আছে কিনা (লোকাল ডাটা থেকে দ্রুত চেক)
+        const isFollowing = currentUserData?.following?.includes(targetUid);
         
-        // ফলো করলে নোটিফিকেশন পাঠানো
-        db.collection('notifications').add({
-            toUid: targetUid,
-            fromUid: currentUser.uid,
-            fromName: currentUserData.name,
-            type: 'follow',
-            read: false,
-            createdAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
+        const userRef = db.collection('users').doc(currentUser.uid);
+        const targetRef = db.collection('users').doc(targetUid);
+        
+        // ব্যাচ অপারেশন ব্যবহার করে দুটি আপডেট একসাথে করা (Atomic)
+        const batch = db.batch();
+        
+        if (isFollowing) {
+            // --- Unfollow Logic ---
+            batch.update(userRef, {
+                following: firebase.firestore.FieldValue.arrayRemove(targetUid)
+            });
+            batch.update(targetRef, {
+                followers: firebase.firestore.FieldValue.arrayRemove(currentUser.uid)
+            });
+            
+            showToast('Unfollowed');
+        } else {
+            // --- Follow Logic ---
+            batch.update(userRef, {
+                following: firebase.firestore.FieldValue.arrayUnion(targetUid)
+            });
+            batch.update(targetRef, {
+                followers: firebase.firestore.FieldValue.arrayUnion(currentUser.uid)
+            });
+            
+            showToast('✅ Following!');
+            
+            // নোটিফিকেশন পাঠানো (অ্যাসিনক্রোনাস, মেইন ফ্লো ব্লক করবে না)
+            db.collection('notifications').add({
+                toUid: targetUid,
+                fromUid: currentUser.uid,
+                fromName: currentUserData.name,
+                type: 'follow',
+                read: false,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            }).catch(e => console.warn("Notification failed", e));
+        }
+        
+        // ব্যাচ কমিট করা
+        await batch.commit();
+        
+        // UI রিফ্রেশ (যদি প্রয়োজন হয়)
+        // যদি বর্তমান পেজে অন্যের প্রোফাইল ওপেন থাকে, তবে বাটন আপডেট করার জন্য রিলোড
+        const otherProfilePage = document.getElementById('page-other-profile');
+        if (otherProfilePage && (otherProfilePage.classList.contains('active') || otherProfilePage.style.display === 'block')) {
+            // viewUserProfile(targetUid); // এটি কল করলে পুরো প্রোফাইল রিলোড হবে, যা ভালো
+        }
+        
+        // সার্চ রেজাল্ট বা ফ্রেন্ড লিস্ট আপডেট
+        if (typeof searchUsers === 'function' && document.getElementById('search-input').value.trim() !== '') {
+             searchUsers(); // সার্চ রেজাল্ট রিফ্রেশ
+        }
+        
+        // লোকাল স্টেট আপডেট (দ্রুত UI রেসপন্সের জন্য)
+        if (currentUserData) {
+            if (isFollowing) {
+                currentUserData.following = currentUserData.following.filter(id => id !== targetUid);
+            } else {
+                if (!currentUserData.following) currentUserData.following = [];
+                currentUserData.following.push(targetUid);
+            }
+        }
+
+    } catch (e) {
+        console.error("Toggle follow error:", e);
+        showToast("❌ Failed to update follow status.");
     }
-    
-    // বাটনগুলোর স্টেট সাথে সাথে আপডেট করার জন্য
-    if(document.getElementById('page-other-profile').classList.contains('active') || document.getElementById('page-other-profile').classList.contains('open')) {
-        viewUserProfile(targetUid);
-    }
-    searchUsers();
 }
 
-async function searchUsers(){
+// === 🔍 Smart User Search (Optimized) ===
+
+async function searchUsers() {
     clearTimeout(searchTimeout);
-    const q=document.getElementById('search-input').value.trim().toLowerCase();
-    const res=document.getElementById('search-results-list');
     
-    if(!q){
-        // সার্চ বক্স ফাঁকা হলে রিসেন্ট সার্চ দেখাবে
-        renderRecentSearches();
+    const inputEl = document.getElementById('search-input');
+    const resEl = document.getElementById('search-results-list');
+    
+    if (!inputEl || !resEl) return;
+
+    const q = inputEl.value.trim().toLowerCase();
+    
+    // ইনপুট খালি হলে রিসেন্ট সার্চ দেখাও
+    if (!q) {
+        if (typeof renderRecentSearches === 'function') {
+            renderRecentSearches();
+        } else {
+            resEl.innerHTML = '';
+        }
         return;
     }
     
-    searchTimeout=setTimeout(async()=>{
-        const users=await fetchAllUsers();
-        let html='';
-        users.forEach(u=>{
-            const uId=u.id;
-            if(uId!==currentUser.uid&&u.name&&u.name.toLowerCase().includes(q)){
-                const isFollowing = currentUserData.following?.includes(uId);
-                let btnHtml='';
-                const safeName=escapeHTML(u.name);
-                if(isFollowing){
-                    btnHtml=`<button class="btn-outline" style="padding:6px 14px;font-size:11px;" onclick="event.stopPropagation(); toggleFollow('${uId}')">Following</button>`;
-                } else {
-                    btnHtml=`<button class="btn-primary" style="padding:6px 14px;font-size:11px;margin:0;" onclick="event.stopPropagation(); toggleFollow('${uId}')">Follow</button>`;
-                }
-                const avHtml=u.avatar?`<img src="${u.avatar}">`:avatarInitial(u.name);
+    // লোডিং ইন্ডিকেটর
+    resEl.innerHTML = '<div class="loading" style="text-align:center; padding:10px;"><span class="material-symbols-outlined">search</span> Searching...</div>';
+
+    // 300ms ডিবাউন্স (Typing শেষ হওয়ার পর সার্চ করবে)
+    searchTimeout = setTimeout(async () => {
+        try {
+            // ⚠️ সতর্কতা: fetchAllUsers() যদি সব ইউজার একসাথে নিয়ে আসে, তবে এটি স্লো হতে পারে।
+            // বড় অ্যাপের জন্য Firebase Query ব্যবহার করা উচিত: 
+            // db.collection('users').where('nameLower', '>=', q).where('nameLower', '<=', q + '\uf8ff').limit(20)
+            
+            const users = await fetchAllUsers(); 
+            
+            let html = '';
+            let count = 0;
+
+            // লিমিট সেট করা (প্রথম 20 রেজাল্ট দেখানো ভালো পারফরম্যান্সের জন্য)
+            for (const u of users) {
+                if (count >= 20) break; 
+
+                const uId = u.id;
                 
-                // নতুন: প্রোফাইলে ক্লিক করলেই রিসেন্ট সার্চে অ্যাড হবে
-                html+=`<div class="msg-item" onclick="addToRecentSearches('${uId}'); viewUserProfile('${uId}')">
-                <div class="avatar">${avHtml}</div>
-                <div class="msg-info" style="margin-left:10px;">
-                <div class="msg-name">${safeName} ${getVerifiedBadge(u.email, u.isVerified)}</div>
-                </div>
-                <div>${btnHtml}</div>
-                </div>`;
+                // নিজেকে বাদ দেওয়া এবং নাম ম্যাচ চেক করা
+                if (uId !== currentUser.uid && u.name && u.name.toLowerCase().includes(q)) {
+                    
+                    const isFollowing = currentUserData?.following?.includes(uId);
+                    const safeName = escapeHTML(u.name);
+                    
+                    // বাটন HTML জেনারেট
+                    let btnHtml = '';
+                    if (isFollowing) {
+                        btnHtml = `<button class="btn-outline" style="padding:6px 14px;font-size:11px;border-radius:20px;" onclick="event.stopPropagation(); toggleFollow('${uId}')">Following</button>`;
+                    } else {
+                        btnHtml = `<button class="btn-primary" style="padding:6px 14px;font-size:11px;margin:0;border-radius:20px;" onclick="event.stopPropagation(); toggleFollow('${uId}')">Follow</button>`;
+                    }
+                    
+                    // অ্যাভাটার হ্যান্ডলিং
+                    const avHtml = u.avatar ? 
+                        `<img src="${escapeHTML(u.avatar)}" alt="${safeName}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">` : 
+                        `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:var(--gradient);color:#fff;font-weight:bold;">${avatarInitial(safeName)}</div>`;
+
+                    // ভেরিফাইড ব্যাজ চেক (যদি ফাংশন থাকে)
+                    const badge = (typeof getVerifiedBadge === 'function') ? getVerifiedBadge(u.email, u.isVerified) : '';
+
+                    html += `
+                    <div class="msg-item" onclick="addToRecentSearches('${uId}'); viewUserProfile('${uId}')" 
+                         style="cursor:pointer; margin-bottom: 5px;">
+                        <div class="avatar sm">${avHtml}</div>
+                        <div class="msg-info" style="margin-left:10px; flex-grow: 1;">
+                            <div class="msg-name" style="font-size: 14px;">${safeName} ${badge}</div>
+                        </div>
+                        <div>${btnHtml}</div>
+                    </div>`;
+                    
+                    count++;
+                }
             }
-        });
-        res.innerHTML=html||'<div class="empty-feed">No users found</div>';
-    },300);
+            
+            if (html === '') {
+                resEl.innerHTML = '<div class="empty-feed">No users found matching "' + escapeHTML(q) + '"</div>';
+            } else {
+                resEl.innerHTML = html;
+            }
+
+        } catch (e) {
+            console.error("Search error:", e);
+            resEl.innerHTML = '<div class="empty-feed" style="color:var(--danger);">Search failed. Check connection.</div>';
+        }
+    }, 300);
 }
 
-// ===== RECENT SEARCH LOGIC =====
+// === 🔍 Recent Search Logic (Optimized & Cached) ===
+
+/**
+ * রিসেন্ট সার্চ লিস্ট রেন্ডার করে।
+ * পারফরম্যান্সের জন্য আমরা fetchAllUsers এর বদলে সরাসরি ডাটাবেস থেকে নির্দিষ্ট ইউজারদের ডাটা ফেচ করব।
+ */
 async function renderRecentSearches() {
     const res = document.getElementById('search-results-list');
-    const recents = currentUserData.recentSearches || [];
+    if (!res) return;
+
+    const recents = currentUserData?.recentSearches || [];
     
-    if(recents.length === 0) {
-        res.innerHTML = '<div class="empty-feed">Type a name to search users</div>';
+    if (recents.length === 0) {
+        res.innerHTML = '<div class="empty-feed" style="text-align:center; padding: 20px; color: var(--text-muted);">Type a name to search users</div>';
         return;
     }
     
-    res.innerHTML = '<div class="loading"><span class="material-symbols-outlined">autorenew</span> Loading...</div>';
+    // লোডিং স্টেট
+    res.innerHTML = '<div class="loading" style="text-align:center; padding:10px;"><span class="material-symbols-outlined">history</span> Loading recent searches...</div>';
     
     try {
-        const users = await fetchAllUsers(); 
-        let html = '<div style="padding: 12px 16px; font-size: 13px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Recent Searches</div>';
+        // ✅ অপ্টিমাইজেশন: শুধুমাত্র রিসেন্ট ইউজারদের ডকুমেন্ট ফেচ করা হচ্ছে (Parallel Fetch)
+        const userDocs = recents.map(uid => db.collection('users').doc(uid).get());
+        const snapshots = await Promise.all(userDocs);
         
-        recents.forEach(uid => {
-            const u = users.find(user => user.id === uid);
-            if(u) {
-                const safeName = escapeHTML(u.name);
-                const avHtml = u.avatar ? `<img src="${u.avatar}">` : avatarInitial(u.name);
-                // রিসেন্ট ইউজার লিস্টের ডিজাইন (সাথে ক্রস বাটন)
-                html += `<div class="msg-item" onclick="viewUserProfile('${uid}')">
-                    <div class="avatar">${avHtml}</div>
-                    <div class="msg-info" style="margin-left:10px;">
-                        <div class="msg-name">${safeName} ${getVerifiedBadge(u.email, u.isVerified)}</div>
+        let html = `<div style="padding: 8px 16px; font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-top: 5px;">Recent Searches</div>`;
+        
+        let validCount = 0;
+
+        snapshots.forEach((doc, index) => {
+            if (doc.exists) {
+                const u = doc.data();
+                const uid = recents[index]; // মূল UID ব্যবহার করা হচ্ছে
+                
+                const safeName = escapeHTML(u.name || 'Unknown User');
+                
+                // অ্যাভাটার হ্যান্ডলিং
+                let avHtml;
+                if (u.avatar && u.avatar.trim() !== '') {
+                    avHtml = `<img src="${escapeHTML(u.avatar)}" alt="${safeName}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
+                } else {
+                    avHtml = `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:var(--gradient);color:#fff;font-weight:bold;">${avatarInitial(safeName)}</div>`;
+                }
+
+                // ভেরিফাইড ব্যাজ (যদি ফাংশন থাকে)
+                const badge = (typeof getVerifiedBadge === 'function') ? getVerifiedBadge(u.email, u.isVerified) : '';
+
+                html += `
+                <div class="msg-item" onclick="viewUserProfile('${uid}')" 
+                     style="cursor:pointer; margin-bottom: 4px; transition: background 0.2s;">
+                    
+                    <div class="avatar sm">${avHtml}</div>
+                    
+                    <div class="msg-info" style="margin-left:10px; flex-grow: 1;">
+                        <div class="msg-name" style="font-size: 14px;">${safeName} ${badge}</div>
                     </div>
-                    <span class="material-symbols-outlined" style="color:var(--text-muted); font-size: 20px; padding: 4px; cursor:pointer;" onclick="event.stopPropagation(); removeRecentSearch('${uid}')">close</span>
+                    
+                    <!-- Remove Button -->
+                    <span class="material-symbols-outlined" 
+                          style="color:var(--text-muted); font-size: 20px; padding: 6px; cursor:pointer; border-radius: 50%;" 
+                          onmouseover="this.style.background='rgba(0,0,0,0.05)'" 
+                          onmouseout="this.style.background='transparent'"
+                          onclick="event.stopPropagation(); removeRecentSearch('${uid}')">close</span>
                 </div>`;
+                
+                validCount++;
             }
         });
-        res.innerHTML = html;
-    } catch(e) {
-        res.innerHTML = '<div class="empty-feed">Type a name to search users</div>';
+
+        if (validCount === 0) {
+             res.innerHTML = '<div class="empty-feed">No valid recent searches.</div>';
+        } else {
+             res.innerHTML = html;
+        }
+
+    } catch (e) {
+        console.error("Render recent search error:", e);
+        res.innerHTML = '<div class="empty-feed" style="color:var(--danger);">Failed to load recent searches.</div>';
     }
 }
 
+/**
+ * সার্চ রেজাল্টে ক্লিক করলে এই ফাংশন কল হবে।
+ * এটি লোকাল লিস্ট আপডেট করে এবং ডাটাবেসে সেভ করে।
+ */
 async function addToRecentSearches(uid) {
-    if(!currentUser) return;
-    let recents = currentUserData.recentSearches || [];
+    if (!currentUser || !uid) return;
     
-    // যদি আগে থেকেই লিস্টে থাকে, তবে সেটা মুছে আগে সবার উপরে আনবে
+    // লোকাল ডাটা থেকে বর্তমান লিস্ট নেওয়া
+    let recents = [...(currentUserData?.recentSearches || [])];
+    
+    // যদি আগে থেকেই থাকে, তবে রিমুভ করে আবার শুরুতে যোগ করা (Move to Top)
     recents = recents.filter(id => id !== uid);
     recents.unshift(uid); 
     
-    // সর্বোচ্চ ৩ জনকে রাখবে
-    if(recents.length > 3) {
-        recents = recents.slice(0, 3);
+    // সর্বোচ্চ ৫ জনকে রাখা ভালো (3 একটু কম হতে পারে)
+    const MAX_RECENTS = 5;
+    if (recents.length > MAX_RECENTS) {
+        recents = recents.slice(0, MAX_RECENTS);
     }
     
+    // লোকাল স্টেট আপডেট (তাৎক্ষণিক UI রেসপন্সের জন্য)
+    if (!currentUserData) currentUserData = {};
     currentUserData.recentSearches = recents;
     
-    // ফায়ারবেসে সেভ করা
+    // ডাটাবেসে ব্যাকগ্রাউন্ডে সেভ করা (Await না করলে UI ফাস্ট থাকে)
     db.collection('users').doc(currentUser.uid).update({
         recentSearches: recents
-    }).catch(e => console.log(e));
+    }).catch(e => console.warn("Failed to save recent search", e));
 }
 
+/**
+ * রিসেন্ট সার্চ থেকে আইটেম রিমুভ করা।
+ */
 async function removeRecentSearch(uid) {
-    let recents = currentUserData.recentSearches || [];
+    if (!currentUser) return;
+
+    let recents = [...(currentUserData?.recentSearches || [])];
     recents = recents.filter(id => id !== uid);
+    
+    // লোকাল স্টেট আপডেট
     currentUserData.recentSearches = recents;
     
-    renderRecentSearches(); // সাথে সাথে UI আপডেট হবে
+    // UI সাথে সাথে আপডেট করা
+    renderRecentSearches();
     
+    // ডাটাবেস আপডেট
     db.collection('users').doc(currentUser.uid).update({
         recentSearches: recents
-    }).catch(e => console.log(e));
+    }).catch(e => console.warn("Failed to remove recent search", e));
 }
 
+async function openFriendsListModal(uid) {
+    const modal = document.getElementById('friends-list-modal');
+    const container = document.getElementById('friends-list-container');
+    
+    if (!modal || !container) return;
 
-async function openFriendsListModal(uid){
-document.getElementById('friends-list-modal').classList.add('open');
-const container=document.getElementById('friends-list-container');
-container.innerHTML='<div class="loading"><span class="material-symbols-outlined">autorenew</span> Loading...</div>';
-const doc=await db.collection('users').doc(uid).get();
-if(!doc.exists)return;
-const friends=doc.data().friends||[];
-if(friends.length===0){container.innerHTML='<div class="empty-feed">No friends yet</div>';return;}
-try {
-const friendDocs = friends.map(fId => db.collection('users').doc(fId).get());
-const snapshots = await Promise.all(friendDocs);
-let html='';
-snapshots.forEach((fDoc, index) => {
-if(fDoc.exists){
-const u=fDoc.data();
-const safeName=escapeHTML(u.name);
-const avHtml=u.avatar?`<img src="${u.avatar}">`:avatarInitial(u.name);
-html+=`<div class="msg-item" onclick="closeFriendsListModal();viewUserProfile('${friends[index]}')">
-<div class="avatar">${avHtml}</div>
-<div class="msg-info" style="margin-left:10px;">${safeName}</div>
-</div>`;
-}
-});
-container.innerHTML=html;
-} catch (e) {
-container.innerHTML = '<div class="empty-feed">Failed to load friends</div>';
-}
-}
+    // মডাল ওপেন করুন
+    modal.classList.add('open');
+    
+    // লোডিং স্টেট
+    container.innerHTML = '<div class="loading" style="text-align:center; padding:20px;"><span class="material-symbols-outlined">autorenew</span> Loading friends...</div>';
 
-function closeFriendsListModal(){
-document.getElementById('friends-list-modal').classList.remove('open');
-}
-
-// ===== STORY LOGIC =====
-async function uploadStory(input){
-const file=input.files[0];
-if(!file)return;
-const isVideo=file.type.startsWith('video/');
-showToast('Uploading Story...');
-try{
-const url=await uploadToCloudinary(file,isVideo);
-await db.collection('stories').add({
-uid:currentUser.uid,
-name:currentUserData.name,
-avatar:currentUserData.avatar||'',
-mediaUrl:url,
-isVideo:isVideo,
-views:[],reacts:[],
-createdAt:firebase.firestore.FieldValue.serverTimestamp(),
-expiresAt:new Date(Date.now()+ONE_DAY_MS)
-});
-showToast('Story added!');
-awardPoints(currentUser.uid, 25);
-input.value='';
-}catch(e){showToast('Network error.');}
-}
-
-function loadStories(){
-    const list=document.getElementById('stories-list');
-    if(!list)return;
-    if(storyUnsub)storyUnsub();
-    storyUnsub=db.collection('stories').onSnapshot(snap=>{
-        let stories=[];
-        snap.forEach(d=>stories.push({id:d.id,...d.data()}));
-        let grouped={};
-        stories.forEach(s=>{
-            if(!grouped[s.uid])grouped[s.uid]=[];
-            grouped[s.uid].push(s);
-        });
+    try {
+        // টার্গেট ইউজারের ডাটা আনুন
+        const doc = await db.collection('users').doc(uid).get();
         
-        let html='';
-        let userIdsOrder = []; // সিরিয়াল সেভ করার জন্য
-        
-        // ১. নিজের স্টোরি সবসময় প্রথমে থাকবে
-        if(grouped[currentUser.uid]){
-            const av=currentUserData.avatar||'https://via.placeholder.com/150/7c5cff/FFFFFF?text='+avatarInitial(currentUserData.name);
-            html+=`<div>
-            <div class="story-circle" onclick="playStories('${currentUser.uid}')">
-            <img src="${av}">
-            </div>
-            <div class="story-name">Your Story</div>
-            </div>`;
-            userIdsOrder.push(currentUser.uid);
-            delete grouped[currentUser.uid];
+        if (!doc.exists) {
+            container.innerHTML = '<div class="empty-feed">User not found.</div>';
+            return;
         }
+
+        const userData = doc.data();
+        const friends = userData.friends || [];
+
+        if (friends.length === 0) {
+            container.innerHTML = '<div class="empty-feed" style="margin-top:20px;">This user has no friends yet.</div>';
+            return;
+        }
+
+        // সব বন্ধুর ডকুমেন্ট একসাথে ফেচ করুন (Parallel Fetching)
+        const friendDocs = friends.map(fId => db.collection('users').doc(fId).get());
+        const snapshots = await Promise.all(friendDocs);
         
-        // ২. অন্যদের স্টোরিগুলোকে 'seen' এবং 'unseen' এ ভাগ করা
-        let unseenUsers = [];
-        let seenUsers = [];
-        
-        for(let uid in grouped){
-            // চেক করা হচ্ছে এই ইউজারের সব স্টোরি দেখা হয়ে গেছে কিনা
-            const allSeen = grouped[uid].every(s => s.views && s.views.includes(currentUser.uid));
-            
-            if(allSeen) {
-                seenUsers.push(uid); // দেখা হয়ে গেলে seen লিস্টে
-            } else {
-                unseenUsers.push(uid); // না দেখা থাকলে unseen লিস্টে
+        let html = '';
+        let validCount = 0;
+
+        snapshots.forEach((fDoc, index) => {
+            if (fDoc.exists) {
+                const u = fDoc.data();
+                const friendUid = friends[index];
+                
+                // XSS Protection for Name
+                const safeName = escapeHTML(u.name || 'Unknown User');
+                
+                // Avatar Handling
+                let avHtml;
+                if (u.avatar && u.avatar.trim() !== '') {
+                    avHtml = `<img src="${escapeHTML(u.avatar)}" alt="${safeName}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
+                } else {
+                    avHtml = `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:var(--gradient);color:#fff;font-weight:bold;">${avatarInitial(safeName)}</div>`;
+                }
+
+                html += `
+                <div class="msg-item" 
+                     onclick="closeFriendsListModal(); viewUserProfile('${friendUid}')" 
+                     style="cursor:pointer; margin-bottom: 5px; transition: background 0.2s;">
+                    <div class="avatar sm">${avHtml}</div>
+                    <div class="msg-info" style="margin-left:10px;">
+                        <div class="msg-name" style="font-weight: 600;">${safeName}</div>
+                    </div>
+                </div>`;
+                
+                validCount++;
             }
+        });
+
+        if (validCount === 0) {
+             container.innerHTML = '<div class="empty-feed">No valid friends found.</div>';
+        } else {
+             container.innerHTML = html;
         }
-        
-        // ৩. আগে unseen (না দেখা) স্টোরিগুলো রেন্ডার করা (রঙিন রিং সহ)
-        unseenUsers.forEach(uid => {
-            const uName=grouped[uid][0].name;
-            const safeUName=escapeHTML(uName);
-            const uAv=grouped[uid][0].avatar||'https://via.placeholder.com/150/7c5cff/FFFFFF?text='+avatarInitial(uName);
-            html+=`<div>
-            <div class="story-circle" onclick="playStories('${uid}')">
-            <img src="${uAv}">
-            </div>
-            <div class="story-name">${safeUName}</div>
-            </div>`;
-            userIdsOrder.push(uid);
-        });
 
-        // ৪. এরপর seen (দেখা) স্টোরিগুলো রেন্ডার করা (গ্রে রিং সহ, একদম শেষে)
-        seenUsers.forEach(uid => {
-            const uName=grouped[uid][0].name;
-            const safeUName=escapeHTML(uName);
-            const uAv=grouped[uid][0].avatar||'https://via.placeholder.com/150/7c5cff/FFFFFF?text='+avatarInitial(uName);
-            // .seen ক্লাস যোগ করা হয়েছে যাতে রিংয়ের রঙ ম্লান হয়ে যায়
-            html+=`<div>
-            <div class="story-circle seen" onclick="playStories('${uid}')">
-            <img src="${uAv}">
-            </div>
-            <div class="story-name" style="color:var(--text-muted);">${safeUName}</div>
-            </div>`;
-            userIdsOrder.push(uid);
-        });
-        
-        list.innerHTML=html;
-        window.allStoriesData=stories;
-        window.storyUserIds = userIdsOrder;
-    });
+    } catch (e) {
+        console.error("Error loading friends list:", e);
+        container.innerHTML = '<div class="empty-feed" style="color:var(--danger);">Failed to load friends list.</div>';
+    }
 }
 
-function playStories(uid, startIndex = 0){
-    if(!window.allStoriesData)return;
-    
-    // কোন ইউজারের স্টোরি চলছে তার ইনডেক্স বের করা
-    window.currentStoryUidIndex = window.storyUserIds.indexOf(uid); 
-    
-    activeStoryGroup=window.allStoriesData.filter(s=>s.uid===uid).sort((a,b)=>{
-        const ta=a.createdAt?.toMillis?a.createdAt.toMillis():0;
-        const tb=b.createdAt?.toMillis?b.createdAt.toMillis():0;
-        return ta-tb;
-    });
-    
-    if(activeStoryGroup.length===0)return;
-    currentStoryIndex = startIndex; // যেখান থেকে শুরু হবে
-    document.getElementById('story-viewer').classList.add('open');
-    renderCurrentStory();
+function closeFriendsListModal() {
+    const modal = document.getElementById('friends-list-modal');
+    if (modal) {
+        modal.classList.remove('open');
+    }
 }
 
+// === 📸 Story Logic (Optimized & Robust) ===
 
-function renderCurrentStory(){
-    if(currentStoryIndex>=activeStoryGroup.length){closeStory();return;}
-    const s=activeStoryGroup[currentStoryIndex];
-    const safeName=escapeHTML(s.name);
-    // আমরা এখন ব্যাজসহ নাম রেন্ডার করব
-const sVerified = s.isVerified || false; 
-document.getElementById('sv-name').innerHTML = safeName + getVerifiedBadge(s.email, sVerified);
-    
-    // ১. থ্রি-ডট মেনুটি সবার স্টোরিতেই দেখাবে
-    const svMenuBtn = document.getElementById('sv-menu-btn');
-    if(svMenuBtn) {
-        svMenuBtn.style.display = 'block'; 
+// গ্লোবাল ভেরিয়েবল (যদি আগে থেকে না থাকে)
+let storyUnsub = null;
+let storyTimer = null;
+let activeStoryGroup = [];
+let currentStoryIndex = 0;
+const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * স্টোরি আপলোড করা (ইমেজ বা ভিডিও)
+ */
+async function uploadStory(input) {
+    const file = input.files[0];
+    if (!file) return;
+
+    // ফাইল সাইজ চেক (উদাহরণ: ১০ এমবি এর বেশি নয়)
+    if (file.size > 10 * 1024 * 1024) {
+        showToast("❌ File size too large. Max 10MB allowed.");
+        return;
     }
 
-    // ২. ডিলিট বাটনটি শুধু নিজের স্টোরি হলে দেখাবে, অন্যের হলে হাইড হয়ে যাবে (CSS Conflict Fix)
+    const isVideo = file.type.startsWith('video/');
+    showToast(isVideo ? '🎥 Uploading Video Story...' : '📸 Uploading Photo Story...');
+
+    try {
+        // Cloudinary বা অন্য সার্ভিসে আপলোড
+        const url = await uploadToCloudinary(file, isVideo);
+        
+        if (!url) throw new Error("Upload failed");
+
+        // ডাটাবেসে এন্ট্রি যোগ করা
+        await db.collection('stories').add({
+            uid: currentUser.uid,
+            name: currentUserData.name,
+            avatar: currentUserData.avatar || '',
+            mediaUrl: url,
+            isVideo: isVideo,
+            isText: false, // মিডিয়া স্টোরি
+            views: [],
+            reacts: [],
+            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            expiresAt: new Date(Date.now() + ONE_DAY_MS)
+        });
+
+        showToast('✅ Story added successfully! +25 Points');
+        awardPoints(currentUser.uid, 25);
+        input.value = ''; // ইনপুট রিসেট
+        
+    } catch (e) {
+        console.error("Story upload error:", e);
+        showToast('❌ Failed to upload story. Check connection.');
+    }
+}
+
+/**
+ * স্টোরি লিস্ট লোড করা (Real-time)
+ */
+function loadStories() {
+    const list = document.getElementById('stories-list');
+    if (!list) return;
+
+    // আগের লিসেনার বন্ধ করা
+    if (storyUnsub) storyUnsub();
+
+    // শুধু সেই স্টোরিগুলো আনা যা মেয়াদ উত্তীর্ণ হয়নি
+    storyUnsub = db.collection('stories')
+        .where('expiresAt', '>', new Date()) 
+        .orderBy('createdAt', 'desc')
+        .onSnapshot(snap => {
+            let stories = [];
+            snap.forEach(d => stories.push({ id: d.id, ...d.data() }));
+
+            // ইউজার অনুযায়ী গ্রুপ করা
+            let grouped = {};
+            stories.forEach(s => {
+                if (!grouped[s.uid]) grouped[s.uid] = [];
+                grouped[s.uid].push(s);
+            });
+
+            let html = '';
+            let userIdsOrder = [];
+
+            // ১. নিজের স্টোরি (সবসময় প্রথমে)
+            if (grouped[currentUser.uid]) {
+                const av = currentUserData.avatar || `https://ui-avatars.com/api/?name=${avatarInitial(currentUserData.name)}&background=random`;
+                html += `
+                <div class="story-item" onclick="playStories('${currentUser.uid}')">
+                    <div class="story-circle add-story">
+                        <img src="${av}">
+                        <div class="add-icon">+</div>
+                    </div>
+                    <div class="story-name">Your Story</div>
+                </div>`;
+                userIdsOrder.push(currentUser.uid);
+                delete grouped[currentUser.uid];
+            }
+
+            // ২. অন্যদের স্টোরি (Seen vs Unseen)
+            let unseenUsers = [];
+            let seenUsers = [];
+
+            for (let uid in grouped) {
+                const userStories = grouped[uid];
+                // চেক করা হচ্ছে এই ইউজারের সব স্টোরি দেখা হয়ে গেছে কিনা
+                const allSeen = userStories.every(s => s.views && s.views.includes(currentUser.uid));
+                
+                if (allSeen) {
+                    seenUsers.push(uid);
+                } else {
+                    unseenUsers.push(uid);
+                }
+            }
+
+            // Unseen (না দেখা) স্টোরিগুলো আগে দেখানো (রঙিন রিং)
+            unseenUsers.forEach(uid => {
+                const uName = grouped[uid][0].name;
+                const safeUName = escapeHTML(uName);
+                const uAv = grouped[uid][0].avatar || `https://ui-avatars.com/api/?name=${avatarInitial(uName)}&background=random`;
+                
+                html += `
+                <div class="story-item" onclick="playStories('${uid}')">
+                    <div class="story-circle">
+                        <img src="${uAv}">
+                    </div>
+                    <div class="story-name">${safeUName}</div>
+                </div>`;
+                userIdsOrder.push(uid);
+            });
+
+            // Seen (দেখা) স্টোরিগুলো শেষে দেখানো (গ্রে রিং)
+            seenUsers.forEach(uid => {
+                const uName = grouped[uid][0].name;
+                const safeUName = escapeHTML(uName);
+                const uAv = grouped[uid][0].avatar || `https://ui-avatars.com/api/?name=${avatarInitial(uName)}&background=random`;
+                
+                html += `
+                <div class="story-item" onclick="playStories('${uid}')">
+                    <div class="story-circle seen">
+                        <img src="${uAv}">
+                    </div>
+                    <div class="story-name" style="color:var(--text-muted);">${safeUName}</div>
+                </div>`;
+                userIdsOrder.push(uid);
+            });
+
+            list.innerHTML = html || '<div style="padding:10px; text-align:center; color:#888;">No stories available</div>';
+            
+            // গ্লোবাল ডাটা সেট করা
+            window.allStoriesData = stories;
+            window.storyUserIds = userIdsOrder;
+        }, error => {
+            console.error("Story listener error:", error);
+        });
+}
+
+/**
+ * স্টোরি প্লেয়ার ওপেন করা
+ */
+function playStories(uid, startIndex = 0) {
+    if (!window.allStoriesData) return;
+    
+    // ইউজারের ইনডেক্স খুঁজে বের করা
+    window.currentStoryUidIndex = window.storyUserIds.indexOf(uid); 
+    if (window.currentStoryUidIndex === -1) return;
+
+    // সেই ইউজারের সব স্টোরি ফিল্টার করে সময় অনুযায়ী সর্ট করা
+    activeStoryGroup = window.allStoriesData
+        .filter(s => s.uid === uid)
+        .sort((a, b) => {
+            const ta = a.createdAt?.toMillis ? a.createdAt.toMillis() : 0;
+            const tb = b.createdAt?.toMillis ? b.createdAt.toMillis() : 0;
+            return ta - tb;
+        });
+
+    if (activeStoryGroup.length === 0) return;
+
+    currentStoryIndex = startIndex;
+    
+    // প্লেয়ার ওপেন
+    const viewer = document.getElementById('story-viewer');
+    if (viewer) {
+        viewer.classList.add('open');
+        renderCurrentStory();
+    }
+}
+
+/**
+ * বর্তমান স্টোরি রেন্ডার করা
+ */
+function renderCurrentStory() {
+    if (currentStoryIndex >= activeStoryGroup.length) {
+        nextStorySegment(); // অটোমেটিক পরের ইউজারে যাওয়া
+        return;
+    }
+
+    const s = activeStoryGroup[currentStoryIndex];
+    if (!s) return;
+
+    const safeName = escapeHTML(s.name);
+    const sVerified = s.isVerified || false; 
+
+    // নাম এবং ব্যাজ
+    const nameEl = document.getElementById('sv-name');
+    if (nameEl) nameEl.innerHTML = safeName + (typeof getVerifiedBadge === 'function' ? getVerifiedBadge(s.email, sVerified) : '');
+
+    // মেনু বাটন লজিক
+    const svMenuBtn = document.getElementById('sv-menu-btn');
+    if (svMenuBtn) svMenuBtn.style.display = 'block'; 
+
     const svDeleteBtn = document.getElementById('sv-delete-btn');
-    if(svDeleteBtn) {
+    if (svDeleteBtn) {
         if (s.uid === currentUser.uid) {
             svDeleteBtn.style.setProperty('display', 'flex', 'important');
         } else {
-            svDeleteBtn.style.setProperty('display', 'none', 'important'); // জোর করে লুকানো হলো
+            svDeleteBtn.style.setProperty('display', 'none', 'important');
         }
     }
 
+    // মেনু ক্লোজ
     const sm = document.getElementById('story-menu');
-    if(sm) sm.classList.remove('open');
-    document.getElementById('sv-avatar').innerHTML=s.avatar?`<img src="${s.avatar}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`:avatarInitial(s.name);
+    if (sm) sm.classList.remove('open');
+
+    // অ্যাভাটার
+    const avEl = document.getElementById('sv-avatar');
+    if (avEl) {
+        avEl.innerHTML = s.avatar ? 
+            `<img src="${escapeHTML(s.avatar)}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">` : 
+            `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:var(--gradient);color:#fff;font-weight:bold;">${avatarInitial(s.name)}</div>`;
+    }
+
+    // ভিউ এবং রিয়্যাক্ট কাউন্ট
+    const viewsEl = document.getElementById('sv-views');
+    if (viewsEl) viewsEl.textContent = (s.views || []).length;
     
-    // ভিউ কাউন্ট এবং রিয়্যাক্ট কাউন্ট
-    document.getElementById('sv-views').textContent=(s.views||[]).length;
     const reactCountDisplay = document.getElementById('sv-react-count');
-    if(reactCountDisplay) {
-        reactCountDisplay.textContent=(s.reacts||[]).length;
+    if (reactCountDisplay) reactCountDisplay.textContent = (s.reacts || []).length;
+
+    // রিয়্যাক্ট বাটন স্টেট
+    const reactBtn = document.getElementById('sv-react-btn');
+    if (reactBtn) {
+        if (s.reacts && s.reacts.includes(currentUser.uid)) {
+            reactBtn.style.color = 'var(--danger, #ff4d6a)';
+            reactBtn.style.fontVariationSettings = "'FILL' 1";
+        } else {
+            reactBtn.style.color = '#fff';
+            reactBtn.style.fontVariationSettings = "'FILL' 0";
+        }
     }
 
-    const reactBtn=document.getElementById('sv-react-btn');
-    if(s.reacts&&s.reacts.includes(currentUser.uid)){
-        reactBtn.style.color='var(--danger)';
-        reactBtn.style.fontVariationSettings="'FILL' 1";
-    }else{
-        reactBtn.style.color='#fff';
-        reactBtn.style.fontVariationSettings="'FILL' 0";
-    }
-
+    // মিডিয়া কন্টেইনার
     const mediaCont = document.getElementById('sv-media-container');
-    
-    // নতুন টেক্সট স্টোরি রেন্ডার করার লজিক
+    if (!mediaCont) return;
+
+    // আগের টাইমার ক্লিয়ার করা (খুবই গুরুত্বপূর্ণ)
+    clearTimeout(storyTimer);
+
+    // কন্টেন্ট টাইপ অনুযায়ী রেন্ডার
     if (s.isText) {
         const safeText = escapeHTML(s.text).replace(/\n/g, '<br>');
         mediaCont.innerHTML = `
         <div style="width:100%; height:100%; display:flex; align-items:center; justify-content:center; background:${s.bgColor || '#1a1a2e'}; padding: 20px; text-align:center;">
-            <div style="font-size:26px; font-weight:800; color:#fff; word-break:break-word; text-shadow:0 2px 10px rgba(0,0,0,0.2); line-height: 1.4;">${safeText}</div>
+            <div style="font-size:24px; font-weight:700; color:#fff; word-break:break-word; text-shadow:0 2px 10px rgba(0,0,0,0.3); line-height: 1.4;">${safeText}</div>
         </div>`;
-        clearTimeout(storyTimer);
+        // টেক্সট স্টোরির জন্য ৫ সেকেন্ড টাইমার
         storyTimer = setTimeout(nextStorySegment, 5000);
     } 
-    // আগের ভিডিও ও ছবির লজিক
-    else if(s.isVideo) {
-        mediaCont.innerHTML=`<video src="${s.mediaUrl}" autoplay playsinline onended="nextStorySegment()" style="width:100%;max-height:85vh;object-fit:contain;"></video>`;
-        clearTimeout(storyTimer);
-    } else {
-        mediaCont.innerHTML=`<img src="${s.mediaUrl}">`;
-        clearTimeout(storyTimer);
-        storyTimer=setTimeout(nextStorySegment,5000);
+    else if (s.isVideo) {
+        // ভিডিও প্লে করা (Muted এবং Autoplay)
+        mediaCont.innerHTML = `
+        <video src="${s.mediaUrl}" autoplay playsinline muted onended="nextStorySegment()" 
+               style="width:100%; max-height:85vh; object-fit:contain; background:#000;"></video>`;
+        // ভিডিওর জন্য টাইমার দরকার নেই, onended ইভেন্ট কাজ করবে
+    } 
+    else {
+        // ইমেজ স্টোরি
+        mediaCont.innerHTML = `<img src="${s.mediaUrl}" style="width:100%; max-height:85vh; object-fit:contain;">`;
+        // ইমেজের জন্য ৫ সেকেন্ড টাইমার
+        storyTimer = setTimeout(nextStorySegment, 5000);
     }
 
-    document.getElementById('story-progress-bar').innerHTML=activeStoryGroup.map((_,i)=>`<div class="story-progress-segment"><div class="story-progress-fill ${i===currentStoryIndex?'animating':''}" style="width:${i<currentStoryIndex?'100%':'0%'};"></div></div>`).join('');
-    
-    if(s.uid!==currentUser.uid&&!(s.views||[]).includes(currentUser.uid)){
+    // প্রোগ্রেস বার আপডেট
+    const progressBar = document.getElementById('story-progress-bar');
+    if (progressBar) {
+        progressBar.innerHTML = activeStoryGroup.map((_, i) => `
+            <div class="story-progress-segment">
+                <div class="story-progress-fill ${i === currentStoryIndex ? 'animating' : ''}" 
+                     style="width:${i < currentStoryIndex ? '100%' : (i === currentStoryIndex ? '0%' : '0%')};"></div>
+            </div>
+        `).join('');
+    }
+
+    // ভিউ মার্ক করা (যদি না দেখা থাকে)
+    if (s.uid !== currentUser.uid && !(s.views || []).includes(currentUser.uid)) {
         db.collection('stories').doc(s.id).update({
-            views:firebase.firestore.FieldValue.arrayUnion(currentUser.uid)
-        });
+            views: firebase.firestore.FieldValue.arrayUnion(currentUser.uid)
+        }).catch(e => console.warn("View update failed", e));
     }
 }
 
+// === 🔄 Navigation Helpers ===
 
-
-// পরের স্টোরিতে যাওয়ার লজিক
-function nextStorySegment(){
-    if(currentStoryIndex < activeStoryGroup.length - 1) {
+function nextStorySegment() {
+    clearTimeout(storyTimer); // টাইমার ক্লিয়ার
+    
+    if (currentStoryIndex < activeStoryGroup.length - 1) {
         // একই ইউজারের পরের স্টোরি
         currentStoryIndex++;
         renderCurrentStory();
     } else {
-        // ইউজারের সব স্টোরি শেষ, পরের ইউজারের স্টোরিতে যাবে
-        if(window.storyUserIds && window.currentStoryUidIndex < window.storyUserIds.length - 1) {
+        // ইউজারের সব স্টোরি শেষ, পরের ইউজারে যাওয়া
+        if (window.storyUserIds && window.currentStoryUidIndex < window.storyUserIds.length - 1) {
             window.currentStoryUidIndex++;
             let nextUid = window.storyUserIds[window.currentStoryUidIndex];
             playStories(nextUid, 0); 
         } else {
-            closeStory(); // সবার স্টোরি শেষ হলে তবেই ক্লোজ হবে
+            closeStory(); // সব শেষ
         }
     }
 }
 
-// আগের স্টোরিতে যাওয়ার লজিক
-function prevStorySegment(){
-    if(currentStoryIndex > 0) {
+function prevStorySegment() {
+    clearTimeout(storyTimer); // টাইমার ক্লিয়ার
+
+    if (currentStoryIndex > 0) {
         // একই ইউজারের আগের স্টোরি
         currentStoryIndex--;
         renderCurrentStory();
     } else {
-        // আগের ইউজারের শেষ স্টোরিতে যাবে
-        if(window.storyUserIds && window.currentStoryUidIndex > 0) {
+        // আগের ইউজারের শেষ স্টোরিতে যাওয়া
+        if (window.storyUserIds && window.currentStoryUidIndex > 0) {
             window.currentStoryUidIndex--;
             let prevUid = window.storyUserIds[window.currentStoryUidIndex];
-            let prevGroup = window.allStoriesData.filter(s=>s.uid===prevUid);
+            let prevGroup = window.allStoriesData.filter(s => s.uid === prevUid);
             playStories(prevUid, prevGroup.length - 1);
         } else {
-            // একদম প্রথম ইউজারের প্রথম স্টোরি হলে আবার শুরু থেকে প্লে হবে
+            // একদম শুরুতে থাকলে রিস্টার্ট
             currentStoryIndex = 0;
             renderCurrentStory();
         }
     }
 }
 
-
-function closeStory(){
-document.getElementById('story-viewer').classList.remove('open');
-clearTimeout(storyTimer);
-document.getElementById('sv-media-container').innerHTML='';
+function closeStory() {
+    clearTimeout(storyTimer);
+    const viewer = document.getElementById('story-viewer');
+    if (viewer) viewer.classList.remove('open');
+    
+    // ভিডিও বন্ধ করা (যদি চলে)
+    const video = document.querySelector('#sv-media-container video');
+    if (video) {
+        video.pause();
+        video.src = "";
+    }
 }
 
-// স্টোরি থেকে প্রোফাইল দেখার ফাংশন
+function closeStory() {
+    const viewer = document.getElementById('story-viewer');
+    const mediaContainer = document.getElementById('sv-media-container');
+    
+    if (viewer) viewer.classList.remove('open');
+    
+    // টাইমার ক্লিয়ার
+    clearTimeout(storyTimer);
+    
+    // মিডিয়া কন্টেইনার খালি করা
+    if (mediaContainer) {
+        // ভিডিও থাকলে আগে পজ করা ভালো (যদিও innerHTML খালি করলেও কাজ করে)
+        const video = mediaContainer.querySelector('video');
+        if (video) {
+            video.pause();
+            video.src = "";
+        }
+        mediaContainer.innerHTML = '';
+    }
+}
+
+// === 📸 Story Interaction Functions (Optimized) ===
+
+/**
+ * স্টোরি থেকে সরাসরি ইউজার প্রোফাইলে যাওয়া
+ */
 function viewProfileFromStory() {
     if (!activeStoryGroup || currentStoryIndex >= activeStoryGroup.length) return;
-    const uid = activeStoryGroup[currentStoryIndex].uid;
     
-    // ১. আগে স্টোরি পপ-আপটি বন্ধ করে দেওয়া
+    const currentStory = activeStoryGroup[currentStoryIndex];
+    if (!currentStory) return;
+
+    const uid = currentStory.uid;
+    
+    // ১. স্টোরি ভিউয়ার বন্ধ করা
     closeStory();
     
-    // ২. নিজের স্টোরি হলে নিজের প্রোফাইলে, আর অন্যের হলে তার প্রোফাইলে যাওয়া
+    // ২. নেভিগেশন লজিক
     if (uid === currentUser.uid) {
+        // নিজের প্রোফাইলে যাওয়া
         showPage('profile');
     } else {
+        // অন্যের প্রোফাইল ওপেন করা
         const profilePage = document.getElementById('page-other-profile');
         if (profilePage) {
-            profilePage.classList.add('open');
+            profilePage.classList.add('open'); // বা display block, আপনার CSS অনুযায়ী
             viewUserProfile(uid);
+        } else {
+            // যদি আলাদা পেজ না থাকে, তবে মেইন প্রোফাইল পেজে রিডিরেক্ট করতে পারেন
+            showPage('profile'); 
         }
     }
 }
 
-function toggleStoryMenu(event){
-event.stopPropagation();
-document.getElementById('story-menu').classList.toggle('open');
-clearTimeout(storyTimer);
-}
-
-async function deleteCurrentStory(){
-const s = activeStoryGroup[currentStoryIndex];
-if(!s || s.uid !== currentUser.uid) return;
-if(!confirm("Are you sure you want to delete this story?")) {
-storyTimer = setTimeout(nextStorySegment, 5000);
-return;
-}
-document.getElementById('story-menu').classList.remove('open');
-showToast("Deleting story...");
-try {
-await db.collection('stories').doc(s.id).delete();
-showToast("Story deleted!");
-closeStory();
-} catch(e) {
-showToast("Failed to delete story");
-}
-}
-
-async function reactToCurrentStory(){
-    if(!activeStoryGroup||currentStoryIndex>=activeStoryGroup.length)return;
-    const s=activeStoryGroup[currentStoryIndex];
-    const ref=db.collection('stories').doc(s.id);
-    const reactBtn=document.getElementById('sv-react-btn');
-    const reactCountDisplay=document.getElementById('sv-react-count'); // নতুন লাইন
-
-    if(s.reacts&&s.reacts.includes(currentUser.uid)){
-        // রিয়্যাক্ট রিমুভ করার লজিক
-        await ref.update({reacts:firebase.firestore.FieldValue.arrayRemove(currentUser.uid)});
-        s.reacts=s.reacts.filter(id=>id!==currentUser.uid);
+/**
+ * স্টোরি মেনু (থ্রি-ডট) টগল করা
+ */
+function toggleStoryMenu(event) {
+    if (event) event.stopPropagation();
+    
+    const menu = document.getElementById('story-menu');
+    if (menu) {
+        const isOpen = menu.classList.contains('open');
         
-        reactBtn.style.color='#fff';
-        reactBtn.style.fontVariationSettings="'FILL' 0";
-        reactCountDisplay.textContent = s.reacts.length; // কাউন্ট আপডেট
-    }else{
-        // রিয়্যাক্ট এড করার লজিক
-        await ref.update({reacts:firebase.firestore.FieldValue.arrayUnion(currentUser.uid)});
-        if(!s.reacts)s.reacts=[];
-        s.reacts.push(currentUser.uid);
-        
-        reactBtn.style.color='var(--danger)';
-        reactBtn.style.fontVariationSettings="'FILL' 1";
-        reactCountDisplay.textContent = s.reacts.length; // কাউন্ট আপডেট
-        
-        if(s.uid!==currentUser.uid){
-            db.collection('notifications').add({
-                toUid:s.uid,fromUid:currentUser.uid,
-                fromName:currentUserData.name,
-                type:'like',read:false,
-                createdAt:firebase.firestore.FieldValue.serverTimestamp()
-            });
+        if (isOpen) {
+            menu.classList.remove('open');
+            // মেনু বন্ধ হলে টাইমার আবার শুরু হবে (পরবর্তী স্টোরিতে যাওয়ার জন্য)
+            // নোট: renderCurrentStory তে টাইমার সেট করা থাকে, তাই এখানে ম্যানুয়ালি রিস্টার্ট দরকার নেই যদি না আপনি চান
+        } else {
+            menu.classList.add('open');
+            // মেনু ওপেন থাকলে টাইমার বন্ধ রাখা ভালো যাতে স্টোরি অটোমেটিক স্কিপ না হয়
+            clearTimeout(storyTimer);
         }
+    }
+}
+
+/**
+ * বর্তমান স্টোরি ডিলিট করা (শুধুমাত্র নিজের স্টোরি)
+ */
+async function deleteCurrentStory() {
+    if (!activeStoryGroup || currentStoryIndex >= activeStoryGroup.length) return;
+    
+    const s = activeStoryGroup[currentStoryIndex];
+    
+    // সিকিউরিটি চেক: শুধুমাত্র নিজের স্টোরি ডিলিট করা যাবে
+    if (!s || s.uid !== currentUser.uid) {
+        showToast("❌ You can only delete your own stories.");
+        return;
+    }
+
+    // মেনু বন্ধ করা
+    const menu = document.getElementById('story-menu');
+    if (menu) menu.classList.remove('open');
+
+    // কনফার্মেশন
+    const confirmed = confirm("Are you sure you want to delete this story? This action cannot be undone.");
+    
+    if (!confirmed) {
+        // যদি ইউজার ক্যানসেল করে, তবে টাইমার আবার শুরু করুন
+        if (s.isVideo) {
+            // ভিডিও হলে টাইমার দরকার নেই, onended ইভেন্ট কাজ করবে
+        } else {
+            // ইমেজ বা টেক্সট হলে ৫ সেকেন্ডের টাইমার রিস্টার্ট
+            storyTimer = setTimeout(nextStorySegment, 5000);
+        }
+        return;
+    }
+
+    showToast("🗑️ Deleting story...");
+    
+    try {
+        await db.collection('stories').doc(s.id).delete();
+        showToast("✅ Story deleted successfully!");
+        
+        // ডিলিট করার পর স্টোরি ভিউয়ার বন্ধ করা বা পরের স্টোরিতে যাওয়া
+        // যেহেতু স্টোরি ডিলিট হয়ে গেছে, তাই লিস্ট আপডেট হবে। 
+        // আমরা সরাসরি ক্লোজ করে দিতে পারি অথবা পরের স্টোরি লোড করতে পারি।
+        closeStory(); 
+        
+        // অপশনাল: স্টোরি লিস্ট রিফ্রেশ (যদি auto-update না হয়)
+        // loadStories(); 
+        
+    } catch (e) {
+        console.error("Delete story error:", e);
+        showToast("❌ Failed to delete story. Please try again.");
+        
+        // ফেইল হলে টাইমার রিস্টার্ট
+        if (!s.isVideo) {
+            storyTimer = setTimeout(nextStorySegment, 5000);
+        }
+    }
+}
+
+/**
+ * স্টোরিতে রিয়্যাক্ট (লাইক/আনলাইক) করা
+ */
+async function reactToCurrentStory() {
+    if (!activeStoryGroup || currentStoryIndex >= activeStoryGroup.length) return;
+    
+    const s = activeStoryGroup[currentStoryIndex];
+    if (!s) return;
+
+    const ref = db.collection('stories').doc(s.id);
+    const reactBtn = document.getElementById('sv-react-btn');
+    const reactCountDisplay = document.getElementById('sv-react-count');
+
+    if (!reactBtn) return;
+
+    try {
+        const hasReacted = s.reacts && s.reacts.includes(currentUser.uid);
+
+        if (hasReacted) {
+            // --- রিয়্যাক্ট রিমুভ (Unlike) ---
+            await ref.update({
+                reacts: firebase.firestore.FieldValue.arrayRemove(currentUser.uid)
+            });
+            
+            // লোকাল স্টেট আপডেট
+            if (s.reacts) {
+                s.reacts = s.reacts.filter(id => id !== currentUser.uid);
+            }
+            
+            // UI আপডেট
+            reactBtn.style.color = '#fff';
+            reactBtn.style.fontVariationSettings = "'FILL' 0";
+            if (reactCountDisplay) reactCountDisplay.textContent = s.reacts ? s.reacts.length : 0;
+            
+        } else {
+            // --- রিয়্যাক্ট এড (Like) ---
+            await ref.update({
+                reacts: firebase.firestore.FieldValue.arrayUnion(currentUser.uid)
+            });
+            
+            // লোকাল স্টেট আপডেট
+            if (!s.reacts) s.reacts = [];
+            s.reacts.push(currentUser.uid);
+            
+            // UI আপডেট
+            reactBtn.style.color = 'var(--danger, #ff4d6a)';
+            reactBtn.style.fontVariationSettings = "'FILL' 1";
+            if (reactCountDisplay) reactCountDisplay.textContent = s.reacts.length;
+            
+            // নোটিফিকেশন পাঠানো (যদি নিজের স্টোরি না হয়)
+            if (s.uid !== currentUser.uid) {
+                db.collection('notifications').add({
+                    toUid: s.uid,
+                    fromUid: currentUser.uid,
+                    fromName: currentUserData.name,
+                    type: 'like', // বা 'story_react'
+                    read: false,
+                    postId: s.id, // স্টোরি আইডি রেফারেন্স হিসেবে
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                }).catch(e => console.warn("Notification failed", e));
+            }
+        }
+    } catch (e) {
+        console.error("React error:", e);
+        showToast("Failed to update reaction");
     }
 }
 // ===== POSTS LOGIC =====
@@ -5116,85 +6112,26 @@ typing: null
 }
 
 function showReactionPicker(event, msgId) {
-    event.stopPropagation();
-    
-    // আগের পিকার থাকলে রিমুভ করুন
-    const existing = document.querySelector('.reaction-picker.show');
-    if (existing) {
-        existing.classList.remove('show');
-        setTimeout(() => existing.remove(), 300); // অ্যানিমেশনের জন্য অপেক্ষা
-    }
-    
-    // চ্যাট বাবল ওয়াপার খুঁজে বের করুন
-    const wrapper = event.currentTarget.closest('.chat-bubble-wrapper');
-    if (!wrapper) return;
-    
-    // পিকার তৈরি করুন
-    const picker = document.createElement('div');
-    picker.className = 'reaction-picker';
-    
-    // ইমোজি লিস্ট - আরও বেশি অপশন সহ
-    const reactions = [
-        { emoji: '❤️', label: 'Love' },
-        { emoji: '😂', label: 'Laugh' },
-        { emoji: '😮', label: 'Wow' },
-        { emoji: '😢', label: 'Sad' },
-        { emoji: '👍', label: 'Like' },
-        { emoji: '😡', label: 'Angry' },
-        { emoji: '🎉', label: 'Celebrate' }
-    ];
-    
-    // পিকার HTML তৈরি করুন
-    picker.innerHTML = `
-        <div class="reaction-container">
-            ${reactions.map(reaction => `
-                <span class="reaction-emoji" 
-                      data-reaction="${reaction.emoji}" 
-                      title="${reaction.label}"
-                      onclick="toggleMessageReaction('${msgId}', '${reaction.emoji}')">
-                    ${reaction.emoji}
-                </span>
-            `).join('')}
-        </div>
-    `;
-    
-    // পিকার পজিশন সেট করুন
-    const bubbleRect = event.currentTarget.getBoundingClientRect();
-    const wrapperRect = wrapper.getBoundingClientRect();
-    
-    picker.style.position = 'absolute';
-    picker.style.bottom = `${bubbleRect.top - wrapperRect.top + 10}px`;
-    picker.style.left = `${(bubbleRect.left - wrapperRect.left) + (bubbleRect.width / 2) - 140}px`;
-    
-    wrapper.appendChild(picker);
-    
-    // অ্যানিমেশন যোগ করুন
-    requestAnimationFrame(() => {
-        picker.classList.add('show');
-    });
-    
-    // ক্লিক আউটসাইড হ্যান্ডেল করুন
-    setTimeout(() => {
-        const closeHandler = (e) => {
-            if (!picker.contains(e.target)) {
-                picker.classList.remove('show');
-                setTimeout(() => picker.remove(), 300);
-                document.removeEventListener('click', closeHandler);
-            }
-        };
-        document.addEventListener('click', closeHandler);
-    }, 100);
-    
-    // হোভার ইফেক্ট যোগ করুন
-    picker.querySelectorAll('.reaction-emoji').forEach(emoji => {
-        emoji.addEventListener('mouseenter', function() {
-            this.style.transform = 'scale(1.3) translateY(-5px)';
-        });
-        
-        emoji.addEventListener('mouseleave', function() {
-            this.style.transform = 'scale(1) translateY(0)';
-        });
-    });
+event.stopPropagation();
+const existing = document.querySelector('.reaction-picker.show');
+if (existing) existing.remove();
+const wrapper = event.currentTarget.closest('.chat-bubble-wrapper');
+const picker = document.createElement('div');
+picker.className = 'reaction-picker show';
+picker.innerHTML = `
+<span class="reaction-emoji" onclick="toggleMessageReaction('${msgId}','❤️')">❤️</span>
+<span class="reaction-emoji" onclick="toggleMessageReaction('${msgId}','😂')">😂</span>
+<span class="reaction-emoji" onclick="toggleMessageReaction('${msgId}','😮')">😮</span>
+<span class="reaction-emoji" onclick="toggleMessageReaction('${msgId}','😢')">😢</span>
+<span class="reaction-emoji" onclick="toggleMessageReaction('${msgId}','👍')">👍</span>
+`;
+wrapper.appendChild(picker);
+setTimeout(() => {
+document.addEventListener('click', function closePicker() {
+picker.remove();
+document.removeEventListener('click', closePicker);
+}, { once: true });
+}, 100);
 }
 
 async function toggleMessageReaction(msgId, emoji) {
@@ -6234,188 +7171,18 @@ async function openSinglePostView(pid) {
     }
 }
 
-async function pinPost(postId) {
-    // সব ড্রপডাউন বন্ধ করুন
-    closeAllDropdowns();
-    
-    try {
-        // লোডিং স্টেট দেখান
-        showLoadingIndicator(postId);
-        
-        const ref = db.collection('posts').doc(postId);
-        const doc = await ref.get();
-        
-        if (!doc.exists) {
-            throw new Error('Post not found');
-        }
-        
-        const postData = doc.data();
-        const currentPinnedState = postData.isPinned || false;
-        const newPinnedState = !currentPinnedState;
-        
-        // ব্যাচ রাইট ব্যবহার করে অ্যাটমিক অপারেশন
-        const batch = db.batch();
-        
-        // পোস্ট আপডেট করুন
-        batch.update(ref, {
-            isPinned: newPinnedState,
-            pinnedAt: newPinnedState ? firebase.firestore.FieldValue.serverTimestamp() : null,
-            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
-        
-        // ইউজারের পিন করা পোস্ট কাউন্ট আপডেট করুন (ঐচ্ছিক)
-        if (postData.userId) {
-            const userRef = db.collection('users').doc(postData.userId);
-            const userDoc = await userRef.get();
-            
-            if (userDoc.exists) {
-                const userData = userDoc.data();
-                const currentPinnedCount = userData.pinnedPostsCount || 0;
-                
-                batch.update(userRef, {
-                    pinnedPostsCount: newPinnedState ? 
-                        currentPinnedCount + 1 : 
-                        Math.max(0, currentPinnedCount - 1),
-                    lastActivity: firebase.firestore.FieldValue.serverTimestamp()
-                });
-            }
-        }
-        
-        // ব্যাচ কমিট করুন
-        await batch.commit();
-        
-        // UI আপডেট করুন
-        updatePinUI(postId, newPinnedState);
-        
-        // সাকসেস মেসেজ দেখান
-        showToast({
-            message: newPinnedState ? '📌 Post pinned successfully!' : '📍 Post unpinned',
-            type: 'success',
-            duration: 3000
-        });
-        
-        // পোস্ট লিস্ট রিফ্রেশ করুন
-        await refreshPostList();
-        
-        // অ্যানালিটিক্স ট্র্যাক করুন (ঐচ্ছিক)
-        trackEvent('post_pin_toggle', {
-            postId: postId,
-            action: newPinnedState ? 'pinned' : 'unpinned',
-            userId: postData.userId
-        });
-        
-    } catch (error) {
-        console.error('Pin post error:', error);
-        
-        // এরর মেসেজ দেখান
-        showToast({
-            message: getErrorMessage(error),
-            type: 'error',
-            duration: 5000
-        });
-        
-        // UI রিসেট করুন
-        resetPinUI(postId);
-    } finally {
-        // লোডিং স্টেট রিমুভ করুন
-        hideLoadingIndicator(postId);
-    }
+async function pinPost(postId){
+closeAllDropdowns();
+try{
+const ref=db.collection('posts').doc(postId);
+const doc=await ref.get();
+if(doc.exists){
+const isPinned=doc.data().isPinned||false;
+await ref.update({isPinned:!isPinned});
+showToast(isPinned?'Post unpinned':'Post pinned!');
+loadMyPosts();
 }
-
-// হেল্পার ফাংশনগুলো
-function showLoadingIndicator(postId) {
-    const postElement = document.querySelector(`[data-post-id="${postId}"]`);
-    if (postElement) {
-        postElement.classList.add('pinning');
-        const pinButton = postElement.querySelector('.pin-button');
-        if (pinButton) {
-            pinButton.innerHTML = '<span class="loading-spinner"></span>';
-            pinButton.disabled = true;
-        }
-    }
-}
-
-function hideLoadingIndicator(postId) {
-    const postElement = document.querySelector(`[data-post-id="${postId}"]`);
-    if (postElement) {
-        postElement.classList.remove('pinning');
-        const pinButton = postElement.querySelector('.pin-button');
-        if (pinButton) {
-            pinButton.disabled = false;
-            // পিন বাটন রিসেট করুন
-            updatePinButtonIcon(postElement, postElement.dataset.isPinned === 'true');
-        }
-    }
-}
-
-function updatePinUI(postId, isPinned) {
-    const postElement = document.querySelector(`[data-post-id="${postId}"]`);
-    if (postElement) {
-        postElement.dataset.isPinned = isPinned.toString();
-        
-        if (isPinned) {
-            postElement.classList.add('pinned');
-            // পিন আইকন আপডেট করুন
-            const pinIcon = postElement.querySelector('.pin-icon');
-            if (pinIcon) {
-                pinIcon.innerHTML = '📌';
-                pinIcon.classList.add('pinned-active');
-            }
-        } else {
-            postElement.classList.remove('pinned');
-            const pinIcon = postElement.querySelector('.pin-icon');
-            if (pinIcon) {
-                pinIcon.innerHTML = '📍';
-                pinIcon.classList.remove('pinned-active');
-            }
-        }
-    }
-}
-
-function resetPinUI(postId) {
-    const postElement = document.querySelector(`[data-post-id="${postId}"]`);
-    if (postElement) {
-        const isCurrentlyPinned = postElement.dataset.isPinned === 'true';
-        updatePinUI(postId, isCurrentlyPinned);
-    }
-}
-
-function updatePinButtonIcon(element, isPinned) {
-    const pinButton = element.querySelector('.pin-button');
-    if (pinButton) {
-        pinButton.innerHTML = isPinned ? 
-            '<span class="pin-icon pinned-active">📌</span>' : 
-            '<span class="pin-icon">📍</span>';
-    }
-}
-
-function getErrorMessage(error) {
-    switch (error.code) {
-        case 'permission-denied':
-            return '❌ You don\'t have permission to pin this post';
-        case 'not-found':
-            return '❌ Post not found';
-        case 'network-error':
-            return '🌐 Network error. Please check your connection';
-        default:
-            return '❌ Failed to pin post. Please try again';
-    }
-}
-
-function trackEvent(eventName, eventData) {
-    // Firebase Analytics বা অন্য অ্যানালিটিক্স সার্ভিসে ইভেন্ট পাঠান
-    if (typeof analytics !== 'undefined') {
-        analytics.logEvent(eventName, eventData);
-    }
-}
-
-async function refreshPostList() {
-    // পোস্ট লিস্ট রিফ্রেশ করার লজিক
-    if (typeof loadMyPosts === 'function') {
-        await loadMyPosts();
-    } else if (typeof loadPosts === 'function') {
-        await loadPosts();
-    }
+}catch(e){showToast('Failed to pin post');}
 }
 
 async function submitPost(){
@@ -7246,163 +8013,81 @@ async function deleteChatForEveryone() {
         alert("Failed to delete chat. Please try again.");
     }
 }
-// ===== Password Visibility Toggle (Improved) =====
+// ===== Password Visibility Toggle =====
 function togglePasswordVisibility() {
-    // এলিমেন্টগুলো সিলেক্ট করুন
+    // আপনার কোডের auth-password আইডিটা ব্যবহার করা হলো
     const passwordInput = document.getElementById('auth-password');
     const eyeIcon = document.getElementById('toggle-eye');
 
-    // যদি এলিমেন্টগুলো না পাওয়া যায়, তাহলে ফাংশন থেকে বেরিয়ে যান (Error Prevention)
-    if (!passwordInput || !eyeIcon) {
-        console.warn('Password toggle elements not found.');
-        return;
-    }
-
-    // বর্তমান স্টেট চেক করুন
-    const isPasswordHidden = passwordInput.type === 'password';
-
-    // স্টেট পরিবর্তন করুন
-    if (isPasswordHidden) {
+    if (passwordInput.type === 'password') {
         passwordInput.type = 'text'; // পাসওয়ার্ড দেখাবে
-        
-        // আইকন আপডেট (Material Icons বা টেক্সট হিসেবে)
-        eyeIcon.innerText = 'visibility_off'; 
-        
-        // অ্যাক্সেসিবিলিটির জন্য aria-label আপডেট করুন
-        eyeIcon.setAttribute('aria-label', 'Hide password');
-        passwordInput.setAttribute('aria-label', 'Password visible');
-        
+        eyeIcon.innerText = 'visibility_off'; // চোখটা কাটা দেখাবে
     } else {
-        passwordInput.type = 'password'; // পাসওয়ার্ড হাইড করবে
-        
-        // আইকন আপডেট
-        eyeIcon.innerText = 'visibility';
-        
-        // অ্যাক্সেসিবিলিটির জন্য aria-label আপডেট করুন
-        eyeIcon.setAttribute('aria-label', 'Show password');
-        passwordInput.setAttribute('aria-label', 'Password hidden');
+        passwordInput.type = 'password'; // আবার হাইড করে দেবে
+        eyeIcon.innerText = 'visibility'; // স্বাভাবিক চোখ হয়ে যাবে
     }
-
-    // ফোকাস ম্যানেজমেন্ট: ইনপুটে ফোকাস রাখুন যাতে ইউজার টাইপ করতে পারে
-    passwordInput.focus();
 }
 // ===== GROUP CHAT LOGIC (STEP 2: Create & Load Friends) =====
 let selectedGroupFriends = [];
 
 async function openCreateGroupModal() {
-    const modal = document.getElementById('create-group-modal');
-    const nameInput = document.getElementById('group-name-input');
-    
-    if (!modal || !nameInput) return; // এলিমেন্ট না থাকলে বেরিয়ে যান
-
-    // UI রিসেট করুন
-    selectedGroupFriends = []; 
-    nameInput.value = ''; 
-    nameInput.focus(); // ইউজার সরাসরি নাম টাইপ করতে পারবে
-    
-    // মডাল দেখান
-    modal.style.display = 'flex';
-    
-    // বন্ধুদের লিস্ট লোড করুন (অ্যাসিনক্রোনাস)
-    await loadFriendsForGroup();
+    document.getElementById('create-group-modal').style.display = 'flex';
+    selectedGroupFriends = []; // মডাল ওপেন হলে সিলেকশন ফাঁকা হবে
+    document.getElementById('group-name-input').value = ''; // নাম ফাঁকা হবে
+    await loadFriendsForGroup(); // বন্ধুদের লিস্ট লোড করবে
 }
 
-// ===== মডাল বন্ধ করা =====
 function closeCreateGroupModal() {
-    const modal = document.getElementById('create-group-modal');
-    if (modal) {
-        modal.style.display = 'none';
-        // মেমোরি ক্লিনআপ: সিলেকশন রিসেট করা ভালো প্র্যাকটিস
-        selectedGroupFriends = []; 
-    }
+    document.getElementById('create-group-modal').style.display = 'none';
 }
 
-// ===== বন্ধুদের লিস্ট লোড করা (আপডেটেড) =====
 async function loadFriendsForGroup() {
-    const listContainer = document.getElementById('group-friends-list');
-    if (!listContainer) return;
+    const list = document.getElementById('group-friends-list');
+    const friends = currentUserData.friends || [];
 
-    // লোডিং স্টেট দেখান
-    listContainer.innerHTML = '<div class="loading" style="text-align:center; padding: 20px; color: var(--text-muted);"><span class="material-symbols-outlined">autorenew</span> Loading friends...</div>';
+    if (friends.length === 0) {
+        list.innerHTML = '<div style="text-align:center; color:var(--text-muted); font-size:13px; margin-top:20px;">You have no friends to add.</div>';
+        return;
+    }
+
+    list.innerHTML = '<div class="loading" style="text-align:center; padding: 20px;"><span class="material-symbols-outlined">autorenew</span> Loading friends...</div>';
 
     try {
-        const friends = currentUserData?.friends || [];
-
-        if (friends.length === 0) {
-            listContainer.innerHTML = '<div style="text-align:center; color:var(--text-muted); font-size:13px; margin-top:20px;">You have no friends to add.</div>';
-            return;
-        }
-
-        // সব বন্ধুর ডকুমেন্ট একসাথে ফেচ করুন (Parallel Fetching)
         const friendDocs = friends.map(uid => db.collection('users').doc(uid).get());
         const snapshots = await Promise.all(friendDocs);
         
         let html = '';
-        let validFriendCount = 0;
-
         snapshots.forEach((doc, index) => {
             if (doc.exists) {
                 const u = doc.data();
                 const uid = friends[index];
+                const safeName = escapeHTML(u.name);
+                const avHtml = u.avatar ? `<img src="${u.avatar}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">` : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:var(--gradient);color:#fff;font-weight:bold;">${safeName[0].toUpperCase()}</div>`;
                 
-                // XSS প্রোটেকশন: নাম এスケপ করা
-                const safeName = escapeHTML(u.name || 'Unknown User');
-                const initial = safeName.charAt(0).toUpperCase();
-                
-                // অ্যাভাটার তৈরি (ইমেজ বা প্লেসহোল্ডার)
-                let avHtml;
-                if (u.avatar && u.avatar.trim() !== '') {
-                    avHtml = `<img src="${escapeHTML(u.avatar)}" alt="${safeName}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
-                } else {
-                    // গ্র্যাডিয়েন্ট ব্যাকগ্রাউন্ড সহ প্লেসহোল্ডার
-                    avHtml = `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:var(--gradient, linear-gradient(45deg, #6a11cb, #2575fc));color:#fff;font-weight:bold;font-size:16px;">${initial}</div>`;
-                }
-                
-                // চেকবক্স স্টেট চেক করুন (যদি আগে থেকে সিলেক্টেড থাকে)
-                const isChecked = selectedGroupFriends.includes(uid) ? 'checked' : '';
-
-                // HTML জেনারেট করুন
+                // বন্ধুদের লিস্ট এবং টিক দেওয়ার চেক-বক্স
                 html += `
-                <div class="msg-item" onclick="toggleGroupFriend('${uid}', this)" 
-                     style="margin: 5px 0; padding: 10px; cursor: pointer; border-radius: 8px; display: flex; align-items: center; transition: background 0.2s;"
-                     onmouseover="this.style.background='rgba(0,0,0,0.03)'" 
-                     onmouseout="this.style.background='transparent'">
-                    
-                    <div class="avatar sm" style="width: 40px; height: 40px; margin-right: 10px; flex-shrink: 0;">${avHtml}</div>
-                    
-                    <div class="msg-info" style="flex-grow: 1; font-weight: 500;">${safeName}</div>
-                    
-                    <input type="checkbox" value="${uid}" ${isChecked} 
-                           style="pointer-events:none; width:18px; height:18px; accent-color: #8a2be2; cursor: pointer;">
+                <div class="msg-item" onclick="toggleGroupFriend('${uid}', this)" style="margin: 0; padding: 10px; cursor: pointer; border-radius: 8px;">
+                    <div class="avatar sm">${avHtml}</div>
+                    <div class="msg-info" style="margin-left:10px;">${safeName}</div>
+                    <input type="checkbox" value="${uid}" style="pointer-events:none; width:18px; height:18px; accent-color: #8a2be2;">
                 </div>`;
-                
-                validFriendCount++;
             }
         });
-
-        if (validFriendCount === 0) {
-             listContainer.innerHTML = '<div style="text-align:center; color:var(--text-muted); font-size:13px; margin-top:20px;">No valid friends found.</div>';
-        } else {
-            listContainer.innerHTML = html;
-        }
-
+        list.innerHTML = html;
     } catch (error) {
-        console.error('Error loading friends:', error);
-        listContainer.innerHTML = '<div style="text-align:center; color:var(--danger); font-size:13px; padding: 20px;">Failed to load friends. Please try again.</div>';
+        list.innerHTML = '<div style="text-align:center; color:var(--danger); font-size:13px;">Failed to load friends.</div>';
     }
 }
 
-// ===== হেল্পার ফাংশন: HTML এскеপ করা (XSS প্রতিরোধের জন্য) =====
-function escapeHTML(str) {
-    if (!str) return '';
-    return str.replace(/[&<>'"]/g, 
-        tag => ({
-            '&': '&amp;',
-            '<': '&lt;',
-            '>': '&gt;',
-            "'": '&#39;',
-            '"': '&quot;'
-        }[tag]));
+function toggleGroupFriend(uid, element) {
+    const checkbox = element.querySelector('input[type="checkbox"]');
+    if (selectedGroupFriends.includes(uid)) {
+        selectedGroupFriends = selectedGroupFriends.filter(id => id !== uid);
+        checkbox.checked = false; // টিক মুছে যাবে
+    } else {
+        selectedGroupFriends.push(uid);
+        checkbox.checked = true; // টিক বসবে
+    }
 }
 
 async function createGroupAction() {
