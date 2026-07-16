@@ -2083,11 +2083,9 @@ body:not(.light-mode) #splash-screen {
 <button class="btn-primary" style="margin-top:10px;" onclick="openChangeEmailModal()">
     <span class="material-symbols-outlined">edit</span> Change Email
 </button>
-<div class="settings-card">
-<h4>Blocked Accounts</h4>
-<p>Manage the users you have blocked.</p>
-<div id="blocked-users-list" style="margin-top:10px; display:flex; flex-direction:column; gap:8px;">
-</div>
+<button class="btn-primary" style="margin-top:10px;" onclick="openSafetyPrivacyScreen()">
+<span class="material-symbols-outlined">shield_lock</span> Safety & privacy
+</button>
 </div>
 <div class="settings-card">
 <h4 style="color:var(--danger);">Danger Zone</h4>
@@ -2095,6 +2093,22 @@ body:not(.light-mode) #splash-screen {
 <button class="btn-primary" style="background:var(--danger);margin-top:12px;border-radius:var(--radius-md);" onclick="handleDeleteAccount()">
 <span class="material-symbols-outlined">delete_forever</span> Delete Account
 </button>
+</div>
+</div>
+</div>
+
+<div id="safety-privacy-screen" style="display:none; position:fixed; inset:0; background:var(--bg); z-index: 1005; flex-direction:column; overflow-y:auto; animation:slideUp 0.3s ease;">
+<div class="chat-topbar" style="position:sticky; top:0; z-index:100; display:flex; justify-content:space-between; align-items:center;">
+<div style="display:flex; align-items:center; gap:12px;">
+<div class="chat-back" onclick="closeSafetyPrivacyScreen()"><span class="material-symbols-outlined">arrow_back</span></div>
+<div style="font-weight:800; font-size:18px;">Safety & privacy</div>
+</div>
+</div>
+<div style="padding:20px;flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:16px;">
+<div class="settings-card">
+<h4>Blocked Accounts</h4>
+<p>Manage the users you have blocked. They won't be able to see your profile or send you messages.</p>
+<div id="blocked-users-list-new" style="margin-top:10px; display:flex; flex-direction:column; gap:8px;"></div>
 </div>
 </div>
 </div>
@@ -2506,7 +2520,7 @@ body:not(.light-mode) #splash-screen {
         <div class="settings-list-item" onclick="toggleSettingsSubMenu()">
             <div style="display:flex; align-items:center; gap:16px;">
                 <span class="material-symbols-outlined" style="font-size: 24px; color: var(--text-secondary);">settings</span>
-                <span style="font-weight:600; font-size:15px;">Settings & Privacy</span>
+                <span style="font-weight:600; font-size:15px;">Settings</span>
             </div>
             <span class="material-symbols-outlined" id="settings-arrow" style="color:var(--text-muted);">expand_more</span>
         </div>
@@ -8986,6 +9000,53 @@ function scrollToMessage(msgId) {
     } else {
         showToast("Message is too old or has been deleted.");
     }
+}
+// নতুন ফাংশন: Safety & Privacy স্ক্রিন ওপেন করার জন্য
+function openSafetyPrivacyScreen() {
+document.getElementById('settings-privacy-screen').classList.remove('open'); // আগের স্ক্রিন বন্ধ করা
+document.getElementById('safety-privacy-screen').style.display = 'flex';
+loadBlockedUsersNew(); // নতুন লিস্ট লোড করা
+}
+
+// নতুন ফাংশন: Safety & Privacy স্ক্রিন বন্ধ করার জন্য
+function closeSafetyPrivacyScreen() {
+document.getElementById('safety-privacy-screen').style.display = 'none';
+openSettingsPrivacy(); // আবার মেইন সেটিংসে ফিরে যাওয়া
+}
+
+// আপডেটেড ফাংশন: ব্লক লিস্ট লোড করা (নতুন আইডি সাপোর্ট সহ)
+async function loadBlockedUsersNew() {
+const list = document.getElementById('blocked-users-list-new');
+if (!list) return;
+const blocked = currentUserData.blockedUsers || [];
+if (blocked.length === 0) {
+list.innerHTML = '<div style="font-size:13px; color:var(--text-muted); text-align:center; padding:10px;">No blocked users</div>';
+return;
+}
+list.innerHTML = '<div class="loading" style="font-size:13px; padding:10px;"><span class="material-symbols-outlined" style="font-size:16px;">autorenew</span> Loading...</div>';
+try {
+const blockedDocs = blocked.map(uid => db.collection('users').doc(uid).get());
+const snapshots = await Promise.all(blockedDocs);
+let html = '';
+snapshots.forEach((doc, index) => {
+if (doc.exists) {
+const u = doc.data();
+const safeName = escapeHTML(u.name);
+const avHtml = u.avatar ? `<img src="${u.avatar}">` : avatarInitial(u.name);
+const uid = blocked[index];
+html += `<div class="msg-item" style="margin:0; padding:10px; border-radius:12px; border:1px solid var(--border);">
+<div class="avatar sm">${avHtml}</div>
+<div class="msg-info" style="margin-left:10px;">
+<div class="msg-name" style="font-size:14px;">${safeName}</div>
+</div>
+<button class="btn-outline" style="padding:6px 12px; font-size:11px; margin:0; border-color:var(--success); color:var(--success);" onclick="unblockUserFromList('${uid}')">Unblock</button>
+</div>`;
+}
+});
+list.innerHTML = html || '<div style="font-size:13px; color:var(--text-muted); text-align:center;">No blocked users found</div>';
+} catch (e) {
+list.innerHTML = '<div style="font-size:13px; color:var(--danger); text-align:center;">Failed to load</div>';
+}
 }
 </script>
 </body>
