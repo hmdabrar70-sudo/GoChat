@@ -5116,26 +5116,85 @@ typing: null
 }
 
 function showReactionPicker(event, msgId) {
-event.stopPropagation();
-const existing = document.querySelector('.reaction-picker.show');
-if (existing) existing.remove();
-const wrapper = event.currentTarget.closest('.chat-bubble-wrapper');
-const picker = document.createElement('div');
-picker.className = 'reaction-picker show';
-picker.innerHTML = `
-<span class="reaction-emoji" onclick="toggleMessageReaction('${msgId}','❤️')">❤️</span>
-<span class="reaction-emoji" onclick="toggleMessageReaction('${msgId}','😂')">😂</span>
-<span class="reaction-emoji" onclick="toggleMessageReaction('${msgId}','😮')">😮</span>
-<span class="reaction-emoji" onclick="toggleMessageReaction('${msgId}','😢')">😢</span>
-<span class="reaction-emoji" onclick="toggleMessageReaction('${msgId}','👍')">👍</span>
-`;
-wrapper.appendChild(picker);
-setTimeout(() => {
-document.addEventListener('click', function closePicker() {
-picker.remove();
-document.removeEventListener('click', closePicker);
-}, { once: true });
-}, 100);
+    event.stopPropagation();
+    
+    // আগের পিকার থাকলে রিমুভ করুন
+    const existing = document.querySelector('.reaction-picker.show');
+    if (existing) {
+        existing.classList.remove('show');
+        setTimeout(() => existing.remove(), 300); // অ্যানিমেশনের জন্য অপেক্ষা
+    }
+    
+    // চ্যাট বাবল ওয়াপার খুঁজে বের করুন
+    const wrapper = event.currentTarget.closest('.chat-bubble-wrapper');
+    if (!wrapper) return;
+    
+    // পিকার তৈরি করুন
+    const picker = document.createElement('div');
+    picker.className = 'reaction-picker';
+    
+    // ইমোজি লিস্ট - আরও বেশি অপশন সহ
+    const reactions = [
+        { emoji: '❤️', label: 'Love' },
+        { emoji: '😂', label: 'Laugh' },
+        { emoji: '😮', label: 'Wow' },
+        { emoji: '😢', label: 'Sad' },
+        { emoji: '👍', label: 'Like' },
+        { emoji: '😡', label: 'Angry' },
+        { emoji: '🎉', label: 'Celebrate' }
+    ];
+    
+    // পিকার HTML তৈরি করুন
+    picker.innerHTML = `
+        <div class="reaction-container">
+            ${reactions.map(reaction => `
+                <span class="reaction-emoji" 
+                      data-reaction="${reaction.emoji}" 
+                      title="${reaction.label}"
+                      onclick="toggleMessageReaction('${msgId}', '${reaction.emoji}')">
+                    ${reaction.emoji}
+                </span>
+            `).join('')}
+        </div>
+    `;
+    
+    // পিকার পজিশন সেট করুন
+    const bubbleRect = event.currentTarget.getBoundingClientRect();
+    const wrapperRect = wrapper.getBoundingClientRect();
+    
+    picker.style.position = 'absolute';
+    picker.style.bottom = `${bubbleRect.top - wrapperRect.top + 10}px`;
+    picker.style.left = `${(bubbleRect.left - wrapperRect.left) + (bubbleRect.width / 2) - 140}px`;
+    
+    wrapper.appendChild(picker);
+    
+    // অ্যানিমেশন যোগ করুন
+    requestAnimationFrame(() => {
+        picker.classList.add('show');
+    });
+    
+    // ক্লিক আউটসাইড হ্যান্ডেল করুন
+    setTimeout(() => {
+        const closeHandler = (e) => {
+            if (!picker.contains(e.target)) {
+                picker.classList.remove('show');
+                setTimeout(() => picker.remove(), 300);
+                document.removeEventListener('click', closeHandler);
+            }
+        };
+        document.addEventListener('click', closeHandler);
+    }, 100);
+    
+    // হোভার ইফেক্ট যোগ করুন
+    picker.querySelectorAll('.reaction-emoji').forEach(emoji => {
+        emoji.addEventListener('mouseenter', function() {
+            this.style.transform = 'scale(1.3) translateY(-5px)';
+        });
+        
+        emoji.addEventListener('mouseleave', function() {
+            this.style.transform = 'scale(1) translateY(0)';
+        });
+    });
 }
 
 async function toggleMessageReaction(msgId, emoji) {
