@@ -2345,6 +2345,14 @@ ADVANCED PRIVACY PROTECTION CSS
 </div>
 </div>
 
+<div id="group-pinned-msg-bar" style="display:none; background: var(--surface-2); padding: 10px 16px; border-bottom: 1px solid var(--border); border-left: 4px solid var(--accent); align-items:center; justify-content:space-between; z-index: 10;">
+    <div style="flex:1; overflow:hidden; cursor:pointer;" onclick="scrollToPinnedMsg()">
+        <div style="font-size: 11px; color: var(--accent); font-weight: 800; margin-bottom: 2px; display:flex; align-items:center; gap:4px;"><span class="material-symbols-outlined" style="font-size:12px;">push_pin</span> Pinned Message</div>
+        <div id="group-pinned-msg-text" style="font-size: 13px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Loading...</div>
+    </div>
+    <span class="material-symbols-outlined" id="unpin-msg-btn" style="color:var(--text-muted); font-size:20px; padding:4px; cursor:pointer; display:none;" onclick="unpinGroupMessage()">close</span>
+</div>
+
 <div class="chat-messages" id="chat-messages"></div>
 <div class="chat-input-bar" id="chat-input-area" style="position:relative;">
     
@@ -2964,7 +2972,6 @@ let storyTimer=null;
 let composeImages=[];
 let currentReplyMsgId=null;
 let replyToMsgData=null; // 🚀 Reply Preview Data Store
-let currentForwardMsgData=null;
 let currentOtherProfileUid=null;
 let onlineStatusInterval=null;
 let typingTimeout=null;
@@ -5116,7 +5123,7 @@ function setupTypingIndicator(chatId, otherUid) {
     if (onlineUnsub) onlineUnsub();
     onlineUnsub = chatRef.onSnapshot(doc => {
         if (!doc.exists) return;
-        const data = doc.data();
+        const data = doc.data()
         
         // --- 🚀 4. Group Mention Setup (Load Members) ---
         if(data.isGroup && data.members) {
@@ -5223,8 +5230,7 @@ function showMessageMenu(event, msgId) {
     // মোবাইলের স্ক্রিন অনুযায়ী মেনুটা ডান বা বামে সরাবে (যাতে স্ক্রিনের বাইরে না যায়)
     const alignPosition = isMine ? 'right: 35px;' : 'left: 35px;';
     
-    menu.style.cssText = `position:absolute; top: 10px; ${alignPosition} background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:6px; z-index:99999; box-shadow:var(--shadow-lg); width: 150px;`;
-    
+    menu.style.cssText = `position:absolute; top: 10px; ${alignPosition} background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:6px; z-index:99999; box-shadow:var(--shadow-lg); width: 150px;`;   
     menu.innerHTML = `
     <div style="padding:10px 12px;cursor:pointer;font-size:14px;font-weight:600;border-radius:8px; display:flex; gap:10px; align-items:center; color:var(--text);" onclick="replyToMessage('${msgId}')">
         <span class="material-symbols-outlined" style="font-size:18px;">reply</span> Reply
@@ -8904,6 +8910,33 @@ async function toggleGroupMedia() {
     } catch(e) { grid.innerHTML = '<div style="grid-column:1/-1; text-align:center; font-size:12px; color:var(--danger);">Error loading media</div>'; }
 }
 
+async function pinGroupMessage(msgId) {
+    const doc = await db.collection('chats').doc(currentChatId).collection('messages').doc(msgId).get();
+    if(!doc.exists) return;
+    const data = doc.data();
+    let text = data.text || '📷 Photo';
+    try {
+        await db.collection('chats').doc(currentChatId).update({
+            pinnedMsg: { id: msgId, text: text, sender: data.senderName }
+        });
+        showToast("Message Pinned!");
+    } catch(e) { showToast("Failed to pin message"); }
+}
+
+async function unpinGroupMessage() {
+    if(!confirm("Unpin this message?")) return;
+    try {
+        await db.collection('chats').doc(currentChatId).update({
+            pinnedMsg: firebase.firestore.FieldValue.delete()
+        });
+        showToast("Message Unpinned!");
+    } catch(e) { showToast("Failed to unpin message"); }
+}
+
+function scrollToPinnedMsg() {
+    showToast("Scroll to message feature coming soon!");
+}
+
 // 🚀 চ্যাট ইনপুটে মেনশন সাপোর্ট (Event Listener)
 document.addEventListener('DOMContentLoaded', () => {
   const chatInputBox = document.getElementById('chat-input');
@@ -8949,6 +8982,49 @@ function scrollToMessage(msgId) {
         showToast("Message is too old or has been deleted.");
     }
 }
+// 🚀 Unpin Message Function (Works in Personal & Group)
+async function unpinCurrentMessage() {
+    if (!currentChatId) return;
+    if (!confirm("Unpin this message?")) return;
+    try {
+        await db.collection('chats').doc(currentChatId).update({
+            pinnedMsg: firebase.firestore.FieldValue.delete()
+        });
+        showToast("Message Unpinned!");
+        const pinBar = document.getElementById('group-pinned-msg-bar');
+        if (pinBar) pinBar.style.display = 'none';
+    } catch(e) { showToast("Failed to unpin"); }
+}
+
+// 🚀 Click on Pin Bar to Scroll to Message
+function scrollToPinnedMsg() {
+    const pinBar = document.getElementById('group-pinned-msg-bar');
+    if (!pinBar) return;
+    
+    // পিন বার থেকে মেসেজ আইডি বের করা
+    const msgText = document.getElementById('group-pinned-msg-text').textContent;
+    
+    // চ্যাট মেসেজগুলো স্ক্যান করে মিল খোঁজা
+    const wrappers = document.querySelectorAll('.chat-bubble-wrapper');
+    let found = false;
+    
+    wrappers.forEach(wrapper => {
+        const bubbleText = wrapper.querySelector('.chat-bubble')?.innerText;
+        if (bubbleText && bubbleText.includes(msgText)) {
+            const bubble = wrapper.querySelector('.chat-bubble');
+            if (bubble) {
+                bubble.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                // হাইলাইট ইফেক্ট
+                bubble.style.background = 'var(--accent-glow)';
+                bubble.style.boxShadow = '0 0 20px var(--accent)';
+                setTimeout(() => {
+                    bubble.style.background = '';
+                    bubble.style.boxShadow = '';
+                }, 2000);
+                found = true;
+            }
+        }
+    });
     
     if (!found) showToast("Message not found in current view");
 }
