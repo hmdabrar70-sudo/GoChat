@@ -2443,6 +2443,10 @@ PINNED MESSAGE STYLES
             <div class="modal-title" style="margin:0;">How are you feeling?</div>
             <button class="modal-close" onclick="closeActivityModal()" style="position:static;"><span class="material-symbols-outlined">close</span></button>
         </div>
+        <!-- এখানে জাভাস্ক্রিপ্ট কন্টেন্ট লোড করবে -->
+        <div id="activity-list-container" style="overflow-y:auto; flex:1;"></div>
+    </div>
+</div>
         <div style="display:grid; grid-template-columns: repeat(2, 1fr); gap: 10px; overflow-y:auto; padding-bottom:20px;">
             <div class="activity-item" onclick="selectActivity('mood', 'feeling happy')">
                 <span class="material-symbols-outlined" style="color:#f59e0b;">mood</span> Happy
@@ -6185,17 +6189,63 @@ checkPostInputs();
 }
 
 // --- Activity/Feeling Functions ---
+// নতুন ক্যাটাগরি ডাটা
+const activityCategories = {
+    'Happy': ['Feeling Happy', 'Feeling Blessed', 'Feeling Exciting', 'Feeling Joyful'],
+    'Celebrating': ['Birthday', 'Anniversary', 'Party', 'Promotion'],
+    'Traveling': ['Traveling to Dhaka', 'Traveling to Coxs Bazar', 'Traveling to Sylhet', 'On a trip'],
+    'Watching': ['Watching Movie', 'Watching TV', 'Watching Series', 'Watching Video'],
+    'Listening': ['Listening to Music', 'Listening to Podcast', 'Listening to Audio'],
+    'Playing': ['Playing Games', 'Playing Cricket', 'Playing Football'],
+    'Eating': ['Eating Lunch', 'Eating Dinner', 'Eating Snacks', 'Drinking Coffee'],
+    'Loved': ['Feeling Loved', 'Feeling Romantic', 'Feeling Special']
+};
+
 function openActivityModal() {
-    document.getElementById('activity-modal').classList.add('open');
+    const modal = document.getElementById('activity-modal');
+    modal.classList.add('open');
+    renderActivityMain();
 }
+
+function renderActivityMain() {
+    const container = document.getElementById('activity-list-container');
+    container.innerHTML = `
+        <div style="display:grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
+            <div class="activity-item" onclick="renderSubActivities('Happy', 'mood')"><span class="material-symbols-outlined" style="color:#f59e0b;">mood</span> Happy</div>
+            <div class="activity-item" onclick="renderSubActivities('Celebrating', 'celebration')"><span class="material-symbols-outlined" style="color:#e91e63;">celebration</span> Celebrating</div>
+            <div class="activity-item" onclick="renderSubActivities('Traveling', 'flight_takeoff')"><span class="material-symbols-outlined" style="color:#3b82f6;">flight_takeoff</span> Traveling</div>
+            <div class="activity-item" onclick="renderSubActivities('Watching', 'movie')"><span class="material-symbols-outlined" style="color:#8b5cf6;">movie</span> Watching</div>
+            <div class="activity-item" onclick="renderSubActivities('Listening', 'headphones')"><span class="material-symbols-outlined" style="color:#22c55e;">headphones</span> Listening</div>
+            <div class="activity-item" onclick="renderSubActivities('Playing', 'sports_esports')"><span class="material-symbols-outlined" style="color:#ef4444;">sports_esports</span> Playing</div>
+            <div class="activity-item" onclick="renderSubActivities('Eating', 'restaurant')"><span class="material-symbols-outlined" style="color:#f97316;">restaurant</span> Eating</div>
+            <div class="activity-item" onclick="renderSubActivities('Loved', 'favorite')"><span class="material-symbols-outlined" style="color:#ef4444;">favorite</span> Loved</div>
+        </div>
+    `;
+}
+
+function renderSubActivities(category, icon) {
+    const container = document.getElementById('activity-list-container');
+    const items = activityCategories[category];
+    
+    let html = `<div style="margin-bottom:10px;"><button class="btn-outline" style="width:auto; padding:5px 15px;" onclick="renderActivityMain()">← Back</button></div>
+                <div style="display:flex; flex-direction:column; gap:8px;">`;
+    items.forEach(sub => {
+        html += `<div class="activity-item" onclick="selectActivity('${icon}', '${sub}')">${sub}</div>`;
+    });
+    html += `</div>`;
+    container.innerHTML = html;
+}
+
 function closeActivityModal() {
     document.getElementById('activity-modal').classList.remove('open');
 }
+
 function selectActivity(icon, text) {
     currentPostActivity = { icon: icon, text: text };
     closeActivityModal();
-    updateTagPreview(); // নাম এবং স্ট্যাটাস একসাথে লাইভ প্রিভিউ হবে
+    updateTagPreview();
 }
+
 
 async function openTagModal(){
     document.getElementById('tag-modal').classList.add('open');
