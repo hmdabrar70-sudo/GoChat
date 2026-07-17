@@ -2745,6 +2745,15 @@ NESTED ACTIVITY CATEGORIES STYLES
             </div>
         </div>
 
+<!-- 🚀 NEW: Active Time Menu Item -->
+<div class="settings-list-item" onclick="openActiveTimeModal()">
+    <div style="display:flex; align-items:center; gap:16px;">
+        <span class="material-symbols-outlined" style="font-size: 24px; color: #3b82f6;">schedule</span>
+        <span style="font-weight:600; font-size:15px;">Active Time</span>
+    </div>
+    <span class="material-symbols-outlined" style="color:var(--text-muted);">chevron_right</span>
+</div>
+
                 <div class="settings-list-item" onclick="doLogout()" style="border-bottom: none; margin-top: 12px;">
             <div style="display:flex; align-items:center; gap:16px;">
                 <span class="material-symbols-outlined" style="font-size: 24px; color: var(--danger);">logout</span>
@@ -3050,6 +3059,27 @@ NESTED ACTIVITY CATEGORIES STYLES
     </div>
     <div id="saved-posts-container" style="padding: 15px; padding-bottom: 80px; max-width: 600px; margin: 0 auto;">
         </div>
+</div>
+
+<!-- 🚀 Active Time Modal -->
+<div class="modal-overlay" id="active-time-modal" style="z-index: 100005;" onclick="if(event.target===this) closeActiveTimeModal()">
+    <div class="modal-box" style="max-height: 70vh;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+            <div class="modal-title" style="margin:0; display:flex; align-items:center; gap:10px;">
+                <span class="material-symbols-outlined" style="color:#3b82f6;">schedule</span> 
+                Active Time (Last 7 Days)
+            </div>
+            <button class="modal-close" onclick="closeActiveTimeModal()"><span class="material-symbols-outlined">close</span></button>
+        </div>
+        
+        <div id="active-time-chart" style="display:flex; flex-direction:column; gap:12px; overflow-y:auto; max-height:50vh; padding-right:5px;">
+            <!-- JS will populate this -->
+        </div>
+
+        <div style="margin-top:20px; padding:12px; background:var(--surface-2); border-radius:var(--radius-md); font-size:12px; color:var(--text-muted); text-align:center;">
+            * Data is tracked locally on this device. Clearing browser data will reset history.
+        </div>
+    </div>
 </div>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
@@ -9695,6 +9725,106 @@ document.addEventListener('DOMContentLoaded', () => {
     // স্ক্রিনের পরিবর্তন ট্র্যাক করা
     observer.observe(document.body, { childList: true, subtree: true });
 });
+// ==========================================
+// 🚀 ACTIVE TIME TRACKING SYSTEM
+// ==========================================
+
+// . অ্যাপ ওপেন থাকার সময় ট্র্যাক করা (প্রতি সেকেন্ডে)
+let activeTimeTracker = setInterval(() => {
+    if (!currentUser) return; // ইউজার লগইন না থাকলে ট্র্যাক হবে না
+    
+    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD ফরম্যাট
+    let timeData = JSON.parse(localStorage.getItem('gochat_active_time') || '{}');
+    
+    // আজকের ডাটা আপডেট করা (সেকেন্ড হিসেবে)
+    timeData[today] = (timeData[today] || 0) + 1;
+    
+    // শুধু গত ৩ দিনের ডাটা রাখা (মেমোরি সেভ করার জন্য)
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - 30);
+    const cutoffStr = cutoffDate.toISOString().split('T')[0];
+    
+    for (let date in timeData) {
+        if (date < cutoffStr) delete timeData[date];
+    }
+    
+    localStorage.setItem('gochat_active_time', JSON.stringify(timeData));
+}, 1000); // প্রতি ১ সেকেন্ড পর পর আপডেট
+
+// ২. মডাল ওপেন করার ফাংশন
+function openActiveTimeModal() {
+    document.getElementById('active-time-modal').classList.add('open');
+    renderActiveTimeChart();
+}
+
+function closeActiveTimeModal() {
+    document.getElementById('active-time-modal').classList.remove('open');
+}
+
+// ৩. চার্ট রেন্ডার করার ফাংশন
+function renderActiveTimeChart() {
+    const container = document.getElementById('active-time-chart');
+    const timeData = JSON.parse(localStorage.getItem('gochat_active_time') || '{}');
+    
+    let html = '';
+    let totalSeconds = 0;
+    
+    // গত ৭ দিনের লুপ
+    for (let i = 6; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        const dateStr = d.toISOString().split('T')[0];
+        const dayName = d.toLocaleDateString('en-US', { weekday: 'short' }); // Mon, Tue...
+        const fullDate = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        
+        const seconds = timeData[dateStr] || 0;
+        totalSeconds += seconds;
+        
+        // সেকেন্ডকে ঘন্টা ও মিনিটে রূপান্তর
+        const hours = Math.floor(seconds / 3600);
+        const mins = Math.floor((seconds % 3600) / 60);
+        const timeString = hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+        
+        // বারের দৈর্ঘ্য নির্ধারণ (সর্বোচ্চ ১০০% ধরে)
+        const maxDailySeconds = 8 * 3600; // ৮ ঘন্টাকে ১০০% ধরা হয়েছে
+        const percentage = Math.min((seconds / maxDailySeconds) * 100, 100);
+        
+        // আজকের দিন হাইলাইট করা
+        const isToday = i === 0;
+        const bgClass = isToday ? 'background: var(--accent-glow); border-color: var(--accent);' : 'background: var(--surface-2); border: 1px solid var(--border);';
+        
+        html += `
+        <div style="${bgClass} padding: 12px 16px; border-radius: var(--radius-md); display: flex; align-items: center; gap: 12px;">
+            <div style="width: 50px; text-align: center;">
+                <div style="font-weight: 700; font-size: 14px; color: var(--text);">${dayName}</div>
+                <div style="font-size: 11px; color: var(--text-muted);">${fullDate}</div>
+            </div>
+            
+            <div style="flex: 1;">
+                <div style="height: 6px; background: var(--border); border-radius: 10px; overflow: hidden; width: 100%;">
+                    <div style="height: 100%; width: ${percentage}%; background: ${isToday ? 'var(--accent)' : 'var(--text-secondary)'}; border-radius: 10px; transition: width 0.5s ease;"></div>
+                </div>
+            </div>
+            
+            <div style="font-weight: 700; font-size: 14px; color: ${isToday ? 'var(--accent)' : 'var(--text)'}; min-width: 60px; text-align: right;">
+                ${timeString}
+            </div>
+        </div>`;
+    }
+    
+    // মোট সময় দেখানো
+    const totalHours = Math.floor(totalSeconds / 3600);
+    const totalMins = Math.floor((totalSeconds % 3600) / 60);
+    
+    html = `
+    <div style="margin-bottom: 16px; padding: 12px; background: linear-gradient(135deg, var(--accent-glow), transparent); border: 1px solid var(--accent); border-radius: var(--radius-md); text-align: center;">
+        <div style="font-size: 12px; color: var(--text-secondary); font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Total Active Time</div>
+        <div style="font-size: 24px; font-weight: 800; color: var(--accent); margin-top: 4px;">${totalHours}h ${totalMins}m</div>
+    </div>
+    ` + html;
+    
+    container.innerHTML = html;
+}
 </script>
 </body>
 </html>
