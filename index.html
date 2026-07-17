@@ -2957,6 +2957,11 @@ NESTED ACTIVITY CATEGORIES STYLES
             <span class="material-symbols-outlined">wallpaper</span> Wallpaper
         </button>
 
+<!-- 🚀 NEW: Private Chat Toggle Button -->
+<button id="qp-private-chat-btn" class="btn-outline" onclick="togglePrivateChatFromQP()" style="margin:0 0 12px 0; width: 100%; border-radius: 16px; padding: 12px; font-size: 14px; border: none; background: var(--surface-2); color: var(--text);">
+    <span class="material-symbols-outlined">lock</span> <span id="qp-private-chat-text">Private Chat OFF</span>
+</button>
+
         <button class="btn-primary" onclick="clearChatFromQP()" style="margin:0; width: 100%; border-radius: 16px; padding: 14px; font-size: 15px; background: rgba(255, 77, 106, 0.1); color: var(--danger); box-shadow: none;">
             <span class="material-symbols-outlined">mop</span> Clear Chat
         </button>
@@ -3638,6 +3643,7 @@ currentUserData=snap.exists?snap.data():{name:user.email.split('@')[0],email:use
 // 🚀 ডাটাবেস লোড হয়ে গেলে টাইমার ক্যানসেল করে সাথে সাথেই স্প্ল্যাশ সরিয়ে দেবে
 clearTimeout(splashFallbackTimer);
 removeSplash();
+cleanupPrivateChatsOnLoad(); 
 
 // 🚀 ব্যাকগ্রাউন্ডে স্ট্রাইক আপডেট হবে, এর জন্য অ্যাপের লোডিং আটকে থাকবে না (await রিমুভড)
 checkAndUpdateStreak();
@@ -9502,6 +9508,133 @@ function showMainActivities() {
 document.addEventListener('DOMContentLoaded', () => {
     renderMainActivities();
 });
+// ==========================================
+// 🚀 PRIVATE CHAT SYSTEM LOGIC
+// ==========================================
+
+// . অ্যাপ লোড হওয়ার সাথে সাথে "ঝামেলা" মেসেজ ক্লিন করার ফাংশন
+async function cleanupPrivateChatsOnLoad() {
+    if (!currentUser) return;
+    try {
+        // নিজের ইউজার ডাটা থেকে কোন চ্যাটগুলোতে প্রাইভেট মোড চালু ছিল তা চেক করা
+        const activePrivateChats = currentUserData.activePrivateChats || [];
+        
+        if (activePrivateChats.length > 0) {
+            console.log("🧹 Cleaning up", activePrivateChats.length, "private chat sessions...");
+            
+            const batch = db.batch();
+            let cleanedCount = 0;
+
+            for (const chatId of activePrivateChats) {
+                // ওই চ্যাটের সব মেসেজ খুঁজে বের করা
+                const messagesRef = db.collection('chats').doc(chatId).collection('messages');
+                const snap = await messagesRef.get();
+                
+                // ব্যাচে সব মেসেজ ডিলিট করার জন্য যোগ করা
+                snap.forEach(doc => {
+                    batch.delete(doc.ref);
+                    cleanedCount++;
+                });
+            }
+
+            // একসাথে সব ডিলিট কমিট করা
+            if (cleanedCount > 0) {
+                await batch.commit();
+                console.log(`✅ Successfully deleted ${cleanedCount} private messages.`);
+            }
+
+            // ৩. ডাটাবেস থেকে "Active Private Chats" লিস্টটাও ক্লিয়ার করা যাতে পরবর্তী লোডে আবার না আসে
+            await db.collection('users').doc(currentUser.uid).update({
+                activePrivateChats: [] 
+            });
+        }
+    } catch (e) {
+        console.error("Error cleaning private chats:", e);
+    }
+}
+
+// ২. Quick Profile মডাল থেকে Private Chat টগল করার ফাংশন
+async function togglePrivateChatFromQP() {
+    if (!currentChatId) return;
+    
+    const btnText = document.getElementById('qp-private-chat-text');
+    const btn = document.getElementById('qp-private-chat-btn');
+    
+    // চেক করা এই চ্যাটে এখন প্রাইভেট মোড অন আছে কিনা
+    const isCurrentlyPrivate = currentUserData.activePrivateChats?.includes(currentChatId);
+    
+    if (isCurrentlyPrivate) {
+        // --- MODE OFF: সব মেসেজ পার্মানেন্টলি ডিলিট ---
+        if(!confirm("Turning OFF Private Chat will PERMANENTLY delete all messages in this chat from everyone's device and Firebase. Continue?")) return;
+        
+        showToast("️ Wiping private messages...");
+        
+        try {
+            // ক) সব মেসেজ ডিলিট
+            const messagesRef = db.collection('chats').doc(currentChatId).collection('messages');
+            const snap = await messagesRef.get();
+            const batch = db.batch();
+            snap.forEach(doc => batch.delete(doc.ref));
+            await batch.commit();
+            
+            // খ) লিস্ট থেকে এই চ্যাট আইডি রিমুভ করা
+            await db.collection('users').doc(currentUser.uid).update({
+                activePrivateChats: firebase.firestore.FieldValue.arrayRemove(currentChatId)
+            });
+            
+            // গ) UI আপডেট
+            currentUserData.activePrivateChats = currentUserData.activePrivateChats.filter(id => id !== currentChatId);
+            updatePrivateChatUI();
+            showToast("Private Chat OFF. All messages deleted.");
+            
+            // ঘ) চ্যাট স্ক্রিন রিফ্রেশ
+            if(document.getElementById('chat-screen').classList.contains('open')) {
+                openChat(currentChatId, currentChatOtherUid, document.getElementById('chat-name-display').textContent, '');
+            }
+            
+        } catch(e) {
+            showToast("Failed to clear private chat");
+            console.error(e);
+        }
+        
+    } else {
+        // --- MODE ON: শুধু ট্র্যাক করা শুরু ---
+        try {
+            await db.collection('users').doc(currentUser.uid).update({
+                activePrivateChats: firebase.firestore.FieldValue.arrayUnion(currentChatId)
+            });
+            
+            currentUserData.activePrivateChats = [...(currentUserData.activePrivateChats || []), currentChatId];
+            updatePrivateChatUI();
+            showToast(" Private Chat ON. Messages will vanish when you leave.");
+        } catch(e) {
+            showToast("Failed to enable Private Chat");
+        }
+    }
+    
+    closeQuickProfile();
+}
+
+// ৩. বাটনের টেক্সট ও স্টাইল আপডেট করার ফাংশন
+function updatePrivateChatUI() {
+    const btnText = document.getElementById('qp-private-chat-text');
+    const btn = document.getElementById('qp-private-chat-btn');
+    if (!btnText || !btn) return;
+
+    const isPrivate = currentUserData.activePrivateChats?.includes(currentChatId);
+    
+    if (isPrivate) {
+        btnText.textContent = "Private Chat ON";
+        btn.style.background = "var(--accent-glow)";
+        btn.style.color = "var(--accent)";
+        btn.style.border = "1px solid var(--accent)";
+    } else {
+        btnText.textContent = "Private Chat OFF";
+        btn.style.background = "var(--surface-2)";
+        btn.style.color = "var(--text)";
+        btn.style.border = "none";
+    }
+}
 </script>
 </body>
 </html>
