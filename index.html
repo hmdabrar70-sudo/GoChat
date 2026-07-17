@@ -5289,40 +5289,28 @@ function showMessageMenu(event, msgId) {
     if (existing) existing.remove();
     
     const wrapper = event.currentTarget.closest('.chat-bubble-wrapper');
-    const isMine = wrapper.classList.contains('mine'); // চেক করবে মেসেজটা আপনার নাকি বন্ধুর
+    const isMine = wrapper.classList.contains('mine'); 
     
     const menu = document.createElement('div');
     menu.className = 'chat-bubble-menu show';
     
-    // মোবাইলের স্ক্রিন অনুযায়ী মেনুটা ডান বা বামে সরাবে (যাতে স্ক্রিনের বাইরে না যায়)
     const alignPosition = isMine ? 'right: 35px;' : 'left: 35px;';
     
-    menu.style.cssText = `position:absolute; top: 10px; ${alignPosition} background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:6px; z-index:99999; box-shadow:var(--shadow-lg); width: 150px;`;
-        // 🚀 Pinned Logic (Updated for Personal & Group Chat)
-    let pinOption = '';
-    // গ্রুপ অথবা পার্সোনাল চ্যাট - দুটোতেই পিন অপশন আসবে
-    pinOption = `<div style="padding:10px 12px;cursor:pointer;font-size:14px;font-weight:600;border-radius:8px; display:flex; gap:10px; align-items:center; color:var(--text);" onclick="pinGroupMessage('${msgId}')">
-        <span class="material-symbols-outlined" style="font-size:18px;">push_pin</span> Pin Message
-    </div>`;
+    menu.style.cssText = `position:absolute; top: 10px; ${alignPosition} background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:6px; z-index:99999; box-shadow:var(--shadow-lg); width: 160px;`;
     
+    // এখানে পিন, ফরওয়ার্ড এবং ডিলিট অপশন দেওয়া হলো
     menu.innerHTML = `
-    ${pinOption}
-    <div style="padding:10px 12px;cursor:pointer;font-size:14px;font-weight:600;border-radius:8px; display:flex; gap:10px; align-items:center; color:var(--text);" onclick="replyToMessage('${msgId}')">
-        <span class="material-symbols-outlined" style="font-size:18px;">reply</span> Reply
+    <div style="padding:10px 12px;cursor:pointer;font-size:14px;font-weight:600;border-radius:8px; display:flex; gap:10px; align-items:center; color:var(--text);" onclick="pinGroupMessage('${msgId}')">
+        <span class="material-symbols-outlined" style="font-size:18px;">push_pin</span> Pin Message
     </div>
     <div style="padding:10px 12px;cursor:pointer;font-size:14px;font-weight:600;border-radius:8px; display:flex; gap:10px; align-items:center; color:var(--text);" onclick="forwardMessage('${msgId}')">
         <span class="material-symbols-outlined" style="font-size:18px;">forward</span> Forward
     </div>
-    
-    <!-- নতুন Select অপশনটি এখানে যুক্ত করা হলো -->
-    <div style="padding:10px 12px;cursor:pointer;font-size:14px;font-weight:600;border-radius:8px; display:flex; gap:10px; align-items:center; color:var(--text);" onclick="enterSelectionMode('${msgId}'); this.parentElement.remove();">
-        <span class="material-symbols-outlined" style="font-size:18px;">check_circle</span> Select
-    </div>
-
     <div style="padding:10px 12px;cursor:pointer;font-size:14px;font-weight:600;border-radius:8px;color:var(--danger); display:flex; gap:10px; align-items:center;" onclick="deleteMessage('${msgId}')">
         <span class="material-symbols-outlined" style="font-size:18px;">delete</span> Delete
     </div>
     `;
+    
     wrapper.appendChild(menu);
     
     setTimeout(() => {
@@ -7309,23 +7297,36 @@ let msgPressTimer = null;
 let touchStartX = 0;
 let touchStartY = 0;
 let isSwiping = false;
-let activeMsgWrapper = null; // নতুন ভেরিয়েবল যুক্ত করা হলো
+let selectedMsgIds = [];
+let isMsgSelectionMode = false;
+let msgPressTimer = null;
+let touchStartX = 0;
+let touchStartY = 0;
+let isSwiping = false;
 
 function handleMsgTouchStart(msgId, event) {
     if(isMsgSelectionMode) return;
-    activeMsgWrapper = event.currentTarget; // বর্তমান মেসেজটি সেভ করে রাখছি
+    
+    // মেসেজ এলিমেন্টটি সেভ করে রাখছি যাতে পরে মেনু দেখানো যায়
+    const targetElement = event.currentTarget; 
+    
     if(event && event.touches) {
         touchStartX = event.touches[0].clientX;
         touchStartY = event.touches[0].clientY;
     }
     isSwiping = false;
+    
+    // 500ms চেপে ধরে রাখলে মেনু আসবে
     msgPressTimer = setTimeout(() => {
-        if(!isSwiping && activeMsgWrapper) {
-            // enterSelectionMode বাদ দিয়ে সরাসরি পপ-আপ মেনু কল করা হলো
-            const dummyEvent = { stopPropagation: () => {}, currentTarget: activeMsgWrapper };
-            showMessageMenu(dummyEvent, msgId);
-            
+        if(!isSwiping) {
             if(navigator.vibrate) navigator.vibrate(50);
+            
+            // একটি ডামি ইভেন্ট তৈরি করে showMessageMenu কে কল করছি
+            const dummyEvent = { 
+                stopPropagation: () => {}, 
+                currentTarget: targetElement 
+            };
+            showMessageMenu(dummyEvent, msgId);
         }
     }, 500);
 }
@@ -7336,15 +7337,13 @@ function handleMsgTouchMove(event) {
         let currentX = event.touches[0].clientX;
         let currentY = event.touches[0].clientY;
         
-        // যদি ইউজার স্ক্রল করে বা সোয়াইপ করে, তবে ডিলিট সিলেকশন (Long Press) বাতিল হবে
         if(Math.abs(currentX - touchStartX) > 15 || Math.abs(currentY - touchStartY) > 15) {
             isSwiping = true;
             if(msgPressTimer) clearTimeout(msgPressTimer);
         }
         
-        // ডানদিকে সোয়াইপ করার ভিজ্যুয়াল ইফেক্ট (মেসেজ আঙুলের সাথে সরবে)
         if(currentX - touchStartX > 20 && Math.abs(currentY - touchStartY) < 30) {
-           let moveX = Math.min(currentX - touchStartX, 80); // সর্বোচ্চ ৮০ পিক্সেল সরবে
+           let moveX = Math.min(currentX - touchStartX, 80); 
            event.currentTarget.style.transform = `translateX(${moveX}px)`;
         }
     }
@@ -7353,7 +7352,6 @@ function handleMsgTouchMove(event) {
 function handleMsgTouchEnd(msgId, event) {
     if(msgPressTimer) clearTimeout(msgPressTimer);
     
-    // মেসেজ আগের জায়গায় ফেরত যাবে (বাউন্স ইফেক্ট)
     if(event && event.currentTarget) {
         event.currentTarget.style.transform = 'translateX(0)';
     }
@@ -7363,10 +7361,9 @@ function handleMsgTouchEnd(msgId, event) {
         let touchEndX = event.changedTouches[0].clientX;
         let touchEndY = event.changedTouches[0].clientY;
         
-        // যদি ৬০ পিক্সেলের বেশি ডানদিকে সোয়াইপ হয়, তবে সাথে সাথে রিপ্লাই অন হবে
         if(touchEndX - touchStartX > 60 && Math.abs(touchEndY - touchStartY) < 40) {
             replyToMessage(msgId);
-            if(navigator.vibrate) navigator.vibrate(40); // রিপ্লাই অন হলে হালকা ভাইব্রেশন হবে
+            if(navigator.vibrate) navigator.vibrate(40); 
         }
     }
     touchStartX = 0;
