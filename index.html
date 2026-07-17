@@ -3080,7 +3080,6 @@ let isFriendsEditMode = false;
 let friendsToDelete = [];
 let lastActionTime = 0;
 let currentChatId=null, currentChatOtherUid=null;
-let isPrivateChatActive = false; // 🚀 নতুন Private Chat ট্র্যাকার
 
 // ===== UTILITY FUNCTIONS =====
 function escapeHTML(str){
@@ -5573,57 +5572,49 @@ async function sendMsg(){
     }, { merge: true });
 }
 
-
 async function sendChatImage(input){
-const file=input.files[0];
-if(!file||!currentChatId)return;
-showToast('Uploading image...');
-try{
-const url=await uploadToCloudinary(file,false);
-let imageMsgData = {
-    uid:currentUser.uid,
-    senderName: currentUserData.name || 'User',
-    text:'',
-    imageUrl:url,
-    createdAt:firebase.firestore.FieldValue.serverTimestamp()
-};
+    const file = input.files[0];
+    if(!file || !currentChatId) return;
+    showToast('Uploading image...');
+    try {
+        const url = await uploadToCloudinary(file, false);
+        let imageMsgData = {
+            uid: currentUser.uid,
+            senderName: currentUserData.name || 'User',
+            text: '',
+            imageUrl: url,
+            isPrivate: isPrivateChatActive, // 🚀 সঠিকভাবে যুক্ত হলো
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        };
 
-// 🚀 ইমেজের সাথেও রিপ্লাই ডাটা সেভ হবে
-if(currentReplyMsgId && replyToMsgData){
-    imageMsgData.replyTo = currentReplyMsgId;
-    imageMsgData.replySender = replyToMsgData.senderName || 'User';
-    imageMsgData.replyText = replyToMsgData.text || '📷 Photo';
-    
-    currentReplyMsgId = null;
-    replyToMsgData = null;
-    document.getElementById('reply-preview-container').innerHTML = '';
-    document.getElementById('chat-input').placeholder = 'Message...';
+        if(currentReplyMsgId && replyToMsgData){
+            imageMsgData.replyTo = currentReplyMsgId;
+            imageMsgData.replySender = replyToMsgData.senderName || 'User';
+            imageMsgData.replyText = replyToMsgData.text || '📷 Photo';
+            currentReplyMsgId = null;
+            replyToMsgData = null;
+            document.getElementById('reply-preview-container').innerHTML = '';
+            document.getElementById('chat-input').placeholder = 'Message...';
+        }
+        await db.collection('chats').doc(currentChatId).collection('messages').add(imageMsgData);
+
+        let lastText = '📷 Photo';
+        if (currentChatOtherUid === 'group') {
+            lastText = (currentUserData.name || 'User') + " sent a photo";
+        }
+
+        await db.collection('chats').doc(currentChatId).set({
+            lastMsg: lastText,
+            lastAt: firebase.firestore.FieldValue.serverTimestamp(),
+            lastSender: currentUser.uid,
+            isRead: false
+        }, { merge: true });
+        showToast('Image sent!');
+    } catch(e) {
+        showToast('Failed to send image');
+    }
+    input.value = '';
 }
-await db.collection('chats').doc(currentChatId).collection('messages').add({
-    uid: currentUser.uid,
-    senderName: currentUserData.name || 'User',
-    text: '',
-    imageUrl: url,
-    isPrivate: isPrivateChatActive, // 🚀 এখানে এটি যুক্ত করুন
-    createdAt: firebase.firestore.FieldValue.serverTimestamp()
-});
-
-let lastText = '📷 Photo';
-if (currentChatOtherUid === 'group') {
-    lastText = (currentUserData.name || 'User') + " sent a photo";
-}
-
-await db.collection('chats').doc(currentChatId).set({
-    lastMsg: lastText,
-    lastAt: firebase.firestore.FieldValue.serverTimestamp(),
-    lastSender: currentUser.uid,
-    isRead: false
-}, { merge: true });
-showToast('Image sent!');
-}catch(e){showToast('Failed to send image');}
-input.value='';
-}
-
 // --- ইন-অ্যাপ নোটিফিকেশন ফাংশন (Smart Version) ---
 const notifSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
 
@@ -7543,14 +7534,12 @@ async function executeDelete(type) {
 function togglePrivateChat() {
     isPrivateChatActive = !isPrivateChatActive;
     const toggleEl = document.getElementById('qp-private-chat-toggle');
-    if (toggleEl) {
-        if (isPrivateChatActive) {
-            toggleEl.classList.add('active');
-            showToast("Private Chat ON! Messages will vanish on exit.");
-        } else {
-            toggleEl.classList.remove('active');
-            showToast("Private Chat OFF.");
-        }
+    if (isPrivateChatActive) {
+        toggleEl.classList.add('active');
+        showToast("Private Chat ON! Messages will vanish on exit.");
+    } else {
+        toggleEl.classList.remove('active');
+        showToast("Private Chat OFF.");
     }
 }
 
@@ -7566,7 +7555,7 @@ async function wipePrivateMessages(chatId) {
             batch.delete(doc.ref);
         });
         await batch.commit();
-        console.log("Private messages wiped permanently.");
+        console.log("Private messages wiped permanently from Firebase.");
     } catch (e) {
         console.error("Failed to wipe private messages", e);
     }
@@ -8814,7 +8803,7 @@ async function loadSavedPosts() {
         
         let html = '';
         
-                // ৩. পোস্টগুলো লুপ করে HTML কার্ড বানানো
+        // ৩. পোস্টগুলো লুপ করে HTML কার্ড বানানো
         for (let snap of postSnaps) {
             if (snap.exists) {
                 const p = snap.data();
@@ -8849,6 +8838,7 @@ async function loadSavedPosts() {
         container.innerHTML = '<div style="text-align:center; padding: 40px; color: var(--danger);">Failed to load saved posts. Please try again.</div>';
     }
 }
+
 
 // ==========================================
 // 🚀 UNSAVE POST LOGIC
