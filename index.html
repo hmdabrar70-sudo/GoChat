@@ -2078,6 +2078,8 @@ PINNED MESSAGE STYLES
     <div class="setting-item" onclick="toggleFabMenu();openCreatePost();"><span class="material-symbols-outlined" style="color:var(--accent);">edit_document</span> Create Post</div>
     <label class="setting-item" style="margin:0;"><span class="material-symbols-outlined" style="color:var(--accent-light);">image</span> Add Photo/Video Story<input type="file" accept="image/*,video/*" style="display:none" onchange="toggleFabMenu();uploadStory(this)"></label>
     <div class="setting-item" onclick="toggleFabMenu();openTextStoryModal();" style="margin:0;"><span class="material-symbols-outlined" style="color:#f59e0b;">font_download</span> Add Text Story</div>
+    <div class="setting-item" onclick="toggleFabMenu(); openLifeUpdateModal();" style="margin:0;">
+        <span class="material-symbols-outlined" style="color:#22c55e;">flag</span> Life Update
 </div>
 </div>
 
@@ -2476,6 +2478,30 @@ PINNED MESSAGE STYLES
 </div>
 <div id="leaderboard-list" style="overflow-y:auto;flex:1;margin-bottom:10px;max-height:60vh;display:flex;flex-direction:column;gap:8px;"></div>
 </div>
+</div>
+
+<!-- Life Update Modal -->
+<div class="modal-overlay" id="life-update-modal" style="z-index: 10006;">
+    <div class="modal-box">
+        <button class="modal-close" onclick="closeLifeUpdateModal()"><span class="material-symbols-outlined">close</span></button>
+        <div class="modal-title">Create Life Update</div>
+        
+        <div class="input-group">
+            <label>Choose Icon</label>
+            <div style="display:flex; gap:15px; flex-wrap:wrap; margin-top:10px;">
+                <i class="ph ph-briefcase" style="font-size:28px; cursor:pointer;" onclick="selectLifeIcon('ph-briefcase')"></i>
+                <i class="ph ph-graduation-cap" style="font-size:28px; cursor:pointer;" onclick="selectLifeIcon('ph-graduation-cap')"></i>
+                <i class="ph ph-heart" style="font-size:28px; cursor:pointer;" onclick="selectLifeIcon('ph-heart')"></i>
+                <i class="ph ph-house" style="font-size:28px; cursor:pointer;" onclick="selectLifeIcon('ph-house')"></i>
+                <i class="ph ph-airplane" style="font-size:28px; cursor:pointer;" onclick="selectLifeIcon('ph-airplane')"></i>
+            </div>
+        </div>
+        
+        <input type="text" id="life-title" placeholder="What happened?" class="input-group" style="padding:15px; width:100%;">
+        <input type="date" id="life-date" class="input-group" style="padding:15px; width:100%;">
+        
+        <button class="btn-primary" onclick="submitLifeUpdate()">Post Update</button>
+    </div>
 </div>
 
 <div class="modal-overlay" id="forward-modal">
@@ -9210,6 +9236,42 @@ async function toggleAdvancedPrivacy() {
         console.error("Privacy update failed:", e);
         showToast("Failed to update privacy settings");
     }
+}
+let selectedLifeIcon = 'ph-briefcase';
+
+function selectLifeIcon(iconName) {
+    selectedLifeIcon = iconName;
+    showToast("Icon selected!");
+}
+
+function openLifeUpdateModal() {
+    document.getElementById('life-update-modal').classList.add('open');
+}
+
+function closeLifeUpdateModal() {
+    document.getElementById('life-update-modal').classList.remove('open');
+}
+
+async function submitLifeUpdate() {
+    const title = document.getElementById('life-title').value.trim();
+    const date = document.getElementById('life-date').value;
+    
+    if(!title || !date) { showToast("Please fill all fields"); return; }
+    
+    try {
+        await db.collection('posts').add({
+            uid: currentUser.uid,
+            type: 'life_update',
+            icon: selectedLifeIcon,
+            title: title,
+            date: date,
+            name: currentUserData.name,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        showToast("Life Update posted!");
+        closeLifeUpdateModal();
+        loadFeed();
+    } catch(e) { showToast("Error posting update"); }
 }
 </script>
 </body>
