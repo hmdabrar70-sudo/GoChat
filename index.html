@@ -9635,6 +9635,66 @@ function updatePrivateChatUI() {
         btn.style.border = "none";
     }
 }
+// ==========================================
+// 🚀 FIX: QUICK REPLY POPUP STICKY & SEND LOGIC
+// ==========================================
+document.addEventListener('DOMContentLoaded', () => {
+    // প্রতিবার নতুন পপআপ তৈরি হলে ইনপুট বক্সকে "স্টিকি" করা
+    const observer = new MutationObserver(() => {
+        const activePopup = document.querySelector('.msg-popup');
+        if (activePopup) {
+            const input = activePopup.querySelector('input');
+            const sendBtn = activePopup.querySelector('button');
+            
+            if (input && !input.dataset.fixed) {
+                // ১. ক্লিক করলে পপআপ বন্ধ হবে না
+                input.onclick = (e) => e.stopPropagation();
+                input.onmousedown = (e) => e.stopPropagation();
+                input.ontouchstart = (e) => e.stopPropagation();
+                input.dataset.fixed = "true";
+                
+                // ২. ইনপুটে ফোকাস আসলে অটোমেটিক কিবোর্ড ওপেন হবে
+                setTimeout(() => input.focus(), 100);
+            }
+
+            // . সেন্ড বাটনে ক্লিক করলে রিপ্লাই পাঠানো
+            if (sendBtn && !sendBtn.dataset.fixed) {
+                sendBtn.onclick = (e) => {
+                    e.stopPropagation(); // পপআপ বন্ধ হবে না
+                    const text = input.value.trim();
+                    if (!text || !currentUser) return;
+                    
+                    // পপআপ থেকে চ্যাট আইডি এবং ইউজার আইডি বের করা
+                    const popupId = activePopup.id.replace('popup-', '');
+                    const parts = popupId.split('_');
+                    const otherUid = parts[0] === currentUser.uid ? parts[1] : parts[0];
+                    
+                    // মেসেজ পাঠানো
+                    db.collection('chats').doc(popupId).collection('messages').add({
+                        uid: currentUser.uid,
+                        senderName: currentUserData.name || 'User',
+                        text: text,
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                    
+                    db.collection('chats').doc(popupId).set({
+                        lastMsg: text,
+                        lastAt: firebase.firestore.FieldValue.serverTimestamp(),
+                        lastSender: currentUser.uid,
+                        isRead: false
+                    }, { merge: true });
+                    
+                    showToast("Reply sent!");
+                    activePopup.remove(); // পাঠানোর পর পপআপ মুছে যাবে
+                };
+                sendBtn.dataset.fixed = "true";
+            }
+        }
+    });
+    
+    // স্ক্রিনের পরিবর্তন ট্র্যাক করা
+    observer.observe(document.body, { childList: true, subtree: true });
+});
 </script>
 </body>
 </html>
