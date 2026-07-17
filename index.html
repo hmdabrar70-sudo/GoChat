@@ -2394,7 +2394,7 @@ PINNED MESSAGE STYLES
 <label for="chat-img-input" style="cursor:pointer;color:var(--accent);padding:8px;display:flex;">
 <span class="material-symbols-outlined" style="font-size:24px;">image</span>
 </label>
-<input type="file" id="chat-img-input" accept="image/*" style="display:none;" onchange="sendChatImage(this)">
+<input type="file" id="chat-img-input" accept="image/*" multiple style="display:none;" onchange="sendChatImage(this)">
 <button class="chat-send-btn" onclick="sendMsg()">
 <span class="material-symbols-outlined" style="font-size:20px;">send</span>
 </button>
@@ -5486,54 +5486,56 @@ await db.collection('chats').doc(currentChatId).set({
 }, { merge: true });
 }
 
+// নতুন মাল্টিপল ইমেজ সাপোর্ট কোড
 async function sendChatImage(input){
-const file=input.files[0];
-if(!file||!currentChatId)return;
-showToast('Uploading image...');
-try{
-const url=await uploadToCloudinary(file,false);
-let imageMsgData = {
-    uid:currentUser.uid,
-    senderName: currentUserData.name || 'User',
-    text:'',
-    imageUrl:url,
-    createdAt:firebase.firestore.FieldValue.serverTimestamp()
-};
-
-// 🚀 ইমেজের সাথেও রিপ্লাই ডাটা সেভ হবে
-if(currentReplyMsgId && replyToMsgData){
-    imageMsgData.replyTo = currentReplyMsgId;
-    imageMsgData.replySender = replyToMsgData.senderName || 'User';
-    imageMsgData.replyText = replyToMsgData.text || '📷 Photo';
+    const files = Array.from(input.files); 
+    if(files.length === 0 || !currentChatId) return;
     
-    currentReplyMsgId = null;
-    replyToMsgData = null;
-    document.getElementById('reply-preview-container').innerHTML = '';
-    document.getElementById('chat-input').placeholder = 'Message...';
+    showToast(`Uploading ${files.length} image(s)...`);
+    
+    try {
+        const uploadPromises = files.map(file => uploadToCloudinary(file, false));
+        const imageUrls = await Promise.all(uploadPromises); 
+        
+        for (const url of imageUrls) {
+            let imageMsgData = {
+                uid: currentUser.uid,
+                senderName: currentUserData.name || 'User',
+                text: '',
+                imageUrl: url,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+            
+            if(currentReplyMsgId && replyToMsgData){
+                imageMsgData.replyTo = currentReplyMsgId;
+                imageMsgData.replySender = replyToMsgData.senderName || 'User';
+                imageMsgData.replyText = replyToMsgData.text || '📷 Photo';
+            }
+            
+            await db.collection('chats').doc(currentChatId).collection('messages').add(imageMsgData);
+        }
+        
+        let lastText = '📷 ' + files.length + ' Photo(s)';
+        if (currentChatOtherUid === 'group') {
+            lastText = (currentUserData.name || 'User') + " sent photos";
+        }
+        
+        await db.collection('chats').doc(currentChatId).set({
+            lastMsg: lastText,
+            lastAt: firebase.firestore.FieldValue.serverTimestamp(),
+            lastSender: currentUser.uid,
+            isRead: false
+        }, { merge: true });
+        
+        cancelReply();
+        showToast('Images sent!');
+    } catch(e) {
+        console.error(e);
+        showToast('Failed to send images');
+    }
+    input.value = '';
 }
-await db.collection('chats').doc(currentChatId).collection('messages').add({
-uid:currentUser.uid,
-senderName: currentUserData.name || 'User', // <-- ছবির সাথে নাম সেভ হবে
-text:'',
-imageUrl:url,
-createdAt:firebase.firestore.FieldValue.serverTimestamp()
-});
 
-let lastText = '📷 Photo';
-if (currentChatOtherUid === 'group') {
-    lastText = (currentUserData.name || 'User') + " sent a photo";
-}
-
-await db.collection('chats').doc(currentChatId).set({
-    lastMsg: lastText,
-    lastAt: firebase.firestore.FieldValue.serverTimestamp(),
-    lastSender: currentUser.uid,
-    isRead: false
-}, { merge: true });
-showToast('Image sent!');
-}catch(e){showToast('Failed to send image');}
-input.value='';
-}
 
 // --- ইন-অ্যাপ নোটিফিকেশন ফাংশন (Smart Version) ---
 const notifSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
