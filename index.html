@@ -2639,6 +2639,14 @@ NESTED ACTIVITY CATEGORIES STYLES
     
     <div style="padding: 20px; display: flex; flex-direction: column; gap: 8px;">
         
+        <!-- 🚀 NEW: Settings Search Bar -->
+<div style="padding: 12px 16px; border-bottom: 1px solid var(--border);">
+    <div class="search-input-wrap" style="margin:0; background: var(--surface-2);">
+        <span class="material-symbols-outlined">search</span>
+        <input type="text" id="menu-settings-search" placeholder="Search settings..." oninput="filterMenuSettings(this.value)">
+    </div>
+</div>
+
         <!-- নতুন Elite GoChat মেনু -->
         <div class="settings-list-item" onclick="openEliteGoChat()">
             <div style="display:flex; align-items:center; gap:16px;">
@@ -10000,6 +10008,49 @@ async function saveChatPrivacy() {
     } catch(e) {
         showToast("Failed to save settings");
         console.error(e);
+    }
+}
+// ==========================================
+// 🚀 MENU SETTINGS SEARCH LOGIC
+// ==========================================
+function filterMenuSettings(query) {
+    const menuContainer = document.querySelector('#main-menu-screen .settings-list-item'); // প্রথম আইটেম (Elite GoChat)
+    if (!menuContainer) return;
+    
+    // মেনুর সব আইটেম ধরা (Log out বাদে)
+    const allItems = Array.from(document.querySelectorAll('#main-menu-screen .settings-list-item'));
+    const lowerQuery = query.toLowerCase().trim();
+    
+    // যদি সার্চ বক্স খালি থাকে, সব দেখাবে
+    if (lowerQuery === '') {
+        allItems.forEach(item => item.style.display = 'flex');
+        // সাব-মেনু (Settings & Privacy) ওপেন থাকলে সেটাও রিসেট করা
+        const subMenu = document.getElementById('settings-sub-menu');
+        if(subMenu) subMenu.style.display = 'none'; 
+        return;
+    }
+
+    // সার্চ লজিক
+    let foundAny = false;
+    allItems.forEach(item => {
+        const text = item.innerText.toLowerCase();
+        if (text.includes(lowerQuery)) {
+            item.style.display = 'flex';
+            foundAny = true;
+            
+            // যদি "Settings & Privacy" এর ভেতরের কোনো আইটেম ম্যাচ করে, তবে সাব-মেনু ওপেন করা
+            if (item.closest('#settings-sub-menu') && document.getElementById('settings-sub-menu')) {
+                document.getElementById('settings-sub-menu').style.display = 'flex';
+                document.getElementById('settings-arrow').textContent = 'expand_less';
+            }
+        } else {
+            item.style.display = 'none';
+        }
+    });
+
+    // যদি কোনো ম্যাচ না পাওয়া যায়, একটি মেসেজ দেখানো (অপশনাল)
+    if (!foundAny) {
+        // আপনি চাইলে এখানে একটি "No results found" মেসেজ যোগ করতে পারেন
     }
 }
 </script>
