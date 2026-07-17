@@ -9449,6 +9449,153 @@ async function toggleAdvancedPrivacy() {
         showToast("Failed to update privacy settings");
     }
 }
+// ==========================================
+// 🚀 FIXED SETTINGS SCREEN LOGIC
+// ==========================================
+
+// ১. আপডেটেড settingsData (এখানে action গুলো সরাসরি ফাংশন হিসেবে রাখা হয়েছে)
+const settingsData = [
+    { 
+        id: 'account-info', 
+        icon: 'account_circle', 
+        title: 'Account info', 
+        type: 'link', 
+        // Account Info পেজ খোলার জন্য একটি নতুন ফাংশন তৈরি করতে হবে বা existing function ব্যবহার করতে হবে
+        action: () => {
+            // যদি আপনার কোডে account info এর জন্য আলাদা স্ক্রিন থাকে তবে সেটা ওপেন করুন
+            // উদাহরণস্বরূপ: document.getElementById('account-info-screen').style.display = 'flex';
+            // যদি না থাকে, তবে আপাতত একটি টোস্ট দেখাতে পারেন বা Settings Privacy স্ক্রিন ওপেন করতে পারেন
+            closeNewSettingsScreen();
+            openSettingsPrivacy(); // আপনার বিদ্যমান ফাংশনটি কল করা হচ্ছে
+        } 
+    },
+    { 
+        id: 'user-privacy', 
+        icon: 'lock', 
+        title: 'User Privacy', 
+        type: 'link', 
+        action: () => {
+            closeNewSettingsScreen();
+            openPrivacySettings(); // আপনার বিদ্যমান ফাংশনটি কল করা হচ্ছে
+        } 
+    },
+    { 
+        id: 'chat', 
+        icon: 'chat_bubble', 
+        title: 'Chat', 
+        type: 'link', 
+        action: () => {
+            closeNewSettingsScreen();
+            openChatPrivacyPage(); // আপনার বিদ্যমান ফাংশনটি কল করা হচ্ছে
+        } 
+    },
+    { 
+        id: 'share-profile', 
+        icon: 'qr_code_scanner', 
+        title: 'Share Profile ID', 
+        type: 'link', 
+        action: () => {
+            closeNewSettingsScreen();
+            openShareModal(); // আপনার বিদ্যমান ফাংশনটি কল করা হচ্ছে
+        } 
+    },
+    { 
+        id: 'following-privacy', 
+        icon: 'visibility_off', 
+        title: 'Following List Privacy', 
+        type: 'link', 
+        action: () => {
+            closeNewSettingsScreen();
+            openFollowingPrivacy(); // আপনার বিদ্যমান ফাংশনটি কল করা হচ্ছে
+        } 
+    },
+    { 
+        id: 'private-account', 
+        icon: 'lock', 
+        title: 'Private Account', 
+        type: 'toggle', 
+        state: () => currentUserData?.isPrivate === true, 
+        action: togglePrivateAccount // সরাসরি ফাংশন রেফারেন্স
+    },
+    { 
+        id: 'active-status', 
+        icon: 'radio_button_checked', 
+        title: 'Active Status', 
+        type: 'toggle', 
+        state: () => currentUserData?.showActiveStatus !== false, 
+        action: toggleActiveStatus,
+        success: true 
+    },
+    { 
+        id: 'message-sound', 
+        icon: 'volume_up', 
+        title: 'Message Sound', 
+        type: 'toggle', 
+        state: () => currentUserData?.messageSound !== false, 
+        action: toggleMessageSound
+    },
+    { 
+        id: 'gallery', 
+        icon: 'photo_library', 
+        title: 'Gallery', 
+        type: 'link', 
+        action: () => {
+            closeNewSettingsScreen();
+            openGallery(); // আপনার বিদ্যমান ফাংশনটি কল করা হচ্ছে
+        } 
+    },
+    { 
+        id: 'dark-mode', 
+        icon: 'dark_mode', 
+        title: 'Dark Mode', 
+        type: 'toggle', 
+        state: () => document.body.classList.contains('light-mode') === false, 
+        action: toggleDarkMode
+    }
+];
+
+// ২. আপডেটেড renderSettingsList ফাংশন (সার্চ এবং ক্লিক ফিক্স)
+function renderSettingsList(filterText = '') {
+    const container = document.getElementById('new-settings-container');
+    if(!container) return;
+    
+    let html = '';
+    const lowerFilter = filterText.toLowerCase().trim();
+    
+    settingsData.forEach(item => {
+        // সার্চ ফিল্টার লজিক
+        if(lowerFilter === '' || item.title.toLowerCase().includes(lowerFilter)) {
+            let rightContent = '';
+            
+            if(item.type === 'link') {
+                rightContent = '<span class="material-symbols-outlined" style="color:var(--text-muted);">chevron_right</span>';
+            } else if(item.type === 'toggle') {
+                const isActive = item.state();
+                const successClass = item.success ? 'success' : '';
+                // টগলের onclick এ সরাসরি ফাংশন কল করা হচ্ছে
+                rightContent = `<div class="toggle-switch ${isActive ? 'active' : ''} ${successClass}" onclick="event.stopPropagation(); settingsData.find(i => i.id === '${item.id}').action(); setTimeout(renderSettingsList, 100);"></div>`;
+            }
+            
+            // লিংকের onclick এ সরাসরি ফাংশন কল করা হচ্ছে
+            const clickAction = item.type === 'link' ? `event.stopPropagation(); settingsData.find(i => i.id === '${item.id}').action();` : '';
+            
+            html += `
+            <div class="settings-list-item" style="background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-md); padding:14px 16px;" onclick="${clickAction}">
+                <div style="display:flex; align-items:center; gap:16px;">
+                    <span class="material-symbols-outlined" style="font-size: 22px; color: var(--accent);">${item.icon}</span>
+                    <span style="font-weight:600; font-size:15px;">${item.title}</span>
+                </div>
+                ${rightContent}
+            </div>`;
+        }
+    });
+    
+    if(html === '') {
+        html = '<div style="text-align:center; padding:40px; color:var(--text-muted);">No settings found</div>';
+    }
+    
+    container.innerHTML = html;
+}
 // ===== NESTED ACTIVITY SYSTEM DATA & LOGIC =====
 const activityCategories = {
     'happy': {
