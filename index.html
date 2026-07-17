@@ -2375,18 +2375,12 @@ PINNED MESSAGE STYLES
 <div class="chat-header-actions" style="margin-left: auto; position: relative;">
     <span class="material-symbols-outlined" onclick="toggleChatDeleteMenu()" style="cursor: pointer; padding: 8px;">more_vert</span>
     
-    <div id="chat-delete-menu" class="chat-list-menu" style="top: 100%; right: 0; transform: none; display: none; width: max-content;">
+      <div id="chat-delete-menu" class="chat-list-menu" style="top: 100%; right: 0; transform: none; display: none; width: max-content;">
         <div class="chat-dropdown-item" onclick="viewProfileFromChat()">
             <span class="material-symbols-outlined" style="color: var(--accent);">account_circle</span> View Profile
         </div>
-                <div class="chat-dropdown-item" onclick="openAdvancedPrivacy()">
+        <div class="chat-dropdown-item" onclick="openAdvancedPrivacy()">
             <span class="material-symbols-outlined" style="color: var(--success);">lock</span> Advanced Privacy
-        </div>
-        <div class="chat-dropdown-item danger" onclick="clearChatForMe()">
-            <span class="material-symbols-outlined">mop</span> Clear Chat
-        </div>
-        <div class="chat-dropdown-item danger" onclick="blockUserFromChat()">
-            <span class="material-symbols-outlined">block</span> Block User
         </div>
     </div>
 </div>
@@ -2910,6 +2904,14 @@ PINNED MESSAGE STYLES
         <button class="btn-outline" onclick="openWallpaperPicker()" style="margin:0 0 12px 0; width: 100%; border-radius: 16px; padding: 12px; font-size: 14px; border: none; background: var(--surface-2); color: var(--text);">
             <span class="material-symbols-outlined">wallpaper</span> Wallpaper
         </button>
+        
+        <!-- 🚀 Private Chat Toggle -->
+        <div style="display:flex; justify-content:space-between; align-items:center; margin:0 0 12px 0; width: 100%; border-radius: 16px; padding: 12px 16px; background: rgba(124, 92, 255, 0.1); border: 1px solid var(--accent);">
+            <div style="display:flex; align-items:center; gap:8px; color: var(--accent); font-weight:700; font-size:14px;">
+                <span class="material-symbols-outlined">incognito</span> Private Chat
+            </div>
+            <div id="qp-private-chat-toggle" class="toggle-switch" onclick="togglePrivateChat()"></div>
+        </div>
 
         <button class="btn-primary" onclick="clearChatFromQP()" style="margin:0; width: 100%; border-radius: 16px; padding: 14px; font-size: 15px; background: rgba(255, 77, 106, 0.1); color: var(--danger); box-shadow: none;">
             <span class="material-symbols-outlined">mop</span> Clear Chat
@@ -3077,6 +3079,8 @@ let postLimit = 10;
 let isFriendsEditMode = false;
 let friendsToDelete = [];
 let lastActionTime = 0;
+let currentChatId=null, currentChatOtherUid=null;
+let isPrivateChatActive = false; // 🚀 নতুন Private Chat ট্র্যাকার
 
 // ===== UTILITY FUNCTIONS =====
 function escapeHTML(str){
@@ -3674,6 +3678,9 @@ function handleAppVisibility() {
             online: false,
             lastSeen: firebase.firestore.FieldValue.serverTimestamp()
         }).catch(()=>{});
+        
+        // 🚀 আপডেট: অ্যাপ মিনিমাইজ করলে প্রাইভেট মেসেজ মুছে যাবে
+        if (currentChatId) wipePrivateMessages(currentChatId);
     }
 }
 document.addEventListener("visibilitychange", handleAppVisibility);
@@ -3685,6 +3692,9 @@ window.addEventListener('beforeunload',()=>{
             online: false,
             lastSeen: firebase.firestore.FieldValue.serverTimestamp()
         }).catch(()=>{});
+        
+        // 🚀 আপডেট: অ্যাপ কেটে দিলে প্রাইভেট মেসেজ মুছে যাবে
+        if (currentChatId) wipePrivateMessages(currentChatId);
     }
 });
 
@@ -5493,66 +5503,76 @@ showToast('Message deleted');
 }
 
 function closeChat(){
-document.getElementById('chat-screen').classList.remove('open');
+    document.getElementById('chat-screen').classList.remove('open');
+    const wallpaperBg = document.getElementById('chat-wallpaper-bg');
+    if(wallpaperBg) wallpaperBg.style.display = 'none';
 
-// 🚀 চ্যাট বন্ধ করলে ফুল-স্ক্রিন ওয়ালপেপার হাইড করে দেবে
-const wallpaperBg = document.getElementById('chat-wallpaper-bg');
-if(wallpaperBg) wallpaperBg.style.display = 'none';
+    // 🚀 চ্যাট ক্লোজ করলেই প্রাইভেট মেসেজ মুছে যাবে
+    if (currentChatId) {
+        wipePrivateMessages(currentChatId);
+    }
+    isPrivateChatActive = false; // চ্যাট থেকে বের হলে মুড অটো অফ হবে
 
-if(chatUnsub)chatUnsub();
-if(onlineUnsub)onlineUnsub();
-currentChatId=null;
-currentChatOtherUid=null;
-setTypingStatus(false);
+    if(chatUnsub)chatUnsub();
+    if(onlineUnsub)onlineUnsub();
+    currentChatId=null;
+    currentChatOtherUid=null;
+    setTypingStatus(false);
 }
+
 
 async function sendMsg(){
-const inp=document.getElementById('chat-input');
-const text=inp.value.trim();
-if(!text||!currentChatId||!checkRateLimit())return;
-inp.value='';
-setTypingStatus(false);
-const msgData={
-uid:currentUser.uid,
-senderName: currentUserData.name || 'User', // <-- ফায়ারবেসে নাম সেভ হবে
-text:text,
-createdAt:firebase.firestore.FieldValue.serverTimestamp()
-};
-// 🚀 রিপ্লাইয়ের বিস্তারিত তথ্য মেসেজের সাথে সেভ হবে
-if(currentReplyMsgId && replyToMsgData){
-    msgData.replyTo = currentReplyMsgId;
-    msgData.replySender = replyToMsgData.senderName || 'User';
-    msgData.replyText = replyToMsgData.text || '📷 Photo';
+    const inp=document.getElementById('chat-input');
+    const text=inp.value.trim();
+    if(!text||!currentChatId||!checkRateLimit())return;
+    inp.value='';
+    setTypingStatus(false);
     
-    // রিসেট করা
-    currentReplyMsgId = null;
-    replyToMsgData = null;
-    document.getElementById('reply-preview-container').innerHTML = '';
-    inp.placeholder = 'Message...';
-}
-await db.collection('chats').doc(currentChatId).collection('messages').add(msgData);
+    // এই সেই কোড যা আপডেট করতে হবে:
+    const msgData={
+        uid:currentUser.uid,
+        senderName: currentUserData.name || 'User',
+        text:text,
+        isPrivate: isPrivateChatActive, // এখানে বসবে
+        createdAt:firebase.firestore.FieldValue.serverTimestamp()
+    };
+    
+    // 🚀 রিপ্লাইয়ের বিস্তারিত তথ্য মেসেজের সাথে সেভ হবে
+    if(currentReplyMsgId && replyToMsgData){
+        msgData.replyTo = currentReplyMsgId;
+        msgData.replySender = replyToMsgData.senderName || 'User';
+        msgData.replyText = replyToMsgData.text || '📷 Photo';
+        
+        // রিসেট করা
+        currentReplyMsgId = null;
+        replyToMsgData = null;
+        document.getElementById('reply-preview-container').innerHTML = '';
+        inp.placeholder = 'Message...';
+    }
+    await db.collection('chats').doc(currentChatId).collection('messages').add(msgData);
 
-// লাস্ট মেসেজে সেন্ডারের নাম দেখানো (গ্রুপের জন্য)
-let lastText = text;
-if (currentChatOtherUid === 'group') {
-    lastText = (currentUserData.name || 'User') + ": " + text;
+    // লাস্ট মেসেজে সেন্ডারের নাম দেখানো (গ্রুপের জন্য)
+    let lastText = text;
+    if (currentChatOtherUid === 'group') {
+        lastText = (currentUserData.name || 'User') + ": " + text;
+    }
+
+    await db.collection('chats').doc(currentChatId).set({
+        lastMsg: lastText,
+        lastAt: firebase.firestore.FieldValue.serverTimestamp(),
+        names: { 
+            [currentUser.uid]: currentUserData.name, 
+            [currentChatOtherUid]: document.getElementById('chat-name-display').textContent 
+        },
+        avatars: { 
+            [currentUser.uid]: currentUserData.avatar || '', 
+            [currentChatOtherUid]: '' 
+        },
+        lastSender: currentUser.uid, 
+        isRead: false 
+    }, { merge: true });
 }
 
-await db.collection('chats').doc(currentChatId).set({
-    lastMsg: lastText,
-    lastAt: firebase.firestore.FieldValue.serverTimestamp(),
-    names: { 
-        [currentUser.uid]: currentUserData.name, 
-        [currentChatOtherUid]: document.getElementById('chat-name-display').textContent 
-    },
-    avatars: { 
-        [currentUser.uid]: currentUserData.avatar || '', 
-        [currentChatOtherUid]: '' 
-    },
-    lastSender: currentUser.uid, // কে মেসেজ পাঠালো
-    isRead: false // মেসেজটি এখনো পড়া হয়নি
-}, { merge: true });
-}
 
 async function sendChatImage(input){
 const file=input.files[0];
@@ -5580,11 +5600,12 @@ if(currentReplyMsgId && replyToMsgData){
     document.getElementById('chat-input').placeholder = 'Message...';
 }
 await db.collection('chats').doc(currentChatId).collection('messages').add({
-uid:currentUser.uid,
-senderName: currentUserData.name || 'User', // <-- ছবির সাথে নাম সেভ হবে
-text:'',
-imageUrl:url,
-createdAt:firebase.firestore.FieldValue.serverTimestamp()
+    uid: currentUser.uid,
+    senderName: currentUserData.name || 'User',
+    text: '',
+    imageUrl: url,
+    isPrivate: isPrivateChatActive, // 🚀 এখানে এটি যুক্ত করুন
+    createdAt: firebase.firestore.FieldValue.serverTimestamp()
 });
 
 let lastText = '📷 Photo';
@@ -7516,6 +7537,39 @@ async function executeDelete(type) {
 }
 // ===== NEW CHAT HEADER MENU FUNCTIONS =====
 
+// ==========================================
+// 🚀 PRIVATE CHAT SYSTEM LOGIC
+// ==========================================
+function togglePrivateChat() {
+    isPrivateChatActive = !isPrivateChatActive;
+    const toggleEl = document.getElementById('qp-private-chat-toggle');
+    if (isPrivateChatActive) {
+        toggleEl.classList.add('active');
+        showToast("Private Chat ON! Messages will vanish on exit.");
+    } else {
+        toggleEl.classList.remove('active');
+        showToast("Private Chat OFF.");
+    }
+}
+
+async function wipePrivateMessages(chatId) {
+    if (!chatId) return;
+    try {
+        const messagesRef = db.collection('chats').doc(chatId).collection('messages');
+        const snap = await messagesRef.where('isPrivate', '==', true).get();
+        if (snap.empty) return;
+        
+        const batch = db.batch();
+        snap.forEach(doc => {
+            batch.delete(doc.ref);
+        });
+        await batch.commit();
+        console.log("Private messages wiped permanently from Firebase.");
+    } catch (e) {
+        console.error("Failed to wipe private messages", e);
+    }
+}
+
 // চ্যাট থেকে নামের ওপর ক্লিক করলে পপ-আপ ওপেন হবে
 // পপ-আপ ওপেন করার ফাংশনটি এভাবে আপডেট করুন
 function viewProfileFromChat() {
@@ -7539,7 +7593,7 @@ function viewProfileFromChat() {
     document.getElementById('qp-name').innerHTML = nameText + vBadge;
     document.getElementById('qp-avatar').innerHTML = avatarHtml;
         
-    // ইউজারের চ্যাট মিউট করা আছে কিনা চেক করে বাটনের টেক্সট ঠিক করা
+        // ইউজারের চ্যাট মিউট করা আছে কিনা চেক করে বাটনের টেক্সট ঠিক করা
     const isMuted = currentUserData.mutedChats?.includes(currentChatId);
     const muteBtn = document.getElementById('qp-mute-btn');
     if (isMuted) {
@@ -7547,10 +7601,18 @@ function viewProfileFromChat() {
     } else {
         muteBtn.innerHTML = '<span class="material-symbols-outlined">notifications_off</span> Mute';
     }
+    
+    // 🚀 প্রাইভেট চ্যাটের সুইচের বর্তমান অবস্থা সিঙ্ক করা
+    const privateToggleBtn = document.getElementById('qp-private-chat-toggle');
+    if (isPrivateChatActive) {
+        privateToggleBtn.classList.add('active');
+    } else {
+        privateToggleBtn.classList.remove('active');
+    }
+
     // পপ-আপ ওপেন করা
     document.getElementById('quick-profile-modal').classList.add('open');
 }
-
 
 // পপ-আপ বন্ধ করার ফাংশন
 function closeQuickProfile() {
