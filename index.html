@@ -2689,15 +2689,6 @@ NESTED ACTIVITY CATEGORIES STYLES
                 <span class="material-symbols-outlined" style="color:var(--text-muted); font-size: 20px;">chevron_right</span>
             </div>
             
-            
-<div class="settings-list-item" onclick="openChatPrivacyPage()">
-    <div style="display:flex; align-items:center; gap:16px;">
-        <span class="material-symbols-outlined" style="font-size: 24px; color: #3b82f6;">chat_bubble</span>
-        <span style="font-weight:600; font-size:15px;">Chat</span>
-    </div>
-    <span class="material-symbols-outlined" style="color:var(--text-muted);">chevron_right</span>
-</div>
-
             <div class="settings-list-item" onclick="openShareModal();">
                 <div style="display:flex; align-items:center; gap:16px;">
                     <span class="material-symbols-outlined" style="font-size: 22px;">qr_code_scanner</span>
@@ -3148,60 +3139,6 @@ NESTED ACTIVITY CATEGORIES STYLES
                 <li>Update the app to the latest version</li>
                 <li>Clear app cache from settings</li>
             </ul>
-        </div>
-    </div>
-</div>
-
-<!-- 🚀 Chat Privacy Screen -->
-<div id="chat-privacy-screen" style="display:none; position:fixed; inset:0; background:var(--bg); z-index:10005; flex-direction:column; overflow-y:auto; animation:slideUp 0.3s ease;">
-    <div class="chat-topbar" style="position:sticky; top:0; z-index:100; display:flex; justify-content:space-between; align-items:center;">
-        <div style="display:flex; align-items:center; gap:12px;">
-            <div class="chat-back" onclick="closeChatPrivacyPage()"><span class="material-symbols-outlined">arrow_back</span></div>
-            <div style="font-weight:800; font-size:18px;">Chat Privacy</div>
-        </div>
-        <button class="btn-primary" onclick="saveChatPrivacy()" style="margin:0; width:auto; padding:8px 16px; border-radius:20px; font-size:14px;">Save</button>
-    </div>
-    
-    <div style="padding: 24px 20px; display:flex; flex-direction:column; gap:20px;">
-        <!-- Header Section -->
-        <div style="text-align:center; margin-bottom:10px;">
-            <div style="width:64px; height:64px; background:var(--accent-glow); border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 16px;">
-                <span class="material-symbols-outlined" style="font-size:32px; color:var(--accent);">lock</span>
-            </div>
-            <h2 style="font-size:20px; font-weight:800; color:var(--text); margin-bottom:8px;">Who can message you?</h2>
-            <p style="font-size:14px; color:var(--text-secondary); line-height:1.6;">
-                Make sure who can message you.<br>
-                <span style="color:var(--warning); font-weight:600;">Note: This is very important for your security.</span>
-            </p>
-        </div>
-
-        <!-- Options Section -->
-        <div style="background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); overflow:hidden;">
-            <label class="privacy-option" style="display:flex; align-items:center; padding:16px; cursor:pointer; border-bottom:1px solid var(--border); transition:background 0.2s;" onmouseover="this.style.background='var(--surface-2)'" onmouseout="this.style.background='transparent'">
-                <input type="radio" name="chat-privacy" value="public" id="opt-public" style="width:20px; height:20px; accent-color:var(--accent); margin-right:16px;">
-                <div style="flex:1;">
-                    <div style="font-weight:700; font-size:15px; color:var(--text);">Public</div>
-                    <div style="font-size:13px; color:var(--text-muted); margin-top:4px;">Anyone can send you messages from their profile.</div>
-                </div>
-            </label>
-            
-            <label class="privacy-option" style="display:flex; align-items:center; padding:16px; cursor:pointer; transition:background 0.2s;" onmouseover="this.style.background='var(--surface-2)'" onmouseout="this.style.background='transparent'">
-                <input type="radio" name="chat-privacy" value="following" id="opt-following" style="width:20px; height:20px; accent-color:var(--accent); margin-right:16px;">
-                <div style="flex:1;">
-                    <div style="font-weight:700; font-size:15px; color:var(--text);">Those I follow</div>
-                    <div style="font-size:13px; color:var(--text-muted); margin-top:4px;">Only people you follow can message you.</div>
-                </div>
-            </label>
-        </div>
-
-        <!-- Info Card -->
-        <div style="padding:16px; background:var(--surface-2); border-radius:var(--radius-md); border-left:4px solid var(--accent);">
-            <div style="display:flex; gap:12px; align-items:flex-start;">
-                <span class="material-symbols-outlined" style="color:var(--accent); font-size:20px;">info</span>
-                <div style="font-size:13px; color:var(--text-secondary); line-height:1.5;">
-                    Changing this setting will not affect existing conversations. New message requests from non-followers will be hidden if you choose "Those I follow".
-                </div>
-            </div>
         </div>
     </div>
 </div>
@@ -5180,19 +5117,6 @@ viewUserProfile(uid);
 
 // ===== CHAT FUNCTIONS =====
 function openChat(chatId, otherUid, otherName, otherAvatar){
-    if(otherUid !== 'group' && otherUid !== currentUser.uid) {
-        const targetUser = allUsersCache ? allUsersCache.find(u => u.id === otherUid) : null;
-        const targetPrivacy = targetUser?.chatPrivacy || 'public';
-        
-        if(targetPrivacy === 'following') {
-            // চেক করবে আপনি কি এই ব্যক্তিকে ফলো করেন কিনা
-            const amIFollowing = currentUserData.following?.includes(otherUid);
-            if(!amIFollowing) {
-                showToast(" You cannot message this user. They only accept messages from people they follow.");
-                return; // ফাংশন এখানেই থামিয়ে দেবে
-            }
-        }
-    }
     currentChatId=chatId;
     currentChatOtherUid=otherUid;
     document.getElementById('chat-screen').classList.add('open');
@@ -9971,49 +9895,6 @@ function openSupportPage() {
 
 function closeSupportPage() {
     document.getElementById('support-screen').style.display = 'none';
-}
-// ==========================================
-// 🚀 CHAT PRIVACY SYSTEM LOGIC
-// ==========================================
-
-// ১. পেজ ওপেন করার ফাংশন
-function openChatPrivacyPage() {
-    document.getElementById('chat-privacy-screen').style.display = 'flex';
-    
-    // বর্তমান সেটিং লোড করা
-    const currentSetting = currentUserData.chatPrivacy || 'public';
-    if(currentSetting === 'following') {
-        document.getElementById('opt-following').checked = true;
-    } else {
-        document.getElementById('opt-public').checked = true;
-    }
-}
-
-// ২. পেজ ক্লোজ করার ফাংশন
-function closeChatPrivacyPage() {
-    document.getElementById('chat-privacy-screen').style.display = 'none';
-}
-
-// ৩. সেটিং সেভ করার ফাংশন
-async function saveChatPrivacy() {
-    const selectedOption = document.querySelector('input[name="chat-privacy"]:checked').value;
-    
-    showToast("Saving privacy settings...");
-    
-    try {
-        await db.collection('users').doc(currentUser.uid).update({
-            chatPrivacy: selectedOption
-        });
-        
-        // লোকাল ডাটা আপডেট
-        currentUserData.chatPrivacy = selectedOption;
-        
-        showToast(`Chat privacy set to: ${selectedOption === 'public' ? 'Public' : 'Those I follow'}`);
-        closeChatPrivacyPage();
-    } catch(e) {
-        showToast("Failed to save settings");
-        console.error(e);
-    }
 }
 </script>
 </body>
