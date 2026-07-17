@@ -1794,6 +1794,63 @@ PINNED MESSAGE STYLES
     0%, 100% { transform: scale(1); }
     50% { transform: scale(1.2); }
 }
+/* =========================================
+NESTED ACTIVITY CATEGORIES STYLES
+========================================= */
+.activity-sub-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    width: 100%;
+    max-height: 60vh;
+    overflow-y: auto;
+    padding-bottom: 20px;
+}
+
+.activity-sub-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 14px;
+    transition: all 0.2s;
+    color: var(--text);
+}
+
+.activity-sub-item:hover {
+    background: var(--surface);
+    border-color: var(--accent);
+    transform: translateY(-2px);
+}
+
+.activity-sub-item .material-symbols-outlined {
+    font-size: 22px;
+}
+
+.back-to-main-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    margin-bottom: 16px;
+    background: transparent;
+    border: none;
+    color: var(--accent);
+    font-weight: 700;
+    font-size: 15px;
+    cursor: pointer;
+    border-radius: var(--radius-md);
+    transition: background 0.2s;
+}
+
+.back-to-main-btn:hover {
+    background: var(--surface-2);
+}
 </style>
 </head>
 <body>
@@ -2440,33 +2497,22 @@ PINNED MESSAGE STYLES
 <div class="modal-overlay" id="activity-modal" style="z-index: 10005;">
     <div class="modal-box" style="max-height:80vh; display:flex; flex-direction:column;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
-            <div class="modal-title" style="margin:0;">How are you feeling?</div>
+            <div class="modal-title" style="margin:0;" id="activity-modal-title">How are you feeling?</div>
             <button class="modal-close" onclick="closeActivityModal()" style="position:static;"><span class="material-symbols-outlined">close</span></button>
         </div>
-        <div style="display:grid; grid-template-columns: repeat(2, 1fr); gap: 10px; overflow-y:auto; padding-bottom:20px;">
-            <div class="activity-item" onclick="selectActivity('mood', 'feeling happy')">
-                <span class="material-symbols-outlined" style="color:#f59e0b;">mood</span> Happy
-            </div>
-            <div class="activity-item" onclick="selectActivity('celebration', 'celebrating')">
-                <span class="material-symbols-outlined" style="color:#e91e63;">celebration</span> Celebrating
-            </div>
-            <div class="activity-item" onclick="selectActivity('flight_takeoff', 'traveling to')">
-                <span class="material-symbols-outlined" style="color:#3b82f6;">flight_takeoff</span> Traveling
-            </div>
-            <div class="activity-item" onclick="selectActivity('movie', 'watching a movie')">
-                <span class="material-symbols-outlined" style="color:#8b5cf6;">movie</span> Watching
-            </div>
-            <div class="activity-item" onclick="selectActivity('headphones', 'listening to music')">
-                <span class="material-symbols-outlined" style="color:#22c55e;">headphones</span> Listening
-            </div>
-            <div class="activity-item" onclick="selectActivity('sports_esports', 'playing games')">
-                <span class="material-symbols-outlined" style="color:#ef4444;">sports_esports</span> Playing
-            </div>
-            <div class="activity-item" onclick="selectActivity('restaurant', 'eating')">
-                <span class="material-symbols-outlined" style="color:#f97316;">restaurant</span> Eating
-            </div>
-            <div class="activity-item" onclick="selectActivity('favorite', 'feeling loved')">
-                <span class="material-symbols-outlined" style="color:#ef4444;">favorite</span> Loved
+        
+        <!-- Main Categories View -->
+        <div id="activity-main-view" style="display:grid; grid-template-columns: repeat(2, 1fr); gap: 10px; overflow-y:auto; padding-bottom:20px;">
+            <!-- JS will populate this -->
+        </div>
+
+        <!-- Sub Categories View (Hidden by default) -->
+        <div id="activity-sub-view" style="display:none; flex-direction:column;">
+            <button class="back-to-main-btn" onclick="showMainActivities()">
+                <span class="material-symbols-outlined">arrow_back</span> Back to categories
+            </button>
+            <div id="activity-sub-container" class="activity-sub-grid">
+                <!-- JS will populate this -->
             </div>
         </div>
     </div>
@@ -9301,6 +9347,161 @@ async function toggleAdvancedPrivacy() {
         showToast("Failed to update privacy settings");
     }
 }
+// ===== NESTED ACTIVITY SYSTEM DATA & LOGIC =====
+const activityCategories = {
+    'happy': {
+        title: 'Feeling Happy',
+        icon: 'mood',
+        color: '#f59e0b',
+        items: [
+            { text: 'feeling happy', icon: 'sentiment_satisfied_alt' },
+            { text: 'feeling excited', icon: 'stars' },
+            { text: 'feeling blessed', icon: 'self_improvement' },
+            { text: 'feeling grateful', icon: 'favorite' },
+            { text: 'feeling energetic', icon: 'bolt' },
+            { text: 'feeling silly', icon: 'emoji_emotions' }
+        ]
+    },
+    'celebrating': {
+        title: 'Celebrating',
+        icon: 'celebration',
+        color: '#e91e63',
+        items: [
+            { text: 'celebrating birthday', icon: 'cake' },
+            { text: 'celebrating anniversary', icon: 'champagne' },
+            { text: 'celebrating achievement', icon: 'trophy' },
+            { text: 'celebrating new job', icon: 'work' },
+            { text: 'celebrating graduation', icon: 'school' },
+            { text: 'celebrating festival', icon: 'festival' }
+        ]
+    },
+    'traveling': {
+        title: 'Traveling',
+        icon: 'flight_takeoff',
+        color: '#3b82f6',
+        items: [
+            { text: 'traveling to beach', icon: 'beach_access' },
+            { text: 'traveling to mountains', icon: 'landscape' },
+            { text: 'exploring a city', icon: 'location_city' },
+            { text: 'on a road trip', icon: 'directions_car' },
+            { text: 'vacationing', icon: 'umbrella' },
+            { text: 'going on adventure', icon: 'hiking' }
+        ]
+    },
+    'watching': {
+        title: 'Watching',
+        icon: 'movie',
+        color: '#8b5cf6',
+        items: [
+            { text: 'watching a movie', icon: 'local_movies' },
+            { text: 'binge-watching series', icon: 'tv' },
+            { text: 'watching sports', icon: 'sports_soccer' },
+            { text: 'watching live concert', icon: 'concert' },
+            { text: 'watching sunset', icon: 'wb_twilight' },
+            { text: 'people watching', icon: 'visibility' }
+        ]
+    },
+    'listening': {
+        title: 'Listening',
+        icon: 'headphones',
+        color: '#22c55e',
+        items: [
+            { text: 'listening to music', icon: 'music_note' },
+            { text: 'listening to podcast', icon: 'podcasts' },
+            { text: 'listening to audiobook', icon: 'book' },
+            { text: 'listening to rain', icon: 'rainy' },
+            { text: 'listening to nature', icon: 'park' },
+            { text: 'jamming to beats', icon: 'graphic_eq' }
+        ]
+    },
+    'playing': {
+        title: 'Playing',
+        icon: 'sports_esports',
+        color: '#ef4444',
+        items: [
+            { text: 'playing video games', icon: 'videogame_asset' },
+            { text: 'playing football', icon: 'sports_soccer' },
+            { text: 'playing cricket', icon: 'sports_cricket' },
+            { text: 'playing guitar', icon: 'guitar' },
+            { text: 'playing with pets', icon: 'pets' },
+            { text: 'playing board games', icon: 'casino' }
+        ]
+    },
+    'eating': {
+        title: 'Eating',
+        icon: 'restaurant',
+        color: '#f97316',
+        items: [
+            { text: 'eating delicious food', icon: 'fastfood' },
+            { text: 'trying new cuisine', icon: 'ramen_dining' },
+            { text: 'having coffee', icon: 'coffee' },
+            { text: 'eating dessert', icon: 'icecream' },
+            { text: 'cooking at home', icon: 'kitchen' },
+            { text: 'having a feast', icon: 'dinner_dining' }
+        ]
+    },
+    'loved': {
+        title: 'Feeling Loved',
+        icon: 'favorite',
+        color: '#ef4444',
+        items: [
+            { text: 'feeling loved', icon: 'favorite' },
+            { text: 'spending time with family', icon: 'family_restroom' },
+            { text: 'hanging with friends', icon: 'groups' },
+            { text: 'romantic date night', icon: 'wine_bar' },
+            { text: 'cuddling', icon: 'bed' },
+            { text: 'receiving flowers', icon: 'local_florist' }
+        ]
+    }
+};
+
+// Render Main Categories
+function renderMainActivities() {
+    const container = document.getElementById('activity-main-view');
+    if(!container) return;
+    
+    let html = '';
+    for(let key in activityCategories) {
+        const cat = activityCategories[key];
+        html += `
+        <div class="activity-item" onclick="openActivitySubCategory('${key}')">
+            <span class="material-symbols-outlined" style="color:${cat.color}">${cat.icon}</span> 
+            ${cat.title.replace('Feeling ', '').replace('to ', '')}
+        </div>`;
+    }
+    container.innerHTML = html;
+}
+
+// Open Sub Category
+function openActivitySubCategory(key) {
+    const cat = activityCategories[key];
+    document.getElementById('activity-modal-title').textContent = cat.title;
+    document.getElementById('activity-main-view').style.display = 'none';
+    document.getElementById('activity-sub-view').style.display = 'flex';
+    
+    const subContainer = document.getElementById('activity-sub-container');
+    let html = '';
+    cat.items.forEach(item => {
+        html += `
+        <div class="activity-sub-item" onclick="selectActivity('${item.icon}', '${item.text}')">
+            <span class="material-symbols-outlined" style="color:${cat.color}">${item.icon}</span> 
+            ${item.text.charAt(0).toUpperCase() + item.text.slice(1)}
+        </div>`;
+    });
+    subContainer.innerHTML = html;
+}
+
+// Go Back to Main List
+function showMainActivities() {
+    document.getElementById('activity-modal-title').textContent = 'How are you feeling?';
+    document.getElementById('activity-sub-view').style.display = 'none';
+    document.getElementById('activity-main-view').style.display = 'grid';
+}
+
+// Initialize when DOM loads
+document.addEventListener('DOMContentLoaded', () => {
+    renderMainActivities();
+});
 </script>
 </body>
 </html>
