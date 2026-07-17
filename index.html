@@ -1,4 +1,4 @@
-!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1409,6 +1409,18 @@ body:not(.light-mode) #splash-screen {
 body:not(.light-mode) #splash-screen {
     background: var(--bg);
 }
+/* =========================================
+   ACTIVITY / FEELING MODAL STYLES
+   ========================================= */
+.activity-item {
+    display: flex; align-items: center; gap: 8px; padding: 12px;
+    background: var(--surface-2); border: 1px solid var(--border);
+    border-radius: var(--radius-md); cursor: pointer; font-weight: 600;
+    font-size: 14px; transition: all 0.2s; color: var(--text);
+}
+.activity-item:hover { 
+    background: var(--surface); border-color: var(--accent); transform: translateY(-2px); 
+}
 /* Tag Preview Styles */
 .tag-preview-container {
   display: none;
@@ -2078,8 +2090,6 @@ PINNED MESSAGE STYLES
     <div class="setting-item" onclick="toggleFabMenu();openCreatePost();"><span class="material-symbols-outlined" style="color:var(--accent);">edit_document</span> Create Post</div>
     <label class="setting-item" style="margin:0;"><span class="material-symbols-outlined" style="color:var(--accent-light);">image</span> Add Photo/Video Story<input type="file" accept="image/*,video/*" style="display:none" onchange="toggleFabMenu();uploadStory(this)"></label>
     <div class="setting-item" onclick="toggleFabMenu();openTextStoryModal();" style="margin:0;"><span class="material-symbols-outlined" style="color:#f59e0b;">font_download</span> Add Text Story</div>
-    <div class="setting-item" onclick="toggleFabMenu(); openLifeUpdateModal();" style="margin:0;">
-        <span class="material-symbols-outlined" style="color:#22c55e;">flag</span> Life Update
 </div>
 </div>
 
@@ -2205,6 +2215,10 @@ PINNED MESSAGE STYLES
     
     <label style="cursor:pointer;color:#f59e0b;display:flex;padding:8px;background:var(--surface-2);border-radius:50%;" onclick="toggleColorPicker()">
         <span class="material-symbols-outlined" style="font-size:22px;">palette</span>
+    </label>
+
+    <label style="cursor:pointer;color:#ff4d6a;display:flex;padding:8px;background:var(--surface-2);border-radius:50%;" onclick="openActivityModal()" title="Feeling/Activity">
+        <span class="material-symbols-outlined" style="font-size:22px;">mood</span>
     </label>
 
     <div class="img-btn" onclick="openTagModal()" style="border:none;padding:8px 14px;background:var(--surface-2);border-radius:var(--radius-md);">
@@ -2396,7 +2410,7 @@ PINNED MESSAGE STYLES
 <label for="chat-img-input" style="cursor:pointer;color:var(--accent);padding:8px;display:flex;">
 <span class="material-symbols-outlined" style="font-size:24px;">image</span>
 </label>
-<input type="file" id="chat-img-input" accept="image/*" multiple style="display:none;" onchange="sendChatImage(this)">
+<input type="file" id="chat-img-input" accept="image/*" style="display:none;" onchange="sendChatImage(this)">
 <button class="chat-send-btn" onclick="sendMsg()">
 <span class="material-symbols-outlined" style="font-size:20px;">send</span>
 </button>
@@ -2421,6 +2435,41 @@ PINNED MESSAGE STYLES
 </div>
 <button class="btn-primary" onclick="saveEditedPost()">Save Changes</button>
 </div>
+</div>
+
+<div class="modal-overlay" id="activity-modal" style="z-index: 10005;">
+    <div class="modal-box" style="max-height:80vh; display:flex; flex-direction:column;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+            <div class="modal-title" style="margin:0;">How are you feeling?</div>
+            <button class="modal-close" onclick="closeActivityModal()" style="position:static;"><span class="material-symbols-outlined">close</span></button>
+        </div>
+        <div style="display:grid; grid-template-columns: repeat(2, 1fr); gap: 10px; overflow-y:auto; padding-bottom:20px;">
+            <div class="activity-item" onclick="selectActivity('mood', 'feeling happy')">
+                <span class="material-symbols-outlined" style="color:#f59e0b;">mood</span> Happy
+            </div>
+            <div class="activity-item" onclick="selectActivity('celebration', 'celebrating')">
+                <span class="material-symbols-outlined" style="color:#e91e63;">celebration</span> Celebrating
+            </div>
+            <div class="activity-item" onclick="selectActivity('flight_takeoff', 'traveling to')">
+                <span class="material-symbols-outlined" style="color:#3b82f6;">flight_takeoff</span> Traveling
+            </div>
+            <div class="activity-item" onclick="selectActivity('movie', 'watching a movie')">
+                <span class="material-symbols-outlined" style="color:#8b5cf6;">movie</span> Watching
+            </div>
+            <div class="activity-item" onclick="selectActivity('headphones', 'listening to music')">
+                <span class="material-symbols-outlined" style="color:#22c55e;">headphones</span> Listening
+            </div>
+            <div class="activity-item" onclick="selectActivity('sports_esports', 'playing games')">
+                <span class="material-symbols-outlined" style="color:#ef4444;">sports_esports</span> Playing
+            </div>
+            <div class="activity-item" onclick="selectActivity('restaurant', 'eating')">
+                <span class="material-symbols-outlined" style="color:#f97316;">restaurant</span> Eating
+            </div>
+            <div class="activity-item" onclick="selectActivity('favorite', 'feeling loved')">
+                <span class="material-symbols-outlined" style="color:#ef4444;">favorite</span> Loved
+            </div>
+        </div>
+    </div>
 </div>
 
 <div class="modal-overlay" id="friends-list-modal">
@@ -2478,30 +2527,6 @@ PINNED MESSAGE STYLES
 </div>
 <div id="leaderboard-list" style="overflow-y:auto;flex:1;margin-bottom:10px;max-height:60vh;display:flex;flex-direction:column;gap:8px;"></div>
 </div>
-</div>
-
-<!-- Life Update Modal -->
-<div class="modal-overlay" id="life-update-modal" style="z-index: 10006;">
-    <div class="modal-box">
-        <button class="modal-close" onclick="closeLifeUpdateModal()"><span class="material-symbols-outlined">close</span></button>
-        <div class="modal-title">Create Life Update</div>
-        
-        <div class="input-group">
-            <label>Choose Icon</label>
-            <div style="display:flex; gap:15px; flex-wrap:wrap; margin-top:10px;">
-                <i class="ph ph-briefcase" style="font-size:28px; cursor:pointer;" onclick="selectLifeIcon('ph-briefcase')"></i>
-                <i class="ph ph-graduation-cap" style="font-size:28px; cursor:pointer;" onclick="selectLifeIcon('ph-graduation-cap')"></i>
-                <i class="ph ph-heart" style="font-size:28px; cursor:pointer;" onclick="selectLifeIcon('ph-heart')"></i>
-                <i class="ph ph-house" style="font-size:28px; cursor:pointer;" onclick="selectLifeIcon('ph-house')"></i>
-                <i class="ph ph-airplane" style="font-size:28px; cursor:pointer;" onclick="selectLifeIcon('ph-airplane')"></i>
-            </div>
-        </div>
-        
-        <input type="text" id="life-title" placeholder="What happened?" class="input-group" style="padding:15px; width:100%;">
-        <input type="date" id="life-date" class="input-group" style="padding:15px; width:100%;">
-        
-        <button class="btn-primary" onclick="submitLifeUpdate()">Post Update</button>
-    </div>
 </div>
 
 <div class="modal-overlay" id="forward-modal">
@@ -3022,6 +3047,7 @@ let activeCommentPostId=null,commentPanelListener=null;
 let currentFeedTab='foryou';
 let currentTaggedFriends=[];
 let currentTaggedNames = [];
+let currentPostActivity = null; // নতুন যোগ করা হলো
 let currentEditPostId=null;
 let activeStoryGroup=[];
 let currentStoryIndex=0;
@@ -5512,56 +5538,54 @@ await db.collection('chats').doc(currentChatId).set({
 }, { merge: true });
 }
 
-// নতুন মাল্টিপল ইমেজ সাপোর্ট কোড
 async function sendChatImage(input){
-    const files = Array.from(input.files); 
-    if(files.length === 0 || !currentChatId) return;
+const file=input.files[0];
+if(!file||!currentChatId)return;
+showToast('Uploading image...');
+try{
+const url=await uploadToCloudinary(file,false);
+let imageMsgData = {
+    uid:currentUser.uid,
+    senderName: currentUserData.name || 'User',
+    text:'',
+    imageUrl:url,
+    createdAt:firebase.firestore.FieldValue.serverTimestamp()
+};
+
+// 🚀 ইমেজের সাথেও রিপ্লাই ডাটা সেভ হবে
+if(currentReplyMsgId && replyToMsgData){
+    imageMsgData.replyTo = currentReplyMsgId;
+    imageMsgData.replySender = replyToMsgData.senderName || 'User';
+    imageMsgData.replyText = replyToMsgData.text || '📷 Photo';
     
-    showToast(`Uploading ${files.length} image(s)...`);
-    
-    try {
-        const uploadPromises = files.map(file => uploadToCloudinary(file, false));
-        const imageUrls = await Promise.all(uploadPromises); 
-        
-        for (const url of imageUrls) {
-            let imageMsgData = {
-                uid: currentUser.uid,
-                senderName: currentUserData.name || 'User',
-                text: '',
-                imageUrl: url,
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            };
-            
-            if(currentReplyMsgId && replyToMsgData){
-                imageMsgData.replyTo = currentReplyMsgId;
-                imageMsgData.replySender = replyToMsgData.senderName || 'User';
-                imageMsgData.replyText = replyToMsgData.text || '📷 Photo';
-            }
-            
-            await db.collection('chats').doc(currentChatId).collection('messages').add(imageMsgData);
-        }
-        
-        let lastText = '📷 ' + files.length + ' Photo(s)';
-        if (currentChatOtherUid === 'group') {
-            lastText = (currentUserData.name || 'User') + " sent photos";
-        }
-        
-        await db.collection('chats').doc(currentChatId).set({
-            lastMsg: lastText,
-            lastAt: firebase.firestore.FieldValue.serverTimestamp(),
-            lastSender: currentUser.uid,
-            isRead: false
-        }, { merge: true });
-        
-        cancelReply();
-        showToast('Images sent!');
-    } catch(e) {
-        console.error(e);
-        showToast('Failed to send images');
-    }
-    input.value = '';
+    currentReplyMsgId = null;
+    replyToMsgData = null;
+    document.getElementById('reply-preview-container').innerHTML = '';
+    document.getElementById('chat-input').placeholder = 'Message...';
+}
+await db.collection('chats').doc(currentChatId).collection('messages').add({
+uid:currentUser.uid,
+senderName: currentUserData.name || 'User', // <-- ছবির সাথে নাম সেভ হবে
+text:'',
+imageUrl:url,
+createdAt:firebase.firestore.FieldValue.serverTimestamp()
+});
+
+let lastText = '📷 Photo';
+if (currentChatOtherUid === 'group') {
+    lastText = (currentUserData.name || 'User') + " sent a photo";
 }
 
+await db.collection('chats').doc(currentChatId).set({
+    lastMsg: lastText,
+    lastAt: firebase.firestore.FieldValue.serverTimestamp(),
+    lastSender: currentUser.uid,
+    isRead: false
+}, { merge: true });
+showToast('Image sent!');
+}catch(e){showToast('Failed to send image');}
+input.value='';
+}
 
 // --- ইন-অ্যাপ নোটিফিকেশন ফাংশন (Smart Version) ---
 const notifSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
@@ -6075,8 +6099,10 @@ function closeCreatePost(){
     document.getElementById('post-title').value='';
     removePostImages();
     currentTaggedFriends=[];
-    currentTaggedNames=[]; // এটি নতুন যোগ হলো
+    currentTaggedNames=[];
+    currentPostActivity = null; // নতুন যোগ করা হলো
     document.getElementById('tag-count').style.display='none';
+    updateTagPreview(); // ফিল্ড ক্লিয়ার করার জন্য
 }
 
 
@@ -6140,6 +6166,19 @@ function removePostImages(){
 composeImages=[];
 renderComposeImageGrid();
 checkPostInputs();
+}
+
+// --- Activity/Feeling Functions ---
+function openActivityModal() {
+    document.getElementById('activity-modal').classList.add('open');
+}
+function closeActivityModal() {
+    document.getElementById('activity-modal').classList.remove('open');
+}
+function selectActivity(icon, text) {
+    currentPostActivity = { icon: icon, text: text };
+    closeActivityModal();
+    updateTagPreview(); // নাম এবং স্ট্যাটাস একসাথে লাইভ প্রিভিউ হবে
 }
 
 async function openTagModal(){
@@ -6236,18 +6275,25 @@ return;
       const vBadge = getVerifiedBadge(currentUserData.email);
       let previewWithText = '';
       
-      if(currentTaggedNames.length === 1) {
+            if(currentTaggedNames.length === 1) {
           previewWithText = `<span style="font-weight:500; color:var(--text-secondary); font-size:14px; margin-left:4px;">is with</span> <strong style="color:var(--text); font-size:14px; margin-left:4px;">${escapeHTML(currentTaggedNames[0])}</strong>`;
       } else if(currentTaggedNames.length === 2) {
           previewWithText = `<span style="font-weight:500; color:var(--text-secondary); font-size:14px; margin-left:4px;">is with</span> <strong style="color:var(--text); font-size:14px; margin-left:4px;">${escapeHTML(currentTaggedNames[0])}</strong> <span style="font-weight:500; color:var(--text-secondary); font-size:14px; margin-left:4px;">and</span> <strong style="color:var(--text); font-size:14px; margin-left:4px;">${escapeHTML(currentTaggedNames[1])}</strong>`;
       } else if(currentTaggedNames.length > 2) {
           previewWithText = `<span style="font-weight:500; color:var(--text-secondary); font-size:14px; margin-left:4px;">is with</span> <strong style="color:var(--text); font-size:14px; margin-left:4px;">${escapeHTML(currentTaggedNames[0])}</strong> <span style="font-weight:500; color:var(--text-secondary); font-size:14px; margin-left:4px;">and</span> <strong style="color:var(--text); font-size:14px; margin-left:4px;">${currentTaggedNames.length - 1} others</strong>`;
       }
+
+      // নতুন Activity Preview 
+      let activityText = '';
+      if (currentPostActivity) {
+          activityText = `<span style="font-weight:500; color:var(--text-secondary); font-size:14px; margin-left:4px;">is ${currentPostActivity.text}</span> <span class="material-symbols-outlined" style="font-size:16px; margin-left:4px; vertical-align:middle; color:var(--accent);">${currentPostActivity.icon}</span>`;
+      }
       
-      nameEl.innerHTML = `<span style="display:flex; align-items:center; gap:4px;">${safeName} ${vBadge}</span> ${previewWithText}`;
+      nameEl.innerHTML = `<span style="display:flex; align-items:center; gap:4px;">${safeName} ${vBadge}</span> ${activityText} ${previewWithText}`;
       nameEl.style.flexWrap = 'wrap';
   }
 }
+
 
 // নতুন ফাংশন: প্রিভিউ থেকে ট্যাগ রিমুভ করার জন্য
 function removeTagFromPreview(uid, name){
@@ -6360,7 +6406,7 @@ imgUrls.push(url);
 }
     try{
         const expireAt=new Date(Date.now()+ONE_YEAR_MS);
-        const newPostRef = await db.collection('posts').add({
+                const newPostRef = await db.collection('posts').add({
             uid:currentUser.uid,
             bgColor: currentPostBgColor,
             name:currentUserData.name||currentUser.email.split('@')[0],
@@ -6375,6 +6421,7 @@ imgUrls.push(url);
             comments:[],
             tagged:currentTaggedFriends,
             taggedNames: currentTaggedNames,
+            activity: currentPostActivity, /* <-- এই নতুন লাইনটি এখানে যোগ হবে */
             isPinned:false,
             createdAt:firebase.firestore.FieldValue.serverTimestamp(),
             expiresAt:expireAt
@@ -6549,13 +6596,13 @@ const safeTitleForAttr=(p.title||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'").r
 // --- নতুন আপডেট: "is with..." টেক্সট তৈরি করা (ক্লিকেবল) ---
 let withText = '';
 if (p.taggedNames && p.taggedNames.length > 0 && p.tagged) {
-    if (p.taggedNames.length === 1) {
-        withText = `<span style="font-weight:500; color:var(--text-secondary); margin-left:4px;">is with</span> <strong style="color:var(--text); margin-left:4px; cursor:pointer;" onclick="event.stopPropagation(); viewUserProfile('${p.tagged[0]}')">${escapeHTML(p.taggedNames[0])}</strong>`;
-    } else if (p.taggedNames.length === 2) {
-        withText = `<span style="font-weight:500; color:var(--text-secondary); margin-left:4px;">is with</span> <strong style="color:var(--text); margin-left:4px; cursor:pointer;" onclick="event.stopPropagation(); viewUserProfile('${p.tagged[0]}')">${escapeHTML(p.taggedNames[0])}</strong> <span style="font-weight:500; color:var(--text-secondary); margin-left:4px;">and</span> <strong style="color:var(--text); margin-left:4px; cursor:pointer;" onclick="event.stopPropagation(); viewUserProfile('${p.tagged[1]}')">${escapeHTML(p.taggedNames[1])}</strong>`;
-    } else {
-        withText = `<span style="font-weight:500; color:var(--text-secondary); margin-left:4px;">is with</span> <strong style="color:var(--text); margin-left:4px; cursor:pointer;" onclick="event.stopPropagation(); viewUserProfile('${p.tagged[0]}')">${escapeHTML(p.taggedNames[0])}</strong> <span style="font-weight:500; color:var(--text-secondary); margin-left:4px;">and</span> <strong style="color:var(--text); margin-left:4px;">${p.taggedNames.length - 1} others</strong>`;
-    }
+    //... (আগের কোড) ...
+}
+
+// নতুন: Activity/Feeling Render
+let activityHtml = '';
+if (p.activity) {
+    activityHtml = `<span style="font-weight:500; color:var(--text-secondary); font-size:14px; margin-left:4px;">is ${escapeHTML(p.activity.text)}</span> <span class="material-symbols-outlined" style="font-size:16px; margin-left:4px; vertical-align:middle; color:var(--accent);">${escapeHTML(p.activity.icon)}</span>`;
 }
 // ---------------------------------------------
 
@@ -6638,6 +6685,7 @@ return`<div class="post-card">
 <div class="post-name" style="flex-wrap: wrap; line-height: 1.4; align-items: center;">
     <span style="cursor:pointer; display:flex; align-items:center; gap:4px;" onclick="viewUserProfile('${p.uid}')">${safeName} ${vBadge}</span>
     ${quickFollowBtn}
+    ${activityHtml} 
     ${withText}
 </div>
 <div class="post-time">${getRelativeTime(p.createdAt)}</div>
@@ -9236,42 +9284,6 @@ async function toggleAdvancedPrivacy() {
         console.error("Privacy update failed:", e);
         showToast("Failed to update privacy settings");
     }
-}
-let selectedLifeIcon = 'ph-briefcase';
-
-function selectLifeIcon(iconName) {
-    selectedLifeIcon = iconName;
-    showToast("Icon selected!");
-}
-
-function openLifeUpdateModal() {
-    document.getElementById('life-update-modal').classList.add('open');
-}
-
-function closeLifeUpdateModal() {
-    document.getElementById('life-update-modal').classList.remove('open');
-}
-
-async function submitLifeUpdate() {
-    const title = document.getElementById('life-title').value.trim();
-    const date = document.getElementById('life-date').value;
-    
-    if(!title || !date) { showToast("Please fill all fields"); return; }
-    
-    try {
-        await db.collection('posts').add({
-            uid: currentUser.uid,
-            type: 'life_update',
-            icon: selectedLifeIcon,
-            title: title,
-            date: date,
-            name: currentUserData.name,
-            createdAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
-        showToast("Life Update posted!");
-        closeLifeUpdateModal();
-        loadFeed();
-    } catch(e) { showToast("Error posting update"); }
 }
 </script>
 </body>
