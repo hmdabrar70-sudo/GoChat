@@ -7540,15 +7540,19 @@ async function executeDelete(type) {
 // ==========================================
 // 🚀 PRIVATE CHAT SYSTEM LOGIC
 // ==========================================
+let isPrivateChatActive = false; 
+
 function togglePrivateChat() {
     isPrivateChatActive = !isPrivateChatActive;
     const toggleEl = document.getElementById('qp-private-chat-toggle');
-    if (isPrivateChatActive) {
-        toggleEl.classList.add('active');
-        showToast("Private Chat ON! Messages will vanish on exit.");
-    } else {
-        toggleEl.classList.remove('active');
-        showToast("Private Chat OFF.");
+    if (toggleEl) {
+        if (isPrivateChatActive) {
+            toggleEl.classList.add('active');
+            showToast("Private Chat ON! Messages will vanish on exit.");
+        } else {
+            toggleEl.classList.remove('active');
+            showToast("Private Chat OFF.");
+        }
     }
 }
 
@@ -7564,7 +7568,7 @@ async function wipePrivateMessages(chatId) {
             batch.delete(doc.ref);
         });
         await batch.commit();
-        console.log("Private messages wiped permanently from Firebase.");
+        console.log("Private messages wiped permanently.");
     } catch (e) {
         console.error("Failed to wipe private messages", e);
     }
