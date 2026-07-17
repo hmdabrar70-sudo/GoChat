@@ -1751,37 +1751,6 @@ ADVANCED PRIVACY PROTECTION CSS
     -webkit-user-select: none !important;
     user-select: none !important;
 }
-/* =========================================
-PINNED MESSAGE STYLES
-========================================= */
-.chat-bubble-wrapper.pinned-message {
-    border: 2px solid var(--accent);
-    border-radius: 16px;
-    padding: 4px;
-    background: var(--accent-glow);
-    margin-bottom: 20px !important;
-}
-.chat-bubble-wrapper.pinned-message .chat-bubble {
-    box-shadow: 0 0 15px rgba(124, 92, 255, 0.2);
-}
-.pin-indicator {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 11px;
-    color: var(--accent);
-    font-weight: 700;
-    margin-bottom: 8px;
-    padding-left: 12px;
-}
-.pin-indicator .material-symbols-outlined {
-    font-size: 16px;
-    animation: pulsePin 2s infinite;
-}
-@keyframes pulsePin {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.2); }
-}
 </style>
 </head>
 <body>
@@ -5174,24 +5143,6 @@ function setupTypingIndicator(chatId, otherUid) {
         if (!doc.exists) return;
         const data = doc.data();
         
-        // --- 🚀 6. Pinned Message Logic ---
-        const pinBar = document.getElementById('group-pinned-msg-bar');
-        if(data.pinnedMsg) {
-            if(pinBar) {
-                pinBar.style.display = 'flex';
-                document.getElementById('group-pinned-msg-text').textContent = data.pinnedMsg.text;
-                const unpinBtn = document.getElementById('unpin-msg-btn');
-                const admins = data.admins || [data.admin];
-                if(data.isGroup && admins.includes(currentUser.uid)) {
-                    unpinBtn.style.display = 'block';
-                } else {
-                    unpinBtn.style.display = 'none';
-                }
-            }
-        } else {
-            if(pinBar) pinBar.style.display = 'none';
-        }
-        
         // --- 🚀 4. Group Mention Setup (Load Members) ---
         if(data.isGroup && data.members) {
             mentionData.friends = data.members.map(uid => {
@@ -5298,13 +5249,6 @@ function showMessageMenu(event, msgId) {
     const alignPosition = isMine ? 'right: 35px;' : 'left: 35px;';
     
     menu.style.cssText = `position:absolute; top: 10px; ${alignPosition} background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:6px; z-index:99999; box-shadow:var(--shadow-lg); width: 150px;`;
-        
-// 🚀 Pinned Logic (Updated for Personal & Group Chat)
-    let pinOption = '';
-    // গ্রুপ অথবা পার্সোনাল চ্যাট - দুটোতেই পিন অপশন আসবে
-    pinOption = `<div style="padding:10px 12px;cursor:pointer;font-size:14px;font-weight:600;border-radius:8px; display:flex; gap:10px; align-items:center; color:var(--text);" onclick="pinGroupMessage('${msgId}')">
-        <span class="material-symbols-outlined" style="font-size:18px;">push_pin</span> Pin Message
-    </div>`;
     
     menu.innerHTML = `
     <div style="padding:10px 12px;cursor:pointer;font-size:14px;font-weight:600;border-radius:8px; display:flex; gap:10px; align-items:center; color:var(--text);" onclick="replyToMessage('${msgId}')">
@@ -5362,61 +5306,6 @@ function cancelReply() {
     replyToMsgData = null;
     document.getElementById('reply-preview-container').innerHTML = '';
     document.getElementById('chat-input').placeholder = 'Message...';
-}
-
-async function forwardMessage(msgId) {
-if (!checkRateLimit()) return;
-const doc = await db.collection('chats').doc(currentChatId).collection('messages').doc(msgId).get();
-if (!doc.exists) return;
-currentForwardMsgData = doc.data();
-document.getElementById('forward-modal').classList.add('open');
-const friends = currentUserData.friends || [];
-const list = document.getElementById('forward-friends-list');
-if (friends.length === 0) {
-list.innerHTML = '<div class="empty-feed">No friends to forward to</div>';
-return;
-}
-const friendDocs = friends.map(fId => db.collection('users').doc(fId).get());
-const snapshots = await Promise.all(friendDocs);
-let html = '';
-snapshots.forEach((fDoc, index) => {
-if (fDoc.exists) {
-const u = fDoc.data();
-const safeName = escapeHTML(u.name);
-const avHtml = u.avatar ? `<img src="${u.avatar}">` : avatarInitial(u.name);
-html += `<div class="forward-friend-item" onclick="doForwardMessage('${friends[index]}')">
-<div class="avatar sm">${avHtml}</div>
-<div style="font-weight:600;font-size:14px;">${safeName}</div>
-</div>`;
-}
-});
-list.innerHTML = html;
-}
-
-async function doForwardMessage(toUid) {
-if (!currentForwardMsgData) return;
-const chatId = [currentUser.uid, toUid].sort().join('_');
-const forwardData = {
-uid: currentUser.uid,
-text: currentForwardMsgData.text || '',
-imageUrl: currentForwardMsgData.imageUrl || '',
-forwarded: true,
-createdAt: firebase.firestore.FieldValue.serverTimestamp()
-};
-await db.collection('chats').doc(chatId).collection('messages').add(forwardData);
-await db.collection('chats').doc(chatId).set({
-lastMsg: currentForwardMsgData.text || '📷 Photo',
-lastAt: firebase.firestore.FieldValue.serverTimestamp(),
-names: { [toUid]: currentUserData.name, [currentUser.uid]: currentUserData.name },
-avatars: { [toUid]: currentUserData.avatar, [currentUser.uid]: currentUserData.avatar }
-}, { merge: true });
-showToast('Message forwarded!');
-closeForwardModal();
-}
-
-function closeForwardModal() {
-document.getElementById('forward-modal').classList.remove('open');
-currentForwardMsgData = null;
 }
 
 async function deleteMessage(msgId) {
