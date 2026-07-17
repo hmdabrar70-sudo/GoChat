@@ -1851,6 +1851,42 @@ NESTED ACTIVITY CATEGORIES STYLES
 .back-to-main-btn:hover {
     background: var(--surface-2);
 }
+/* =========================================
+VOICE MESSAGE PLAYER STYLES
+========================================= */
+.voice-msg-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(0,0,0,0.05);
+    padding: 8px 12px;
+    border-radius: 20px;
+    min-width: 200px;
+    max-width: 260px;
+}
+
+.light-mode .voice-msg-container { background: rgba(0,0,0,0.08); }
+
+.voice-play-btn {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: white;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; flex-shrink: 0;
+}
+
+.voice-duration { font-size: 12px; color: var(--text-secondary); min-width: 40px; }
+
+.voice-wave-bar {
+    flex: 1; height: 4px; background: var(--border);
+    border-radius: 2px; overflow: hidden; position: relative;
+}
+
+.voice-progress {
+    height: 100%; background: var(--accent);
+    width: 0%; transition: width 0.1s linear;
+}
 </style>
 </head>
 <body>
@@ -2468,6 +2504,9 @@ NESTED ACTIVITY CATEGORIES STYLES
 <span class="material-symbols-outlined" style="font-size:24px;">image</span>
 </label>
 <input type="file" id="chat-img-input" accept="image/*" style="display:none;" onchange="sendChatImage(this)">
+<!-- 🎤 Voice Message Input & Button -->
+<input type="file" id="voice-record-input" accept="audio/*" capture="microphone" style="display:none;" onchange="handleVoiceUpload(this)">
+<span class="material-symbols-outlined chat-icon-btn" onclick="document.getElementById('voice-record-input').click()" style="font-size: 24px; color: var(--accent); cursor: pointer;">mic</span>
 <button class="chat-send-btn" onclick="sendMsg()">
 <span class="material-symbols-outlined" style="font-size:20px;">send</span>
 </button>
@@ -10051,6 +10090,128 @@ function filterMenuSettings(query) {
     // যদি কোনো ম্যাচ না পাওয়া যায়, একটি মেসেজ দেখানো (অপশনাল)
     if (!foundAny) {
         // আপনি চাইলে এখানে একটি "No results found" মেসেজ যোগ করতে পারেন
+    }
+}
+// ==========================================
+//  VOICE MESSAGE SYSTEM LOGIC
+// ==========================================
+
+// . অডিও ফাইল হ্যান্ডেল করা ও আপলোড করা
+async function handleVoiceUpload(input) {
+    const file = input.files[0];
+    if (!file || !currentChatId) return;
+    
+    // ফাইল সাইজ চেক (সর্বোচ্চ ১০MB)
+    if (file.size > 10 * 1024 * 1024) {
+        showToast("Audio file too large (Max 10MB)");
+        input.value = ''; return;
+    }
+
+    showToast("Uploading voice message...");
+    
+    try {
+        // Firebase Storage-এ আপলোড
+        const storageRef = firebase.storage().ref();
+        const audioRef = storageRef.child(`voice_messages/${currentChatId}/${Date.now()}_${file.name}`);
+        const snapshot = await audioRef.put(file);
+        const downloadURL = await snapshot.ref.getDownloadURL();
+        
+        // মেসেজ হিসেবে সেভ করা
+        const msgData = {
+            uid: currentUser.uid,
+            senderName: currentUserData.name || 'User',
+            type: 'voice',
+            audioUrl: downloadURL,
+            duration: 0, // পরে মিডিয়া মেটাডাটা থেকে নেওয়া যাবে
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        };
+
+        await db.collection('chats').doc(currentChatId).collection('messages').add(msgData);
+        
+        // Last Message আপডেট
+        let lastText = currentChatOtherUid === 'group' 
+            ? `${currentUserData.name || 'User'} sent a voice message` 
+            : "🎤 Voice message";
+            
+        await db.collection('chats').doc(currentChatId).set({
+            lastMsg: lastText,
+            lastAt: firebase.firestore.FieldValue.serverTimestamp(),
+            lastSender: currentUser.uid,
+            isRead: false
+        }, { merge: true });
+
+        showToast("Voice message sent!");
+    } catch (e) {
+        console.error(e);
+        showToast("Failed to send voice message");
+    }
+    input.value = ''; // ইনপুট রিসেট
+}
+
+// ২. চ্যাট মেসেজ রেন্ডার ফাংশনে ভয়েস সাপোর্ট যোগ করা
+// আপনার বিদ্যমান renderMessages বা onSnapshot এর ভেতরের map ফাংশনে 
+// 'if(m.type === "voice")' এই শর্তটি যোগ করুন:
+
+/*
+if (m.type === 'voice') {
+    content = `
+    <div class="voice-msg-container">
+        <div class="voice-play-btn" onclick="toggleVoicePlay(this, '${m.audioUrl}')">
+            <span class="material-symbols-outlined" style="font-size:20px;">play_arrow</span>
+        </div>
+        <div class="voice-wave-bar"><div class="voice-progress"></div></div>
+        <div class="voice-duration">0:00</div>
+        <audio src="${m.audioUrl}" preload="metadata" onloadedmetadata="updateVoiceDuration(this)"></audio>
+    </div>`;
+} else {
+    // আগের টেক্সট/ইমেজ লজিক...
+}
+*/
+
+// ৩. ভয়েস প্লে/পজ ফাংশন
+function toggleVoicePlay(btn, url) {
+    const container = btn.closest('.voice-msg-container');
+    const audio = container.querySelector('audio');
+    const progress = container.querySelector('.voice-progress');
+    const icon = btn.querySelector('span');
+    
+    if (audio.paused) {
+        // অন্য সব অডিও থামিয়ে দেওয়া
+        document.querySelectorAll('.voice-msg-container audio').forEach(a => {
+            if (a !== audio) {
+                a.pause(); 
+                a.currentTime = 0;
+                const otherBtn = a.parentElement.querySelector('.voice-play-btn span');
+                if(otherBtn) otherBtn.textContent = 'play_arrow';
+                a.parentElement.querySelector('.voice-progress').style.width = '0%';
+            }
+        });
+        
+        audio.play();
+        icon.textContent = 'pause';
+        
+        audio.ontimeupdate = () => {
+            const pct = (audio.currentTime / audio.duration) * 100;
+            progress.style.width = `${pct}%`;
+        };
+        
+        audio.onended = () => {
+            icon.textContent = 'play_arrow';
+            progress.style.width = '0%';
+        };
+    } else {
+        audio.pause();
+        icon.textContent = 'play_arrow';
+    }
+}
+
+// . ডুরেশন আপডেট ফাংশন
+function updateVoiceDuration(audioEl) {
+    const durEl = audioEl.parentElement.querySelector('.voice-duration');
+    if (durEl && audioEl.duration) {
+        const mins = Math.floor(audioEl.duration / 60);
+        const secs = Math.floor(audioEl.duration % 60);
+        durEl.textContent = `${mins}:${secs.toString().padStart(2, '0')}`;
     }
 }
 </script>
