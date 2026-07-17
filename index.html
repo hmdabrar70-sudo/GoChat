@@ -5313,11 +5313,16 @@ function showMessageMenu(event, msgId) {
     <div style="padding:10px 12px;cursor:pointer;font-size:14px;font-weight:600;border-radius:8px; display:flex; gap:10px; align-items:center; color:var(--text);" onclick="forwardMessage('${msgId}')">
         <span class="material-symbols-outlined" style="font-size:18px;">forward</span> Forward
     </div>
+    
+    <!-- নতুন Select অপশনটি এখানে যুক্ত করা হলো -->
+    <div style="padding:10px 12px;cursor:pointer;font-size:14px;font-weight:600;border-radius:8px; display:flex; gap:10px; align-items:center; color:var(--text);" onclick="enterSelectionMode('${msgId}'); this.parentElement.remove();">
+        <span class="material-symbols-outlined" style="font-size:18px;">check_circle</span> Select
+    </div>
+
     <div style="padding:10px 12px;cursor:pointer;font-size:14px;font-weight:600;border-radius:8px;color:var(--danger); display:flex; gap:10px; align-items:center;" onclick="deleteMessage('${msgId}')">
         <span class="material-symbols-outlined" style="font-size:18px;">delete</span> Delete
     </div>
     `;
-    
     wrapper.appendChild(menu);
     
     setTimeout(() => {
@@ -7304,16 +7309,24 @@ let msgPressTimer = null;
 let touchStartX = 0;
 let touchStartY = 0;
 let isSwiping = false;
+let activeMsgWrapper = null; // নতুন ভেরিয়েবল যুক্ত করা হলো
 
 function handleMsgTouchStart(msgId, event) {
     if(isMsgSelectionMode) return;
+    activeMsgWrapper = event.currentTarget; // বর্তমান মেসেজটি সেভ করে রাখছি
     if(event && event.touches) {
         touchStartX = event.touches[0].clientX;
         touchStartY = event.touches[0].clientY;
     }
     isSwiping = false;
     msgPressTimer = setTimeout(() => {
-        if(!isSwiping) enterSelectionMode(msgId);
+        if(!isSwiping && activeMsgWrapper) {
+            // enterSelectionMode বাদ দিয়ে সরাসরি পপ-আপ মেনু কল করা হলো
+            const dummyEvent = { stopPropagation: () => {}, currentTarget: activeMsgWrapper };
+            showMessageMenu(dummyEvent, msgId);
+            
+            if(navigator.vibrate) navigator.vibrate(50);
+        }
     }, 500);
 }
 
