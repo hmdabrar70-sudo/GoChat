@@ -2772,6 +2772,15 @@ NESTED ACTIVITY CATEGORIES STYLES
     <span class="material-symbols-outlined" style="color:var(--text-muted);">chevron_right</span>
 </div>
 
+<!-- 🚀 NEW: Dedicated Settings Menu Item -->
+<div class="settings-list-item" onclick="openNewSettingsScreen()">
+    <div style="display:flex; align-items:center; gap:16px;">
+        <span class="material-symbols-outlined" style="font-size: 24px; color: var(--text-secondary);">settings</span>
+        <span style="font-weight:600; font-size:15px;">Settings & Privacy</span>
+    </div>
+    <span class="material-symbols-outlined" style="color:var(--text-muted);">chevron_right</span>
+</div>
+
                 <div class="settings-list-item" onclick="doLogout()" style="border-bottom: none; margin-top: 12px;">
             <div style="display:flex; align-items:center; gap:16px;">
                 <span class="material-symbols-outlined" style="font-size: 24px; color: var(--danger);">logout</span>
@@ -3203,6 +3212,29 @@ NESTED ACTIVITY CATEGORIES STYLES
                 </div>
             </div>
         </div>
+    </div>
+</div>
+
+<!-- 🚀 New Full-Screen Settings Page -->
+<div id="new-settings-screen" style="display:none; position:fixed; inset:0; background:var(--bg); z-index:10000; flex-direction:column; overflow-y:auto; animation:slideUp 0.3s ease;">
+    <!-- Top Bar with Search -->
+    <div class="chat-topbar" style="position:sticky; top:0; z-index:100; display:flex; flex-direction:column; gap:12px; padding:12px 16px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
+            <div style="display:flex; align-items:center; gap:12px;">
+                <div class="chat-back" onclick="closeNewSettingsScreen()"><span class="material-symbols-outlined">arrow_back</span></div>
+                <div style="font-weight:800; font-size:18px;">Settings & Privacy</div>
+            </div>
+        </div>
+        <!-- Search Bar -->
+        <div class="search-input-wrap" style="margin:0; border-radius:var(--radius-md);">
+            <span class="material-symbols-outlined">search</span>
+            <input type="text" id="settings-search-input" placeholder="Search settings..." oninput="filterSettings(this.value)">
+        </div>
+    </div>
+    
+    <!-- Settings List Container -->
+    <div id="new-settings-container" style="padding:16px; display:flex; flex-direction:column; gap:8px;">
+        <!-- JS will populate this -->
     </div>
 </div>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -10014,6 +10046,76 @@ async function saveChatPrivacy() {
         showToast("Failed to save settings");
         console.error(e);
     }
+}
+// ==========================================
+// 🚀 DEDICATED SETTINGS SCREEN LOGIC
+// ==========================================
+
+// Settings Data Structure
+const settingsData = [
+    { id: 'account-info', icon: 'account_circle', title: 'Account info', type: 'link', action: 'openSettingsPrivacy()' },
+    { id: 'user-privacy', icon: 'lock', title: 'User Privacy', type: 'link', action: 'closeNewSettingsScreen(); openPrivacySettings();' },
+    { id: 'chat', icon: 'chat_bubble', title: 'Chat', type: 'link', action: 'showToast("Chat settings coming soon!")' },
+    { id: 'share-profile', icon: 'qr_code_scanner', title: 'Share Profile ID', type: 'link', action: 'closeNewSettingsScreen(); openShareModal();' },
+    { id: 'following-privacy', icon: 'visibility_off', title: 'Following List Privacy', type: 'link', action: 'closeNewSettingsScreen(); openFollowingPrivacy();' },
+    { id: 'private-account', icon: 'lock', title: 'Private Account', type: 'toggle', state: () => currentUserData?.isPrivate === true, action: 'togglePrivateAccount()' },
+    { id: 'active-status', icon: 'radio_button_checked', title: 'Active Status', type: 'toggle', state: () => currentUserData?.showActiveStatus !== false, action: 'toggleActiveStatus()', success: true },
+    { id: 'message-sound', icon: 'volume_up', title: 'Message Sound', type: 'toggle', state: () => currentUserData?.messageSound !== false, action: 'toggleMessageSound()' },
+    { id: 'gallery', icon: 'photo_library', title: 'Gallery', type: 'link', action: 'closeNewSettingsScreen(); openGallery();' },
+    { id: 'dark-mode', icon: 'dark_mode', title: 'Dark Mode', type: 'toggle', state: () => document.body.classList.contains('light-mode') === false, action: 'toggleDarkMode()' }
+];
+
+// Render Settings List
+function renderSettingsList(filterText = '') {
+    const container = document.getElementById('new-settings-container');
+    if(!container) return;
+    
+    let html = '';
+    const lowerFilter = filterText.toLowerCase();
+    
+    settingsData.forEach(item => {
+        if(item.title.toLowerCase().includes(lowerFilter)) {
+            let rightContent = '';
+            if(item.type === 'link') {
+                rightContent = '<span class="material-symbols-outlined" style="color:var(--text-muted);">chevron_right</span>';
+            } else if(item.type === 'toggle') {
+                const isActive = item.state();
+                const successClass = item.success ? 'success' : '';
+                rightContent = `<div class="toggle-switch ${isActive ? 'active' : ''} ${successClass}" onclick="${item.action}; setTimeout(renderSettingsList, 100);"></div>`;
+            }
+            
+            html += `
+            <div class="settings-list-item" style="background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-md); padding:14px 16px;" onclick="${item.type === 'link' ? item.action : ''}">
+                <div style="display:flex; align-items:center; gap:16px;">
+                    <span class="material-symbols-outlined" style="font-size: 22px; color: var(--accent);">${item.icon}</span>
+                    <span style="font-weight:600; font-size:15px;">${item.title}</span>
+                </div>
+                ${rightContent}
+            </div>`;
+        }
+    });
+    
+    if(html === '') {
+        html = '<div style="text-align:center; padding:40px; color:var(--text-muted);">No settings found</div>';
+    }
+    
+    container.innerHTML = html;
+}
+
+// Open/Close Functions
+function openNewSettingsScreen() {
+    document.getElementById('new-settings-screen').style.display = 'flex';
+    document.getElementById('settings-search-input').value = '';
+    renderSettingsList();
+}
+
+function closeNewSettingsScreen() {
+    document.getElementById('new-settings-screen').style.display = 'none';
+}
+
+// Search Filter Function
+function filterSettings(text) {
+    renderSettingsList(text);
 }
 </script>
 </body>
