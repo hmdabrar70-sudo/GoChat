@@ -2872,6 +2872,11 @@ NESTED ACTIVITY CATEGORIES STYLES
     color: white; font-size: 32px; 
     background: var(--accent); border-radius: 50%;
 }
+
+@keyframes slideUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+}
 </style>
 
 <style>
@@ -3196,6 +3201,42 @@ NESTED ACTIVITY CATEGORIES STYLES
                     Changing this setting will not affect existing conversations. New message requests from non-followers will be hidden if you choose "Those I follow".
                 </div>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- 🚀 NEW: Message Action Sheet -->
+<div id="msg-action-sheet" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:10008; align-items:flex-end; justify-content:center;" onclick="if(event.target===this) closeMsgActionSheet()">
+    <div style="background:var(--surface); width:100%; max-width:500px; border-radius:24px 24px 0 0; padding:24px; animation:slideUp 0.3s ease;">
+        
+        <!-- Header with Cancel -->
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+            <span style="font-weight:700; font-size:16px; color:var(--text);">Message Options</span>
+            <button onclick="closeMsgActionSheet()" style="background:none; border:none; color:var(--text-muted); cursor:pointer;">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+        </div>
+
+        <!-- Action Buttons Grid -->
+        <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:12px;">
+            
+            <!-- Copy Button -->
+            <button onclick="copySelectedMessage()" style="display:flex; flex-direction:column; align-items:center; gap:8px; padding:16px; background:var(--surface-2); border:none; border-radius:16px; cursor:pointer; transition:0.2s;">
+                <span class="material-symbols-outlined" style="font-size:24px; color:#3b82f6;">content_copy</span>
+                <span style="font-size:13px; font-weight:600; color:var(--text);">Copy</span>
+            </button>
+
+            <!-- Edit Button (Only for own messages) -->
+            <button id="edit-msg-btn" onclick="editSelectedMessage()" style="display:flex; flex-direction:column; align-items:center; gap:8px; padding:16px; background:var(--surface-2); border:none; border-radius:16px; cursor:pointer; transition:0.2s;">
+                <span class="material-symbols-outlined" style="font-size:24px; color:#f59e0b;">edit</span>
+                <span style="font-size:13px; font-weight:600; color:var(--text);">Edit</span>
+            </button>
+
+            <!-- Delete Button -->
+            <button onclick="deleteSelectedMessage()" style="display:flex; flex-direction:column; align-items:center; gap:8px; padding:16px; background:#fee2e2; border:none; border-radius:16px; cursor:pointer; transition:0.2s;">
+                <span class="material-symbols-outlined" style="font-size:24px; color:#ef4444;">delete</span>
+                <span style="font-size:13px; font-weight:600; color:#ef4444;">Delete</span>
+            </button>
         </div>
     </div>
 </div>
@@ -10015,6 +10056,97 @@ function filterMenuSettings(query) {
     // যদি কোনো ম্যাচ না পাওয়া যায়, একটি মেসেজ দেখানো (অপশনাল)
     if (!foundAny) {
         // আপনি চাইলে এখানে একটি "No results found" মেসেজ যোগ করতে পারেন
+    }
+}
+// ==========================================
+// 🚀 MESSAGE ACTION SHEET LOGIC
+// ==========================================
+
+let currentActionMsgId = null; // যে মেসেজটির ওপর অ্যাকশন নেওয়া হবে
+
+// . শিট ওপেন করার ফাংশন (enterSelectionMode এর ভেতর থেকে কল করতে হবে)
+function openMsgActionSheet(msgId) {
+    currentActionMsgId = msgId;
+    const sheet = document.getElementById('msg-action-sheet');
+    const editBtn = document.getElementById('edit-msg-btn');
+    
+    // চেক করা মেসেজটি কি নিজের কিনা
+    const isOwnMessage = selectedMsgIds.some(id => {
+        // আপনার ডাটা স্ট্রাকচার অনুযায়ী চেক করুন
+        // সাধারণত selectedMsgIds তে মেসেজ অবজেক্ট বা আইডি থাকে
+        // এখানে আমরা ধরে নিচ্ছি এটি মেসেজ অবজেক্ট
+        return id.uid === currentUser?.uid; 
+    });
+
+    // যদি নিজের মেসেজ না হয়, Edit বাটন হাইড করুন
+    if (!isOwnMessage) {
+        editBtn.style.display = 'none';
+    } else {
+        editBtn.style.display = 'flex';
+    }
+
+    sheet.style.display = 'flex';
+}
+
+function closeMsgActionSheet() {
+    document.getElementById('msg-action-sheet').style.display = 'none';
+    currentActionMsgId = null;
+}
+
+// ২. কপি ফাংশন
+async function copySelectedMessage() {
+    if (!currentActionMsgId) return;
+    
+    try {
+        // ডাটাবেস থেকে মেসেজের টেক্সট আনা
+        const doc = await db.collection('chats').doc(currentChatId).collection('messages').doc(currentActionMsgId).get();
+        if (doc.exists) {
+            const text = doc.data().text;
+            navigator.clipboard.writeText(text).then(() => {
+                showToast("Message copied!");
+                closeMsgActionSheet();
+            });
+        }
+    } catch(e) {
+        console.error(e);
+        showToast("Failed to copy");
+    }
+}
+
+// ৩. এডিট ফাংশন
+async function editSelectedMessage() {
+    if (!currentActionMsgId) return;
+    
+    try {
+        const doc = await db.collection('chats').doc(currentChatId).collection('messages').doc(currentActionMsgId).get();
+        if (doc.exists) {
+            const oldText = doc.data().text;
+            const newText = prompt("Edit your message:", oldText);
+            
+            if (newText !== null && newText.trim() !== "" && newText !== oldText) {
+                await db.collection('chats').doc(currentChatId).collection('messages').doc(currentActionMsgId).update({
+                    text: newText.trim(),
+                    editedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                showToast("Message edited!");
+                closeMsgActionSheet();
+            }
+        }
+    } catch(e) {
+        console.error(e);
+        showToast("Failed to edit message");
+    }
+}
+
+// ৪. ডিলিট ফাংশন (আপনার existing logic এর সাথে সংযুক্ত)
+function deleteSelectedMessage() {
+    if (!currentActionMsgId) return;
+    
+    // আপনার existing executeDelete ফাংশন কল করা
+    // অথবা সরাসরি ডিলিট লজিক বসানো
+    if(confirm("Delete this message?")) {
+        executeDelete('everyone'); // অথবা 'forme'
+        closeMsgActionSheet();
     }
 }
 </script>
