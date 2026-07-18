@@ -5161,13 +5161,63 @@ document.getElementById('page-other-profile').classList.remove('open');
 currentOtherProfileUid=null;
 }
 
-function copyProfileLink(){
-if(!currentOtherProfileUid)return;
-const url=window.location.origin+window.location.pathname+'?user='+currentOtherProfileUid;
-navigator.clipboard.writeText(url).then(()=>{
-showToast('Profile link copied!');
-closeAllDropdowns();
-});
+// ==========================================
+// 🚀 FIXED COPY PROFILE LINK LOGIC
+// ==========================================
+function copyProfileLink() {
+    let targetUid = null;
+    let isOwnProfile = false;
+
+    // ১. চেক করা কোন প্রোফাইল currently open আছে
+    const otherProfilePage = document.getElementById('page-other-profile');
+    
+    if (otherProfilePage && otherProfilePage.classList.contains('open') && currentOtherProfileUid) {
+        // যদি অন্যের প্রোফাইল ওপেন থাকে
+        targetUid = currentOtherProfileUid;
+        isOwnProfile = false;
+    } else {
+        // না হলে নিজের প্রোফাইল ধরে নেওয়া
+        targetUid = currentUser.uid;
+        isOwnProfile = true;
+    }
+
+    // ২. ইউজারনেম বা UID দিয়ে লিংক তৈরি করা
+    let profileLink = "";
+    let toastMsg = "";
+
+    if (!isOwnProfile) {
+        // অন্যের প্রোফাইলের ডাটা আনা (Cache থেকে)
+        const otherUser = allUsersCache ? allUsersCache.find(u => u.id === targetUid) : null;
+        const username = otherUser?.username;
+        
+        if (username) {
+            profileLink = `${window.location.origin}${window.location.pathname}?user=${username}`;
+            toastMsg = "User's username link copied!";
+        } else {
+            profileLink = `${window.location.origin}${window.location.pathname}?user=${targetUid}`;
+            toastMsg = "User's profile link copied!";
+        }
+    } else {
+        // নিজের প্রোফাইলের ডাটা
+        const username = currentUserData.username;
+        
+        if (username) {
+            profileLink = `${window.location.origin}${window.location.pathname}?user=${username}`;
+            toastMsg = "Your username link copied!";
+        } else {
+            profileLink = `${window.location.origin}${window.location.pathname}?user=${targetUid}`;
+            toastMsg = "Your profile link copied!";
+        }
+    }
+
+    // ৩. লিংক কপি করা
+    navigator.clipboard.writeText(profileLink).then(() => {
+        showToast(toastMsg);
+        closeAllDropdowns(); // মেনু বন্ধ করা
+    }).catch(err => {
+        console.error('Failed to copy: ', err);
+        alert("Failed to copy link!");
+    });
 }
 
 async function blockCurrentUser(){
