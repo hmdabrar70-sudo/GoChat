@@ -2932,27 +2932,33 @@ NESTED ACTIVITY CATEGORIES STYLES
 .nav-fab:active { transform: scale(0.9); }
 </style>
 
-<div id="selection-bottom-bar">
+<!-- 🚀 UPDATED SELECTION BOTTOM BAR -->
+<div id="selection-bottom-bar" style="display:none; position:fixed; bottom:0; left:0; width:100%; background:var(--surface); padding:12px 16px; box-shadow:0 -4px 20px rgba(0,0,0,0.1); z-index:9999; align-items:center; justify-content:space-between;">
     <div style="display:flex; align-items:center; gap:16px;">
         <span class="material-symbols-outlined" onclick="closeSelectionMode()" style="cursor:pointer; color:var(--text); font-size:24px;">close</span>
         <span id="selected-count-text" style="font-weight:800; font-size:17px; color:var(--text);">1 Selected</span>
     </div>
-    <span class="material-symbols-outlined" onclick="showDeleteSheet()" style="cursor:pointer; color:var(--danger); font-size:28px;">delete</span>
-</div>
+    
+    <!-- Action Buttons -->
+    <div style="display:flex; gap:20px; align-items:center;">
+        
+        <!-- Copy Button -->
+        <button onclick="copySelectedMessage()" style="display:flex; flex-direction:column; align-items:center; gap:4px; background:none; border:none; cursor:pointer;">
+            <span class="material-symbols-outlined" style="font-size:24px; color:#3b82f6;">content_copy</span>
+            <span style="font-size:10px; font-weight:600; color:var(--text);">Copy</span>
+        </button>
 
-<div class="modal-overlay" id="delete-sheet-modal" style="z-index: 100000;">
-    <div class="modal-box" style="margin-top:auto; border-radius: 24px 24px 0 0; padding:24px; text-align: center;">
-        <div id="delete-sheet-title" style="font-weight:800; font-size:18px; margin-bottom:20px; color:var(--text);">Delete message(s)?</div>
-        
-        <button class="btn-primary" id="btn-delete-everyone" onclick="executeDelete('everyone')" style="background:var(--danger); width: 100%; margin-bottom:12px; box-shadow: 0 4px 15px rgba(255, 77, 106, 0.4);">
-            <span class="material-symbols-outlined">delete_forever</span> Delete for everyone
+        <!-- Edit Button (Dynamic Visibility) -->
+        <button id="edit-msg-btn" onclick="editSelectedMessage()" style="display:flex; flex-direction:column; align-items:center; gap:4px; background:none; border:none; cursor:pointer;">
+            <span class="material-symbols-outlined" style="font-size:24px; color:#f59e0b;">edit</span>
+            <span style="font-size:10px; font-weight:600; color:var(--text);">Edit</span>
         </button>
-        
-        <button class="btn-primary" onclick="executeDelete('forme')" style="background:var(--surface-2); color:var(--text); border:1px solid var(--border); width: 100%; margin-bottom:12px; box-shadow: none;">
-            <span class="material-symbols-outlined">delete</span> Delete for me
+
+        <!-- Delete Button (Calls Existing Sheet) -->
+        <button onclick="showDeleteSheet()" style="display:flex; flex-direction:column; align-items:center; gap:4px; background:none; border:none; cursor:pointer;">
+            <span class="material-symbols-outlined" style="font-size:24px; color:#ef4444;">delete</span>
+            <span style="font-size:10px; font-weight:600; color:#ef4444;">Delete</span>
         </button>
-        
-        <button class="btn-outline" onclick="closeDeleteSheet()" style="width:100%; border:none; color: var(--text-muted); background: transparent;">Cancel</button>
     </div>
 </div>
 <div class="modal-overlay" id="quick-profile-modal" style="z-index: 100000; align-items: flex-end;" onclick="if(event.target===this) closeQuickProfile()">
@@ -10059,52 +10065,22 @@ function filterMenuSettings(query) {
     }
 }
 // ==========================================
-// 🚀 MESSAGE ACTION SHEET LOGIC
+// 🚀 UPDATED MESSAGE ACTIONS (COPY, EDIT + EXISTING DELETE LOGIC)
 // ==========================================
 
-let currentActionMsgId = null; // যে মেসেজটির ওপর অ্যাকশন নেওয়া হবে
-
-// . শিট ওপেন করার ফাংশন (enterSelectionMode এর ভেতর থেকে কল করতে হবে)
-function openMsgActionSheet(msgId) {
-    currentActionMsgId = msgId;
-    const sheet = document.getElementById('msg-action-sheet');
-    const editBtn = document.getElementById('edit-msg-btn');
-    
-    // চেক করা মেসেজটি কি নিজের কিনা
-    const isOwnMessage = selectedMsgIds.some(id => {
-        // আপনার ডাটা স্ট্রাকচার অনুযায়ী চেক করুন
-        // সাধারণত selectedMsgIds তে মেসেজ অবজেক্ট বা আইডি থাকে
-        // এখানে আমরা ধরে নিচ্ছি এটি মেসেজ অবজেক্ট
-        return id.uid === currentUser?.uid; 
-    });
-
-    // যদি নিজের মেসেজ না হয়, Edit বাটন হাইড করুন
-    if (!isOwnMessage) {
-        editBtn.style.display = 'none';
-    } else {
-        editBtn.style.display = 'flex';
-    }
-
-    sheet.style.display = 'flex';
-}
-
-function closeMsgActionSheet() {
-    document.getElementById('msg-action-sheet').style.display = 'none';
-    currentActionMsgId = null;
-}
-
-// ২. কপি ফাংশন
+// . Copy Function
 async function copySelectedMessage() {
-    if (!currentActionMsgId) return;
+    if (selectedMsgIds.length === 0) return;
+    const msgId = selectedMsgIds[0];
     
     try {
-        // ডাটাবেস থেকে মেসেজের টেক্সট আনা
-        const doc = await db.collection('chats').doc(currentChatId).collection('messages').doc(currentActionMsgId).get();
+        // ডাটাবেস থেকে মেসেজ টেক্সট আনা
+        const doc = await db.collection('chats').doc(currentChatId).collection('messages').doc(msgId).get();
         if (doc.exists) {
             const text = doc.data().text;
             navigator.clipboard.writeText(text).then(() => {
                 showToast("Message copied!");
-                closeMsgActionSheet();
+                closeSelectionMode();
             });
         }
     } catch(e) {
@@ -10113,23 +10089,25 @@ async function copySelectedMessage() {
     }
 }
 
-// ৩. এডিট ফাংশন
+// ২. Edit Function (Only for own messages)
 async function editSelectedMessage() {
-    if (!currentActionMsgId) return;
+    if (selectedMsgIds.length === 0) return;
+    const msgId = selectedMsgIds[0];
     
     try {
-        const doc = await db.collection('chats').doc(currentChatId).collection('messages').doc(currentActionMsgId).get();
+        const doc = await db.collection('chats').doc(currentChatId).collection('messages').doc(msgId).get();
         if (doc.exists) {
             const oldText = doc.data().text;
+            // প্রম্পট দিয়ে এডিট করার সুযোগ দেওয়া
             const newText = prompt("Edit your message:", oldText);
             
             if (newText !== null && newText.trim() !== "" && newText !== oldText) {
-                await db.collection('chats').doc(currentChatId).collection('messages').doc(currentActionMsgId).update({
+                await db.collection('chats').doc(currentChatId).collection('messages').doc(msgId).update({
                     text: newText.trim(),
                     editedAt: firebase.firestore.FieldValue.serverTimestamp()
                 });
                 showToast("Message edited!");
-                closeMsgActionSheet();
+                closeSelectionMode();
             }
         }
     } catch(e) {
@@ -10138,16 +10116,46 @@ async function editSelectedMessage() {
     }
 }
 
-// ৪. ডিলিট ফাংশন (আপনার existing logic এর সাথে সংযুক্ত)
-function deleteSelectedMessage() {
-    if (!currentActionMsgId) return;
+// ৩. Selection Mode Enter Logic (Edit Button Visibility Check)
+// এই ফাংশনটি কল করলে সিলেকশন মোড অন হবে এবং Edit বাটন শো/হাইড হবে
+function enterSelectionModeWithActions(msgId) {
+    isMsgSelectionMode = true;
+    selectedMsgIds = [msgId];
     
-    // আপনার existing executeDelete ফাংশন কল করা
-    // অথবা সরাসরি ডিলিট লজিক বসানো
-    if(confirm("Delete this message?")) {
-        executeDelete('everyone'); // অথবা 'forme'
-        closeMsgActionSheet();
+    // UI আপডেট
+    const selectionBar = document.getElementById('selection-bottom-bar');
+    if(selectionBar) selectionBar.style.display = 'flex';
+    
+    // Edit বাটন চেক করা (শুধুমাত্র নিজের মেসেজ হলে দেখাবে)
+    const editBtn = document.getElementById('edit-msg-btn');
+    const wrapper = document.querySelector(`.chat-bubble-wrapper[data-msgid="${msgId}"]`);
+    
+    if(editBtn && wrapper) {
+        // যদি 'mine' ক্লাস থাকে তাহলে নিজের মেসেজ
+        if(wrapper.classList.contains('mine')) {
+            editBtn.style.display = 'flex';
+        } else {
+            editBtn.style.display = 'none';
+        }
     }
+    
+    updateSelectionCount();
+}
+
+// ৪. Close Selection Mode
+function closeSelectionMode() {
+    isMsgSelectionMode = false;
+    selectedMsgIds = [];
+    document.querySelectorAll('.chat-bubble-wrapper.selected').forEach(el => el.classList.remove('selected'));
+    
+    const selectionBar = document.getElementById('selection-bottom-bar');
+    if(selectionBar) selectionBar.style.display = 'none';
+}
+
+// Helper: Update Count Text
+function updateSelectionCount() {
+    const countText = document.getElementById('selected-count-text');
+    if(countText) countText.textContent = `${selectedMsgIds.length} Selected`;
 }
 </script>
 </body>
