@@ -1851,6 +1851,19 @@ NESTED ACTIVITY CATEGORIES STYLES
 .back-to-main-btn:hover {
     background: var(--surface-2);
 }
+/* =========================================
+OFFLINE POPUP ANIMATIONS & STYLES
+========================================= */
+@keyframes slideUp {
+    from { opacity: 0; transform: translate(-50%, 20px); }
+    to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+#offline-popup button:active {
+    transform: scale(0.98);
+    background: var(--accent);
+    color: white;
+}
 </style>
 </head>
 <body>
@@ -3190,6 +3203,25 @@ NESTED ACTIVITY CATEGORIES STYLES
             </div>
         </div>
     </div>
+</div>
+
+<!-- 🚀 Smart Offline Notification Popup -->
+<div id="offline-popup" style="display:none; position:fixed; bottom:20px; left:50%; transform:translateX(-50%); width:90%; max-width:380px; background:var(--surface); border:1px solid var(--border); border-radius:20px; padding:16px; z-index:100000; box-shadow:0 10px 30px rgba(0,0,0,0.15); animation:slideUp 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);">
+    <div style="display:flex; align-items:center; gap:12px;">
+        <div style="width:40px; height:40px; background:#fee2e2; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+            <span class="material-symbols-outlined" style="color:#ef4444; font-size:24px;">wifi_off</span>
+        </div>
+        <div style="flex:1;">
+            <div style="font-weight:700; font-size:15px; color:var(--text); margin-bottom:2px;">No Internet Connection</div>
+            <div style="font-size:12px; color:var(--text-muted); line-height:1.4;">Please check your network settings to continue using GoChat.</div>
+        </div>
+    </div>
+    
+    <!-- WiFi Settings Button -->
+    <button onclick="openWifiSettings()" style="margin-top:14px; width:100%; padding:10px; background:var(--accent-glow); color:var(--accent); border:1px solid var(--accent); border-radius:12px; font-weight:600; font-size:13px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px; transition:all 0.2s;">
+        <span class="material-symbols-outlined" style="font-size:16px;">settings_ethernet</span>
+        Open WiFi Settings
+    </button>
 </div>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
@@ -10007,6 +10039,59 @@ function filterMenuSettings(query) {
         // আপনি চাইলে এখানে একটি "No results found" মেসেজ যোগ করতে পারেন
     }
 }
+// ==========================================
+// 🚀 SMART OFFLINE DETECTION SYSTEM
+// ==========================================
+
+// . পপআপ শো/হাইড করার ফাংশন
+function toggleOfflinePopup(show) {
+    const popup = document.getElementById('offline-popup');
+    if (!popup) return;
+    
+    if (show) {
+        popup.style.display = 'block';
+        // ৫ সেকেন্ড পর অটোমেটিক হাইড হয়ে যাবে যদি ইন্টারনেট না আসে
+        // (ইউজার যাতে বিরক্ত না হয়, কিন্তু আবার চেক করার সুযোগ পায়)
+        clearTimeout(window.offlineTimeout);
+        window.offlineTimeout = setTimeout(() => {
+            if(navigator.onLine === false) popup.style.display = 'none';
+        }, 8000);
+    } else {
+        popup.style.display = 'none';
+        clearTimeout(window.offlineTimeout);
+    }
+}
+
+// ২. WiFi সেটিংস ওপেন করার ফাংশন
+function openWifiSettings() {
+    // Android/iOS এর জন্য নেটিভ সেটিংস লিংক
+    if (/Android/i.test(navigator.userAgent)) {
+        window.location.href = "intent://#Intent;action=android.settings.WIFI_SETTINGS;end";
+    } else if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+        // iOS এ সরাসরি WiFi সেটিংসে যাওয়া সম্ভব নয়, তাই জেনারেল সেটিংসে পাঠানো হয়
+        window.location.href = "App-Prefs:root=WIFI"; 
+    } else {
+        // ডেস্কটপ বা অন্য ডিভাইসের জন্য
+        showToast("Please check your device's network settings.");
+    }
+}
+
+// ৩. ইভেন্ট লিসেনার (রিয়েল-টাইম মনিটরিং)
+window.addEventListener('online', () => {
+    toggleOfflinePopup(false);
+    showToast(" Back Online!");
+});
+
+window.addEventListener('offline', () => {
+    toggleOfflinePopup(true);
+});
+
+// ৪. পেজ লোড হওয়ার সাথে সাথে স্ট্যাটাস চেক করা
+document.addEventListener('DOMContentLoaded', () => {
+    if (!navigator.onLine) {
+        toggleOfflinePopup(true);
+    }
+});
 </script>
 </body>
 </html>
