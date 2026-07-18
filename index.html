@@ -2054,13 +2054,6 @@ NESTED ACTIVITY CATEGORIES STYLES
         <button class="btn-primary" onclick="saveProfileChanges()" style="margin:0; width:auto; padding:8px 16px; border-radius:20px; font-size:14px;">Save</button>
     </div>
     
-    <div style="margin-bottom:16px;">
-    <label style="font-size:12px; color:var(--text-muted); margin-bottom:6px; display:block;">Username</label>
-    <input type="text" id="edit-username" placeholder="e.g. sabbir_ahmed" 
-           style="width:100%; padding:12px; border-radius:12px; background:var(--surface-2); border:1px solid var(--border); color:var(--text); font-size:15px;">
-    <div style="font-size:11px; color:var(--text-muted); margin-top:6px;">Only letters, numbers and underscores allowed.</div>
-</div>
-
     <div style="padding: 20px; display:flex; flex-direction:column; gap:8px;">
         <div class="input-group"><label>Name</label><input type="text" id="edit-name"></div>
         <div class="input-group"><label>Bio</label><input type="text" id="edit-bio"></div>
@@ -2648,14 +2641,6 @@ NESTED ACTIVITY CATEGORIES STYLES
             <span class="material-symbols-outlined" style="color:var(--text-muted);">chevron_right</span>
         </div>
         
-        <div class="settings-list-item" onclick="openUsernameSettings()">
-    <div style="display:flex; align-items:center; gap:16px;">
-        <span class="material-symbols-outlined" style="font-size: 24px; color: #3b82f6;">alternate_email</span>
-        <span style="font-weight:600; font-size:15px;">Username</span>
-    </div>
-    <span class="material-symbols-outlined" style="color:var(--text-muted);">chevron_right</span>
-</div>
-
         <div class="settings-list-item" onclick="openShareModal();">
             <div style="display:flex; align-items:center; gap:16px;">
                 <span class="material-symbols-outlined" style="font-size: 24px;">qr_code_scanner</span>
@@ -5240,38 +5225,13 @@ document.getElementById('page-other-profile').classList.remove('open');
 currentOtherProfileUid=null;
 }
 
-🚀 FIXED UNIVERSAL PROFILE LINK & QR LOGIC
-// ==========================================
-
-// . লিংক এবং QR কোড জেনারেট করার মূল ফাংশন
-function generateProfileData(targetUid = null) {
-    let uidToUse = targetUid || currentOtherProfileUid || currentUser.uid;
-    let isOwnProfile = (uidToUse === currentUser.uid);
-    
-    // টার্গেট ইউজারের ডাটা খোঁজা (Cache থেকে)
-    let targetUser = isOwnProfile ? currentUserData : (allUsersCache ? allUsersCache.find(u => u.id === uidToUse) : null);
-    let username = targetUser?.username;
-    
-    // লিংক তৈরি (Username থাকলে সেটা, না থাকলে UID)
-    const baseUrl = window.location.origin + window.location.pathname;
-    const profileLink = username 
-        ? `${baseUrl}?user=${username}` 
-        : `${baseUrl}?user=${uidToUse}`;
-        
-    return { link: profileLink, user: targetUser };
-}
-
-// ২. আপডেটেড Copy Profile Link ফাংশন
-function copyProfileLink() {
-    const data = generateProfileData();
-    
-    navigator.clipboard.writeText(data.link).then(() => {
-        showToast(data.user?.username ? "Username link copied!" : "Profile link copied!");
-        closeAllDropdowns(); // মেনু বন্ধ করা
-    }).catch(err => {
-        console.error('Failed to copy: ', err);
-        alert("Failed to copy link!");
-    });
+function copyProfileLink(){
+if(!currentOtherProfileUid)return;
+const url=window.location.origin+window.location.pathname+'?user='+currentOtherProfileUid;
+navigator.clipboard.writeText(url).then(()=>{
+showToast('Profile link copied!');
+closeAllDropdowns();
+});
 }
 
 async function blockCurrentUser(){
@@ -7402,16 +7362,20 @@ async function unblockUserFromList(uid) {
 }
 // ===== QR CODE & SHARE LOGIC =====
 function openShareModal() {
+    // ১. সেটিংস মেনুটা আগে বন্ধ করে দেওয়া
     const settingsMenu = document.getElementById('settings-menu');
     if (settingsMenu) settingsMenu.classList.remove('open');
     
-    const data = generateProfileData();
+    // ২. ইউজারের প্রোফাইল লিংক বানানো (আপনার অ্যাপের ডোমেইন)
+    const profileLink = "https://go-chat-zyp2.vercel.app/?user=" + currentUser.uid;
     
-    // QR API দিয়ে ডাইনামিক লিংকের কোড তৈরি
-    const qrApiUrl = "https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=" + encodeURIComponent(data.link);
+    // ৩. API দিয়ে অটোমেটিক কিউআর কোড জেনারেট করা
+    const qrApiUrl = "https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=" + encodeURIComponent(profileLink);
+    
+    // ৪. মডালের ভেতর কিউআর কোডের ছবিটা বসানো
     document.getElementById('qr-code-img').src = qrApiUrl;
     
-    // মডাল ওপেন করা
+    // ৫. মডালটা স্ক্রিনে ওপেন করা (সরাসরি ডিসপ্লে পরিবর্তন করে)
     document.getElementById('share-modal').style.display = 'flex';
 }
 
@@ -7419,6 +7383,7 @@ function closeShareModal() {
     // মডালটা স্ক্রিন থেকে লুকিয়ে ফেলা
     document.getElementById('share-modal').style.display = 'none';
 }
+
 
 function copyProfileLink() {
     const profileLink = "https://go-chat-zyp2.vercel.app/?user=" + currentUser.uid;
@@ -10131,127 +10096,6 @@ function filterMenuSettings(query) {
         // আপনি চাইলে এখানে একটি "No results found" মেসেজ যোগ করতে পারেন
     }
 }
-// ==========================================
-//  USERNAME SYSTEM LOGIC
-// ==========================================
-
-// . Username Settings Open
-function openUsernameSettings() {
-    openProfileEdit(); // আপনার বিদ্যমান প্রোফাইল এডিট স্ক্রিন ওপেন হবে
-    // ইউজারনেম ফিল্ডে বর্তমান মান বসানো
-    document.getElementById('edit-username').value = currentUserData.username || '';
-}
-
-// ২. Save Profile Changes এ Username লজিক যোগ করা
-// আপনার existing saveProfileChanges() ফাংশনের শুরুতে এই কোডটি বসান
-const originalSaveProfileChanges = window.saveProfileChanges;
-window.saveProfileChanges = async function() {
-    const newUsername = document.getElementById('edit-username').value.trim().toLowerCase();
-    
-    // ভ্যালিডেশন: শুধু অক্ষর, সংখ্যা ও আন্ডারস্কোর
-    if(newUsername && !/^[a-z0-9_]+$/.test(newUsername)) {
-        showToast("Username can only contain letters, numbers and underscores!");
-        return;
-    }
-
-    // যদি ইউজারনেম পরিবর্তন করার চেষ্টা করে
-    if(newUsername && newUsername !== (currentUserData.username || '').toLowerCase()) {
-        
-        //  দিনের লিমিট চেক
-        if(currentUserData.lastUsernameChange) {
-            const daysSinceChange = (Date.now() - currentUserData.lastUsernameChange) / (1000 * 60 * 60 * 24);
-            if(daysSinceChange < 7) {
-                showToast(`You can change username after ${Math.ceil(7 - daysSinceChange)} days.`);
-                return;
-            }
-        }
-
-        // ইউনিকনেস চেক (Database Query)
-        try {
-            const snap = await db.collection('users').where('username', '==', newUsername).get();
-            let isTaken = false;
-            snap.forEach(doc => {
-                if(doc.id !== currentUser.uid) isTaken = true;
-            });
-
-            if(isTaken) {
-                showToast("This username is already taken! Try another.");
-                return;
-            }
-        } catch(e) {
-            console.error(e);
-            showToast("Network error checking username");
-            return;
-        }
-    }
-
-    // মূল সেভ ফাংশন কল করা
-    await originalSaveProfileChanges();
-
-    // ইউজারনেম আপডেট করা (যদি পরিবর্তন হয়)
-    if(newUsername && newUsername !== (currentUserData.username || '').toLowerCase()) {
-        await db.collection('users').doc(currentUser.uid).update({
-            username: newUsername,
-            lastUsernameChange: Date.now()
-        });
-        currentUserData.username = newUsername;
-        showToast("Username updated successfully!");
-    }
-};
-
-// ৩. Search Users ফাংশনে Username সাপোর্ট যোগ করা
-// আপনার existing searchUsers() ফাংশনের ভেতরে users.forEach লুপের আগে এই লজিক বসান
-const originalSearchUsers = window.searchUsers;
-window.searchUsers = async function() {
-    clearTimeout(searchTimeout);
-    const q = document.getElementById('search-input').value.trim().toLowerCase();
-    const res = document.getElementById('search-results-list');
-    
-    if(!q) { renderRecentSearches(); return; }
-    
-    searchTimeout = setTimeout(async () => {
-        const users = await fetchAllUsers();
-        let html = '';
-        
-        // নাম এবং ইউজারনেম দুটো দিয়েই সার্চ হবে
-        users.forEach(u => {
-            const uId = u.id;
-            const matchesName = (u.name || '').toLowerCase().includes(q);
-            const matchesUsername = (u.username || '').toLowerCase().includes(q);
-            
-            if(matchesName || matchesUsername) {
-                // ... আপনার existing user rendering code here ...
-                // উদাহরণস্বরূপ:
-                const safeName = escapeHTML(u.name);
-                const avHtml = u.avatar ? `<img src="${u.avatar}">` : avatarInitial(u.name);
-                html += `<div class="msg-item" onclick="addToRecentSearches('${uId}'); viewUserProfile('${uId}')">
-                    <div class="avatar">${avHtml}</div>
-                    <div class="msg-info"><div class="msg-name">${safeName}</div>
-                    <div style="font-size:12px; color:var(--text-muted);">@${escapeHTML(u.username||'')}</div></div>
-                </div>`;
-            }
-        });
-        
-        res.innerHTML = html || '<div class="empty-feed">No users found</div>';
-    }, 300);
-};
-
-// ৪. Copy Profile Link এ Username যুক্ত করা
-// আপনার existing copyProfileLink() ফাংশনটি এই কোড দিয়ে রিপ্লেস করুন
-window.copyProfileLink = function() {
-    const username = currentUserData.username;
-    // যদি ইউজারনেম থাকে তবে সেটা দিয়ে লিংক, না থাকলে UID দিয়ে
-    const profileLink = username 
-        ? `https://go-chat-zyp2.vercel.app/?user=${username}` 
-        : `https://go-chat-zyp2.vercel.app/?user=${currentUser.uid}`;
-        
-    navigator.clipboard.writeText(profileLink).then(() => {
-        showToast(username ? "Username link copied!" : "Profile link copied!");
-    }).catch(err => {
-        console.error('Failed to copy: ', err);
-        alert("Failed to copy link!");
-    });
-};
 // ==========================================
 // 🚀 ELITE APP WHATSAPP FORWARD SYSTEM
 // ==========================================
