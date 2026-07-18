@@ -2242,6 +2242,16 @@ NESTED ACTIVITY CATEGORIES STYLES
 <textarea id="post-title" placeholder="What's on your mind?" style="width:100%;border:none;background:transparent;color:var(--text);font-size:20px;outline:none;resize:none;font-family:inherit;min-height:160px;font-weight:500; transition: all 0.3s;" oninput="checkPostInputs()"></textarea>
 <div class="mention-dropdown" id="post-mention-dropdown"></div>
 
+<!-- 🚀 Post Category Selector -->
+<div style="margin-top:16px; padding:0 4px;">
+    <label style="font-size:13px; font-weight:600; color:var(--text-secondary); margin-bottom:8px; display:block;">Select Category</label>
+    <select id="post-category-select" style="width:100%; padding:12px; border-radius:12px; background:var(--surface-2); border:1px solid var(--border); color:var(--text); font-size:15px; outline:none;">
+        <option value="all">All / General</option>
+        <option value="funny">😂 Funny</option>
+        <option value="painful">💔 Painful</option>
+    </select>
+</div>
+
 <div id="compose-img-preview" style="display:none;margin-top:16px;">
 <div class="tag-preview-container" id="tag-preview-container">
   <div class="tag-preview-label">Tagged Friends</div>
@@ -2710,6 +2720,15 @@ NESTED ACTIVITY CATEGORIES STYLES
             </div>
             <span class="material-symbols-outlined" style="color:var(--text-muted);">chevron_right</span>
         </div>
+
+<!-- 🚀 NEW: Categories Menu Item -->
+<div class="settings-list-item" onclick="openCategoriesScreen()">
+    <div style="display:flex; align-items:center; gap:16px;">
+        <span class="material-symbols-outlined" style="font-size: 24px; color: #8b5cf6;">category</span>
+        <span style="font-weight:600; font-size:15px;">Categories</span>
+    </div>
+    <span class="material-symbols-outlined" style="color:var(--text-muted);">chevron_right</span>
+</div>
 
         <div class="settings-list-item" onclick="showToast('Memories feature coming soon!')">
             <div style="display:flex; align-items:center; gap:16px;">
@@ -3262,9 +3281,43 @@ NESTED ACTIVITY CATEGORIES STYLES
             <button class="btn-primary" onclick="submitEliteApplication()" style="width:100%;">FINISH</button>
             <p style="font-size:11px; color:var(--text-muted); margin-top:16px;">Please wait 72 hours. Your form will be verified and notified on the number or email you provided.</p>
         </div>
-
     </div>
 </div>
+
+<!-- 🚀 Categories Screen -->
+<div id="categories-screen" style="display:none; position:fixed; inset:0; background:var(--bg); z-index:10005; flex-direction:column; overflow-y:auto; animation:slideUp 0.3s ease;">
+    <!-- Top Bar -->
+    <div class="chat-topbar" style="position:sticky; top:0; z-index:100; display:flex; justify-content:space-between; align-items:center;">
+        <div style="display:flex; align-items:center; gap:12px;">
+            <div class="chat-back" onclick="closeCategoriesScreen()"><span class="material-symbols-outlined">arrow_back</span></div>
+            <div style="font-weight:800; font-size:18px;">Post Categories</div>
+        </div>
+    </div>
+    
+    <!-- Category Tabs -->
+    <div style="padding:16px; display:flex; gap:10px; overflow-x:auto; border-bottom:1px solid var(--border);">
+        <button class="cat-tab active" onclick="filterCategoryPosts('all', this)">All</button>
+        <button class="cat-tab" onclick="filterCategoryPosts('funny', this)">😂 Funny</button>
+        <button class="cat-tab" onclick="filterCategoryPosts('ridiculous', this)">🤪 Ridiculous</button>
+        <button class="cat-tab" onclick="filterCategoryPosts('painful', this)">💔 Painful</button>
+    </div>
+
+    <!-- Posts Container -->
+    <div id="category-posts-container" style="padding:16px; display:flex; flex-direction:column; gap:16px; min-height:50vh;">
+        <!-- JS will populate this -->
+    </div>
+</div>
+
+<style>
+    .cat-tab {
+        padding: 8px 16px; border-radius: 20px; border: 1px solid var(--border);
+        background: var(--surface-2); color: var(--text); font-size: 14px; font-weight: 600;
+        white-space: nowrap; cursor: pointer; transition: all 0.2s;
+    }
+    .cat-tab.active {
+        background: var(--accent); color: white; border-color: var(--accent);
+    }
+</style>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
@@ -6714,6 +6767,7 @@ imgUrls.push(url);
             isPinned:false,
             createdAt:firebase.firestore.FieldValue.serverTimestamp(),
             expiresAt:expireAt
+            category: selectedCategory 
         });
 
         // নতুন: ট্যাগ করা বন্ধুদের কাছে নোটিফিকেশন পাঠানো
@@ -10254,6 +10308,55 @@ window.copyProfileLink = function() {
         alert("Failed to copy link!");
     });
 };
+// ==========================================
+// 🚀 CATEGORIES SYSTEM LOGIC
+// ==========================================
+
+function openCategoriesScreen() {
+    document.getElementById('categories-screen').style.display = 'flex';
+    filterCategoryPosts('all', document.querySelector('.cat-tab')); // ডিফল্টভাবে All দেখাবে
+}
+
+function closeCategoriesScreen() {
+    document.getElementById('categories-screen').style.display = 'none';
+}
+
+async function filterCategoryPosts(category, btnElement) {
+    // ট্যাব স্টাইল আপডেট
+    document.querySelectorAll('.cat-tab').forEach(t => t.classList.remove('active'));
+    if(btnElement) btnElement.classList.add('active');
+    
+    const container = document.getElementById('category-posts-container');
+    container.innerHTML = '<div class="loading"><span class="material-symbols-outlined">autorenew</span> Loading posts...</div>';
+    
+    try {
+        let query = db.collection('posts').orderBy('createdAt', 'desc').limit(50);
+        
+        // যদি 'all' না হয়, তবে ক্যাটাগরি দিয়ে ফিল্টার করা
+        if (category !== 'all') {
+            query = query.where('category', '==', category);
+        }
+        
+        const snap = await query.get();
+        let html = '';
+        
+        if (snap.empty) {
+            html = '<div style="text-align:center; padding:40px; color:var(--text-muted);">No posts in this category yet.</div>';
+        } else {
+            snap.forEach(doc => {
+                const p = doc.data();
+                // আপনার existing renderPostCard ফাংশন ব্যবহার করা হচ্ছে
+                // যদি না থাকে, তবে এখানে পোস্ট কার্ডের HTML বসাতে হবে
+                html += renderPostCard(doc.id, p); 
+            });
+        }
+        
+        container.innerHTML = html;
+    } catch(e) {
+        console.error(e);
+        container.innerHTML = '<div style="text-align:center; padding:20px; color:var(--danger);">Failed to load posts.</div>';
+    }
+}
 </script>
 </body>
 </html>
