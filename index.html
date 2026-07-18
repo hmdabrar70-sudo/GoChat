@@ -5095,15 +5095,6 @@ awardPoints(doc.data().uid, 10);
 showToast('Reply added!');
 }
 
-function sharePost(pid){
-const url=window.location.origin+"?post="+pid;
-if(navigator.share){
-navigator.share({title:'GoChat Post',url:url}).catch(()=>{});
-}else{
-navigator.clipboard.writeText(url).then(()=>showToast('Link copied!'));
-}
-}
-
 // ===== OTHER PROFILE LOGIC =====
 async function viewUserProfile(uid){
     if(uid===currentUser.uid){
@@ -7018,7 +7009,6 @@ ${mediaHtml}
 <span class="material-symbols-outlined" style="font-size:24px;">chat_bubble_outline</span>
 <span style="font-size:14px;">${commentCount}</span>
 </button>
-<span class="material-symbols-outlined" onclick="sharePost('${pid}')" style="cursor:pointer;margin-left:auto;color:var(--text-secondary);font-size:24px;">share</span>
 </div>
 </div>`;
 }
@@ -7361,23 +7351,6 @@ async function unblockUserFromList(uid) {
   // লিস্ট রিলোড করা যাতে আনব্লক করা মানুষটি লিস্ট থেকে সরে যায়
   loadBlockedUsers(); 
 }
-
-function copyProfileLink() {
-    // বর্তমান ইউজার অন্য কারো প্রোফাইল দেখলে তার আইডি নেবে, নাহলে নিজের আইডি নেবে
-    const targetUid = currentOtherProfileUid || currentUser.uid;
-    
-    // আপনার অ্যাপের আসল ডোমেইন দিয়ে লিংক তৈরি করা হলো
-    const profileLink = "https://go-chat-zyp2.vercel.app/?user=" + targetUid;
-    
-    navigator.clipboard.writeText(profileLink).then(() => {
-        showToast("Profile Link Copied!"); 
-        closeAllDropdowns();
-    }).catch(err => {
-        console.error('Failed to copy: ', err);
-        showToast("Failed to copy link!");
-    });
-}
-
 
 // --- Scroll to Hide Navigation Logic (Isolated & Safe) ---
 (function() {
