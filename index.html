@@ -10201,77 +10201,59 @@ window.saveProfileChanges = async function() {
     }
 };
 
-// ==========================================
-// 🚀 OPTIMIZED SEARCH LOGIC (MIN 3 CHARS)
-// ==========================================
-async function searchUsers() {
+// ৩. Search Users ফাংশনে Username সাপোর্ট যোগ করা
+// আপনার existing searchUsers() ফাংশনের ভেতরে users.forEach লুপের আগে এই লজিক বসান
+const originalSearchUsers = window.searchUsers;
+window.searchUsers = async function() {
     clearTimeout(searchTimeout);
-    
     const q = document.getElementById('search-input').value.trim().toLowerCase();
     const res = document.getElementById('search-results-list');
     
-    // . যদি সার্চ বক্স খালি থাকে বা ৩টির কম অক্ষর থাকে, তবে রিসেন্ট সার্চ দেখাবে
-    if (!q || q.length < 3) {
-        renderRecentSearches();
-        return;
-    }
-
-    res.innerHTML = '<div class="loading"><span class="material-symbols-outlined">autorenew</span> Searching...</div>';
+    if(!q) { renderRecentSearches(); return; }
     
     searchTimeout = setTimeout(async () => {
-        try {
-            const users = await fetchAllUsers();
-            let html = '';
+        const users = await fetchAllUsers();
+        let html = '';
+        
+        // নাম এবং ইউজারনেম দুটো দিয়েই সার্চ হবে
+        users.forEach(u => {
+            const uId = u.id;
+            const matchesName = (u.name || '').toLowerCase().includes(q);
+            const matchesUsername = (u.username || '').toLowerCase().includes(q);
             
-            // . নাম এবং ইউজারনেম দিয়ে ফিল্টার করা (শুধুমাত্র ৩+ অক্ষরের জন্য)
-            users.forEach(u => {
-                const uId = u.id;
-                // নিজের প্রোফাইল সার্চ রেজাল্টে দেখাবে না
-                if (uId === currentUser.uid) return; 
-                
-                const userName = (u.name || '').toLowerCase();
-                const userUsername = (u.username || '').toLowerCase();
-                
-                // চেক করা হচ্ছে নাম বা ইউজারনেমে সার্চ কিওয়ার্ড আছে কিনা
-                const matchesName = userName.includes(q);
-                const matchesUsername = userUsername.includes(q);
-                
-                if (matchesName || matchesUsername) {
-                    const isFollowing = currentUserData.following?.includes(uId);
-                    let btnHtml = '';
-                    
-                    // ফলো/আনফলো বাটন লজিক
-                    if (isFollowing) {
-                        btnHtml = `<button class="btn-following" onclick="event.stopPropagation(); toggleFollow('${uId}')">Following</button>`;
-                    } else {
-                        btnHtml = `<button class="btn-follow" onclick="event.stopPropagation(); toggleFollow('${uId}')">Follow</button>`;
-                    }
+            if(matchesName || matchesUsername) {
+                // ... আপনার existing user rendering code here ...
+                // উদাহরণস্বরূপ:
+                const safeName = escapeHTML(u.name);
+                const avHtml = u.avatar ? `<img src="${u.avatar}">` : avatarInitial(u.name);
+                html += `<div class="msg-item" onclick="addToRecentSearches('${uId}'); viewUserProfile('${uId}')">
+                    <div class="avatar">${avHtml}</div>
+                    <div class="msg-info"><div class="msg-name">${safeName}</div>
+                    <div style="font-size:12px; color:var(--text-muted);">@${escapeHTML(u.username||'')}</div></div>
+                </div>`;
+            }
+        });
+        
+        res.innerHTML = html || '<div class="empty-feed">No users found</div>';
+    }, 300);
+};
 
-                    const safeName = escapeHTML(u.name);
-                    const avHtml = u.avatar ? `<img src="${u.avatar}">` : avatarInitial(u.name);
-                    
-                    // রেজাল্ট আইটেম তৈরি করা
-                    html += `
-                    <div class="msg-item" onclick="addToRecentSearches('${uId}'); viewUserProfile('${uId}')">
-                        <div class="avatar">${avHtml}</div>
-                        <div class="msg-info" style="margin-left:10px; flex:1;">
-                            <div class="msg-name">${safeName} ${getVerifiedBadge(u.email, u.isVerified)}</div>
-                            ${u.username ? `<div style="font-size:12px; color:var(--text-muted);">@${escapeHTML(u.username)}</div>` : ''}
-                        </div>
-                        <div>${btnHtml}</div>
-                    </div>`;
-                }
-            });
-            
-            // যদি কোনো রেজাল্ট না পাওয়া যায়
-            res.innerHTML = html || '<div class="empty-feed">No users found for "' + escapeHTML(q) + '"</div>';
-            
-        } catch(e) {
-            console.error(e);
-            res.innerHTML = '<div class="empty-feed">Search failed. Try again.</div>';
-        }
-    }, 400); // ৪০ms ডিলে যাতে টাইপিং শেষ হওয়ার পর সার্চ হয়
-}
+// ৪. Copy Profile Link এ Username যুক্ত করা
+// আপনার existing copyProfileLink() ফাংশনটি এই কোড দিয়ে রিপ্লেস করুন
+window.copyProfileLink = function() {
+    const username = currentUserData.username;
+    // যদি ইউজারনেম থাকে তবে সেটা দিয়ে লিংক, না থাকলে UID দিয়ে
+    const profileLink = username 
+        ? `https://go-chat-zyp2.vercel.app/?user=${username}` 
+        : `https://go-chat-zyp2.vercel.app/?user=${currentUser.uid}`;
+        
+    navigator.clipboard.writeText(profileLink).then(() => {
+        showToast(username ? "Username link copied!" : "Profile link copied!");
+    }).catch(err => {
+        console.error('Failed to copy: ', err);
+        alert("Failed to copy link!");
+    });
+};
 </script>
 </body>
 </html>
