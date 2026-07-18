@@ -5161,58 +5161,33 @@ document.getElementById('page-other-profile').classList.remove('open');
 currentOtherProfileUid=null;
 }
 
+🚀 FIXED UNIVERSAL PROFILE LINK & QR LOGIC
 // ==========================================
-// 🚀 FIXED COPY PROFILE LINK LOGIC
-// ==========================================
-function copyProfileLink() {
-    let targetUid = null;
-    let isOwnProfile = false;
 
-    // ১. চেক করা কোন প্রোফাইল currently open আছে
-    const otherProfilePage = document.getElementById('page-other-profile');
+// . লিংক এবং QR কোড জেনারেট করার মূল ফাংশন
+function generateProfileData(targetUid = null) {
+    let uidToUse = targetUid || currentOtherProfileUid || currentUser.uid;
+    let isOwnProfile = (uidToUse === currentUser.uid);
     
-    if (otherProfilePage && otherProfilePage.classList.contains('open') && currentOtherProfileUid) {
-        // যদি অন্যের প্রোফাইল ওপেন থাকে
-        targetUid = currentOtherProfileUid;
-        isOwnProfile = false;
-    } else {
-        // না হলে নিজের প্রোফাইল ধরে নেওয়া
-        targetUid = currentUser.uid;
-        isOwnProfile = true;
-    }
-
-    // ২. ইউজারনেম বা UID দিয়ে লিংক তৈরি করা
-    let profileLink = "";
-    let toastMsg = "";
-
-    if (!isOwnProfile) {
-        // অন্যের প্রোফাইলের ডাটা আনা (Cache থেকে)
-        const otherUser = allUsersCache ? allUsersCache.find(u => u.id === targetUid) : null;
-        const username = otherUser?.username;
+    // টার্গেট ইউজারের ডাটা খোঁজা (Cache থেকে)
+    let targetUser = isOwnProfile ? currentUserData : (allUsersCache ? allUsersCache.find(u => u.id === uidToUse) : null);
+    let username = targetUser?.username;
+    
+    // লিংক তৈরি (Username থাকলে সেটা, না থাকলে UID)
+    const baseUrl = window.location.origin + window.location.pathname;
+    const profileLink = username 
+        ? `${baseUrl}?user=${username}` 
+        : `${baseUrl}?user=${uidToUse}`;
         
-        if (username) {
-            profileLink = `${window.location.origin}${window.location.pathname}?user=${username}`;
-            toastMsg = "User's username link copied!";
-        } else {
-            profileLink = `${window.location.origin}${window.location.pathname}?user=${targetUid}`;
-            toastMsg = "User's profile link copied!";
-        }
-    } else {
-        // নিজের প্রোফাইলের ডাটা
-        const username = currentUserData.username;
-        
-        if (username) {
-            profileLink = `${window.location.origin}${window.location.pathname}?user=${username}`;
-            toastMsg = "Your username link copied!";
-        } else {
-            profileLink = `${window.location.origin}${window.location.pathname}?user=${targetUid}`;
-            toastMsg = "Your profile link copied!";
-        }
-    }
+    return { link: profileLink, user: targetUser };
+}
 
-    // ৩. লিংক কপি করা
-    navigator.clipboard.writeText(profileLink).then(() => {
-        showToast(toastMsg);
+// ২. আপডেটেড Copy Profile Link ফাংশন
+function copyProfileLink() {
+    const data = generateProfileData();
+    
+    navigator.clipboard.writeText(data.link).then(() => {
+        showToast(data.user?.username ? "Username link copied!" : "Profile link copied!");
         closeAllDropdowns(); // মেনু বন্ধ করা
     }).catch(err => {
         console.error('Failed to copy: ', err);
@@ -7348,20 +7323,16 @@ async function unblockUserFromList(uid) {
 }
 // ===== QR CODE & SHARE LOGIC =====
 function openShareModal() {
-    // ১. সেটিংস মেনুটা আগে বন্ধ করে দেওয়া
     const settingsMenu = document.getElementById('settings-menu');
     if (settingsMenu) settingsMenu.classList.remove('open');
     
-    // ২. ইউজারের প্রোফাইল লিংক বানানো (আপনার অ্যাপের ডোমেইন)
-    const profileLink = "https://go-chat-zyp2.vercel.app/?user=" + currentUser.uid;
+    const data = generateProfileData();
     
-    // ৩. API দিয়ে অটোমেটিক কিউআর কোড জেনারেট করা
-    const qrApiUrl = "https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=" + encodeURIComponent(profileLink);
-    
-    // ৪. মডালের ভেতর কিউআর কোডের ছবিটা বসানো
+    // QR API দিয়ে ডাইনামিক লিংকের কোড তৈরি
+    const qrApiUrl = "https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=" + encodeURIComponent(data.link);
     document.getElementById('qr-code-img').src = qrApiUrl;
     
-    // ৫. মডালটা স্ক্রিনে ওপেন করা (সরাসরি ডিসপ্লে পরিবর্তন করে)
+    // মডাল ওপেন করা
     document.getElementById('share-modal').style.display = 'flex';
 }
 
@@ -7369,7 +7340,6 @@ function closeShareModal() {
     // মডালটা স্ক্রিন থেকে লুকিয়ে ফেলা
     document.getElementById('share-modal').style.display = 'none';
 }
-
 
 function copyProfileLink() {
     const profileLink = "https://go-chat-zyp2.vercel.app/?user=" + currentUser.uid;
