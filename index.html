@@ -3928,6 +3928,20 @@ setInterval(async () => {
     } catch (e) {}
 }, 30000);
 
+        // 🚀 NEW: Deep Linking Profile Routing (লিংক থেকে সরাসরি প্রোফাইল ওপেন করার ম্যাজিক)
+        const urlParams = new URLSearchParams(window.location.search);
+        const profileUidToOpen = urlParams.get('user');
+
+        if (profileUidToOpen && profileUidToOpen.length > 5) {
+            // যদি লিংকে ইউজার আইডি থাকে, তাহলে একটু সময় নিয়ে প্রোফাইলটি ওপেন করে দেবে
+            setTimeout(() => {
+                viewUserProfile(profileUidToOpen);
+                
+                // প্রোফাইল ওপেন হওয়ার পর ব্রাউজারের লিংক থেকে ?user=... মুছে একদম ফ্রেশ করে দেবে
+                const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
+                window.history.replaceState({path:newUrl}, '', newUrl);
+            }, 1000); // ডাটাবেস লোড হওয়ার জন্য ১ সেকেন্ড সময় দেওয়া হলো
+        }
 
 // 🚀 স্মার্ট ভিজিবিলিটি ট্র্যাকার (অ্যাপ মিনিমাইজ করলে বা ব্যাকগ্রাউন্ডে গেলে অফলাইন)
 function handleAppVisibility() {
@@ -7349,17 +7363,21 @@ async function unblockUserFromList(uid) {
 }
 
 function copyProfileLink() {
-    const profileLink = "https://go-chat-zyp2.vercel.app/?user=" + currentUser.uid;
+    // বর্তমান ইউজার অন্য কারো প্রোফাইল দেখলে তার আইডি নেবে, নাহলে নিজের আইডি নেবে
+    const targetUid = currentOtherProfileUid || currentUser.uid;
     
-    // লিংকটা ফোনের ক্লিপবোর্ডে কপি করা
+    // আপনার অ্যাপের আসল ডোমেইন দিয়ে লিংক তৈরি করা হলো
+    const profileLink = "https://go-chat-zyp2.vercel.app/?user=" + targetUid;
+    
     navigator.clipboard.writeText(profileLink).then(() => {
-        // কপি হলে সুন্দর একটা নোটিফিকেশন দেখাবে
-        showToast("Link Copied!"); 
+        showToast("Profile Link Copied!"); 
+        closeAllDropdowns();
     }).catch(err => {
         console.error('Failed to copy: ', err);
-        alert("Failed to copy link!");
+        showToast("Failed to copy link!");
     });
 }
+
 
 // --- Scroll to Hide Navigation Logic (Isolated & Safe) ---
 (function() {
