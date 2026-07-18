@@ -94,6 +94,7 @@
             <div class="nav-link" onclick="switchTab('posts')"> Manage Posts</div>
             <div class="nav-link" onclick="switchTab('announce')"> Announcements</div>
             <div class="nav-link" onclick="switchTab('settings')"> Settings</div>
+<div class="nav-link" onclick="switchTab('banned')"> 🚫 Banned Users</div>
             <div style="flex:1;"></div>
             <div class="nav-link" style="color: #e74c3c;" onclick="logoutAdmin()"> Logout</div>
         </div>
@@ -260,6 +261,11 @@
             const title = document.getElementById('page-title');
             const contentArea = document.getElementById('content-area');
 
+else if(tab === 'banned') {
+    title.innerText = "Banned Users List";
+    contentArea.innerHTML = '<p>Loading banned users...</p>';
+    loadBannedUsersList();
+}
             if(tab === 'dashboard') {
                 title.innerText = "Dashboard";
                 contentArea.innerHTML = dashboardHTML;
@@ -489,6 +495,70 @@ async function toggleUserVerification(uid, currentStatus) {
     } catch (error) {
         console.error("Error updating verification: ", error);
         alert("Failed to update verification status.");
+    }
+}
+// --- Banned Users Management Functions ---
+
+async function loadBannedUsersList() {
+    const contentArea = document.getElementById('content-area');
+    try {
+        // শুধুমাত্র সেই ইউজারদের লোড করবে যাদের isBanned: true
+        const snapshot = await db.collection('users').where('isBanned', '==', true).get();
+        
+        if (snapshot.empty) {
+            contentArea.innerHTML = '<div class="admin-form-group"><h3>🎉 No Banned Users Found</h3><p>All users are currently active.</p></div>';
+            return;
+        }
+
+        let html = '<table class="data-table"><tr><th>Avatar</th><th>Name</th><th>Email</th><th>Action</th></tr>';
+        
+        snapshot.forEach(doc => {
+            const user = doc.data();
+            const profilePic = user.avatar || user.profilePic || 'https://via.placeholder.com/40';
+            
+            html += `<tr>
+                <td><img src="${profilePic}" style="width:40px; height:40px; border-radius:50%; object-fit:cover;"></td>
+                <td><strong>${user.name || 'No Name'}</strong></td>
+                <td>${user.email || 'No Email'}</td>
+                <td>
+                    <button class="action-btn" style="background-color: #27ae60;" onclick="unbanUser('${doc.id}', '${user.email}')">
+                        Unban User ✅
+                    </button>
+                </td>
+            </tr>`;
+        });
+        
+        html += '</table>';
+        contentArea.innerHTML = html;
+        
+    } catch(e) {
+        console.error(e);
+        contentArea.innerHTML = '<p style="color:red;">Error loading banned users list.</p>';
+    }
+}
+
+async function unbanUser(uid, email) {
+    if(confirm("Are you sure you want to UNBAN this user? They will regain access to the app.")) {
+        try {
+            // ১. ইউজারের ব্যান স্ট্যাটাস অপসারণ
+            await db.collection('users').doc(uid).update({ 
+                isBanned: false 
+            });
+
+            // ২. যদি ইমেইল দিয়ে ব্যান করা হয়ে থাকে, তবে banned_emails কালেকশন থেকেও মুছতে হবে
+            if(email) {
+                await db.collection('banned_emails').doc(email).delete();
+            }
+
+            alert("User has been successfully Unbanned! 🎉");
+            
+            // লিস্ট রিলোড করে নতুন অবস্থা দেখানো
+            loadBannedUsersList();
+            
+        } catch(e) {
+            console.error(e);
+            alert("Error unbanning user.");
+        }
     }
 }
     </script>
