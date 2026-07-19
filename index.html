@@ -1851,6 +1851,40 @@ NESTED ACTIVITY CATEGORIES STYLES
 .back-to-main-btn:hover {
     background: var(--surface-2);
 }
+/* 🚀 Category Tabs CSS */
+.category-tabs {
+    display: flex;
+    gap: 10px;
+    padding: 12px 16px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 60px; /* Topbar এর ঠিক নিচে থাকবে */
+    z-index: 90;
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+.category-tabs::-webkit-scrollbar { display: none; }
+.cat-tab {
+    flex: 1;
+    text-align: center;
+    padding: 10px 16px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.3s;
+    white-space: nowrap;
+}
+.cat-tab.active {
+    background: var(--gradient);
+    color: #fff;
+    border-color: transparent;
+    box-shadow: var(--shadow-sm);
+}
 </style>
 </head>
 <body>
@@ -2717,6 +2751,15 @@ NESTED ACTIVITY CATEGORIES STYLES
             <span class="material-symbols-outlined" style="color:var(--text-muted);">chevron_right</span>
         </div>
 
+        <!-- 🚀 NEW: Category Menu Item -->
+        <div class="settings-list-item" onclick="openCategoryScreen()">
+            <div style="display:flex; align-items:center; gap:16px;">
+                <span class="material-symbols-outlined" style="font-size: 24px; color: #10b981;">category</span>
+                <span style="font-weight:600; font-size:15px;">Category</span>
+            </div>
+            <span class="material-symbols-outlined" style="color:var(--text-muted);">chevron_right</span>
+        </div>
+
         <div class="settings-list-item" onclick="showToast('Memories feature coming soon!')">
             <div style="display:flex; align-items:center; gap:16px;">
                 <span class="material-symbols-outlined" style="font-size: 24px; color: #a78bfa;">history</span>
@@ -3271,7 +3314,22 @@ NESTED ACTIVITY CATEGORIES STYLES
         
     </div</div>
 
-
+<!-- 🚀 NEW: Category Screen -->
+<div id="category-screen" style="display:none; position:fixed; inset:0; background:var(--bg); z-index:1005; flex-direction:column; overflow-y:auto; animation:slideUp 0.3s ease;">
+    <div class="chat-topbar" style="position:sticky; top:0; z-index:100; display:flex; align-items:center; gap:12px;">
+        <div class="chat-back" onclick="closeCategoryScreen()"><span class="material-symbols-outlined">arrow_back</span></div>
+        <div style="font-weight:800; font-size:18px;">Categories</div>
+    </div>
+    
+    <div class="category-tabs">
+        <div class="cat-tab active" onclick="switchCategoryTab('all')">All</div>
+        <div class="cat-tab" onclick="switchCategoryTab('ridiculous')">Ridiculous</div>
+        <div class="cat-tab" onclick="switchCategoryTab('painful')">Painful</div>
+    </div>
+    
+    <!-- পোস্টগুলো এখানে লোড হবে -->
+    <div id="category-posts-list" style="flex:1; padding-bottom:80px; overflow-y:auto; background:transparent;"></div>
+</div>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
@@ -10288,6 +10346,89 @@ window.copyProfileLink = function() {
         alert("Failed to copy link!");
     });
 };
+// ==========================================
+// 🚀 CATEGORY SYSTEM LOGIC (Fast Filtering)
+// ==========================================
+let currentCategoryTab = 'all';
+
+function openCategoryScreen() {
+    closeMainMenu(); // মেনু বন্ধ করবে
+    document.getElementById('category-screen').style.display = 'flex';
+    switchCategoryTab('all'); // প্রথমে All ট্যাব লোড হবে
+}
+
+function closeCategoryScreen() {
+    document.getElementById('category-screen').style.display = 'none';
+}
+
+function switchCategoryTab(tabName) {
+    currentCategoryTab = tabName;
+    
+    // ট্যাবের রঙ পরিবর্তন
+    const tabs = document.querySelectorAll('.cat-tab');
+    tabs.forEach(t => t.classList.remove('active'));
+    
+    if(tabName === 'all') tabs[0].classList.add('active');
+    if(tabName === 'ridiculous') tabs[1].classList.add('active');
+    if(tabName === 'painful') tabs[2].classList.add('active');
+    
+    loadCategoryPosts(tabName);
+}
+
+async function loadCategoryPosts(tabName) {
+    const list = document.getElementById('category-posts-list');
+    list.innerHTML = '<div class="loading" style="text-align:center; padding:40px; color:var(--text-muted);"><span class="material-symbols-outlined" style="animation: spin 1s linear infinite;">autorenew</span> Analyzing & Loading...</div>';
+    
+    try {
+        // ফায়ারবেস থেকে লেটেস্ট ৫০টি পোস্ট আনবো
+        const snap = await db.collection('posts').orderBy('createdAt', 'desc').limit(50).get();
+        let posts = [];
+        
+        // 🚀 আমাদের স্মার্ট কিওয়ার্ড ডিটেক্টর (AI এর বিকল্প)
+        const funnyKeywords = ['😂', '😆', '🤣', '😜', '🤪', 'funny', 'laugh', 'haha', 'crazy', 'ridiculous', 'joy', 'happy', 'lmao', 'lol'];
+        const sadKeywords = ['😢', '😭', '💔', '😔', '😞', 'sad', 'painful', 'broken', 'cry', 'depressed', 'hurt', 'pain', 'sorrow', 'alone'];
+        
+        snap.forEach(d => {
+            const p = { id: d.id, ...d.data() };
+            
+            // পোস্টের টাইটেল এবং অ্যাক্টিভিটি ইমোজি/টেক্সট একসাথে মিলিয়ে চেক করবো
+            const fullText = ((p.title || '') + ' ' + (p.activity ? p.activity.text + ' ' + p.activity.icon : '')).toLowerCase();
+            
+            let isFunny = funnyKeywords.some(kw => fullText.includes(kw));
+            let isSad = sadKeywords.some(kw => fullText.includes(kw));
+            
+            // ফিল্টারিং ম্যাজিক
+            if (tabName === 'all') {
+                posts.push(p);
+            } else if (tabName === 'ridiculous' && isFunny) {
+                posts.push(p);
+            } else if (tabName === 'painful' && isSad) {
+                posts.push(p);
+            }
+        });
+        
+        // মিউট করা ইউজারদের পোস্ট বাদ দেওয়া
+        const mutedList = currentUserData?.mutedFeedUsers || [];
+        posts = posts.filter(p => !mutedList.includes(p.uid));
+        
+        // যদি ওই ক্যাটাগরিতে কোনো পোস্ট না থাকে
+        if (posts.length === 0) {
+            list.innerHTML = `<div style="text-align:center; padding: 60px 20px; color: var(--text-muted);">
+                <span class="material-symbols-outlined" style="font-size: 60px; margin-bottom:15px; opacity:0.3;">inbox</span>
+                <h3 style="color:var(--text); margin-bottom:5px;">No posts found</h3>
+                <p style="font-size:14px;">No posts match this category yet.</p>
+            </div>`;
+            return;
+        }
+        
+        // পোস্টগুলো স্ক্রিনে রেন্ডার করা
+        list.innerHTML = posts.map(p => buildPostCardHTML(p)).join('');
+        
+    } catch (error) {
+        console.error(error);
+        list.innerHTML = '<div class="empty-feed">Failed to load posts</div>';
+    }
+}
 </script>
 </body>
 </html>
