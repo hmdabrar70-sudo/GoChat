@@ -3109,23 +3109,31 @@ NESTED ACTIVITY CATEGORIES STYLES
         </div>
 </div>
 
-<!-- 🚀 Active Time Modal -->
-<div class="modal-overlay" id="active-time-modal" style="z-index: 100005;" onclick="if(event.target===this) closeActiveTimeModal()">
-    <div class="modal-box" style="max-height: 70vh;">
+<!-- ==========================================
+     UPDATED ACTIVE TIME MODAL HTML
+========================================== -->
+<div class="modal-overlay" id="active-time-modal" style="z-index: 100006;">
+    <div class="modal-box" style="max-height: 75vh; display: flex; flex-direction: column;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
             <div class="modal-title" style="margin:0; display:flex; align-items:center; gap:10px;">
                 <span class="material-symbols-outlined" style="color:#3b82f6;">schedule</span> 
-                Active Time (Last 7 Days)
+                Active Time History
             </div>
             <button class="modal-close" onclick="closeActiveTimeModal()"><span class="material-symbols-outlined">close</span></button>
         </div>
         
-        <div id="active-time-chart" style="display:flex; flex-direction:column; gap:12px; overflow-y:auto; max-height:50vh; padding-right:5px;">
-            <!-- JS will populate this -->
+        <!-- Total Summary Card -->
+        <div id="total-time-summary" style="margin-bottom:16px; padding:16px; background:linear-gradient(135deg, var(--accent-glow), transparent); border:1px solid var(--accent); border-radius:var(--radius-md); text-align:center;">
+            <div style="font-size:12px; color:var(--text-secondary); font-weight:600; text-transform:uppercase; letter-spacing:1px;">Last 7 Days Total</div>
+            <div style="font-size:28px; font-weight:800; color:var(--accent); margin-top:4px;">0h 0m</div>
         </div>
 
-        <div style="margin-top:20px; padding:12px; background:var(--surface-2); border-radius:var(--radius-md); font-size:12px; color:var(--text-muted); text-align:center;">
-            * Data is tracked locally on this device. Clearing browser data will reset history.
+        <div id="active-time-chart" style="display:flex; flex-direction:column; gap:10px; overflow-y:auto; max-height:50vh; padding-right:5px;">
+            <!-- JS will populate daily bars here -->
+        </div>
+
+        <div style="margin-top:16px; padding:10px; background:var(--surface-2); border-radius:var(--radius-sm); font-size:11px; color:var(--text-muted); text-align:center;">
+            * Data auto-resets after 7 days. Stored locally on this device.
         </div>
     </div>
 </div>
@@ -4504,45 +4512,58 @@ async function toggleFollow(targetUid) {
     searchUsers();
 }
 
-async function searchUsers(){
-    clearTimeout(searchTimeout);
-    const q=document.getElementById('search-input').value.trim().toLowerCase();
-    const res=document.getElementById('search-results-list');
-    
-    if(!q){
-        // সার্চ বক্স ফাঁকা হলে রিসেন্ট সার্চ দেখাবে
-        renderRecentSearches();
+// ===== UPDATE SEARCH SYSTEM =====
+async function searchUsers() {
+    const input = document.getElementById('search-input');
+    const q = input.value.trim().toLowerCase();
+    const res = document.getElementById('search-results-list');
+
+    // ১. কন্ডিশন: ৩ অক্ষরের কম হলে সার্চ হবে না (অ্যাপের চাপ কমানোর জন্য)
+    if (q.length < 3) {
+        if (q.length === 0) renderRecentSearches(); // ফাঁকা হলে রিসেন্ট দেখাবে
+        else res.innerHTML = '<div class="empty-feed">Type at least 3 characters...</div>';
         return;
     }
-    
-    searchTimeout=setTimeout(async()=>{
-        const users=await fetchAllUsers();
-        let html='';
-        users.forEach(u=>{
-            const uId=u.id;
-            if(uId!==currentUser.uid&&u.name&&u.name.toLowerCase().includes(q)){
-                const isFollowing = currentUserData.following?.includes(uId);
-                let btnHtml='';
-                const safeName=escapeHTML(u.name);
-                if(isFollowing){
-                    btnHtml=`<button class="btn-outline" style="padding:6px 14px;font-size:11px;" onclick="event.stopPropagation(); toggleFollow('${uId}')">Following</button>`;
-                } else {
-                    btnHtml=`<button class="btn-primary" style="padding:6px 14px;font-size:11px;margin:0;" onclick="event.stopPropagation(); toggleFollow('${uId}')">Follow</button>`;
-                }
-                const avHtml=u.avatar?`<img src="${u.avatar}">`:avatarInitial(u.name);
-                
-                // নতুন: প্রোফাইলে ক্লিক করলেই রিসেন্ট সার্চে অ্যাড হবে
-                html+=`<div class="msg-item" onclick="addToRecentSearches('${uId}'); viewUserProfile('${uId}')">
+
+    // ২. ডিবাউন্সিং (Debouncing): ইউজার টাইপ করা থামানোর পর ৫০০ মিলি-সেকেন্ড অপেক্ষা করবে
+    clearTimeout(searchTimeout);
+    res.innerHTML = '<div class="loading"><span class="material-symbols-outlined">autorenew</span> Searching...</div>';
+
+    searchTimeout = setTimeout(async () => {
+        const users = await fetchAllUsers();
+        let html = '';
+        
+        // রেজাল্ট ফিল্টার করা
+        const filteredUsers = users.filter(u => 
+            u.id !== currentUser.uid && 
+            u.name && 
+            u.name.toLowerCase().includes(q)
+        );
+
+        if (filteredUsers.length === 0) {
+            res.innerHTML = '<div class="empty-feed">No users found</div>';
+            return;
+        }
+
+        filteredUsers.forEach(u => {
+            const isFollowing = currentUserData.following?.includes(u.id);
+            const btnHtml = isFollowing ? 
+                `<button class="btn-outline" style="padding:6px 14px;font-size:11px;" onclick="event.stopPropagation(); toggleFollow('${u.id}')">Following</button>` : 
+                `<button class="btn-primary" style="padding:6px 14px;font-size:11px;margin:0;" onclick="event.stopPropagation(); toggleFollow('${u.id}')">Follow</button>`;
+            
+            const avHtml = u.avatar ? `<img src="${u.avatar}">` : avatarInitial(u.name);
+            
+            html += `
+            <div class="msg-item" onclick="addToRecentSearches('${u.id}'); viewUserProfile('${u.id}')">
                 <div class="avatar">${avHtml}</div>
                 <div class="msg-info" style="margin-left:10px;">
-                <div class="msg-name">${safeName} ${getVerifiedBadge(u.email, u.isVerified)}</div>
+                    <div class="msg-name">${escapeHTML(u.name)} ${getVerifiedBadge(u.email, u.isVerified)}</div>
                 </div>
                 <div>${btnHtml}</div>
-                </div>`;
-            }
+            </div>`;
         });
-        res.innerHTML=html||'<div class="empty-feed">No users found</div>';
-    },300);
+        res.innerHTML = html;
+    }, 500); // ৫০০ মিলি-সেকেন্ড অপেক্ষা করবে
 }
 
 // ===== RECENT SEARCH LOGIC =====
@@ -9974,102 +9995,106 @@ document.addEventListener('DOMContentLoaded', () => {
     observer.observe(document.body, { childList: true, subtree: true });
 });
 // ==========================================
-// 🚀 ACTIVE TIME TRACKING SYSTEM
+// ADVANCED ACTIVE TIME TRACKING SYSTEM V2.0
 // ==========================================
 
-// . অ্যাপ ওপেন থাকার সময় ট্র্যাক করা (প্রতি সেকেন্ডে)
+// 1. Smart Tracking with Auto-Reset Logic
 let activeTimeTracker = setInterval(() => {
-    if (!currentUser) return; // ইউজার লগইন না থাকলে ট্র্যাক হবে না
+    if (!currentUser) return; 
     
-    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD ফরম্যাট
-    let timeData = JSON.parse(localStorage.getItem('gochat_active_time') || '{}');
+    const now = new Date();
+    const todayStr = now.toISOString().split('T')[0]; // YYYY-MM-DD
     
-    // আজকের ডাটা আপডেট করা (সেকেন্ড হিসেবে)
-    timeData[today] = (timeData[today] || 0) + 1;
+    let timeData = JSON.parse(localStorage.getItem('gochat_active_time_v2') || '{}');
     
-    // শুধু গত ৩ দিনের ডাটা রাখা (মেমোরি সেভ করার জন্য)
-    const cutoffDate = new Date();
-    cutoffDate.setDate(cutoffDate.getDate() - 30);
+    // Update today's seconds
+    timeData[todayStr] = (timeData[todayStr] || 0) + 1;
+    
+    // AUTO-RESET: Keep ONLY last 7 days (168 hours)
+    const cutoffDate = new Date(now);
+    cutoffDate.setDate(cutoffDate.getDate() - 7); 
     const cutoffStr = cutoffDate.toISOString().split('T')[0];
     
+    // Delete any data older than 7 days immediately
     for (let date in timeData) {
         if (date < cutoffStr) delete timeData[date];
     }
     
-    localStorage.setItem('gochat_active_time', JSON.stringify(timeData));
-}, 1000); // প্রতি ১ সেকেন্ড পর পর আপডেট
+    localStorage.setItem('gochat_active_time_v2', JSON.stringify(timeData));
+}, 1000); 
 
-// ২. মডাল ওপেন করার ফাংশন
+// 2. Modal Controls
 function openActiveTimeModal() {
     document.getElementById('active-time-modal').classList.add('open');
-    renderActiveTimeChart();
+    renderAdvancedTimeChart();
 }
 
 function closeActiveTimeModal() {
     document.getElementById('active-time-modal').classList.remove('open');
 }
 
-// ৩. চার্ট রেন্ডার করার ফাংশন
-function renderActiveTimeChart() {
+// 3. Enhanced Chart Rendering
+function renderAdvancedTimeChart() {
     const container = document.getElementById('active-time-chart');
-    const timeData = JSON.parse(localStorage.getItem('gochat_active_time') || '{}');
+    const summaryEl = document.getElementById('total-time-summary');
+    const timeData = JSON.parse(localStorage.getItem('gochat_active_time_v2') || '{}');
     
     let html = '';
     let totalSeconds = 0;
+    const now = new Date();
     
-    // গত ৭ দিনের লুপ
+    // Loop through exactly last 7 days
     for (let i = 6; i >= 0; i--) {
-        const d = new Date();
+        const d = new Date(now);
         d.setDate(d.getDate() - i);
         const dateStr = d.toISOString().split('T')[0];
-        const dayName = d.toLocaleDateString('en-US', { weekday: 'short' }); // Mon, Tue...
+        
+        // Get day name and formatted date
+        const dayName = i === 0 ? 'Today' : (i === 1 ? 'Yesterday' : d.toLocaleDateString('en-US', { weekday: 'short' }));
         const fullDate = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
         
         const seconds = timeData[dateStr] || 0;
         totalSeconds += seconds;
         
-        // সেকেন্ডকে ঘন্টা ও মিনিটে রূপান্তর
+        // Convert to readable format
         const hours = Math.floor(seconds / 3600);
         const mins = Math.floor((seconds % 3600) / 60);
-        const timeString = hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+        const timeString = seconds > 0 ? `${hours}h ${mins}m` : '0m';
         
-        // বারের দৈর্ঘ্য নির্ধারণ (সর্বোচ্চ ১০০% ধরে)
-        const maxDailySeconds = 8 * 3600; // ৮ ঘন্টাকে ১০০% ধরা হয়েছে
+        // Calculate bar percentage (Max 8 hours = 100% width)
+        const maxDailySeconds = 8 * 3600; 
         const percentage = Math.min((seconds / maxDailySeconds) * 100, 100);
         
-        // আজকের দিন হাইলাইট করা
+        // Styling for Today vs Past Days
         const isToday = i === 0;
-        const bgClass = isToday ? 'background: var(--accent-glow); border-color: var(--accent);' : 'background: var(--surface-2); border: 1px solid var(--border);';
+        const bgStyle = isToday 
+            ? 'background: var(--accent-glow); border-color: var(--accent); box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);' 
+            : 'background: var(--surface-2); border: 1px solid var(--border);';
+            
+        const textColor = isToday ? 'var(--accent)' : 'var(--text)';
+        const barColor = isToday ? 'var(--accent)' : 'var(--text-secondary)';
         
         html += `
-        <div style="${bgClass} padding: 12px 16px; border-radius: var(--radius-md); display: flex; align-items: center; gap: 12px;">
-            <div style="width: 50px; text-align: center;">
-                <div style="font-weight: 700; font-size: 14px; color: var(--text);">${dayName}</div>
-                <div style="font-size: 11px; color: var(--text-muted);">${fullDate}</div>
+        <div style="${bgStyle} padding: 14px 16px; border-radius: var(--radius-md); display: flex; align-items: center; gap: 14px; transition: all 0.3s ease;">
+            <div style="width: 60px; text-align: left;">
+                <div style="font-weight: 700; font-size: 14px; color: ${textColor};">${dayName}</div>
+                <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">${fullDate}</div>
             </div>
             
-            <div style="flex: 1;">
-                <div style="height: 6px; background: var(--border); border-radius: 10px; overflow: hidden; width: 100%;">
-                    <div style="height: 100%; width: ${percentage}%; background: ${isToday ? 'var(--accent)' : 'var(--text-secondary)'}; border-radius: 10px; transition: width 0.5s ease;"></div>
-                </div>
+            <div style="flex: 1; height: 8px; background: var(--border); border-radius: 10px; overflow: hidden;">
+                <div style="height: 100%; width: ${percentage}%; background: ${barColor}; border-radius: 10px; transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);"></div>
             </div>
             
-            <div style="font-weight: 700; font-size: 14px; color: ${isToday ? 'var(--accent)' : 'var(--text)'}; min-width: 60px; text-align: right;">
+            <div style="font-weight: 700; font-size: 14px; color: ${textColor}; min-width: 55px; text-align: right;">
                 ${timeString}
             </div>
         </div>`;
     }
     
-    // মোট সময় দেখানো
+    // Update Total Summary Card
     const totalHours = Math.floor(totalSeconds / 3600);
     const totalMins = Math.floor((totalSeconds % 3600) / 60);
-    
-    html = `
-    <div style="margin-bottom: 16px; padding: 12px; background: linear-gradient(135deg, var(--accent-glow), transparent); border: 1px solid var(--accent); border-radius: var(--radius-md); text-align: center;">
-        <div style="font-size: 12px; color: var(--text-secondary); font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Total Active Time</div>
-        <div style="font-size: 24px; font-weight: 800; color: var(--accent); margin-top: 4px;">${totalHours}h ${totalMins}m</div>
-    </div>
-    ` + html;
+    summaryEl.querySelector('div:last-child').textContent = `${totalHours}h ${totalMins}m`;
     
     container.innerHTML = html;
 }
