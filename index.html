@@ -835,6 +835,16 @@ cursor:pointer;
 .post-card{margin:10px 12px;}
 .auth-card{padding:22px 18px;}
 }
+.menu-item {
+    padding: 10px 15px;
+    cursor: pointer;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--text);
+}
+.menu-item:hover { background: var(--surface-2); border-radius: 8px; }
 </style>
 </head>
 <body>
@@ -1001,6 +1011,18 @@ No notifications yet
 <i class="ph ph-moon"></i>
 </button>
 </div>
+</div>
+<!-- নতুন বাটন -->
+<div style="display:flex; justify-content:flex-end; padding: 10px;">
+    <div class="icon-btn" id="profile-menu-btn" onclick="toggleProfileMenu()">
+        <i class="ph ph-list"></i>
+    </div>
+</div>
+
+<!-- মেনু ড্রয়ার -->
+<div id="profile-menu-drawer" style="display:none; position:absolute; right:20px; top:150px; background:var(--surface); border:1px solid var(--border); border-radius:10px; z-index:999; padding:8px; box-shadow:var(--shadow-lg);">
+    <div class="menu-item" onclick="showToast('Settings')"><i class="ph ph-gear"></i> Settings</div>
+    <div class="menu-item" onclick="doLogout()" style="color:var(--danger);"><i class="ph ph-sign-out"></i> Logout</div>
 </div>
 <div class="section-title">My Posts</div>
 <div id="my-posts-list"></div>
@@ -2149,6 +2171,20 @@ list.innerHTML = `
 `;
 }
 loadStories();
+// --- নতুন মেনু ফাংশন ---
+function toggleProfileMenu() {
+    const menu = document.getElementById('profile-menu-drawer');
+    menu.style.display = (menu.style.display === 'block') ? 'none' : 'block';
+}
+
+// স্ক্রিনের অন্য কোথাও ক্লিক করলে মেনু বন্ধ হওয়ার জন্য
+document.addEventListener('click', (e) => {
+    const menu = document.getElementById('profile-menu-drawer');
+    const btn = document.getElementById('profile-menu-btn');
+    if (menu && btn && !menu.contains(e.target) && e.target !== btn) {
+        menu.style.display = 'none';
+    }
+});
 </script>
 </body>
 </html>
