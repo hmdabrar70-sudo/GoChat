@@ -988,6 +988,11 @@ No notifications yet
 <div class="profile-avatar" id="profile-avatar-big">?</div>
 <label class="avatar-edit-btn" for="avatar-input">
 <i class="ph ph-camera" style="font-size:14px;"></i>
+    <div style="position:absolute; top:110px; right:20px; z-index:10;">
+        <div class="icon-btn" id="profile-menu-btn" onclick="openSettings()">
+            <i class="ph ph-list"></i>
+        </div>
+    </div>
 </label>
 <input type="file" id="avatar-input" accept="image/*" style="display:none" onchange="uploadAvatar(this)">
 </div>
@@ -1176,6 +1181,25 @@ No notifications yet
 <input type="text" id="edit-website" placeholder="https://...">
 </div>
 </div>
+</div>
+
+<!--SETTINGS AND PRIVACY-->
+<!-- Settings and Privacy Page -->
+<div class="full-screen" id="settings-screen">
+    <div class="screen-topbar">
+        <div class="screen-back" onclick="closeSettings()">
+            <i class="ph ph-arrow-left"></i>
+        </div>
+        <div class="screen-title">Settings and Privacy</div>
+    </div>
+    <div style="padding:20px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:15px; background:var(--surface); border-radius:var(--radius-md);">
+            <span style="font-weight:600;">Dark Mode</span>
+            <div id="dark-mode-switch" style="width:50px; height:25px; background:var(--border); border-radius:20px; position:relative; cursor:pointer; transition:0.3s;" onclick="toggleDarkMode()">
+                <div id="switch-handle" style="width:21px; height:21px; background:white; border-radius:50%; position:absolute; top:2px; left:2px; transition:0.3s;"></div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <!-- IMAGE ZOOM -->
@@ -2185,6 +2209,43 @@ document.addEventListener('click', (e) => {
         menu.style.display = 'none';
     }
 });
+// Settings পেজ ওপেন এবং ক্লোজ ফাংশন
+function openSettings() {
+    document.getElementById('settings-screen').classList.add('open');
+}
+function closeSettings() {
+    document.getElementById('settings-screen').classList.remove('open');
+}
+
+// ডার্ক মোড সুইচ বাটন কন্ট্রোল
+function toggleDarkMode() {
+    document.body.classList.toggle('light-mode');
+    const isLight = document.body.classList.contains('light-mode');
+    const handle = document.getElementById('switch-handle');
+    const container = document.getElementById('dark-mode-switch');
+    
+    if (isLight) {
+        handle.style.left = '27px';
+        container.style.background = 'var(--primary)';
+    } else {
+        handle.style.left = '2px';
+        container.style.background = 'var(--border)';
+    }
+    
+    localStorage.setItem('theme', isLight ? 'light' : 'dark');
+}
+
+// পেজ লোড হওয়ার সময় সুইচের অবস্থা ঠিক করা
+window.onload = () => {
+    if (localStorage.getItem('theme') === 'light') {
+        const container = document.getElementById('dark-mode-switch');
+        const handle = document.getElementById('switch-handle');
+        if(container && handle) {
+            handle.style.left = '27px';
+            container.style.background = 'var(--primary)';
+        }
+    }
+};
 </script>
 </body>
 </html>
