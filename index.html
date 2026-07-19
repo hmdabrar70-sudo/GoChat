@@ -3365,6 +3365,18 @@ NESTED ACTIVITY CATEGORIES STYLES
     <!-- পোস্টগুলো এখানে লোড হবে -->
     <div id="category-posts-list" style="flex:1; padding-bottom:80px; overflow-y:auto; background:transparent;"></div>
 </div>
+
+<!--  MODERN COMMENT EDIT MODAL -->
+<div id="comment-edit-modal" class="modal-overlay" style="z-index: 10015; display:none;" onclick="if(event.target===this) closeCommentEditModal()">
+    <div class="modal-box" style="max-width:400px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+            <span style="font-weight:700; font-size:18px;">Edit Comment</span>
+            <button onclick="closeCommentEditModal()" style="background:none; border:none; color:var(--text-muted); cursor:pointer;"><span class="material-symbols-outlined">close</span></button>
+        </div>
+        <textarea id="edit-comment-input" style="width:100%; min-height:100px; padding:12px; border-radius:12px; background:var(--surface-2); border:1px solid var(--border); color:var(--text); font-size:15px; resize:none; outline:none;"></textarea>
+        <button onclick="saveEditedComment()" class="btn-primary" style="width:100%; margin-top:16px; padding:12px; border-radius:12px; font-weight:700;">Save Changes</button>
+    </div>
+</div>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
@@ -5097,7 +5109,7 @@ async function openCommentPanel(pid) {
                 }).join('');
             }
             
-            return `<div class="comment-item" ondblclick="showCommentActions('${pid}', ${idx}, '${c.uid}')">
+            return `<div class="comment-item" onclick="showCommentActions(event, '${pid}', ${idx}, '${c.uid}')">
                 <div class="comment-author" style="cursor:pointer;" onclick="closeCommentPanel(); viewUserProfile('${c.uid}')">${safeCName}</div>
                 <div style="margin-top:4px;">${safeCText}</div>
                 
@@ -7393,44 +7405,6 @@ if(commentPanelListener)commentPanelListener();
 activeCommentPostId=null;
 }
 
-// Comment panel send button listener
-document.getElementById('comment-panel-send-btn').addEventListener('click',async()=>{
-const inp=document.getElementById('comment-panel-input');
-const txt=inp.value.trim();
-if(!txt||!activeCommentPostId)return;
-inp.value='';
-const ref=db.collection('posts').doc(activeCommentPostId);
-const doc=await ref.get();
-if(doc.exists){
-let comments=doc.data().comments||[];
-comments.push({uid:currentUser.uid,name:currentUserData.name,text:txt,time:Date.now()});
-await ref.update({comments});
-if(doc.data().uid!==currentUser.uid){
-db.collection('notifications').add({
-toUid:doc.data().uid,fromUid:currentUser.uid,
-fromName:currentUserData.name,
-type:'comment',postId:activeCommentPostId,read:false,
-createdAt:firebase.firestore.FieldValue.serverTimestamp()
-});
-awardPoints(doc.data().uid, 10);
-}
-}
-});
-
-// Reply to comment with inline input
-async function replyToComment(pid,idx){
-const txt=prompt("Write your reply:");
-if(!txt||!txt.trim())return;
-const ref=db.collection('posts').doc(pid);
-const doc=await ref.get();
-let comments=doc.data().comments||[];
-if(!comments[idx].replies)comments[idx].replies=[];
-comments[idx].replies.push({uid:currentUser.uid,name:currentUserData.name,text:txt.trim(),time:Date.now()});
-await ref.update({comments});
-if(doc.data().uid !== currentUser.uid) {
-awardPoints(doc.data().uid, 10);
-}
-}
 // ===== BLOCKED ACCOUNTS SETTINGS LOGIC =====
 
 // ব্লক লিস্ট লোড করার ফাংশন
@@ -8015,45 +7989,6 @@ function showCommentActions(pid, idx, commentUid) {
     document.body.appendChild(menu);
 }
 
-async function editComment(pid, idx) {
-    const ref = db.collection('posts').doc(pid);
-    const doc = await ref.get();
-    if (!doc.exists) return;
-    
-    let comments = doc.data().comments;
-    const oldText = comments[idx].text;
-    const newText = prompt("Edit your comment:", oldText);
-    
-    if (newText !== null && newText.trim() !== "") {
-        comments[idx].text = newText.trim();
-        await ref.update({ comments });
-        showToast("Comment updated!");
-    }
-}
-
-function copyComment(btnElement) {
-    // কমেন্ট আইটেমটি খুঁজে বের করা
-    const commentItem = btnElement.closest('.comment-item');
-    if (commentItem) {
-        // দ্বিতীয় ডিভ-এর ভেতরে টেক্সট থাকে (আগের গঠন অনুযায়ী)
-        const textToCopy = commentItem.querySelector('div[style*="margin-top:4px"]').textContent;
-        navigator.clipboard.writeText(textToCopy).then(() => {
-            showToast("Copied to clipboard!");
-        });
-    }
-}
-
-async function deleteComment(pid, idx) {
-    if (!confirm("Delete this comment?")) return;
-    const ref = db.collection('posts').doc(pid);
-    const doc = await ref.get();
-    if (!doc.exists) return;
-    
-    let comments = doc.data().comments;
-    comments.splice(idx, 1);
-    await ref.update({ comments });
-    showToast("Comment deleted!");
-}
 async function fixMissingNamesInChats() {
     // শুধুমাত্র যারা বর্তমানে লগইন করা তাদের চ্যাটগুলো চেক করবে
     if (!currentUser) return;
@@ -10486,6 +10421,169 @@ async function loadCategoryPosts(tabName) {
         console.error(error);
         list.innerHTML = '<div class="empty-feed">Failed to load posts</div>';
     }
+}
+// ==========================================
+// 🚀 MODERN COMMENT SYSTEM V2.0
+// ==========================================
+
+let currentEditPid = null;
+let currentEditIdx = null;
+
+// . Send Comment Function (Replaces old event listener)
+document.getElementById('comment-panel-send-btn')?.addEventListener('click', async () => {
+    const inp = document.getElementById('comment-panel-input');
+    const txt = inp.value.trim();
+    if (!txt || !activeCommentPostId) return;
+    
+    inp.value = '';
+    const ref = db.collection('posts').doc(activeCommentPostId);
+    const doc = await ref.get();
+    
+    if (doc.exists) {
+        let comments = doc.data().comments || [];
+        comments.push({
+            uid: currentUser.uid,
+            name: currentUserData.name,
+            avatar: currentUserData.avatar || '', // Avatar save for better UI
+            text: txt,
+            time: Date.now(),
+            editedAt: null
+        });
+        
+        await ref.update({ comments });
+        
+        // Notification Logic
+        if (doc.data().uid !== currentUser.uid) {
+            db.collection('notifications').add({
+                toUid: doc.data().uid,
+                fromUid: currentUser.uid,
+                fromName: currentUserData.name,
+                type: 'comment',
+                postId: activeCommentPostId,
+                read: false,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        }
+    }
+});
+
+// ২. Open Edit Modal (Replaces prompt-based edit)
+function openCommentEditModal(pid, idx) {
+    const list = document.getElementById('comment-list');
+    const item = list.querySelector(`.comment-item[data-idx="${idx}"]`);
+    if (!item) return;
+    
+    const textDiv = item.querySelector('.comment-text-content');
+    if (!textDiv) return;
+    
+    currentEditPid = pid;
+    currentEditIdx = idx;
+    
+    const modal = document.getElementById('comment-edit-modal');
+    const input = document.getElementById('edit-comment-input');
+    
+    input.value = textDiv.innerText;
+    modal.style.display = 'flex';
+    setTimeout(() => input.focus(), 100);
+}
+
+function closeCommentEditModal() {
+    document.getElementById('comment-edit-modal').style.display = 'none';
+    currentEditPid = null;
+    currentEditIdx = null;
+}
+
+async function saveEditedComment() {
+    if (!currentEditPid || currentEditIdx === null) return;
+    
+    const newText = document.getElementById('edit-comment-input').value.trim();
+    if (!newText) return showToast("Comment cannot be empty!");
+    
+    const ref = db.collection('posts').doc(currentEditPid);
+    const doc = await ref.get();
+    
+    if (doc.exists) {
+        let comments = doc.data().comments || [];
+        if (comments[currentEditIdx]) {
+            comments[currentEditIdx].text = newText;
+            comments[currentEditIdx].editedAt = Date.now();
+            
+            await ref.update({ comments });
+            showToast("Comment updated successfully!");
+            closeCommentEditModal();
+        }
+    }
+}
+
+// ৩. Modern Copy Function
+function copyCommentText(btnElement) {
+    const commentItem = btnElement.closest('.comment-item');
+    if (commentItem) {
+        const textContent = commentItem.querySelector('.comment-text-content')?.innerText;
+        if (textContent) {
+            navigator.clipboard.writeText(textContent).then(() => {
+                showToast("Comment copied to clipboard!");
+            });
+        }
+    }
+}
+
+// ৪. Safe Delete Function
+async function deleteCommentSafe(pid, idx) {
+    if (!confirm("Are you sure you want to delete this comment?")) return;
+    
+    const ref = db.collection('posts').doc(pid);
+    const doc = await ref.get();
+    
+    if (!doc.exists) return;
+    
+    let comments = doc.data().comments || [];
+    comments.splice(idx, 1);
+    
+    await ref.update({ comments });
+    showToast("Comment deleted!");
+}
+
+// . Helper: Render Comment Action Menu (Updated for new functions)
+function showCommentActionMenu(e, pid, idx, commentUid) {
+    e.stopPropagation();
+    
+    // Remove existing menus
+    document.querySelectorAll('.comment-action-menu').forEach(m => m.remove());
+    
+    const menu = document.createElement('div');
+    menu.className = 'comment-action-menu';
+    menu.style.cssText = `position:fixed; bottom:0; left:0; width:100%; background:var(--surface); border-radius:24px 24px 0 0; padding:24px; z-index:99999; box-shadow:0 -10px 40px rgba(0,0,0,0.2); animation: slideUp 0.3s ease;`;
+    
+    let optionsHtml = '';
+    
+    // Copy Option (For everyone)
+    optionsHtml += `<div class="chat-dropdown-item" onclick="copyCommentText(this.parentElement); this.parentElement.remove();">
+        <span class="material-symbols-outlined">content_copy</span> Copy
+    </div>`;
+    
+    // Edit & Delete (Only for owner)
+    if (commentUid === currentUser.uid) {
+        optionsHtml += `<div class="chat-dropdown-item" onclick="openCommentEditModal('${pid}', ${idx}); this.parentElement.remove();">
+            <span class="material-symbols-outlined">edit</span> Edit
+        </div>`;
+        optionsHtml += `<div class="chat-dropdown-item" style="color:var(--danger);" onclick="deleteCommentSafe('${pid}', ${idx}); this.parentElement.remove();">
+            <span class="material-symbols-outlined">delete</span> Delete
+        </div>`;
+    }
+    
+    menu.innerHTML = `<div style="font-weight:800; margin-bottom:20px; text-align:center; font-size:16px;">Comment Options</div>${optionsHtml}`;
+    document.body.appendChild(menu);
+    
+    // Close on outside click
+    setTimeout(() => {
+        document.addEventListener('click', function closeMenu(ev) {
+            if (!menu.contains(ev.target)) {
+                menu.remove();
+                document.removeEventListener('click', closeMenu);
+            }
+        });
+    }, 100);
 }
 </script>
 </body>
