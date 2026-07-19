@@ -2026,6 +2026,9 @@ NESTED ACTIVITY CATEGORIES STYLES
 </div>
 <div class="profile-info-col">
 <div class="profile-name" id="profile-name-display">Loading...</div>
+<!-- 🚀 নতুন: ইউজারনেম ডিসপ্লে -->
+<div id="profile-username-display" style="font-size:13px; color:var(--text-muted); font-weight:600; margin-bottom:6px; margin-top:-2px; display:none;"></div>
+
 <div id="profile-follow-stats" class="profile-friend-count" style="display:flex; gap:12px; font-size:14px; color:var(--text-secondary);">
     <span style="cursor:pointer;" onclick="openFollowList('followers', currentUser.uid)"><b id="my-followers-count" style="color:var(--text);">0</b> Followers</span> 
     <span style="cursor:pointer;" onclick="openFollowList('following', currentUser.uid)"><b id="my-following-count" style="color:var(--text);">0</b> Following</span>
@@ -2104,8 +2107,11 @@ NESTED ACTIVITY CATEGORIES STYLES
                 <div class="profile-avatar" id="other-profile-avatar">?</div>
             </div>
             <div class="profile-info-col">
-                <div class="profile-name" id="other-profile-name">Loading...</div>
-                <div id="other-profile-follow-stats" class="profile-friend-count" style="display:flex; gap:12px; font-size:14px; color:var(--text-secondary);">
+<div class="profile-name" id="other-profile-name">Loading...</div>
+<!-- 🚀 নতুন: ইউজারনেম ডিসপ্লে -->
+<div id="other-profile-username-display" style="font-size:13px; color:var(--text-muted); font-weight:600; margin-bottom:6px; margin-top:-2px; display:none;"></div>
+
+<div id="other-profile-follow-stats" class="profile-friend-count" style="display:flex; gap:12px; font-size:14px; color:var(--text-secondary);">
     <span style="cursor:pointer;" onclick="openFollowList('followers', currentOtherProfileUid)"><b id="other-followers-count" style="color:var(--text);">0</b> Followers</span> 
     <span style="cursor:pointer;" onclick="openFollowList('following', currentOtherProfileUid)"><b id="other-following-count" style="color:var(--text);">0</b> Following</span>
 </div>
@@ -5121,6 +5127,16 @@ async function viewUserProfile(uid){
         </div>
     `;
     document.getElementById('other-profile-name').innerHTML = nameHtml;
+        // 🚀 অন্যের প্রোফাইলে ইউজারনেম শো করা
+    const otherUsernameDisplay = document.getElementById('other-profile-username-display');
+    if (otherUsernameDisplay) {
+        if (u.username) {
+            otherUsernameDisplay.style.display = 'block';
+            otherUsernameDisplay.textContent = '@' + u.username;
+        } else {
+            otherUsernameDisplay.style.display = 'none';
+        }
+    }
     // ------------------------------------------------
 
     const avHtml=u.avatar?`<img src="${u.avatar}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`:avatarInitial(u.name);
@@ -6303,6 +6319,7 @@ loadMessages();
 function openProfileEdit(){
     document.getElementById('edit-profile-screen').style.display = 'flex';
     
+    document.getElementById('edit-username').value = currentUserData.username || '';
     document.getElementById('edit-name').value = currentUserData.name || '';
     document.getElementById('edit-bio').value = currentUserData.bio || '';
     document.getElementById('edit-gender').value = currentUserData.gender || '';
@@ -6335,8 +6352,13 @@ async function saveProfileChanges(){
         }
     }
 
+    // ইউজারনেম থেকে স্পেস এবং স্পেশাল ক্যারেক্টার মুছে ফেলা
+    let newUsername = document.getElementById('edit-username').value.trim().toLowerCase();
+    newUsername = newUsername.replace(/[^a-z0-9_]/g, '');
+
     // ৩. আপডেটের ডাটাগুলো রেডি করা
     const updates = {
+        username: newUsername, // 🚀 নতুন: ইউজারনেম ডাটাবেসে সেভ
         name: newName,
         bio: document.getElementById('edit-bio').value.trim(),
         gender: document.getElementById('edit-gender').value,
@@ -7123,6 +7145,17 @@ function loadUserUI(){
     setSafeHTML('modal-composer-name', safeName + verifiedBadge); // পোস্ট করার স্ক্রিনের জন্য
     setSafeHTML('profile-name-display', nameHtml); // মেইন প্রোফাইল নাম ও ব্যাজ
     setSafeHTML('profile-avatar-big', avHtml);
+        // 🚀 নিজের প্রোফাইলে ইউজারনেম শো করা
+    const usernameDisplay = document.getElementById('profile-username-display');
+    if (usernameDisplay) {
+        if (currentUserData.username) {
+            usernameDisplay.style.display = 'block';
+            usernameDisplay.textContent = '@' + currentUserData.username;
+        } else {
+            usernameDisplay.style.display = 'none';
+        }
+    }
+
     
        // 🚀 নেভিগেশন বারে ইউজারের ছবি আপডেট করার লজিক
     const navPicContainer = document.getElementById('nav-profile-pic-container');
