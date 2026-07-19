@@ -10395,132 +10395,17 @@ async function loadCategoryPosts(tabName) {
     }
 }
 // ==========================================
-// 🚀 MODERN COMMENT SYSTEM V2.0
+// 🚀 FIXED COMMENT ACTIONS & EDIT MODAL
 // ==========================================
 
 let currentEditPid = null;
 let currentEditIdx = null;
 
-// . Send Comment Function (Replaces old event listener)
-document.getElementById('comment-panel-send-btn')?.addEventListener('click', async () => {
-    const inp = document.getElementById('comment-panel-input');
-    const txt = inp.value.trim();
-    if (!txt || !activeCommentPostId) return;
+// . মেনু ওপেন করার ফাংশন (থ্রি-ডট বা লং-প্রেস থেকে কল হবে)
+function showCommentActions(e, pid, idx, commentUid) {
+    e.stopPropagation(); // প্যারেন্ট এলিমেন্টে ক্লিক বন্ধ করা
     
-    inp.value = '';
-    const ref = db.collection('posts').doc(activeCommentPostId);
-    const doc = await ref.get();
-    
-    if (doc.exists) {
-        let comments = doc.data().comments || [];
-        comments.push({
-            uid: currentUser.uid,
-            name: currentUserData.name,
-            avatar: currentUserData.avatar || '', // Avatar save for better UI
-            text: txt,
-            time: Date.now(),
-            editedAt: null
-        });
-        
-        await ref.update({ comments });
-        
-        // Notification Logic
-        if (doc.data().uid !== currentUser.uid) {
-            db.collection('notifications').add({
-                toUid: doc.data().uid,
-                fromUid: currentUser.uid,
-                fromName: currentUserData.name,
-                type: 'comment',
-                postId: activeCommentPostId,
-                read: false,
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
-        }
-    }
-});
-
-// ২. Open Edit Modal (Replaces prompt-based edit)
-function openCommentEditModal(pid, idx) {
-    const list = document.getElementById('comment-list');
-    const item = list.querySelector(`.comment-item[data-idx="${idx}"]`);
-    if (!item) return;
-    
-    const textDiv = item.querySelector('.comment-text-content');
-    if (!textDiv) return;
-    
-    currentEditPid = pid;
-    currentEditIdx = idx;
-    
-    const modal = document.getElementById('comment-edit-modal');
-    const input = document.getElementById('edit-comment-input');
-    
-    input.value = textDiv.innerText;
-    modal.style.display = 'flex';
-    setTimeout(() => input.focus(), 100);
-}
-
-function closeCommentEditModal() {
-    document.getElementById('comment-edit-modal').style.display = 'none';
-    currentEditPid = null;
-    currentEditIdx = null;
-}
-
-async function saveEditedComment() {
-    if (!currentEditPid || currentEditIdx === null) return;
-    
-    const newText = document.getElementById('edit-comment-input').value.trim();
-    if (!newText) return showToast("Comment cannot be empty!");
-    
-    const ref = db.collection('posts').doc(currentEditPid);
-    const doc = await ref.get();
-    
-    if (doc.exists) {
-        let comments = doc.data().comments || [];
-        if (comments[currentEditIdx]) {
-            comments[currentEditIdx].text = newText;
-            comments[currentEditIdx].editedAt = Date.now();
-            
-            await ref.update({ comments });
-            showToast("Comment updated successfully!");
-            closeCommentEditModal();
-        }
-    }
-}
-
-// ৩. Modern Copy Function
-function copyCommentText(btnElement) {
-    const commentItem = btnElement.closest('.comment-item');
-    if (commentItem) {
-        const textContent = commentItem.querySelector('.comment-text-content')?.innerText;
-        if (textContent) {
-            navigator.clipboard.writeText(textContent).then(() => {
-                showToast("Comment copied to clipboard!");
-            });
-        }
-    }
-}
-
-// ৪. Safe Delete Function
-async function deleteCommentSafe(pid, idx) {
-    if (!confirm("Are you sure you want to delete this comment?")) return;
-    
-    const ref = db.collection('posts').doc(pid);
-    const doc = await ref.get();
-    
-    if (!doc.exists) return;
-    
-    let comments = doc.data().comments || [];
-    comments.splice(idx, 1);
-    
-    await ref.update({ comments });
-    showToast("Comment deleted!");
-}
-
-// . Helper: Render Comment Action Menu (Updated for new functions)
-function showCommentActionMenu(e, pid, idx, commentUid) {
-    e.stopPropagation();
-    
-    // Remove existing menus
+    // আগের কোনো মেনু থাকলে মুছে ফেলা
     document.querySelectorAll('.comment-action-menu').forEach(m => m.remove());
     
     const menu = document.createElement('div');
@@ -10529,17 +10414,17 @@ function showCommentActionMenu(e, pid, idx, commentUid) {
     
     let optionsHtml = '';
     
-    // Copy Option (For everyone)
-    optionsHtml += `<div class="chat-dropdown-item" onclick="copyCommentText(this.parentElement); this.parentElement.remove();">
+    // Copy Option (সবার জন্য)
+    optionsHtml += `<div class="chat-dropdown-item" onclick="handleCopyComment('${pid}', ${idx}); this.parentElement.remove();">
         <span class="material-symbols-outlined">content_copy</span> Copy
     </div>`;
     
-    // Edit & Delete (Only for owner)
+    // Edit & Delete (শুধুমাত্র নিজের কমেন্টের জন্য)
     if (commentUid === currentUser.uid) {
-        optionsHtml += `<div class="chat-dropdown-item" onclick="openCommentEditModal('${pid}', ${idx}); this.parentElement.remove();">
+        optionsHtml += `<div class="chat-dropdown-item" onclick="handleOpenEditModal('${pid}', ${idx}); this.parentElement.remove();">
             <span class="material-symbols-outlined">edit</span> Edit
         </div>`;
-        optionsHtml += `<div class="chat-dropdown-item" style="color:var(--danger);" onclick="deleteCommentSafe('${pid}', ${idx}); this.parentElement.remove();">
+        optionsHtml += `<div class="chat-dropdown-item" style="color:var(--danger);" onclick="handleDeleteComment('${pid}', ${idx}); this.parentElement.remove();">
             <span class="material-symbols-outlined">delete</span> Delete
         </div>`;
     }
@@ -10547,7 +10432,7 @@ function showCommentActionMenu(e, pid, idx, commentUid) {
     menu.innerHTML = `<div style="font-weight:800; margin-bottom:20px; text-align:center; font-size:16px;">Comment Options</div>${optionsHtml}`;
     document.body.appendChild(menu);
     
-    // Close on outside click
+    // বাইরে ক্লিক করলে মেনু বন্ধ হবে
     setTimeout(() => {
         document.addEventListener('click', function closeMenu(ev) {
             if (!menu.contains(ev.target)) {
@@ -10556,6 +10441,101 @@ function showCommentActionMenu(e, pid, idx, commentUid) {
             }
         });
     }, 100);
+}
+
+// ২. কপি ফাংশন (সরাসরি DOM থেকে টেক্সট নেবে)
+function handleCopyComment(pid, idx) {
+    const list = document.getElementById('comment-list');
+    if(!list) return;
+    
+    const item = list.querySelector(`.comment-item[data-idx="${idx}"]`);
+    if(item) {
+        const textDiv = item.querySelector('.comment-text-content');
+        if(textDiv) {
+            navigator.clipboard.writeText(textDiv.innerText).then(() => {
+                showToast("Comment copied!");
+            });
+        }
+    }
+}
+
+// ৩. এডিট মডাল ওপেন ফাংশন
+function handleOpenEditModal(pid, idx) {
+    currentEditPid = pid;
+    currentEditIdx = idx;
+    
+    const list = document.getElementById('comment-list');
+    if(!list) return;
+    
+    const item = list.querySelector(`.comment-item[data-idx="${idx}"]`);
+    if(!item) return;
+    
+    const textDiv = item.querySelector('.comment-text-content');
+    if(!textDiv) return;
+    
+    const modal = document.getElementById('comment-edit-modal');
+    const input = document.getElementById('edit-comment-input');
+    
+    if(modal && input) {
+        input.value = textDiv.innerText;
+        modal.style.display = 'flex';
+        setTimeout(() => input.focus(), 100);
+    }
+}
+
+// ৪. এডিট সেভ ফাংশন
+async function saveEditedComment() {
+    if (!currentEditPid || currentEditIdx === null) return;
+    
+    const newText = document.getElementById('edit-comment-input').value.trim();
+    if (!newText) return showToast("Comment cannot be empty!");
+    
+    try {
+        const ref = db.collection('posts').doc(currentEditPid);
+        const doc = await ref.get();
+        
+        if (doc.exists) {
+            let comments = doc.data().comments || [];
+            if (comments[currentEditIdx]) {
+                comments[currentEditIdx].text = newText;
+                comments[currentEditIdx].editedAt = Date.now();
+                
+                await ref.update({ comments });
+                showToast("Comment updated successfully!");
+                closeCommentEditModal();
+            }
+        }
+    } catch(e) {
+        console.error(e);
+        showToast("Failed to update comment");
+    }
+}
+
+function closeCommentEditModal() {
+    const modal = document.getElementById('comment-edit-modal');
+    if(modal) modal.style.display = 'none';
+    currentEditPid = null;
+    currentEditIdx = null;
+}
+
+// ৫. ডিলিট ফাংশন
+async function handleDeleteComment(pid, idx) {
+    if(!confirm("Delete this comment?")) return;
+    
+    try {
+        const ref = db.collection('posts').doc(pid);
+        const doc = await ref.get();
+        
+        if(doc.exists) {
+            let comments = doc.data().comments || [];
+            comments.splice(idx, 1);
+            await ref.update({ comments });
+            showToast("Comment deleted!");
+        }
+    } catch(e) {
+        console.error(e);
+        showToast("Failed to delete comment");
+    }
 }
 // ==========================================
 // 🚀 FIXED COMMENT ACTION MENU
