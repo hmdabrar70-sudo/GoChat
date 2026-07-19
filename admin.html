@@ -134,8 +134,14 @@
                     <h3 class="text-lg font-bold text-gray-800 mb-4">Global Announcement</h3>
                     <textarea id="announcementText" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 mb-4" placeholder="Type a message to show all users..."></textarea>
                     <button onclick="sendAnnouncement()" class="btn-primary px-6 py-2 rounded-lg">Send Announcement</button>
-                </div>
-            </div>
+                    <!-- আগের sendAnnouncement বাটন এর নিচে এটি বসিয়ে দিন -->
+<div class="mt-6 border-t pt-4">
+    <h4 class="text-sm font-bold text-gray-700 mb-2">Current Announcement</h4>
+    <div id="currentAnnouncementBox" class="p-4 bg-gray-50 border rounded-lg flex justify-between items-center">
+        <p id="currentAnnouncementText" class="text-sm text-gray-600">No active announcement.</p>
+        <button onclick="deleteAnnouncement()" class="text-red-500 hover:text-red-700 text-sm font-bold"><i class="fas fa-trash"></i> Delete</button>
+    </div>
+</div>
 
         </div>
     </div>
@@ -387,54 +393,36 @@
             });
         }
 
-        function sendAnnouncement() {
-            const msg = document.getElementById('announcementText').value.trim();
-            if(!msg) return showToast("Message cannot be empty", "error");
-            db.collection('system').doc('announcement').set({ message: msg }, { merge: true }).then(() => {
-                showToast("Announcement sent!", "success");
-            });
-        }
+        // ১. কারেন্ট এনাউন্সমেন্ট দেখার জন্য রিয়েল-টাইম লিসেনার
+db.collection('system').doc('announcement').onSnapshot(doc => {
+    const box = document.getElementById('currentAnnouncementText');
+    if (doc.exists && doc.data().message) {
+        box.innerText = doc.data().message;
+    } else {
+        box.innerText = "No active announcement.";
+    }
+});
 
-        function loadReports() {
-            const container = document.getElementById('reportsListContainer');
-            container.innerHTML = '<div class="text-center py-4"><i class="fas fa-spinner fa-spin"></i> Loading reports...</div>';
-            db.collection('reports').orderBy('createdAt', 'desc').get().then(snap => {
-                if(snap.empty) { container.innerHTML = '<div class="text-center text-gray-500 py-8">No reports found.</div>'; return; }
-                let html = '';
-                snap.forEach(doc => {
-                    const r = doc.data();
-                    html += `
-                        <div class="card p-4 border-l-4 border-yellow-500">
-                            <div class="flex justify-between items-start">
-                                <div>
-                                    <h4 class="font-bold text-gray-800">Reported Post ID: ${r.postId}</h4>
-                                    <p class="text-sm text-gray-600">Reason: <span class="font-semibold text-red-500">${r.reason || 'Not specified'}</span></p>
-                                </div>
-                                <div class="flex gap-2">
-                                    <button onclick="deleteReportedPost('${r.postId}', '${doc.id}')" class="btn-danger px-3 py-1 rounded text-sm">Delete Post</button>
-                                    <button onclick="dismissReport('${doc.id}')" class="bg-gray-200 text-gray-700 px-3 py-1 rounded text-sm">Dismiss</button>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                });
-                container.innerHTML = html;
-            });
-        }
+// ২. আপডেট করা sendAnnouncement ফাংশন
+function sendAnnouncement() {
+    const msg = document.getElementById('announcementText').value.trim();
+    if(!msg) return showToast("Message cannot be empty", "error");
+    db.collection('system').doc('announcement').set({ message: msg }, { merge: true }).then(() => {
+        showToast("Announcement sent!", "success");
+        document.getElementById('announcementText').value = ''; // ইনপুট বক্স খালি করা
+    });
+}
 
-        function deleteReportedPost(postId, reportId) {
-            if(!confirm("Delete this post?")) return;
-            db.collection('posts').doc(postId).delete().then(() => {
-                db.collection('reports').doc(reportId).delete();
-                showToast("Post deleted", "success"); loadReports();
-            });
-        }
-
-        function dismissReport(reportId) {
-            db.collection('reports').doc(reportId).delete().then(() => {
-                showToast("Report dismissed", "success"); loadReports();
-            });
-        }
+// ৩. নতুন ডিলিট ফাংশন
+async function deleteAnnouncement() {
+    if(!confirm("Are you sure you want to remove the current announcement?")) return;
+    try {
+        await db.collection('system').doc('announcement').delete();
+        showToast("Announcement deleted!", "success");
+    } catch(e) {
+        showToast("Failed to delete announcement", "error");
+    }
+}
 
         function openVerifyModal(uid, name, isVerified) {
             const action = isVerified ? 'Remove' : 'Add';
