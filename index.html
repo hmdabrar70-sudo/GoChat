@@ -7961,34 +7961,6 @@ async function blockUserFromChat() {
     }
 }
 
-// ===== FIXED COMMENT ACTIONS =====
-
-function showCommentActions(pid, idx, commentUid) {
-    if (commentUid !== currentUser.uid) {
-        showToast("You can only manage your own comments.");
-        return;
-    }
-
-    const menu = document.createElement('div');
-    menu.className = 'comment-action-menu'; 
-    menu.style.cssText = `position:fixed; bottom:0; left:0; width:100%; background:var(--surface); border-radius:20px 20px 0 0; padding:20px; z-index:99999; box-shadow:0 -5px 20px rgba(0,0,0,0.3);`;
-    
-    menu.innerHTML = `
-        <div style="font-weight:800; margin-bottom:15px; text-align:center;">Comment Options</div>
-        <div class="chat-dropdown-item" onclick="editComment('${pid}', ${idx}); this.parentElement.remove();">
-            <span class="material-symbols-outlined">edit</span> Edit Comment
-        </div>
-        <div class="chat-dropdown-item" onclick="copyComment(this); this.parentElement.remove();">
-            <span class="material-symbols-outlined">content_copy</span> Copy
-        </div>
-        <div class="chat-dropdown-item danger" onclick="deleteComment('${pid}', ${idx}); this.parentElement.remove();">
-            <span class="material-symbols-outlined">delete</span> Delete Comment
-        </div>
-        <div style="margin-top:10px; padding:10px; text-align:center; color:var(--text-muted); cursor:pointer;" onclick="this.parentElement.remove()">Cancel</div>
-    `;
-    document.body.appendChild(menu);
-}
-
 async function fixMissingNamesInChats() {
     // শুধুমাত্র যারা বর্তমানে লগইন করা তাদের চ্যাটগুলো চেক করবে
     if (!currentUser) return;
@@ -10576,6 +10548,52 @@ function showCommentActionMenu(e, pid, idx, commentUid) {
     document.body.appendChild(menu);
     
     // Close on outside click
+    setTimeout(() => {
+        document.addEventListener('click', function closeMenu(ev) {
+            if (!menu.contains(ev.target)) {
+                menu.remove();
+                document.removeEventListener('click', closeMenu);
+            }
+        });
+    }, 100);
+}
+// ==========================================
+// 🚀 FIXED COMMENT ACTION MENU
+// ==========================================
+function showCommentActions(e, pid, idx, commentUid) {
+    e.stopPropagation(); // প্যারেন্ট এলিমেন্টে ক্লিক বন্ধ করা
+    
+    // আগের কোনো মেনু থাকলে মুছে ফেলা
+    document.querySelectorAll('.comment-action-menu').forEach(m => m.remove());
+    
+    const menu = document.createElement('div');
+    menu.className = 'comment-action-menu';
+    menu.style.cssText = `position:fixed; bottom:0; left:0; width:100%; background:var(--surface); border-radius:24px 24px 0 0; padding:24px; z-index:99999; box-shadow:0 -10px 40px rgba(0,0,0,0.2); animation: slideUp 0.3s ease;`;
+    
+    let optionsHtml = '';
+    
+    // Copy Option (সবার জন্য)
+    optionsHtml += `<div class="chat-dropdown-item" onclick="copyCommentText(this.parentElement); this.parentElement.remove();">
+        <span class="material-symbols-outlined">content_copy</span> Copy
+    </div>`;
+    
+    // Edit & Delete (শুধুমাত্র নিজের কমেন্টের জন্য)
+    if (commentUid === currentUser.uid) {
+        optionsHtml += `<div class="chat-dropdown-item" onclick="openCommentEditModal('${pid}', ${idx}); this.parentElement.remove();">
+            <span class="material-symbols-outlined">edit</span> Edit
+        </div>`;
+        optionsHtml += `<div class="chat-dropdown-item" style="color:var(--danger);" onclick="deleteCommentSafe('${pid}', ${idx}); this.parentElement.remove();">
+            <span class="material-symbols-outlined">delete</span> Delete
+        </div>`;
+    } else {
+        // অন্যের কমেন্ট হলে এই মেসেজটি দেখাবে (ঐচ্ছিক)
+        // optionsHtml += `<div style="padding:10px; text-align:center; color:var(--text-muted); font-size:12px;">You can only manage your own comments.</div>`;
+    }
+    
+    menu.innerHTML = `<div style="font-weight:800; margin-bottom:20px; text-align:center; font-size:16px;">Comment Options</div>${optionsHtml}`;
+    document.body.appendChild(menu);
+    
+    // বাইরে ক্লিক করলে মেনু বন্ধ হবে
     setTimeout(() => {
         document.addEventListener('click', function closeMenu(ev) {
             if (!menu.contains(ev.target)) {
