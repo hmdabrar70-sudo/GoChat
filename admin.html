@@ -329,13 +329,31 @@ function filterUsersStatus(status) {
     updateUsersTable(filtered);
 }
 
-// --- User Actions ---
-function toggleVerify(uid, currentStatus) {
-    if(!confirm(`Are you sure you want to ${currentStatus ? 'remove' : 'add'} verification?`)) return;
-    db.collection('users').doc(uid).update({ isVerified: !currentStatus })
-        .then(() => { alert("Updated!"); loadView('users'); })
-        .catch(e => alert(e.message));
-}
+        // 🚀 FEATURE 3: VERIFICATION CONTROL (UPDATED & FIXED)
+        async function toggleVerify(uid, setVerified) {
+            try {
+                // ১. ইউজারের মূল প্রোফাইলে ভেরিফিকেশন আপডেট করা
+                await db.collection('users').doc(uid).update({ isVerified: setVerified });
+                
+                // ২. 🚀 নতুন ম্যাজিক: ইউজারের আগের সব পোস্টে ব্যাজ আপডেট করা 
+                const postsSnap = await db.collection('posts').where('uid', '==', uid).get();
+                if (!postsSnap.empty) {
+                    const batch = db.batch();
+                    postsSnap.forEach(doc => {
+                        // পোস্টের ভেতরেও isVerified স্ট্যাটাস আপডেট করে দিচ্ছে
+                        batch.update(doc.ref, { isVerified: setVerified });
+                    });
+                    await batch.commit(); // সব পোস্ট এক ক্লিকে আপডেট!
+                }
+
+                showToast(setVerified ? "User Verified!" : "Verification Removed", "success");
+                loadUsers(); // লিস্ট রিফ্রেশ
+            } catch (e) { 
+                showToast("Error updating verification", "error"); 
+                console.error("Verification Error: ", e);
+            }
+        }
+
 
 function openBanModal(uid, email) {
     document.getElementById('ban-uid').value = uid;
