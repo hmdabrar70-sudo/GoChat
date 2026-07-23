@@ -2477,12 +2477,6 @@ NESTED ACTIVITY CATEGORIES STYLES
     
 <div id="reply-preview-container"></div>
 <input type="text" id="chat-input" placeholder="Message..." autocomplete="off" onkeypress="if(event.key==='Enter')sendMsg()">
-
-<!-- 🚀 NEW: Voice to Text Mic Button -->
-<button id="voice-record-btn" onclick="startVoiceRecognition()" style="background:none; border:none; cursor:pointer; color:var(--accent); padding:8px; display:flex; align-items:center; outline:none; transition:0.2s;">
-    <span class="material-symbols-outlined" id="mic-icon" style="font-size:24px;">mic</span>
-</button>
-
 <label for="chat-img-input" style="cursor:pointer;color:var(--accent);padding:8px;display:flex;">
 <span class="material-symbols-outlined" style="font-size:24px;">image</span>
 </label>
@@ -5273,7 +5267,7 @@ async function viewUserProfile(uid){
     if(otherFollowersCount) otherFollowersCount.textContent = (u.followers || []).length;
     if(otherFollowingCount) {
         if (u.followingPrivacy === 'onlyme') {
-            otherFollowingCount.innerHTML = '<i class="ph-bold ph-eye-slash" style="font-size:14px; vertical-align:middle;"></i>';
+            otherFollowingCount.textContent = '🔒';
         } else {
             otherFollowingCount.textContent = (u.following || []).length;
         }
@@ -10493,61 +10487,6 @@ async function loadCategoryPosts(tabName) {
         list.innerHTML = '<div class="empty-feed">Failed to load posts</div>';
     }
 }
-// ==========================================
-// 🚀 NEW: VOICE TO TEXT (SPEECH RECOGNITION)
-// ==========================================
-function startVoiceRecognition() {
-    // ব্রাউজার সাপোর্ট করে কিনা তা চেক করা
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    
-    if (!SpeechRecognition) {
-        showToast("Your browser does not support Voice Recognition.");
-        return;
-    }
-
-    const recognition = new SpeechRecognition();
-    recognition.lang = 'bn-BD'; // বাংলা ও ইংরেজি মিক্সড সাপোর্টের জন্য
-    recognition.interimResults = false;
-    recognition.maxAlternatives = 1;
-
-    const micIcon = document.getElementById('mic-icon');
-    const chatInput = document.getElementById('chat-input');
-
-    // রেকর্ডিং শুরু হলে
-    recognition.onstart = function() {
-        micIcon.style.color = "var(--danger)"; // আইকন লাল হয়ে যাবে
-        micIcon.style.animation = "pulsePin 1s infinite"; // আইকনে পালস অ্যানিমেশন হবে
-        showToast("Listening...");
-    };
-
-    // কথা বলা শেষ হলে এবং রেজাল্ট পেলে
-    recognition.onresult = function(event) {
-        const speechToText = event.results[0][0].transcript;
-        
-        // ইনপুট বক্সে আগে থেকে কিছু লেখা থাকলে তার সাথে নতুন কথা যোগ হবে
-        const currentText = chatInput.value;
-        chatInput.value = currentText ? currentText + " " + speechToText : speechToText;
-        
-        setTypingStatus(true); // টাইপিং স্ট্যাটাস অন করবে
-    };
-
-       // কোনো এরর হলে আসল কারণসহ মেসেজ দেখাবে
-    recognition.onerror = function(event) {
-        console.log("Voice Error: ", event.error);
-        
-        if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
-            showToast("Mic blocked! Please allow microphone access in browser settings.");
-        } else if (event.error === 'no-speech') {
-            showToast("Didn't hear anything. Please try speaking closer to the mic.");
-        } else if (event.error === 'network') {
-            showToast("Network error. Voice typing requires internet.");
-        } else {
-            showToast("Error: " + event.error);
-        }
-        
-        micIcon.style.color = "var(--accent)";
-        micIcon.style.animation = "none";
-    };
 </script>
 </body>
 </html>
