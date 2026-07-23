@@ -4257,40 +4257,62 @@ if(storyUnsub)storyUnsub();
 if(onlineStatusInterval)clearInterval(onlineStatusInterval);
 }
 });
-// নতুন মেইন মেনু ওপেন এবং ক্লোজ করার লজিক
+
+// নতুন মেইন মেনু ওপেন এবং ক্লোজ করার লজিক (BUG FIXED)
 function openMainMenu() {
-    document.getElementById('main-menu-screen').style.display = 'flex';
-    // 🚀 মেনু ওপেন হলে সব সুইচের স্টেট আপডেট করে দেবে
-    if (typeof updatePrivateAccountUI === 'function') updatePrivateAccountUI();
-    if (typeof updateActiveStatusUI === 'function') updateActiveStatusUI();
-    if (typeof updateMessageSoundUI === 'function') updateMessageSoundUI();
-    if (typeof updateDarkModeUI === 'function') updateDarkModeUI(); // ডার্ক মোড আপডেট
+    const menuScreen = document.getElementById('main-menu-screen');
+    if (menuScreen) {
+        // 🚀 ম্যাজিক ফিক্স: মডালটি যদি ভুল করে অন্য পেজের ভেতর ঢুকে গিয়ে থাকে, 
+        // তবে এটি নিজে থেকেই বের হয়ে মেইন বডিতে চলে আসবে!
+        if (menuScreen.parentElement !== document.body) {
+            document.body.appendChild(menuScreen);
+        }
+        menuScreen.style.display = 'flex';
+    }
+    
+    // 🚀 মেনু ওপেন হলে সব সুইচের স্টেট আপডেট করে দেবে (Try-Catch দিয়ে সেফটি দেওয়া হয়েছে)
+    try {
+        if (typeof updatePrivateAccountUI === 'function') updatePrivateAccountUI();
+        if (typeof updateActiveStatusUI === 'function') updateActiveStatusUI();
+        if (typeof updateMessageSoundUI === 'function') updateMessageSoundUI();
+        if (typeof updateDarkModeUI === 'function') updateDarkModeUI(); 
+    } catch(e) { console.error("Menu update error", e); }
 }
 
 function closeMainMenu() {
-    document.getElementById('main-menu-screen').style.display = 'none';
+    const menuScreen = document.getElementById('main-menu-screen');
+    if (menuScreen) {
+        menuScreen.style.display = 'none';
+    }
 }
 
 // === Elite GoChat Placeholder Function ===
 function openEliteGoChat() {
-    // আপাতত ক্লিক করলে একটি টোস্ট মেসেজ দেখাবে। 
-    // ভবিষ্যতে এখানে নতুন মডাল বা পেজ ওপেন করার কোড যুক্ত হবে।
     showToast('Elite GoChat features are coming soon!');
 }
 
-// সেটিংসের নতুন পেজ ওপেন এবং ক্লোজ করার লজিক
+// সেটিংসের নতুন পেজ ওপেন এবং ক্লোজ করার লজিক (BUG FIXED)
 function openMainSettingsScreen() {
-    document.getElementById('main-settings-screen').style.display = 'flex';
+    const settingsScreen = document.getElementById('main-settings-screen');
+    if (settingsScreen) {
+        // 🚀 সেম ম্যাজিক ফিক্স সেটিংস পেজের জন্যও
+        if (settingsScreen.parentElement !== document.body) {
+            document.body.appendChild(settingsScreen);
+        }
+        settingsScreen.style.display = 'flex';
+    }
     
-    // মডাল ওপেন হলে সুইচগুলোর স্টেট (On/Off) আপডেট করে দেবে
-    if (typeof updatePrivateAccountUI === 'function') updatePrivateAccountUI();
-    if (typeof updateActiveStatusUI === 'function') updateActiveStatusUI();
-    if (typeof updateMessageSoundUI === 'function') updateMessageSoundUI();
-    if (typeof updateDarkModeUI === 'function') updateDarkModeUI();
+    try {
+        if (typeof updatePrivateAccountUI === 'function') updatePrivateAccountUI();
+        if (typeof updateActiveStatusUI === 'function') updateActiveStatusUI();
+        if (typeof updateMessageSoundUI === 'function') updateMessageSoundUI();
+        if (typeof updateDarkModeUI === 'function') updateDarkModeUI();
+    } catch(e) { console.error("Settings update error", e); }
 }
 
 function closeMainSettingsScreen() {
-    document.getElementById('main-settings-screen').style.display = 'none';
+    const settingsScreen = document.getElementById('main-settings-screen');
+    if (settingsScreen) settingsScreen.style.display = 'none';
 }
 
 // ===== NAVIGATION =====
