@@ -1965,20 +1965,17 @@ NESTED ACTIVITY CATEGORIES STYLES
 <div class="topbar">
 <div class="topbar-logo" onclick="refreshFeed()">✦ GoChat</div>
 <div class="topbar-actions">
-    <!-- Menu Button -->
     <div class="topbar-btn" id="topbar-settings-btn" onclick="openMainMenu()" style="display:none;">
-        <i class="ph-bold ph-list" style="font-size:22px;"></i>
-    </div>
+    <span class="material-symbols-outlined">menu</span>
+</div>
+
     
-    <!-- Notifications Button -->
     <div class="topbar-btn" onclick="showPage('notifications')" style="position:relative;">
-        <i class="ph-bold ph-bell" style="font-size:22px;"></i>
+        <span class="material-symbols-outlined">notifications</span>
         <div class="nav-badge" id="notif-badge">0</div>
     </div>
-    
-    <!-- Search Button -->
     <div class="topbar-btn" onclick="showPage('search')">
-        <i class="ph-bold ph-magnifying-glass" style="font-size:22px;"></i>
+        <span class="material-symbols-outlined">search</span>
     </div>
 </div>
 </div>
@@ -2673,96 +2670,170 @@ NESTED ACTIVITY CATEGORIES STYLES
 
 <div id="in-app-notif-container"></div>
 <div id="toast"></div>
-<!-- 🚀 FIXED MAIN MENU SCREEN (FULL PHOSPHOR ICONS) -->
 <div id="main-menu-screen" style="display:none; position:fixed; inset:0; background:var(--bg); z-index:1000; flex-direction:column; overflow-y:auto; animation:slideUp 0.3s ease;">
-    <div class="chat-topbar" style="position:sticky; top:0; z-index:100; display:flex; align-items:center; gap:12px;">
-        <div class="chat-back" onclick="closeMainMenu()"><i class="ph-bold ph-arrow-left" style="font-size:24px;"></i></div>
+    <div class="chat-topbar" style="position:sticky; top:0; z-index:100;">
+        <div class="chat-back" onclick="closeMainMenu()"><span class="material-symbols-outlined">arrow_back</span></div>
         <div class="chat-name" style="font-size: 18px; font-weight: 800;">Menu</div>
     </div>
     
     <div style="padding: 20px; display: flex; flex-direction: column; gap: 8px;">
         
-        <!-- Settings Search Bar -->
-        <div style="padding: 0 0 16px 0; border-bottom: 1px solid var(--border);">
-            <div class="search-input-wrap" style="margin:0; background: var(--surface-2); border-radius:16px;">
-                <i class="ph-bold ph-magnifying-glass" style="font-size:20px; color:var(--text-muted);"></i>
-                <input type="text" id="menu-settings-search" placeholder="Search settings..." oninput="filterMenuSettings(this.value)">
+        <!-- 🚀 NEW: Settings & Privacy Full Screen -->
+<div id="main-settings-screen" style="display:none; position:fixed; inset:0; background:var(--bg); z-index:1010; flex-direction:column; overflow-y:auto; animation:slideUp 0.3s ease;">
+    <div class="chat-topbar" style="position:sticky; top:0; z-index:100;">
+        <div class="chat-back" onclick="closeMainSettingsScreen()"><span class="material-symbols-outlined">arrow_back</span></div>
+        <div class="chat-name" style="font-size: 18px; font-weight: 800;">Settings & Privacy</div>
+    </div>
+    
+    <div style="padding: 20px; display: flex; flex-direction: column; gap: 8px;">
+        <div class="settings-list-item" onclick="openSettingsPrivacy();">
+            <div style="display:flex; align-items:center; gap:16px;">
+                <span class="material-symbols-outlined" style="font-size: 24px;">account_circle</span>
+                <span style="font-weight:600; font-size:15px;">Account info</span>
             </div>
+            <span class="material-symbols-outlined" style="color:var(--text-muted);">chevron_right</span>
         </div>
 
-        <!-- Elite GoChat -->
+        <div class="settings-list-item" onclick="openFollowingPrivacy();">
+            <div style="display:flex; align-items:center; gap:16px;">
+                <span class="material-symbols-outlined" style="font-size: 24px;">visibility_off</span>
+                <span style="font-weight:600; font-size:15px;">Following List Privacy</span>
+            </div>
+            <span class="material-symbols-outlined" style="color:var(--text-muted);">chevron_right</span>
+        </div>
+        
+        <div class="settings-list-item" onclick="togglePrivateAccount()">
+            <div style="display:flex; align-items:center; gap:16px;">
+                <span class="material-symbols-outlined" style="font-size: 24px; color: var(--accent);">lock</span>
+                <span style="font-weight:600; font-size:15px;">Private Account</span>
+            </div>
+            <div id="private-account-toggle" class="toggle-switch"></div>
+        </div>
+        
+        <div class="settings-list-item" onclick="openUsernameSettings()">
+    <div style="display:flex; align-items:center; gap:16px;">
+        <span class="material-symbols-outlined" style="font-size: 24px; color: #3b82f6;">alternate_email</span>
+        <span style="font-weight:600; font-size:15px;">Username</span>
+    </div>
+    <span class="material-symbols-outlined" style="color:var(--text-muted);">chevron_right</span>
+</div>
+
+        <div class="settings-list-item" onclick="openChatPrivacyPage()">
+            <div style="display:flex; align-items:center; gap:16px;">
+                <span class="material-symbols-outlined" style="font-size: 24px; color: #3b82f6;">chat_bubble</span>
+                <span style="font-weight:600; font-size:15px;">Chat Privacy</span>
+            </div>
+            <span class="material-symbols-outlined" style="color:var(--text-muted);">chevron_right</span>
+        </div>
+
+        <div class="settings-list-item" onclick="toggleActiveStatus()">
+            <div style="display:flex; align-items:center; gap:16px;">
+                <span class="material-symbols-outlined" style="font-size: 24px; color: var(--success);">radio_button_checked</span>
+                <span style="font-weight:600; font-size:15px;">Active Status</span>
+            </div>
+            <div id="active-status-toggle" class="toggle-switch success"></div>
+        </div>
+        
+        <div class="settings-list-item" onclick="toggleMessageSound()">
+            <div style="display:flex; align-items:center; gap:16px;">
+                <span class="material-symbols-outlined" style="font-size: 24px; color: #3b82f6;">volume_up</span>
+                <span style="font-weight:600; font-size:15px;">Message Sound</span>
+            </div>
+            <div id="message-sound-toggle" class="toggle-switch"></div>
+        </div>
+
+        <div class="settings-list-item" onclick="closeMainSettingsScreen(); closeMainMenu(); openGallery();">
+            <div style="display:flex; align-items:center; gap:16px;">
+                <span class="material-symbols-outlined" style="font-size: 24px; color: #3b82f6;">photo_library</span>
+                <span style="font-weight:600; font-size:15px;">Gallery</span>
+            </div>
+            <span class="material-symbols-outlined" style="color:var(--text-muted);">chevron_right</span>
+        </div>
+        
+        <div class="settings-list-item" onclick="toggleDarkMode()">
+            <div style="display:flex; align-items:center; gap:16px;">
+                <span class="material-symbols-outlined" style="font-size: 24px;">dark_mode</span>
+                <span style="font-weight:600; font-size:15px;">Dark Mode</span>
+            </div>
+            <div id="dark-mode-toggle" class="toggle-switch"></div>
+        </div>
+    </div>
+</div>
+
+        <!-- 🚀 NEW: Settings Search Bar -->
+<div style="padding: 12px 16px; border-bottom: 1px solid var(--border);">
+    <div class="search-input-wrap" style="margin:0; background: var(--surface-2);">
+        <span class="material-symbols-outlined">search</span>
+        <input type="text" id="menu-settings-search" placeholder="Search settings..." oninput="filterMenuSettings(this.value)">
+    </div>
+</div>
+
+        <!-- নতুন Elite GoChat মেনু -->
         <div class="settings-list-item" onclick="openEliteGoChat()">
             <div style="display:flex; align-items:center; gap:16px;">
                 <i class="ph-duotone ph-crown" style="font-size: 26px; color: #f59e0b;"></i>
                 <span style="font-weight:800; font-size:16px; background: linear-gradient(to right, #FFD700, #FDB931); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Elite GoChat</span>
             </div>
-            <i class="ph-bold ph-caret-right" style="color:var(--text-muted); font-size:18px;"></i>
+            <span class="material-symbols-outlined" style="color:var(--text-muted);">chevron_right</span>
         </div>
 
-        <!-- Category -->
+        <!-- 🚀 NEW: Category Menu Item -->
         <div class="settings-list-item" onclick="openCategoryScreen()">
             <div style="display:flex; align-items:center; gap:16px;">
-                <i class="ph-fill ph-squares-four" style="font-size: 24px; color: #10b981;"></i>
+                <span class="material-symbols-outlined" style="font-size: 24px; color: #10b981;">category</span>
                 <span style="font-weight:600; font-size:15px;">Category</span>
             </div>
-            <i class="ph-bold ph-caret-right" style="color:var(--text-muted); font-size:18px;"></i>
+            <span class="material-symbols-outlined" style="color:var(--text-muted);">chevron_right</span>
         </div>
 
-        <!-- Memories -->
         <div class="settings-list-item" onclick="showToast('Memories feature coming soon!')">
             <div style="display:flex; align-items:center; gap:16px;">
-                <i class="ph-fill ph-clock-counter-clockwise" style="font-size: 24px; color: #a78bfa;"></i>
+                <span class="material-symbols-outlined" style="font-size: 24px; color: #a78bfa;">history</span>
                 <span style="font-weight:600; font-size:15px;">Memories</span>
             </div>
-            <i class="ph-bold ph-caret-right" style="color:var(--text-muted); font-size:18px;"></i>
+            <span class="material-symbols-outlined" style="color:var(--text-muted);">chevron_right</span>
         </div>
 
-        <!-- Saved -->
-        <div class="settings-list-item" onclick="openSavedItems()">
-            <div style="display:flex; align-items:center; gap:16px;">
-                <i class="ph-fill ph-bookmark-simple" style="font-size: 24px; color: var(--accent);"></i>
-                <span style="font-weight:600; font-size:15px;">Saved</span>
+                    <div class="settings-list-item" onclick="openSavedItems()">
+                <div style="display:flex; align-items:center; gap:16px;">
+                    <span class="material-symbols-outlined" style="font-size: 22px; color: var(--accent);">bookmark</span>
+                    <span style="font-weight:600; font-size:14px;">Saved</span>
+                </div>
+                <span class="material-symbols-outlined" style="color:var(--text-muted);">chevron_right</span>
             </div>
-            <i class="ph-bold ph-caret-right" style="color:var(--text-muted); font-size:18px;"></i>
-        </div>
 
-        <!-- Settings & Privacy -->
-        <div class="settings-list-item" onclick="openMainSettingsScreen()">
+                <div class="settings-list-item" onclick="openMainSettingsScreen()">
             <div style="display:flex; align-items:center; gap:16px;">
-                <i class="ph-fill ph-gear" style="font-size: 24px; color: var(--text-secondary);"></i>
+                <span class="material-symbols-outlined" style="font-size: 24px; color: var(--text-secondary);">settings</span>
                 <span style="font-weight:600; font-size:15px;">Settings & Privacy</span>
             </div>
-            <i class="ph-bold ph-caret-right" style="color:var(--text-muted); font-size:18px;"></i>
+            <span class="material-symbols-outlined" style="color:var(--text-muted);">chevron_right</span>
         </div>
 
-        <!-- Active Time -->
-        <div class="settings-list-item" onclick="openActiveTimeModal()">
-            <div style="display:flex; align-items:center; gap:16px;">
-                <i class="ph-fill ph-hourglass-high" style="font-size: 24px; color: #3b82f6;"></i>
-                <span style="font-weight:600; font-size:15px;">Active Time</span>
-            </div>
-            <i class="ph-bold ph-caret-right" style="color:var(--text-muted); font-size:18px;"></i>
-        </div>
+<!-- 🚀 NEW: Active Time Menu Item -->
+<div class="settings-list-item" onclick="openActiveTimeModal()">
+    <div style="display:flex; align-items:center; gap:16px;">
+        <span class="material-symbols-outlined" style="font-size: 24px; color: #3b82f6;">schedule</span>
+        <span style="font-weight:600; font-size:15px;">Active Time</span>
+    </div>
+    <span class="material-symbols-outlined" style="color:var(--text-muted);">chevron_right</span>
+</div>
 
-        <!-- Support -->
-        <div class="settings-list-item" onclick="openSupportPage()">
-            <div style="display:flex; align-items:center; gap:16px;">
-                <i class="ph-fill ph-headset" style="font-size: 24px; color: #3b82f6;"></i>
-                <span style="font-weight:600; font-size:15px;">Support</span>
-            </div>
-            <i class="ph-bold ph-caret-right" style="color:var(--text-muted); font-size:18px;"></i>
-        </div>
+<!-- 🚀 NEW: Support Menu Item -->
+<div class="settings-list-item" onclick="openSupportPage()">
+    <div style="display:flex; align-items:center; gap:16px;">
+        <span class="material-symbols-outlined" style="font-size: 24px; color: #3b82f6;">support_agent</span>
+        <span style="font-weight:600; font-size:15px;">Support</span>
+    </div>
+    <span class="material-symbols-outlined" style="color:var(--text-muted);">chevron_right</span>
+</div>
 
-        <!-- Log out -->
-        <div class="settings-list-item" onclick="doLogout()" style="border-bottom: none; margin-top: 12px;">
+                <div class="settings-list-item" onclick="doLogout()" style="border-bottom: none; margin-top: 12px;">
             <div style="display:flex; align-items:center; gap:16px;">
-                <i class="ph-bold ph-sign-out" style="font-size: 24px; color: var(--danger);"></i>
+                <span class="material-symbols-outlined" style="font-size: 24px; color: var(--danger);">logout</span>
                 <span style="font-weight:600; font-size:15px; color: var(--danger);">Log out</span>
             </div>
         </div>
-    </div>
-</div>
-
         
     </div> </div> <div id="gallery-screen" style="display:none; position:fixed; inset:0; background:var(--bg); z-index:1005; flex-direction:column; overflow-y:auto; animation:slideUp 0.3s ease;">
     <div class="chat-topbar" style="position:sticky; top:0; z-index:100; justify-content: space-between;">
@@ -4186,27 +4257,18 @@ if(storyUnsub)storyUnsub();
 if(onlineStatusInterval)clearInterval(onlineStatusInterval);
 }
 });
-// নতুন মেইন মেনু ওপেন এবং ক্লোজ করার লজিক (BUG FIXED)
+// নতুন মেইন মেনু ওপেন এবং ক্লোজ করার লজিক
 function openMainMenu() {
-    const menuScreen = document.getElementById('main-menu-screen');
-    if (menuScreen) {
-        menuScreen.style.display = 'flex';
-    }
-    
-    // 🚀 মেনু ওপেন হলে সব সুইচের স্টেট আপডেট করে দেবে (Try-Catch দিয়ে সেফটি দেওয়া হয়েছে)
-    try {
-        if (typeof updatePrivateAccountUI === 'function') updatePrivateAccountUI();
-        if (typeof updateActiveStatusUI === 'function') updateActiveStatusUI();
-        if (typeof updateMessageSoundUI === 'function') updateMessageSoundUI();
-        if (typeof updateDarkModeUI === 'function') updateDarkModeUI(); 
-    } catch(e) { console.error("Menu UI update issue:", e); }
+    document.getElementById('main-menu-screen').style.display = 'flex';
+    // 🚀 মেনু ওপেন হলে সব সুইচের স্টেট আপডেট করে দেবে
+    if (typeof updatePrivateAccountUI === 'function') updatePrivateAccountUI();
+    if (typeof updateActiveStatusUI === 'function') updateActiveStatusUI();
+    if (typeof updateMessageSoundUI === 'function') updateMessageSoundUI();
+    if (typeof updateDarkModeUI === 'function') updateDarkModeUI(); // ডার্ক মোড আপডেট
 }
 
 function closeMainMenu() {
-    const menuScreen = document.getElementById('main-menu-screen');
-    if (menuScreen) {
-        menuScreen.style.display = 'none';
-    }
+    document.getElementById('main-menu-screen').style.display = 'none';
 }
 
 // === Elite GoChat Placeholder Function ===
@@ -6283,6 +6345,9 @@ function loadMessages(){
             const timeB = b.data.lastAt?.toMillis ? b.data.lastAt.toMillis() : 0;
             return timeB - timeA; 
         });
+
+        // 🚀 NEW: Save to global variable for instant Share Modal loading
+        window.globalRecentChats = chats;
 
         // ৪. আনরিড ব্যাজ আপডেট (শুধুমাত্র নিজের আনরিড মেসেজের জন্য)
         let unreadCount = 0;
@@ -10682,7 +10747,7 @@ async function uploadAndSendVoice(audioBlob) {
     }
 }
 // ==========================================
-// 🚀 NEW: SHARE POST LOGIC (SUPER FAST FIX)
+// 🚀 NEW: SHARE POST LOGIC (ULTRA FAST FIX)
 // ==========================================
 let currentSharePostData = null;
 
@@ -10691,13 +10756,14 @@ async function openShareModal(postId, postAuthor, postTitle, postImg) {
     
     const modal = document.getElementById('share-post-modal');
     if (modal.parentElement !== document.body) {
-        document.body.appendChild(modal); // মডালটি সবসময় ফ্রন্টে রাখার ম্যাজিক
+        document.body.appendChild(modal);
     }
     
     modal.classList.add('open');
     document.getElementById('share-search-input').value = '';
     
     const list = document.getElementById('share-friends-list');
+    list.innerHTML = '<div class="loading" style="padding:20px; text-align:center;"><i class="ph-bold ph-spinner ph-spin" style="font-size:24px;"></i> Loading...</div>';
     
     try {
         if (!allUsersCache) await fetchAllUsers();
@@ -10706,40 +10772,46 @@ async function openShareModal(postId, postAuthor, postTitle, postImg) {
         let renderedUids = [];
         let recentChatsCount = 0;
 
-        // ১. ব্যাকগ্রাউন্ডে লোড হওয়া মেসেজ লিস্ট থেকে সরাসরি চ্যাটগুলো নিয়ে আসা (0 Loading Time!)
-        const chatItems = document.querySelectorAll('#msg-list .msg-item');
-        
-        if(chatItems.length > 0) {
+        // ১. ডাটাবেস বা DOM এর বদলে সরাসরি ভ্যারিয়েবল থেকে রিড করা (100% গ্যারান্টিড ফাস্ট!)
+        if (window.globalRecentChats && window.globalRecentChats.length > 0) {
             html += '<div style="padding: 10px 16px; font-size: 12px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Recent Chats</div>';
             
-            chatItems.forEach(item => {
-                const targetUid = item.getAttribute('data-other-uid');
-                if (targetUid) {
-                    const onclickStr = item.getAttribute('onclick') || '';
-                    // চ্যাটের আইডি এবং নাম এক্সট্রাক্ট করা
-                    const params = onclickStr.match(/'([^']*)'/g)?.map(s => s.replace(/'/g, ''));
-                    
-                    if (params && params.length >= 3) {
-                        const chatId = params[0];
-                        const targetName = params[2];
-                        const isGroup = (targetUid === 'group');
-                        const finalTargetId = isGroup ? chatId : targetUid;
-                        
-                        if (!renderedUids.includes(finalTargetId)) {
-                            renderedUids.push(finalTargetId);
-                            recentChatsCount++;
-                            
-                            // ছবি এবং বাতি (Online Dot) সহ অবতার কপি করা
-                            const avatarHtml = item.querySelector('.avatar').innerHTML;
-                            
-                            html += `
-                            <div class="share-friend-item" data-name="${targetName.toLowerCase()}">
-                                <div class="avatar sm" style="position:relative;">${avatarHtml}</div>
-                                <div style="flex:1; font-weight:700; font-size:14px; color:var(--text); padding-left:10px;">${escapeHTML(targetName)}</div>
-                                <button class="btn-share-send" onclick="sendSharedPost('${finalTargetId}', ${isGroup}, this)">Send</button>
-                            </div>`;
-                        }
+            window.globalRecentChats.forEach(chat => {
+                let targetUid = chat.otherUid;
+                let targetName = chat.otherName;
+                let isGroup = chat.isGroup;
+                let finalTargetId = isGroup ? chat.id : targetUid;
+
+                let finalAv = chat.otherAv;
+                if (isGroup) {
+                    finalAv = chat.data.groupAvatar || '';
+                    targetName = chat.data.groupName || 'Group';
+                } else {
+                    const liveUser = allUsersCache ? allUsersCache.find(u => u.id === targetUid) : null;
+                    if (liveUser) {
+                        finalAv = liveUser.avatar || '';
+                        targetName = liveUser.name || targetName;
                     }
+                }
+
+                let avHtml = '';
+                if (finalAv) {
+                    avHtml = `<img src="${escapeHTML(finalAv)}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
+                } else if (isGroup) {
+                    avHtml = `<div style="width:100%;height:100%;background:var(--gradient-orange);color:white;display:flex;align-items:center;justify-content:center;border-radius:50%;"><i class="ph-bold ph-users" style="font-size: 20px;"></i></div>`;
+                } else {
+                    avHtml = `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:var(--gradient);color:#fff;font-weight:bold;font-size:14px;border-radius:50%;">${avatarInitial(targetName)}</div>`;
+                }
+
+                if (!renderedUids.includes(finalTargetId)) {
+                    renderedUids.push(finalTargetId);
+                    recentChatsCount++;
+                    html += `
+                    <div class="share-friend-item" data-name="${targetName.toLowerCase()}">
+                        <div class="avatar sm">${avHtml}</div>
+                        <div style="flex:1; font-weight:700; font-size:14px; color:var(--text); padding-left:10px;">${escapeHTML(targetName)}</div>
+                        <button class="btn-share-send" onclick="sendSharedPost('${finalTargetId}', ${isGroup}, this)">Send</button>
+                    </div>`;
                 }
             });
         }
@@ -10754,7 +10826,7 @@ async function openShareModal(postId, postAuthor, postTitle, postImg) {
                 if (friendUser) {
                     const safeName = escapeHTML(friendUser.name);
                     const avUrl = friendUser.avatar || '';
-                    const targetAv = avUrl ? `<img src="${escapeHTML(avUrl)}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">` : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:var(--gradient);color:white;font-weight:bold;">${avatarInitial(safeName)}</div>`;
+                    const targetAv = avUrl ? `<img src="${escapeHTML(avUrl)}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">` : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:var(--gradient);color:white;font-weight:bold;font-size:14px;">${avatarInitial(safeName)}</div>`;
                     
                     friendsHtml += `
                     <div class="share-friend-item" data-name="${safeName.toLowerCase()}">
