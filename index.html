@@ -10744,47 +10744,103 @@ async function uploadAndSendVoice(audioBlob) {
     }
 }
 // ==========================================
-// 🚀 NEW: SHARE POST LOGIC
+// 🚀 NEW: SHARE POST LOGIC (SUPER FAST FIX)
 // ==========================================
 let currentSharePostData = null;
 
 async function openShareModal(postId, postAuthor, postTitle, postImg) {
     currentSharePostData = { id: postId, author: postAuthor, title: postTitle, img: postImg };
-    document.getElementById('share-post-modal').classList.add('open');
+    
+    const modal = document.getElementById('share-post-modal');
+    if (modal.parentElement !== document.body) {
+        document.body.appendChild(modal); // মডালটি সবসময় ফ্রন্টে রাখার ম্যাজিক
+    }
+    
+    modal.classList.add('open');
     document.getElementById('share-search-input').value = '';
     
     const list = document.getElementById('share-friends-list');
-    list.innerHTML = '<div class="loading" style="padding:20px; text-align:center;"><i class="ph-bold ph-spinner ph-spin" style="font-size:24px;"></i> Loading...</div>';
-    
-    const friends = currentUserData.friends || [];
-    if(friends.length === 0) {
-        list.innerHTML = '<div class="empty-feed" style="padding:20px;">No friends to share with</div>';
-        return;
-    }
     
     try {
-        const friendDocs = friends.map(fId => db.collection('users').doc(fId).get());
-        const snapshots = await Promise.all(friendDocs);
-        
+        if (!allUsersCache) await fetchAllUsers();
+
         let html = '';
-        snapshots.forEach((doc, index) => {
-            if(doc.exists) {
-                const u = doc.data();
-                const safeName = escapeHTML(u.name);
-                const avHtml = u.avatar ? `<img src="${u.avatar}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">` : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:var(--gradient);color:white;font-weight:bold;">${avatarInitial(u.name)}</div>`;
-                const fId = friends[index];
-                
-                html += `
-                <div class="share-friend-item" data-name="${safeName.toLowerCase()}">
-                    <div class="avatar sm">${avHtml}</div>
-                    <div style="flex:1; font-weight:700; font-size:14px; color:var(--text);">${safeName}</div>
-                    <button class="btn-share-send" onclick="sendSharedPost('${fId}', this)">Send</button>
-                </div>`;
+        let renderedUids = [];
+        let recentChatsCount = 0;
+
+        // ১. ব্যাকগ্রাউন্ডে লোড হওয়া মেসেজ লিস্ট থেকে সরাসরি চ্যাটগুলো নিয়ে আসা (0 Loading Time!)
+        const chatItems = document.querySelectorAll('#msg-list .msg-item');
+        
+        if(chatItems.length > 0) {
+            html += '<div style="padding: 10px 16px; font-size: 12px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Recent Chats</div>';
+            
+            chatItems.forEach(item => {
+                const targetUid = item.getAttribute('data-other-uid');
+                if (targetUid) {
+                    const onclickStr = item.getAttribute('onclick') || '';
+                    // চ্যাটের আইডি এবং নাম এক্সট্রাক্ট করা
+                    const params = onclickStr.match(/'([^']*)'/g)?.map(s => s.replace(/'/g, ''));
+                    
+                    if (params && params.length >= 3) {
+                        const chatId = params[0];
+                        const targetName = params[2];
+                        const isGroup = (targetUid === 'group');
+                        const finalTargetId = isGroup ? chatId : targetUid;
+                        
+                        if (!renderedUids.includes(finalTargetId)) {
+                            renderedUids.push(finalTargetId);
+                            recentChatsCount++;
+                            
+                            // ছবি এবং বাতি (Online Dot) সহ অবতার কপি করা
+                            const avatarHtml = item.querySelector('.avatar').innerHTML;
+                            
+                            html += `
+                            <div class="share-friend-item" data-name="${targetName.toLowerCase()}">
+                                <div class="avatar sm" style="position:relative;">${avatarHtml}</div>
+                                <div style="flex:1; font-weight:700; font-size:14px; color:var(--text); padding-left:10px;">${escapeHTML(targetName)}</div>
+                                <button class="btn-share-send" onclick="sendSharedPost('${finalTargetId}', ${isGroup}, this)">Send</button>
+                            </div>`;
+                        }
+                    }
+                }
+            });
+        }
+
+        // ২. ফ্রেন্ড লিস্ট থেকে বাকি বন্ধুদের লোড করা (যারা রিসেন্ট চ্যাটে নেই)
+        const friends = currentUserData.friends || [];
+        let friendsHtml = '';
+        
+        friends.forEach(fId => {
+            if (!renderedUids.includes(fId)) {
+                const friendUser = allUsersCache ? allUsersCache.find(u => u.id === fId) : null;
+                if (friendUser) {
+                    const safeName = escapeHTML(friendUser.name);
+                    const avUrl = friendUser.avatar || '';
+                    const targetAv = avUrl ? `<img src="${escapeHTML(avUrl)}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">` : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:var(--gradient);color:white;font-weight:bold;">${avatarInitial(safeName)}</div>`;
+                    
+                    friendsHtml += `
+                    <div class="share-friend-item" data-name="${safeName.toLowerCase()}">
+                        <div class="avatar sm">${targetAv}</div>
+                        <div style="flex:1; font-weight:700; font-size:14px; color:var(--text); padding-left:10px;">${safeName}</div>
+                        <button class="btn-share-send" onclick="sendSharedPost('${fId}', false, this)">Send</button>
+                    </div>`;
+                }
             }
         });
-        list.innerHTML = html;
+
+        if (friendsHtml) {
+            html += '<div style="padding: 15px 16px 10px; font-size: 12px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Friends</div>' + friendsHtml;
+        }
+
+        if (recentChatsCount === 0 && friendsHtml === '') {
+            list.innerHTML = '<div class="empty-feed" style="padding:20px;">No chats or friends found</div>';
+        } else {
+            list.innerHTML = html;
+        }
+
     } catch(e) {
-        list.innerHTML = '<div class="empty-feed">Failed to load friends</div>';
+        console.error(e);
+        list.innerHTML = '<div class="empty-feed">Failed to load share list</div>';
     }
 }
 
@@ -10803,15 +10859,14 @@ function filterShareFriends(val) {
     });
 }
 
-async function sendSharedPost(toUid, btnEl) {
+async function sendSharedPost(targetId, isGroup, btnEl) {
     if(!currentSharePostData || !checkRateLimit()) return;
     
-    // বাটন স্টেট আপডেট
     btnEl.innerHTML = '<i class="ph-bold ph-check"></i> Sent';
     btnEl.style.background = 'var(--success)';
     btnEl.disabled = true;
     
-    const chatId = [currentUser.uid, toUid].sort().join('_');
+    let chatId = isGroup ? targetId : [currentUser.uid, targetId].sort().join('_');
     
     const msgData = {
         uid: currentUser.uid,
@@ -10828,18 +10883,28 @@ async function sendSharedPost(toUid, btnEl) {
     try {
         await db.collection('chats').doc(chatId).collection('messages').add(msgData);
         
-        const toUserDoc = await db.collection('users').doc(toUid).get();
-        const toUserName = toUserDoc.exists ? toUserDoc.data().name : 'User';
-        const toUserAvatar = toUserDoc.exists ? toUserDoc.data().avatar : '';
+        let targetName = 'User';
+        let targetAv = '';
+        
+        if (!isGroup) {
+            const toUserDoc = await db.collection('users').doc(targetId).get();
+            targetName = toUserDoc.exists ? toUserDoc.data().name : 'User';
+            targetAv = toUserDoc.exists ? toUserDoc.data().avatar : '';
+        }
 
-        await db.collection('chats').doc(chatId).set({
+        const chatUpdate = {
             lastMsg: '🔗 Shared a post',
             lastAt: firebase.firestore.FieldValue.serverTimestamp(),
-            names: { [currentUser.uid]: currentUserData.name, [toUid]: toUserName },
-            avatars: { [currentUser.uid]: currentUserData.avatar || '', [toUid]: toUserAvatar || '' },
             lastSender: currentUser.uid,
             isRead: false
-        }, { merge: true });
+        };
+
+        if (!isGroup) {
+            chatUpdate.names = { [currentUser.uid]: currentUserData.name, [targetId]: targetName };
+            chatUpdate.avatars = { [currentUser.uid]: currentUserData.avatar || '', [targetId]: targetAv || '' };
+        }
+
+        await db.collection('chats').doc(chatId).set(chatUpdate, { merge: true });
         
     } catch(e) {
         console.error(e);
