@@ -10531,22 +10531,23 @@ function startVoiceRecognition() {
         setTypingStatus(true); // টাইপিং স্ট্যাটাস অন করবে
     };
 
-    // কোনো এরর হলে
+       // কোনো এরর হলে আসল কারণসহ মেসেজ দেখাবে
     recognition.onerror = function(event) {
-        showToast("Didn't catch that. Please try again.");
+        console.log("Voice Error: ", event.error);
+        
+        if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+            showToast("Mic blocked! Please allow microphone access in browser settings.");
+        } else if (event.error === 'no-speech') {
+            showToast("Didn't hear anything. Please try speaking closer to the mic.");
+        } else if (event.error === 'network') {
+            showToast("Network error. Voice typing requires internet.");
+        } else {
+            showToast("Error: " + event.error);
+        }
+        
         micIcon.style.color = "var(--accent)";
         micIcon.style.animation = "none";
     };
-
-    // রেকর্ডিং বন্ধ হলে
-    recognition.onend = function() {
-        micIcon.style.color = "var(--accent)"; // আগের রঙে ফিরে আসবে
-        micIcon.style.animation = "none";
-    };
-
-    // ফাংশন চালু করা
-    recognition.start();
-}
 </script>
 </body>
 </html>
