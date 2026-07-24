@@ -1887,31 +1887,18 @@ NESTED ACTIVITY CATEGORIES STYLES
 }
 
 /* 🚀 NEW: Share Post Modal & Attachment CSS (Bug Free) */
-.share-modal-overlay {
-    display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); z-index: 100000; align-items: flex-end; justify-content: center;
-}
-.share-modal-overlay.open { display: flex; animation: fadeIn 0.2s ease; }
-.share-friend-item {
-    display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--border); transition: background 0.2s;
-}
+.share-modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); z-index: 100000; align-items: flex-end; justify-content: center; }
+.share-modal-overlay.open { display: flex; animation: slideUp 0.3s ease; }
+.share-friend-item { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--border); transition: background 0.2s; }
 .share-friend-item:hover { background: var(--surface-2); }
-.btn-share-send {
-    padding: 6px 16px; background: var(--accent); color: white; border: none; border-radius: 20px; font-weight: 700; font-size: 13px; cursor: pointer; transition: 0.2s;
-}
+.btn-share-send { padding: 8px 20px; background: var(--gradient); color: white; border: none; border-radius: 20px; font-weight: 700; font-size: 13px; cursor: pointer; transition: 0.2s; box-shadow: var(--shadow-sm); }
 .btn-share-send:active { transform: scale(0.95); }
-
-/* চ্যাটের ভেতর শেয়ার করা পোস্টের কার্ড */
-.shared-post-card {
-    background: var(--surface-2); border: 1px solid var(--border); border-radius: 16px; padding: 12px; margin-top: 6px; cursor: pointer; width: 240px; text-align: left; box-shadow: var(--shadow-sm); transition: 0.2s;
-}
+.btn-share-send.sent { background: var(--success); box-shadow: none; }
+.shared-post-card { background: var(--surface-2); border: 1px solid var(--border); border-radius: 16px; padding: 12px; margin-top: 6px; cursor: pointer; width: 240px; text-align: left; box-shadow: var(--shadow-sm); transition: 0.2s; }
 .shared-post-card:active { transform: scale(0.98); }
-.shared-post-card img {
-    width: 100%; height: 140px; object-fit: cover; border-radius: 10px; margin-bottom: 10px;
-}
-.shared-post-title {
-    font-size: 13px; font-weight: 600; color: var(--text); overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; margin-bottom: 6px; line-height: 1.4;
-}
+.shared-post-title { font-size: 13px; font-weight: 600; color: var(--text); overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; margin-bottom: 6px; line-height: 1.4; }
 .shared-post-author { font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 4px; font-weight: 600; }
+
 </style>
 </head>
 <body>
@@ -3445,24 +3432,19 @@ NESTED ACTIVITY CATEGORIES STYLES
 <!-- 🚀 NEW: Share Post Modal (SAFE LOCATION) -->
 <div class="share-modal-overlay" id="share-post-modal" onclick="if(event.target===this) closeShareModal()">
     <div class="modal-box" style="margin-top:auto; border-radius: 24px 24px 0 0; padding:0; display:flex; flex-direction:column; max-height:85vh; background: var(--surface);">
-        
         <div style="padding: 20px 20px 10px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; background: var(--surface); border-radius: 24px 24px 0 0; z-index: 10;">
             <div style="font-weight: 800; font-size: 18px; color: var(--text); display: flex; align-items: center; gap: 8px;">
                 <i class="ph-bold ph-share-network" style="color: var(--accent);"></i> Share Post
             </div>
             <button class="modal-close" onclick="closeShareModal()" style="position: static;"><i class="ph-bold ph-x"></i></button>
         </div>
-        
         <div style="padding: 10px 20px;">
             <div class="search-input-wrap" style="margin:0; background: var(--surface-2); border-radius: 20px;">
                 <i class="ph-bold ph-magnifying-glass" style="font-size:20px; color:var(--text-muted);"></i>
                 <input type="text" id="share-search-input" placeholder="Search friends..." oninput="filterShareFriends(this.value)">
             </div>
         </div>
-        
-        <div id="share-friends-list" style="overflow-y: auto; flex: 1; padding-bottom: 20px;">
-            <!-- Friends list will load here -->
-        </div>
+        <div id="share-friends-list" style="overflow-y: auto; flex: 1; padding-bottom: 20px;"></div>
     </div>
 </div>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -5603,12 +5585,11 @@ function openChat(chatId, otherUid, otherName, otherAvatar){
                 });
             }
 
-            // 🚀 UPDATED: Render Shared Post, Audio, Image or Text
+                        // 🚀 UPDATED: Render Shared Post, Audio, Image or Text
             if (m.type === 'shared_post') {
                 const sTitle = m.sharedPostTitle ? escapeHTML(m.sharedPostTitle) : 'View Post';
-                const sImg = m.sharedPostImg ? `<img src="${escapeHTML(m.sharedPostImg)}">` : '';
+                const sImg = m.sharedPostImg ? `<img src="${escapeHTML(m.sharedPostImg)}" style="width: 100%; height: 140px; object-fit: cover; border-radius: 10px; margin-bottom: 10px;">` : '';
                 const sAuthor = m.sharedPostAuthor ? escapeHTML(m.sharedPostAuthor) : 'User';
-                
                 content = `
                 <div class="shared-post-card" onclick="openSinglePostView('${m.sharedPostId}')">
                     <div style="font-size:11px; color:var(--accent); font-weight:800; margin-bottom:8px; display:flex; align-items:center; gap:4px; text-transform:uppercase; letter-spacing:0.5px;">
@@ -5627,7 +5608,6 @@ function openChat(chatId, otherUid, otherName, otherAvatar){
             } else {
                 content=safeText;
             }
-            
             // 🚀 রিপ্লাই মেসেজ প্রিভিউ ইন চ্যাট
             let replyHtml='';
             if(m.replyTo){
@@ -6346,8 +6326,9 @@ function loadMessages(){
             const timeA = a.data.lastAt?.toMillis ? a.data.lastAt.toMillis() : 0;
             const timeB = b.data.lastAt?.toMillis ? b.data.lastAt.toMillis() : 0;
             return timeB - timeA; 
-        });
-                // 🚀 NEW: Save to global variable for instant Share Modal loading
+        });        
+
+        // 🚀 NEW: Save to global variable for instant Share Modal loading
         window.globalRecentChats = chats;
 
         // ৪. আনরিড ব্যাজ আপডেট (শুধুমাত্র নিজের আনরিড মেসেজের জন্য)
@@ -7259,8 +7240,6 @@ ${mediaHtml}
         <i class="ph-light ph-share-network" style="font-size:24px;"></i>
     </button>
 </div>
-</div>`;
-}
 
 
 function closeSinglePost(){document.getElementById('single-post-screen').classList.remove('open');}
@@ -10744,11 +10723,11 @@ async function uploadAndSendVoice(audioBlob) {
         showToast("Voice sent!");
     } catch (err) {
         console.error(err);
-        showToast("Failed to send voice message");
+        showToast("Failed to send voice message");        
     }
 }
 // ==========================================
-// 🚀 NEW: SHARE POST LOGIC (BUG FREE & FAST)
+// 🚀 NEW: SHARE POST LOGIC (SAFE & FAST)
 // ==========================================
 let currentSharePostData = null;
 
@@ -10756,10 +10735,11 @@ async function openShareModal(postId, postAuthor, postTitle, postImg) {
     currentSharePostData = { id: postId, author: postAuthor, title: postTitle, img: postImg };
     
     const modal = document.getElementById('share-post-modal');
-    // মডালটি সবসময় ফ্রন্টে রাখার সেফটি কোড
-    if (modal.parentElement !== document.body) {
+    // এক্সট্রা সেফটি: মডালটি যেন সবকিছুর উপরে ফ্রন্টে থাকে
+    if (modal && modal.parentElement !== document.body) {
         document.body.appendChild(modal);
     }
+    
     modal.classList.add('open');
     document.getElementById('share-search-input').value = '';
     
@@ -10874,7 +10854,7 @@ async function sendSharedPost(targetId, isGroup, btnEl) {
     if(!currentSharePostData || !checkRateLimit()) return;
     
     btnEl.innerHTML = '<i class="ph-bold ph-check"></i> Sent';
-    btnEl.style.background = 'var(--success)';
+    btnEl.classList.add('sent');
     btnEl.disabled = true;
     
     let chatId = isGroup ? targetId : [currentUser.uid, targetId].sort().join('_');
