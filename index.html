@@ -1885,6 +1885,37 @@ NESTED ACTIVITY CATEGORIES STYLES
     border-color: transparent;
     box-shadow: var(--shadow-sm);
 }
+/* =========================================
+CHAT HEADER CALL BUTTON STYLES
+========================================= */
+.chat-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.call-icon-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: transparent;
+    border: none;
+    color: var(--text);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.call-icon-btn:hover {
+    background: var(--surface-2);
+    color: var(--accent);
+}
+
+.call-icon-btn:active {
+    transform: scale(0.9);
+}
 </style>
 </head>
 <body>
@@ -2444,10 +2475,7 @@ NESTED ACTIVITY CATEGORIES STYLES
 <div class="chat-back" onclick="closeChat()"><span class="material-symbols-outlined">arrow_back</span></div>
 <div class="avatar sm" id="chat-avatar" style="position:relative; cursor:pointer;" onclick="viewProfileFromChat()">?</div>
 <div class="chat-name" id="chat-name-display" style="flex:1;margin-left:8px; cursor:pointer;" onclick="viewProfileFromChat()">Chat</div>
-<div class="chat-header-actions" style="margin-left: auto; position: relative; display: flex; align-items: center; gap: 4px;">
-    <!-- 🚀 NEW: Audio Call Button -->
-    <span class="material-symbols-outlined" onclick="startAudioCall()" style="cursor: pointer; padding: 8px; color: var(--success); font-size: 26px;">call</span>
-    
+<div class="chat-header-actions" style="margin-left: auto; position: relative;">
     <span class="material-symbols-outlined" onclick="toggleChatDeleteMenu()" style="cursor: pointer; padding: 8px;">more_vert</span>
     
     <div id="chat-delete-menu" class="chat-list-menu" style="top: 100%; right: 0; transform: none; display: none; width: max-content;">
@@ -3484,13 +3512,54 @@ MODERN USERNAME SYSTEM STYLES
     <div id="category-posts-list" style="flex:1; padding-bottom:80px; overflow-y:auto; background:transparent;"></div>
 </div>
 
-<!-- 🚀 Audio Call Container -->
-<div id="zego-call-container" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; z-index:999999; background:var(--bg);"></div>
+<!-- 📞 OUTGOING CALL MODAL -->
+<div id="outgoing-call-modal" style="display:none; position:fixed; inset:0; background:var(--bg); z-index:10020; flex-direction:column; align-items:center; justify-content:space-between; padding:60px 30px 40px;">
+    <div style="text-align:center; margin-top:40px;">
+        <div class="profile-avatar" id="call-avatar" style="width:120px; height:120px; font-size:48px; margin:0 auto 20px; border:4px solid var(--accent); box-shadow:0 0 30px var(--accent-glow);"></div>
+        <h2 id="call-name" style="font-size:24px; font-weight:800; color:var(--text); margin-bottom:8px;">User Name</h2>
+        <p id="call-status" style="font-size:16px; color:var(--text-secondary);">Calling...</p>
+        <div id="call-timer" style="font-size:20px; font-weight:700; color:var(--accent); margin-top:10px; display:none;">00:00</div>
+    </div>
+
+    <!-- In-Call Controls -->
+    <div style="display:flex; gap:30px; margin-bottom:40px;">
+        <button onclick="toggleMute()" id="mute-btn" style="width:60px; height:60px; border-radius:50%; background:var(--surface-2); border:none; color:var(--text); cursor:pointer; display:flex; align-items:center; justify-content:center;">
+            <span class="material-symbols-outlined" style="font-size:28px;">mic_off</span>
+        </button>
+        <button onclick="endCurrentCall()" style="width:70px; height:70px; border-radius:50%; background:#ef4444; border:none; color:white; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 8px 20px rgba(239,68,68,0.4);">
+            <span class="material-symbols-outlined" style="font-size:32px;">call_end</span>
+        </button>
+        <button onclick="toggleSpeaker()" id="speaker-btn" style="width:60px; height:60px; border-radius:50%; background:var(--surface-2); border:none; color:var(--text); cursor:pointer; display:flex; align-items:center; justify-content:center;">
+            <span class="material-symbols-outlined" style="font-size:28px;">volume_up</span>
+        </button>
+    </div>
+</div>
+
+<!-- 📞 INCOMING CALL MODAL -->
+<div id="incoming-call-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.9); z-index:10021; flex-direction:column; align-items:center; justify-content:center; padding:30px; backdrop-filter:blur(10px);">
+    <div style="text-align:center; animation:pulseAvatar 2s infinite;">
+        <div class="profile-avatar" id="inc-call-avatar" style="width:140px; height:140px; font-size:56px; margin:0 auto 24px; border:4px solid var(--success);"></div>
+        <h2 id="inc-call-name" style="font-size:28px; font-weight:800; color:white; margin-bottom:8px;">Caller Name</h2>
+        <p style="font-size:16px; color:rgba(255,255,255,0.7);">Incoming Voice Call...</p>
+    </div>
+
+    <div style="display:flex; gap:60px; margin-top:80px;">
+        <button onclick="rejectIncomingCall()" style="width:70px; height:70px; border-radius:50%; background:#ef4444; border:none; color:white; cursor:pointer; display:flex; align-items:center; justify-content:center;">
+            <span class="material-symbols-outlined" style="font-size:32px;">call_end</span>
+        </button>
+        <button onclick="acceptIncomingCall()" style="width:70px; height:70px; border-radius:50%; background:#22c55e; border:none; color:white; cursor:pointer; display:flex; align-items:center; justify-content:center; animation:pulseBtn 1.5s infinite;">
+            <span class="material-symbols-outlined" style="font-size:32px;">call</span>
+        </button>
+    </div>
+</div>
+
+<style>
+@keyframes pulseAvatar { 0%,100% { transform:scale(1); } 50% { transform:scale(1.05); } }
+@keyframes pulseBtn { 0%,100% { box-shadow:0 0 0 0 rgba(34,197,94,0.7); } 50% { box-shadow:0 0 0 15px rgba(34,197,94,0); } }
+</style>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-<!-- ZegoCloud SDK -->
-<script src="https://unpkg.com/@zegocloud/zego-uikit-prebuilt/zego-uikit-prebuilt.js"></script>
 
 <script>
 
@@ -5529,6 +5598,23 @@ function openChat(chatId, otherUid, otherName, otherAvatar){
                 const gName = doc.data().groupName || 'Group Chat';
                 const gAv = doc.data().groupAvatar || '';
                 document.getElementById('chat-name-display').textContent = gName;
+                //  AUTO-INJECT CALL BUTTON IN CHAT HEADER
+const headerActions = document.querySelector('.chat-topbar .chat-header-actions');
+if(headerActions && !document.getElementById('header-call-btn')) {
+    const callBtn = document.createElement('button');
+    callBtn.id = 'header-call-btn';
+    callBtn.className = 'call-icon-btn';
+    callBtn.innerHTML = '<span class="material-symbols-outlined">call</span>';
+    callBtn.onclick = () => startAudioCall();
+    
+    // থ্রি-ডট মেনুর আগে বসানো
+    const menuBtn = document.getElementById('chat-menu-btn');
+    if(menuBtn) {
+        headerActions.insertBefore(callBtn, menuBtn);
+    } else {
+        headerActions.appendChild(callBtn);
+    }
+}
                 chatAvatarEl.innerHTML = gAv ? `<img src="${escapeHTML(gAv)}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">` : `<div style="width:100%;height:100%;background:var(--gradient-orange);color:white;display:flex;align-items:center;justify-content:center;border-radius:50%;"><span class="material-symbols-outlined" style="font-size: 20px;">groups</span></div>`;
             }
         });
@@ -10775,46 +10861,272 @@ async function uploadAndSendVoice(audioBlob) {
     }
 }
 // ==========================================
-// 🚀 ZEGOCLOUD AUDIO CALL SYSTEM
+// 🚀 COMPLETE AUDIO CALLING SYSTEM
 // ==========================================
+
+let localStream = null;
+let remoteStream = null;
+let peerConnection = null;
+let callTimerInterval = null;
+let callStartTime = 0;
+let isMuted = false;
+let isSpeakerOn = false;
+let currentCallId = null;
+
+const firebaseConfig = { /* আপনার existing config */ };
+// Note: Use your existing initialized 'db' and 'auth' variables
+
+// . Start Call Function (Called from Chat Header)
 async function startAudioCall() {
-    if(!currentChatId || !currentUser) return;
+    if (!currentChatOtherUid || currentChatOtherUid === 'group') {
+        showToast("Cannot call groups or invalid user");
+        return;
+    }
 
-    // আপনার ZegoCloud ক্রেডেনশিয়াল
-    const appID = 1593053712;
-    const serverSecret = "9d9354ce061505a2b7f5dc43e4d42a71";
-    
-    // রুম আইডি হিসেবে চ্যাট আইডি ব্যবহার করা হলো, যাতে দুজন একই রুমে কানেক্ট হতে পারে
-    const roomID = currentChatId; 
-    const userID = currentUser.uid;
-    const userName = currentUserData.name || "User";
+    try {
+        // Get User Media
+        localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        
+        // Show Outgoing Modal
+        const modal = document.getElementById('outgoing-call-modal');
+        const avatar = document.getElementById('call-avatar');
+        const name = document.getElementById('call-name');
+        const status = document.getElementById('call-status');
+        
+        // Set Receiver Info
+        const receiver = allUsersCache ? allUsersCache.find(u => u.id === currentChatOtherUid) : null;
+        if(receiver) {
+            avatar.innerHTML = receiver.avatar ? `<img src="${receiver.avatar}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">` : avatarInitial(receiver.name);
+            name.textContent = receiver.name;
+        }
+        
+        modal.style.display = 'flex';
+        status.textContent = "Calling...";
+        document.getElementById('call-timer').style.display = 'none';
 
-    // ১. টোকেন জেনারেট করা
-    const kitToken = ZegoUIKitPrebuilt.generateKitTokenForTest(appID, serverSecret, roomID, userID, userName);
-    
-    // ২. ZegoCloud ইনস্ট্যান্স তৈরি করা
-    const zp = ZegoUIKitPrebuilt.create(kitToken);
-    
-    // ৩. কলিং কন্টেইনার ভিজিবল করা
-    const callContainer = document.getElementById('zego-call-container');
-    callContainer.style.display = 'block';
+        // Create Call Document in Firebase
+        const callRef = db.collection('calls').doc();
+        currentCallId = callRef.id;
+        
+        await callRef.set({
+            callerId: currentUser.uid,
+            callerName: currentUserData.name,
+            receiverId: currentChatOtherUid,
+            status: 'ringing',
+            startTime: firebase.firestore.FieldValue.serverTimestamp(),
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
 
-    // ৪. রুমে জয়েন করা এবং UI সেটআপ করা (শুধুমাত্র অডিও)
-    zp.joinRoom({
-        container: callContainer,
-        scenario: {
-            mode: ZegoUIKitPrebuilt.OneONoneCall, // ওয়ান-টু-ওয়ান কল
-        },
-        turnOnCameraWhenJoining: false, // ক্যামেরা অফ থাকবে
-        showMyCameraToggleButton: false, // ক্যামেরা অন করার বাটন হাইড থাকবে
-        showAudioVideoSettingsButton: true,
-        showScreenSharingButton: false, // স্ক্রিন শেয়ার অফ
-        onLeaveRoom: () => {
-            // কল কেটে দিলে বা লিভ নিলে কন্টেইনার হাইড হয়ে যাবে
-            callContainer.style.display = 'none';
+        // Setup WebRTC Peer Connection
+        setupPeerConnection(callRef.id, true);
+
+        // Listen for Answer
+        callRef.onSnapshot(doc => {
+            if(!doc.exists) return;
+            const data = doc.data();
+            
+            if(data.status === 'accepted' && peerConnection) {
+                status.textContent = "Connected";
+                document.getElementById('call-timer').style.display = 'block';
+                startCallTimer();
+                
+                // Add Remote Stream when available
+                if(data.remoteDescription && !peerConnection.remoteDescription) {
+                    peerConnection.setRemoteDescription(new RTCSessionDescription(JSON.parse(data.remoteDescription)));
+                }
+            } else if(data.status === 'ended') {
+                endCallUI(false);
+            }
+        });
+
+    } catch(e) {
+        console.error(e);
+        showToast("Microphone access denied or error occurred");
+        closeOutgoingModal();
+    }
+}
+
+// ২. Setup WebRTC Connection
+function setupPeerConnection(callId, isCaller) {
+    const configuration = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
+    peerConnection = new RTCPeerConnection(configuration);
+
+    // Add Local Stream
+    localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+
+    // Handle Remote Stream
+    peerConnection.ontrack = event => {
+        const remoteAudio = new Audio();
+        remoteAudio.srcObject = event.streams[0];
+        remoteAudio.play();
+        remoteStream = event.streams[0];
+    };
+
+    // Generate ICE Candidates
+    peerConnection.onicecandidate = async event => {
+        if(event.candidate) {
+            await db.collection('calls').doc(callId).update({
+                [isCaller ? 'callerIce' : 'receiverIce']: firebase.firestore.FieldValue.arrayUnion(JSON.stringify(event.candidate))
+            });
+        }
+    };
+
+    // Create Offer (if Caller)
+    if(isCaller) {
+        const offer = await peerConnection.createOffer();
+        await peerConnection.setLocalDescription(offer);
+        await db.collection('calls').doc(callId).update({
+            offer: JSON.stringify(peerConnection.localDescription)
+        });
+    } else {
+        // Handle Answer (if Receiver) - Implemented in acceptIncomingCall
+    }
+}
+
+// ৩. Accept Incoming Call
+async function acceptIncomingCall() {
+    const modal = document.getElementById('incoming-call-modal');
+    modal.style.display = 'none';
+    
+    try {
+        localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        
+        // Update Call Status
+        await db.collection('calls').doc(currentCallId).update({ status: 'accepted' });
+        
+        // Switch to Outgoing Modal UI but as Receiver
+        const outModal = document.getElementById('outgoing-call-modal');
+        outModal.style.display = 'flex';
+        document.getElementById('call-status').textContent = "Connected";
+        document.getElementById('call-timer').style.display = 'block';
+        startCallTimer();
+        
+        // Setup Peer as Receiver
+        setupPeerConnection(currentCallId, false);
+        
+        // Get Offer and Create Answer
+        const callDoc = await db.collection('calls').doc(currentCallId).get();
+        if(callDoc.exists && callDoc.data().offer) {
+            const offer = new RTCSessionDescription(JSON.parse(callDoc.data().offer));
+            await peerConnection.setRemoteDescription(offer);
+            const answer = await peerConnection.createAnswer();
+            await peerConnection.setLocalDescription(answer);
+            
+            await db.collection('calls').doc(currentCallId).update({
+                answer: JSON.stringify(peerConnection.localDescription)
+            });
+        }
+        
+    } catch(e) {
+        console.error(e);
+        rejectIncomingCall();
+    }
+}
+
+// ৪. End Call Functions
+function endCurrentCall() {
+    if(currentCallId) {
+        db.collection('calls').doc(currentCallId).update({ status: 'ended', endTime: Date.now() });
+    }
+    endCallUI(true);
+}
+
+function rejectIncomingCall() {
+    if(currentCallId) {
+        db.collection('calls').doc(currentCallId).update({ status: 'rejected' });
+    }
+    document.getElementById('incoming-call-modal').style.display = 'none';
+    cleanupCallResources();
+}
+
+function endCallUI(saveLog) {
+    closeOutgoingModal();
+    cleanupCallResources();
+    
+    if(saveLog && currentCallId) {
+        // Save Call Log to Messages
+        const duration = Math.floor((Date.now() - callStartTime) / 1000);
+        const mins = Math.floor(duration / 60).toString().padStart(2, '0');
+        const secs = (duration % 60).toString().padStart(2, '0');
+        
+        db.collection('chats').doc(currentChatId).collection('messages').add({
+            uid: 'system',
+            type: 'call_log',
+            text: `Voice call ended • ${mins}:${secs}`,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+    }
+}
+
+// ৫. Helper Functions
+function closeOutgoingModal() {
+    document.getElementById('outgoing-call-modal').style.display = 'none';
+}
+
+function cleanupCallResources() {
+    if(localStream) localStream.getTracks().forEach(t => t.stop());
+    if(peerConnection) peerConnection.close();
+    clearInterval(callTimerInterval);
+    localStream = null;
+    peerConnection = null;
+    currentCallId = null;
+    callStartTime = 0;
+}
+
+function startCallTimer() {
+    callStartTime = Date.now();
+    callTimerInterval = setInterval(() => {
+        const diff = Math.floor((Date.now() - callStartTime) / 1000);
+        const m = Math.floor(diff / 60).toString().padStart(2, '0');
+        const s = (diff % 60).toString().padStart(2, '0');
+        document.getElementById('call-timer').textContent = `${m}:${s}`;
+    }, 1000);
+}
+
+function toggleMute() {
+    if(!localStream) return;
+    isMuted = !isMuted;
+    localStream.getAudioTracks()[0].enabled = !isMuted;
+    
+    const btn = document.getElementById('mute-btn');
+    btn.style.background = isMuted ? '#ef4444' : 'var(--surface-2)';
+    btn.querySelector('span').textContent = isMuted ? 'mic' : 'mic_off';
+}
+
+function toggleSpeaker() {
+    isSpeakerOn = !isSpeakerOn;
+    const btn = document.getElementById('speaker-btn');
+    btn.style.color = isSpeakerOn ? 'var(--accent)' : 'var(--text)';
+    // Note: Actual speaker switching requires more complex WebRTC handling
+}
+
+// . Listener for Incoming Calls (Add this inside auth.onAuthStateChanged)
+/*
+db.collection('calls').where('receiverId', '==', currentUser.uid).where('status', '==', 'ringing').onSnapshot(snap => {
+    snap.forEach(doc => {
+        const data = doc.data();
+        if(data.callerId !== currentUser.uid) { // Avoid self-trigger
+            currentCallId = doc.id;
+            const caller = allUsersCache ? allUsersCache.find(u => u.id === data.callerId) : null;
+            
+            document.getElementById('inc-call-name').textContent = data.callerName;
+            document.getElementById('inc-call-avatar').innerHTML = caller?.avatar 
+                ? `<img src="${caller.avatar}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">` 
+                : avatarInitial(data.callerName);
+                
+            document.getElementById('incoming-call-modal').style.display = 'flex';
+            
+            // Play Ringtone
+            const ringtone = new Audio('path/to/ringtone.mp3'); 
+            ringtone.loop = true;
+            ringtone.play().catch(()=>{});
+            
+            // Stop ringtone on accept/reject
+            window.acceptIncomingCall = async function() { ringtone.pause(); await acceptIncomingCall(); };
+            window.rejectIncomingCall = function() { ringtone.pause(); rejectIncomingCall(); };
         }
     });
-}
+});
 </script>
 </body>
 </html>
