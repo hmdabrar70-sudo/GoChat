@@ -10395,41 +10395,48 @@ async function submitEliteApplication() {
     showToast("✅ Application sent to WhatsApp!");
 }
 // ==========================================
-// 🚀 MODERN USERNAME SYSTEM V2.0
+// 🚀 FIXED & MODERN USERNAME SETTINGS V3.0
 // ==========================================
 
-// . সেটিংস ওপেন করার সময় ইনপুট ফিল্ড তৈরি করা
 function openUsernameSettings() {
     openProfileEdit();
     
-    // পুরোনো ইনপুট থাকলে মুছে ফেলা
-    const oldInput = document.getElementById('modern-username-input');
-    if(oldInput) oldInput.parentElement.remove();
-
-    // নতুন আধুনিক ইনপুট তৈরি করা
-    const editScreen = document.getElementById('edit-profile-screen');
-    const nameInput = document.getElementById('edit-name');
+    // . ডুপ্লিকেশন রোধ: আগে থেকে কোনো ইনপুট থাকলে মুছে ফেলা
+    const existingWrapper = document.getElementById('modern-username-wrapper');
+    if(existingWrapper) existingWrapper.remove();
     
-    if(editScreen && nameInput) {
+    const existingMsg = document.querySelector('.username-status-msg');
+    if(existingMsg) existingMsg.remove();
+
+    const editScreen = document.getElementById('edit-profile-screen');
+    const nameInputContainer = document.getElementById('edit-name')?.parentElement;
+    
+    if(editScreen && nameInputContainer) {
+        // . নতুন আধুনিক ইনপুট তৈরি (নিচের ফিল্ডগুলোর মতো স্টাইল)
         const wrapper = document.createElement('div');
-        wrapper.className = 'username-input-wrapper';
+        wrapper.id = 'modern-username-wrapper';
+        wrapper.style.marginBottom = '16px';
+        
         wrapper.innerHTML = `
-            <span class="material-symbols-outlined input-icon">alternate_email</span>
-            <input type="text" id="modern-username-input" placeholder="Enter new username" 
-                   value="${currentUserData.username || ''}" autocomplete="off">
+            <label style="font-size:12px; font-weight:700; color:var(--text-muted); margin-bottom:8px; display:block; text-transform:uppercase; letter-spacing:0.5px;">Username</label>
+            <div style="position:relative;">
+                <span class="material-symbols-outlined" style="position:absolute; left:14px; top:50%; transform:translateY(-50%); color:var(--text-muted); font-size:20px; pointer-events:none;">alternate_email</span>
+                <input type="text" id="modern-username-input" placeholder="e.g. ayesha_jahan" 
+                       value="${currentUserData.username || ''}" 
+                       style="width:100%; padding:14px 14px 14px 44px; border-radius:14px; background:var(--surface-2); border:1px solid var(--border); color:var(--text); font-size:15px; font-family:monospace; outline:none; transition:all 0.3s ease;"
+                       onfocus="this.style.borderColor='var(--accent)'; this.style.boxShadow='0 0 0 4px var(--accent-glow)'" 
+                       onblur="this.style.borderColor='var(--border)'; this.style.boxShadow='none'">
+            </div>
+            <div class="username-status-msg" style="font-size:11px; color:var(--text-muted); margin-top:6px; display:flex; align-items:center; gap:4px;">
+                <span class="material-symbols-outlined" style="font-size:14px;">info</span> Only letters, numbers & underscores allowed.
+            </div>
         `;
         
-        // নামের ইনপুটের পরে বসানো
-        nameInput.parentElement.insertAdjacentElement('afterend', wrapper);
+        // নামের ইনপুটের ঠিক পরে বসানো
+        nameInputContainer.insertAdjacentElement('afterend', wrapper);
         
-        // রেস্ট্রিকশন মেসেজ
-        const msg = document.createElement('div');
-        msg.className = 'username-restriction-msg';
-        msg.innerHTML = '<span class="material-symbols-outlined" style="font-size:14px;">info</span> Only letters, numbers & underscores allowed.';
-        wrapper.insertAdjacentElement('afterend', msg);
-
         // ৭ দিনের চেক ও টাইমার দেখানো
-        checkUsernameCooldown();
+        checkUsernameCooldownV3();
 
         // রিয়েল-টাইম ভ্যালিডেশন
         const inputEl = document.getElementById('modern-username-input');
@@ -10438,17 +10445,19 @@ function openUsernameSettings() {
             const isValid = /^[a-z0-9_]*$/.test(val);
             
             if(val && !isValid) {
-                e.target.classList.add('invalid');
+                e.target.style.borderColor = '#ef4444';
+                e.target.style.background = 'rgba(239, 68, 68, 0.05)';
             } else {
-                e.target.classList.remove('invalid');
+                e.target.style.borderColor = ''; // Reset to CSS default or focused state
+                e.target.style.background = '';
             }
         });
     }
 }
 
-// ২. ৭ দিনের কুলডাউন চেক করা
-function checkUsernameCooldown() {
-    const msgContainer = document.querySelector('.username-restriction-msg');
+// ২. আপডেটেড কুলডাউন চেক (ডুপ্লিকেশন ছাড়া)
+function checkUsernameCooldownV3() {
+    const msgContainer = document.querySelector('.username-status-msg');
     if(!msgContainer) return;
 
     if(currentUserData.lastUsernameChange) {
@@ -10456,75 +10465,26 @@ function checkUsernameCooldown() {
         
         if(daysPassed < 7) {
             const daysLeft = Math.ceil(7 - daysPassed);
-            const timerBadge = document.createElement('div');
-            timerBadge.className = 'username-timer-badge';
-            timerBadge.innerHTML = `
+            
+            // মেসেজটি লাল ব্যাজে পরিবর্তন করা
+            msgContainer.style.background = 'rgba(239, 68, 68, 0.1)';
+            msgContainer.style.color = '#ef4444';
+            msgContainer.style.padding = '8px 12px';
+            msgContainer.style.borderRadius = '10px';
+            msgContainer.style.fontWeight = '600';
+            msgContainer.innerHTML = `
                 <span class="material-symbols-outlined" style="font-size:16px;">lock_clock</span>
                 Change available in ${daysLeft} day${daysLeft > 1 ? 's' : ''}
             `;
-            msgContainer.replaceWith(timerBadge);
             
             // ইনপুট ডিজেবল করা
             const input = document.getElementById('modern-username-input');
             if(input) {
                 input.disabled = true;
                 input.style.opacity = '0.6';
+                input.style.cursor = 'not-allowed';
             }
         }
-    }
-}
-
-// ৩. সেভ করার সময় ইউজারনেম আপডেট (saveProfileChanges এর ভেতরে যোগ করুন)
-// আপনার existing saveProfileChanges ফাংশনের শুরুতে এই লজিকটি বসান
-async function handleUsernameUpdate() {
-    const input = document.getElementById('modern-username-input');
-    if(!input || input.disabled) return false;
-
-    const newUsername = input.value.trim().toLowerCase();
-    
-    // ভ্যালিডেশন
-    if(newUsername && !/^[a-z0-9_]+$/.test(newUsername)) {
-        showToast("⚠️ Invalid characters in username!");
-        return false;
-    }
-
-    // যদি পরিবর্তন হয়
-    if(newUsername && newUsername !== (currentUserData.username || '').toLowerCase()) {
-        // ইউনিকনেস চেক
-        try {
-            const snap = await db.collection('users').where('username', '==', newUsername).get();
-            let isTaken = false;
-            snap.forEach(doc => { if(doc.id !== currentUser.uid) isTaken = true; });
-            
-            if(isTaken) {
-                showToast("⚠️ This username is already taken!");
-                return false;
-            }
-        } catch(e) { console.error(e); }
-
-        // ডাটাবেস আপডেট
-        await db.collection('users').doc(currentUser.uid).update({
-            username: newUsername,
-            lastUsernameChange: Date.now()
-        });
-        
-        currentUserData.username = newUsername;
-        updateProfileUsernameDisplay(); // প্রোফাইলে ব্যাজ আপডেট
-        return true;
-    }
-    return false;
-}
-
-// . প্রোফাইলে ইউজারনেম ব্যাজ আপডেট করা
-function updateProfileUsernameDisplay() {
-    const badge = document.getElementById('profile-username-badge');
-    const text = document.getElementById('profile-username-text');
-    
-    if(badge && text && currentUserData.username) {
-        badge.style.display = 'inline-flex';
-        text.textContent = '@' + currentUserData.username;
-    } else if(badge) {
-        badge.style.display = 'none';
     }
 }
 
