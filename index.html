@@ -2060,8 +2060,10 @@ NESTED ACTIVITY CATEGORIES STYLES
 </div>
 <div class="profile-info-col">
 <div class="profile-name" id="profile-name-display">Loading...</div>
-<!-- 🚀 নতুন: ইউজারনেম ডিসপ্লে -->
-<div id="profile-username-display" style="font-size:13px; color:var(--text-muted); font-weight:600; margin-bottom:6px; margin-top:-2px; display:none;"></div>
+<!-- 🚀 Modern Username Display Badge -->
+<div id="profile-username-badge" style="display:none; margin-top:6px; padding:6px 12px; background:var(--accent-glow); border:1px solid var(--accent); border-radius:20px; width:fit-content;">
+    <span style="font-size:13px; font-weight:700; color:var(--accent); letter-spacing:0.5px;" id="profile-username-text">@username</span>
+</div>
 
 <div id="profile-follow-stats" class="profile-friend-count" style="display:flex; gap:12px; font-size:14px; color:var(--text-secondary);">
     <span style="cursor:pointer;" onclick="openFollowList('followers', currentUser.uid)"><b id="my-followers-count" style="color:var(--text);">0</b> Followers</span> 
@@ -2958,6 +2960,68 @@ NESTED ACTIVITY CATEGORIES STYLES
     0% { transform: scale(1); opacity: 1; }
     50% { transform: scale(1.2); opacity: 0.7; }
     100% { transform: scale(1); opacity: 1; }
+}
+/* =========================================
+MODERN USERNAME SYSTEM STYLES
+========================================= */
+.username-input-wrapper {
+    position: relative;
+    margin-bottom: 8px;
+}
+
+.username-input-wrapper input {
+    width: 100%;
+    padding: 14px 16px 14px 40px;
+    border-radius: 14px;
+    background: var(--surface-2);
+    border: 2px solid var(--border);
+    color: var(--text);
+    font-size: 15px;
+    font-family: monospace; /* ইউজারনেমের জন্য মনোস্পেস ফন্ট */
+    transition: all 0.3s ease;
+}
+
+.username-input-wrapper input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 4px var(--accent-glow);
+}
+
+.username-input-wrapper input.invalid {
+    border-color: #ef4444;
+    background: rgba(239, 68, 68, 0.05);
+}
+
+.username-input-wrapper .input-icon {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    font-size: 20px;
+    pointer-events: none;
+}
+
+.username-restriction-msg {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: -4px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.username-timer-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 700;
+    margin-bottom: 16px;
 }
 </style>
 
@@ -10331,72 +10395,138 @@ async function submitEliteApplication() {
     showToast("✅ Application sent to WhatsApp!");
 }
 // ==========================================
-//  USERNAME SYSTEM LOGIC
+// 🚀 MODERN USERNAME SYSTEM V2.0
 // ==========================================
 
-// . Username Settings Open
+// . সেটিংস ওপেন করার সময় ইনপুট ফিল্ড তৈরি করা
 function openUsernameSettings() {
-    openProfileEdit(); // আপনার বিদ্যমান প্রোফাইল এডিট স্ক্রিন ওপেন হবে
-    // ইউজারনেম ফিল্ডে বর্তমান মান বসানো
-    document.getElementById('edit-username').value = currentUserData.username || '';
+    openProfileEdit();
+    
+    // পুরোনো ইনপুট থাকলে মুছে ফেলা
+    const oldInput = document.getElementById('modern-username-input');
+    if(oldInput) oldInput.parentElement.remove();
+
+    // নতুন আধুনিক ইনপুট তৈরি করা
+    const editScreen = document.getElementById('edit-profile-screen');
+    const nameInput = document.getElementById('edit-name');
+    
+    if(editScreen && nameInput) {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'username-input-wrapper';
+        wrapper.innerHTML = `
+            <span class="material-symbols-outlined input-icon">alternate_email</span>
+            <input type="text" id="modern-username-input" placeholder="Enter new username" 
+                   value="${currentUserData.username || ''}" autocomplete="off">
+        `;
+        
+        // নামের ইনপুটের পরে বসানো
+        nameInput.parentElement.insertAdjacentElement('afterend', wrapper);
+        
+        // রেস্ট্রিকশন মেসেজ
+        const msg = document.createElement('div');
+        msg.className = 'username-restriction-msg';
+        msg.innerHTML = '<span class="material-symbols-outlined" style="font-size:14px;">info</span> Only letters, numbers & underscores allowed.';
+        wrapper.insertAdjacentElement('afterend', msg);
+
+        // ৭ দিনের চেক ও টাইমার দেখানো
+        checkUsernameCooldown();
+
+        // রিয়েল-টাইম ভ্যালিডেশন
+        const inputEl = document.getElementById('modern-username-input');
+        inputEl.addEventListener('input', (e) => {
+            const val = e.target.value;
+            const isValid = /^[a-z0-9_]*$/.test(val);
+            
+            if(val && !isValid) {
+                e.target.classList.add('invalid');
+            } else {
+                e.target.classList.remove('invalid');
+            }
+        });
+    }
 }
 
-// ২. Save Profile Changes এ Username লজিক যোগ করা
-// আপনার existing saveProfileChanges() ফাংশনের শুরুতে এই কোডটি বসান
-const originalSaveProfileChanges = window.saveProfileChanges;
-window.saveProfileChanges = async function() {
-    const newUsername = document.getElementById('edit-username').value.trim().toLowerCase();
-    
-    // ভ্যালিডেশন: শুধু অক্ষর, সংখ্যা ও আন্ডারস্কোর
-    if(newUsername && !/^[a-z0-9_]+$/.test(newUsername)) {
-        showToast("Username can only contain letters, numbers and underscores!");
-        return;
-    }
+// ২. ৭ দিনের কুলডাউন চেক করা
+function checkUsernameCooldown() {
+    const msgContainer = document.querySelector('.username-restriction-msg');
+    if(!msgContainer) return;
 
-    // যদি ইউজারনেম পরিবর্তন করার চেষ্টা করে
-    if(newUsername && newUsername !== (currentUserData.username || '').toLowerCase()) {
+    if(currentUserData.lastUsernameChange) {
+        const daysPassed = (Date.now() - currentUserData.lastUsernameChange) / (1000 * 60 * 60 * 24);
         
-        //  দিনের লিমিট চেক
-        if(currentUserData.lastUsernameChange) {
-            const daysSinceChange = (Date.now() - currentUserData.lastUsernameChange) / (1000 * 60 * 60 * 24);
-            if(daysSinceChange < 7) {
-                showToast(`You can change username after ${Math.ceil(7 - daysSinceChange)} days.`);
-                return;
+        if(daysPassed < 7) {
+            const daysLeft = Math.ceil(7 - daysPassed);
+            const timerBadge = document.createElement('div');
+            timerBadge.className = 'username-timer-badge';
+            timerBadge.innerHTML = `
+                <span class="material-symbols-outlined" style="font-size:16px;">lock_clock</span>
+                Change available in ${daysLeft} day${daysLeft > 1 ? 's' : ''}
+            `;
+            msgContainer.replaceWith(timerBadge);
+            
+            // ইনপুট ডিজেবল করা
+            const input = document.getElementById('modern-username-input');
+            if(input) {
+                input.disabled = true;
+                input.style.opacity = '0.6';
             }
         }
+    }
+}
 
-        // ইউনিকনেস চেক (Database Query)
+// ৩. সেভ করার সময় ইউজারনেম আপডেট (saveProfileChanges এর ভেতরে যোগ করুন)
+// আপনার existing saveProfileChanges ফাংশনের শুরুতে এই লজিকটি বসান
+async function handleUsernameUpdate() {
+    const input = document.getElementById('modern-username-input');
+    if(!input || input.disabled) return false;
+
+    const newUsername = input.value.trim().toLowerCase();
+    
+    // ভ্যালিডেশন
+    if(newUsername && !/^[a-z0-9_]+$/.test(newUsername)) {
+        showToast("⚠️ Invalid characters in username!");
+        return false;
+    }
+
+    // যদি পরিবর্তন হয়
+    if(newUsername && newUsername !== (currentUserData.username || '').toLowerCase()) {
+        // ইউনিকনেস চেক
         try {
             const snap = await db.collection('users').where('username', '==', newUsername).get();
             let isTaken = false;
-            snap.forEach(doc => {
-                if(doc.id !== currentUser.uid) isTaken = true;
-            });
-
+            snap.forEach(doc => { if(doc.id !== currentUser.uid) isTaken = true; });
+            
             if(isTaken) {
-                showToast("This username is already taken! Try another.");
-                return;
+                showToast("⚠️ This username is already taken!");
+                return false;
             }
-        } catch(e) {
-            console.error(e);
-            showToast("Network error checking username");
-            return;
-        }
-    }
+        } catch(e) { console.error(e); }
 
-    // মূল সেভ ফাংশন কল করা
-    await originalSaveProfileChanges();
-
-    // ইউজারনেম আপডেট করা (যদি পরিবর্তন হয়)
-    if(newUsername && newUsername !== (currentUserData.username || '').toLowerCase()) {
+        // ডাটাবেস আপডেট
         await db.collection('users').doc(currentUser.uid).update({
             username: newUsername,
             lastUsernameChange: Date.now()
         });
+        
         currentUserData.username = newUsername;
-        showToast("Username updated successfully!");
+        updateProfileUsernameDisplay(); // প্রোফাইলে ব্যাজ আপডেট
+        return true;
     }
-};
+    return false;
+}
+
+// . প্রোফাইলে ইউজারনেম ব্যাজ আপডেট করা
+function updateProfileUsernameDisplay() {
+    const badge = document.getElementById('profile-username-badge');
+    const text = document.getElementById('profile-username-text');
+    
+    if(badge && text && currentUserData.username) {
+        badge.style.display = 'inline-flex';
+        text.textContent = '@' + currentUserData.username;
+    } else if(badge) {
+        badge.style.display = 'none';
+    }
+}
 
 // ৩. Search Users ফাংশনে Username সাপোর্ট যোগ করা
 // আপনার existing searchUsers() ফাংশনের ভেতরে users.forEach লুপের আগে এই লজিক বসান
