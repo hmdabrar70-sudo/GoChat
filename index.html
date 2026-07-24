@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1885,64 +1885,19 @@ NESTED ACTIVITY CATEGORIES STYLES
     border-color: transparent;
     box-shadow: var(--shadow-sm);
 }
-/* =========================================
-SHARED POST ATTACHMENT CARD STYLES
-========================================= */
-.shared-post-card {
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    overflow: hidden;
-    cursor: pointer;
-    transition: transform 0.2s;
-    max-width: 280px;
-}
-
-.shared-post-card:active {
-    transform: scale(0.98);
-}
-
-.shared-post-thumb {
-    width: 100%;
-    height: 140px;
-    object-fit: cover;
-    background: var(--card);
-}
-
-.shared-post-info {
-    padding: 12px;
-}
-
-.shared-post-author {
-    font-size: 12px;
-    font-weight: 700;
-    color: var(--accent);
-    margin-bottom: 4px;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-}
-
-.shared-post-title {
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--text);
-    line-height: 1.4;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-}
-
-.shared-post-footer {
-    padding: 8px 12px;
-    border-top: 1px solid var(--border);
-    font-size: 11px;
-    color: var(--text-muted);
-    display: flex;
-    align-items: center;
-    gap: 4px;
-}
+/* 🚀 NEW: Share Post Modal & Attachment CSS (Bug Free) */
+.share-modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); z-index: 100000; align-items: flex-end; justify-content: center; }
+.share-modal-overlay.open { display: flex; animation: slideUp 0.3s ease; }
+.share-friend-item { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--border); transition: background 0.2s; }
+.share-friend-item:hover { background: var(--surface-2); }
+.btn-share-send { padding: 8px 20px; background: var(--gradient); color: white; border: none; border-radius: 20px; font-weight: 700; font-size: 13px; cursor: pointer; transition: 0.2s; box-shadow: var(--shadow-sm); }
+.btn-share-send:active { transform: scale(0.95); }
+.btn-share-send.sent { background: var(--success); box-shadow: none; pointer-events: none; }
+.shared-post-card { background: var(--surface-2); border: 1px solid var(--border); border-radius: 16px; padding: 12px; margin-top: 6px; cursor: pointer; width: 240px; text-align: left; box-shadow: var(--shadow-sm); transition: 0.2s; }
+.shared-post-card:active { transform: scale(0.98); }
+.shared-post-card img { width: 100%; height: 140px; object-fit: cover; border-radius: 10px; margin-bottom: 10px; }
+.shared-post-title { font-size: 13px; font-weight: 600; color: var(--text); overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; margin-bottom: 6px; line-height: 1.4; }
+.shared-post-author { font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 4px; font-weight: 600; }
 </style>
 </head>
 <body>
@@ -3539,34 +3494,22 @@ MODERN USERNAME SYSTEM STYLES
     <div id="category-posts-list" style="flex:1; padding-bottom:80px; overflow-y:auto; background:transparent;"></div>
 </div>
 
-<!-- 🚀 IN-APP POST SHARE MODAL -->
-<div id="share-post-modal" class="modal-overlay" style="z-index: 10008; display:none;" onclick="if(event.target===this) closeShareModal()">
-    <div class="modal-box" style="max-height: 80vh; display:flex; flex-direction:column;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
-            <div class="modal-title" style="margin:0;">Share Post</div>
-            <button class="modal-close" onclick="closeShareModal()"><span class="material-symbols-outlined">close</span></button>
+<!-- 🚀 NEW: Share Post Modal (SAFE LOCATION) -->
+<div class="share-modal-overlay" id="share-post-modal" onclick="if(event.target===this) closeShareModal()">
+    <div class="modal-box" style="margin-top:auto; border-radius: 24px 24px 0 0; padding:0; display:flex; flex-direction:column; max-height:85vh; background: var(--surface);">
+        <div style="padding: 20px 20px 10px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; background: var(--surface); border-radius: 24px 24px 0 0; z-index: 10;">
+            <div style="font-weight: 800; font-size: 18px; color: var(--text); display: flex; align-items: center; gap: 8px;">
+                <i class="ph-bold ph-share-network" style="color: var(--accent);"></i> Share Post
+            </div>
+            <button class="modal-close" onclick="closeShareModal()" style="position: static;"><i class="ph-bold ph-x"></i></button>
         </div>
-
-        <!-- Post Preview -->
-        <div id="share-preview-card" style="padding:12px; background:var(--surface-2); border-radius:12px; margin-bottom:16px; display:flex; gap:12px; align-items:center; border:1px solid var(--border);">
-            <!-- JS will populate this -->
+        <div style="padding: 10px 20px;">
+            <div class="search-input-wrap" style="margin:0; background: var(--surface-2); border-radius: 20px;">
+                <i class="ph-bold ph-magnifying-glass" style="font-size:20px; color:var(--text-muted);"></i>
+                <input type="text" id="share-search-input" placeholder="Search friends..." oninput="filterShareFriends(this.value)">
+            </div>
         </div>
-
-        <!-- Search Friends -->
-        <div class="search-input-wrap" style="margin-bottom:12px;">
-            <span class="material-symbols-outlined">search</span>
-            <input type="text" id="share-friend-search" placeholder="Search friends..." oninput="filterShareFriends(this.value)">
-        </div>
-
-        <!-- Friends List -->
-        <div id="share-friends-list" style="flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:8px; max-height:300px;">
-            <!-- JS will populate checkboxes -->
-        </div>
-
-        <!-- Optional Note -->
-        <textarea id="share-note-input" placeholder="Add a note (optional)..." style="width:100%; padding:12px; border-radius:12px; background:var(--surface-2); border:1px solid var(--border); color:var(--text); font-size:14px; resize:none; height:60px; margin-top:12px; outline:none;"></textarea>
-
-        <button class="btn-primary" onclick="executePostShare()" style="width:100%; margin-top:16px; padding:14px; border-radius:12px; font-weight:700;">Send to Selected</button>
+        <div id="share-friends-list" style="overflow-y: auto; flex: 1; padding-bottom: 20px;"></div>
     </div>
 </div>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -5696,7 +5639,7 @@ function openChat(chatId, otherUid, otherName, otherAvatar){
             const isMine=m.uid===currentUser.uid;
             let content='';
                         let safeText = escapeHTML(m.text||'');
-            // 🚀 4. Mention System Render in Chat
+                       // 🚀 4. Mention System Render in Chat
             if (currentChatOtherUid === 'group' && allUsersCache) {
                 const sortedUsers = [...allUsersCache].sort((a, b) => (b.name || '').length - (a.name || '').length);
                 sortedUsers.forEach(u => {
@@ -5707,8 +5650,22 @@ function openChat(chatId, otherUid, otherName, otherAvatar){
                 });
             }
 
-            // 🚀 NEW: Audio URL rendering in chat
-            if(m.imageUrl){
+            // 🚀 UPDATED: Render Shared Post, Audio, Image or Text (এখানে নতুন কোড বসবে)
+            if (m.type === 'shared_post') {
+                const sTitle = m.sharedPostTitle ? escapeHTML(m.sharedPostTitle) : 'View Post';
+                const sImg = m.sharedPostImg ? `<img src="${escapeHTML(m.sharedPostImg)}" style="width: 100%; height: 140px; object-fit: cover; border-radius: 10px; margin-bottom: 10px;">` : '';
+                const sAuthor = m.sharedPostAuthor ? escapeHTML(m.sharedPostAuthor) : 'User';
+                
+                content = `
+                <div class="shared-post-card" onclick="openSinglePostView('${m.sharedPostId}')">
+                    <div style="font-size:11px; color:var(--accent); font-weight:800; margin-bottom:8px; display:flex; align-items:center; gap:4px; text-transform:uppercase; letter-spacing:0.5px;">
+                        <i class="ph-bold ph-share-network"></i> Shared Post
+                    </div>
+                    ${sImg}
+                    <div class="shared-post-title">${sTitle}</div>
+                    <div class="shared-post-author"><i class="ph-fill ph-user-circle"></i> By ${sAuthor}</div>
+                </div>`;
+            } else if(m.imageUrl){
                 const safeUrl = escapeHTML(m.imageUrl);
                 content=`${m.text?`<div style="margin-bottom:6px;">${safeText}</div>`:''}<img src="${safeUrl}" onclick="openImageZoom('${safeUrl}')">`;
             } else if(m.audioUrl) {
@@ -6436,6 +6393,8 @@ function loadMessages(){
             const timeB = b.data.lastAt?.toMillis ? b.data.lastAt.toMillis() : 0;
             return timeB - timeA; 
         });
+        // 🚀 NEW: Save to global variable for instant Share Modal loading
+        window.globalRecentChats = chats;
 
         // ৪. আনরিড ব্যাজ আপডেট (শুধুমাত্র নিজের আনরিড মেসেজের জন্য)
         let unreadCount = 0;
@@ -7332,17 +7291,20 @@ ${p.title ? (() => {
 })() : ''}
 ${mediaHtml}
 <div class="post-actions">
-<button class="post-action-btn ${isLiked ? 'liked' : ''}" onclick="toggleLike('${pid}')">
-<span class="material-symbols-outlined" style="font-variation-settings:'FILL' ${fillProp};font-size:24px;">favorite</span>
-<span style="font-size:14px;">${p.likes || 0}</span>
-</button>
-<button class="post-action-btn" onclick="openCommentPanel('${pid}')">
-<span class="material-symbols-outlined" style="font-size:24px;">chat_bubble_outline</span>
-<span style="font-size:14px;">${commentCount}</span>
-</button>
+    <button class="post-action-btn ${isLiked ? 'liked' : ''}" onclick="toggleLike('${pid}')">
+        <i class="${isLiked ? 'ph-fill' : 'ph-light'} ph-heart" style="font-size:24px; color: ${isLiked ? 'var(--danger)' : 'currentColor'}"></i>
+        <span style="font-size:14px;">${p.likes || 0}</span>
+    </button>
+    <button class="post-action-btn" onclick="openCommentPanel('${pid}')">
+        <i class="ph-light ph-chat-circle" style="font-size:24px;"></i>
+        <span style="font-size:14px;">${commentCount}</span>
+    </button>
+    <!-- 🚀 NEW: Share Button -->
+    <button class="post-action-btn" onclick="openShareModal('${pid}', '${escapeHTML(p.name)}', '${safeTitleForAttr}', '${escapeHTML(imgUrls[0] || '')}')" style="margin-left: auto;">
+        <i class="ph-light ph-share-network" style="font-size:24px;"></i>
+    </button>
 </div>
-</div>`;
-}
+
 
 
 function closeSinglePost(){document.getElementById('single-post-screen').classList.remove('open');}
@@ -10856,190 +10818,181 @@ async function uploadAndSendVoice(audioBlob) {
     }
 }
 // ==========================================
-// 🚀 NEW IN-APP POST SHARING SYSTEM
+// 🚀 NEW: SHARE POST LOGIC (SAFE & FAST)
 // ==========================================
-let currentSharePostId = null;
 let currentSharePostData = null;
-let selectedShareFriends = new Set();
 
-// . Share Modal Open Function (পোস্ট কার্ড থেকে কল হবে)
-function openShareModal(pid, postData) {
-    currentSharePostId = pid;
-    currentSharePostData = postData;
-    selectedShareFriends.clear();
+async function openShareModal(postId, postAuthor, postTitle, postImg) {
+    currentSharePostData = { id: postId, author: postAuthor, title: postTitle, img: postImg };
     
-    // Preview Card Setup
-    const preview = document.getElementById('share-preview-card');
-    if(preview && postData) {
-        const thumb = postData.imgUrls?.[0] || '';
-        const safeTitle = escapeHTML(postData.title || 'Untitled Post');
-        const safeName = escapeHTML(postData.name || 'User');
-        
-        preview.innerHTML = `
-            ${thumb ? `<img src="${thumb}" style="width:50px; height:50px; border-radius:8px; object-fit:cover;">` : ''}
-            <div style="flex:1; min-width:0;">
-                <div style="font-size:12px; font-weight:700; color:var(--accent);">${safeName}</div>
-                <div style="font-size:13px; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${safeTitle}</div>
-            </div>
-        `;
+    const modal = document.getElementById('share-post-modal');
+    // এক্সট্রা সেফটি: মডালটি যেন সবকিছুর উপরে ফ্রন্টে থাকে
+    if (modal && modal.parentElement !== document.body) {
+        document.body.appendChild(modal);
     }
     
-    // Load Friends & Reset Note
-    loadShareFriendsList();
-    document.getElementById('share-note-input').value = '';
-    document.getElementById('share-post-modal').style.display = 'flex';
+    modal.classList.add('open');
+    document.getElementById('share-search-input').value = '';
+    
+    const list = document.getElementById('share-friends-list');
+    list.innerHTML = '<div class="loading" style="padding:20px; text-align:center;"><i class="ph-bold ph-spinner ph-spin" style="font-size:24px;"></i> Loading...</div>';
+    
+    try {
+        if (!allUsersCache) await fetchAllUsers();
+
+        let html = '';
+        let renderedUids = [];
+        let recentChatsCount = 0;
+
+        // ১. ভ্যারিয়েবল থেকে রিসেন্ট চ্যাট রিড করা (100% গ্যারান্টিড ফাস্ট!)
+        if (window.globalRecentChats && window.globalRecentChats.length > 0) {
+            html += '<div style="padding: 10px 16px; font-size: 12px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Recent Chats</div>';
+            
+            window.globalRecentChats.forEach(chat => {
+                let targetUid = chat.otherUid;
+                let targetName = chat.otherName;
+                let isGroup = chat.isGroup;
+                let finalTargetId = isGroup ? chat.id : targetUid;
+
+                let finalAv = chat.otherAv;
+                if (isGroup) {
+                    finalAv = chat.data.groupAvatar || '';
+                    targetName = chat.data.groupName || 'Group';
+                } else {
+                    const liveUser = allUsersCache ? allUsersCache.find(u => u.id === targetUid) : null;
+                    if (liveUser) {
+                        finalAv = liveUser.avatar || '';
+                        targetName = liveUser.name || targetName;
+                    }
+                }
+
+                let avHtml = '';
+                if (finalAv) {
+                    avHtml = `<img src="${escapeHTML(finalAv)}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
+                } else if (isGroup) {
+                    avHtml = `<div style="width:100%;height:100%;background:var(--gradient-orange);color:white;display:flex;align-items:center;justify-content:center;border-radius:50%;"><i class="ph-bold ph-users" style="font-size: 20px;"></i></div>`;
+                } else {
+                    avHtml = `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:var(--gradient);color:#fff;font-weight:bold;font-size:14px;border-radius:50%;">${avatarInitial(targetName)}</div>`;
+                }
+
+                if (!renderedUids.includes(finalTargetId)) {
+                    renderedUids.push(finalTargetId);
+                    recentChatsCount++;
+                    html += `
+                    <div class="share-friend-item" data-name="${targetName.toLowerCase()}">
+                        <div class="avatar sm">${avHtml}</div>
+                        <div style="flex:1; font-weight:700; font-size:14px; color:var(--text); padding-left:10px;">${escapeHTML(targetName)}</div>
+                        <button class="btn-share-send" onclick="sendSharedPost('${finalTargetId}', ${isGroup}, this)">Send</button>
+                    </div>`;
+                }
+            });
+        }
+
+        // ২. ফ্রেন্ড লিস্ট থেকে বাকি বন্ধুদের লোড করা
+        const friends = currentUserData.friends || [];
+        let friendsHtml = '';
+        
+        friends.forEach(fId => {
+            if (!renderedUids.includes(fId)) {
+                const friendUser = allUsersCache ? allUsersCache.find(u => u.id === fId) : null;
+                if (friendUser) {
+                    const safeName = escapeHTML(friendUser.name);
+                    const avUrl = friendUser.avatar || '';
+                    const targetAv = avUrl ? `<img src="${escapeHTML(avUrl)}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">` : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:var(--gradient);color:white;font-weight:bold;font-size:14px;">${avatarInitial(safeName)}</div>`;
+                    
+                    friendsHtml += `
+                    <div class="share-friend-item" data-name="${safeName.toLowerCase()}">
+                        <div class="avatar sm">${targetAv}</div>
+                        <div style="flex:1; font-weight:700; font-size:14px; color:var(--text); padding-left:10px;">${safeName}</div>
+                        <button class="btn-share-send" onclick="sendSharedPost('${fId}', false, this)">Send</button>
+                    </div>`;
+                }
+            }
+        });
+
+        if (friendsHtml) {
+            html += '<div style="padding: 15px 16px 10px; font-size: 12px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Friends</div>' + friendsHtml;
+        }
+
+        if (recentChatsCount === 0 && friendsHtml === '') {
+            list.innerHTML = '<div class="empty-feed" style="padding:20px;">No chats or friends found</div>';
+        } else {
+            list.innerHTML = html;
+        }
+
+    } catch(e) {
+        console.error(e);
+        list.innerHTML = '<div class="empty-feed">Failed to load share list</div>';
+    }
 }
 
 function closeShareModal() {
-    document.getElementById('share-post-modal').style.display = 'none';
-    currentSharePostId = null;
-    selectedShareFriends.clear();
+    document.getElementById('share-post-modal').classList.remove('open');
+    currentSharePostData = null;
 }
 
-// ২. Load Friends for Sharing
-async function loadShareFriendsList() {
-    const list = document.getElementById('share-friends-list');
-    if(!list) return;
+function filterShareFriends(val) {
+    const query = val.toLowerCase();
+    const items = document.querySelectorAll('.share-friend-item');
+    items.forEach(item => {
+        const name = item.getAttribute('data-name');
+        if(name.includes(query)) item.style.display = 'flex';
+        else item.style.display = 'none';
+    });
+}
+
+async function sendSharedPost(targetId, isGroup, btnEl) {
+    if(!currentSharePostData || !checkRateLimit()) return;
     
-    list.innerHTML = '<div class="loading"><span class="material-symbols-outlined">autorenew</span> Loading...</div>';
+    btnEl.innerHTML = '<i class="ph-bold ph-check"></i> Sent';
+    btnEl.classList.add('sent');
+    btnEl.disabled = true;
+    
+    let chatId = isGroup ? targetId : [currentUser.uid, targetId].sort().join('_');
+    
+    const msgData = {
+        uid: currentUser.uid,
+        senderName: currentUserData.name || 'User',
+        text: '',
+        type: 'shared_post',
+        sharedPostId: currentSharePostData.id,
+        sharedPostTitle: currentSharePostData.title,
+        sharedPostImg: currentSharePostData.img,
+        sharedPostAuthor: currentSharePostData.author,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
     
     try {
-        const friends = currentUserData.friends || [];
-        if(friends.length === 0) {
-            list.innerHTML = '<div style="text-align:center; padding:20px; color:var(--text-muted);">No friends to share with.</div>';
-            return;
+        await db.collection('chats').doc(chatId).collection('messages').add(msgData);
+        
+        let targetName = 'User';
+        let targetAv = '';
+        
+        if (!isGroup) {
+            const toUserDoc = await db.collection('users').doc(targetId).get();
+            targetName = toUserDoc.exists ? toUserDoc.data().name : 'User';
+            targetAv = toUserDoc.exists ? toUserDoc.data().avatar : '';
         }
-        renderShareFriendItems(friends);
-    } catch(e) {
-        console.error(e);
-        list.innerHTML = '<div style="text-align:center; color:var(--danger);">Failed to load friends</div>';
-    }
-}
 
-function renderShareFriendItems(friendIds, filterText = '') {
-    const list = document.getElementById('share-friends-list');
-    if(!list) return;
-    
-    let html = '';
-    const idsToRender = friendIds.slice(0, 50); // Performance limit
-    
-    for(const fid of idsToRender) {
-        const u = allUsersCache ? allUsersCache.find(x => x.id === fid) : null;
-        if(!u) continue;
-        
-        const safeName = escapeHTML(u.name);
-        const avHtml = u.avatar ? `<img src="${u.avatar}">` : avatarInitial(u.name);
-        
-        if(filterText && !safeName.toLowerCase().includes(filterText.toLowerCase())) continue;
-        
-        const isChecked = selectedShareFriends.has(fid) ? 'checked' : '';
-        
-        html += `
-        <label class="msg-item" style="cursor:pointer; padding:10px 14px; margin:0; border-radius:12px;">
-            <div class="avatar" style="width:36px; height:36px; font-size:14px;">${avHtml}</div>
-            <div class="msg-info" style="margin-left:10px; flex:1;">
-                <div class="msg-name" style="font-size:14px;">${safeName}</div>
-            </div>
-            <input type="checkbox" value="${fid}" ${isChecked} onchange="toggleShareSelection('${fid}', this.checked)" style="width:18px; height:18px; accent-color:var(--accent);">
-        </label>`;
-    }
-    
-    list.innerHTML = html || '<div style="text-align:center; padding:20px; color:var(--text-muted);">No matches found</div>';
-}
-
-function filterShareFriends(query) {
-    const friends = currentUserData.friends || [];
-    renderShareFriendItems(friends, query);
-}
-
-function toggleShareSelection(uid, isChecked) {
-    if(isChecked) selectedShareFriends.add(uid);
-    else selectedShareFriends.delete(uid);
-}
-
-// ৩. Execute Share (Send Message with Rich Card)
-async function executePostShare() {
-    if(selectedShareFriends.size === 0) {
-        showToast("Please select at least one friend!");
-        return;
-    }
-    
-    showToast("Sharing post...");
-    closeShareModal();
-    
-    const note = document.getElementById('share-note-input').value.trim();
-    const batch = db.batch();
-    
-    for(const friendUid of selectedShareFriends) {
-        // Create Chat ID
-        const chatId = [currentUser.uid, friendUid].sort().join('_');
-        const chatRef = db.collection('chats').doc(chatId);
-        
-        // Prepare Message Data
-        const msgData = {
-            uid: currentUser.uid,
-            senderName: currentUserData.name,
-            type: 'shared_post',
-            postId: currentSharePostId,
-            postTitle: currentSharePostData.title || '',
-            postThumb: currentSharePostData.imgUrls?.[0] || '',
-            postAuthor: currentSharePostData.name || '',
-            note: note,
-            createdAt: firebase.firestore.FieldValue.serverTimestamp()
-        };
-        
-        // Add Message
-        const newMsgRef = chatRef.collection('messages').doc();
-        batch.set(newMsgRef, msgData);
-        
-        // Update Chat Info
-        batch.set(chatRef, {
-            lastMsg: note ? `${currentUserData.name}: ${note}` : `Shared a post`,
+        const chatUpdate = {
+            lastMsg: '🔗 Shared a post',
             lastAt: firebase.firestore.FieldValue.serverTimestamp(),
             lastSender: currentUser.uid,
-            isRead: false,
-            participants: [currentUser.uid, friendUid]
-        }, { merge: true });
-        
-        // Send Notification
-        batch.set(db.collection('notifications').doc(), {
-            toUid: friendUid,
-            fromUid: currentUser.uid,
-            fromName: currentUserData.name,
-            type: 'shared_post',
-            postId: currentSharePostId,
-            chatId: chatId,
-            read: false,
-            createdAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
-    }
-    
-    await batch.commit();
-    showToast(`Post shared with ${selectedShareFriends.size} friend(s)!`);
-}
+            isRead: false
+        };
 
-// . Render Shared Post Card in Chat (Add this inside your existing message rendering loop)
-/*
-if(m.type === 'shared_post') {
-    const thumb = m.postThumb || '';
-    const title = escapeHTML(m.postTitle || 'View Post');
-    const author = escapeHTML(m.postAuthor || 'User');
-    const note = m.note ? `<div style="font-size:13px; color:var(--text-secondary); margin-bottom:8px;">${escapeHTML(m.note)}</div>` : '';
-    
-    content = `
-    <div class="shared-post-card" onclick="openSinglePostView('${m.postId}')">
-        ${thumb ? `<img src="${thumb}" class="shared-post-thumb">` : '<div class="shared-post-thumb" style="display:flex;align-items:center;justify-content:center;color:var(--text-muted);"><span class="material-symbols-outlined">image</span></div>'}
-        <div class="shared-post-info">
-            ${note}
-            <div class="shared-post-author">
-                <span class="material-symbols-outlined" style="font-size:14px;">person</span> ${author}
-            </div>
-            <div class="shared-post-title">${title}</div>
-        </div>
-        <div class="shared-post-footer">
-            <span class="material-symbols-outlined" style="font-size:14px;">touch_app</span> Tap to view post
-        </div>
-    </div>`;
+        if (!isGroup) {
+            chatUpdate.names = { [currentUser.uid]: currentUserData.name, [targetId]: targetName };
+            chatUpdate.avatars = { [currentUser.uid]: currentUserData.avatar || '', [targetId]: targetAv || '' };
+        }
+
+        await db.collection('chats').doc(chatId).set(chatUpdate, { merge: true });
+        
+    } catch(e) {
+        console.error(e);
+        btnEl.textContent = 'Failed';
+        btnEl.style.background = 'var(--danger)';
+    }
 }
 </script>
 </body>
