@@ -2444,7 +2444,10 @@ NESTED ACTIVITY CATEGORIES STYLES
 <div class="chat-back" onclick="closeChat()"><span class="material-symbols-outlined">arrow_back</span></div>
 <div class="avatar sm" id="chat-avatar" style="position:relative; cursor:pointer;" onclick="viewProfileFromChat()">?</div>
 <div class="chat-name" id="chat-name-display" style="flex:1;margin-left:8px; cursor:pointer;" onclick="viewProfileFromChat()">Chat</div>
-<div class="chat-header-actions" style="margin-left: auto; position: relative;">
+<div class="chat-header-actions" style="margin-left: auto; position: relative; display: flex; align-items: center; gap: 4px;">
+    <!-- 🚀 NEW: Audio Call Button -->
+    <span class="material-symbols-outlined" onclick="startAudioCall()" style="cursor: pointer; padding: 8px; color: var(--success); font-size: 26px;">call</span>
+    
     <span class="material-symbols-outlined" onclick="toggleChatDeleteMenu()" style="cursor: pointer; padding: 8px;">more_vert</span>
     
     <div id="chat-delete-menu" class="chat-list-menu" style="top: 100%; right: 0; transform: none; display: none; width: max-content;">
@@ -3480,9 +3483,14 @@ MODERN USERNAME SYSTEM STYLES
     <!-- পোস্টগুলো এখানে লোড হবে -->
     <div id="category-posts-list" style="flex:1; padding-bottom:80px; overflow-y:auto; background:transparent;"></div>
 </div>
+
+<!-- 🚀 Audio Call Container -->
+<div id="zego-call-container" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; z-index:999999; background:var(--bg);"></div>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<!-- ZegoCloud SDK -->
+<script src="https://unpkg.com/@zegocloud/zego-uikit-prebuilt/zego-uikit-prebuilt.js"></script>
 
 <script>
 
@@ -10765,6 +10773,47 @@ async function uploadAndSendVoice(audioBlob) {
         console.error(err);
         showToast("Failed to send voice message");
     }
+}
+// ==========================================
+// 🚀 ZEGOCLOUD AUDIO CALL SYSTEM
+// ==========================================
+async function startAudioCall() {
+    if(!currentChatId || !currentUser) return;
+
+    // আপনার ZegoCloud ক্রেডেনশিয়াল
+    const appID = 1593053712;
+    const serverSecret = "9d9354ce061505a2b7f5dc43e4d42a71";
+    
+    // রুম আইডি হিসেবে চ্যাট আইডি ব্যবহার করা হলো, যাতে দুজন একই রুমে কানেক্ট হতে পারে
+    const roomID = currentChatId; 
+    const userID = currentUser.uid;
+    const userName = currentUserData.name || "User";
+
+    // ১. টোকেন জেনারেট করা
+    const kitToken = ZegoUIKitPrebuilt.generateKitTokenForTest(appID, serverSecret, roomID, userID, userName);
+    
+    // ২. ZegoCloud ইনস্ট্যান্স তৈরি করা
+    const zp = ZegoUIKitPrebuilt.create(kitToken);
+    
+    // ৩. কলিং কন্টেইনার ভিজিবল করা
+    const callContainer = document.getElementById('zego-call-container');
+    callContainer.style.display = 'block';
+
+    // ৪. রুমে জয়েন করা এবং UI সেটআপ করা (শুধুমাত্র অডিও)
+    zp.joinRoom({
+        container: callContainer,
+        scenario: {
+            mode: ZegoUIKitPrebuilt.OneONoneCall, // ওয়ান-টু-ওয়ান কল
+        },
+        turnOnCameraWhenJoining: false, // ক্যামেরা অফ থাকবে
+        showMyCameraToggleButton: false, // ক্যামেরা অন করার বাটন হাইড থাকবে
+        showAudioVideoSettingsButton: true,
+        showScreenSharingButton: false, // স্ক্রিন শেয়ার অফ
+        onLeaveRoom: () => {
+            // কল কেটে দিলে বা লিভ নিলে কন্টেইনার হাইড হয়ে যাবে
+            callContainer.style.display = 'none';
+        }
+    });
 }
 </script>
 </body>
