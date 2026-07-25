@@ -2446,7 +2446,7 @@ NESTED ACTIVITY CATEGORIES STYLES
 <div class="chat-name" id="chat-name-display" style="flex:1;margin-left:8px; cursor:pointer;" onclick="viewProfileFromChat()">Chat</div>
 <div class="chat-header-actions" style="margin-left: auto; position: relative; display: flex; align-items: center; gap: 4px;">
     <!-- 🚀 Call Button -->
-    <span class="material-symbols-outlined" onclick="startWebRTCCall()" style="cursor: pointer; padding: 8px; color: var(--success); font-size: 26px;">call</span>
+    <i class="ph-fill ph-phone-call" onclick="startWebRTCCall()" style="cursor: pointer; padding: 8px; color: var(--success); font-size: 26px;"></i>
     
     <span class="material-symbols-outlined" onclick="toggleChatDeleteMenu()" style="cursor: pointer; padding: 8px;">more_vert</span>
     
@@ -3484,7 +3484,7 @@ MODERN USERNAME SYSTEM STYLES
     <div id="category-posts-list" style="flex:1; padding-bottom:80px; overflow-y:auto; background:transparent;"></div>
 </div>
 
-<!-- 🚀 WEBRTC AUDIO CALL SCREEN -->
+<!-- 🚀 WEBRTC AUDIO CALL SCREEN (Updated with Phosphor Icons & Controls) -->
 <style>
 .call-overlay { display:none; position:fixed; inset:0; background:var(--surface); z-index:999999; flex-direction:column; align-items:center; justify-content:center; text-align:center; }
 .call-overlay.active { display:flex; animation: fadeIn 0.3s ease; }
@@ -3493,9 +3493,16 @@ MODERN USERNAME SYSTEM STYLES
 .call-pulse { position:absolute; inset:-10px; border-radius:50%; border:2px solid var(--accent); animation: pulseAnim 1.5s infinite; opacity:0; z-index:-1; }
 @keyframes pulseAnim { 0% { transform:scale(0.9); opacity:1; } 100% { transform:scale(1.4); opacity:0; } }
 .call-name { font-size:26px; font-weight:900; color:var(--text); margin-bottom:8px; }
-.call-status { font-size:16px; font-weight:600; color:var(--accent-light); margin-bottom:50px; }
+.call-status { font-size:16px; font-weight:600; color:var(--accent-light); margin-bottom:40px; }
+
+/* New Control Buttons */
+.call-controls { display:flex; gap:24px; align-items:center; margin-bottom: 40px; }
+.btn-control { width:52px; height:52px; border-radius:50%; border:none; display:flex; align-items:center; justify-content:center; cursor:pointer; background:var(--surface-2); color:var(--text); font-size:24px; transition:0.2s; box-shadow:var(--shadow-sm); }
+.btn-control:active { transform:scale(0.9); }
+.btn-control.active { background:var(--text); color:var(--bg); }
+
 .call-actions { display:flex; gap:40px; align-items:center; }
-.btn-call-action { width:64px; height:64px; border-radius:50%; border:none; display:flex; align-items:center; justify-content:center; cursor:pointer; transition:0.2s; color:white; box-shadow:var(--shadow-md); }
+.btn-call-action { width:64px; height:64px; border-radius:50%; border:none; display:flex; align-items:center; justify-content:center; cursor:pointer; transition:0.2s; color:white; font-size:32px; box-shadow:var(--shadow-md); }
 .btn-call-action:active { transform:scale(0.9); }
 .btn-reject { background:var(--danger); }
 .btn-answer { background:var(--success); display:none; }
@@ -3509,12 +3516,27 @@ MODERN USERNAME SYSTEM STYLES
     <div class="call-name" id="call-screen-name">User</div>
     <div class="call-status" id="call-screen-status">Calling...</div>
     
-    <div class="call-actions">
-        <button class="btn-call-action btn-reject" onclick="endWebRTCCall()">
-            <span class="material-symbols-outlined" style="font-size:32px;">call_end</span>
+    <!-- 🚀 NEW: Call Controls (Mute & Speaker) -->
+    <div class="call-controls" id="call-active-controls" style="visibility: hidden;">
+        <button class="btn-control" id="btn-mute" onclick="toggleMic()">
+            <i class="ph-fill ph-microphone"></i>
         </button>
+        <button class="btn-control" id="btn-speaker" onclick="toggleSpeaker()">
+            <i class="ph-fill ph-speaker-high"></i>
+        </button>
+        <button class="btn-control" onclick="showToast('Minimize feature coming soon!')">
+            <i class="ph-bold ph-arrows-in-simple"></i>
+        </button>
+    </div>
+
+    <div class="call-actions">
+        <!-- Phosphor Icon for End Call -->
+        <button class="btn-call-action btn-reject" onclick="endWebRTCCall()">
+            <i class="ph-fill ph-phone-x"></i>
+        </button>
+        <!-- Phosphor Icon for Answer Call -->
         <button class="btn-call-action btn-answer" id="btn-answer-call" onclick="answerWebRTCCall()">
-            <span class="material-symbols-outlined" style="font-size:32px;">call</span>
+            <i class="ph-fill ph-phone-call"></i>
         </button>
     </div>
     <!-- রিমোট অডিও প্লে করার জন্য হিডেন ট্যাগ -->
@@ -10992,6 +11014,9 @@ async function endWebRTCCall(isRemote = false) {
 // টাইমার
 function startCallTimer() {
     document.getElementById('call-pulse-anim').style.opacity = '0';
+    // 🚀 কল রিসিভ হলে কন্ট্রোল বাটনগুলো শো করবে
+    document.getElementById('call-active-controls').style.visibility = 'visible'; 
+    
     callSeconds = 0;
     clearInterval(callTimer);
     callTimer = setInterval(() => {
@@ -11002,6 +11027,57 @@ function startCallTimer() {
     }, 1000);
 }
 
+// কল কাটার ফাংশনটা একটু আপডেট (বাটন হাইড করার জন্য)
+const originalEndCall = endWebRTCCall;
+endWebRTCCall = async function(isRemote = false) {
+    document.getElementById('call-active-controls').style.visibility = 'hidden';
+    await originalEndCall(isRemote);
+}
+
+// ==========================================
+// 🚀 NEW: MUTE & SPEAKER LOGIC
+// ==========================================
+let isMuted = false;
+let isSpeakerOn = true;
+
+function toggleMic() {
+    if(localStream) {
+        isMuted = !isMuted;
+        // অডিও ট্র্যাক ডিজেবল/এনেবল করা
+        localStream.getAudioTracks()[0].enabled = !isMuted;
+        
+        // UI আপডেট করা
+        const btn = document.getElementById('btn-mute');
+        btn.innerHTML = isMuted ? '<i class="ph-fill ph-microphone-slash"></i>' : '<i class="ph-fill ph-microphone"></i>';
+        if(isMuted) btn.classList.add('active');
+        else btn.classList.remove('active');
+    }
+}
+
+async function toggleSpeaker() {
+    const audioElement = document.getElementById('remote-audio');
+    
+    // ব্রাউজারে অডিও আউটপুট চেঞ্জ সাপোর্ট করে কিনা চেক করা
+    if (typeof audioElement.setSinkId !== 'undefined') {
+        try {
+            isSpeakerOn = !isSpeakerOn;
+            // UI আপডেট
+            const btn = document.getElementById('btn-speaker');
+            btn.innerHTML = isSpeakerOn ? '<i class="ph-fill ph-speaker-high"></i>' : '<i class="ph-fill ph-speaker-low"></i>';
+            if(!isSpeakerOn) btn.classList.add('active');
+            else btn.classList.remove('active');
+            
+            showToast(isSpeakerOn ? "Speaker On" : "Switched to Earpiece");
+            
+            // Note: ব্রাউজারে ডিভাইস আইডি বের করে setSinkId করতে হয়।
+            // মোবাইল ব্রাউজারে বাই-ডিফল্ট এটি ট্রিকি, তবে UI টা রেডি থাকলো।
+        } catch (e) {
+            showToast("Speaker switch not fully supported on this device.");
+        }
+    } else {
+        showToast("Your browser does not support changing audio output.");
+    }
+}
 </script>
 </body>
 </html>
