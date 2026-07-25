@@ -10848,7 +10848,7 @@ async function uploadAndSendVoice(audioBlob) {
     }
 }
 // ==========================================
-// 🚀 GOCHAT CUSTOM WEBRTC AUDIO ENGINE (With Ringtones)
+// 🚀 GOCHAT CUSTOM WEBRTC AUDIO ENGINE (With Call Logs)
 // ==========================================
 const iceServers = { iceServers: [{ urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'] }] };
 let peerConnection;
@@ -10858,15 +10858,14 @@ let callDocId = null;
 let callUnsub = null;
 let callTimer = null;
 let callSeconds = 0;
+let activeCallChatId = null; // 🚀 NEW: কল হিস্ট্রির জন্য চ্যাট আইডি ট্র্যাক
 
-// 🎵 রিংটোন সেটআপ (এখানে আপনার পছন্দমতো অডিও লিংক বসাতে পারবেন)
-const incomingRingtone = new Audio('https://www.soundjay.com/phone/sounds/telephone-ring-04a.mp3');
-incomingRingtone.loop = true; // বারবার বাজার জন্য
-
+// 🎵 রিংটোন সেটআপ 
+const incomingRingtone = new Audio('https://audio.com/himanshu-tanwar-1/audio/ringtone-arpit');
+incomingRingtone.loop = true; 
 const outgoingRingtone = new Audio('https://www.soundjay.com/phone/sounds/telephone-ring-01a.mp3');
 outgoingRingtone.loop = true;
 
-// রিংটোন বন্ধ করার ফাংশন
 function stopAllRingtones() {
     incomingRingtone.pause();
     incomingRingtone.currentTime = 0;
@@ -10881,13 +10880,14 @@ async function startWebRTCCall() {
         return;
     }
     
-    // UI সেটআপ
     document.getElementById('webrtc-call-screen').classList.add('active');
     document.getElementById('btn-answer-call').style.display = 'none';
     document.getElementById('call-screen-name').textContent = document.getElementById('chat-name-display').textContent;
     document.getElementById('call-screen-avatar').src = document.querySelector('#chat-avatar img')?.src || '';
     document.getElementById('call-screen-status').textContent = "Calling...";
     document.getElementById('call-pulse-anim').style.opacity = '1';
+
+    activeCallChatId = currentChatId; // 🚀 চ্যাট আইডি সেভ করা হলো
 
     try {
         localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
@@ -10917,10 +10917,8 @@ async function startWebRTCCall() {
             timestamp: firebase.firestore.FieldValue.serverTimestamp()
         });
 
-        // 🎵 কল যাওয়ার সময় রিংটোন বাজানো শুরু
         outgoingRingtone.play().catch(e => console.log('Audio play blocked by browser'));
 
-        // অপর পাশ থেকে Answer এর জন্য অপেক্ষা
         callUnsub = callDoc.onSnapshot(snapshot => {
             const data = snapshot.data();
             if(!data || data.status === 'ended' || data.status === 'rejected') {
@@ -10929,7 +10927,7 @@ async function startWebRTCCall() {
             }
             if(!peerConnection.currentRemoteDescription && data.answer) {
                 peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
-                stopAllRingtones(); // 🎵 কল রিসিভ হলে রিংটোন বন্ধ
+                stopAllRingtones(); 
                 startCallTimer();
             }
         });
@@ -10956,6 +10954,9 @@ function listenForIncomingCalls() {
                 const data = change.doc.data();
                 callDocId = change.doc.id;
                 
+                // 🚀 ইনকামিং কলের সময় চ্যাট আইডি তৈরি করে সেভ করা হলো
+                activeCallChatId = [data.caller, data.receiver].sort().join('_');
+
                 const callerDoc = await db.collection('users').doc(data.caller).get();
                 const callerName = callerDoc.exists ? callerDoc.data().name : 'User';
                 const callerAv = callerDoc.exists ? callerDoc.data().avatar : '';
@@ -10967,9 +10968,9 @@ function listenForIncomingCalls() {
                 document.getElementById('call-screen-status').textContent = "Incoming Call...";
                 document.getElementById('call-pulse-anim').style.opacity = '1';
                 
-                // 🎵 ইনকামিং কল আসলে রিংটোন বাজানো শুরু
                 if (currentUserData && currentUserData.messageSound !== false) {
                     incomingRingtone.play().catch(e => console.log('Audio play blocked'));
+                    if(navigator.vibrate) navigator.vibrate([500, 500, 500, 500, 500, 500]); 
                 }
             }
         });
@@ -10978,7 +10979,9 @@ function listenForIncomingCalls() {
 
 // ৩. কল রিসিভ করা (Answer)
 async function answerWebRTCCall() {
-    stopAllRingtones(); // 🎵 কল রিসিভ করার সাথে সাথে রিংটোন বন্ধ
+    stopAllRingtones(); 
+    if(navigator.vibrate) navigator.vibrate(0); 
+    
     document.getElementById('btn-answer-call').style.display = 'none';
     document.getElementById('call-screen-status').textContent = "Connecting...";
 
@@ -11027,12 +11030,47 @@ async function answerWebRTCCall() {
     }
 }
 
-// ৪. কল কাটা বা শেষ করা
+// ৪. কল কাটা বা শেষ করা (আপডেট: মেসেজ হিস্ট্রি সহ)
 let originalEndWebRTCCall = async function(isRemote = false) {
-    stopAllRingtones(); // 🎵 কল কেটে দিলে রিংটোন বন্ধ
+    stopAllRingtones(); 
+    if(navigator.vibrate) navigator.vibrate(0); 
+    
     document.getElementById('webrtc-call-screen').classList.remove('active');
     document.getElementById('call-pulse-anim').style.opacity = '0';
     clearInterval(callTimer);
+
+    // 🚀 NEW: Call Log System (মেসেঞ্জারের মতো কল হিস্ট্রি)
+    if (!isRemote && activeCallChatId) {
+        let logMessage = "";
+        if (callSeconds > 0) {
+            const m = Math.floor(callSeconds / 60).toString().padStart(2, '0');
+            const s = (callSeconds % 60).toString().padStart(2, '0');
+            logMessage = `📞 Audio call ended • ${m}:${s}`;
+        } else {
+            logMessage = `❌ Missed audio call`;
+        }
+
+        try {
+            // চ্যাটে মেসেজ আকারে কল হিস্ট্রি সেভ করা
+            await db.collection('chats').doc(activeCallChatId).collection('messages').add({
+                uid: currentUser.uid,
+                senderName: currentUserData.name || 'User',
+                text: logMessage,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+
+            // চ্যাট লিস্টের লাস্ট মেসেজ আপডেট করা
+            await db.collection('chats').doc(activeCallChatId).set({
+                lastMsg: logMessage,
+                lastAt: firebase.firestore.FieldValue.serverTimestamp(),
+                lastSender: currentUser.uid,
+                isRead: false
+            }, { merge: true });
+        } catch (e) {
+            console.log("Error saving call log: ", e);
+        }
+    }
+
     callSeconds = 0;
 
     if(localStream) localStream.getTracks().forEach(track => track.stop());
@@ -11047,6 +11085,7 @@ let originalEndWebRTCCall = async function(isRemote = false) {
         } catch(e) {}
     }
     callDocId = null;
+    activeCallChatId = null; // রিসেট
 }
 
 endWebRTCCall = async function(isRemote = false) {
@@ -11095,7 +11134,6 @@ function toggleSpeaker() {
     }
 }
 
-// 🚀 Minimize & Expand Features
 function minimizeCall() {
     const screen = document.getElementById('webrtc-call-screen');
     screen.classList.add('minimized');
@@ -11109,7 +11147,6 @@ function expandCall() {
     }
 }
 
-// টাইমার
 function startCallTimer() {
     document.getElementById('call-pulse-anim').style.opacity = '0';
     document.getElementById('call-active-controls').style.visibility = 'visible'; 
@@ -11122,6 +11159,108 @@ function startCallTimer() {
         const s = (callSeconds % 60).toString().padStart(2, '0');
         document.getElementById('call-screen-status').textContent = `${m}:${s}`;
     }, 1000);
+}
+// ==========================================
+// 🚀 SMART BACK BUTTON & HISTORY MANAGER
+// ==========================================
+let backPressTimer = null;
+
+// শুরুতে একটা ডামি হিস্ট্রি পুশ করে রাখা হলো
+history.pushState({ page: 'gochat_home' }, "", window.location.href);
+
+window.addEventListener('popstate', function(event) {
+    // যদি কোনো স্ক্রিন বা মডাল ওপেন থাকে, তবে সেটা ক্লোজ হবে
+    if (closeTopMostView()) {
+        // বের হওয়া ঠেকাতে আবার হিস্ট্রি পুশ করে দেওয়া হলো
+        history.pushState({ page: 'gochat_home' }, "", window.location.href);
+    } else {
+        // যদি ইউজার মেইন ফিডে থাকে, তখন ডাবল ট্যাপ এক্সিট লজিক
+        if (backPressTimer) {
+            clearTimeout(backPressTimer);
+            // দ্বিতীয়বার চাপলে সত্যি বের হয়ে যাবে (ইতিমধ্যেই popstate হয়ে এক ধাপ পিছনে গেছে)
+        } else {
+            showToast("Press back again to exit");
+            // ভুল করে বের হওয়া ঠেকাতে আবার পুশ করা হলো
+            history.pushState({ page: 'gochat_home' }, "", window.location.href);
+            backPressTimer = setTimeout(() => {
+                backPressTimer = null;
+            }, 2000);
+        }
+    }
+});
+
+// 🚀 এই ফাংশনটি চেক করবে স্ক্রিনে এই মুহূর্তে কী ওপেন আছে এবং সবচেয়ে ওপরের জিনিসটা বন্ধ করবে
+function closeTopMostView() {
+    // ১. Full Screen Image Zoom
+    const imageZoom = document.getElementById('image-zoom-modal');
+    if (imageZoom && imageZoom.classList.contains('open')) { closeImageZoom(); return true; }
+
+    // ২. Story Viewer
+    const storyViewer = document.getElementById('story-viewer');
+    if (storyViewer && storyViewer.classList.contains('open')) { closeStory(); return true; }
+
+    // ৩. Audio Call Screen (যদি ফ্লোটিং না থাকে)
+    const callScreen = document.getElementById('webrtc-call-screen');
+    if (callScreen && callScreen.classList.contains('active') && !callScreen.classList.contains('minimized')) { 
+        minimizeCall(); return true; // কল কাটবে না, শুধু মিনিমাইজ করবে
+    }
+
+    // ৪. Bottom Sheets / Action Modals
+    const deleteSheet = document.getElementById('delete-sheet-modal');
+    if (deleteSheet && deleteSheet.classList.contains('open')) { closeDeleteSheet(); return true; }
+    
+    const qpModal = document.getElementById('quick-profile-modal');
+    if (qpModal && qpModal.classList.contains('open')) { closeQuickProfile(); return true; }
+
+    const wpModal = document.getElementById('wallpaper-modal');
+    if (wpModal && wpModal.classList.contains('open')) { closeWallpaperPicker(); return true; }
+    
+    const forwardModal = document.getElementById('forward-modal');
+    if (forwardModal && forwardModal.classList.contains('open')) { closeForwardModal(); return true; }
+
+    // ৫. Sub Screens (Chat, Profile, Post etc)
+    const commentPanel = document.getElementById('comment-panel');
+    if (commentPanel && commentPanel.classList.contains('open')) { closeCommentPanel(); return true; }
+
+    const singlePost = document.getElementById('single-post-screen');
+    if (singlePost && singlePost.classList.contains('open')) { closeSinglePost(); return true; }
+
+    const chatScreen = document.getElementById('chat-screen');
+    if (chatScreen && chatScreen.classList.contains('open')) { closeChat(); return true; }
+
+    const otherProfile = document.getElementById('page-other-profile');
+    if (otherProfile && otherProfile.classList.contains('open')) { closeUserProfile(); return true; }
+
+    const createPost = document.getElementById('create-post-screen');
+    if (createPost && createPost.classList.contains('open')) { closeCreatePost(); return true; }
+
+    const groupInfo = document.getElementById('group-info-modal');
+    if (groupInfo && groupInfo.style.display === 'flex') { closeGroupInfoModal(); return true; }
+
+    // ৬. Settings & Menus
+    const editProfile = document.getElementById('edit-profile-screen');
+    if (editProfile && editProfile.style.display === 'flex') { closeProfileEdit(); return true; }
+
+    const galleryScreen = document.getElementById('gallery-screen');
+    if (galleryScreen && galleryScreen.style.display === 'flex') { closeGallery(); return true; }
+
+    const catScreen = document.getElementById('category-screen');
+    if (catScreen && catScreen.style.display === 'flex') { closeCategoryScreen(); return true; }
+
+    const mainSettings = document.getElementById('main-settings-screen');
+    if (mainSettings && mainSettings.style.display === 'flex') { closeMainSettingsScreen(); return true; }
+
+    const mainMenu = document.getElementById('main-menu-screen');
+    if (mainMenu && mainMenu.style.display === 'flex') { closeMainMenu(); return true; }
+
+    // ৭. Bottom Navigation Pages (Back to Feed)
+    const feedPage = document.getElementById('page-feed');
+    if (feedPage && !feedPage.classList.contains('active')) {
+        showPage('feed'); return true;
+    }
+
+    // কিছু ওপেন না থাকলে false রিটার্ন করবে (অর্থাৎ ইউজার মেইন ফিডে আছে)
+    return false;
 }
 </script>
 </body>
