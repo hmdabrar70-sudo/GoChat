@@ -11383,9 +11383,20 @@ async function uploadAndSendVoice(audioBlob) {
     }
 }
 // ==========================================
-// 🚀 GOCHAT CUSTOM WEBRTC AUDIO ENGINE (With Call Logs)
+// 🚀 GOCHAT CUSTOM WEBRTC AUDIO ENGINE (With Call Logs, Ringtones & Cross-Network Fix)
 // ==========================================
-const iceServers = { iceServers: [{ urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'] }] };
+
+// 🌟 মেইন ফিক্স: আরও শক্তিশালী STUN সার্ভার যুক্ত করা হলো ভিন্ন নেটওয়ার্কে কানেকশনের জন্য
+const iceServers = { 
+    iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' },
+        { urls: 'stun:stun2.l.google.com:19302' },
+        { urls: 'stun:stun3.l.google.com:19302' },
+        { urls: 'stun:stun4.l.google.com:19302' }
+    ] 
+};
+
 let peerConnection;
 let localStream;
 let remoteStream;
@@ -11393,7 +11404,7 @@ let callDocId = null;
 let callUnsub = null;
 let callTimer = null;
 let callSeconds = 0;
-let activeCallChatId = null; // 🚀 NEW: কল হিস্ট্রির জন্য চ্যাট আইডি ট্র্যাক
+let activeCallChatId = null; 
 
 // 🎵 রিংটোন সেটআপ 
 const incomingRingtone = new Audio('https://audio.com/himanshu-tanwar-1/audio/ringtone-arpit');
@@ -11416,13 +11427,15 @@ async function startWebRTCCall() {
     }
     
     document.getElementById('webrtc-call-screen').classList.add('active');
+    document.getElementById('webrtc-call-screen').classList.remove('minimized');
     document.getElementById('btn-answer-call').style.display = 'none';
+    document.getElementById('call-active-controls').style.visibility = 'hidden';
     document.getElementById('call-screen-name').textContent = document.getElementById('chat-name-display').textContent;
     document.getElementById('call-screen-avatar').src = document.querySelector('#chat-avatar img')?.src || '';
     document.getElementById('call-screen-status').textContent = "Calling...";
     document.getElementById('call-pulse-anim').style.opacity = '1';
 
-    activeCallChatId = currentChatId; // 🚀 চ্যাট আইডি সেভ করা হলো
+    activeCallChatId = currentChatId; 
 
     try {
         localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
@@ -11489,7 +11502,6 @@ function listenForIncomingCalls() {
                 const data = change.doc.data();
                 callDocId = change.doc.id;
                 
-                // 🚀 ইনকামিং কলের সময় চ্যাট আইডি তৈরি করে সেভ করা হলো
                 activeCallChatId = [data.caller, data.receiver].sort().join('_');
 
                 const callerDoc = await db.collection('users').doc(data.caller).get();
@@ -11497,7 +11509,9 @@ function listenForIncomingCalls() {
                 const callerAv = callerDoc.exists ? callerDoc.data().avatar : '';
 
                 document.getElementById('webrtc-call-screen').classList.add('active');
+                document.getElementById('webrtc-call-screen').classList.remove('minimized');
                 document.getElementById('btn-answer-call').style.display = 'flex';
+                document.getElementById('call-active-controls').style.visibility = 'hidden';
                 document.getElementById('call-screen-name').textContent = callerName;
                 document.getElementById('call-screen-avatar').src = callerAv || 'https://via.placeholder.com/150';
                 document.getElementById('call-screen-status').textContent = "Incoming Call...";
@@ -11565,16 +11579,16 @@ async function answerWebRTCCall() {
     }
 }
 
-// ৪. কল কাটা বা শেষ করা (আপডেট: মেসেজ হিস্ট্রি সহ)
+// ৪. কল কাটা বা শেষ করা
 let originalEndWebRTCCall = async function(isRemote = false) {
     stopAllRingtones(); 
     if(navigator.vibrate) navigator.vibrate(0); 
     
     document.getElementById('webrtc-call-screen').classList.remove('active');
+    document.getElementById('webrtc-call-screen').classList.remove('minimized');
     document.getElementById('call-pulse-anim').style.opacity = '0';
     clearInterval(callTimer);
 
-    // 🚀 NEW: Call Log System (মেসেঞ্জারের মতো কল হিস্ট্রি)
     if (!isRemote && activeCallChatId) {
         let logMessage = "";
         if (callSeconds > 0) {
@@ -11586,7 +11600,6 @@ let originalEndWebRTCCall = async function(isRemote = false) {
         }
 
         try {
-            // চ্যাটে মেসেজ আকারে কল হিস্ট্রি সেভ করা
             await db.collection('chats').doc(activeCallChatId).collection('messages').add({
                 uid: currentUser.uid,
                 senderName: currentUserData.name || 'User',
@@ -11594,7 +11607,6 @@ let originalEndWebRTCCall = async function(isRemote = false) {
                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
             });
 
-            // চ্যাট লিস্টের লাস্ট মেসেজ আপডেট করা
             await db.collection('chats').doc(activeCallChatId).set({
                 lastMsg: logMessage,
                 lastAt: firebase.firestore.FieldValue.serverTimestamp(),
@@ -11620,7 +11632,7 @@ let originalEndWebRTCCall = async function(isRemote = false) {
         } catch(e) {}
     }
     callDocId = null;
-    activeCallChatId = null; // রিসেট
+    activeCallChatId = null; 
 }
 
 endWebRTCCall = async function(isRemote = false) {
@@ -11630,7 +11642,7 @@ endWebRTCCall = async function(isRemote = false) {
 }
 
 // ==========================================
-// 🚀 NEW: MUTE, SPEAKER & MINIMIZE LOGIC
+// 🚀 MUTE, SPEAKER & MINIMIZE LOGIC
 // ==========================================
 let isMuted = false;
 let isSpeakerOn = true;
@@ -11670,16 +11682,10 @@ function toggleSpeaker() {
 }
 
 function minimizeCall() {
-    const screen = document.getElementById('webrtc-call-screen');
-    screen.classList.add('minimized');
-    showToast('Call minimized. Tap to expand.');
+    document.getElementById('webrtc-call-screen').classList.add('minimized');
 }
-
 function expandCall() {
-    const screen = document.getElementById('webrtc-call-screen');
-    if(screen.classList.contains('minimized')) {
-        screen.classList.remove('minimized');
-    }
+    document.getElementById('webrtc-call-screen').classList.remove('minimized');
 }
 
 function startCallTimer() {
