@@ -2184,9 +2184,10 @@ NESTED ACTIVITY CATEGORIES STYLES
             <div class="nav-badge" id="friends-badge">0</div>
         </div>
         
-        <div class="nav-item" onclick="event.stopPropagation();toggleFabMenu()">
-            <div style="width: 32px; height: 32px; border: 2.5px solid var(--text); border-radius: 10px; display: flex; align-items: center; justify-content: center; transition: transform 0.2s ease; background: transparent;">
-                <i class="ph-bold ph-plus" style="color: var(--text); font-size: 18px;"></i>
+                <!-- 🚀 Fixed Center Alignment -->
+        <div class="nav-item" onclick="event.stopPropagation();toggleFabMenu()" style="display: flex; align-items: center; justify-content: center;">
+            <div style="width: 30px; height: 30px; border: 2px solid var(--text); border-radius: 9px; display: flex; align-items: center; justify-content: center; transition: transform 0.2s ease; background: transparent; margin-top: 4px;">
+                <i class="ph-bold ph-plus" style="color: var(--text); font-size: 18px; line-height: 1;"></i>
             </div>
         </div>
         
@@ -2632,6 +2633,10 @@ NESTED ACTIVITY CATEGORIES STYLES
 <div class="modal-title" style="display:flex; align-items:center; gap:8px;">
 <span class="material-symbols-outlined" style="color:#f59e0b; font-size:28px;">trophy</span> Top Leaderboard
 </div>
+<!-- 🏆 Your Rank Card -->
+<div id="leaderboard-me-card" style="margin-bottom:14px;"></div>
+<!-- 🥇 Top 3 Podium -->
+<div id="leaderboard-podium" style="margin-bottom:18px;"></div>
 <div id="leaderboard-list" style="overflow-y:auto;flex:1;margin-bottom:10px;max-height:60vh;display:flex;flex-direction:column;gap:8px;"></div>
 </div>
 </div>
@@ -3280,6 +3285,123 @@ MODERN USERNAME SYSTEM STYLES
 
 @keyframes navIconPop{ 0%{transform:scale(.55);} 60%{transform:scale(1.2);} 100%{transform:scale(1);} }
 @keyframes navFabPulse{ 0%,100%{opacity:.45; transform:translate(-50%,-50%) scale(.88);} 50%{opacity:.9; transform:translate(-50%,-50%) scale(1.14);} }
+/* =========================================
+   POST INSIGHTS STYLES
+========================================= */
+.pi-card{
+  position:relative; padding:16px; border-radius:16px; overflow:hidden;
+  background:var(--surface-2); border:1px solid var(--border);
+  transition:transform .25s ease, box-shadow .25s ease;
+}
+.pi-card:active{ transform:scale(.97); }
+.pi-card .pi-ico{
+  width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;
+  margin-bottom:10px; color:#fff;
+}
+.pi-card .pi-val{ font-size:24px; font-weight:900; color:var(--text); line-height:1; }
+.pi-card .pi-lbl{ font-size:11px; font-weight:700; color:var(--text-muted); margin-top:5px; text-transform:uppercase; letter-spacing:.5px; }
+
+.pi-bar-row{ display:flex; align-items:center; gap:12px; }
+.pi-bar-lbl{ width:74px; font-size:12px; font-weight:700; color:var(--text-secondary); }
+.pi-bar-track{ flex:1; height:10px; background:var(--surface-2); border-radius:10px; overflow:hidden; border:1px solid var(--border); }
+.pi-bar-fill{ height:100%; width:0; border-radius:10px; transition:width .9s cubic-bezier(.22,1,.36,1); }
+.pi-bar-num{ width:42px; text-align:right; font-size:13px; font-weight:800; color:var(--text); }
+
+/* Elite locked blur */
+.pi-locked{ position:relative; border-radius:18px; overflow:hidden; border:1px solid var(--border); }
+.pi-locked-blur{ filter:blur(5px); opacity:.55; pointer-events:none; padding:16px; }
+.pi-locked-overlay{
+  position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:8px; text-align:center; padding:18px;
+  background:linear-gradient(180deg, rgba(0,0,0,0.15), rgba(0,0,0,0.45));
+}
+.pi-locked-overlay button{
+  margin-top:6px; padding:10px 18px; border:none; border-radius:30px; cursor:pointer;
+  background:linear-gradient(135deg,#fbbf24,#d97706); color:#3a2a00; font-weight:900; font-size:13px;
+  display:flex; align-items:center; gap:6px; box-shadow:0 8px 20px rgba(217,119,6,.45);
+}
+/* =========================================
+   LEADERBOARD PREMIUM REDESIGN
+========================================= */
+/* Your Rank Card */
+.lb-me-card{
+  position:relative; overflow:hidden; padding:14px 16px; border-radius:18px;
+  background:linear-gradient(135deg, color-mix(in srgb,var(--accent) 16%, var(--surface-2)), var(--surface-2));
+  border:1px solid color-mix(in srgb,var(--accent) 40%, var(--border));
+  display:flex; align-items:center; gap:14px;
+}
+.lb-me-card::after{
+  content:''; position:absolute; top:0; left:-60%; width:40%; height:100%;
+  background:linear-gradient(120deg, transparent, rgba(255,255,255,0.18), transparent);
+  transform:skewX(-20deg); animation:lbShimmer 4s ease-in-out infinite;
+}
+.lb-me-rank{
+  min-width:46px; text-align:center; font-size:13px; font-weight:900; color:var(--accent);
+  background:var(--accent-glow); border-radius:12px; padding:8px 6px; line-height:1.1;
+}
+.lb-me-rank small{ display:block; font-size:9px; font-weight:700; color:var(--text-muted); letter-spacing:.5px; }
+.lb-me-pts{ margin-left:auto; text-align:right; }
+.lb-me-pts b{ font-size:18px; font-weight:900; color:var(--text); }
+.lb-me-pts span{ display:block; font-size:10px; color:var(--text-muted); font-weight:700; text-transform:uppercase; }
+
+/* Podium */
+.lb-podium{ display:flex; align-items:flex-end; justify-content:center; gap:10px; padding:18px 6px 4px; }
+.lb-pod{ position:relative; display:flex; flex-direction:column; align-items:center; flex:1; max-width:110px; }
+.lb-pod-av{
+  position:relative; width:62px; height:62px; border-radius:50%; padding:3px;
+  background:var(--ring, var(--border)); margin-bottom:8px;
+  animation:lbPop .5s cubic-bezier(.34,1.56,.64,1) backwards;
+}
+.lb-pod-av > *{ width:100%; height:100%; border-radius:50%; object-fit:cover; display:flex; align-items:center; justify-content:center; background:var(--surface-2); color:#fff; font-weight:800; font-size:22px; border:3px solid var(--surface); }
+.lb-pod-av img{ width:100%; height:100%; border-radius:50%; object-fit:cover; border:3px solid var(--surface); }
+.lb-crown{ position:absolute; top:-16px; left:50%; transform:translateX(-50%); font-size:22px; filter:drop-shadow(0 3px 5px rgba(0,0,0,.3)); z-index:2; }
+.lb-pod-name{ font-size:12px; font-weight:800; color:var(--text); text-align:center; line-height:1.2; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.lb-pod-pts{ font-size:11px; font-weight:800; color:var(--text-secondary); margin-top:2px; }
+.lb-pod-bar{
+  width:100%; border-radius:14px 14px 0 0; margin-top:8px;
+  display:flex; align-items:flex-start; justify-content:center; padding-top:8px;
+  font-size:20px; font-weight:900; color:#fff;
+  background:var(--bar, var(--surface-2));
+  animation:lbGrow .7s cubic-bezier(.22,1,.36,1) backwards;
+}
+/* heights & colors per rank */
+.lb-pod.r1 .lb-pod-av{ --ring:linear-gradient(135deg,#fde047,#d97706); width:74px; height:74px; }
+.lb-pod.r1 .lb-pod-bar{ --bar:linear-gradient(180deg,#fbbf24,#d97706); height:96px; }
+.lb-pod.r2 .lb-pod-bar{ --bar:linear-gradient(180deg,#cbd5e1,#94a3b8); height:72px; }
+.lb-pod.r2 .lb-pod-av{ --ring:linear-gradient(135deg,#e2e8f0,#94a3b8); }
+.lb-pod.r3 .lb-pod-bar{ --bar:linear-gradient(180deg,#fdba74,#c2703a); height:58px; }
+.lb-pod.r3 .lb-pod-av{ --ring:linear-gradient(135deg,#fed7aa,#c2703a); }
+
+/* Rest list rows */
+.lb-row{
+  position:relative; display:flex; align-items:center; gap:12px; padding:11px 14px;
+  border-radius:16px; background:var(--surface-2); border:1px solid var(--border);
+  cursor:pointer; transition:transform .2s ease, border-color .2s ease, box-shadow .2s ease;
+  animation:lbFadeUp .4s ease backwards;
+}
+.lb-row:active{ transform:scale(.97); }
+.lb-row:hover{ border-color:color-mix(in srgb,var(--accent) 40%, var(--border)); }
+.lb-row.is-me{ border-color:var(--accent); background:var(--accent-glow); }
+.lb-rank{
+  min-width:34px; height:34px; border-radius:11px; display:flex; align-items:center; justify-content:center;
+  font-size:14px; font-weight:900; color:var(--text-secondary);
+  background:var(--surface); border:1px solid var(--border); flex-shrink:0;
+}
+.lb-row .avatar{ width:40px; height:40px; flex-shrink:0; }
+.lb-row .avatar img{ width:100%; height:100%; border-radius:50%; object-fit:cover; }
+.lb-row-name{ flex:1; min-width:0; font-size:14px; font-weight:700; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.lb-pts-pill{
+  display:flex; align-items:center; gap:4px; padding:6px 11px; border-radius:20px; flex-shrink:0;
+  background:linear-gradient(135deg, color-mix(in srgb,var(--accent) 18%, transparent), color-mix(in srgb,#f59e0b 14%, transparent));
+  border:1px solid color-mix(in srgb,var(--accent) 30%, transparent);
+  font-size:13px; font-weight:900; color:var(--accent);
+}
+.lb-pts-pill .material-symbols-outlined{ font-size:14px; }
+
+@keyframes lbPop{ from{ opacity:0; transform:scale(.4); } to{ opacity:1; transform:scale(1); } }
+@keyframes lbGrow{ from{ height:0; opacity:0; } }
+@keyframes lbFadeUp{ from{ opacity:0; transform:translateY(12px); } to{ opacity:1; transform:translateY(0); } }
+@keyframes lbShimmer{ 0%{ left:-60%; } 55%,100%{ left:135%; } }
 </style>
 
 <style>
@@ -3959,6 +4081,44 @@ MODERN USERNAME SYSTEM STYLES
     </div>
     <audio id="remote-audio" autoplay playsinline></audio>
 </div>
+
+<!-- 📈 POST INSIGHTS MODAL -->
+<div class="modal-overlay" id="post-insights-modal" style="z-index:100012; align-items:flex-end;" onclick="if(event.target===this) closePostInsights()">
+  <div class="modal-box" style="margin-top:auto; border-radius:24px 24px 0 0; max-height:88vh; overflow-y:auto; padding:22px 20px 30px;">
+
+    <!-- Header -->
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <div style="width:38px;height:38px;border-radius:12px;background:linear-gradient(135deg,var(--accent),#ec4899);display:flex;align-items:center;justify-content:center;">
+          <span class="material-symbols-outlined" style="color:#fff;font-size:22px;">insights</span>
+        </div>
+        <div>
+          <div style="font-weight:800; font-size:17px; color:var(--text);">Post Insights</div>
+          <div id="pi-subtitle" style="font-size:11px; color:var(--text-muted);">Performance overview</div>
+        </div>
+      </div>
+      <button class="modal-close" onclick="closePostInsights()"><span class="material-symbols-outlined">close</span></button>
+    </div>
+
+    <div id="pi-post-title" style="font-size:13px; color:var(--text-secondary); margin:10px 0 18px; line-height:1.4; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;"></div>
+
+    <!-- Metric Cards -->
+    <div id="pi-metrics" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;"></div>
+
+    <!-- Engagement Highlight -->
+    <div id="pi-engagement" style="margin-top:14px; padding:16px; border-radius:16px; background:linear-gradient(135deg, var(--accent-glow), transparent); border:1px solid var(--accent); text-align:center;"></div>
+
+    <!-- Bar Chart -->
+    <div style="margin-top:18px;">
+      <div style="font-size:12px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:.6px; margin-bottom:12px;">Breakdown</div>
+      <div id="pi-chart" style="display:flex; flex-direction:column; gap:12px;"></div>
+    </div>
+
+    <!-- Elite Locked / Unlocked Section -->
+    <div id="pi-elite-section" style="margin-top:20px;"></div>
+
+  </div>
+</div>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
@@ -4195,43 +4355,120 @@ console.log("Error awarding points", e);
 }
 }
 
+// ==========================================
+// 🏆 PREMIUM LEADERBOARD (same data, new look)
+// ==========================================
+function formatLBNum(n){
+  n = n || 0;
+  if(n >= 1000000) return (n/1000000).toFixed(1).replace(/\.0$/,'') + 'M';
+  if(n >= 1000)    return (n/1000).toFixed(1).replace(/\.0$/,'') + 'K';
+  return String(n);
+}
+
 async function openLeaderboard() {
-document.getElementById('leaderboard-modal').classList.add('open');
-const list = document.getElementById('leaderboard-list');
-list.innerHTML = '<div class="loading"><span class="material-symbols-outlined">autorenew</span> Loading Top Users...</div>';
-try {
-const snap = await db.collection('users').orderBy('points', 'desc').limit(50).get();
-let html = '';
-let myRank = -1;
-let currentRank = 1;
-snap.forEach((doc) => {
-const u = doc.data();
-const isMe = currentUser && doc.id === currentUser.uid;
-if (isMe) myRank = currentRank;
-let rankIcon = `<span style="color:var(--text-secondary); font-weight:800;">#${currentRank}</span>`;
-if (currentRank === 1) rankIcon = '🥇';
-else if (currentRank === 2) rankIcon = '🥈';
-else if (currentRank === 3) rankIcon = '🥉';
-const avHtml = u.avatar ? `<img src="${escapeHTML(u.avatar)}">` : avatarInitial(u.name);
-const safeName = escapeHTML(u.name);
-const pts = u.points || 0;
-html += `<div class="msg-item ${isMe ? 'highlight' : ''}" onclick="closeLeaderboard(); viewUserProfile('${doc.id}')" style="margin: 0; padding: 10px 14px;">
-<div style="font-size:22px; width:40px; text-align:center;">${rankIcon}</div>
-<div class="avatar sm">${avHtml}</div>
-<div class="msg-info" style="margin-left:12px;">
-<div class="msg-name" style="font-size:14px;">${safeName} ${isMe ? '<span style="font-size:10px; background:var(--accent); color:#fff; padding:2px 6px; border-radius:10px; margin-left:4px;">You</span>' : ''}</div>
-<div style="font-size:12px; color:var(--text-secondary); font-weight:700;">⭐ ${pts} Points</div>
-</div>
-</div>`;
-currentRank++;
-});
-if (myRank === -1) {
-html += `<div style="text-align:center; margin-top:16px; font-size:13px; color:var(--text-muted); font-weight:600;">You are not in the Top 50 yet. Keep active to earn points!</div>`;
-}
-list.innerHTML = html;
-} catch (e) {
-list.innerHTML = '<div class="empty-feed">Failed to load leaderboard</div>';
-}
+  document.getElementById('leaderboard-modal').classList.add('open');
+
+  const meCard  = document.getElementById('leaderboard-me-card');
+  const podium  = document.getElementById('leaderboard-podium');
+  const list    = document.getElementById('leaderboard-list');
+
+  // লোডিং স্টেট
+  meCard.innerHTML = '';
+  podium.innerHTML = '';
+  list.innerHTML = '<div class="loading"><span class="material-symbols-outlined">autorenew</span> Loading Champions...</div>';
+
+  try {
+    const snap = await db.collection('users').orderBy('points', 'desc').limit(50).get();
+
+    const rows = [];          // {id, data, rank}
+    let myRank = -1, myPts = (currentUserData && currentUserData.points) || 0;
+    let currentRank = 1;
+
+    snap.forEach((doc) => {
+      const u = doc.data();
+      const isMe = currentUser && doc.id === currentUser.uid;
+      if (isMe) myRank = currentRank;
+      rows.push({ id: doc.id, data: u, rank: currentRank, isMe });
+      currentRank++;
+    });
+
+    // ---------- 1) Your Rank Card ----------
+    const myAv = (currentUserData && currentUserData.avatar)
+      ? `<img src="${escapeHTML(currentUserData.avatar)}">`
+      : avatarInitial((currentUserData && currentUserData.name) || 'You');
+    const rankLabel = myRank > 0 ? `#${myRank}` : '50+';
+    const encourage = myRank > 0
+      ? 'Keep going — you are on the board! 🔥'
+      : 'Post & engage to climb the ranks!';
+    meCard.innerHTML = `
+      <div class="lb-me-card">
+        <div class="avatar" style="width:46px;height:46px;flex-shrink:0;">${myAv}</div>
+        <div style="min-width:0;">
+          <div style="font-size:13px;font-weight:800;color:var(--text);">Your Standing</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">${encourage}</div>
+        </div>
+        <div class="lb-me-rank">${rankLabel}<small>RANK</small></div>
+        <div class="lb-me-pts"><b>${formatLBNum(myPts)}</b><span>Points</span></div>
+      </div>`;
+
+    // ---------- 2) Top-3 Podium ----------
+    if (rows.length >= 3) {
+      const makePod = (r, cls, medal, crown) => {
+        const u = r.data;
+        const av = u.avatar
+          ? `<img src="${escapeHTML(u.avatar)}">`
+          : `<div>${avatarInitial(u.name)}</div>`;
+        const delay = cls === 'r1' ? '.15s' : (cls === 'r2' ? '.05s' : '.25s');
+        return `
+          <div class="lb-pod ${cls}" onclick="closeLeaderboard(); viewUserProfile('${r.id}')" style="cursor:pointer;">
+            <div class="lb-pod-av" style="animation-delay:${delay};">
+              ${crown ? `<div class="lb-crown">${crown}</div>` : ''}
+              ${av}
+            </div>
+            <div class="lb-pod-name">${escapeHTML(u.name)}${r.isMe ? ' ⭐' : ''}</div>
+            <div class="lb-pod-pts">${formatLBNum(u.points||0)} pts</div>
+            <div class="lb-pod-bar" style="animation-delay:${delay};">${medal}</div>
+          </div>`;
+      };
+      // ভিজ্যুয়াল ক্রম: ২য় — ১ম — ৩য়
+      podium.innerHTML = `<div class="lb-podium">`
+        + makePod(rows[1], 'r2', '🥈', '')
+        + makePod(rows[0], 'r1', '🥇', '👑')
+        + makePod(rows[2], 'r3', '🥉', '')
+        + `</div>`;
+    } else {
+      podium.innerHTML = ''; // ৩ জনের কম হলে পোডিয়াম দেখাবে না
+    }
+
+    // ---------- 3) Rest of the list (rank 4 onward) ----------
+    const rest = rows.slice(3);
+    if (rest.length === 0 && rows.length <= 3) {
+      // খুব কম ইউজার থাকলে পোডিয়াম-বহির্ভূত লিস্ট খালি
+      list.innerHTML = rows.length === 0
+        ? '<div style="text-align:center;padding:30px;color:var(--text-muted);">No champions yet. Be the first! 🚀</div>'
+        : '';
+    } else {
+      let html = '';
+      rest.forEach((r, i) => {
+        const u = r.data;
+        const av = u.avatar
+          ? `<img src="${escapeHTML(u.avatar)}">`
+          : avatarInitial(u.name);
+        html += `
+          <div class="lb-row ${r.isMe ? 'is-me' : ''}" style="animation-delay:${(i*0.04).toFixed(2)}s;" onclick="closeLeaderboard(); viewUserProfile('${r.id}')">
+            <div class="lb-rank">${r.rank}</div>
+            <div class="avatar">${av}</div>
+            <div class="lb-row-name">${escapeHTML(u.name)}${r.isMe ? ' (You)' : ''}</div>
+            <div class="lb-pts-pill"><span class="material-symbols-outlined">bolt</span>${formatLBNum(u.points||0)}</div>
+          </div>`;
+      });
+      list.innerHTML = html;
+    }
+
+  } catch (e) {
+    console.error(e);
+    list.innerHTML = '<div style="text-align:center;padding:20px;color:var(--danger);">Failed to load leaderboard.</div>';
+  }
 }
 
 function closeLeaderboard() {
@@ -7625,6 +7862,7 @@ let postDropdownHtml = `<div style="position:relative;margin-left:auto;">
 
 if(p.uid === currentUser?.uid){
     const pinText = p.isPinned ? 'Unpin Post' : 'Pin Post';
+    postDropdownHtml += `<div class="chat-dropdown-item" onclick="openPostInsights('${pid}')"><span class="material-symbols-outlined">insights</span> Post Insights</div>`;
     const pinIcon = p.isPinned ? 'ph-push-pin-slash' : 'ph-push-pin';
     postDropdownHtml += `
     <div class="chat-dropdown-item" onclick="pinPost('${pid}')">
@@ -11988,6 +12226,195 @@ if(document.readyState === 'loading'){
 } else { enhanceBottomNav(); }
 setTimeout(enhanceBottomNav, 800);   // সেফটি রি-ট্রাই
 setTimeout(enhanceBottomNav, 2000);
+// ==========================================
+// 📈 POST INSIGHTS SYSTEM
+// ==========================================
+
+// ১. Insights মডাল ওপেন (শুধু নিজের পোস্টে কল হবে)
+async function openPostInsights(pid){
+  closeAllDropdowns();
+  const modal = document.getElementById('post-insights-modal');
+  // লোডিং স্টেট
+  document.getElementById('pi-metrics').innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:30px;color:var(--text-muted);">Loading insights...</div>';
+  document.getElementById('pi-chart').innerHTML = '';
+  document.getElementById('pi-engagement').innerHTML = '';
+  document.getElementById('pi-elite-section').innerHTML = '';
+  document.getElementById('pi-post-title').textContent = '';
+  modal.classList.add('open');
+  modal.style.display = 'flex';
+
+  try{
+    const doc = await db.collection('posts').doc(pid).get();
+    if(!doc.exists){ showToast("Post not found"); closePostInsights(); return; }
+    const p = doc.data();
+
+    // নিরাপত্তা: শুধু নিজের পোস্টের ইনসাইট দেখাবে
+    if(p.uid !== currentUser.uid){ showToast("You can only view your own insights"); closePostInsights(); return; }
+
+    renderPostInsights(p);
+  }catch(e){
+    console.error(e);
+    showToast("Failed to load insights");
+    closePostInsights();
+  }
+}
+
+function closePostInsights(){
+  const modal = document.getElementById('post-insights-modal');
+  modal.classList.remove('open');
+  modal.style.display = 'none';
+}
+
+// ২. ইনসাইট রেন্ডার
+function renderPostInsights(p){
+  const views    = p.views || 0;
+  const likes    = (p.likedBy && p.likedBy.length) || 0;
+  const comments = (p.comments && p.comments.length) || 0;
+  const shares   = p.shareCount || 0;
+  const total    = likes + comments + shares;
+  const engRate  = views > 0 ? ((total / views) * 100) : 0;
+
+  // পোস্ট টাইটেল
+  document.getElementById('pi-post-title').textContent = p.title ? ('“' + p.title + '”') : '(Photo post)';
+  document.getElementById('pi-subtitle').textContent = 'Live performance • updated now';
+
+  // মেট্রিক কার্ড
+  const cards = [
+    {ico:'visibility',  val:views,    lbl:'Views',    grad:'linear-gradient(135deg,#60a5fa,#2563eb)'},
+    {ico:'favorite',    val:likes,    lbl:'Likes',    grad:'linear-gradient(135deg,#fb7185,#e11d48)'},
+    {ico:'chat_bubble', val:comments, lbl:'Comments', grad:'linear-gradient(135deg,#34d399,#059669)'},
+    {ico:'share',       val:shares,   lbl:'Shares',   grad:'linear-gradient(135deg,#fbbf24,#d97706)'}
+  ];
+  document.getElementById('pi-metrics').innerHTML = cards.map(c => `
+    <div class="pi-card">
+      <div class="pi-ico" style="background:${c.grad};"><span class="material-symbols-outlined" style="font-size:20px;">${c.ico}</span></div>
+      <div class="pi-val">${formatInsightNum(c.val)}</div>
+      <div class="pi-lbl">${c.lbl}</div>
+    </div>`).join('');
+
+  // এনগেজমেন্ট হাইলাইট
+  const engColor = engRate >= 8 ? '#22c55e' : (engRate >= 3 ? '#f59e0b' : '#94a3b8');
+  const engMsg = engRate >= 8 ? '🔥 Outstanding reach!' : (engRate >= 3 ? '👍 Performing well' : '💡 Try posting at peak hours');
+  document.getElementById('pi-engagement').innerHTML = `
+    <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;">Engagement Rate</div>
+    <div style="font-size:34px;font-weight:900;color:${engColor};margin:4px 0;">${engRate.toFixed(1)}%</div>
+    <div style="font-size:12px;color:var(--text-secondary);">${engMsg}</div>`;
+
+  // বার চার্ট
+  const max = Math.max(views, likes, comments, shares, 1);
+  const rows = [
+    {lbl:'Views',    val:views,    col:'#3b82f6'},
+    {lbl:'Likes',    val:likes,    col:'#e11d48'},
+    {lbl:'Comments', val:comments, col:'#059669'},
+    {lbl:'Shares',   val:shares,   col:'#d97706'}
+  ];
+  document.getElementById('pi-chart').innerHTML = rows.map(r => `
+    <div class="pi-bar-row">
+      <div class="pi-bar-lbl">${r.lbl}</div>
+      <div class="pi-bar-track"><div class="pi-bar-fill" data-w="${(r.val/max*100).toFixed(1)}" style="background:${r.col};"></div></div>
+      <div class="pi-bar-num">${formatInsightNum(r.val)}</div>
+    </div>`).join('');
+  // অ্যানিমেটেড ফিল
+  setTimeout(()=>{ document.querySelectorAll('#pi-chart .pi-bar-fill').forEach(b=> b.style.width = (b.dataset.w || 0) + '%'); }, 80);
+
+  // এলিট সেকশন
+  renderInsightsElitePanel(p, {views, likes, comments, shares, engRate});
+}
+
+// ৩. এলিট প্যানেল (লক / আনলক)
+function renderInsightsElitePanel(p, m){
+  const isElite = (currentUserData.isVerified === true) || (currentUserData.isElite === true);
+  const box = document.getElementById('pi-elite-section');
+
+  // বাস্তব ডাটা থেকে computed রেটিও (fake না)
+  const likeRate    = m.views ? (m.likes / m.views * 100) : 0;
+  const commentRate = m.views ? (m.comments / m.views * 100) : 0;
+  const shareRate   = m.views ? (m.shares / m.views * 100) : 0;
+  const ageDays     = p.createdAt ? Math.max(1, Math.floor((Date.now() - (p.createdAt.toMillis ? p.createdAt.toMillis() : p.createdAt)) / 86400000)) : 1;
+  const avgDailyView= Math.round(m.views / ageDays);
+
+  const detailHTML = `
+    <div style="padding:16px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
+        <span class="material-symbols-outlined" style="color:#d97706;">workspace_premium</span>
+        <span style="font-weight:800;font-size:14px;color:var(--text);">Audience Quality</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px;">
+        ${eliteMeter('Like rate', likeRate, '#e11d48')}
+        ${eliteMeter('Comment rate', commentRate, '#059669')}
+        ${eliteMeter('Share rate', shareRate, '#d97706')}
+      </div>
+      <div style="display:flex;gap:12px;margin-top:16px;">
+        <div style="flex:1;background:var(--surface-2);border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center;">
+          <div style="font-size:20px;font-weight:900;color:var(--text);">${formatInsightNum(avgDailyView)}</div>
+          <div style="font-size:10px;color:var(--text-muted);font-weight:700;">AVG VIEWS / DAY</div>
+        </div>
+        <div style="flex:1;background:var(--surface-2);border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center;">
+          <div style="font-size:20px;font-weight:900;color:var(--text);">${ageDays}d</div>
+          <div style="font-size:10px;color:var(--text-muted);font-weight:700;">POST AGE</div>
+        </div>
+      </div>
+      <div style="margin-top:14px;font-size:12px;color:var(--text-secondary);line-height:1.5;background:var(--accent-glow);padding:10px 12px;border-radius:12px;">
+        💡 ${likeRate > commentRate ? 'Your audience loves reacting — post more visual content!' : 'Strong conversations — ask questions to boost comments further.'}
+      </div>
+    </div>`;
+
+  if(isElite){
+    box.innerHTML = `<div class="pi-locked" style="border-color:rgba(212,175,55,.5);">${detailHTML}</div>`;
+  } else {
+    box.innerHTML = `
+      <div class="pi-locked">
+        <div class="pi-locked-blur">${detailHTML}</div>
+        <div class="pi-locked-overlay">
+          <span class="material-symbols-outlined" style="font-size:34px;color:#fbbf24;">lock</span>
+          <div style="font-weight:800;font-size:15px;color:#fff;">Detailed Analytics</div>
+          <div style="font-size:12px;color:rgba(255,255,255,.85);max-width:240px;">Unlock audience quality, daily reach & smart tips with Elite GoChat.</div>
+          <button onclick="closePostInsights(); openEliteGoChat();"><span class="material-symbols-outlined" style="font-size:16px;">workspace_premium</span> Unlock Elite</button>
+        </div>
+      </div>`;
+  }
+}
+
+function eliteMeter(label, pct, col){
+  const v = Math.min(pct, 100);
+  return `
+    <div>
+      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px;">
+        <span style="color:var(--text-secondary);font-weight:600;">${label}</span>
+        <span style="color:var(--text);font-weight:800;">${pct.toFixed(1)}%</span>
+      </div>
+      <div class="pi-bar-track"><div class="pi-bar-fill" data-w="${v.toFixed(1)}" style="background:${col};"></div></div>
+    </div>`;
+}
+
+function formatInsightNum(n){
+  n = n || 0;
+  if(n >= 1000000) return (n/1000000).toFixed(1).replace(/\.0$/,'') + 'M';
+  if(n >= 1000)    return (n/1000).toFixed(1).replace(/\.0$/,'') + 'K';
+  return String(n);
+}
+
+// ৪. View Tracking — openSinglePostView কে wrap করে (owner বাদে) ভিউ বাড়াবে
+(function patchViewTracking(){
+  const _orig = window.openSinglePostView;
+  if(typeof _orig !== 'function') return;
+  window.openSinglePostView = function(pid, ...rest){
+    const ret = _orig.apply(this, [pid, ...rest]);
+    // এক session-এ এক পোস্ট একবারই গণনা (honest unique-ish view)
+    try{
+      const flag = 'pi_viewed_' + pid;
+      if(!sessionStorage.getItem(flag)){
+        db.collection('posts').doc(pid).get().then(d=>{
+          if(d.exists && d.data().uid !== currentUser.uid){
+            db.collection('posts').doc(pid).update({ views: firebase.firestore.FieldValue.increment(1) }).catch(()=>{});
+            sessionStorage.setItem(flag, '1');
+          }
+        }).catch(()=>{});
+      }
+    }catch(e){}
+    return ret;
+  };
+})();
 </script>
 </body>
 </html>
