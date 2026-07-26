@@ -3549,6 +3549,275 @@ MODERN USERNAME SYSTEM STYLES
 @keyframes nfPop{ from{ transform:scale(0); } to{ transform:scale(1); } }
 @keyframes nfPulse{ 0%{ box-shadow:0 0 0 0 color-mix(in srgb,var(--accent) 55%, transparent);} 70%{ box-shadow:0 0 0 8px transparent;} 100%{ box-shadow:0 0 0 0 transparent;} }
 @keyframes nfFloat{ 0%,100%{ transform:translateY(0);} 50%{ transform:translateY(-7px);} }
+
+/* =========================================
+   CREATE POST — STUDIO CANVAS REDESIGN
+   (openCreatePost/submitPost/onclick সব অক্ষত)
+========================================= */
+#create-post-screen{ position:relative; overflow:hidden; }
+
+/* পেছনের স্তরযুক্ত পরিবেশ (texture + tint wash) */
+#create-post-screen::before{
+  content:''; position:absolute; inset:0; z-index:0; pointer-events:none;
+  background:
+    radial-gradient(120% 60% at 12% -10%, color-mix(in srgb, var(--accent) 12%, transparent), transparent 60%),
+    radial-gradient(90% 50% at 95% 0%, color-mix(in srgb, #f59e0b 9%, transparent), transparent 62%);
+}
+#create-post-screen::after{
+  content:''; position:absolute; inset:0; z-index:0; pointer-events:none; opacity:.5;
+  background-image:radial-gradient(color-mix(in srgb, var(--text) 7%, transparent) 1px, transparent 1.4px);
+  background-size:22px 22px;
+  -webkit-mask-image:linear-gradient(180deg, #000, transparent 70%);
+          mask-image:linear-gradient(180deg, #000, transparent 70%);
+}
+#create-post-screen > *{ position:relative; z-index:1; }
+
+/* ভাসমান কণা (JS inject করবে) */
+.cp-ambient{ position:absolute; inset:0; z-index:0; pointer-events:none; overflow:hidden; }
+.cp-ambient i{
+  position:absolute; bottom:-12px; border-radius:50%;
+  background:radial-gradient(circle, color-mix(in srgb,var(--accent) 50%, transparent), transparent 70%);
+  animation:cpFloat linear infinite; opacity:.0;
+}
+@keyframes cpFloat{
+  0%{ transform:translateY(0) scale(.6); opacity:0; }
+  12%{ opacity:.55; }
+  88%{ opacity:.4; }
+  100%{ transform:translateY(-92vh) scale(1.1); opacity:0; }
+}
+
+/* ---- হেডার ---- */
+#create-post-screen .chat-topbar,
+#create-post-screen [class*="topbar"]{
+  backdrop-filter:blur(8px); background:color-mix(in srgb, var(--surface) 78%, transparent);
+  border-bottom:1px solid var(--border);
+  animation:cpDrop .5s cubic-bezier(.22,1,.36,1) backwards;
+}
+/* ক্লোজ বাটন */
+#create-post-screen .chat-back{
+  width:42px; height:42px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+  background:var(--surface-2); border:1px solid var(--border); transition:transform .18s, background .2s, color .2s;
+}
+#create-post-screen .chat-back:hover{ background:var(--surface); color:var(--danger); }
+#create-post-screen .chat-back:active{ transform:scale(.86) rotate(-8deg); }
+
+/* টাইটেল — display treatment */
+.cp-title-wrap{ display:flex; flex-direction:column; gap:2px; }
+.cp-title-wrap .cp-title{
+  font-size:22px; font-weight:900; letter-spacing:-.8px; line-height:1; color:var(--text);
+  position:relative; width:fit-content;
+}
+.cp-title-wrap .cp-title::after{
+  content:''; position:absolute; left:0; bottom:-4px; height:3px; width:38%;
+  border-radius:3px; background:linear-gradient(90deg, var(--accent), transparent);
+}
+.cp-title-wrap .cp-sub{ font-size:10.5px; font-weight:700; letter-spacing:1.4px; text-transform:uppercase; color:var(--text-muted); }
+
+/* Post বাটন — disabled vs enabled */
+#create-post-screen .compose-btn,
+#create-post-screen #modal-post-btn{
+  border:none; border-radius:30px; padding:10px 24px; font-weight:800; font-size:14px; letter-spacing:.2px;
+  cursor:pointer; position:relative; overflow:hidden;
+  transition:transform .2s cubic-bezier(.34,1.56,.64,1), box-shadow .3s, opacity .3s, filter .3s;
+}
+#create-post-screen #modal-post-btn[disabled]{
+  background:var(--surface-2); color:var(--text-muted); opacity:1; box-shadow:none; cursor:not-allowed;
+}
+#create-post-screen #modal-post-btn:not([disabled]){
+  background:linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 55%, #f59e0b));
+  color:#fff; box-shadow:0 10px 24px -8px color-mix(in srgb, var(--accent) 70%, transparent);
+  animation:cpBtnIn .45s cubic-bezier(.34,1.56,.64,1);
+}
+#create-post-screen #modal-post-btn:not([disabled]):active{ transform:scale(.93); }
+#create-post-screen #modal-post-btn:not([disabled])::after{
+  content:''; position:absolute; top:0; left:-60%; width:45%; height:100%;
+  background:linear-gradient(120deg, transparent, rgba(255,255,255,.45), transparent);
+  transform:skewX(-20deg); animation:cpShimmer 3.2s ease-in-out infinite;
+}
+
+/* ---- কম্পোজার বডি ---- */
+.cp-composer{ animation:cpRise .55s cubic-bezier(.22,1,.36,1) .08s backwards; }
+.cp-composer .avatar, .cp-composer [id*="composer-avatar"]{
+  position:relative; box-shadow:0 0 0 3px var(--surface), 0 0 0 5px color-mix(in srgb, var(--accent) 45%, transparent), 0 8px 18px -8px rgba(0,0,0,.4);
+}
+/* drafting pulse dot (নামের পাশে JS দেবে) */
+.cp-draft-dot{
+  width:7px; height:7px; border-radius:50%; background:var(--accent); margin-left:8px; vertical-align:middle;
+  box-shadow:0 0 0 0 color-mix(in srgb, var(--accent) 60%, transparent); animation:cpPulse 1.8s ease-out infinite;
+}
+
+/* টেক্সট এরিয়া */
+#create-post-screen #post-title{
+  font-size:19px; line-height:1.5; font-weight:600; color:var(--text); background:transparent;
+  border-radius:18px; padding:6px 4px; transition:box-shadow .3s, background .3s; caret-color:var(--accent);
+}
+#create-post-screen #post-title::placeholder{ color:var(--text-muted); font-weight:600; transition:opacity .35s; }
+#create-post-screen #post-title:focus{
+  background:color-mix(in srgb, var(--accent) 5%, transparent);
+  box-shadow:0 0 0 4px color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+/* লাইভ stats (JS inject) */
+.cp-live-stats{
+  display:flex; align-items:center; gap:10px; margin-top:8px; font-size:11px; font-weight:700; color:var(--text-muted);
+  opacity:0; transform:translateY(-4px); transition:opacity .3s, transform .3s;
+}
+.cp-live-stats.show{ opacity:1; transform:translateY(0); }
+.cp-live-stats .cp-stat{ display:flex; align-items:center; gap:4px; }
+.cp-live-stats .cp-stat .material-symbols-outlined{ font-size:14px; color:var(--accent); }
+.cp-live-stats .cp-sep{ width:3px; height:3px; border-radius:50%; background:var(--border); }
+.cp-live-stats.warn{ color:#f59e0b; }
+
+/* ইমেজ প্রিভিউ কার্ড reveal */
+#create-post-screen #compose-img-preview{ animation:cpRise .4s ease backwards; }
+#create-post-screen .compose-img-grid > *{ animation:cpPop .4s cubic-bezier(.34,1.56,.64,1) backwards; }
+
+/* bg color picker polish */
+#create-post-screen .color-circle{ transition:transform .2s, box-shadow .2s; }
+#create-post-screen .color-circle.selected{ box-shadow:0 0 0 3px var(--surface), 0 0 0 5px var(--accent); }
+
+/* ---- টুলবার ---- */
+.cp-toolbar-v2{
+  display:flex; align-items:center; gap:10px; padding:12px 16px;
+  border-top:1px solid var(--border);
+  background:color-mix(in srgb, var(--surface) 85%, transparent); backdrop-filter:blur(8px);
+  animation:cpRise .5s cubic-bezier(.22,1,.36,1) .16s backwards;
+}
+.cp-toolbar-v2 .cp-add-label{
+  font-size:11px; font-weight:800; letter-spacing:.6px; text-transform:uppercase; color:var(--text-secondary);
+  padding:7px 12px; border-radius:30px; background:var(--surface-2); border:1px solid var(--border); white-space:nowrap;
+}
+.cp-toolbar-v2 .cp-tools{ display:flex; align-items:center; gap:8px; margin-left:auto; }
+.cp-tool{
+  position:relative; overflow:hidden; transition:transform .25s cubic-bezier(.34,1.56,.64,1), box-shadow .25s;
+  animation:cpPop .45s cubic-bezier(.34,1.56,.64,1) backwards;
+}
+.cp-tool:hover{ transform:translateY(-3px) scale(1.06); box-shadow:0 10px 20px -10px var(--cp-halo, rgba(124,92,255,.5)); }
+.cp-tool:active{ transform:scale(.9); }
+/* ripple */
+.cp-ripple{
+  position:absolute; border-radius:50%; transform:scale(0); pointer-events:none;
+  background:color-mix(in srgb, var(--cp-halo, var(--accent)) 60%, #fff);
+  animation:cpRipple .6s ease-out forwards;
+}
+
+@keyframes cpDrop{ from{ opacity:0; transform:translateY(-12px);} to{ opacity:1; transform:translateY(0);} }
+@keyframes cpRise{ from{ opacity:0; transform:translateY(16px);} to{ opacity:1; transform:translateY(0);} }
+@keyframes cpPop{ from{ opacity:0; transform:scale(.5);} to{ opacity:1; transform:scale(1);} }
+@keyframes cpBtnIn{ 0%{ transform:scale(.7);} 60%{ transform:scale(1.08);} 100%{ transform:scale(1);} }
+@keyframes cpShimmer{ 0%{ left:-60%;} 55%,100%{ left:135%;} }
+@keyframes cpPulse{ 0%{ box-shadow:0 0 0 0 color-mix(in srgb,var(--accent) 60%, transparent);} 70%{ box-shadow:0 0 0 7px transparent;} 100%{ box-shadow:0 0 0 0 transparent;} }
+@keyframes cpRipple{ to{ transform:scale(2.6); opacity:0;} }
+
+/* ═══════════════════════════════════════════════════════
+   🎨 NEW DESIGN  ·  menu-redesign  ·  2026-07-26
+   চেহারা-পরিবর্তন  |  onclick/ফিচার অক্ষত  |  scoped override
+   শুধু #main-menu-এর .mi-done আইটেমে  |  Settings স্ক্রিন অছোঁয়া
+   খুঁজতে:  Ctrl+F → "menu-redesign"
+   ═══════════════════════════════════════════════════════ */
+
+/* পেছনের পরিবেশগত স্তর (glow + dotted) */
+#main-menu-screen.mi-redesign{ background:var(--bg); }
+#main-menu-screen.mi-redesign::before{
+  content:''; position:fixed; inset:0; z-index:0; pointer-events:none;
+  background:
+    radial-gradient(80% 48% at 14% -6%, color-mix(in srgb, var(--accent) 15%, transparent), transparent 60%),
+    radial-gradient(60% 42% at 96% -2%, color-mix(in srgb, #f59e0b 11%, transparent), transparent 66%);
+}
+#main-menu-screen.mi-redesign::after{
+  content:''; position:fixed; inset:0; z-index:0; pointer-events:none; opacity:.5;
+  background-image:radial-gradient(color-mix(in srgb, var(--text) 6%, transparent) 1px, transparent 1.4px);
+  background-size:22px 22px;
+  -webkit-mask-image:linear-gradient(180deg, #000, transparent 52%);
+          mask-image:linear-gradient(180deg, #000, transparent 52%);
+}
+#main-menu-screen.mi-redesign > *{ position:relative; z-index:1; }
+
+/* হেডার ট্রিটমেন্ট */
+.mi-title-wrap{ display:flex; flex-direction:column; gap:3px; }
+.mi-menu-title{ font-size:27px !important; font-weight:900 !important; letter-spacing:-1px; line-height:1; color:var(--text); }
+.mi-menu-sub{ font-size:10.5px; font-weight:800; letter-spacing:1.4px; text-transform:uppercase; color:var(--text-muted); }
+
+/* সার্চ বার */
+.mi-search-wrap input{
+  background:var(--surface) !important; border:1.5px solid var(--border) !important;
+  border-radius:16px !important; padding:14px 16px 14px 46px !important; font-size:15px !important;
+  box-shadow:0 8px 22px -16px rgba(0,0,0,.5); transition:border-color .25s, box-shadow .25s;
+}
+.mi-search-wrap input:focus{ border-color:var(--accent) !important; box-shadow:0 0 0 4px var(--accent-glow); }
+
+/* গ্রুপ হেডার */
+.mi-section-head{ display:flex; align-items:center; gap:9px; padding:20px 8px 8px; }
+.mi-section-head::before{ content:''; width:6px; height:6px; border-radius:50%; background:var(--accent); flex-shrink:0; }
+.mi-section-head span{ font-size:11px; font-weight:800; letter-spacing:1.5px; text-transform:uppercase; color:var(--text-muted); }
+
+/* আইটেম কার্ড (শুধু .mi-done — অর্থাৎ মেনুর নিজের আইটেম) */
+#main-menu-screen .settings-list-item.mi-done{
+  position:relative; display:flex; align-items:center; gap:14px;
+  padding:13px 14px; border-radius:18px; border:1px solid var(--border);
+  background:var(--surface); cursor:pointer; overflow:hidden;
+  box-shadow:0 6px 18px -14px rgba(0,0,0,.5);
+  transition:transform .18s ease, border-color .2s ease, box-shadow .25s ease, background .2s ease;
+}
+#main-menu-screen .settings-list-item.mi-done:active{ opacity:1 !important; transform:scale(.975); }
+#main-menu-screen .settings-list-item.mi-done:hover{
+  transform:translateY(-2px);
+  border-color:color-mix(in srgb, var(--mi-accent, var(--accent)) 42%, var(--border));
+  box-shadow:0 16px 30px -18px color-mix(in srgb, var(--mi-accent, var(--accent)) 60%, transparent);
+}
+
+/* আইকন tile */
+#main-menu-screen .mi-done .mi-lead{
+  width:46px; height:46px; border-radius:14px; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  background:color-mix(in srgb, var(--mi-accent, #8b5cf6) 15%, transparent);
+  color:var(--mi-accent, #8b5cf6) !important; font-size:23px !important;
+  transition:transform .25s cubic-bezier(.34,1.56,.64,1), background .25s;
+}
+#main-menu-screen .mi-done:hover .mi-lead{ transform:scale(1.08) rotate(-3deg); }
+
+/* টেক্সট স্তর */
+#main-menu-screen .mi-done .mi-textwrap{ display:flex; flex-direction:column; gap:2px; flex:1; min-width:0; }
+#main-menu-screen .mi-done .mi-name{ font-size:15px !important; font-weight:700 !important; color:var(--text) !important; line-height:1.2; }
+#main-menu-screen .mi-done .mi-desc{
+  font-size:12px; color:var(--text-muted); font-weight:500; line-height:1.3;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+
+/* chevron */
+#main-menu-screen .mi-done .mi-chevron{ color:var(--text-muted); transition:transform .25s ease, color .25s ease; }
+#main-menu-screen .mi-done:hover .mi-chevron{ transform:translateX(4px); color:var(--mi-accent, var(--accent)); }
+
+/* Featured — Elite GoChat (গোল্ডেন প্রিমিয়াম কার্ড) */
+#main-menu-screen .mi-done.mi-featured{
+  padding:16px; border-color:color-mix(in srgb, #d97706 45%, var(--border));
+  background:linear-gradient(120deg, color-mix(in srgb, #fbbf24 24%, var(--surface)), color-mix(in srgb, #f59e0b 12%, var(--surface)) 72%);
+  box-shadow:0 16px 34px -18px rgba(217,119,6,.55);
+}
+#main-menu-screen .mi-done.mi-featured .mi-name{ color:#7a4f00 !important; font-size:16px !important; }
+#main-menu-screen .mi-done.mi-featured .mi-desc{ color:#9a6a14; }
+#main-menu-screen .mi-done.mi-featured .mi-lead{
+  background:linear-gradient(135deg, #fbbf24, #d97706); color:#fff !important;
+  box-shadow:0 8px 18px -6px rgba(217,119,6,.6);
+}
+#main-menu-screen .mi-done.mi-featured .mi-chevron{ color:#b07d18; }
+#main-menu-screen .mi-done.mi-featured::after{
+  content:''; position:absolute; top:0; left:-60%; width:42%; height:100%;
+  background:linear-gradient(120deg, transparent, rgba(255,255,255,.4), transparent);
+  transform:skewX(-20deg); pointer-events:none; animation:miShimmer 4.2s ease-in-out infinite;
+}
+
+/* Danger — Log out */
+#main-menu-screen .mi-done.mi-danger{
+  margin-top:14px !important;
+  background:color-mix(in srgb, var(--danger, #ef4444) 8%, var(--surface));
+  border-color:color-mix(in srgb, var(--danger, #ef4444) 32%, var(--border));
+}
+#main-menu-screen .mi-done.mi-danger .mi-name{ color:var(--danger, #ef4444) !important; }
+#main-menu-screen .mi-done.mi-danger:hover{ border-color:var(--danger, #ef4444); box-shadow:0 16px 30px -18px rgba(239,68,68,.5); }
+
+@keyframes miShimmer{ 0%{ left:-60%; } 55%,100%{ left:135%; } }
+@keyframes miRise{ from{ opacity:0; transform:translateY(14px); } to{ opacity:1; transform:translateY(0); } }
 </style>
 
 <style>
@@ -12727,6 +12996,372 @@ function enhanceNotifications(){
     if(list && !nfObserver){
       nfObserver = new MutationObserver(()=> { enhanceNotifications(); });
       nfObserver.observe(list, { childList:true, subtree:true, attributes:true, attributeFilter:['class'] });
+    }
+  };
+  setTimeout(watch, 1200); setTimeout(watch, 3200);
+})();
+// ==========================================
+// ✍️ CREATE POST — STUDIO ENHANCER (visual only)
+// (openCreatePost/closeCreatePost/submitPost/onclick অক্ষত)
+// ==========================================
+const CP_PLACEHOLDERS = [
+  "What's on your mind?",
+  "Share a moment with everyone…",
+  "Tell your story…",
+  "What made you smile today?",
+  "Drop a thought, a photo, a vibe…"
+];
+const CP_TOOL_HALOS = [
+  'rgba(245,158,11,.55)',  // palette
+  'rgba(255,77,106,.55)',  // feeling
+  'rgba(29,161,242,.55)',  // tag
+  'rgba(34,197,94,.55)'    // image
+];
+let cpPhIdx = 0, cpPhTimer = null;
+
+function cpScreen(){ return document.getElementById('create-post-screen'); }
+
+function cpBuildAmbient(screen){
+  if(screen.querySelector('.cp-ambient')) return;
+  const wrap = document.createElement('div');
+  wrap.className = 'cp-ambient';
+  let html = '';
+  for(let i=0;i<14;i++){
+    const s = 4 + Math.random()*10;
+    const left = Math.random()*100;
+    const dur = 9 + Math.random()*10;
+    const delay = Math.random()*9;
+    html += `<i style="width:${s}px;height:${s}px;left:${left}%;animation-duration:${dur}s;animation-delay:${delay}s;"></i>`;
+  }
+  wrap.innerHTML = html;
+  screen.insertBefore(wrap, screen.firstChild);
+}
+
+function cpBuildTitle(){
+  const screen = cpScreen(); if(!screen) return;
+  // "Create Post" টেক্সট খোঁজা (topbar-এর ভেতরে)
+  const cands = screen.querySelectorAll('div,span,h1,h2,h3');
+  let titleEl = null;
+  for(const el of cands){
+    if(el.children.length === 0 && /^\s*Create Post\s*$/.test(el.textContent||'')){ titleEl = el; break; }
+  }
+  if(!titleEl || titleEl.closest('.cp-title-wrap')) return;
+  const wrap = document.createElement('div');
+  wrap.className = 'cp-title-wrap';
+  titleEl.classList.add('cp-title');
+  const sub = document.createElement('div');
+  sub.className = 'cp-sub'; sub.textContent = 'Compose';
+  wrap.appendChild(titleEl); wrap.appendChild(sub);
+  // parent-এ titleEl-এর জায়গায় wrap বসানো
+  titleEl.parentNode.insertBefore(wrap, titleEl);
+  wrap.appendChild(titleEl); // move into wrap
+}
+
+function cpBuildComposer(){
+  const screen = cpScreen(); if(!screen) return;
+  const ta = screen.querySelector('#post-title'); if(!ta) return;
+  const composer = ta.closest('div[style*="padding"], div');
+  if(composer && !composer.classList.contains('cp-composer')) composer.classList.add('cp-composer');
+
+  // drafting dot (নামের পাশে, একবারই)
+  const nameEl = screen.querySelector('#modal-composer-name');
+  if(nameEl && !nameEl.querySelector('.cp-draft-dot')){
+    const dot = document.createElement('span');
+    dot.className = 'cp-draft-dot'; dot.title = 'Drafting';
+    nameEl.appendChild(dot);
+  }
+
+  // লাইভ stats (একবারই)
+  if(!screen.querySelector('.cp-live-stats')){
+    const stats = document.createElement('div');
+    stats.className = 'cp-live-stats';
+    stats.innerHTML = `
+      <span class="cp-stat"><span class="material-symbols-outlined">edit_note</span><b class="cp-words">0</b> words</span>
+      <span class="cp-sep"></span>
+      <span class="cp-stat"><span class="material-symbols-outlined">text_fields</span><b class="cp-chars">0</b> chars</span>`;
+    ta.insertAdjacentElement('afterend', stats);
+
+    const update = ()=>{
+      const v = ta.value;
+      const words = (v.trim().match(/\S+/g) || []).length;
+      stats.querySelector('.cp-words').textContent = words;
+      stats.querySelector('.cp-chars').textContent = v.length;
+      stats.classList.toggle('show', v.length > 0);
+      stats.classList.toggle('warn', v.length > 4500);
+    };
+    ta.addEventListener('input', update);
+    ta.addEventListener('focus', ()=>{ stopCpPlaceholder(); });
+    ta.addEventListener('blur', ()=>{ if(!ta.value) startCpPlaceholder(ta); });
+    update();
+    if(!ta.value) startCpPlaceholder(ta);
+  }
+}
+
+function startCpPlaceholder(ta){
+  stopCpPlaceholder();
+  cpPhTimer = setInterval(()=>{
+    if(document.activeElement === ta || ta.value){ stopCpPlaceholder(); return; }
+    cpPhIdx = (cpPhIdx + 1) % CP_PLACEHOLDERS.length;
+    ta.style.opacity = '0';                       // placeholder সহ fade (textarea-এর text খালি তাই নিরাপদ)
+    setTimeout(()=>{
+      if(!ta.value){ ta.placeholder = CP_PLACEHOLDERS[cpPhIdx]; }
+      ta.style.opacity = '1';
+    }, 180);
+  }, 3000);
+}
+function stopCpPlaceholder(){ if(cpPhTimer){ clearInterval(cpPhTimer); cpPhTimer = null; } }
+
+function cpBuildToolbar(){
+  const screen = cpScreen(); if(!screen) return;
+  // "Add to your post" লেখা খুঁজে তার parent-কে toolbar ধরা
+  const all = screen.querySelectorAll('div,span');
+  let labelEl = null;
+  for(const el of all){
+    if(el.children.length === 0 && /add to your post/i.test(el.textContent||'')){ labelEl = el; break; }
+  }
+  if(!labelEl) return;
+  const bar = labelEl.parentElement;
+  if(!bar || bar.classList.contains('cp-toolbar-v2')) return;
+  bar.classList.add('cp-toolbar-v2');
+
+  labelEl.classList.add('cp-add-label');
+
+  // interactive children গুলোকে .cp-tools wrapper-এ গুছানো + halo/ripple
+  const kids = [...bar.children].filter(c => c !== labelEl);
+  let toolsWrap = bar.querySelector('.cp-tools');
+  if(!toolsWrap){
+    toolsWrap = document.createElement('div');
+    toolsWrap.className = 'cp-tools';
+    bar.appendChild(toolsWrap);
+    kids.forEach(k => toolsWrap.appendChild(k));
+  }
+  [...toolsWrap.children].forEach((tool, i)=>{
+    tool.classList.add('cp-tool');
+    tool.style.setProperty('--cp-halo', CP_TOOL_HALOS[i] || CP_TOOL_HALOS[0]);
+    tool.style.animationDelay = (0.18 + i*0.07).toFixed(2) + 's';
+    // ripple (visual only — onclick অক্ষত, event cancel নয়)
+    if(!tool.dataset.cpRipple){
+      tool.dataset.cpRipple = '1';
+      tool.addEventListener('pointerdown', (e)=>{
+        const r = tool.getBoundingClientRect();
+        const size = Math.max(r.width, r.height);
+        const span = document.createElement('span');
+        span.className = 'cp-ripple';
+        span.style.width = span.style.height = size + 'px';
+        span.style.left = (e.clientX - r.left - size/2) + 'px';
+        span.style.top  = (e.clientY - r.top  - size/2) + 'px';
+        tool.appendChild(span);
+        setTimeout(()=> span.remove(), 650);
+      });
+    }
+  });
+}
+
+function enhanceCreatePost(){
+  const screen = cpScreen();
+  if(!screen || !screen.classList.contains('open')) return;
+  if(screen.dataset.cpEnhanced === '1'){
+    // ইতিমধ্যে enhance হলে শুধু placeholder চালু রাখা
+    const ta = screen.querySelector('#post-title');
+    if(ta && !ta.value && !cpPhTimer) startCpPlaceholder(ta);
+    return;
+  }
+  screen.dataset.cpEnhanced = '1';
+  cpBuildAmbient(screen);
+  cpBuildTitle();
+  cpBuildComposer();
+  cpBuildToolbar();
+}
+
+function resetCreatePostEnhance(){
+  const screen = cpScreen(); if(!screen) return;
+  screen.dataset.cpEnhanced = '0';
+  stopCpPlaceholder();
+}
+
+// open/close hook — বিদ্যমান ফাংশনকে wrap (লজিক অক্ষত)
+(function cpHookOpenClose(){
+  const wrap = (name, after)=>{
+    const orig = window[name];
+    if(typeof orig !== 'function') return;
+    window[name] = function(...a){ const r = orig.apply(this, a); after(); return r; };
+  };
+  const tryHook = ()=>{
+    if(typeof window.openCreatePost === 'function' && !window.openCreatePost.__cpWrapped){
+      const o = window.openCreatePost;
+      window.openCreatePost = function(...a){ const r = o.apply(this,a); setTimeout(enhanceCreatePost, 60); return r; };
+      window.openCreatePost.__cpWrapped = true;
+    }
+    if(typeof window.closeCreatePost === 'function' && !window.closeCreatePost.__cpWrapped){
+      const c = window.closeCreatePost;
+      window.closeCreatePost = function(...a){ resetCreatePostEnhance(); return c.apply(this,a); };
+      window.closeCreatePost.__cpWrapped = true;
+    }
+  };
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', tryHook);
+  else tryHook();
+  setTimeout(tryHook, 900); setTimeout(tryHook, 2200);
+})();
+
+// সেফটি: ক্লাস পরিবর্তন ধরেও enhance
+(function cpObserve(){
+  const run = ()=>{
+    const screen = cpScreen(); if(!screen) return;
+    if(screen.classList.contains('open')) enhanceCreatePost();
+  };
+  let obs = null;
+  const attach = ()=>{
+    const screen = cpScreen();
+    if(screen && !obs){
+      obs = new MutationObserver(run);
+      obs.observe(screen, { attributes:true, attributeFilter:['class'] });
+    }
+    run();
+  };
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', attach);
+  else attach();
+  setTimeout(attach, 1000); setTimeout(attach, 2500);
+})();
+// ═══════════════════════════════════════════════════════
+// 🎨 NEW DESIGN  ·  menu-redesign  ·  2026-07-26
+// visual-only enhancer  |  onclick/ফিচার/সার্চ-লজিক অক্ষত
+// শুধু #main-menu-screen  |  Settings স্ক্রিন বাদ (closest চেক)
+// খুঁজতে:  Ctrl+F → "menu-redesign"
+// ═══════════════════════════════════════════════════════
+function miClassify(name, oc){
+  const s = (name + ' ' + oc).toLowerCase();
+  if(/log\s*out|logout|dologout/.test(s))        return {role:'danger',   group:null,              accent:'#ef4444', desc:'Sign out of your account'};
+  if(/elite/.test(s))                              return {role:'featured', group:null,              accent:'#d97706', desc:'Unlock badge, perks & priority'};
+  if(/categor/.test(s))                            return {role:'item',     group:'Discover',        accent:'#10b981', desc:'Browse posts by mood'};
+  if(/memor/.test(s))                              return {role:'item',     group:'Discover',        accent:'#a78bfa', desc:'Relive your past moments'};
+  if(/saved|bookmark/.test(s))                     return {role:'item',     group:'Discover',        accent:'#8b5cf6', desc:'Posts you bookmarked'};
+  if(/setting|privacy/.test(s))                    return {role:'item',     group:'Account & Tools', accent:'#64748b', desc:'Manage account & privacy'};
+  if(/active\s*time|activetime/.test(s))           return {role:'item',     group:'Account & Tools', accent:'#3b82f6', desc:'Your daily usage stats'};
+  if(/support|help/.test(s))                       return {role:'item',     group:'Account & Tools', accent:'#2563eb', desc:"We're here to help you"};
+  return {role:'item', group:'More', accent:'#8b5cf6', desc:''};
+}
+
+function enhanceMainMenu(){
+  const screen = document.getElementById('main-menu-screen');
+  if(!screen) return;
+  screen.classList.add('mi-redesign');
+
+  // হেডার (একবার)
+  if(!screen.querySelector('.mi-title-wrap')){
+    const title = screen.querySelector('.chat-name');
+    if(title && !title.classList.contains('mi-menu-title')){
+      const wrap = document.createElement('div'); wrap.className = 'mi-title-wrap';
+      title.classList.add('mi-menu-title');
+      const sub = document.createElement('div'); sub.className = 'mi-menu-sub'; sub.textContent = 'Your Space';
+      title.parentNode.insertBefore(wrap, title);
+      wrap.appendChild(title); wrap.appendChild(sub);
+    }
+  }
+
+  // সার্চ বার (একবার)
+  if(!screen.querySelector('.mi-search-wrap')){
+    const inp = [...screen.querySelectorAll('input')].find(i => /search/i.test(i.placeholder || ''));
+    if(inp && inp.parentElement) inp.parentElement.classList.add('mi-search-wrap');
+  }
+
+  // আইটেমগুলো (Settings স্ক্রিনের আইটেম বাদ)
+  const items = [...screen.querySelectorAll('.settings-list-item')]
+                  .filter(el => !el.closest('#main-settings-screen, #settings-sub-menu'));
+
+  let prevGroup = null, idx = 0;
+  items.forEach(item => {
+    if(item.classList.contains('mi-done')) { // আগে enhance হলে শুধু delay রিসেট নয়, skip
+      return;
+    }
+    const nameEl = [...item.querySelectorAll('span,div')].find(e => e.children.length === 0 && e.textContent.trim() && !e.classList.contains('material-symbols-outlined') && !/ph-/.test(e.className));
+    const name = nameEl ? nameEl.textContent.trim() : item.textContent;
+    const oc = item.getAttribute('onclick') || '';
+    const c = miClassify(name, oc);
+
+    item.classList.add('mi-done');
+    if(c.role === 'featured') item.classList.add('mi-featured');
+    if(c.role === 'danger')   item.classList.add('mi-danger');
+    item.style.setProperty('--mi-accent', c.accent);
+    item.dataset.miGroup = c.group || '';
+
+    // গ্রুপ হেডার
+    if(c.group && c.group !== prevGroup){
+      const head = document.createElement('div');
+      head.className = 'mi-section-head'; head.dataset.group = c.group;
+      head.innerHTML = `<span>${c.group}</span>`;
+      item.parentNode.insertBefore(head, item);
+    }
+    if(c.group) prevGroup = c.group;
+
+    // আইকন → tile
+    const lead = item.querySelector('i[class*="ph-"]:not(.ph-caret-right), span.material-symbols-outlined');
+    if(lead && !lead.classList.contains('mi-chevron')){
+      lead.classList.add('mi-lead');
+      lead.style.removeProperty('color'); // tile-এর accent রঙ কাজ করবে
+    }
+
+    // chevron
+    const firstWrap = item.querySelector('div');
+    const chev = [...item.children].find(ch => ch !== firstWrap && (ch.matches?.('i[class*="ph-"]') || ch.matches?.('.material-symbols-outlined')));
+    if(chev) chev.classList.add('mi-chevron');
+
+    // নাম + বিবরণ wrap
+    if(nameEl && !nameEl.classList.contains('mi-name')){
+      nameEl.classList.add('mi-name');
+      const tw = document.createElement('div'); tw.className = 'mi-textwrap';
+      nameEl.parentNode.insertBefore(tw, nameEl);
+      tw.appendChild(nameEl);
+      if(c.desc){ const d = document.createElement('div'); d.className = 'mi-desc'; d.textContent = c.desc; tw.appendChild(d); }
+    }
+
+    // staggered entrance
+    item.style.animation = 'miRise .45s cubic-bezier(.22,1,.36,1) backwards';
+    item.style.animationDelay = Math.min(idx * 0.05, 0.5).toFixed(2) + 's';
+    idx++;
+  });
+
+  miSyncHeaders(screen);
+  miHookSearch(screen);
+}
+
+// সার্চের সময় খালি গ্রুপের হেডার লুকানো
+function miSyncHeaders(screen){
+  screen = screen || document.getElementById('main-menu-screen');
+  if(!screen) return;
+  screen.querySelectorAll('.mi-section-head').forEach(head => {
+    const g = head.dataset.group;
+    const anyVisible = [...screen.querySelectorAll('.settings-list-item.mi-done')]
+      .some(it => it.dataset.miGroup === g && it.style.display !== 'none' && getComputedStyle(it).display !== 'none');
+    head.style.display = anyVisible ? '' : 'none';
+  });
+}
+
+// সার্চ ইনপুটে হেডার সিঙ্ক (বিদ্যমান সার্চ লজিকের পরে)
+function miHookSearch(screen){
+  if(screen.dataset.miSearchHooked) return;
+  const inp = [...screen.querySelectorAll('input')].find(i => /search/i.test(i.placeholder || ''));
+  if(inp){ screen.dataset.miSearchHooked = '1'; inp.addEventListener('input', () => setTimeout(() => miSyncHeaders(screen), 0)); }
+}
+
+// open/close hook + পর্যবেক্ষণ (লজিক অক্ষত)
+(function miBoot(){
+  const wrap = (name, after) => {
+    const o = window[name];
+    if(typeof o === 'function' && !o.__miWrapped){
+      window[name] = function(...a){ const r = o.apply(this, a); after(); return r; };
+      window[name].__miWrapped = true;
+    }
+  };
+  const hook = () => { wrap('openMainMenu', () => setTimeout(enhanceMainMenu, 60)); };
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', hook); else hook();
+  setTimeout(hook, 900); setTimeout(hook, 2200);
+
+  let obs = null;
+  const watch = () => {
+    const screen = document.getElementById('main-menu-screen');
+    if(screen && !obs){
+      obs = new MutationObserver(() => { if(screen.style.display !== 'none') enhanceMainMenu(); });
+      obs.observe(screen, { attributes:true, attributeFilter:['style'] });
     }
   };
   setTimeout(watch, 1200); setTimeout(watch, 3200);
