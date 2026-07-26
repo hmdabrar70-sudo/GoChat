@@ -3094,6 +3094,7 @@ MODERN USERNAME SYSTEM STYLES
 /* প্রোফাইলের কন্টেন্টগুলো লেফট-অ্যালাইন রাখার জন্য */
 .profile-header.verified-premium {
     text-align: left !important;
+    padding-bottom: 40px !important; /* 🚀 বাটন এবং শ্যাডো যেন কেটে না যায় তার জন্য এক্সট্রা স্পেস */
 }
 
 .profile-header.verified-premium .profile-main-row {
@@ -3108,6 +3109,50 @@ MODERN USERNAME SYSTEM STYLES
     background: #ffffff;
     width: 88px !important;
     height: 88px !important;
+}
+/* 🌟 VERIFIED PREMIUM POST CARD 🌟 */
+.post-card.verified-premium-post {
+    position: relative;
+    background: linear-gradient(135deg, #fffbeb 0%, #fde68a 40%, #d97706 100%) !important;
+    border: 1px solid #fbbf24 !important;
+    box-shadow: 0 8px 25px rgba(217, 119, 6, 0.25), inset 0 0 15px rgba(255, 255, 255, 0.6) !important;
+    overflow: hidden;
+    z-index: 1;
+}
+
+/* 🌟 পোস্টের ওপর দিয়ে শাইনিং অ্যানিমেশন বয়ে যাবে */
+.post-card.verified-premium-post::after {
+    content: '';
+    position: absolute;
+    top: 0; left: -100%;
+    width: 60%; height: 100%;
+    background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.8), transparent);
+    transform: skewX(-25deg);
+    animation: premiumShine 3s infinite cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: -1;
+    pointer-events: none;
+}
+
+/* 🌟 পোস্টের ভেতর প্রোফাইল ছবির চারপাশে গোল্ডেন রিং */
+.verified-premium-post .post-header .avatar {
+    border: 2px solid #ffffff !important; 
+    outline: 2px solid #f59e0b !important; 
+    box-shadow: 0 0 12px rgba(245, 158, 11, 0.5) !important;
+    background: #ffffff;
+}
+
+/* পোস্টের টেক্সট যেন অ্যানিমেশনের ওপরে থাকে */
+.verified-premium-post > * {
+    position: relative;
+    z-index: 2;
+}
+
+/* গোল্ডেন ব্যাকগ্রাউন্ডে টেক্সট যেন পরিষ্কার বোঝা যায় */
+.verified-premium-post .post-name span, 
+.verified-premium-post .post-time,
+.verified-premium-post .post-action-btn {
+    color: #1f2937 !important;
+    font-weight: 700;
 }
 /* 🌟 ID BINDING (LINKED ACCOUNTS) STYLES 🌟 */
 .linked-account-item {
@@ -5424,16 +5469,27 @@ async function openCommentPanel(pid) {
                 }).join('');
             }
             
+                        // 🚀 লাইক/ডিসলাইকের কালার এবং আইকন চেক
+            const uid = currentUser ? currentUser.uid : null;
+            const hasLiked = c.likedBy && c.likedBy.includes(uid);
+            const hasDisliked = c.dislikedBy && c.dislikedBy.includes(uid);
+            
+            const likeIcon = hasLiked ? 'ph-fill ph-thumbs-up' : 'ph-bold ph-thumbs-up';
+            const likeColor = hasLiked ? 'color:var(--accent);' : '';
+            
+            const dislikeIcon = hasDisliked ? 'ph-fill ph-thumbs-down' : 'ph-bold ph-thumbs-down';
+            const dislikeColor = hasDisliked ? 'color:var(--danger);' : '';
+
             return `<div class="comment-item" ondblclick="showCommentActions('${pid}', ${idx}, '${c.uid}')">
                 <div class="comment-author" style="cursor:pointer;" onclick="closeCommentPanel(); viewUserProfile('${c.uid}')">${safeCName}</div>
                 <div style="margin-top:4px;">${safeCText}</div>
                 
                 <div style="display:flex; gap:15px; margin-top:8px; align-items:center;">
-                    <button class="post-action-btn" onclick="toggleCommentReaction('${pid}', ${idx}, 'like')">
-                        <span class="material-symbols-outlined" style="font-size:18px;">thumb_up</span> ${c.likes || 0}
+                    <button class="post-action-btn" onclick="toggleCommentReaction('${pid}', ${idx}, 'like')" style="${likeColor}">
+                        <i class="${likeIcon}" style="font-size:18px;"></i> ${c.likes || 0}
                     </button>
-                    <button class="post-action-btn" onclick="toggleCommentReaction('${pid}', ${idx}, 'dislike')">
-                        <span class="material-symbols-outlined" style="font-size:18px;">thumb_down</span> ${c.dislikes || 0}
+                    <button class="post-action-btn" onclick="toggleCommentReaction('${pid}', ${idx}, 'dislike')" style="${dislikeColor}">
+                        <i class="${dislikeIcon}" style="font-size:18px;"></i> ${c.dislikes || 0}
                     </button>
                     <span style="font-size:11px; color:var(--accent); cursor:pointer; font-weight:700;" onclick="showReplyInput('${pid}',${idx},'${safeCName}')">Reply</span>
                 </div>
@@ -5511,28 +5567,64 @@ async function toggleCommentReaction(pid, commentIdx, type) {
     showToast(toastMsg);
 }
 
-async function submitReply(pid, idx) {
-const input = document.getElementById(`reply-text-${idx}`);
-if (!input) return;
-const txt = input.value.trim();
-if (!txt) return;
-const ref = db.collection('posts').doc(pid);
-const doc = await ref.get();
-if (!doc.exists) return;
-let comments = doc.data().comments || [];
-if (!comments[idx]) return;
-if (!comments[idx].replies) comments[idx].replies = [];
-comments[idx].replies.push({
-uid: currentUser.uid,
-name: currentUserData.name,
-text: txt,
-time: Date.now()
-});
-await ref.update({ comments });
-if (doc.data().uid !== currentUser.uid) {
-awardPoints(doc.data().uid, 10);
+// 🚀 রিপ্লাইয়ের বক্স ওপেন করার ফাংশন (যেটা মিসিং ছিল)
+function showReplyInput(pid, idx, name) {
+    const container = document.getElementById(`reply-input-${idx}`);
+    if (!container) return;
+    
+    // যদি বক্স আগে থেকেই ওপেন থাকে, তবে আবার ক্লিক করলে হাইড হয়ে যাবে
+    if (container.innerHTML.trim() !== '') {
+        container.innerHTML = '';
+        return;
+    }
+    
+    container.innerHTML = `
+        <div class="reply-input-container">
+            <input type="text" id="reply-text-${idx}" placeholder="Reply to ${name}..." onkeypress="if(event.key==='Enter') submitReply('${pid}', ${idx})">
+            <button onclick="submitReply('${pid}', ${idx}')"><i class="ph-bold ph-paper-plane-right" style="font-size: 16px;"></i></button>
+        </div>
+    `;
+    
+    // অটো-ফোকাস করা যাতে সাথে সাথে টাইপ করা যায়
+    setTimeout(() => {
+        const inp = document.getElementById(`reply-text-${idx}`);
+        if (inp) inp.focus();
+    }, 50);
 }
-showToast('Reply added!');
+
+// 🚀 রিপ্লাই সেন্ড করার আপডেট ফাংশন
+async function submitReply(pid, idx) {
+    const input = document.getElementById(`reply-text-${idx}`);
+    if (!input) return;
+    const txt = input.value.trim();
+    if (!txt) return;
+    
+    input.disabled = true; // পাঠানোর সময় ইনপুট ব্লক রাখা
+    
+    const ref = db.collection('posts').doc(pid);
+    const doc = await ref.get();
+    if (!doc.exists) return;
+    
+    let comments = doc.data().comments || [];
+    if (!comments[idx]) return;
+    if (!comments[idx].replies) comments[idx].replies = [];
+    
+    comments[idx].replies.push({
+        uid: currentUser.uid,
+        name: currentUserData.name,
+        text: txt,
+        time: Date.now()
+    });
+    
+    await ref.update({ comments });
+    if (doc.data().uid !== currentUser.uid) {
+        awardPoints(doc.data().uid, 10);
+    }
+    showToast('Reply added!');
+    
+    // সেন্ড হওয়ার পর রিপ্লাই বক্সটি বন্ধ করে দেওয়া
+    const container = document.getElementById(`reply-input-${idx}`);
+    if (container) container.innerHTML = '';
 }
 
 // ===== OTHER PROFILE LOGIC =====
@@ -7341,7 +7433,10 @@ postDropdownHtml += `</div></div>`;
         quickFollowBtn = `<span onclick="event.stopPropagation(); toggleFollow('${p.uid}'); this.style.display='none';" style="color: var(--accent); font-size: 12px; font-weight: 700; cursor: pointer; margin-left: 8px; padding: 2px 10px; background: var(--surface-2); border-radius: 12px; border: 1px solid var(--accent); transition: all 0.2s;">Follow</span>`;
     }
 
-return`<div class="post-card">
+    // 🌟 Check if the post author is verified to apply premium class
+    const premiumPostClass = p.isVerified ? 'verified-premium-post' : '';
+
+return`<div class="post-card ${premiumPostClass}">
 <div class="post-header">
 <div class="avatar" style="width:44px;height:44px;cursor:pointer;" onclick="viewUserProfile('${p.uid}')">${av}</div>
 <div style="flex:1;">
