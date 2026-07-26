@@ -1980,7 +1980,6 @@ NESTED ACTIVITY CATEGORIES STYLES
 </div>
 
 <div id="feed-list"></div>
-<button id="load-more-btn" class="btn-outline" onclick="loadMorePosts()" style="margin: 20px auto; display: none; width: 180px; text-align: center;">Load More</button>
 </div>
 
 <div class="page" id="page-search">
@@ -7662,15 +7661,41 @@ function loadFeed() {
     });
 }
 
+// ==========================================
+// 🚀 INFINITE SCROLLING SYSTEM
+// ==========================================
+let isLoadingMore = false;
 
 function loadMorePosts() {
-postLimit += 10;
-document.getElementById('load-more-btn').textContent = "Loading...";
-loadFeed();
-setTimeout(() => {
-document.getElementById('load-more-btn').textContent = "Load More";
-}, 1000);
+    if (isLoadingMore) return;
+    isLoadingMore = true;
+    
+    postLimit += 10;
+    loadFeed();
+    
+    setTimeout(() => {
+        isLoadingMore = false;
+    }, 1500);
 }
+
+// অটোমেটিক স্ক্রোল ডিটেক্ট করার জন্য অবজার্ভার সেটআপ
+function initInfiniteScroll() {
+    window.addEventListener('scroll', () => {
+        // ইউজার স্ক্রোল করে যখন একদম শেষের কাছাকাছি (২০০ পিক্সেল বাকি থাকতে) পৌঁছাবে
+        if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 250) {
+            // শুধুমাত্র ফিড পেজ active থাকলেই এটি কাজ করবে
+            const feedPage = document.getElementById('page-feed');
+            if (feedPage && feedPage.classList.contains('active')) {
+                loadMorePosts();
+            }
+        }
+    });
+}
+
+// অ্যাপ রান হওয়ার সাথে সাথে ইনফিনিট স্ক্রোল একটিভ করে দেওয়া
+document.addEventListener('DOMContentLoaded', () => {
+    initInfiniteScroll();
+});
 
 function setFeedTab(tab){
 currentFeedTab=tab;
