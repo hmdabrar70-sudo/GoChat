@@ -1887,60 +1887,6 @@ NESTED ACTIVITY CATEGORIES STYLES
     border-color: transparent;
     box-shadow: var(--shadow-sm);
 }
-/* 🌟 ELITE VERIFIED PROFILE BACKGROUND 🌟 */
-.elite-profile-bg {
-    /* গোল্ডেন ব্যাকগ্রাউন্ড ইফেক্ট */
-    background: linear-gradient(135deg, #fffdf0 0%, #ffebb3 50%, #fcd34d 100%) !important;
-    position: relative;
-    overflow: hidden;
-    border: 1px solid #f59e0b !important;
-    border-radius: 24px;
-    box-shadow: 0 10px 30px rgba(245, 158, 11, 0.25) !important;
-}
-
-/* হালকা শাইনিং/গ্লো ইফেক্ট */
-.elite-profile-bg::before {
-    content: '';
-    position: absolute;
-    top: -50%; left: -50%;
-    width: 200%; height: 200%;
-    background: radial-gradient(circle, rgba(255,255,255,0.7) 0%, transparent 60%);
-    opacity: 0.6;
-    pointer-events: none;
-    z-index: 0;
-}
-
-/* 🌟 ডানপাশের VERIFIED USER ব্যাজ */
-.elite-badge-tag {
-    position: absolute;
-    top: 16px;
-    right: 16px;
-    background: linear-gradient(to right, #f59e0b, #d97706);
-    color: white;
-    padding: 6px 12px;
-    border-radius: 20px;
-    font-size: 10px;
-    font-weight: 900;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    box-shadow: 0 4px 12px rgba(217, 119, 6, 0.4);
-    z-index: 10;
-    border: 1px solid #fef3c7;
-    letter-spacing: 0.5px;
-}
-
-/* প্রোফাইলের ভেতরের কন্টেন্ট যেন ব্যাকগ্রাউন্ডের উপরে থাকে */
-.elite-profile-bg > * {
-    position: relative;
-    z-index: 1;
-}
-
-/* গোল্ডেন প্রোফাইলে এডিট বাটনের রঙ গোল্ডেন করা */
-.elite-profile-bg .avatar-edit-btn {
-    background: linear-gradient(135deg, #fcd34d, #f59e0b) !important;
-    border-color: #fffdf0 !important;
-}
 </style>
 </head>
 <body>
@@ -2191,7 +2137,7 @@ NESTED ACTIVITY CATEGORIES STYLES
 </div>
         </div>
     </div>
-    <div class="profile-header">
+    <div class="profile-header verified-premium">
         <div class="profile-main-row">
             <div class="profile-avatar-wrap">
                 <div class="profile-avatar" id="other-profile-avatar">?</div>
@@ -3072,6 +3018,75 @@ MODERN USERNAME SYSTEM STYLES
     font-size: 12px;
     font-weight: 700;
     margin-bottom: 16px;
+}
+/* ===== VERIFIED PREMIUM PROFILE ===== */
+
+.profile-header.verified-premium{
+    position: relative;
+    overflow: hidden;
+
+    background: linear-gradient(
+        135deg,
+        #fff8dc 0%,
+        #ffe8a3 20%,
+        #ffd54f 45%,
+        #ffca28 70%,
+        #fff3c4 100%
+    );
+
+    border:2px solid #d4af37;
+    border-radius:28px;
+
+    box-shadow:
+    0 8px 30px rgba(212,175,55,.35),
+    inset 0 1px 0 rgba(255,255,255,.7);
+}
+
+.profile-header.verified-premium::before{
+    content:"";
+    position:absolute;
+    inset:0;
+
+    background:
+    radial-gradient(circle at 20% 20%,rgba(255,255,255,.6),transparent 35%),
+    radial-gradient(circle at 80% 10%,rgba(255,255,255,.4),transparent 30%);
+
+    pointer-events:none;
+}
+
+.profile-header.verified-premium::after{
+    content:"★ VERIFIED PREMIUM";
+    position:absolute;
+    top:18px;
+    right:20px;
+
+    font-size:12px;
+    font-weight:700;
+
+    color:#6b4b00;
+
+    background:rgba(255,255,255,.7);
+
+    padding:6px 12px;
+
+    border-radius:50px;
+
+    backdrop-filter:blur(8px);
+}
+
+.verified-premium .profile-avatar{
+    border:4px solid #FFD700;
+
+    box-shadow:
+    0 0 20px rgba(255,215,0,.7);
+}
+
+.verified-premium .profile-name{
+    color:#5b4200;
+}
+
+.verified-premium .profile-info i{
+    color:#d4af37;
 }
 </style>
 
@@ -5527,6 +5542,13 @@ async function viewUserProfile(uid){
     if(u.email) dHtml += `<div class="detail-item"><i class="ph-bold ph-envelope-simple" style="font-size:20px; color:var(--accent-dark);"></i> <strong>${escapeHTML(u.email)}</strong></div>`;
 
     document.getElementById('other-profile-details-display').innerHTML=dHtml;
+        // 🌟 অন্যের প্রোফাইলের জন্য Verified Premium চেক
+    const otherProfileHeader = document.querySelector('#page-other-profile .profile-header');
+    if (u.isVerified) {
+        otherProfileHeader.classList.add('verified-premium');
+    } else {
+        otherProfileHeader.classList.remove('verified-premium');
+    }
     
     const isBlocked=currentUserData.blockedUsers?.includes(uid);
     const isFollowing=currentUserData.following?.includes(uid);
@@ -5576,24 +5598,7 @@ async function viewUserProfile(uid){
     } else {
         // প্রাইভেট না হলে আগের মতোই ছবিগুলো লোড করবে
         loadOtherUserPosts(uid);
-    }
-        // 🌟 🚀 Elite Profile Check for Other User 🚀 🌟
-    const otherProfileHeader = document.querySelector('#page-other-profile .profile-header');
-    const otherExistingBadge = document.getElementById('other-elite-badge');
-    
-    if (u.isVerified) {
-        // ভেরিফাইড হলে গোল্ডেন ক্লাস অ্যাড করবে
-        otherProfileHeader.classList.add('elite-profile-bg');
-        // ডানদিকের ব্যাজ না থাকলে বসিয়ে দেবে
-        if (!otherExistingBadge) {
-            otherProfileHeader.insertAdjacentHTML('afterbegin', `<div id="other-elite-badge" class="elite-badge-tag"><i class="ph-fill ph-star"></i> VERIFIED USER</div>`);
-        }
-    } else {
-        // ভেরিফাইড না হলে গোল্ডেন ক্লাস রিমুভ করবে
-        otherProfileHeader.classList.remove('elite-profile-bg');
-        // ব্যাজ থাকলে ডিলিট করে দেবে
-        if (otherExistingBadge) otherExistingBadge.remove();
-    }
+    }    
 }
 
 function closeUserProfile(){
@@ -7462,29 +7467,19 @@ function loadUserUI(){
         const year = joinedDate.getFullYear();
         dHtml += `<div class="detail-item"><i class="ph-bold ph-clock" style="font-size:20px; color:var(--accent-dark);"></i> Joined <strong>${month} ${year}</strong></div>`;
     }
-    setSafeHTML('profile-details-display', dHtml);
-        // 🌟 🚀 Elite Profile Check for Current User 🚀 🌟
-    const myProfileHeader = document.querySelector('#page-profile .profile-header');
-    const existingBadge = document.getElementById('my-elite-badge');
-    
-    if (currentUserData.isVerified) {
-        // ভেরিফাইড হলে গোল্ডেন ক্লাস অ্যাড করবে
-        myProfileHeader.classList.add('elite-profile-bg');
-        // ডানদিকের ব্যাজ না থাকলে বসিয়ে দেবে
-        if (!existingBadge) {
-            myProfileHeader.insertAdjacentHTML('afterbegin', `<div id="my-elite-badge" class="elite-badge-tag"><i class="ph-fill ph-star"></i> VERIFIED USER</div>`);
-        }
-    } else {
-        // ভেরিফাইড না হলে গোল্ডেন ক্লাস রিমুভ করবে
-        myProfileHeader.classList.remove('elite-profile-bg');
-        // ব্যাজ থাকলে ডিলিট করে দেবে
-        if (existingBadge) existingBadge.remove();
-    }
+    setSafeHTML('profile-details-display', dHt   }
     
     const followersCount = document.getElementById('my-followers-count');
     const followingCount = document.getElementById('my-following-count');
     if(followersCount) followersCount.textContent = (currentUserData.followers || []).length;
     if(followingCount) followingCount.textContent = (currentUserData.following || []).length;
+        // 🌟 নিজের প্রোফাইলের জন্য Verified Premium চেক
+    const myProfileHeader = document.querySelector('#page-profile .profile-header');
+    if (currentUserData.isVerified) {
+        myProfileHeader.classList.add('verified-premium');
+    } else {
+        myProfileHeader.classList.remove('verified-premium');
+    }
 }
 
 async function loadMyPosts(){
