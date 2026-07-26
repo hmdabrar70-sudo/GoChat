@@ -2023,8 +2023,20 @@ NESTED ACTIVITY CATEGORIES STYLES
 </div>
 
 <div class="page" id="page-notifications">
-<div class="section-title" style="font-size:18px;padding:20px 20px 12px;">Notifications</div>
-<div id="notifications-list"><div class="empty-feed">No notifications yet</div></div>
+    <div style="padding:20px 20px 12px; display:flex; justify-content:space-between; align-items:center;">
+        <div class="section-title" style="padding:0; font-size:18px;">Notifications</div>
+        <button id="notif-edit-btn" class="btn-outline" style="padding:6px 16px; font-size:13px; border:none; background:var(--surface-2); color:var(--text);" onclick="toggleNotifEditMode()">Edit</button>
+    </div>
+    
+    <div id="notifications-list"><div class="empty-feed">No notifications yet</div></div>
+    
+    <!-- 🚀 Notification Selection Bottom Bar -->
+    <div id="notif-selection-bar" style="display: none; position: fixed; bottom: 0; left: 0; width: 100%; background: var(--surface); border-top: 1px solid var(--border); padding: 16px 20px; z-index: 1006; justify-content: space-between; align-items: center; box-shadow: 0 -4px 20px rgba(0,0,0,0.3);">
+        <div style="font-weight:800; font-size:15px; color:var(--text);" id="notif-selected-count">0 Selected</div>
+        <button class="btn-primary" style="background:var(--danger); margin: 0; padding: 10px 16px; box-shadow: none; width: auto;" onclick="deleteSelectedNotifs()">
+            <i class="ph-bold ph-trash" style="font-size:18px; margin-right:4px;"></i> Delete
+        </button>
+    </div>
 </div>
 
 <div class="page" id="page-messages">
@@ -2252,6 +2264,17 @@ NESTED ACTIVITY CATEGORIES STYLES
 <button class="btn-primary" style="margin-top:10px;" onclick="openChangeEmailModal()">
     <span class="material-symbols-outlined">edit</span> Change Email
 </button>
+<!-- 🌟 NEW: LINKED ACCOUNTS SECTION 🌟 -->
+<div class="settings-card" style="margin-top: 10px;">
+    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+        <i class="ph-fill ph-link" style="font-size: 22px; color: #3b82f6;"></i>
+        <h4 style="margin: 0;">Linked Accounts</h4>
+    </div>
+    <p>Bind your social accounts for 1-click fast login and recovery. Your posts will NOT be shared.</p>
+    <div id="linked-accounts-list" style="margin-top:12px; display:flex; flex-direction:column; gap:12px;">
+        <!-- JS will load bind items here -->
+    </div>
+</div>
 <div class="settings-card">
 <h4>Blocked Accounts</h4>
 <p>Manage the users you have blocked.</p>
@@ -2675,7 +2698,16 @@ NESTED ACTIVITY CATEGORIES STYLES
                 <div class="chat-name" style="font-size: 18px; font-weight: 800;">Settings & Privacy</div>
             </div>
             
-            <div style="padding: 20px; display: flex; flex-direction: column; gap: 8px;">
+            <!-- 🚀 NEW: Settings & Privacy Search Bar -->
+            <div style="padding: 12px 16px; border-bottom: 1px solid var(--border);">
+                <div class="search-input-wrap" style="margin:0; background: var(--surface-2);">
+                    <i class="ph-bold ph-magnifying-glass" style="font-size:20px; color:var(--text-muted);"></i>
+                    <input type="text" id="privacy-settings-search" placeholder="Search settings..." oninput="filterPrivacySettings(this.value)">
+                </div>
+            </div>
+            
+            <!-- এখানে id="privacy-settings-list" যুক্ত করা হয়েছে যাতে জাভাস্ক্রিপ্ট দিয়ে ফিল্টার করা যায় -->
+            <div id="privacy-settings-list" style="padding: 20px; display: flex; flex-direction: column; gap: 8px;">
                 <div class="settings-list-item" onclick="openSettingsPrivacy();">
                     <div style="display:flex; align-items:center; gap:16px;">
                         <i class="ph-bold ph-user-circle" style="font-size: 24px;"></i>
@@ -3077,6 +3109,48 @@ MODERN USERNAME SYSTEM STYLES
     width: 88px !important;
     height: 88px !important;
 }
+/* 🌟 ID BINDING (LINKED ACCOUNTS) STYLES 🌟 */
+.linked-account-item {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 16px; 
+    background: var(--surface-2);
+    border: 1px solid var(--border); 
+    border-radius: 16px;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    box-shadow: var(--shadow-sm);
+}
+.linked-account-item:hover {
+    transform: translateY(-2px);
+    border-color: var(--accent);
+    box-shadow: 0 8px 20px rgba(124, 92, 255, 0.15);
+}
+.linked-account-item .provider-info {
+    display: flex; align-items: center; gap: 14px;
+    font-weight: 800; font-size: 15px; color: var(--text);
+}
+.linked-account-item .provider-icon {
+    width: 36px; height: 36px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    background: #ffffff; 
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+.btn-bind {
+    padding: 8px 16px; border-radius: 20px; font-size: 12px; font-weight: 800; 
+    cursor: pointer; border: none; transition: 0.2s; letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+.btn-bind.bind { 
+    background: linear-gradient(135deg, #3b82f6, #2563eb); 
+    color: white; 
+    box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+}
+.btn-bind.bind:active { transform: scale(0.95); }
+.btn-bind.unlink { 
+    background: rgba(255, 77, 106, 0.1); 
+    color: var(--danger); 
+    border: 1px solid rgba(255, 77, 106, 0.2);
+}
+.btn-bind.unlink:active { transform: scale(0.95); background: var(--danger); color: #fff; }
 </style>
 
 <style>
@@ -3526,7 +3600,7 @@ MODERN USERNAME SYSTEM STYLES
 </div>
 
 <!-- 🚀 NEW: Category Screen -->
-<div id="category-screen" style="display:none; position:fixed; inset:0; background:var(--bg); z-index:100000; flex-direction:column; overflow-y:auto; animation:slideUp 0.3s ease;">
+<div id="category-screen" style="display:none; position:fixed; inset:0; background:var(--bg); z-index:1005; flex-direction:column; overflow-y:auto; animation:slideUp 0.3s ease;">
     <div class="chat-topbar" style="position:sticky; top:0; z-index:100; display:flex; align-items:center; gap:12px;">
         <div class="chat-back" onclick="closeCategoryScreen()"><span class="material-symbols-outlined">arrow_back</span></div>
         <div style="font-weight:800; font-size:18px;">Categories</div>
@@ -3823,6 +3897,7 @@ function openSettingsPrivacy(){
   
   // ব্লক লিস্ট লোড হবে
   loadBlockedUsers(); 
+  renderLinkedAccountsUI(); // বাইন্ডিং অপশন লোড করবে
 }
 
 function closeSettingsPrivacy(){
@@ -4382,13 +4457,17 @@ nList.innerHTML = notifs.map(data => {
         onClickAction += ` showPage('friends');`; 
     }
 
-    return `<div class="notif-item ${!data.read ? 'unread' : ''}" onclick="${onClickAction}">
+    // 🚀 Checkbox UI included, cross icon removed
+    const isChecked = typeof selectedNotifs !== 'undefined' && selectedNotifs.includes(data.id);
+    const displayCb = typeof isNotifEditMode !== 'undefined' && isNotifEditMode ? 'block' : 'none';
+
+    return `<div class="notif-item ${!data.read ? 'unread' : ''}" onclick="if(typeof isNotifEditMode !== 'undefined' && isNotifEditMode){toggleNotifSelection('${data.id}');}else{${onClickAction}}">
         <div class="avatar sm">${avatarInitial(data.fromName)}</div>
         <div class="notif-text">
             <strong>${safeName}</strong> ${textDesc}
             <div class="notif-time">${getRelativeTime(data.createdAt)}</div>
         </div>
-        <span class="material-symbols-outlined notif-delete" onclick="event.stopPropagation();deleteNotification('${data.id}')">close</span>
+        <input type="checkbox" class="notif-checkbox" id="notif-cb-${data.id}" ${isChecked ? 'checked' : ''} style="display:${displayCb}; pointer-events:none; width:22px; height:22px; accent-color:var(--danger);">
     </div>`;
 }).join('');
 });
@@ -11243,6 +11322,230 @@ function closeTopMostView() {
 
     // কিছু ওপেন না থাকলে false রিটার্ন করবে (অর্থাৎ ইউজার মেইন ফিডে আছে)
     return false;
+}
+// ==========================================
+// 🚀 ACCOUNT BINDING (LINKING) SYSTEM 🚀
+// ==========================================
+
+// ১. UI রেন্ডার করার ফাংশন
+function renderLinkedAccountsUI() {
+    const list = document.getElementById('linked-accounts-list');
+    if (!list || !currentUser) return;
+
+    // ইউজার কোন কোন অ্যাকাউন্টের সাথে যুক্ত আছে তা বের করা
+    const providers = currentUser.providerData.map(p => p.providerId);
+    const isGoogleLinked = providers.includes('google.com');
+
+    // Google Binding Item Design
+    list.innerHTML = `
+        <div class="linked-account-item">
+            <div class="provider-info">
+                <div class="provider-icon">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" style="width:20px;height:20px;">
+                </div>
+                Google
+            </div>
+            ${isGoogleLinked 
+                ? `<button class="btn-bind unlink" onclick="unlinkAccount('google.com')">Unlink</button>`
+                : `<button class="btn-bind bind" onclick="bindGoogleAccount()">Bind</button>`
+            }
+        </div>
+    `;
+}
+
+// ২. Google অ্যাকাউন্ট বাইন্ড (Link) করার ফাংশন
+async function bindGoogleAccount() {
+    if(!checkRateLimit()) return;
+    const provider = new firebase.auth.GoogleAuthProvider();
+    try {
+        showToast("Opening Google login...");
+        // পপ-আপের মাধ্যমে লিংক করা
+        await currentUser.linkWithPopup(provider);
+        showToast("Google Account Linked Successfully! 🚀");
+        renderLinkedAccountsUI(); // UI আপডেট
+    } catch (error) {
+        console.error(error);
+        if (error.code === 'auth/credential-already-in-use') {
+            alert("Error: This Google account is already linked to another GoChat profile!");
+        } else {
+            showToast("Failed to bind: " + error.message);
+        }
+    }
+}
+
+// ৩. অ্যাকাউন্ট আনলিংক (Unbind) করার ফাংশন
+async function unlinkAccount(providerId) {
+    if(!confirm("Are you sure you want to unlink this account? You won't be able to quick-login with it anymore.")) return;
+    try {
+        showToast("Unlinking...");
+        await currentUser.unlink(providerId);
+        showToast("Account unlinked successfully.");
+        renderLinkedAccountsUI(); // UI আপডেট
+    } catch (error) {
+        console.error(error);
+        // যদি পাসওয়ার্ড সেট না থাকে এবং একটাই লগইন অপশন থাকে, তবে আনলিংক করা যাবে না
+        if (error.code === 'auth/no-such-provider') {
+             showToast("Provider not found.");
+        } else {
+             alert("Error: You must set a password or have another login method before unlinking this account.");
+        }
+    }
+}
+// 🚀 Settings & Privacy Search Function
+function filterPrivacySettings(query) {
+    const lowerQuery = query.toLowerCase().trim();
+    const listContainer = document.getElementById('privacy-settings-list');
+    if (!listContainer) return;
+
+    // লিস্টের সবগুলো আইটেম সিলেক্ট করা
+    const items = listContainer.querySelectorAll('.settings-list-item');
+    
+    items.forEach(item => {
+        const text = item.innerText.toLowerCase();
+        // যদি সার্চ করা লেখাটি এই আইটেমের ভেতর থাকে, তবে দেখাবে, নাহলে লুকাবে
+        if (text.includes(lowerQuery)) {
+            item.style.display = 'flex'; // ডিফল্ট স্টাইল flex তাই flex দেওয়া হলো
+        } else {
+            item.style.display = 'none';
+        }
+    });
+}
+// ==========================================
+// 🚀 NOTIFICATION BATCH DELETE SYSTEM 🚀
+// ==========================================
+let isNotifEditMode = false;
+let selectedNotifs = [];
+
+function toggleNotifEditMode() {
+    isNotifEditMode = !isNotifEditMode;
+    const btn = document.getElementById('notif-edit-btn');
+    const bar = document.getElementById('notif-selection-bar');
+    
+    if (isNotifEditMode) {
+        btn.textContent = 'Cancel';
+        btn.style.color = 'var(--danger)';
+        bar.style.display = 'flex';
+        // Show checkboxes
+        document.querySelectorAll('.notif-checkbox').forEach(cb => cb.style.display = 'block');
+    } else {
+        btn.textContent = 'Edit';
+        btn.style.color = 'var(--text)';
+        bar.style.display = 'none';
+        // Hide checkboxes and uncheck them
+        document.querySelectorAll('.notif-checkbox').forEach(cb => {
+            cb.style.display = 'none';
+            cb.checked = false;
+        });
+        selectedNotifs = [];
+        updateNotifSelectedCount();
+    }
+}
+
+function toggleNotifSelection(id) {
+    const idx = selectedNotifs.indexOf(id);
+    const cb = document.getElementById(`notif-cb-${id}`);
+    
+    if (idx > -1) {
+        selectedNotifs.splice(idx, 1);
+        if(cb) cb.checked = false;
+    } else {
+        selectedNotifs.push(id);
+        if(cb) cb.checked = true;
+    }
+    updateNotifSelectedCount();
+}
+
+function updateNotifSelectedCount() {
+    const countText = document.getElementById('notif-selected-count');
+    if(countText) countText.textContent = `${selectedNotifs.length} Selected`;
+}
+
+async function deleteSelectedNotifs() {
+    if (selectedNotifs.length === 0) {
+        showToast("No notifications selected.");
+        return;
+    }
+    if (!confirm(`Are you sure you want to delete ${selectedNotifs.length} notification(s)?`)) return;
+    
+    showToast("Deleting...");
+    try {
+        const batch = db.batch();
+        selectedNotifs.forEach(id => {
+            const ref = db.collection('notifications').doc(id);
+            batch.delete(ref);
+        });
+        await batch.commit();
+        
+        showToast("Notifications deleted!");
+        toggleNotifEditMode(); // Exit edit mode after deletion
+    } catch (e) {
+        showToast("Failed to delete notifications.");
+        console.error(e);
+    }
+}
+// ==========================================
+// 🚀 CATEGORY SYSTEM (REAL-TIME FIX) 🚀
+// ==========================================
+let categoryUnsub = null;
+
+function openCategoryScreen() {
+    closeMainMenu();
+    document.getElementById('category-screen').style.display = 'flex';
+    // ডিফল্টভাবে 'All' ট্যাব লোড হবে
+    switchCategoryTab('all', document.querySelector('.cat-tab'));
+}
+
+function closeCategoryScreen() {
+    document.getElementById('category-screen').style.display = 'none';
+    if(categoryUnsub) { 
+        categoryUnsub(); 
+        categoryUnsub = null; 
+    }
+}
+
+function switchCategoryTab(catName, tabElement) {
+    // ট্যাবের ডিজাইন (Active Color) আপডেট করা
+    if(tabElement) {
+        document.querySelectorAll('.cat-tab').forEach(t => t.classList.remove('active'));
+        tabElement.classList.add('active');
+    }
+
+    const list = document.getElementById('category-posts-list');
+    list.innerHTML = '<div class="loading" style="padding:40px 20px; text-align:center;"><span class="material-symbols-outlined" style="font-size:32px; animation:spin 1s linear infinite;">autorenew</span><br><br>Loading Posts...</div>';
+
+    // আগের কোনো লিসেনার চললে সেটা বন্ধ করা (যাতে ডাবল লোড না হয়)
+    if (categoryUnsub) categoryUnsub();
+
+    // 🚀 রিয়েল-টাইম ডাটাবেস লিসেনার (লাইক/কমেন্ট সাথে সাথে আপডেট হবে)
+    categoryUnsub = db.collection('posts').orderBy('createdAt', 'desc').onSnapshot(snap => {
+        let posts = [];
+        
+        snap.forEach(d => {
+            let p = { id: d.id, ...d.data() };
+            
+            // ক্যাটাগরি অনুযায়ী ফিল্টার লজিক
+            if (catName === 'all') {
+                posts.push(p);
+            } else {
+                // পোস্টের ভেতর activity টেক্সট থাকলে সেটার সাথে মিলিয়ে দেখা হবে
+                if (p.activity && p.activity.text && p.activity.text.toLowerCase() === catName.toLowerCase()) {
+                    posts.push(p);
+                }
+            }
+        });
+
+        // মিউটেড ইউজারদের পোস্ট হাইড করার লজিক (প্রাইভেসি)
+        const mutedList = currentUserData?.mutedFeedUsers || [];
+        posts = posts.filter(p => !mutedList.includes(p.uid));
+
+        if (posts.length === 0) {
+            list.innerHTML = `<div class="empty-feed" style="margin-top:40px;"><span class="material-symbols-outlined" style="font-size:48px; opacity:0.3;">inbox</span><br>No posts found in '${catName}' category</div>`;
+            return;
+        }
+
+        // মেইন ফিডের মতোই সেম কার্ড ডিজাইন দিয়ে রেন্ডার করা
+        list.innerHTML = posts.map(p => buildPostCardHTML(p)).join('');
+    });
 }
 </script>
 </body>
