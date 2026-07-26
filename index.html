@@ -2147,19 +2147,9 @@ NESTED ACTIVITY CATEGORIES STYLES
 <!-- 🚀 নতুন: ইউজারনেম ডিসপ্লে -->
 <div id="other-profile-username-display" style="font-size:13px; color:var(--text-muted); font-weight:600; margin-bottom:6px; margin-top:-2px; display:none;"></div>
 
-<div id="other-profile-follow-stats" style="display:flex; gap:20px; margin-top:10px; background:var(--surface-2); padding:8px 20px; border-radius:12px; border:1px solid var(--border); width:max-content; box-shadow:var(--shadow-sm); align-items:center;">
-    <div style="cursor:pointer; text-align:center;" onclick="openFollowList('followers', currentOtherProfileUid)">
-        <div id="other-followers-count" style="color:var(--text); font-size:16px; font-weight:800;">0</div> 
-        <div style="font-size:10px; color:var(--text-muted); font-weight:700; text-transform:uppercase; letter-spacing:0.5px;">Followers</div>
-    </div> 
-    
-    <!-- স্লিক ডিভাইডার লাইন -->
-    <div style="width:1px; height:24px; background:var(--border);"></div>
-    
-    <div style="cursor:pointer; text-align:center;" onclick="openFollowList('following', currentOtherProfileUid)">
-        <div id="other-following-count" style="color:var(--text); font-size:16px; font-weight:800;">0</div> 
-        <div style="font-size:10px; color:var(--text-muted); font-weight:700; text-transform:uppercase; letter-spacing:0.5px;">Following</div>
-    </div>
+<div id="other-profile-follow-stats" class="profile-friend-count" style="display:flex; gap:16px; font-size:14px; color:var(--text-secondary); margin-top:6px;">
+    <span style="cursor:pointer;" onclick="openFollowList('followers', currentOtherProfileUid)"><b id="other-followers-count" style="color:var(--text); font-size:16px;">0</b> Followers</span> 
+    <span style="cursor:pointer;" onclick="openFollowList('following', currentOtherProfileUid)"><b id="other-following-count" style="color:var(--text); font-size:16px;">0</b> Following</span>
 </div>
             </div>
         </div>
@@ -3056,26 +3046,6 @@ MODERN USERNAME SYSTEM STYLES
     background: #ffffff;
 }
 
-/* 🌟 VERIFIED USER ব্যাজ ডিজাইন */
-.elite-badge-tag {
-    position: absolute;
-    top: 16px; right: 16px;
-    background: linear-gradient(135deg, #fbbf24, #b45309);
-    color: #ffffff;
-    padding: 6px 14px;
-    border-radius: 30px;
-    font-size: 11px;
-    font-weight: 900;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    box-shadow: 0 4px 15px rgba(180, 83, 9, 0.5);
-    border: 1px solid #fef3c7;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    z-index: 10;
-}
-
 /* গোল্ডেন প্রোফাইলে বাটনগুলোর রঙ পরিবর্তন */
 .verified-premium .icon-btn, .verified-premium .avatar-edit-btn {
     background: linear-gradient(135deg, #fbbf24, #d97706) !important;
@@ -3088,6 +3058,24 @@ MODERN USERNAME SYSTEM STYLES
 .verified-premium > * {
     position: relative;
     z-index: 2;
+}
+/* প্রোফাইলের কন্টেন্টগুলো লেফট-অ্যালাইন রাখার জন্য */
+.profile-header.verified-premium {
+    text-align: left !important;
+}
+
+.profile-header.verified-premium .profile-main-row {
+    justify-content: flex-start !important;
+}
+
+/* প্রোফাইল ছবির সাইজ এবং রিং */
+.verified-premium .profile-avatar-wrap .profile-avatar {
+    border: 4px solid #ffffff !important; 
+    outline: 3px solid #f59e0b !important; 
+    box-shadow: 0 0 20px rgba(245, 158, 11, 0.5) !important;
+    background: #ffffff;
+    width: 88px !important;
+    height: 88px !important;
 }
 </style>
 
@@ -5543,18 +5531,13 @@ async function viewUserProfile(uid){
     if(u.email) dHtml += `<div class="detail-item"><i class="ph-bold ph-envelope-simple" style="font-size:20px; color:var(--accent-dark);"></i> <strong>${escapeHTML(u.email)}</strong></div>`;
 
     document.getElementById('other-profile-details-display').innerHTML=dHtml; 
-    // 🌟 অন্যের প্রোফাইলের জন্য Premium Check 🌟
+    // 🌟 অন্যের প্রোফাইলের জন্য Premium Check (Without Badge) 🌟
     const otherProfileHeader = document.querySelector('#page-other-profile .profile-header');
-    let otherBadge = document.getElementById('other-elite-badge');
     
     if (u.isVerified) {
         otherProfileHeader.classList.add('verified-premium');
-        if (!otherBadge) {
-            otherProfileHeader.insertAdjacentHTML('afterbegin', `<div id="other-elite-badge" class="elite-badge-tag"><i class="ph-fill ph-star"></i> VERIFIED USER</div>`);
-        }
     } else {
         otherProfileHeader.classList.remove('verified-premium');
-        if (otherBadge) otherBadge.remove();
     }
     
     const isBlocked=currentUserData.blockedUsers?.includes(uid);
@@ -7481,18 +7464,13 @@ function loadUserUI(){
     if(followersCount) followersCount.textContent = (currentUserData.followers || []).length;
     if(followingCount) followingCount.textContent = (currentUserData.following || []).length;
     
-    // 🌟 নিজের প্রোফাইলের জন্য Premium Check 🌟
+        // 🌟 নিজের প্রোফাইলের জন্য Premium Check (Without Badge) 🌟
     const myProfileHeader = document.querySelector('#page-profile .profile-header');
-    let myBadge = document.getElementById('my-elite-badge');
     
     if (currentUserData.isVerified) {
         myProfileHeader.classList.add('verified-premium');
-        if (!myBadge) {
-            myProfileHeader.insertAdjacentHTML('afterbegin', `<div id="my-elite-badge" class="elite-badge-tag"><i class="ph-fill ph-star"></i> VERIFIED USER</div>`);
-        }
     } else {
         myProfileHeader.classList.remove('verified-premium');
-        if (myBadge) myBadge.remove();
     }
 }
 
