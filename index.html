@@ -6429,8 +6429,19 @@ function openChat(chatId, otherUid, otherName, otherAvatar){
                 });
             }
 
-            // 🚀 NEW: Audio URL rendering in chat
-            if(m.imageUrl){
+                       // 🚀 NEW: Shared Post rendering in chat
+            if (m.sharedPostId) {
+                const safeImg = m.sharedPostImg ? escapeHTML(m.sharedPostImg) : '';
+                const safeTitle = escapeHTML(m.sharedPostTitle || 'View Post');
+                
+                content = `
+                <div onclick="closeChat(); openSinglePostView('${m.sharedPostId}')" style="cursor:pointer; background:var(--surface-2); border:1px solid var(--border); border-radius:12px; overflow:hidden; width:220px; margin-bottom:4px; box-shadow:var(--shadow-sm);">
+                    ${safeImg ? `<img src="${safeImg}" style="width:100%; height:120px; object-fit:cover; margin:0; border-radius:0; display:block;">` : ''}
+                    <div style="padding:10px; font-size:13px; font-weight:700; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                        <i class="ph-bold ph-link" style="color:var(--accent); vertical-align:middle; margin-right:4px;"></i>${safeTitle}
+                    </div>
+                </div>`;
+            } else if(m.imageUrl){
                 const safeUrl = escapeHTML(m.imageUrl);
                 content=`${m.text?`<div style="margin-bottom:6px;">${safeText}</div>`:''}<img src="${safeUrl}" onclick="openImageZoom('${safeUrl}')">`;
             } else if(m.audioUrl) {
@@ -12523,17 +12534,17 @@ function enhanceNotifications(){
   setTimeout(watch, 1200); setTimeout(watch, 3200);
 })();
 // ==========================================
-// 🚀 SHARE POST TO CHAT LOGIC (UPDATED)
+// 🚀 SHARE POST TO CHAT LOGIC (COMPLETE & FIXED)
 // ==========================================
 let currentSharePostData = null;
-let allShareChats = []; // ফিল্টার করার জন্য সব চ্যাট সেভ থাকবে
+let allShareChats = []; 
 
 function openShareModal(postId, postTitle, postImg) {
     currentSharePostData = { id: postId, title: postTitle, img: postImg };
     document.getElementById('share-post-modal').classList.add('open');
     document.getElementById('share-chat-list').innerHTML = '<div class="loading" style="text-align:center; padding:20px; color:var(--text-muted);"><span class="material-symbols-outlined" style="animation: spin 1s linear infinite;">autorenew</span> Loading chats...</div>';
     
-    // চ্যাট লিস্ট ফেচ করা শুরু
+    // মডাল ওপেন হলেই চ্যাট লিস্ট লোড হবে
     loadShareChatList();
 }
 
@@ -12543,9 +12554,10 @@ function closeShareModal() {
     currentSharePostData = null;
 }
 
-// 🚀 চ্যাট লিস্ট লোড করার ফাংশন
+// 🚀 চ্যাট লিস্ট লোড করার আপডেট ফাংশন (লাইভ ছবি সহ)
 async function loadShareChatList() {
     const list = document.getElementById('share-chat-list');
+    if (!allUsersCache) await fetchAllUsers(); // ছবি আনার জন্য ডাটাবেস ক্যাশ লোড করা
     
     try {
         const snap = await db.collection('chats').get();
@@ -12555,7 +12567,6 @@ async function loadShareChatList() {
             const data = d.data();
             const chatId = d.id;
             
-            // চেক: এই চ্যাটটি কি আমার?
             let isMyChat = false;
             if (data.isGroup && data.members && data.members.includes(currentUser.uid)) {
                 isMyChat = true;
@@ -12565,7 +12576,6 @@ async function loadShareChatList() {
 
             if (!isMyChat) return;
 
-            // নাম ও ছবি সেট আপ করা
             if (data.isGroup) {
                 chats.push({
                     id: chatId, uid: 'group', name: data.groupName || 'Group', avatar: data.groupAvatar || '', isGroup: true
@@ -12574,18 +12584,22 @@ async function loadShareChatList() {
                 const parts = chatId.split('_');
                 if (parts.length === 2) {
                     const otherUid = parts[0] === currentUser.uid ? parts[1] : parts[0];
-                    // ব্লকড ইউজারকে লিস্টে দেখাব না
                     const blockedUsers = currentUserData?.blockedUsers || [];
                     if (!blockedUsers.includes(otherUid)) {
+                        // 🚀 লাইভ ছবি এবং নাম আনা হচ্ছে
+                        const liveUser = allUsersCache ? allUsersCache.find(u => u.id === otherUid) : null;
+                        const finalAv = liveUser ? liveUser.avatar : (data.avatars?.[otherUid] || '');
+                        const finalName = liveUser ? liveUser.name : (data.names?.[otherUid] || 'User');
+                        
                         chats.push({
-                            id: chatId, uid: otherUid, name: data.names?.[otherUid] || 'User', avatar: data.avatars?.[otherUid] || '', isGroup: false
+                            id: chatId, uid: otherUid, name: finalName, avatar: finalAv, isGroup: false
                         });
                     }
                 }
             }
         });
 
-        allShareChats = chats; // ফিল্টারিংয়ের জন্য সেভ রাখলাম
+        allShareChats = chats; 
         renderShareChatList(chats);
         
     } catch(e) {
@@ -12593,7 +12607,6 @@ async function loadShareChatList() {
     }
 }
 
-// 🚀 লিস্ট রেন্ডার করার ফাংশন
 function renderShareChatList(chats) {
     const list = document.getElementById('share-chat-list');
     if (chats.length === 0) {
@@ -12624,15 +12637,57 @@ function renderShareChatList(chats) {
     list.innerHTML = html;
 }
 
-// 🚀 সার্চ ফিল্টার ফাংশন
 function filterShareList(query) {
     const q = query.toLowerCase().trim();
-    if (!q) {
-        renderShareChatList(allShareChats);
-        return;
-    }
+    if (!q) { renderShareChatList(allShareChats); return; }
     const filtered = allShareChats.filter(c => c.name.toLowerCase().includes(q));
     renderShareChatList(filtered);
+}
+
+// 🚀 ডেটাবেসে মেসেজ সেন্ড করার ফাংশন
+async function sendSharedPost(chatId, otherUid, btn) {
+    if (!currentSharePostData || !checkRateLimit()) return;
+    
+    // বাটন লোডিং হওয়া
+    btn.disabled = true;
+    btn.innerHTML = '<span class="material-symbols-outlined" style="font-size:16px; animation:spin 1s linear infinite;">autorenew</span>';
+
+    const msgData = {
+        uid: currentUser.uid,
+        senderName: currentUserData.name || 'User',
+        text: "Shared a post",
+        sharedPostId: currentSharePostData.id,
+        sharedPostTitle: currentSharePostData.title,
+        sharedPostImg: currentSharePostData.img,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+    
+    try {
+        await db.collection('chats').doc(chatId).collection('messages').add(msgData);
+        
+        let lastText = "🔗 Shared a post";
+        if (otherUid === 'group') {
+            lastText = (currentUserData.name || 'User') + ": 🔗 Shared a post";
+        }
+
+        await db.collection('chats').doc(chatId).set({
+            lastMsg: lastText,
+            lastAt: firebase.firestore.FieldValue.serverTimestamp(),
+            lastSender: currentUser.uid,
+            isRead: false
+        }, { merge: true });
+
+        // সাকসেস হলে বাটন সবুজ হয়ে Sent লেখা আসবে
+        btn.innerHTML = 'Sent <i class="ph-bold ph-check"></i>';
+        btn.style.background = 'var(--success)';
+        btn.style.color = '#fff';
+        showToast("Post shared successfully!");
+        
+    } catch(e) {
+        btn.disabled = false;
+        btn.innerHTML = 'Send';
+        showToast("Failed to share post");
+    }
 }
 </script>
 </body>
