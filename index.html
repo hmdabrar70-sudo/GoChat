@@ -4124,6 +4124,23 @@ MODERN USERNAME SYSTEM STYLES
     <audio id="remote-audio" autoplay playsinline></audio>
 </div>
 
+<!-- 🚀 Share Post to Chat Modal -->
+<div class="modal-overlay" id="share-post-modal" style="z-index:100015;" onclick="if(event.target===this) closeShareModal()">
+    <div class="modal-box" style="margin-top:auto; border-radius:24px 24px 0 0; padding:20px; max-height:80vh; display:flex; flex-direction:column; background:var(--surface);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+            <div style="font-weight:800; font-size:18px; color:var(--text);">Share to Chat</div>
+            <button class="modal-close" onclick="closeShareModal()" style="position:static; background:var(--surface-2); border:none;"><span class="material-symbols-outlined">close</span></button>
+        </div>
+        <div class="search-input-wrap" style="margin-bottom:12px; background:var(--surface-2); border:1px solid var(--border);">
+            <i class="ph-bold ph-magnifying-glass" style="font-size:20px; color:var(--text-muted);"></i>
+            <input type="text" id="share-search-input" placeholder="Search your chats..." oninput="filterShareList(this.value)" style="background:transparent; border:none; color:var(--text); width:100%; outline:none;">
+        </div>
+        <div id="share-chat-list" style="flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:8px; padding-bottom:20px;">
+            <!-- চ্যাট লিস্ট এখানে জাভাস্ক্রিপ্ট দিয়ে লোড হবে -->
+        </div>
+    </div>
+</div>
+
 <!-- 📈 POST INSIGHTS MODAL -->
 <div class="modal-overlay" id="post-insights-modal" style="z-index:100012; align-items:flex-end;" onclick="if(event.target===this) closePostInsights()">
   <div class="modal-box" style="margin-top:auto; border-radius:24px 24px 0 0; max-height:88vh; overflow-y:auto; padding:22px 20px 30px;">
@@ -7981,9 +7998,16 @@ ${mediaHtml}
 <i class="${isLiked ? 'ph-fill' : 'ph-bold'} ph-heart" style="font-size:24px;"></i>
 <span style="font-size:14px;">${p.likes || 0}</span>
 </button>
+
 <button class="post-action-btn" onclick="openCommentPanel('${pid}')">
 <i class="ph-bold ph-chat-circle" style="font-size:24px;"></i>
 <span style="font-size:14px;">${commentCount}</span>
+</button>
+
+<!-- 🚀 নতুন শেয়ার বাটন -->
+<button class="post-action-btn" onclick="openShareModal('${pid}', '${safeTitleForAttr}', '${imgUrls[0] || ''}')">
+<i class="ph-bold ph-share-network" style="font-size:24px;"></i>
+<span style="font-size:14px;">Share</span>
 </button>
 </div>
 </div>`;
@@ -12500,6 +12524,30 @@ function enhanceNotifications(){
   };
   setTimeout(watch, 1200); setTimeout(watch, 3200);
 })();
+// ==========================================
+// 🚀 SHARE POST TO CHAT LOGIC
+// ==========================================
+let currentSharePostData = null;
+
+function openShareModal(postId, postTitle, postImg) {
+    // পোস্টের ডাটা সাময়িকভাবে সেভ করে রাখা
+    currentSharePostData = { id: postId, title: postTitle, img: postImg };
+    
+    // মডাল ওপেন করা
+    document.getElementById('share-post-modal').classList.add('open');
+    
+    // মডালের ভেতর "Loading" টেক্সট দেখানো
+    document.getElementById('share-chat-list').innerHTML = '<div class="loading" style="text-align:center; padding:20px; color:var(--text-muted);"><span class="material-symbols-outlined" style="animation: spin 1s linear infinite;">autorenew</span> Loading chats...</div>';
+    
+    // একটু পরে আমরা এখানে চ্যাট লিস্ট ফেচ করার ফাংশন কল করব
+    // loadShareChatList();
+}
+
+function closeShareModal() {
+    document.getElementById('share-post-modal').classList.remove('open');
+    document.getElementById('share-search-input').value = '';
+    currentSharePostData = null;
+}
 </script>
 </body>
 </html>
