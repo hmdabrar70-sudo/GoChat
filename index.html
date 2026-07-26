@@ -3146,6 +3146,10 @@ MODERN USERNAME SYSTEM STYLES
     position: relative;
     z-index: 2;
 }
+/* 🚀 ফিক্স: থ্রি-ডট মেনু যেন ছবি বা টেক্সটের নিচে ঢাকা না পড়ে */
+.verified-premium-post .post-header {
+    z-index: 10 !important; 
+}
 
 /* গোল্ডেন ব্যাকগ্রাউন্ডে টেক্সট যেন পরিষ্কার বোঝা যায় */
 .verified-premium-post .post-name span, 
@@ -3733,6 +3737,7 @@ MODERN USERNAME SYSTEM STYLES
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging-compat.js"></script>
 
 <script>
 
@@ -5567,25 +5572,24 @@ async function toggleCommentReaction(pid, commentIdx, type) {
     showToast(toastMsg);
 }
 
-// 🚀 রিপ্লাইয়ের বক্স ওপেন করার ফাংশন (যেটা মিসিং ছিল)
+// 🚀 রিপ্লাইয়ের বক্স ওপেন করার ফাংশন (Fixed)
 function showReplyInput(pid, idx, name) {
     const container = document.getElementById(`reply-input-${idx}`);
     if (!container) return;
     
-    // যদি বক্স আগে থেকেই ওপেন থাকে, তবে আবার ক্লিক করলে হাইড হয়ে যাবে
     if (container.innerHTML.trim() !== '') {
         container.innerHTML = '';
         return;
     }
     
+    // button এর onclick এ event.stopPropagation() যুক্ত করা হলো, নাহলে ডাবল ক্লিক ট্রিগার হয়ে যাচ্ছিল
     container.innerHTML = `
         <div class="reply-input-container">
-            <input type="text" id="reply-text-${idx}" placeholder="Reply to ${name}..." onkeypress="if(event.key==='Enter') submitReply('${pid}', ${idx})">
-            <button onclick="submitReply('${pid}', ${idx}')"><i class="ph-bold ph-paper-plane-right" style="font-size: 16px;"></i></button>
+            <input type="text" id="reply-text-${idx}" placeholder="Reply to ${escapeHTML(name)}..." onclick="event.stopPropagation();" onkeypress="if(event.key==='Enter'){event.stopPropagation(); submitReply('${pid}', ${idx});}">
+            <button onclick="event.stopPropagation(); submitReply('${pid}', ${idx})"><i class="ph-bold ph-paper-plane-right" style="font-size: 16px;"></i></button>
         </div>
     `;
     
-    // অটো-ফোকাস করা যাতে সাথে সাথে টাইপ করা যায়
     setTimeout(() => {
         const inp = document.getElementById(`reply-text-${idx}`);
         if (inp) inp.focus();
@@ -7353,7 +7357,13 @@ const safeTitleForAttr=(p.title||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'").r
 // --- নতুন আপডেট: "is with..." টেক্সট তৈরি করা (ক্লিকেবল) ---
 let withText = '';
 if (p.taggedNames && p.taggedNames.length > 0 && p.tagged) {
-    //... (আগের কোড) ...
+    if (p.taggedNames.length === 1) {
+        withText = `<span style="font-weight:500; color:var(--text-secondary); font-size:14px; margin-left:4px;">is with</span> <strong style="color:var(--text); font-size:14px; margin-left:4px; cursor:pointer;" onclick="event.stopPropagation(); viewUserProfile('${p.tagged[0]}')">${escapeHTML(p.taggedNames[0])}</strong>`;
+    } else if (p.taggedNames.length === 2) {
+        withText = `<span style="font-weight:500; color:var(--text-secondary); font-size:14px; margin-left:4px;">is with</span> <strong style="color:var(--text); font-size:14px; margin-left:4px; cursor:pointer;" onclick="event.stopPropagation(); viewUserProfile('${p.tagged[0]}')">${escapeHTML(p.taggedNames[0])}</strong> <span style="font-weight:500; color:var(--text-secondary); font-size:14px; margin-left:4px;">and</span> <strong style="color:var(--text); font-size:14px; margin-left:4px; cursor:pointer;" onclick="event.stopPropagation(); viewUserProfile('${p.tagged[1]}')">${escapeHTML(p.taggedNames[1])}</strong>`;
+    } else if (p.taggedNames.length > 2) {
+        withText = `<span style="font-weight:500; color:var(--text-secondary); font-size:14px; margin-left:4px;">is with</span> <strong style="color:var(--text); font-size:14px; margin-left:4px; cursor:pointer;" onclick="event.stopPropagation(); viewUserProfile('${p.tagged[0]}')">${escapeHTML(p.taggedNames[0])}</strong> <span style="font-weight:500; color:var(--text-secondary); font-size:14px; margin-left:4px;">and</span> <strong style="color:var(--text); font-size:14px; margin-left:4px;">${p.taggedNames.length - 1} others</strong>`;
+    }
 }
 
 // নতুন: Activity/Feeling Render
@@ -11641,6 +11651,66 @@ function switchCategoryTab(catName, tabElement) {
         // মেইন ফিডের মতোই সেম কার্ড ডিজাইন দিয়ে রেন্ডার করা
         list.innerHTML = posts.map(p => buildPostCardHTML(p)).join('');
     });
+}
+// 🚀 Settings Search Function
+function filterMenuSettings(query) {
+    const lowerQuery = query.toLowerCase().trim();
+    // আমরা id="privacy-settings-list" এর বদলে মেইন কন্টেইনার ধরে ফিল্টার করব
+    const container = document.querySelector('#main-settings-screen > div:nth-child(3)');
+    if (!container) return;
+
+    const items = container.querySelectorAll('.settings-list-item');
+    
+    items.forEach(item => {
+        const text = item.innerText.toLowerCase();
+        if (text.includes(lowerQuery)) {
+            item.style.setProperty('display', 'flex', 'important');
+        } else {
+            item.style.setProperty('display', 'none', 'important');
+        }
+    });
+}
+// ==========================================
+// 🚀 PUSH NOTIFICATION (FCM) SETUP 🚀
+// ==========================================
+let messaging = null;
+
+try {
+    if (firebase.messaging.isSupported()) {
+        messaging = firebase.messaging();
+    }
+} catch (e) {
+    console.log("Firebase Messaging not supported in this environment:", e);
+}
+
+// ইউজারের কাছ থেকে নোটিফিকেশনের পারমিশন নেওয়ার ফাংশন
+async function requestPushNotificationPermission() {
+    if (!messaging || !currentUser) return;
+    
+    try {
+        const permission = await Notification.requestPermission();
+        if (permission === 'granted') {
+            console.log('Notification permission granted.');
+            
+            // ফায়ারবেস ক্লাউড মেসেজিং টোকেন জেনারেট করা
+            // (নোট: এর জন্য ফায়ারবেস কনসোলে Web Push Certificates (VAPID key) পেয়ার সেটআপ থাকতে হবে)
+            const token = await messaging.getToken({
+                vapidKey: 'YOUR_WEB_PUSH_VAPID_KEY_HERE' // চাইলে ফায়ারবেস কনসোল থেকে কি বসাতে পারেন
+            });
+            
+            if (token) {
+                // টোকেনটি ইউজারের ডাটাবেসে সেভ করে রাখা, যাতে সার্ভার থেকে নোটিফিকেশন পাঠানো যায়
+                await db.collection('users').doc(currentUser.uid).set({
+                    fcmToken: token
+                }, { merge: true });
+                console.log('FCM Token saved:', token);
+            }
+        } else {
+            console.log('Unable to get permission to notify.');
+        }
+    } catch (error) {
+        console.error('An error occurred while retrieving token. ', error);
+    }
 }
 </script>
 </body>
