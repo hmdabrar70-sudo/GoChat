@@ -10351,33 +10351,6 @@ async function toggleGroupMedia() {
     } catch(e) { grid.innerHTML = '<div style="grid-column:1/-1; text-align:center; font-size:12px; color:var(--danger);">Error loading media</div>'; }
 }
 
-async function pinGroupMessage(msgId) {
-    const doc = await db.collection('chats').doc(currentChatId).collection('messages').doc(msgId).get();
-    if(!doc.exists) return;
-    const data = doc.data();
-    let text = data.text || '📷 Photo';
-    try {
-        await db.collection('chats').doc(currentChatId).update({
-            pinnedMsg: { id: msgId, text: text, sender: data.senderName }
-        });
-        showToast("Message Pinned!");
-    } catch(e) { showToast("Failed to pin message"); }
-}
-
-async function unpinGroupMessage() {
-    if(!confirm("Unpin this message?")) return;
-    try {
-        await db.collection('chats').doc(currentChatId).update({
-            pinnedMsg: firebase.firestore.FieldValue.delete()
-        });
-        showToast("Message Unpinned!");
-    } catch(e) { showToast("Failed to unpin message"); }
-}
-
-function scrollToPinnedMsg() {
-    showToast("Scroll to message feature coming soon!");
-}
-
 // 🚀 চ্যাট ইনপুটে মেনশন সাপোর্ট (Event Listener)
 document.addEventListener('DOMContentLoaded', () => {
   const chatInputBox = document.getElementById('chat-input');
@@ -10423,50 +10396,8 @@ function scrollToMessage(msgId) {
         showToast("Message is too old or has been deleted.");
     }
 }
-// 🚀 Unpin Message Function (Works in Personal & Group)
-async function unpinCurrentMessage() {
-    if (!currentChatId) return;
-    if (!confirm("Unpin this message?")) return;
-    try {
-        await db.collection('chats').doc(currentChatId).update({
-            pinnedMsg: firebase.firestore.FieldValue.delete()
-        });
-        showToast("Message Unpinned!");
-        const pinBar = document.getElementById('group-pinned-msg-bar');
-        if (pinBar) pinBar.style.display = 'none';
-    } catch(e) { showToast("Failed to unpin"); }
-}
 
-// 🚀 Click on Pin Bar to Scroll to Message
-function scrollToPinnedMsg() {
-    const pinBar = document.getElementById('group-pinned-msg-bar');
-    if (!pinBar) return;
-    
-    // পিন বার থেকে মেসেজ আইডি বের করা
-    const msgText = document.getElementById('group-pinned-msg-text').textContent;
-    
-    // চ্যাট মেসেজগুলো স্ক্যান করে মিল খোঁজা
-    const wrappers = document.querySelectorAll('.chat-bubble-wrapper');
-    let found = false;
-    
-    wrappers.forEach(wrapper => {
-        const bubbleText = wrapper.querySelector('.chat-bubble')?.innerText;
-        if (bubbleText && bubbleText.includes(msgText)) {
-            const bubble = wrapper.querySelector('.chat-bubble');
-            if (bubble) {
-                bubble.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                // হাইলাইট ইফেক্ট
-                bubble.style.background = 'var(--accent-glow)';
-                bubble.style.boxShadow = '0 0 20px var(--accent)';
-                setTimeout(() => {
-                    bubble.style.background = '';
-                    bubble.style.boxShadow = '';
-                }, 2000);
-                found = true;
-            }
-        }
-    });
-    
+    {
     if (!found) showToast("Message not found in current view");
 }
 // 🚀 Advanced Privacy Logic
