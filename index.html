@@ -3414,173 +3414,177 @@ MODERN USERNAME SYSTEM STYLES
 @keyframes nfPop{ from{ transform:scale(0); } to{ transform:scale(1); } }
 @keyframes nfPulse{ 0%{ box-shadow:0 0 0 0 color-mix(in srgb,var(--accent) 55%, transparent);} 70%{ box-shadow:0 0 0 8px transparent;} 100%{ box-shadow:0 0 0 0 transparent;} }
 @keyframes nfFloat{ 0%,100%{ transform:translateY(0);} 50%{ transform:translateY(-7px);} }
-// ═══════════════════════════════════════════════════════
-// 🎨 NEW DESIGN  ·  msg-list-redesign  ·  2026-07-26
-// visual-only enhancer  |  onclick/openChat/লজিক অক্ষত
-// scope: .msg-item যার ভেতরে .msg-menu-btn আছে (গ্রুপ-মেম্বার লিস্ট বাদ)
-// খুঁজতে:  Ctrl+F → "msg-list-redesign"
-// ═══════════════════════════════════════════════════════
-function mlIsChatRow(el){ return el.classList.contains('msg-item') && !!el.querySelector('.msg-menu-btn'); }
 
-function mlFindPage(rows){
-  // scrollable page ancestor খোঁজা
-  for(const r of rows){
-    let p = r.closest('.page');
-    if(p) return p;
-    p = r.closest('[id*="message" i], [id*="chat-list" i], [id*="chats" i]');
-    if(p) return p;
-  }
-  return rows[0] ? rows[0].parentElement : null;
+/* ═══════════════════════════════════════════════════════
+   🎨 NEW DESIGN  ·  msglist-redesign  ·  2026-07-26
+   চেহারা-পরিবর্তন  |  openChat/onclick/লজিক অক্ষত  |  scoped override
+   শুধু মেসেজ-লিস্ট পেজের .msg-item-এ  |  গ্রুপ-মেম্বার লিস্ট অছোঁয়া
+   খুঁজতে:  Ctrl+F → "msglist-redesign"
+   ═══════════════════════════════════════════════════════ */
+
+/* পেছনের পরিবেশগত স্তর (scoped — শুধু এই পেজে) */
+.ml-redesign{ position:relative; }
+.ml-redesign::before{
+  content:''; position:fixed; inset:0; z-index:0; pointer-events:none;
+  background:
+    radial-gradient(72% 46% at 12% -8%, color-mix(in srgb, var(--accent) 14%, transparent), transparent 60%),
+    radial-gradient(58% 40% at 96% -4%, color-mix(in srgb, #f59e0b 10%, transparent), transparent 64%);
+}
+.ml-redesign::after{
+  content:''; position:fixed; inset:0; z-index:0; pointer-events:none; opacity:.5;
+  background-image:radial-gradient(color-mix(in srgb, var(--text) 6%, transparent) 1px, transparent 1.4px);
+  background-size:22px 22px;
+  -webkit-mask-image:linear-gradient(180deg, #000, transparent 46%);
+          mask-image:linear-gradient(180deg, #000, transparent 46%);
+}
+.ml-redesign > *{ position:relative; z-index:1; }
+
+/* হেডার ট্রিটমেন্ট */
+.ml-head{ display:flex; align-items:center; justify-content:space-between; gap:12px; padding:6px 4px 18px; }
+.ml-title-wrap{ display:flex; flex-direction:column; gap:3px; }
+.ml-title{
+  font-size:30px !important; font-weight:900 !important; letter-spacing:-1.2px; line-height:1; color:var(--text);
+  position:relative; width:fit-content;
+}
+.ml-title::after{
+  content:''; position:absolute; left:0; bottom:-5px; height:3px; width:42%;
+  border-radius:3px; background:linear-gradient(90deg, var(--accent), transparent);
+}
+.ml-sub{ font-size:11px; font-weight:700; letter-spacing:1.3px; text-transform:uppercase; color:var(--text-muted); display:flex; align-items:center; gap:6px; }
+.ml-sub .ml-live{ width:7px; height:7px; border-radius:50%; background:var(--accent); animation:mlPulse 1.9s ease-out infinite; }
+.ml-actions{ display:flex; align-items:center; gap:9px; }
+
+/* গ্রুপ আইকন বাটন */
+.ml-group-btn{
+  width:44px; height:44px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+  background:color-mix(in srgb, var(--accent) 14%, transparent); color:var(--accent) !important;
+  border:1px solid color-mix(in srgb, var(--accent) 26%, transparent);
+  transition:transform .2s cubic-bezier(.34,1.56,.64,1), background .2s;
+}
+.ml-group-btn:hover{ background:color-mix(in srgb, var(--accent) 22%, transparent); }
+.ml-group-btn:active{ transform:scale(.88) rotate(-6deg); }
+.ml-group-btn i, .ml-group-btn .material-symbols-outlined{ font-size:23px !important; color:var(--accent) !important; }
+
+/* Archived pill */
+.ml-archive-btn{
+  display:inline-flex; align-items:center; gap:7px; padding:10px 16px; border-radius:30px;
+  background:var(--surface) !important; border:1px solid var(--border) !important; color:var(--text) !important;
+  font-size:13px !important; font-weight:700 !important; box-shadow:0 8px 20px -14px rgba(0,0,0,.5);
+  transition:transform .2s, border-color .2s, background .2s;
+}
+.ml-archive-btn:hover{ border-color:color-mix(in srgb, var(--accent) 40%, var(--border)) !important; }
+.ml-archive-btn:active{ transform:scale(.94); }
+.ml-archive-btn i, .ml-archive-btn .material-symbols-outlined{ font-size:17px !important; }
+
+/* লিস্ট স্পেসিং */
+.ml-list{ display:flex; flex-direction:column; gap:11px; }
+
+/* চ্যাট কার্ড — স্তরযুক্ত, স্পর্শে সাড়া */
+.msg-item.ml-done{
+  position:relative; display:flex; align-items:center; gap:14px;
+  padding:13px 12px 13px 15px; border-radius:20px;
+  background:var(--surface); border:1px solid var(--border);
+  box-shadow:0 1px 0 rgba(255,255,255,.04) inset, 0 10px 26px -18px rgba(0,0,0,.55);
+  overflow:hidden; cursor:pointer;
+  transition:transform .18s ease, border-color .2s ease, box-shadow .25s ease, background .25s ease;
+  animation:mlRise .5s cubic-bezier(.22,1,.36,1) backwards;
+}
+.msg-item.ml-done:hover{
+  transform:translateY(-2px);
+  border-color:color-mix(in srgb, var(--accent) 36%, var(--border));
+  box-shadow:0 18px 34px -20px color-mix(in srgb, var(--accent) 55%, transparent);
+}
+.msg-item.ml-done:active{ transform:scale(.985); }
+
+/* বাম accent edge */
+.msg-item.ml-done::before{
+  content:''; position:absolute; left:0; top:12px; bottom:12px; width:4px; border-radius:0 4px 4px 0;
+  background:linear-gradient(180deg, var(--accent), color-mix(in srgb, var(--accent) 40%, #f59e0b));
+  opacity:0; transition:opacity .25s, top .25s, bottom .25s;
+}
+.msg-item.ml-done:hover::before{ opacity:.55; top:8px; bottom:8px; }
+
+/* unread — হালকা wash + উজ্জ্বল edge (ক্লাস থাকলে) */
+.msg-item.ml-done.unread,
+.msg-item.ml-done.is-unread,
+.msg-item.ml-done.has-unread{
+  background:linear-gradient(100deg, color-mix(in srgb, var(--accent) 9%, var(--surface)), var(--surface) 62%);
+  border-color:color-mix(in srgb, var(--accent) 30%, var(--border));
+}
+.msg-item.ml-done.unread::before,
+.msg-item.ml-done.is-unread::before,
+.msg-item.ml-done.has-unread::before{ opacity:1; width:5px; top:9px; bottom:9px; }
+
+/* অ্যাভাটার রিং */
+.msg-item.ml-done .avatar{
+  position:relative; width:54px; height:54px; flex-shrink:0; border-radius:50%;
+  box-shadow:0 0 0 2px var(--surface), 0 0 0 4px color-mix(in srgb, var(--accent) 22%, transparent), 0 8px 18px -10px rgba(0,0,0,.45);
+  transition:box-shadow .25s, transform .25s;
+}
+.msg-item.ml-done:hover .avatar{ transform:scale(1.04); box-shadow:0 0 0 2px var(--surface), 0 0 0 4px color-mix(in srgb, var(--accent) 40%, transparent), 0 10px 22px -10px rgba(0,0,0,.5); }
+.msg-item.ml-done .avatar img{ width:100%; height:100%; border-radius:50%; object-fit:cover; }
+
+/* অনলাইন ডট pulse (যদি indicator থাকে) */
+.msg-item.ml-done .avatar .online-indicator,
+.msg-item.ml-done .avatar .status-online,
+.msg-item.ml-done .avatar [class*="online" i]{
+  box-shadow:0 0 0 2px var(--surface), 0 0 0 0 color-mix(in srgb, #22c55e 60%, transparent) !important;
+  animation:mlOnline 2s ease-out infinite;
 }
 
-function mlDetectUnread(row){
-  // conservative: ভুল positive এড়াতে — শুধু স্পষ্ট সংকেত থাকলে
-  if(row.querySelector('[class*="unread" i], [class*="badge" i], [class*="count" i]')) return true;
-  const spans = row.querySelectorAll('span, div');
-  for(const s of spans){
-    if(s.children.length === 0 && /^\d{1,3}$/.test((s.textContent||'').trim()) && s !== row.querySelector('.msg-preview')){
-      // ছোট সংখ্যা-ব্যাজ = unread count
-      const w = s.offsetWidth;
-      if(w > 0 && w < 40) return true;
-    }
-  }
-  return false;
+/* টেক্সট স্তর */
+.msg-item.ml-done .msg-info{ gap:3px; }
+.msg-item.ml-done .msg-name{
+  font-size:15.5px !important; font-weight:800 !important; letter-spacing:-.2px; color:var(--text) !important; line-height:1.2;
+}
+.msg-item.ml-done .msg-preview{
+  font-size:13px !important; color:var(--text-muted) !important; font-weight:500; line-height:1.35;
+  display:-webkit-box; -webkit-line-clamp:1; -webkit-box-orient:vertical; overflow:hidden;
+}
+.msg-item.ml-done.unread .msg-preview,
+.msg-item.ml-done.is-unread .msg-preview,
+.msg-item.ml-done.has-unread .msg-preview{ color:var(--text-secondary) !important; font-weight:600; }
+
+/* সিস্টেম প্রিভিউ (Audio call ended ইত্যাদি) — muted chip feel */
+.msg-item.ml-done .msg-preview:has(.material-symbols-outlined),
+.msg-item.ml-done .msg-preview:has(i[class*="ph-"]){ color:var(--text-muted) !important; font-style:italic; }
+
+/* থ্রি-ডট মেনু — গোল হিট-এরিয়া + ripple */
+.msg-item.ml-done .msg-menu-btn{
+  width:34px; height:34px; border-radius:50%; flex-shrink:0; position:relative; overflow:hidden;
+  display:flex; align-items:center; justify-content:center;
+  transition:background .2s, color .2s, transform .2s;
+}
+.msg-item.ml-done .msg-menu-btn:hover{ background:var(--surface-2); color:var(--accent) !important; }
+.msg-item.ml-done .msg-menu-btn:active{ transform:scale(.85); }
+.msg-item.ml-done .msg-menu-btn .material-symbols-outlined{ font-size:20px; }
+
+/* ripple */
+.ml-ripple{
+  position:absolute; border-radius:50%; transform:scale(0); pointer-events:none;
+  background:color-mix(in srgb, var(--accent) 50%, #fff);
+  animation:mlRipple .6s ease-out forwards;
 }
 
-function mlMarkOnlineDot(row){
-  const av = row.querySelector('.avatar');
-  if(!av || av.querySelector('.ml-online')) return;
-  [...av.children].forEach(ch=>{
-    if(ch.tagName === 'IMG') return;
-    const cs = getComputedStyle(ch);
-    const w = ch.offsetWidth;
-    if(cs.position === 'absolute' && w > 0 && w <= 16){
-      ch.classList.add('ml-online');   // inline সবুজ bg থাকলেও ring/border CSS চেপে বসবে
-    }
-  });
+/* খালি অবস্থা */
+.ml-empty{
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px;
+  padding:64px 24px; text-align:center;
 }
-
-function mlEnhanceRow(row, idx){
-  if(row.classList.contains('ml-row')) return;
-  row.classList.add('ml-row');
-  row.style.animationDelay = Math.min(idx * 0.045, 0.5).toFixed(2) + 's';
-  mlMarkOnlineDot(row);
-  if(mlDetectUnread(row)) row.classList.add('ml-unread');
+.ml-empty .ml-empty-ico{
+  width:80px; height:80px; border-radius:24px; display:flex; align-items:center; justify-content:center;
+  background:linear-gradient(135deg, color-mix(in srgb, var(--accent) 16%, var(--surface-2)), var(--surface-2));
+  border:1px solid var(--border); color:var(--accent); animation:mlFloat 3.4s ease-in-out infinite;
 }
+.ml-empty .ml-empty-ico .material-symbols-outlined, .ml-empty .ml-empty-ico i{ font-size:38px; }
+.ml-empty .ml-empty-t{ font-size:16px; font-weight:800; color:var(--text); }
+.ml-empty .ml-empty-s{ font-size:13px; color:var(--text-muted); max-width:240px; line-height:1.5; }
 
-function mlBuildHeader(page){
-  if(page.querySelector('.ml-head-v2')) return;
-  // "Messages" টাইটেল খোঁজা
-  const cands = page.querySelectorAll('h1,h2,h3,div,span');
-  let titleEl = null;
-  for(const el of cands){
-    if(el.children.length === 0 && /^\s*Messages\s*$/.test(el.textContent||'')){ titleEl = el; break; }
-  }
-  if(!titleEl) return;
-  const headRow = titleEl.parentElement;
-  if(!headRow) return;
-  headRow.classList.add('ml-head-v2');
-
-  const wrap = document.createElement('div'); wrap.className = 'ml-title-wrap';
-  titleEl.classList.add('ml-msg-title');
-  const sub = document.createElement('div'); sub.className = 'ml-msg-sub';
-  wrap.appendChild(titleEl); wrap.appendChild(sub);
-  headRow.insertBefore(wrap, headRow.firstChild);
-
-  // ডানের অ্যাকশনগুলো (group btn + archived) একটা wrap-এ
-  const actions = document.createElement('div'); actions.className = 'ml-head-actions';
-  // group icon button (যার ভেতরে group/people আইকন, archived না)
-  headRow.querySelectorAll('button, div, span, a').forEach(b=>{
-    if(b === titleEl || b === wrap || b.closest('.ml-title-wrap')) return;
-    const txt = (b.textContent||'').trim();
-    const ico = b.querySelector('i, .material-symbols-outlined');
-    const icoL = ((ico?.getAttribute('class')||'') + ' ' + (ico?.textContent||'')).toLowerCase();
-    if(/archived/i.test(txt)){ b.classList.add('ml-archived-pill'); actions.appendChild(b); }
-    else if(!/archived/i.test(txt) && b.children.length <= 1 && /group|people|users/.test(icoL) && !b.classList.contains('ml-archived-pill')){
-      b.classList.add('ml-group-btn'); actions.appendChild(b);
-    }
-  });
-  if(actions.children.length) headRow.appendChild(actions);
-}
-
-function mlUpdateSubtitle(page){
-  const sub = page.querySelector('.ml-head-v2 .ml-msg-sub');
-  if(!sub) return;
-  const unread = page.querySelectorAll('.ml-row.ml-unread').length;
-  const total  = page.querySelectorAll('.ml-row').length;
-  if(unread > 0){
-    sub.innerHTML = `<span class="ml-live-dot"></span> ${unread} unread · ${total} conversations`;
-  } else if(total > 0){
-    sub.innerHTML = `<span class="material-symbols-outlined" style="font-size:14px;color:#22c55e;">check_circle</span> All caught up · ${total} chats`;
-  } else {
-    sub.textContent = 'Your conversations';
-  }
-}
-
-function mlEnhanceEmpty(page, list){
-  if(!list) return;
-  const hasRow = list.querySelector('.ml-row');
-  const looksEmpty = !hasRow && /no (messages|conversations|chats)/i.test(list.textContent||'');
-  if(looksEmpty && !list.querySelector('.ml-empty-v2')){
-    list.classList.add('ml-list-v2');
-    list.innerHTML = `
-      <div class="ml-empty-v2">
-        <div class="ml-empty-ico"><span class="material-symbols-outlined">forum</span></div>
-        <div class="ml-empty-t">No conversations yet</div>
-        <div class="ml-empty-s">Start a chat with a friend — your messages will appear right here.</div>
-      </div>`;
-  }
-}
-
-function enhanceMessageList(){
-  const rows = [...document.querySelectorAll('.msg-item')].filter(mlIsChatRow);
-  if(!rows.length){
-    // খালি অবস্থা চেষ্টা (page খুঁজে)
-    const anyMsgItem = document.querySelector('.msg-item');
-    const page = anyMsgItem ? mlFindPage([anyMsgItem]) : null;
-    if(page){ page.classList.add('ml-redesign'); mlBuildHeader(page); }
-    return;
-  }
-  const page = mlFindPage(rows);
-  if(!page) return;
-  page.classList.add('ml-redesign');
-
-  const list = rows[0].parentElement;
-  if(list && !list.classList.contains('ml-list-v2')) list.classList.add('ml-list-v2');
-
-  mlBuildHeader(page);
-  rows.forEach((r,i)=> mlEnhanceRow(r,i));
-  mlUpdateSubtitle(page);
-  mlEnhanceEmpty(page, list);
-}
-
-// অটো-রান + রিয়েল-টাইম পর্যবেক্ষণ (লজিক অক্ষত)
-(function mlBoot(){
-  const run = ()=> enhanceMessageList();
-  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run); else run();
-  setTimeout(run, 700); setTimeout(run, 1600); setTimeout(run, 3000);
-
-  // সম্ভাব্য লিস্ট-লোড ফাংশন wrap (নাম না জানলেও observer সামলাবে)
-  ['loadChatList','renderChatList','loadMessagesList','openMessages'].forEach(name=>{
-    const o = window[name];
-    if(typeof o === 'function' && !o.__mlWrapped){
-      window[name] = function(...a){ const r = o.apply(this,a); setTimeout(run, 80); return r; };
-      window[name].__mlWrapped = true;
-    }
-  });
-
-  let obs = null;
-  const watch = ()=>{
-    const rows = [...document.querySelectorAll('.msg-item')].filter(mlIsChatRow);
-    const list = rows[0] ? rows[0].parentElement : null;
-    if(list && !obs){
-      obs = new MutationObserver(()=> { if(document.querySelectorAll('.ml-row').length || rows.length) enhanceMessageList(); });
-      obs.observe(list, { childList:true, subtree:true });
-    }
-    run();
-  };
-  setTimeout(watch, 1200); setTimeout(watch, 3200);
-})();
+@keyframes mlRise{ from{ opacity:0; transform:translateY(16px); } to{ opacity:1; transform:translateY(0); } }
+@keyframes mlPulse{ 0%{ box-shadow:0 0 0 0 color-mix(in srgb, var(--accent) 60%, transparent);} 70%{ box-shadow:0 0 0 7px transparent;} 100%{ box-shadow:0 0 0 0 transparent;} }
+@keyframes mlOnline{ 0%{ box-shadow:0 0 0 2px var(--surface), 0 0 0 0 color-mix(in srgb,#22c55e 60%, transparent);} 70%{ box-shadow:0 0 0 2px var(--surface), 0 0 0 6px transparent;} 100%{ box-shadow:0 0 0 2px var(--surface), 0 0 0 0 transparent;} }
+@keyframes mlRipple{ to{ transform:scale(2.6); opacity:0;} }
+@keyframes mlFloat{ 0%,100%{ transform:translateY(0);} 50%{ transform:translateY(-7px);} }
 </style>
 
 <style>
@@ -12879,169 +12883,138 @@ function enhanceNotifications(){
   setTimeout(watch, 1200); setTimeout(watch, 3200);
 })();
 // ═══════════════════════════════════════════════════════
-// 🎨 NEW DESIGN  ·  msg-list-redesign  ·  2026-07-26
-// visual-only enhancer  |  onclick/openChat/লজিক অক্ষত
-// scope: .msg-item যার ভেতরে .msg-menu-btn আছে (গ্রুপ-মেম্বার লিস্ট বাদ)
-// খুঁজতে:  Ctrl+F → "msg-list-redesign"
+// 🎨 NEW DESIGN  ·  msglist-redesign  ·  2026-07-26
+// visual-only enhancer  |  openChat/onclick/লজিক অক্ষত
+// স্কোপ: শুধু openChat-ওয়ালা .msg-item (গ্রুপ-মেম্বার লিস্ট বাদ)
+// খুঁজতে:  Ctrl+F → "msglist-redesign"
 // ═══════════════════════════════════════════════════════
-function mlIsChatRow(el){ return el.classList.contains('msg-item') && !!el.querySelector('.msg-menu-btn'); }
-
-function mlFindPage(rows){
-  // scrollable page ancestor খোঁজা
-  for(const r of rows){
-    let p = r.closest('.page');
-    if(p) return p;
-    p = r.closest('[id*="message" i], [id*="chat-list" i], [id*="chats" i]');
-    if(p) return p;
-  }
-  return rows[0] ? rows[0].parentElement : null;
+function mlIsChatItem(it){
+  const oc = (it.getAttribute('onclick') || '').toLowerCase();
+  const hasMenu = !!it.querySelector('.msg-menu-btn');
+  return /openchat\s*\(/.test(oc) || hasMenu;   // নির্ভরযোগ্য স্কোপ
 }
 
-function mlDetectUnread(row){
-  // conservative: ভুল positive এড়াতে — শুধু স্পষ্ট সংকেত থাকলে
-  if(row.querySelector('[class*="unread" i], [class*="badge" i], [class*="count" i]')) return true;
-  const spans = row.querySelectorAll('span, div');
-  for(const s of spans){
-    if(s.children.length === 0 && /^\d{1,3}$/.test((s.textContent||'').trim()) && s !== row.querySelector('.msg-preview')){
-      // ছোট সংখ্যা-ব্যাজ = unread count
-      const w = s.offsetWidth;
-      if(w > 0 && w < 40) return true;
-    }
-  }
-  return false;
-}
+function enhanceMessageList(){
+  const items = [...document.querySelectorAll('.msg-item')].filter(mlIsChatItem);
 
-function mlMarkOnlineDot(row){
-  const av = row.querySelector('.avatar');
-  if(!av || av.querySelector('.ml-online')) return;
-  [...av.children].forEach(ch=>{
-    if(ch.tagName === 'IMG') return;
-    const cs = getComputedStyle(ch);
-    const w = ch.offsetWidth;
-    if(cs.position === 'absolute' && w > 0 && w <= 16){
-      ch.classList.add('ml-online');   // inline সবুজ bg থাকলেও ring/border CSS চেপে বসবে
+  // খালি অবস্থা
+  if(items.length === 0){
+    const anyList = document.querySelector('.msg-item')?.parentElement;
+    const scope = anyList ? (anyList.closest('.page, [id$="-screen"], [id*="message" i]') || anyList) : null;
+    if(scope){ scope.classList.add('ml-redesign'); mlBuildHeader(scope); mlBuildEmpty(scope); }
+    return;
+  }
+
+  const list  = items[0].parentElement;
+  const scope = list.closest('.page, [id$="-screen"], [id*="message" i]') || list;
+  scope.classList.add('ml-redesign');
+  if(list && !list.classList.contains('ml-list')) list.classList.add('ml-list');
+
+  mlBuildHeader(scope);
+
+  items.forEach((it, i) => {
+    if(it.classList.contains('ml-done')) return;   // আগে enhance হলে skip
+    it.classList.add('ml-done');
+    it.style.animationDelay = Math.min(i * 0.045, 0.5).toFixed(2) + 's';
+
+    // থ্রি-ডটে ripple (visual only — onclick অক্ষত)
+    const menu = it.querySelector('.msg-menu-btn');
+    if(menu && !menu.dataset.mlRipple){
+      menu.dataset.mlRipple = '1';
+      menu.addEventListener('pointerdown', (e) => {
+        const r = menu.getBoundingClientRect();
+        const size = Math.max(r.width, r.height);
+        const span = document.createElement('span');
+        span.className = 'ml-ripple';
+        span.style.width = span.style.height = size + 'px';
+        span.style.left = (e.clientX - r.left - size/2) + 'px';
+        span.style.top  = (e.clientY - r.top  - size/2) + 'px';
+        menu.appendChild(span);
+        setTimeout(() => span.remove(), 650);
+      });
     }
   });
+
+  mlUpdateSub(scope);
 }
 
-function mlEnhanceRow(row, idx){
-  if(row.classList.contains('ml-row')) return;
-  row.classList.add('ml-row');
-  row.style.animationDelay = Math.min(idx * 0.045, 0.5).toFixed(2) + 's';
-  mlMarkOnlineDot(row);
-  if(mlDetectUnread(row)) row.classList.add('ml-unread');
-}
-
-function mlBuildHeader(page){
-  if(page.querySelector('.ml-head-v2')) return;
+function mlBuildHeader(scope){
+  if(scope.querySelector('.ml-head')) return;
   // "Messages" টাইটেল খোঁজা
-  const cands = page.querySelectorAll('h1,h2,h3,div,span');
+  const cands = scope.querySelectorAll('div,span,h1,h2,h3');
   let titleEl = null;
   for(const el of cands){
-    if(el.children.length === 0 && /^\s*Messages\s*$/.test(el.textContent||'')){ titleEl = el; break; }
+    if(el.children.length === 0 && /^\s*Messages\s*$/.test(el.textContent || '')){ titleEl = el; break; }
   }
   if(!titleEl) return;
-  const headRow = titleEl.parentElement;
-  if(!headRow) return;
-  headRow.classList.add('ml-head-v2');
+  const row = titleEl.parentElement;
+  if(!row) return;
+  row.classList.add('ml-head');
 
+  // টাইটেল + সাবটাইটেল wrap
   const wrap = document.createElement('div'); wrap.className = 'ml-title-wrap';
-  titleEl.classList.add('ml-msg-title');
-  const sub = document.createElement('div'); sub.className = 'ml-msg-sub';
+  titleEl.classList.add('ml-title');
+  const sub = document.createElement('div'); sub.className = 'ml-sub';
   wrap.appendChild(titleEl); wrap.appendChild(sub);
-  headRow.insertBefore(wrap, headRow.firstChild);
+  row.insertBefore(wrap, row.firstChild);
 
-  // ডানের অ্যাকশনগুলো (group btn + archived) একটা wrap-এ
-  const actions = document.createElement('div'); actions.className = 'ml-head-actions';
-  // group icon button (যার ভেতরে group/people আইকন, archived না)
-  headRow.querySelectorAll('button, div, span, a').forEach(b=>{
-    if(b === titleEl || b === wrap || b.closest('.ml-title-wrap')) return;
-    const txt = (b.textContent||'').trim();
-    const ico = b.querySelector('i, .material-symbols-outlined');
-    const icoL = ((ico?.getAttribute('class')||'') + ' ' + (ico?.textContent||'')).toLowerCase();
-    if(/archived/i.test(txt)){ b.classList.add('ml-archived-pill'); actions.appendChild(b); }
-    else if(!/archived/i.test(txt) && b.children.length <= 1 && /group|people|users/.test(icoL) && !b.classList.contains('ml-archived-pill')){
-      b.classList.add('ml-group-btn'); actions.appendChild(b);
+  // ডানের অ্যাকশনগুলো (গ্রুপ আইকন + Archived) একটা wrap-এ
+  const actions = document.createElement('div'); actions.className = 'ml-actions';
+  [...row.children].forEach(ch => { if(ch !== wrap) actions.appendChild(ch); });
+  row.appendChild(actions);
+
+  // গ্রুপ আইকন চিহ্নিত (group/users আইকনওয়ালা বাটন)
+  actions.querySelectorAll('button,div,span,a,i').forEach(el => {
+    const cls = (el.getAttribute('class') || '') + ' ' + (el.textContent || '');
+    if(/group|users|ph-users|people/.test(cls.toLowerCase()) && !el.classList.contains('ml-archive-btn')){
+      const btn = el.tagName === 'I' || el.classList.contains('material-symbols-outlined') ? el.parentElement : el;
+      if(btn && !btn.classList.contains('ml-group-btn')) btn.classList.add('ml-group-btn');
     }
   });
-  if(actions.children.length) headRow.appendChild(actions);
+  // Archived pill
+  actions.querySelectorAll('button,div,span,a').forEach(el => {
+    if(/archive/i.test(el.textContent || '') && !el.classList.contains('ml-archive-btn')) el.classList.add('ml-archive-btn');
+  });
 }
 
-function mlUpdateSubtitle(page){
-  const sub = page.querySelector('.ml-head-v2 .ml-msg-sub');
-  if(!sub) return;
-  const unread = page.querySelectorAll('.ml-row.ml-unread').length;
-  const total  = page.querySelectorAll('.ml-row').length;
-  if(unread > 0){
-    sub.innerHTML = `<span class="ml-live-dot"></span> ${unread} unread · ${total} conversations`;
-  } else if(total > 0){
-    sub.innerHTML = `<span class="material-symbols-outlined" style="font-size:14px;color:#22c55e;">check_circle</span> All caught up · ${total} chats`;
-  } else {
-    sub.textContent = 'Your conversations';
-  }
+function mlUpdateSub(scope){
+  const sub = scope.querySelector('.ml-sub'); if(!sub) return;
+  const unread = scope.querySelectorAll('.msg-item.ml-done.unread, .msg-item.ml-done.is-unread, .msg-item.ml-done.has-unread').length;
+  const total  = scope.querySelectorAll('.msg-item.ml-done').length;
+  sub.innerHTML = unread > 0
+    ? `<span class="ml-live"></span> ${unread} unread · ${total} chats`
+    : `<span class="material-symbols-outlined" style="font-size:13px;">forum</span> ${total} conversation${total===1?'':'s'}`;
 }
 
-function mlEnhanceEmpty(page, list){
-  if(!list) return;
-  const hasRow = list.querySelector('.ml-row');
-  const looksEmpty = !hasRow && /no (messages|conversations|chats)/i.test(list.textContent||'');
-  if(looksEmpty && !list.querySelector('.ml-empty-v2')){
-    list.classList.add('ml-list-v2');
+function mlBuildEmpty(scope){
+  const list = scope.querySelector('.ml-list') || scope;
+  if(list.querySelector('.ml-empty')) return;
+  if(list.querySelectorAll('.msg-item').length === 0){
     list.innerHTML = `
-      <div class="ml-empty-v2">
-        <div class="ml-empty-ico"><span class="material-symbols-outlined">forum</span></div>
+      <div class="ml-empty">
+        <div class="ml-empty-ico"><span class="material-symbols-outlined">chat_bubble_outline</span></div>
         <div class="ml-empty-t">No conversations yet</div>
         <div class="ml-empty-s">Start a chat with a friend — your messages will appear right here.</div>
       </div>`;
   }
 }
 
-function enhanceMessageList(){
-  const rows = [...document.querySelectorAll('.msg-item')].filter(mlIsChatRow);
-  if(!rows.length){
-    // খালি অবস্থা চেষ্টা (page খুঁজে)
-    const anyMsgItem = document.querySelector('.msg-item');
-    const page = anyMsgItem ? mlFindPage([anyMsgItem]) : null;
-    if(page){ page.classList.add('ml-redesign'); mlBuildHeader(page); }
-    return;
-  }
-  const page = mlFindPage(rows);
-  if(!page) return;
-  page.classList.add('ml-redesign');
-
-  const list = rows[0].parentElement;
-  if(list && !list.classList.contains('ml-list-v2')) list.classList.add('ml-list-v2');
-
-  mlBuildHeader(page);
-  rows.forEach((r,i)=> mlEnhanceRow(r,i));
-  mlUpdateSubtitle(page);
-  mlEnhanceEmpty(page, list);
-}
-
-// অটো-রান + রিয়েল-টাইম পর্যবেক্ষণ (লজিক অক্ষত)
+// অটো-রান + পর্যবেক্ষণ (লজিক অক্ষত)
 (function mlBoot(){
-  const run = ()=> enhanceMessageList();
+  const run = () => enhanceMessageList();
   if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run); else run();
   setTimeout(run, 700); setTimeout(run, 1600); setTimeout(run, 3000);
 
-  // সম্ভাব্য লিস্ট-লোড ফাংশন wrap (নাম না জানলেও observer সামলাবে)
-  ['loadChatList','renderChatList','loadMessagesList','openMessages'].forEach(name=>{
-    const o = window[name];
-    if(typeof o === 'function' && !o.__mlWrapped){
-      window[name] = function(...a){ const r = o.apply(this,a); setTimeout(run, 80); return r; };
-      window[name].__mlWrapped = true;
-    }
-  });
-
   let obs = null;
-  const watch = ()=>{
-    const rows = [...document.querySelectorAll('.msg-item')].filter(mlIsChatRow);
-    const list = rows[0] ? rows[0].parentElement : null;
+  const watch = () => {
+    const list = document.querySelector('.ml-list') || document.querySelector('.msg-item')?.parentElement;
     if(list && !obs){
-      obs = new MutationObserver(()=> { if(document.querySelectorAll('.ml-row').length || rows.length) enhanceMessageList(); });
+      obs = new MutationObserver(() => {
+        // স্কোপ চেক: এই লিস্টে openChat-ওয়ালা আইটেম আছে কিনা
+        if([...list.querySelectorAll('.msg-item')].some(mlIsChatItem)) enhanceMessageList();
+      });
       obs.observe(list, { childList:true, subtree:true });
     }
-    run();
   };
   setTimeout(watch, 1200); setTimeout(watch, 3200);
 })();
