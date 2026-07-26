@@ -7527,20 +7527,38 @@ showToast('Post deleted!');
 if(document.getElementById('page-profile').classList.contains('active'))loadMyPosts();
 closeSinglePost();
 }
+// 🚀 FIXED: Single Post View with Working Like & Share Buttons
+let singlePostUnsub = null; // রিয়েল-টাইম আপডেটের জন্য ভ্যারিয়েবল
+
 async function openSinglePostView(pid) {
     document.getElementById('single-post-screen').classList.add('open');
     const container = document.getElementById('single-post-container');
     container.innerHTML = SKELETON_HTML; 
     
+    // আগের কোনো লিসেনার থাকলে রিমুভ করা
+    if (singlePostUnsub) singlePostUnsub();
+
     try {
-        const doc = await db.collection('posts').doc(pid).get();
-        if(doc.exists) {
-            container.innerHTML = buildPostCardHTML({id: doc.id, ...doc.data()});
-        } else {
-            container.innerHTML = '<div class="empty-feed">Post not found</div>';
-        }
+        // রিয়েল-টাইম ডাটা আনার জন্য onSnapshot ব্যবহার করা হলো
+        singlePostUnsub = db.collection('posts').doc(pid).onSnapshot(doc => {
+            if (doc.exists) {
+                // মেইন ফিডের মতোই সেম কার্ড তৈরি হবে, তাই সব বাটন কাজ করবে
+                container.innerHTML = buildPostCardHTML({id: doc.id, ...doc.data()});
+            } else {
+                container.innerHTML = '<div class="empty-feed">Post not found</div>';
+            }
+        });
     } catch(e) {
         container.innerHTML = '<div class="empty-feed">Error loading post</div>';
+    }
+}
+
+// যখন সিঙ্গেল পোস্ট ক্লোজ করা হবে, তখন লিসেনার অফ করে দিতে হবে
+function closeSinglePost() {
+    document.getElementById('single-post-screen').classList.remove('open');
+    if (singlePostUnsub) {
+        singlePostUnsub();
+        singlePostUnsub = null;
     }
 }
 
@@ -7814,7 +7832,7 @@ let slides=imgUrls.map(url=>{
 const safeUrl = escapeHTML(url);
 return`<div style="min-width:100%;"><img class="post-img" src="${safeUrl}" onclick="event.stopPropagation();openImageZoom('${safeUrl}')" style="margin-bottom:0;"></div>`;
 }).join('');
-mediaHtml=`<div class="post-media-wrap" ondblclick="handleDoubleTap('${pid}',event)">
+mediaHtml=`<div class="post-media-wrap" ondblclick="event.stopPropagation(); handleDoubleTap('${pid}',event)">
 <div style="display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;">
 ${slides}
 </div>
@@ -7822,7 +7840,7 @@ ${slides}
 </div>`;
 }else if(imgUrls.length===1){
 const safeUrl = escapeHTML(imgUrls[0]);
-mediaHtml=`<div class="post-media-wrap" ondblclick="handleDoubleTap('${pid}',event)">
+mediaHtml=`<div class="post-media-wrap" ondblclick="event.stopPropagation(); handleDoubleTap('${pid}',event)">
 <img class="post-img" src="${safeUrl}" onclick="event.stopPropagation();openImageZoom('${safeUrl}')">
 <span class="material-symbols-outlined double-tap-heart filled" style="font-variation-settings:'FILL' 1;">favorite</span>
 </div>`;
@@ -7834,16 +7852,16 @@ let postDropdownHtml = `<div style="position:relative;margin-left:auto;">
 
 if(p.uid === currentUser?.uid){
     const pinText = p.isPinned ? 'Unpin Post' : 'Pin Post';
-    postDropdownHtml += `<div class="chat-dropdown-item" onclick="openPostInsights('${pid}')"><span class="material-symbols-outlined">insights</span> Post Insights</div>`;
+    postDropdownHtml += `<div class="chat-dropdown-item" onclick="event.stopPropagation(); openPostInsights('${pid}')"><span class="material-symbols-outlined">insights</span> Post Insights</div>`;
     const pinIcon = p.isPinned ? 'ph-push-pin-slash' : 'ph-push-pin';
     postDropdownHtml += `
-    <div class="chat-dropdown-item" onclick="pinPost('${pid}')">
+    <div class="chat-dropdown-item" onclick="event.stopPropagation(); pinPost('${pid}')">
         <i class="ph-bold ${pinIcon}" style="font-size:20px;"></i> ${pinText}
     </div>
-    <div class="chat-dropdown-item" onclick="openEditPostModal('${pid}','${safeTitleForAttr}')">
+    <div class="chat-dropdown-item" onclick="event.stopPropagation(); openEditPostModal('${pid}','${safeTitleForAttr}')">
         <i class="ph-bold ph-pencil-simple" style="font-size:20px;"></i> Edit Post
     </div>
-    <div class="chat-dropdown-item danger" onclick="deletePost('${pid}')">
+    <div class="chat-dropdown-item danger" onclick="event.stopPropagation(); deletePost('${pid}')">
         <i class="ph-bold ph-trash" style="font-size:20px;"></i> Delete Post
     </div>`;
 } else {
@@ -7851,18 +7869,18 @@ if(p.uid === currentUser?.uid){
     
     if (isAlreadySaved) {
         postDropdownHtml += `
-        <div class="chat-dropdown-item" onclick="unsavePost('${pid}')">
+        <div class="chat-dropdown-item" onclick="event.stopPropagation(); unsavePost('${pid}')">
             <i class="ph-bold ph-bookmark-simple-minus" style="color: var(--danger); font-size:20px;"></i> Remove from Saved
         </div>`;
     } else {
         postDropdownHtml += `
-        <div class="chat-dropdown-item" onclick="markInterested('${pid}')">
+        <div class="chat-dropdown-item" onclick="event.stopPropagation(); markInterested('${pid}')">
             <i class="ph-bold ph-star" style="color: #f59e0b; font-size:20px;"></i> Interested (Save)
         </div>`;
     }
     
     postDropdownHtml += `
-    <div class="chat-dropdown-item" onclick="markNotInterested('${pid}', this)">
+    <div class="chat-dropdown-item" onclick="event.stopPropagation(); markNotInterested('${pid}', this)">
         <i class="ph-bold ph-eye-slash" style="font-size:20px;"></i> Not Interested
     </div>`;
 }
@@ -7881,13 +7899,14 @@ postDropdownHtml += `</div></div>`;
     // 🌟 Check if the post author is verified to apply premium class
     const premiumPostClass = p.isVerified ? 'verified-premium-post' : '';
 
-return`<div class="post-card ${premiumPostClass}">
+// 🚀 মেইন কার্ডে onclick যুক্ত করা হলো
+return`<div class="post-card ${premiumPostClass}" style="cursor:pointer;" onclick="openSinglePostView('${pid}')">
 <div class="post-header">
-<div class="avatar" style="width:44px;height:44px;cursor:pointer;" onclick="viewUserProfile('${p.uid}')">${av}</div>
-<div style="flex:1;">
+<div class="avatar" style="width:44px;height:44px;cursor:pointer;" onclick="event.stopPropagation(); viewUserProfile('${p.uid}')">${av}</div>
+<div style="flex:1;" onclick="event.stopPropagation(); viewUserProfile('${p.uid}')">
 
-<div class="post-name" style="flex-wrap: wrap; line-height: 1.4; align-items: center;">
-    <span style="cursor:pointer; display:flex; align-items:center; gap:4px;" onclick="viewUserProfile('${p.uid}')">${safeName} ${vBadge}</span>
+<div class="post-name" style="flex-wrap: wrap; line-height: 1.4; align-items: center; cursor:pointer;">
+    <span style="display:flex; align-items:center; gap:4px;">${safeName} ${vBadge}</span>
     ${quickFollowBtn}
     ${activityHtml} 
     ${withText}
@@ -7916,24 +7935,24 @@ ${p.title ? (() => {
 })() : ''}
 ${mediaHtml}
 <div class="post-actions">
-<button class="post-action-btn ${isLiked ? 'liked' : ''}" onclick="toggleLike('${pid}')">
+<!-- 🚀 বাটনগুলোতে event.stopPropagation() দেওয়া হলো -->
+<button class="post-action-btn ${isLiked ? 'liked' : ''}" onclick="event.stopPropagation(); toggleLike('${pid}')">
 <i class="${isLiked ? 'ph-fill' : 'ph-bold'} ph-heart" style="font-size:24px;"></i>
 <span style="font-size:14px;">${p.likes || 0}</span>
 </button>
 
-<button class="post-action-btn" onclick="openCommentPanel('${pid}')">
+<button class="post-action-btn" onclick="event.stopPropagation(); openCommentPanel('${pid}')">
 <i class="ph-bold ph-chat-circle" style="font-size:24px;"></i>
 <span style="font-size:14px;">${commentCount}</span>
 </button>
 <!-- 🚀 নতুন শেয়ার বাটন (শেয়ার কাউন্ট সহ) -->
-<button class="post-action-btn" onclick="openShareModal('${pid}', '${safeTitleForAttr}', '${imgUrls[0] || ''}')">
+<button class="post-action-btn" onclick="event.stopPropagation(); openShareModal('${pid}', '${safeTitleForAttr}', '${imgUrls[0] || ''}')">
 <i class="ph-bold ph-share-network" style="font-size:24px;"></i>
 <span style="font-size:14px;">${p.shares || 0}</span>
 </button>
 </div>
 </div>`;
 }
-
 
 function closeSinglePost(){document.getElementById('single-post-screen').classList.remove('open');}
 
