@@ -8003,11 +8003,9 @@ ${mediaHtml}
 <i class="ph-bold ph-chat-circle" style="font-size:24px;"></i>
 <span style="font-size:14px;">${commentCount}</span>
 </button>
-
 <!-- 🚀 নতুন শেয়ার বাটন -->
 <button class="post-action-btn" onclick="openShareModal('${pid}', '${safeTitleForAttr}', '${imgUrls[0] || ''}')">
 <i class="ph-bold ph-share-network" style="font-size:24px;"></i>
-<span style="font-size:14px;">Share</span>
 </button>
 </div>
 </div>`;
@@ -12525,28 +12523,116 @@ function enhanceNotifications(){
   setTimeout(watch, 1200); setTimeout(watch, 3200);
 })();
 // ==========================================
-// 🚀 SHARE POST TO CHAT LOGIC
+// 🚀 SHARE POST TO CHAT LOGIC (UPDATED)
 // ==========================================
 let currentSharePostData = null;
+let allShareChats = []; // ফিল্টার করার জন্য সব চ্যাট সেভ থাকবে
 
 function openShareModal(postId, postTitle, postImg) {
-    // পোস্টের ডাটা সাময়িকভাবে সেভ করে রাখা
     currentSharePostData = { id: postId, title: postTitle, img: postImg };
-    
-    // মডাল ওপেন করা
     document.getElementById('share-post-modal').classList.add('open');
-    
-    // মডালের ভেতর "Loading" টেক্সট দেখানো
     document.getElementById('share-chat-list').innerHTML = '<div class="loading" style="text-align:center; padding:20px; color:var(--text-muted);"><span class="material-symbols-outlined" style="animation: spin 1s linear infinite;">autorenew</span> Loading chats...</div>';
     
-    // একটু পরে আমরা এখানে চ্যাট লিস্ট ফেচ করার ফাংশন কল করব
-    // loadShareChatList();
+    // চ্যাট লিস্ট ফেচ করা শুরু
+    loadShareChatList();
 }
 
 function closeShareModal() {
     document.getElementById('share-post-modal').classList.remove('open');
     document.getElementById('share-search-input').value = '';
     currentSharePostData = null;
+}
+
+// 🚀 চ্যাট লিস্ট লোড করার ফাংশন
+async function loadShareChatList() {
+    const list = document.getElementById('share-chat-list');
+    
+    try {
+        const snap = await db.collection('chats').get();
+        let chats = [];
+        
+        snap.forEach(d => {
+            const data = d.data();
+            const chatId = d.id;
+            
+            // চেক: এই চ্যাটটি কি আমার?
+            let isMyChat = false;
+            if (data.isGroup && data.members && data.members.includes(currentUser.uid)) {
+                isMyChat = true;
+            } else if (!data.isGroup && chatId.includes(currentUser.uid)) {
+                isMyChat = true;
+            }
+
+            if (!isMyChat) return;
+
+            // নাম ও ছবি সেট আপ করা
+            if (data.isGroup) {
+                chats.push({
+                    id: chatId, uid: 'group', name: data.groupName || 'Group', avatar: data.groupAvatar || '', isGroup: true
+                });
+            } else {
+                const parts = chatId.split('_');
+                if (parts.length === 2) {
+                    const otherUid = parts[0] === currentUser.uid ? parts[1] : parts[0];
+                    // ব্লকড ইউজারকে লিস্টে দেখাব না
+                    const blockedUsers = currentUserData?.blockedUsers || [];
+                    if (!blockedUsers.includes(otherUid)) {
+                        chats.push({
+                            id: chatId, uid: otherUid, name: data.names?.[otherUid] || 'User', avatar: data.avatars?.[otherUid] || '', isGroup: false
+                        });
+                    }
+                }
+            }
+        });
+
+        allShareChats = chats; // ফিল্টারিংয়ের জন্য সেভ রাখলাম
+        renderShareChatList(chats);
+        
+    } catch(e) {
+        list.innerHTML = '<div style="text-align:center; padding:20px; color:var(--danger);">Failed to load chats.</div>';
+    }
+}
+
+// 🚀 লিস্ট রেন্ডার করার ফাংশন
+function renderShareChatList(chats) {
+    const list = document.getElementById('share-chat-list');
+    if (chats.length === 0) {
+        list.innerHTML = '<div style="text-align:center; padding:20px; color:var(--text-muted);">No matching chats found.</div>';
+        return;
+    }
+
+    let html = '';
+    chats.forEach(chat => {
+        let avHtml = '';
+        if (chat.avatar) {
+            avHtml = `<img src="${escapeHTML(chat.avatar)}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
+        } else if (chat.isGroup) {
+            avHtml = `<div style="width:100%;height:100%;background:var(--gradient-orange);color:white;display:flex;align-items:center;justify-content:center;border-radius:50%;"><span class="material-symbols-outlined">groups</span></div>`;
+        } else {
+            avHtml = `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:var(--gradient);color:#fff;font-weight:bold;font-size:16px;border-radius:50%;">${avatarInitial(chat.name)}</div>`;
+        }
+
+        html += `
+        <div class="msg-item" style="padding:10px 14px; margin:0; box-shadow:none;">
+            <div class="avatar sm" style="width:40px; height:40px;">${avHtml}</div>
+            <div class="msg-info" style="margin-left:10px;">
+                <div class="msg-name">${escapeHTML(chat.name)}</div>
+            </div>
+            <button class="btn-primary" style="margin:0; width:auto; padding:6px 16px; font-size:12px; border-radius:20px;" onclick="sendSharedPost('${chat.id}', '${chat.uid}', this)">Send</button>
+        </div>`;
+    });
+    list.innerHTML = html;
+}
+
+// 🚀 সার্চ ফিল্টার ফাংশন
+function filterShareList(query) {
+    const q = query.toLowerCase().trim();
+    if (!q) {
+        renderShareChatList(allShareChats);
+        return;
+    }
+    const filtered = allShareChats.filter(c => c.name.toLowerCase().includes(q));
+    renderShareChatList(filtered);
 }
 </script>
 </body>
