@@ -4966,11 +4966,21 @@ function closeMainSettingsScreen() {
 }
 
 // ===== NAVIGATION =====
+// ===== NAVIGATION =====
 function showPage(page) {
+    // 🚀 স্মার্ট রিফ্রেশ লজিক: আগে থেকেই ফিড পেজে থাকলে এবং আবার হোম বাটনে ক্লিক করলে ফিড রিফ্রেশ হবে!
+    if (page === 'feed' && document.getElementById('page-feed').classList.contains('active')) {
+        refreshFeed(); // নতুন পোস্ট লোড করবে
+        window.scrollTo({top: 0, behavior: 'smooth'}); // একদম ওপরে নিয়ে যাবে
+        return; 
+    }
+
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    
     const pEl = document.getElementById('page-' + page);
     if(pEl) pEl.classList.add('active');
+    
     const nEl = document.getElementById('nav-' + page);
     if(nEl) nEl.classList.add('active');
 
@@ -4988,7 +4998,6 @@ function showPage(page) {
     
     window.scrollTo({top: 0, behavior: 'smooth'});
 }
-
 
 function refreshFeed(){
 showToast('Refreshing...');
@@ -11464,12 +11473,14 @@ async function startWebRTCCall() {
 
     try {
         localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-        remoteStream = new MediaStream();
-        document.getElementById('remote-audio').srcObject = remoteStream;
 
         peerConnection = new RTCPeerConnection(iceServers);
         localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
-        peerConnection.ontrack = event => { event.streams[0].getTracks().forEach(track => remoteStream.addTrack(track)); };
+
+        // 🚀 FIX 1: সরাসরি অডিও স্ট্রিমে কানেক্ট করা হলো (মোবাইল ব্রাউজার সাপোর্ট ফিক্স)
+        peerConnection.ontrack = event => { 
+            document.getElementById('remote-audio').srcObject = event.streams[0]; 
+        };
 
         callDocId = currentChatId;
         const callDoc = db.collection('calls').doc(callDocId);
@@ -11492,23 +11503,26 @@ async function startWebRTCCall() {
 
         outgoingRingtone.play().catch(e => console.log('Audio play blocked by browser'));
 
-        callUnsub = callDoc.onSnapshot(snapshot => {
+        // 🚀 FIX 2: Race Condition (টাইমিং বাগ) সলভ করা হলো
+        callUnsub = callDoc.onSnapshot(async snapshot => {
             const data = snapshot.data();
             if(!data || data.status === 'ended' || data.status === 'rejected') {
                 endWebRTCCall(true);
                 return;
             }
             if(!peerConnection.currentRemoteDescription && data.answer) {
-                peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
+                // রিমোট ডেসক্রিপশন সেট হওয়া পর্যন্ত অপেক্ষা করবে
+                await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
                 stopAllRingtones(); 
                 startCallTimer();
-            }
-        });
 
-        callDoc.collection('answerCandidates').onSnapshot(snapshot => {
-            snapshot.docChanges().forEach(change => {
-                if(change.type === 'added') peerConnection.addIceCandidate(new RTCIceCandidate(change.doc.data()));
-            });
+                // এরপর নেটওয়ার্ক আইপিগুলো (ICE) যুক্ত করবে
+                callDoc.collection('answerCandidates').onSnapshot(snapshot => {
+                    snapshot.docChanges().forEach(change => {
+                        if(change.type === 'added') peerConnection.addIceCandidate(new RTCIceCandidate(change.doc.data())).catch(e => console.log(e));
+                    });
+                });
+            }
         });
 
     } catch(e) {
@@ -11561,12 +11575,14 @@ async function answerWebRTCCall() {
 
     try {
         localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-        remoteStream = new MediaStream();
-        document.getElementById('remote-audio').srcObject = remoteStream;
 
         peerConnection = new RTCPeerConnection(iceServers);
         localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
-        peerConnection.ontrack = event => { event.streams[0].getTracks().forEach(track => remoteStream.addTrack(track)); };
+
+        // 🚀 FIX 1: সরাসরি অডিও স্ট্রিমে কানেক্ট করা হলো
+        peerConnection.ontrack = event => { 
+            document.getElementById('remote-audio').srcObject = event.streams[0]; 
+        };
 
         const callDoc = db.collection('calls').doc(callDocId);
         const answerCandidates = callDoc.collection('answerCandidates');
@@ -11593,13 +11609,15 @@ async function answerWebRTCCall() {
             if(!snapshot.exists || snapshot.data().status === 'ended') endWebRTCCall(true);
         });
 
+        // 🚀 FIX 2: Race Condition সলভ
         callDoc.collection('offerCandidates').onSnapshot(snapshot => {
             snapshot.docChanges().forEach(change => {
-                if(change.type === 'added') peerConnection.addIceCandidate(new RTCIceCandidate(change.doc.data()));
+                if(change.type === 'added') peerConnection.addIceCandidate(new RTCIceCandidate(change.doc.data())).catch(e => console.log(e));
             });
         });
 
     } catch(e) {
+        console.error(e);
         endWebRTCCall();
     }
 }
