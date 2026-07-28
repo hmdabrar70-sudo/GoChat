@@ -4682,55 +4682,6 @@ function updateOnlineStatus(){
     }
 }
 
-// 🚀 স্ট্রাইক চেকিংয়ের উন্নত লজিক (UTC ডেট ব্যবহার করে)
-async function checkAndUpdateStreak() {
-    if(!currentUser || !currentUserData) return;
-    
-    try {
-        const now = new Date();
-        // UTC ডেট স্ট্রিং তৈরি করা হলো (যাতে টাইমজোনের কারণে ভুল না হয়)
-        const todayStr = `${now.getUTCFullYear()}-${now.getUTCMonth() + 1}-${now.getUTCDate()}`;
-        
-        // আজ অলরেডি আপডেট হয়ে থাকলে স্কিপ করবে
-        if (currentUserData.lastLoginDate === todayStr) return; 
-
-        // গতকালের ডেট স্ট্রিং (UTC)
-        const yesterday = new Date(now);
-        yesterday.setUTCDate(yesterday.getUTCDate() - 1);
-        const yesterdayStr = `${yesterday.getUTCFullYear()}-${yesterday.getUTCMonth() + 1}-${yesterday.getUTCDate()}`;
-
-        let lastLogin = currentUserData.lastLoginDate || "";
-        let streak = currentUserData.loginStreak || 0;
-
-        if (lastLogin === yesterdayStr) {
-            streak += 1; // গতকাল লগইন করলে স্ট্রাইক বাড়বে
-        } else if (lastLogin !== todayStr) {
-            streak = 1; // গতকাল লগইন না করলে (বা প্রথমবার লগইন করলে) স্ট্রাইক ১ থেকে শুরু হবে
-        }
-
-        let pointsToAdd = 10;
-        if (streak > 0 && streak % 10 === 0) {
-            pointsToAdd += 500;
-            showToast("🎉 10 Day Streak! +500 Points Bonus!");
-        }
-
-        // ফায়ারবেস আপডেট
-        await db.collection('users').doc(currentUser.uid).set({
-            lastLoginDate: todayStr,
-            loginStreak: streak,
-            points: firebase.firestore.FieldValue.increment(pointsToAdd)
-        }, { merge: true });
-        
-        // লোকাল ডেটা আপডেট
-        currentUserData.lastLoginDate = todayStr;
-        currentUserData.loginStreak = streak;
-        currentUserData.points = (currentUserData.points || 0) + pointsToAdd;
-        
-    } catch (error) {
-        console.error("Streak Update Error: ", error);
-    }
-}
-
 // ===== ADMIN REMOTE CONTROL RECEIVERS =====
 db.collection('system').doc('settings').onSnapshot(doc => {
     if (doc.exists && doc.data().maintenanceMode === true) {
@@ -4787,11 +4738,6 @@ currentUserData=snap.exists?snap.data():{name:user.email.split('@')[0],email:use
 clearTimeout(splashFallbackTimer);
 removeSplash();
 cleanupPrivateChatsOnLoad(); 
-
-// 🚀 ব্যাকগ্রাউন্ডে স্ট্রাইক আপডেট হবে, অ্যাপ লোড হওয়ার ৩ সেকেন্ড পর (যাতে নেটওয়ার্কে চাপ না পড়ে)
-setTimeout(() => {
-    checkAndUpdateStreak();
-}, 3000);
 
 setTimeout(() => { isAppReadyForNotifs = true; }, 3000); 
 
@@ -6112,16 +6058,13 @@ async function viewUserProfile(uid){
     if(!doc.exists)return;
     const u=doc.data();
     
-    const safeName=escapeHTML(u.name);
-    const streakBadge = getStreakBadge(u.loginStreak || 0);
+            const safeName=escapeHTML(u.name);
     const verifiedBadge = getVerifiedBadge(u.email, u.isVerified);
 
-        // --- এখানে ব্যাজ ও নামের লেআউট আপডেট করা হলো ---
     const nameHtml = `
         <div style="display: inline; line-height: 1.4;">
             ${safeName}
             <span style="display: inline-flex; vertical-align: middle; margin-top: -2px; margin-left: 2px;">${verifiedBadge}</span>
-            <span style="display: inline-flex; vertical-align: middle; margin-top: -2px;">${streakBadge}</span>
         </div>
     `;
     document.getElementById('other-profile-name').innerHTML = nameHtml;
@@ -8110,15 +8053,6 @@ async function loadOtherUserPosts(uid){
         html += '</div>';
         list.innerHTML = html;
     }catch(e){list.innerHTML='<div class="empty-feed">Failed to load posts.</div>';}
-}
-
-
-function getStreakBadge(streak) {
-if (!streak) return '';
-if (streak >= 100) return '<span title="100 Days Streak!" style="margin-left:4px; font-size:18px;">👑</span>';
-if (streak >= 30) return '<span title="30 Days Streak!" style="margin-left:4px; font-size:18px;">🌟</span>';
-if (streak >= 7) return '<span title="7 Days Streak!" style="margin-left:4px; font-size:18px;">🔥</span>';
-return '';
 }
 
 function loadUserUI(){
