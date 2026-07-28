@@ -3382,6 +3382,64 @@ transition:all 0.2s;
     border: none;
 }
 .nav-fab:active { transform: scale(0.9); }
+
+/* 🚀 লম্বা নাম ভাঙার এবং ব্যাজ লাইনে রাখার ম্যাজিক */
+.profile-name, .post-name, .msg-name {
+    display: block !important;
+    word-wrap: break-word !important;
+    word-break: break-word !important;
+    white-space: normal !important;
+}
+.verified-icon {
+    display: inline-flex !important;
+    vertical-align: middle !important;
+    margin-top: -3px !important;
+}
+
+/* 🚀 আনরিড (Unread) চ্যাটের জন্য নতুন ডিজাইন */
+.msg-item.unread-chat {
+    background: linear-gradient(to right, rgba(124, 92, 255, 0.08), transparent) !important;
+    border-left: 3px solid var(--accent) !important;
+}
+.msg-item.unread-chat .msg-name {
+    font-weight: 900 !important; /* নাম হবে একদম গাঢ় */
+    color: var(--text) !important;
+}
+.msg-item.unread-chat .msg-preview {
+    font-weight: 700 !important; /* মেসেজ টেক্সট হবে গাঢ় */
+    color: var(--text) !important; /* ঘোলাটে রঙের বদলে উজ্জ্বল রঙ */
+}
+.unread-badge-dot {
+    width: 12px;
+    height: 12px;
+    background: var(--accent);
+    border-radius: 50%;
+    margin-right: 8px;
+    box-shadow: 0 0 8px var(--accent-glow);
+    flex-shrink: 0;
+}
+/* 🚀 আনরিড (Unread) চ্যাটের জন্য নতুন ডিজাইন */
+.msg-item.unread-chat {
+    background: linear-gradient(to right, rgba(124, 92, 255, 0.08), transparent) !important;
+    border-left: 3px solid var(--accent) !important;
+}
+.msg-item.unread-chat .msg-name {
+    font-weight: 900 !important; /* নাম হবে একদম গাঢ় */
+    color: var(--text) !important;
+}
+.msg-item.unread-chat .msg-preview {
+    font-weight: 700 !important; /* মেসেজ টেক্সট হবে গাঢ় */
+    color: var(--text) !important; /* ঘোলাটে রঙের বদলে উজ্জ্বল রঙ */
+}
+.unread-badge-dot {
+    width: 12px;
+    height: 12px;
+    background: var(--accent);
+    border-radius: 50%;
+    margin-right: 8px;
+    box-shadow: 0 0 8px var(--accent-glow);
+    flex-shrink: 0;
+}
 </style>
 
 <div id="selection-bottom-bar">
@@ -6064,10 +6122,10 @@ async function viewUserProfile(uid){
 
         // --- এখানে ব্যাজ ও নামের লেআউট আপডেট করা হলো ---
     const nameHtml = `
-        <div style="display: flex; align-items: center; flex-wrap: nowrap; gap: 4px;">
-            <span style="white-space: nowrap;">${safeName}</span>
-            <span style="display: flex; align-items: center; flex-shrink: 0;">${verifiedBadge}</span>
-            ${streakBadge}
+        <div style="display: inline; line-height: 1.4;">
+            ${safeName}
+            <span style="display: inline-flex; vertical-align: middle; margin-top: -2px; margin-left: 2px;">${verifiedBadge}</span>
+            <span style="display: inline-flex; vertical-align: middle; margin-top: -2px;">${streakBadge}</span>
         </div>
     `;
     document.getElementById('other-profile-name').innerHTML = nameHtml;
@@ -6913,12 +6971,11 @@ function loadMessages(){
         const blockedUsers = currentUserData?.blockedUsers || [];
         let chats = [];
 
-        // ১. কঠোর নোটিফিকেশন লজিক (নিজের চ্যাট ছাড়া পপআপ আসবে না এবং ডুপ্লিকেট পপআপ বন্ধ করা হয়েছে)
+        // ১. কঠোর নোটিফিকেশন লজিক
         snap.docChanges().forEach(change => {
             const data = change.doc.data();
             const chatId = change.doc.id;
             
-            // 🛑 সিকিউরিটি চেক: এই মেসেজটা কি আমার? 
             let isMyChat = false;
             if (data.isGroup && data.members && data.members.includes(currentUser.uid)) {
                 isMyChat = true; 
@@ -6926,34 +6983,30 @@ function loadMessages(){
                 isMyChat = true; 
             }
 
-            if (!isMyChat) return; // অন্যের মেসেজ হলে সাথে সাথে ব্লক!
+            if (!isMyChat) return; 
 
             if (!isInitialChatLoad && (change.type === 'added' || change.type === 'modified')) {
                 if (data.lastSender && data.lastSender !== currentUser.uid && data.isRead === false && !mutedChats.includes(chatId)) {
                     if (currentChatId !== chatId || !document.getElementById('chat-screen').classList.contains('open')) {
                         
-                        // --- 🚀 BUG FIX: বারবার একই পপআপ আসা বন্ধ করার ট্র্যাকার ---
                         window.notifiedChatsCache = window.notifiedChatsCache || {};
                         const msgTime = data.lastAt?.toMillis ? data.lastAt.toMillis() : 0;
                         
                         if (window.notifiedChatsCache[chatId] !== msgTime) {
-                            window.notifiedChatsCache[chatId] = msgTime; // এই নির্দিষ্ট মেসেজের সময় সেভ করা হলো
+                            window.notifiedChatsCache[chatId] = msgTime; 
                             
-                            // স্ক্রিনে এই ইউজারের আগের কোনো পপআপ আটকে থাকলে সেটা সরিয়ে দেওয়া
                             const oldPopup = document.getElementById(`popup-${chatId}`);
                             if (oldPopup) oldPopup.remove();
                             
                             showInAppMessageNotification(chatId, data);
                         }
-                        // -------------------------------------------------------------
-                        
                     }
                 }
             }
         });
         isInitialChatLoad = false;
 
-        // ২. মেসেজ লিস্ট তৈরি (নিজের মেসেজ ছাড়া লিস্টে কিছুই আসবে না)
+        // ২. মেসেজ লিস্ট তৈরি
         snap.forEach(d => {
             const data = d.data();
             const chatId = d.id;
@@ -6995,7 +7048,7 @@ function loadMessages(){
             return timeB - timeA; 
         });
 
-        // ৪. আনরিড ব্যাজ আপডেট (শুধুমাত্র নিজের আনরিড মেসেজের জন্য)
+        // ৪. আনরিড ব্যাজ আপডেট
         let unreadCount = 0;
         chats.forEach(chat => {
             if (chat.data.lastSender !== currentUser.uid && chat.data.isRead === false) {
@@ -7009,22 +7062,25 @@ function loadMessages(){
             badge.style.display = unreadCount > 0 ? 'flex' : 'none';
         }
 
-        // ৫. HTML রেন্ডারিং
+        // ৫. HTML রেন্ডারিং (নতুন আনরিড ডিজাইনসহ)
         let html = '';
         chats.forEach(chat => {
             const pinIcon = chat.isPinned ? '<span class="material-symbols-outlined" style="font-size:16px;color:var(--accent);margin-right:4px;">push_pin</span>' : '';
             const muteIcon = chat.isMuted ? '<span class="material-symbols-outlined" style="font-size:16px;color:var(--text-muted);margin-right:4px;">notifications_off</span>' : '';
             
+            // 🚀 আনরিড চেক
+            const isUnread = (chat.data.lastSender !== currentUser.uid && chat.data.isRead === false);
+            const unreadClass = isUnread ? 'unread-chat' : '';
+            const unreadDot = isUnread ? '<div class="unread-badge-dot"></div>' : '';
+
             // 🚀 Profile Picture Real-time Fix
             let finalAv = chat.otherAv;
             let finalName = chat.otherName;
 
             if (chat.isGroup) {
-                // গ্রুপ হলে ডাটাবেস থেকে গ্রুপের ছবি আনবে
                 finalAv = chat.data.groupAvatar || '';
                 finalName = chat.data.groupName || 'Group';
             } else {
-                // পার্সোনাল চ্যাট হলে ক্যাশ থেকে ইউজারের লেটেস্ট ছবি আনবে
                 const liveUser = allUsersCache ? allUsersCache.find(u => u.id === chat.otherUid) : null;
                 if (liveUser) {
                     finalAv = liveUser.avatar || '';
@@ -7041,20 +7097,21 @@ function loadMessages(){
                 avHtml = `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:var(--gradient);color:#fff;font-weight:bold;font-size:16px;border-radius:50%;">${avatarInitial(finalName)}</div>`;
             }
             
-            // নামটাও আপডেট করে দিলাম
             chat.otherName = finalName;
             
-                        const chatUser = allUsersCache ? allUsersCache.find(u => u.id === chat.otherUid) : null;
-            // 🚀 স্মার্ট চেক: মেসেজ লিস্টেও সেটিং ভেরিফাই করবে
+            const chatUser = allUsersCache ? allUsersCache.find(u => u.id === chat.otherUid) : null;
             const isOnline = (!chat.isGroup && chatUser && chatUser.online === true && chatUser.showActiveStatus !== false);
             const onlineIndicator = isOnline ? '<div class="online-dot"></div>' : '';
 
-            html += `<div class="msg-item ${chat.isPinned?'pinned':''} ${chat.isMuted?'muted':''}" data-other-uid="${chat.otherUid}" onclick="openChat('${chat.id}','${chat.otherUid}','${escapeHTML(chat.otherName)}','${chat.isGroup ? '' : escapeHTML(chat.otherAv)}')">
+            html += `<div class="msg-item ${chat.isPinned?'pinned':''} ${chat.isMuted?'muted':''} ${unreadClass}" data-other-uid="${chat.otherUid}" onclick="openChat('${chat.id}','${chat.otherUid}','${escapeHTML(chat.otherName)}','${chat.isGroup ? '' : escapeHTML(chat.otherAv)}')">
             <div class="avatar" style="position:relative;">${avHtml}${onlineIndicator}</div>
             <div class="msg-info" style="flex:1;">
             <div class="msg-name">${pinIcon}${muteIcon}${escapeHTML(chat.otherName)}</div>
             <div class="msg-preview">${escapeHTML(chat.data.lastMsg || 'New Message')}</div>
             </div>
+            
+            ${unreadDot}
+
             <div class="msg-menu-btn" onclick="event.stopPropagation();toggleChatListMenu('${chat.id}',this)">
             <span class="material-symbols-outlined">more_vert</span>
             </div>
@@ -7074,6 +7131,8 @@ function loadMessages(){
             </div>
             </div>`;
         });
+        
+        // 🚀 আগেরবার এই অংশটুকু মিসিং ছিল, যার কারণে এররটি এসেছিল!
         list.innerHTML = html || '<div class="empty-feed">No messages yet</div>';
     });
 }
@@ -7931,8 +7990,8 @@ return`<div class="post-card ${premiumPostClass}" style="cursor:pointer;" onclic
 <div class="avatar" style="width:44px;height:44px;cursor:pointer;" onclick="event.stopPropagation(); viewUserProfile('${p.uid}')">${av}</div>
 <div style="flex:1;" onclick="event.stopPropagation(); viewUserProfile('${p.uid}')">
 
-<div class="post-name" style="flex-wrap: wrap; line-height: 1.4; align-items: center; cursor:pointer;">
-    <span style="display:flex; align-items:center; gap:4px;">${safeName} ${vBadge}</span>
+<div class="post-name" style="display: block; line-height: 1.4; cursor:pointer;">
+    <span style="display: inline;">${safeName} <span style="display: inline-flex; vertical-align: middle; margin-top: -3px; margin-left: 2px;">${vBadge}</span></span>
     ${quickFollowBtn}
     ${activityHtml} 
     ${withText}
