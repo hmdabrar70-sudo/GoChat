@@ -2162,8 +2162,9 @@ NESTED ACTIVITY CATEGORIES STYLES
 
 <div id="fab-menu" onclick="event.stopPropagation()">
     <div class="setting-item" onclick="toggleFabMenu();openCreatePost();"><i class="ph-bold ph-pencil-simple-line" style="color:var(--accent); font-size:20px;"></i> Create Post</div>
-    <label class="setting-item" style="margin:0;"><i class="ph-bold ph-image" style="color:var(--accent-light); font-size:20px;"></i> Add Photo/Video Story<input type="file" accept="image/*,video/*" style="display:none" onchange="toggleFabMenu();uploadStory(this)"></label>
-    <div class="setting-item" onclick="toggleFabMenu();openTextStoryModal();" style="margin:0;"><i class="ph-bold ph-text-t" style="color:#f59e0b; font-size:20px;"></i> Add Text Story</div>
+    
+    <!-- 🚀 একক বাটন যা ক্লিক করলে স্টোরি অপশন বা ক্রিয়েটর পপ-আপ আসবে -->
+    <div class="setting-item" onclick="toggleFabMenu();openStoryCreatorModal();" style="margin:0;"><i class="ph-bold ph-circle-dashed" style="color:var(--accent-light); font-size:20px;"></i> Add Story</div>
 </div>
 </div>
 
@@ -3320,6 +3321,15 @@ cursor:pointer;color:var(--text-muted);
 transition:all 0.2s;
 }
 .notif-item .notif-delete:hover{background:var(--danger-bg);color:var(--danger);}
+
+/* 🚀 স্টোরি ক্রিয়েটর সিলেকশন মডাল ডিজাইন */
+.story-type-card {
+    display: flex; align-items: center; gap: 14px;
+    padding: 16px; border-radius: var(--radius-lg);
+    background: var(--surface-2); border: 1px solid var(--border);
+    cursor: pointer; transition: all 0.2s; font-weight: 700; font-size: 15px; color: var(--text);
+}
+.story-type-card:hover { border-color: var(--accent); background: var(--surface); transform: translateY(-2px); }
 </style>
 
 <style>
@@ -12533,6 +12543,54 @@ function filterPrivacySettings(query) {
             item.style.setProperty('display', 'none', 'important');
         }
     });
+}
+// 🚀 ১. স্টোরি ক্রিয়েটর মডাল ওপেন করার ফাংশন
+function openStoryCreatorModal() {
+    let modal = document.getElementById('story-creator-modal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'story-creator-modal';
+        modal.className = 'modal-overlay';
+        modal.style.zIndex = '10005';
+        modal.innerHTML = `
+            <div class="modal-box" style="max-width: 400px; text-align: center;">
+                <button class="modal-close" onclick="closeStoryCreatorModal()"><span class="material-symbols-outlined">close</span></button>
+                <div class="modal-title" style="margin-bottom: 24px;">Create Story</div>
+                
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                    <!-- ফটো বা ভিডিও স্টোরি অপশন -->
+                    <label class="story-type-card">
+                        <div style="width: 44px; height: 44px; border-radius: 50%; background: rgba(255,77,106,0.1); color: var(--danger); display: flex; align-items: center; justify-content: center;">
+                            <span class="material-symbols-outlined" style="font-size: 24px;">photo_library</span>
+                        </div>
+                        <div style="text-align: left; flex: 1;">
+                            <div>Photo/Video Story</div>
+                            <div style="font-size: 12px; color: var(--text-muted); font-weight: 500;">Upload from your gallery</div>
+                        </div>
+                        <input type="file" accept="image/*,video/*" style="display:none;" onchange="closeStoryCreatorModal(); uploadStory(this);">
+                    </label>
+
+                    <!-- টেক্সট স্টোরি অপশন -->
+                    <div class="story-type-card" onclick="closeStoryCreatorModal(); openTextStoryModal();">
+                        <div style="width: 44px; height: 44px; border-radius: 50%; background: rgba(245,158,11,0.1); color: var(--warning); display: flex; align-items: center; justify-content: center;">
+                            <span class="material-symbols-outlined" style="font-size: 24px;">text_fields</span>
+                        </div>
+                        <div style="text-align: left; flex: 1;">
+                            <div>Text Story</div>
+                            <div style="font-size: 12px; color: var(--text-muted); font-weight: 500;">Write with a colored background</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+    }
+    modal.classList.add('open');
+}
+
+function closeStoryCreatorModal() {
+    const modal = document.getElementById('story-creator-modal');
+    if (modal) modal.classList.remove('open');
 }
 </script>
 </body>
