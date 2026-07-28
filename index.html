@@ -2457,21 +2457,10 @@ NESTED ACTIVITY CATEGORIES STYLES
     <i class="ph-bold ph-dots-three-vertical" onclick="toggleChatDeleteMenu()" style="cursor: pointer; padding: 8px; font-size: 24px;"></i>
     
     <div id="chat-delete-menu" class="chat-list-menu" style="top: 100%; right: 0; transform: none; display: none; width: max-content;">
-        <div class="chat-dropdown-item" onclick="viewProfileFromChat()">
-            <i class="ph-bold ph-user-circle" style="color: var(--accent); font-size: 20px;"></i> View Profile
-        </div>
         <div class="chat-dropdown-item" onclick="openAdvancedPrivacy()">
             <i class="ph-bold ph-lock-key" style="color: var(--success); font-size: 20px;"></i> Advanced Privacy
         </div>
-        <div class="chat-dropdown-item danger" onclick="clearChatForMe()">
-            <i class="ph-bold ph-broom" style="font-size: 20px;"></i> Clear Chat
-        </div>
-        <div class="chat-dropdown-item danger" onclick="blockUserFromChat()">
-            <i class="ph-bold ph-prohibit" style="font-size: 20px;"></i> Block User
-        </div>
     </div>
-</div>
-</div>
 
 <div class="chat-messages" id="chat-messages"></div>
 <div class="chat-input-bar" id="chat-input-area" style="position:relative;">
@@ -4691,27 +4680,30 @@ function updateOnlineStatus(){
     }
 }
 
+// 🚀 স্ট্রাইক চেকিংয়ের উন্নত লজিক (UTC ডেট ব্যবহার করে)
 async function checkAndUpdateStreak() {
     if(!currentUser || !currentUserData) return;
     
     try {
         const now = new Date();
-        const todayStr = `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}`;
+        // UTC ডেট স্ট্রিং তৈরি করা হলো (যাতে টাইমজোনের কারণে ভুল না হয়)
+        const todayStr = `${now.getUTCFullYear()}-${now.getUTCMonth() + 1}-${now.getUTCDate()}`;
         
         // আজ অলরেডি আপডেট হয়ে থাকলে স্কিপ করবে
         if (currentUserData.lastLoginDate === todayStr) return; 
 
+        // গতকালের ডেট স্ট্রিং (UTC)
         const yesterday = new Date(now);
-        yesterday.setDate(yesterday.getDate() - 1);
-        const yesterdayStr = `${yesterday.getFullYear()}-${yesterday.getMonth() + 1}-${yesterday.getDate()}`;
+        yesterday.setUTCDate(yesterday.getUTCDate() - 1);
+        const yesterdayStr = `${yesterday.getUTCFullYear()}-${yesterday.getUTCMonth() + 1}-${yesterday.getUTCDate()}`;
 
         let lastLogin = currentUserData.lastLoginDate || "";
         let streak = currentUserData.loginStreak || 0;
 
         if (lastLogin === yesterdayStr) {
-            streak += 1;
-        } else {
-            streak = 1;
+            streak += 1; // গতকাল লগইন করলে স্ট্রাইক বাড়বে
+        } else if (lastLogin !== todayStr) {
+            streak = 1; // গতকাল লগইন না করলে (বা প্রথমবার লগইন করলে) স্ট্রাইক ১ থেকে শুরু হবে
         }
 
         let pointsToAdd = 10;
@@ -4720,14 +4712,14 @@ async function checkAndUpdateStreak() {
             showToast("🎉 10 Day Streak! +500 Points Bonus!");
         }
 
-        // update এর বদলে set(..., {merge: true}) ব্যবহার
+        // ফায়ারবেস আপডেট
         await db.collection('users').doc(currentUser.uid).set({
             lastLoginDate: todayStr,
             loginStreak: streak,
             points: firebase.firestore.FieldValue.increment(pointsToAdd)
         }, { merge: true });
         
-        // লোকাল আপডেট
+        // লোকাল ডেটা আপডেট
         currentUserData.lastLoginDate = todayStr;
         currentUserData.loginStreak = streak;
         currentUserData.points = (currentUserData.points || 0) + pointsToAdd;
@@ -4794,8 +4786,10 @@ clearTimeout(splashFallbackTimer);
 removeSplash();
 cleanupPrivateChatsOnLoad(); 
 
-// 🚀 ব্যাকগ্রাউন্ডে স্ট্রাইক আপডেট হবে, এর জন্য অ্যাপের লোডিং আটকে থাকবে না (await রিমুভড)
-checkAndUpdateStreak();
+// 🚀 ব্যাকগ্রাউন্ডে স্ট্রাইক আপডেট হবে, অ্যাপ লোড হওয়ার ৩ সেকেন্ড পর (যাতে নেটওয়ার্কে চাপ না পড়ে)
+setTimeout(() => {
+    checkAndUpdateStreak();
+}, 3000);
 
 setTimeout(() => { isAppReadyForNotifs = true; }, 3000); 
 
@@ -6117,7 +6111,7 @@ async function viewUserProfile(uid){
     const u=doc.data();
     
     const safeName=escapeHTML(u.name);
-    const streakBadge = getStreakBadge(u.loginStreak);
+    const streakBadge = getStreakBadge(u.loginStreak || 0);
     const verifiedBadge = getVerifiedBadge(u.email, u.isVerified);
 
         // --- এখানে ব্যাজ ও নামের লেআউট আপডেট করা হলো ---
@@ -6192,12 +6186,13 @@ async function viewUserProfile(uid){
     const isFollowing=currentUserData.following?.includes(uid);
     let btnHtml='';
     
+    // 🚀 বাটনগুলোকে রেসপন্সিভ এবং এক লাইনে রাখার জন্য flex: 1 ব্যবহার করা হয়েছে
     if(isBlocked){
-        btnHtml=`<button class="icon-btn" style="border-radius:30px; padding:10px 20px; border:1px solid var(--success); color:var(--success); background:transparent; display:flex; align-items:center; gap:8px; font-size:14px; font-weight:700;" onclick="unblockUser('${uid}')"><i class="ph-bold ph-lock-key-open" style="font-size:20px;"></i> Unblock</button>`;
+        btnHtml=`<button class="icon-btn" style="flex:1; border-radius:30px; padding:10px 0; border:1px solid var(--success); color:var(--success); background:transparent; display:flex; justify-content:center; align-items:center; gap:4px; font-size:13px; font-weight:700;" onclick="unblockUser('${uid}')"><i class="ph-bold ph-lock-key-open" style="font-size:18px;"></i> Unblock</button>`;
     }else if(isFollowing){
-        btnHtml=`<button class="icon-btn" style="border-radius:30px; padding:10px 20px; border:1px solid var(--text-muted); color:var(--text-muted); background:transparent; display:flex; align-items:center; gap:8px; font-size:14px; font-weight:700;" onclick="toggleFollow('${uid}')"><i class="ph-bold ph-user-check" style="font-size:20px;"></i> Following</button>`;
+        btnHtml=`<button class="icon-btn" style="flex:1; border-radius:30px; padding:10px 0; border:1px solid var(--text-muted); color:var(--text-muted); background:transparent; display:flex; justify-content:center; align-items:center; gap:4px; font-size:13px; font-weight:700;" onclick="toggleFollow('${uid}')"><i class="ph-bold ph-user-check" style="font-size:18px;"></i> Following</button>`;
     }else{
-        btnHtml=`<button class="icon-btn" style="border-radius:30px; padding:10px 20px; background:var(--gradient); color:#fff; border:none; box-shadow:var(--shadow-glow); display:flex; align-items:center; gap:8px; font-size:14px; font-weight:700;" onclick="toggleFollow('${uid}')"><i class="ph-bold ph-user-plus" style="font-size:20px;"></i> Follow</button>`;
+        btnHtml=`<button class="icon-btn" style="flex:1; border-radius:30px; padding:10px 0; background:var(--gradient); color:#fff; border:none; box-shadow:var(--shadow-glow); display:flex; justify-content:center; align-items:center; gap:4px; font-size:13px; font-weight:700;" onclick="toggleFollow('${uid}')"><i class="ph-bold ph-user-plus" style="font-size:18px;"></i> Follow</button>`;
     }
         
     const blockBtn=document.getElementById('block-user-btn');
@@ -6209,14 +6204,15 @@ async function viewUserProfile(uid){
         }
     }
     
+    // 🚀 flex-wrap: nowrap দেওয়া হলো যেন লাইন না ভাঙে, এবং সিরিয়াল (Follow -> Message -> Rank) করা হলো
     document.getElementById('other-profile-btns').innerHTML=`
-        <div style="display:flex; justify-content:center; gap:10px; width:100%; margin-top:16px; flex-wrap:wrap;">
-           <button class="icon-btn" style="border-radius:30px; padding:10px 20px; background:var(--surface-2); color:var(--text); border:1px solid var(--border); display:flex; align-items:center; gap:8px; font-size:14px; font-weight:700;" onclick="closeUserProfile(); openChat('${[currentUser.uid,uid].sort().join('_')}','${uid}','${safeName}','${u.avatar||''}')">
-                <i class="ph-bold ph-chat-circle-dots" style="font-size:20px;"></i> Message
-            </button>
+        <div style="display:flex; justify-content:center; gap:8px; width:100%; margin-top:16px; flex-wrap:nowrap;">
             ${btnHtml}
-            <button class="icon-btn" style="border-radius:30px; padding:10px 20px; border:1px solid #f59e0b; color:#f59e0b; background:transparent; display:flex; align-items:center; gap:8px; font-size:14px; font-weight:700;" onclick="openLeaderboard()">
-                <i class="ph-bold ph-trophy" style="font-size:20px;"></i> Rank
+            <button class="icon-btn" style="flex:1; border-radius:30px; padding:10px 0; background:var(--surface-2); color:var(--text); border:1px solid var(--border); display:flex; justify-content:center; align-items:center; gap:4px; font-size:13px; font-weight:700;" onclick="closeUserProfile(); openChat('${[currentUser.uid,uid].sort().join('_')}','${uid}','${safeName}','${u.avatar||''}')">
+                <i class="ph-bold ph-chat-circle-dots" style="font-size:18px;"></i> Message
+            </button>
+            <button class="icon-btn" style="flex:1; border-radius:30px; padding:10px 0; border:1px solid #f59e0b; color:#f59e0b; background:transparent; display:flex; justify-content:center; align-items:center; gap:4px; font-size:13px; font-weight:700;" onclick="openLeaderboard()">
+                <i class="ph-bold ph-trophy" style="font-size:18px;"></i> Rank
             </button>
         </div>
     `;
