@@ -2809,6 +2809,15 @@ NESTED ACTIVITY CATEGORIES STYLES
                     <i class="ph-bold ph-caret-right" style="color:var(--text-muted); font-size:16px;"></i>
                 </div>
                 
+                <!-- 🚀 Grid View Toggle Option -->
+<div class="settings-list-item" onclick="toggleFeedViewMode()">
+    <div style="display:flex; align-items:center; gap:16px;">
+        <i class="ph-bold ph-squares-four" style="font-size: 24px; color: #8b5cf6;"></i>
+        <span style="font-weight:600; font-size:15px;">Grid View (Home Feed)</span>
+    </div>
+    <div id="grid-view-toggle" class="toggle-switch"></div>
+</div>
+
                 <div class="settings-list-item" onclick="toggleDarkMode()">
                     <div style="display:flex; align-items:center; gap:16px;">
                         <i class="ph-bold ph-moon" style="font-size: 24px;"></i>
@@ -3354,6 +3363,50 @@ transition:all 0.2s;
     cursor: pointer; transition: all 0.2s; font-weight: 700; font-size: 15px; color: var(--text);
 }
 .story-type-card:hover { border-color: var(--accent); background: var(--surface); transform: translateY(-2px); }
+
+/* =========================================
+   🌟 2-COLUMN MODERN GRID VIEW CSS 🌟
+========================================= */
+.grid-feed-container {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    padding: 12px 16px;
+}
+
+.grid-post-card {
+    position: relative;
+    border-radius: 18px;
+    overflow: hidden;
+    background: var(--surface);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.06);
+    aspect-ratio: 4/5;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+}
+
+body:not(.light-mode) .grid-post-card { border: 1px solid rgba(255,255,255,0.05); }
+
+.grid-post-card:active { transform: scale(0.96); }
+
+.grid-post-card img { width: 100%; height: 100%; object-fit: cover; }
+
+.grid-text-post {
+    width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;
+    padding: 16px; text-align: center; font-size: 15px; font-weight: 800; color: #fff;
+}
+
+.grid-post-overlay {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    background: linear-gradient(to top, rgba(0,0,0,0.9), rgba(0,0,0,0.4), transparent);
+    padding: 30px 12px 12px; color: #fff; 
+    display: flex; align-items: flex-end; justify-content: space-between;
+}
+
+.grid-post-title { 
+    font-size: 12px; font-weight: 700; margin-bottom: 6px; line-height: 1.4;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; 
+}
 </style>
 
 <style>
@@ -5005,6 +5058,7 @@ function openMainSettingsScreen() {
     if (typeof updateActiveStatusUI === 'function') updateActiveStatusUI();
     if (typeof updateMessageSoundUI === 'function') updateMessageSoundUI();
     if (typeof updateDarkModeUI === 'function') updateDarkModeUI();
+    if (typeof updateGridToggleUI === 'function') updateGridToggleUI();
 }
 
 function closeMainSettingsScreen() {
@@ -7718,8 +7772,12 @@ function loadFeed() {
             feedList.style.minHeight = feedList.offsetHeight + 'px'; // কন্টেইনারের হাইট সাময়িকভাবে লক করা
         }
 
-        // ফিড রেন্ডার করা
-        feedList.innerHTML = postsData.map(p => buildPostCardHTML(p)).join('');
+        // ফিড রেন্ডার করা (List vs Grid চেকিং)
+if (currentUserData && currentUserData.feedViewMode === 'grid') {
+    feedList.innerHTML = '<div class="grid-feed-container">' + postsData.map(p => buildGridPostCardHTML(p)).join('') + '</div>';
+} else {
+    feedList.innerHTML = postsData.map(p => buildPostCardHTML(p)).join('');
+}
 
         // রেন্ডার হওয়ার সাথে সাথে আপনাকে আগের পজিশনেই আটকে রাখা
         if (currentScrollPosition > 0) {
@@ -12615,6 +12673,71 @@ function openStoryCreatorModal() {
 function closeStoryCreatorModal() {
     const modal = document.getElementById('story-creator-modal');
     if (modal) modal.classList.remove('open');
+}
+// 🚀 Grid View টগল ফাংশন
+async function toggleFeedViewMode() {
+    if (!currentUser) return;
+    const currentMode = currentUserData.feedViewMode || 'list';
+    const newMode = currentMode === 'list' ? 'grid' : 'list';
+    
+    currentUserData.feedViewMode = newMode;
+    await db.collection('users').doc(currentUser.uid).update({ feedViewMode: newMode });
+    
+    updateGridToggleUI();
+    
+    // হোম ফিডে থাকলে সাথে সাথে রিফ্রেশ হবে
+    if (document.getElementById('page-feed').classList.contains('active')) {
+        loadFeed(); 
+    }
+    showToast(newMode === 'grid' ? 'Grid View Enabled' : 'List View Enabled');
+}
+
+function updateGridToggleUI() {
+    const toggleEl = document.getElementById('grid-view-toggle');
+    if (toggleEl) {
+        if (currentUserData && currentUserData.feedViewMode === 'grid') {
+            toggleEl.classList.add('active');
+        } else {
+            toggleEl.classList.remove('active');
+        }
+    }
+}
+
+// 🚀 Grid Post Card জেনারেটর
+function buildGridPostCardHTML(p) {
+    const pid = p.id;
+    const imgUrls = p.imgUrls && p.imgUrls.length > 0 ? p.imgUrls : (p.imgUrl ? [p.imgUrl] : []);
+    let mediaHtml = '';
+    const safeTitle = escapeHTML(p.title || '');
+    
+    if (imgUrls.length > 0) {
+        mediaHtml = `<img src="${escapeHTML(imgUrls[0])}">`;
+    } else {
+        mediaHtml = `<div class="grid-text-post" style="background: ${escapeHTML(p.bgColor || 'var(--surface-2)')};">${safeTitle}</div>`;
+    }
+    
+    let multiIcon = imgUrls.length > 1 ? `<span class="material-symbols-outlined" style="position:absolute; top:8px; right:8px; color:#fff; font-size:18px; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));">content_copy</span>` : '';
+    const safeName = escapeHTML(p.name || 'User');
+    const av = p.avatar ? `<img src="${p.avatar}" style="width:20px;height:20px;border-radius:50%;object-fit:cover;border:1px solid #fff;">` : `<div style="width:20px;height:20px;border-radius:50%;background:var(--gradient);color:#fff;font-size:10px;display:flex;align-items:center;justify-content:center;border:1px solid #fff;">${avatarInitial(safeName)}</div>`;
+    
+    return `
+    <div class="grid-post-card" onclick="openSinglePostView('${pid}')">
+        ${mediaHtml}
+        ${multiIcon}
+        <div class="grid-post-overlay">
+            <div style="flex:1; min-width:0; margin-right:8px;">
+                <div class="grid-post-title">${safeTitle || 'View Post'}</div>
+                <div style="display:flex; align-items:center; gap:6px;">
+                    ${av}
+                    <span style="font-size:11px; opacity:0.9; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${safeName}</span>
+                </div>
+            </div>
+            <div style="display:flex; align-items:center; gap:3px; font-size:12px; font-weight:700;">
+                <i class="${p.likedBy && p.likedBy.includes(currentUser?.uid) ? 'ph-fill' : 'ph-bold'} ph-heart" style="font-size:15px; ${p.likedBy && p.likedBy.includes(currentUser?.uid) ? 'color:var(--danger);' : ''}"></i>
+                ${p.likes || 0}
+            </div>
+        </div>
+    </div>`;
 }
 </script>
 </body>
