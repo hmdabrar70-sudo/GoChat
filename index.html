@@ -3332,164 +3332,173 @@ transition:all 0.2s;
 .story-type-card:hover { border-color: var(--accent); background: var(--surface); transform: translateY(-2px); }
 /* ═══════════════════════════════════════════════════════
    🎨 NEW DESIGN  ·  feed-redesign  ·  2026-07-30
-   ১০০% CSS-only  |  কোনো JS লাগবে না  |  render-safe
-   #feed-list > * = প্রতিটা পোস্ট কার্ড (ক্লাস-নিরপেক্ষ)
-   setFeedTab/like/comment/share/openCommentPanel অক্ষত
+   হোম ফিড রিডিজাইন  |  বাইরে CSS-only, ভেতরে class-only (layout-safe)
+   কোনো element নড়াচড়া নয় → render overwrite-এ ভাঙবে না
    খুঁজতে:  Ctrl+F → "feed-redesign"
    ═══════════════════════════════════════════════════════ */
 
-/* ---------- পেজের পরিবেশগত স্তর ---------- */
+/* ---------- পেজ ambient (scoped, JS ছাড়া) ---------- */
 #page-feed{ position:relative; }
 #page-feed::before{
   content:''; position:fixed; inset:0; z-index:0; pointer-events:none;
   background:
-    radial-gradient(74% 44% at 10% -10%, color-mix(in srgb, var(--accent) 14%, transparent), transparent 60%),
-    radial-gradient(58% 40% at 98% -6%, color-mix(in srgb, #f59e0b 10%, transparent), transparent 64%),
-    radial-gradient(50% 36% at 50% 108%, color-mix(in srgb, #ec4899 8%, transparent), transparent 70%);
+    radial-gradient(74% 42% at 14% -8%, color-mix(in srgb, var(--accent) 13%, transparent), transparent 60%),
+    radial-gradient(54% 36% at 92% -2%, color-mix(in srgb, #f59e0b 9%, transparent), transparent 64%);
 }
 #page-feed::after{
   content:''; position:fixed; inset:0; z-index:0; pointer-events:none; opacity:.45;
-  background-image:radial-gradient(color-mix(in srgb, var(--text) 5.5%, transparent) 1px, transparent 1.4px);
+  background-image:radial-gradient(color-mix(in srgb, var(--text) 5%, transparent) 1px, transparent 1.4px);
   background-size:24px 24px;
   -webkit-mask-image:linear-gradient(180deg,#000,transparent 38%); mask-image:linear-gradient(180deg,#000,transparent 38%);
 }
 #page-feed > *{ position:relative; z-index:1; }
 
-/* ---------- স্টোরি রিং ---------- */
-.stories-wrapper, #stories-list{
-  display:flex; gap:14px; overflow-x:auto; padding:14px 16px 18px !important;
-  scroll-snap-type:x proximity; -webkit-overflow-scrolling:touch;
-}
-.stories-wrapper::-webkit-scrollbar, #stories-list::-webkit-scrollbar{ display:none; }
-#stories-list > *, .stories-wrapper > *{
-  scroll-snap-align:start; display:flex; flex-direction:column; align-items:center; gap:7px;
-  flex-shrink:0; cursor:pointer; transition:transform .25s cubic-bezier(.34,1.56,.64,1);
-}
-#stories-list > *:hover, .stories-wrapper > *:hover{ transform:translateY(-3px); }
-#stories-list > *:active, .stories-wrapper > *:active{ transform:scale(.93); }
-/* রিং — ঘূর্ণায়মান গ্রেডিয়েন্ট */
-#stories-list > * > div:first-child,
-#stories-list > * .avatar,
-.stories-wrapper > * > div:first-child{
-  position:relative; padding:3px !important; border-radius:50% !important;
-  background:conic-gradient(from var(--fd-ang,0deg), var(--accent), #ec4899, #f59e0b, var(--accent)) !important;
-  box-shadow:0 8px 20px -8px color-mix(in srgb, var(--accent) 60%, transparent);
-  animation:fdRingSpin 6s linear infinite; transition:box-shadow .25s;
-}
-#stories-list > *:hover > div:first-child,
-.stories-wrapper > *:hover > div:first-child{ box-shadow:0 12px 26px -8px color-mix(in srgb, var(--accent) 75%, transparent); }
-@property --fd-ang{ syntax:'<angle>'; inherits:false; initial-value:0deg; }
-@keyframes fdRingSpin{ to{ --fd-ang:360deg; } }
-/* রিং-এর ভেতরের ছবি/গোল */
-#stories-list > * > div:first-child > *,
-.stories-wrapper > * > div:first-child > *{ border:2.5px solid var(--bg) !important; border-radius:50% !important; }
-/* "Your Story" ইত্যাদি label */
-#stories-list > * > div:last-child,
-#stories-list > * > span:last-child,
-.stories-wrapper > * > div:last-child{
-  font-size:11.5px !important; font-weight:700 !important; color:var(--text-secondary) !important;
-  max-width:64px; text-align:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+/* ---------- স্টোরি রিং পলিশ ---------- */
+#page-feed .stories-wrapper{ padding:14px 14px 6px !important; gap:14px !important; }
+#page-feed .stories-wrapper > *{ transition:transform .25s cubic-bezier(.34,1.56,.64,1); }
+#page-feed .stories-wrapper > *:hover{ transform:translateY(-3px); }
+#page-feed .stories-wrapper .avatar,
+#page-feed .stories-wrapper [class*="story" i] .avatar{
+  box-shadow:0 6px 16px -8px color-mix(in srgb, var(--accent) 60%, transparent);
 }
 
-/* ---------- For You / Following ট্যাব ---------- */
-.feed-tabs{
-  position:relative; display:flex; gap:6px; margin:4px 16px 16px !important; padding:5px !important;
+/* ---------- For You / Following — segmented control + sliding pill (:has, JS ছাড়া) ---------- */
+#page-feed .feed-tabs{
+  position:relative; margin:8px 16px 16px !important; padding:5px !important;
   background:var(--surface-2); border:1px solid var(--border); border-radius:18px !important;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.04);
+  box-shadow:inset 0 1px 3px rgba(0,0,0,.06);
 }
-.feed-tab{
-  flex:1; text-align:center; padding:11px 0 !important; border-radius:14px !important;
-  font-size:14px !important; font-weight:800 !important; letter-spacing:.2px;
-  color:var(--text-muted) !important; cursor:pointer; position:relative; z-index:1;
-  transition:color .3s ease, transform .2s ease;
+#page-feed .feed-tabs::before{
+  content:''; position:absolute; top:5px; left:5px; width:calc(50% - 5px); height:calc(100% - 10px);
+  border-radius:14px; z-index:0; pointer-events:none;
+  background:var(--surface);
+  box-shadow:0 4px 14px -6px rgba(0,0,0,.28), 0 0 0 1px color-mix(in srgb,var(--accent) 18%, transparent);
+  transition:transform .38s cubic-bezier(.34,1.2,.5,1);
 }
-.feed-tab:active{ transform:scale(.96); }
-.feed-tab.active{
-  color:var(--accent) !important;
-  background:var(--surface) !important;
-  box-shadow:0 8px 20px -10px color-mix(in srgb, var(--accent) 55%, transparent), 0 1px 0 rgba(255,255,255,.5) inset;
+#page-feed .feed-tabs:has(#tab-following.active)::before{ transform:translateX(100%); }
+#page-feed .feed-tab{
+  position:relative; z-index:1; background:transparent !important; border:none !important;
+  font-size:14.5px !important; font-weight:800 !important; letter-spacing:-.2px;
+  color:var(--text-muted) !important; padding:11px 0 !important; border-radius:14px !important;
+  transition:color .3s, transform .2s;
 }
-.feed-tab.active::after{
-  content:''; position:absolute; left:50%; bottom:5px; transform:translateX(-50%);
-  width:26px; height:3px; border-radius:3px;
-  background:linear-gradient(90deg, var(--accent), #ec4899);
-}
+#page-feed .feed-tab.active{ color:var(--accent) !important; }
+#page-feed .feed-tab:active{ transform:scale(.96); }
 
-/* ---------- ফিড লিস্ট স্পেসিং ---------- */
-#feed-list{ display:flex; flex-direction:column; gap:18px; padding:2px 14px 110px; }
-
-/* ---------- পোস্ট কার্ড (ক্লাস-নিরপেক্ষ) ---------- */
-#feed-list > *{
-  position:relative; background:var(--surface); border:1px solid var(--border);
-  border-radius:24px !important; padding:16px !important; overflow:hidden;
-  box-shadow:0 1px 0 rgba(255,255,255,.05) inset, 0 14px 34px -22px rgba(0,0,0,.6);
-  transition:transform .22s ease, border-color .25s ease, box-shadow .3s ease;
-  animation:fdCardRise .55s cubic-bezier(.22,1,.36,1) backwards;
+/* ---------- পোস্ট কার্ড (outer — নির্ভরযোগ্য) ---------- */
+#feed-list{ padding:2px 14px 110px; display:flex; flex-direction:column; gap:18px; }
+#feed-list > div:not(.empty-feed):not([class*="skeleton" i]){
+  position:relative; border-radius:24px !important; overflow:hidden;
+  background:var(--surface) !important; border:1px solid var(--border) !important;
+  box-shadow:0 1px 0 rgba(255,255,255,.05) inset, 0 16px 40px -24px rgba(0,0,0,.55) !important;
+  transition:transform .2s ease, box-shadow .3s ease, border-color .3s ease;
+  animation:fdRise .55s cubic-bezier(.22,1,.36,1) backwards;
 }
-#feed-list > *:nth-child(1){ animation-delay:.03s; }
-#feed-list > *:nth-child(2){ animation-delay:.08s; }
-#feed-list > *:nth-child(3){ animation-delay:.13s; }
-#feed-list > *:nth-child(4){ animation-delay:.18s; }
-#feed-list > *:nth-child(5){ animation-delay:.23s; }
-#feed-list > *:nth-child(n+6){ animation-delay:.28s; }
-#feed-list > *:hover{
+#feed-list > div:not(.empty-feed):nth-child(1){ animation-delay:.02s; }
+#feed-list > div:not(.empty-feed):nth-child(2){ animation-delay:.07s; }
+#feed-list > div:not(.empty-feed):nth-child(3){ animation-delay:.12s; }
+#feed-list > div:not(.empty-feed):nth-child(4){ animation-delay:.17s; }
+#feed-list > div:not(.empty-feed):nth-child(n+5){ animation-delay:.22s; }
+#feed-list > div:not(.empty-feed):hover{
   transform:translateY(-3px);
-  border-color:color-mix(in srgb, var(--accent) 30%, var(--border));
-  box-shadow:0 1px 0 rgba(255,255,255,.06) inset, 0 24px 44px -24px color-mix(in srgb, var(--accent) 50%, transparent);
+  border-color:color-mix(in srgb, var(--accent) 30%, var(--border)) !important;
+  box-shadow:0 1px 0 rgba(255,255,255,.05) inset, 0 26px 50px -26px color-mix(in srgb, var(--accent) 50%, transparent) !important;
 }
-#feed-list > *:active{ transform:scale(.992); }
-/* কার্ডের উপরে একটা সূক্ষ্ম accent sheen */
-#feed-list > *::before{
-  content:''; position:absolute; top:0; left:0; right:0; height:3px;
-  background:linear-gradient(90deg, transparent, color-mix(in srgb, var(--accent) 55%, transparent), color-mix(in srgb, #f59e0b 45%, transparent), transparent);
-  opacity:0; transition:opacity .3s;
-}
-#feed-list > *:hover::before{ opacity:1; }
 
-/* পোস্টের ছবি — soft radius + shadow (avatar বাদ: 50% inline থাকায় বাদ পড়ে) */
-#feed-list > * img:not([style*="border-radius: 50%"]):not([style*="border-radius:50%"]):not([style*="border-radius: 100%"]){
-  border-radius:18px !important; display:block; width:100%;
-  box-shadow:0 12px 30px -16px rgba(0,0,0,.55); transition:transform .4s ease;
+/* কার্ডের উপরে একটা সূক্ষ্ম accent hairline */
+#feed-list > div:not(.empty-feed)::before{
+  content:''; position:absolute; top:0; left:18px; right:18px; height:2px; z-index:2; pointer-events:none;
+  background:linear-gradient(90deg, transparent, color-mix(in srgb,var(--accent) 55%, transparent), color-mix(in srgb,#f59e0b 45%, transparent), transparent);
+  opacity:.0; transition:opacity .3s;
 }
-#feed-list > *:hover img:not([style*="border-radius: 50%"]):not([style*="border-radius:50%"]){ transform:scale(1.012); }
+#feed-list > div:not(.empty-feed):hover::before{ opacity:1; }
 
-/* অ্যাভাটার — রিং */
-#feed-list > * .avatar,
-#feed-list > * img[style*="border-radius: 50%"],
-#feed-list > * img[style*="border-radius:50%"]{
-  box-shadow:0 0 0 2px var(--surface), 0 0 0 4px color-mix(in srgb, var(--accent) 22%, transparent), 0 6px 14px -8px rgba(0,0,0,.5) !important;
-  transition:box-shadow .25s, transform .25s;
+/* ---------- ভেতরের element (JS class যোগ করলে সক্রিয়; না থাকলে default অক্ষত) ---------- */
+/* হেডার row */
+#feed-list .fd-head{ padding:14px 14px 4px !important; gap:12px !important; }
+/* অ্যাভাটার রিং */
+#feed-list .fd-avatar{
+  box-shadow:0 0 0 2px var(--surface), 0 0 0 4px color-mix(in srgb, var(--accent) 26%, transparent), 0 8px 18px -10px rgba(0,0,0,.45) !important;
+  transition:transform .25s, box-shadow .25s;
 }
-#feed-list > *:hover .avatar{ transform:scale(1.05); }
+#feed-list > div:hover .fd-avatar{ transform:scale(1.05); box-shadow:0 0 0 2px var(--surface), 0 0 0 4px color-mix(in srgb, var(--accent) 44%, transparent), 0 10px 22px -10px rgba(0,0,0,.5) !important; }
+/* নাম */
+#feed-list .fd-name{ font-size:16px !important; font-weight:800 !important; letter-spacing:-.3px; color:var(--text) !important; line-height:1.15; }
+/* সময় */
+#feed-list .fd-time{ font-size:11.5px !important; color:var(--text-muted) !important; font-weight:600 !important; display:inline-flex; align-items:center; gap:6px; }
+#feed-list .fd-time::before{ content:''; width:4px; height:4px; border-radius:50%; background:var(--accent); }
+/* Follow বাটন */
+#feed-list .fd-follow{
+  position:relative; overflow:hidden; padding:7px 16px !important; border-radius:30px !important;
+  font-size:12.5px !important; font-weight:800 !important; letter-spacing:.2px;
+  color:var(--accent) !important; background:var(--accent-glow) !important;
+  border:1px solid color-mix(in srgb, var(--accent) 40%, transparent) !important;
+  transition:transform .2s, color .25s, background .25s, box-shadow .25s;
+}
+#feed-list .fd-follow:hover{ color:#fff !important; background:var(--accent) !important; box-shadow:0 8px 18px -8px color-mix(in srgb,var(--accent) 70%, transparent); }
+#feed-list .fd-follow:active{ transform:scale(.92); }
+/* থ্রি-ডট মেনু */
+#feed-list .fd-menu{
+  width:34px; height:34px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center;
+  transition:background .2s, color .2s, transform .2s;
+}
+#feed-list .fd-menu:hover{ background:var(--surface-2); color:var(--accent) !important; }
+#feed-list .fd-menu:active{ transform:scale(.85) rotate(8deg); }
+/* পোস্ট ছবি */
+#feed-list .fd-media{
+  border-radius:18px !important; margin:6px 12px !important; width:calc(100% - 24px) !important;
+  box-shadow:0 12px 30px -16px rgba(0,0,0,.5), inset 0 0 0 1px rgba(255,255,255,.06);
+  transition:transform .35s cubic-bezier(.22,1,.36,1);
+}
+#feed-list > div:active .fd-media{ transform:scale(.985); }
+/* পোস্ট টাইটেল/ক্যাপশন */
+#feed-list .fd-title{ font-size:16.5px !important; font-weight:700 !important; line-height:1.42 !important; letter-spacing:-.2px; color:var(--text) !important; padding:4px 16px 2px !important; }
 
-/* ---------- অ্যাকশন বাটন (লাইক/কমেন্ট/শেয়ার) ---------- */
+/* ---------- অ্যাকশন বার (রিঅ্যাকশন পিল feel) ---------- */
+#feed-list .fd-actions{
+  margin:6px 12px 12px !important; padding:8px 6px 4px !important; gap:6px !important;
+  border-top:1px solid transparent !important;
+  border-image:linear-gradient(90deg, transparent, var(--border), transparent) 1 !important;
+}
 #feed-list .post-action-btn{
-  display:inline-flex; align-items:center; gap:7px; padding:8px 12px; border-radius:30px;
-  background:transparent; transition:background .2s ease, transform .2s cubic-bezier(.34,1.56,.64,1), color .2s ease;
+  display:inline-flex !important; align-items:center !important; gap:7px !important;
+  padding:8px 13px !important; border-radius:30px !important;
+  font-size:14px !important; font-weight:800 !important; color:var(--text-secondary) !important;
+  background:transparent; transition:transform .18s, background .2s, color .2s;
 }
-#feed-list .post-action-btn:hover{ background:var(--surface-2); transform:translateY(-1px); }
+#feed-list .post-action-btn:hover{ background:var(--surface-2); }
 #feed-list .post-action-btn:active{ transform:scale(.86); }
-#feed-list .post-action-btn i,
 #feed-list .post-action-btn .material-symbols-outlined,
-#feed-list .post-action-btn svg{ transition:transform .25s cubic-bezier(.34,1.56,.64,1); }
-#feed-list .post-action-btn:hover i,
+#feed-list .post-action-btn i{ font-size:22px !important; transition:transform .25s cubic-bezier(.34,1.56,.64,1); }
 #feed-list .post-action-btn:hover .material-symbols-outlined,
-#feed-list .post-action-btn:hover svg{ transform:scale(1.12); }
+#feed-list .post-action-btn:hover i{ transform:scale(1.12); }
+/* লাইক হলে গোলাপি আভা (বিদ্যমান fill অ্যানিমেশনের সাথে) */
+#feed-list .post-action-btn[onclick*="likePost"].liked,
+#feed-list .post-action-btn.is-liked{ background:rgba(255,77,106,.10) !important; color:#ff4d6a !important; }
+/* শেয়ার বাটন একটু আলাদা accent */
+#feed-list .post-share-btn:hover{ background:color-mix(in srgb, var(--accent) 12%, transparent) !important; color:var(--accent) !important; }
 
-/* ---------- রঙিন পোস্ট ব্যাকগ্রাউন্ড polish ---------- */
+/* ---------- রঙিন পোস্ট (colored-post-bg) গভীরতা ---------- */
 #feed-list .colored-post-bg{
-  border-radius:20px !important; box-shadow:inset 0 0 50px rgba(0,0,0,.14), 0 14px 30px -16px rgba(0,0,0,.4) !important;
-  position:relative; overflow:hidden;
-}
-#feed-list .colored-post-bg::after{
-  content:''; position:absolute; inset:0; pointer-events:none;
-  background:radial-gradient(120% 80% at 20% 0%, rgba(255,255,255,.18), transparent 60%);
+  border-radius:18px !important; margin:6px 12px !important;
+  box-shadow:0 16px 36px -18px rgba(0,0,0,.5), inset 0 0 60px rgba(0,0,0,.18) !important;
+  text-shadow:0 2px 12px rgba(0,0,0,.35);
 }
 
-/* ---------- skeleton লোডিং shimmer উন্নত ---------- */
-#feed-loading .skeleton-card{ border-radius:24px !important; border:1px solid var(--border); overflow:hidden; }
+/* ---------- খালি ফিড ---------- */
+#feed-list .empty-feed{
+  display:flex !important; flex-direction:column !important; align-items:center !important; gap:10px !important;
+  padding:64px 24px !important; text-align:center !important; color:var(--text-muted) !important;
+}
+#feed-list .empty-feed::before{
+  content:'dynamic_feed'; font-family:'Material Symbols Outlined'; font-size:42px; color:var(--accent);
+  width:80px; height:80px; border-radius:24px; display:flex; align-items:center; justify-content:center;
+  background:linear-gradient(135deg, color-mix(in srgb, var(--accent) 16%, var(--surface-2)), var(--surface-2));
+  border:1px solid var(--border); animation:fdFloat 3.4s ease-in-out infinite;
+}
 
-@keyframes fdCardRise{ from{ opacity:0; transform:translateY(20px) scale(.985);} to{ opacity:1; transform:translateY(0) scale(1);} }
+@keyframes fdRise{ from{ opacity:0; transform:translateY(20px) scale(.985);} to{ opacity:1; transform:translateY(0) scale(1);} }
+@keyframes fdFloat{ 0%,100%{ transform:translateY(0);} 50%{ transform:translateY(-7px);} }
 </style>
 
 <style>
@@ -12752,6 +12761,136 @@ function closeStoryCreatorModal() {
     const modal = document.getElementById('story-creator-modal');
     if (modal) modal.classList.remove('open');
 }
+// ═══════════════════════════════════════════════════════
+// 🎨 NEW DESIGN  ·  feed-redesign  ·  2026-07-30
+// conservative enhancer — শুধু classList.add, কোনো node move/insert নয়
+// তাই render overwrite-এ ভাঙবে না (miss করলে সেই কার্ড default থাকে)
+// খুঁজতে:  Ctrl+F → "feed-redesign"
+// ═══════════════════════════════════════════════════════
+function fdIsCard(card){
+  if(!card || card.nodeType !== 1) return false;
+  if(card.classList.contains('empty-feed')) return false;
+  if(/skeleton/i.test(card.className || '')) return false;
+  // পোস্ট কার্ডে সাধারণত অ্যাকশন বাটন বা ছবি বা রঙিন bg থাকে
+  return !!(card.querySelector('.post-action-btn, .colored-post-bg, img') || card.querySelector('[onclick*="likePost"]'));
+}
+
+function fdEnhanceCard(card){
+  if(card.dataset.fdDone) return;
+  card.dataset.fdDone = '1';
+  card.classList.add('fd-card');
+
+  // অ্যাভাটার (ছোট গোল ছবি/ডিভ)
+  const av = card.querySelector('.avatar');
+  if(av) av.classList.add('fd-avatar');
+
+  // থ্রি-ডট মেনু (more_vert / dots)
+  const menu = [...card.querySelectorAll('.material-symbols-outlined, i')].find(el => {
+    const t = (el.textContent || '').trim();
+    const c = (el.className || '').toLowerCase();
+    return t === 'more_vert' || /dots-three-vertical|ph-dots/.test(c);
+  });
+  if(menu){ const mb = menu.closest('button,span,div'); if(mb) mb.classList.add('fd-menu'); }
+
+  // হেডার row = অ্যাভাটারের সেই parent যেটাতে নামও আছে
+  if(av){
+    let row = av.parentElement;
+    for(let i=0;i<3 && row && row!==card;i++){
+      if(row.querySelector('[onclick*="likePost"], .post-action-btn, img') === null || row===av.parentElement){
+        // নাম/সময় এই row-এ খুঁজব
+      }
+      row = row.parentElement;
+    }
+    const head = av.parentElement;
+    if(head) head.classList.add('fd-head');
+  }
+
+  // নাম + সময় + Follow — leaf text স্ক্যান করে (exact/regex, নিরাপদ)
+  const leaves = [...card.querySelectorAll('span,div,strong,b,a')].filter(e => e.children.length === 0 && (e.textContent||'').trim());
+  for(const el of leaves){
+    if(el.classList.contains('fd-time')||el.classList.contains('fd-name')||el.classList.contains('fd-follow')) continue;
+    const txt = (el.textContent || '').trim();
+    // Follow / Following (exact-ish)
+    if(/^(Follow|Following|Unfollow)$/i.test(txt) && el.tagName !== 'DIV'){ el.classList.add('fd-follow'); continue; }
+    // সময় (ago / just now / m/h/d/w/y)
+    if(/^(just now|\d+\s*(m|min|h|hr|d|w|mo|y)\b.*ago|\d+\s*(minute|hour|day|week|month|year)s?\s+ago)$/i.test(txt) || /\bago$/i.test(txt)){
+      el.classList.add('fd-time'); continue;
+    }
+  }
+  // নাম = হেডারের ভেতরে প্রথম bold/weighty ছোট টেক্সট যা time/follow/menu না
+  const head = card.querySelector('.fd-head') || (av ? av.parentElement : null);
+  if(head && !head.querySelector('.fd-name')){
+    const cand = [...head.querySelectorAll('span,div,strong,b,a')].find(e => {
+      if(e.children.length) return false;
+      if(e.classList.contains('fd-time')||e.classList.contains('fd-follow')) return false;
+      const t = (e.textContent||'').trim();
+      if(!t || t.length > 40) return false;
+      const w = getComputedStyle(e).fontWeight;
+      return (parseInt(w)||400) >= 600;
+    });
+    if(cand) cand.classList.add('fd-name');
+  }
+
+  // পোস্ট ছবি = কার্ডের সবচেয়ে বড় img (অ্যাভাটার বাদ পড়ে সাইজে)
+  const imgs = [...card.querySelectorAll('img')].filter(im => !im.closest('.avatar'));
+  if(imgs.length){
+    let big = imgs[0], max = 0;
+    imgs.forEach(im => { const w = im.offsetWidth || im.naturalWidth || 0; if(w > max){ max = w; big = im; } });
+    if(max > 120) big.classList.add('fd-media');
+  }
+
+  // ক্যাপশন/টাইটেল = colored-post-bg না থাকলে, মিডিয়ার আগের বা হেডারের পরের মাঝারি টেক্সট ব্লক
+  if(!card.querySelector('.colored-post-bg')){
+    const titleCand = [...card.querySelectorAll('div,span,p')].find(e => {
+      if(e.classList.contains('fd-head')||e.classList.contains('fd-actions')||e.classList.contains('fd-time')||e.classList.contains('fd-name')) return false;
+      if(e.querySelector('.fd-head, .fd-actions, .post-action-btn, img, .colored-post-bg')) return false;
+      const t = (e.textContent||'').trim();
+      return t.length > 4 && t.length < 280 && e.children.length <= 1;
+    });
+    if(titleCand) titleCand.classList.add('fd-title');
+  }
+
+  // অ্যাকশন বার = post-action-btn এর parent (node move নয়, শুধু class)
+  const actBtn = card.querySelector('.post-action-btn');
+  if(actBtn && actBtn.parentElement) actBtn.parentElement.classList.add('fd-actions');
+}
+
+function enhanceFeed(){
+  const list = document.getElementById('feed-list');
+  if(!list) return;
+  [...list.children].forEach(c => { if(fdIsCard(c)) fdEnhanceCard(c); });
+}
+
+// অটো-রান + live (childList only → class যোগে loop নয়; render replace-এ re-enhance)
+(function fdBoot(){
+  const run = () => enhanceFeed();
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run); else run();
+  setTimeout(run, 600); setTimeout(run, 1500); setTimeout(run, 3000);
+  let obs = null;
+  const watch = () => {
+    const list = document.getElementById('feed-list');
+    if(list && !obs){
+      obs = new MutationObserver(() => {
+        // নতুন/বদলানো কার্ডে enhance (idempotent: data-fdDone গার্ড)
+        [...list.children].forEach(c => { if(fdIsCard(c) && !c.dataset.fdDone) fdEnhanceCard(c); });
+      });
+      obs.observe(list, { childList:true });   // subtree নয় → share-inject-এ loop নয়
+    }
+  };
+  setTimeout(watch, 1000); setTimeout(watch, 2800);
+})();
+
+// ট্যাব বদলে feed রিলোড হলে class হারায় → একটু পরে আবার লাগানো
+(function fdTabHook(){
+  const hook = () => {
+    ['tab-foryou','tab-following'].forEach(id => {
+      const t = document.getElementById(id);
+      if(t && !t.dataset.fdHook){ t.dataset.fdHook='1'; t.addEventListener('click', () => setTimeout(enhanceFeed, 350)); }
+    });
+  };
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', hook); else hook();
+  setTimeout(hook, 1200);
+})();
 </script>
 </body>
 </html>
