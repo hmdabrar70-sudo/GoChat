@@ -2076,18 +2076,18 @@ NESTED ACTIVITY CATEGORIES STYLES
 </div>
 
 <div class="page" id="page-messages">
-<!-- 🚀 'Messages' টেক্সট সরিয়ে শুধুমাত্র বাটনগুলো রাখা হলো এবং ডানপাশে অ্যালাইন করা হলো -->
+<!-- 🚀 'Messages' টেক্সট এবং আর্কাইভ বাটন সরিয়ে শুধু গ্রুপ আইকন রাখা হলো -->
 <div style="padding:10px 20px 12px;display:flex;justify-content:flex-end;align-items:center;">
     <div style="display:flex; gap:15px; align-items:center;">
         <i class="ph-bold ph-users-three" onclick="openCreateGroupModal()" style="cursor: pointer; font-size: 28px; color: #8a2be2;"></i>
-            
-        <button class="archived-btn" onclick="toggleArchivedChats()">
-            <i class="ph-bold ph-archive-box" style="font-size:16px;"></i> Archived
-        </button>
     </div>
 </div>
 <div id="archived-chats" class="archived-section">
-<div class="section-title" style="font-size:13px;padding:10px 20px;">Archived Chats</div>
+<!-- 🚀 আর্কাইভ বন্ধ করার জন্য একটি ক্রস (X) আইকন যুক্ত করা হলো -->
+<div class="section-title" style="font-size:13px;padding:10px 20px; display:flex; justify-content:space-between; align-items:center;">
+    <span>Archived Chats</span>
+    <i class="ph-bold ph-x" style="cursor:pointer; font-size:16px; color:var(--text-muted);" onclick="document.getElementById('archived-chats').classList.remove('show');"></i>
+</div>
 <div id="archived-msg-list"></div>
 </div>
 <div id="msg-list"></div>
@@ -2778,6 +2778,15 @@ NESTED ACTIVITY CATEGORIES STYLES
                     <div style="display:flex; align-items:center; gap:16px;">
                         <i class="ph-bold ph-chat-circle-dots" style="font-size: 24px; color: #3b82f6;"></i>
                         <span style="font-weight:600; font-size:15px;">Chat Privacy</span>
+                    </div>
+                    <i class="ph-bold ph-caret-right" style="color:var(--text-muted); font-size:16px;"></i>
+                </div>
+
+                <!-- 🚀 Archived Chats Moved to Settings -->
+                <div class="settings-list-item" onclick="closeMainSettingsScreen(); closeMainMenu(); showPage('messages'); document.getElementById('archived-chats').classList.add('show'); loadArchivedMessages();">
+                    <div style="display:flex; align-items:center; gap:16px;">
+                        <i class="ph-bold ph-archive-box" style="font-size: 24px; color: #8b5cf6;"></i>
+                        <span style="font-weight:600; font-size:15px;">Archived Chats</span>
                     </div>
                     <i class="ph-bold ph-caret-right" style="color:var(--text-muted); font-size:16px;"></i>
                 </div>
@@ -5895,33 +5904,68 @@ async function reactToCurrentStory(){
         }
     }
 }
-// ===== POSTS LOGIC =====
-async function toggleLike(pid){
-if(!currentUser||!checkRateLimit())return;
-const ref=db.collection('posts').doc(pid);
-const doc=await ref.get();
-if(doc.exists){
-const p=doc.data();
-let likedBy=p.likedBy||[];
-let likes=p.likes||0;
-if(likedBy.includes(currentUser.uid)){
-likedBy=likedBy.filter(id=>id!==currentUser.uid);
-likes=Math.max(0,likes-1);
-}else{
-likedBy.push(currentUser.uid);
-likes++;
-if(p.uid!==currentUser.uid){
-db.collection('notifications').add({
-toUid:p.uid,fromUid:currentUser.uid,
-fromName:currentUserData.name,
-type:'like',postId:pid,read:false,
-createdAt:firebase.firestore.FieldValue.serverTimestamp()
-});
-awardPoints(p.uid, 5);
-}
-}
-await ref.update({likes,likedBy});
-}
+// ===== POSTS AND LIKE LOGIC =====
+// 🚀 সুপার ফাস্ট লাইক সিস্টেম (Optimistic UI Update)
+async function toggleLike(pid) {
+    if (!currentUser || !checkRateLimit()) return;
+
+    // ১. ডাটাবেসে যাওয়ার আগেই স্ক্রিনে সাথে সাথে লাইক আপডেট করে দেবে (ম্যাজিক!)
+    const likeButtons = document.querySelectorAll(`button[onclick*="toggleLike('${pid}')"]`);
+    
+    let isCurrentlyLiked = false;
+    let currentLikes = 0;
+
+    likeButtons.forEach(btn => {
+        const icon = btn.querySelector('i');
+        const countSpan = btn.querySelector('span');
+        currentLikes = parseInt(countSpan.innerText) || 0;
+        isCurrentlyLiked = btn.classList.contains('liked');
+
+        if (isCurrentlyLiked) {
+            // আনলাইক করা
+            btn.classList.remove('liked');
+            if (icon) icon.className = 'ph-bold ph-heart';
+            if (countSpan) countSpan.innerText = Math.max(0, currentLikes - 1);
+        } else {
+            // লাইক করা
+            btn.classList.add('liked');
+            if (icon) icon.className = 'ph-fill ph-heart';
+            if (countSpan) countSpan.innerText = currentLikes + 1;
+        }
+    });
+
+    // ২. এরপর ব্যাকগ্রাউন্ডে ডাটাবেস আপডেট হবে
+    const ref = db.collection('posts').doc(pid);
+    const doc = await ref.get();
+    
+    if (doc.exists) {
+        const p = doc.data();
+        let likedBy = p.likedBy || [];
+        let likes = p.likes || 0;
+        
+        if (likedBy.includes(currentUser.uid)) {
+            likedBy = likedBy.filter(id => id !== currentUser.uid);
+            likes = Math.max(0, likes - 1);
+        } else {
+            likedBy.push(currentUser.uid);
+            likes++;
+            
+            // নিজের পোস্টে লাইক দিলে খামোখা নোটিফিকেশন বা পয়েন্ট যাবে না
+            if (p.uid !== currentUser.uid) {
+                db.collection('notifications').add({
+                    toUid: p.uid, 
+                    fromUid: currentUser.uid,
+                    fromName: currentUserData.name,
+                    type: 'like', 
+                    postId: pid, 
+                    read: false,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                awardPoints(p.uid, 5);
+            }
+        }
+        await ref.update({ likes, likedBy });
+    }
 }
 
 function handleDoubleTap(pid,event){
