@@ -2076,18 +2076,15 @@ NESTED ACTIVITY CATEGORIES STYLES
 </div>
 
 <div class="page" id="page-messages">
-<div style="padding:20px 20px 12px;display:flex;justify-content:space-between;align-items:center;">
-<div class="section-title" style="padding:0;font-size:18px;">Messages</div>
-    
-<!-- বাটনগুলোকে সুন্দর করে ডানপাশে পাশাপাশি রাখার জন্য -->
-<div style="display:flex; gap:15px; align-items:center;">
-    <i class="ph-bold ph-users-three" onclick="openCreateGroupModal()" style="cursor: pointer; font-size: 28px; color: #8a2be2;"></i>
-        
-    <button class="archived-btn" onclick="toggleArchivedChats()">
-        <i class="ph-bold ph-archive-box" style="font-size:16px;"></i> Archived
-    </button>
-</div>
-
+<!-- 🚀 'Messages' টেক্সট সরিয়ে শুধুমাত্র বাটনগুলো রাখা হলো এবং ডানপাশে অ্যালাইন করা হলো -->
+<div style="padding:10px 20px 12px;display:flex;justify-content:flex-end;align-items:center;">
+    <div style="display:flex; gap:15px; align-items:center;">
+        <i class="ph-bold ph-users-three" onclick="openCreateGroupModal()" style="cursor: pointer; font-size: 28px; color: #8a2be2;"></i>
+            
+        <button class="archived-btn" onclick="toggleArchivedChats()">
+            <i class="ph-bold ph-archive-box" style="font-size:16px;"></i> Archived
+        </button>
+    </div>
 </div>
 <div id="archived-chats" class="archived-section">
 <div class="section-title" style="font-size:13px;padding:10px 20px;">Archived Chats</div>
@@ -3406,6 +3403,20 @@ body:not(.light-mode) .grid-post-card { border: 1px solid rgba(255,255,255,0.05)
 .grid-post-title { 
     font-size: 12px; font-weight: 700; margin-bottom: 6px; line-height: 1.4;
     display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; 
+}
+/* 🚀 Messages Page Topbar Mode */
+body.messages-mode .topbar-logo {
+    font-family: 'Inter', sans-serif !important;
+    font-size: 26px !important;
+    font-weight: 800 !important;
+    background: none !important;
+    -webkit-text-fill-color: var(--text) !important;
+    color: var(--text) !important;
+    letter-spacing: -0.5px !important;
+}
+
+body.messages-mode .topbar-btn[onclick*="notifications"] {
+    display: none !important;
 }
 </style>
 
@@ -5066,12 +5077,11 @@ function closeMainSettingsScreen() {
 }
 
 // ===== NAVIGATION =====
-// ===== NAVIGATION =====
 function showPage(page) {
-    // 🚀 স্মার্ট রিফ্রেশ লজিক: আগে থেকেই ফিড পেজে থাকলে এবং আবার হোম বাটনে ক্লিক করলে ফিড রিফ্রেশ হবে!
+    // 🚀 স্মার্ট রিফ্রেশ লজিক
     if (page === 'feed' && document.getElementById('page-feed').classList.contains('active')) {
-        refreshFeed(); // নতুন পোস্ট লোড করবে
-        window.scrollTo({top: 0, behavior: 'smooth'}); // একদম ওপরে নিয়ে যাবে
+        refreshFeed(); 
+        window.scrollTo({top: 0, behavior: 'smooth'}); 
         return; 
     }
 
@@ -5084,12 +5094,22 @@ function showPage(page) {
     const nEl = document.getElementById('nav-' + page);
     if(nEl) nEl.classList.add('active');
 
+    // 🚀 Topbar Dynamic Logic (লোগো ও নোটিফিকেশন হাইড/শো করার ম্যাজিক)
+    const topbarLogo = document.querySelector('.topbar-logo');
+    if (page === 'messages') {
+        document.body.classList.add('messages-mode');
+        if(topbarLogo) topbarLogo.textContent = 'Chats';
+    } else {
+        document.body.classList.remove('messages-mode');
+        if(topbarLogo) topbarLogo.textContent = '✦ GoChat';
+    }
+
     // সেটিংস আইকন হ্যান্ডেল করার লজিক
     const settingsIcon = document.getElementById('topbar-settings-btn');
     if (page === 'profile') {
-        settingsIcon.style.display = 'flex'; // প্রোফাইল পেজে আইকন দেখাবে
+        settingsIcon.style.display = 'flex'; 
     } else {
-        settingsIcon.style.display = 'none'; // অন্য পেজে হাইড হয়ে যাবে
+        settingsIcon.style.display = 'none'; 
     }
 
     if(page === 'messages') loadMessages();
@@ -7751,7 +7771,7 @@ function loadFeed() {
             postsData.push({ id: d.id, ...d.data() });
         });
 
-        // ১. মিউটেড ইউজারদের পোস্ট হাইড করার লজিক (সবার আগে)
+        // ১. মিউটেড ইউজারদের পোস্ট হাইড করার লজিক
         const mutedList = currentUserData.mutedFeedUsers || [];
         postsData = postsData.filter(p => !mutedList.includes(p.uid));
 
@@ -7762,39 +7782,82 @@ function loadFeed() {
 
         if (postsData.length === 0) {
             feedList.innerHTML = '<div class="empty-feed"><span class="material-symbols-outlined">inbox</span><br>No posts yet in this feed</div>';
-            document.getElementById('load-more-btn').style.display = 'none';
+            const loadMoreBtn = document.getElementById('load-more-btn');
+            if(loadMoreBtn) loadMoreBtn.style.display = 'none';
             return;
         }
 
-        // 🚀 FIX: স্ক্রোল জাম্প বন্ধ করার ম্যাজিক ট্রিক
-        const currentScrollPosition = window.scrollY; // বর্তমান স্ক্রোল পজিশন সেভ করা
-        if (currentScrollPosition > 0) {
-            feedList.style.minHeight = feedList.offsetHeight + 'px'; // কন্টেইনারের হাইট সাময়িকভাবে লক করা
+        // 🚀 SMART RENDER: হোয়াইট স্ক্রিন ও স্ক্রোল জাম্প ফিক্স
+        const isGrid = currentUserData && currentUserData.feedViewMode === 'grid';
+        let container = isGrid ? document.querySelector('.grid-feed-container') : feedList;
+        
+        // ভিউ মোড পাল্টানোর সময় (List <-> Grid) শুধু একবার ক্লিয়ার করবে
+        if (isGrid && !document.querySelector('.grid-feed-container')) {
+            feedList.innerHTML = '<div class="grid-feed-container"></div>';
+            container = feedList.querySelector('.grid-feed-container');
+        } else if (!isGrid && document.querySelector('.grid-feed-container')) {
+            feedList.innerHTML = '';
+            container = feedList;
         }
 
-        // ফিড রেন্ডার করা (List vs Grid চেকিং)
-if (currentUserData && currentUserData.feedViewMode === 'grid') {
-    feedList.innerHTML = '<div class="grid-feed-container">' + postsData.map(p => buildGridPostCardHTML(p)).join('') + '</div>';
-} else {
-    feedList.innerHTML = postsData.map(p => buildPostCardHTML(p)).join('');
-}
+        // বিদ্যমান পোস্ট ট্র্যাক করা
+        const fetchedPostIds = postsData.map(p => p.id);
 
-        // রেন্ডার হওয়ার সাথে সাথে আপনাকে আগের পজিশনেই আটকে রাখা
-        if (currentScrollPosition > 0) {
-            window.scrollTo(0, currentScrollPosition);
-        }
+        // ডাটাবেস থেকে ডিলিট হওয়া পোস্ট রিমুভ করা
+        Array.from(container.children).forEach(child => {
+            const childId = child.getAttribute('data-post-id');
+            if (childId && !fetchedPostIds.includes(childId)) {
+                child.remove();
+            }
+        });
 
-        // ছবিগুলো লোড হওয়ার জন্য ১.৫ সেকেন্ড পর হাইট আনলক করে দেওয়া
-        setTimeout(() => {
-            feedList.style.minHeight = 'auto';
-        }, 1500);
-        // ----------------------------------------
+        // নতুন পোস্ট অ্যাড করা এবং পুরনোগুলোর লাইক রিয়েল-টাইমে আপডেট করা
+        postsData.forEach(p => {
+            const existingCard = document.querySelector(`[data-post-id="${p.id}"]`);
+            
+            if (existingCard) {
+                // পোস্ট আগে থেকেই স্ক্রিনে থাকলে শুধু লাইক/কমেন্ট আপডেট হবে (ছবি রিলোড হয়ে সাদা হবে না!)
+                if (!isGrid) {
+                    const likeCountEl = existingCard.querySelector('.post-action-btn:nth-child(1) span');
+                    const commentCountEl = existingCard.querySelector('.post-action-btn:nth-child(2) span');
+                    const likeIcon = existingCard.querySelector('.post-action-btn:nth-child(1) i');
+                    const likeBtn = existingCard.querySelector('.post-action-btn:nth-child(1)');
+                    
+                    if (likeCountEl) likeCountEl.textContent = p.likes || 0;
+                    if (commentCountEl) commentCountEl.textContent = p.comments ? p.comments.length : 0;
+                    
+                    if (p.likedBy && p.likedBy.includes(currentUser?.uid)) {
+                        likeBtn.classList.add('liked');
+                        likeIcon.className = 'ph-fill ph-heart';
+                    } else {
+                        likeBtn.classList.remove('liked');
+                        likeIcon.className = 'ph-bold ph-heart';
+                    }
+                } else {
+                    // Grid view update
+                    const likeCountEl = existingCard.querySelector('.grid-post-overlay > div:nth-child(2)');
+                    if(likeCountEl) {
+                        likeCountEl.innerHTML = `<i class="${p.likedBy && p.likedBy.includes(currentUser?.uid) ? 'ph-fill' : 'ph-bold'} ph-heart" style="font-size:15px; ${p.likedBy && p.likedBy.includes(currentUser?.uid) ? 'color:var(--danger);' : ''}"></i> ${p.likes || 0}`;
+                    }
+                }
+            } else {
+                // একদম নতুন পোস্ট হলে HTML তৈরি করে সুন্দর করে নিচে বসিয়ে দেবে
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = isGrid ? buildGridPostCardHTML(p) : buildPostCardHTML(p);
+                const newElement = tempDiv.firstElementChild;
+                newElement.setAttribute('data-post-id', p.id); // ট্র্যাকিংয়ের জন্য ID বসানো
+                container.appendChild(newElement);
+            }
+        });
 
+        // লোড মোর বাটন লজিক
         const loadMoreBtn = document.getElementById('load-more-btn');
-        if (postsData.length >= postLimit) {
-            loadMoreBtn.style.display = 'block';
-        } else {
-            loadMoreBtn.style.display = 'none';
+        if (loadMoreBtn) {
+            if (postsData.length >= postLimit) {
+                loadMoreBtn.style.display = 'block';
+            } else {
+                loadMoreBtn.style.display = 'none';
+            }
         }
     });
 }
