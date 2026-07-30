@@ -3829,6 +3829,37 @@ body.notifications-mode #page-notifications > div:first-child {
 [data-theme="dark"] #auth-screen, .dark #auth-screen{
   background:radial-gradient(120% 80% at 50% -10%, #1a1825 0%, #14121d 50%, #0e0c15 100%);
 }
+
+/* =========================================
+   🌟 ADVANCED POST REACTION SYSTEM CSS
+========================================= */
+.post-reaction-picker {
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 30px;
+    padding: 8px 14px;
+    display: none;
+    gap: 12px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    z-index: 1000;
+    transform-origin: bottom left;
+    white-space: nowrap;
+}
+.post-reaction-picker.show {
+    display: flex;
+    animation: emojiPopUp 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+.post-reaction-emoji {
+    cursor: pointer;
+    font-size: 26px;
+    transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+.post-reaction-emoji:hover {
+    transform: scale(1.4) translateY(-5px);
+}
 </style>
 
 <style>
@@ -6416,7 +6447,7 @@ if(doc.exists){
 const p=doc.data();
 const likedBy=p.likedBy||[];
 if(!likedBy.includes(currentUser.uid)){
-toggleLike(pid);
+togglePostReaction(pid, '❤️');
 }
 }
 });
@@ -8481,9 +8512,19 @@ const pid=p.id;
 const uniqueDropId = pid + '_' + Math.random().toString(36).substr(2, 5);
 const av=p.avatar?`<img src="${p.avatar}">`:avatarInitial(p.name||'?');
 const vBadge=getVerifiedBadge(p.email, p.isVerified);
-const isLiked=p.likedBy&&p.likedBy.includes(currentUser?.uid);
-const likeColor=isLiked?'var(--danger)':'var(--text-secondary)';
-const fillProp=isLiked?'1':'0';
+const userReaction = p.userReactions && currentUser ? p.userReactions[currentUser.uid] : null;
+const isLiked = p.likedBy && p.likedBy.includes(currentUser?.uid);
+
+let likeBtnInner = `<i class="ph-bold ph-heart" style="font-size:20px;"></i> <span>${p.likes || 0}</span>`;
+let likeBtnClass = 'post-action-btn';
+
+if (userReaction && userReaction !== '❤️') {
+    likeBtnInner = `<span style="font-size:20px; margin-right:4px;">${userReaction}</span> <span>${p.likes || 0}</span>`;
+    likeBtnClass = 'post-action-btn liked';
+} else if (isLiked || userReaction === '❤️') {
+    likeBtnInner = `<i class="ph-fill ph-heart" style="font-size:20px;"></i> <span>${p.likes || 0}</span>`;
+    likeBtnClass = 'post-action-btn liked';
+}
 const commentCount=p.comments?p.comments.length:0;
 const safeName=escapeHTML(p.name||'User');
 const safeTitle=escapeHTML(p.title||'');
@@ -8619,9 +8660,15 @@ ${p.title ? (() => {
 ${mediaHtml}
 <div class="post-actions">
 <!-- 🚀 বাটনগুলোতে event.stopPropagation() দেওয়া হলো -->
-<button class="post-action-btn ${isLiked ? 'liked' : ''}" onclick="event.stopPropagation(); toggleLike('${pid}')">
-<i class="${isLiked ? 'ph-fill' : 'ph-bold'} ph-heart" style="font-size:24px;"></i>
-<span style="font-size:14px;">${p.likes || 0}</span>
+<button class="${likeBtnClass}" style="flex:1;"
+    ontouchstart="handlePostLikeTouchStart(event, '${pid}')" 
+    ontouchend="handlePostLikeTouchEnd(event, '${pid}')" 
+    onmousedown="handlePostLikeTouchStart(event, '${pid}')" 
+    onmouseup="handlePostLikeTouchEnd(event, '${pid}')"
+    onmouseleave="handlePostLikeTouchMove(event)"
+    ontouchmove="handlePostLikeTouchMove(event)"
+    oncontextmenu="event.preventDefault(); return false;">
+    ${likeBtnInner}
 </button>
 
 <button class="post-action-btn" onclick="event.stopPropagation(); openCommentPanel('${pid}')">
@@ -13663,6 +13710,113 @@ function enhanceNotificationsV4(){
     }
   });
 })();
+// ==========================================
+// 🌟 ADVANCED POST REACTION SYSTEM JS
+// ==========================================
+let postReactionTimer = null;
+let isLongPressFired = false;
+
+function handlePostLikeTouchStart(event, pid) {
+    isLongPressFired = false;
+    postReactionTimer = setTimeout(() => {
+        isLongPressFired = true;
+        showPostReactionPicker(event, pid);
+    }, 400); // ৪০০ মিলি-সেকেন্ড হোল্ড করলে ইমোজি পপআপ আসবে
+}
+
+function handlePostLikeTouchEnd(event, pid) {
+    if (postReactionTimer) {
+        clearTimeout(postReactionTimer);
+        postReactionTimer = null;
+    }
+    if (!isLongPressFired) {
+        // যদি হোল্ড না করে শুধু ট্যাপ করে, তবে ডিফল্ট লাইক (❤️) হবে
+        togglePostReaction(pid, '❤️');
+    }
+    event.preventDefault(); 
+}
+
+function handlePostLikeTouchMove(event) {
+    if (postReactionTimer) {
+        clearTimeout(postReactionTimer);
+        postReactionTimer = null;
+    }
+}
+
+function showPostReactionPicker(event, pid) {
+    event.preventDefault();
+    event.stopPropagation();
+    
+    const existing = document.querySelector('.post-reaction-picker.show');
+    if (existing) existing.remove();
+    
+    const btn = event.currentTarget;
+    const picker = document.createElement('div');
+    picker.className = 'post-reaction-picker show';
+    
+    // আপনার দেওয়া ৫টি স্পেশাল ইমোজি
+    picker.innerHTML = `
+        <span class="post-reaction-emoji" onclick="event.stopPropagation(); togglePostReaction('${pid}','🥰')">🥰</span>
+        <span class="post-reaction-emoji" onclick="event.stopPropagation(); togglePostReaction('${pid}','😂')">😂</span>
+        <span class="post-reaction-emoji" onclick="event.stopPropagation(); togglePostReaction('${pid}','😥')">😥</span>
+        <span class="post-reaction-emoji" onclick="event.stopPropagation(); togglePostReaction('${pid}','😯')">😯</span>
+        <span class="post-reaction-emoji" onclick="event.stopPropagation(); togglePostReaction('${pid}','😡')">😡</span>
+    `;
+    
+    btn.parentElement.appendChild(picker);
+    
+    // বাইরে ক্লিক করলে পপআপটি বন্ধ হয়ে যাবে
+    setTimeout(() => {
+        document.addEventListener('click', function closePicker() {
+            if(picker) picker.remove();
+            document.removeEventListener('click', closePicker);
+        }, { once: true });
+    }, 100);
+}
+
+async function togglePostReaction(pid, emoji) {
+    if (!currentUser || !checkRateLimit()) return;
+    
+    const picker = document.querySelector('.post-reaction-picker.show');
+    if (picker) picker.remove();
+
+    const ref = db.collection('posts').doc(pid);
+    const doc = await ref.get();
+    if (!doc.exists) return;
+    
+    const p = doc.data();
+    let likedBy = p.likedBy || [];
+    let likes = p.likes || 0;
+    let userReactions = p.userReactions || {}; // নতুন রিয়েকশন অবজেক্ট
+    
+    // রিয়েকশন রিমুভ করার লজিক (একই ইমোজিতে দ্বিতীয়বার ক্লিক করলে)
+    if (userReactions[currentUser.uid] === emoji || (emoji === '❤️' && likedBy.includes(currentUser.uid) && !userReactions[currentUser.uid])) {
+        delete userReactions[currentUser.uid];
+        likedBy = likedBy.filter(id => id !== currentUser.uid);
+        likes = Math.max(0, likes - 1);
+    } else {
+        // নতুন রিয়েকশন অ্যাড বা আপডেট করার লজিক
+        if (!likedBy.includes(currentUser.uid)) {
+            likedBy.push(currentUser.uid);
+            likes++;
+        }
+        userReactions[currentUser.uid] = emoji;
+        
+        if (p.uid !== currentUser.uid) {
+            db.collection('notifications').add({
+                toUid: p.uid, 
+                fromUid: currentUser.uid,
+                fromName: currentUserData.name,
+                type: 'like', 
+                postId: pid, 
+                read: false,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            awardPoints(p.uid, 5);
+        }
+    }
+    await ref.update({ likes, likedBy, userReactions });
+}
 </script>
 </body>
 </html>
