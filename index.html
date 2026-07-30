@@ -3616,6 +3616,217 @@ body.notifications-mode #page-notifications > div:first-child {
 @keyframes nf4Pop{ from{ transform:scale(0);} to{ transform:scale(1);} }
 @keyframes nf4Shimmer{ 0%{ left:-60%;} 55%,100%{ left:135%;} }
 @keyframes nf4Float{ 0%,100%{ transform:translateY(0);} 50%{ transform:translateY(-7px);} }
+
+/* ═══════════════════════════════════════════════════════
+   🎨 NEW DESIGN  ·  login-redesign  ·  2026-07-30
+   লগইন/অথ পোর্টাল রিডিজাইন  |  লজিক/onclick ১০০% অক্ষত
+   flat orange circles → living ambient orbs + mesh + grain
+   display: Fraunces  ·  body: Plus Jakarta Sans (JS-এ load)
+   খুঁজতে:  Ctrl+F → "login-redesign"
+   ═══════════════════════════════════════════════════════ */
+
+/* ---------- ফন্ট ভেরিয়েবল (JS link inject করে) ---------- */
+:root{
+  --lx-display:'Fraunces', 'Georgia', serif;
+  --lx-body:'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+}
+
+/* ---------- পুরো অথ স্ক্রিন: layered ambient ---------- */
+#auth-screen{
+  position:relative; overflow:hidden;
+  font-family:var(--lx-body);
+  background:
+    radial-gradient(120% 80% at 50% -10%, #ffffff 0%, #fbfaff 45%, #f6f4fb 100%);
+}
+/* animated gradient mesh (flat blob নয় — ঘূর্ণায়মান soft wash) */
+#auth-screen::before{
+  content:''; position:fixed; inset:-30%; z-index:0; pointer-events:none;
+  background:
+    conic-gradient(from 0deg at 30% 25%,
+      rgba(255,138,101,.30), rgba(253,185,49,.22),
+      rgba(167,139,250,.26), rgba(236,72,153,.18),
+      rgba(255,138,101,.30));
+  -webkit-filter:blur(70px) saturate(1.1); filter:blur(70px) saturate(1.1);
+  opacity:.55; animation:lxMeshSpin 26s linear infinite;
+}
+/* fine grain texture (flat feel দূর করে) */
+#auth-screen::after{
+  content:''; position:fixed; inset:0; z-index:0; pointer-events:none; opacity:.045; mix-blend-mode:multiply;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+#auth-screen > *{ position:relative; z-index:2; }
+
+/* ---------- existing সমতল কমলা বৃত্ত → living orb ---------- */
+#auth-screen .lx-orb{
+  position:fixed !important; z-index:0 !important; pointer-events:none !important;
+  -webkit-filter:blur(46px) saturate(1.25); filter:blur(46px) saturate(1.25);
+  opacity:.5 !important; border-radius:50% !important;
+  background:radial-gradient(circle at 35% 30%, rgba(255,167,120,.95), rgba(253,140,90,.55) 60%, transparent 75%) !important;
+  animation:lxOrbFloat 14s ease-in-out infinite !important;
+}
+#auth-screen .lx-orb:nth-of-type(2){ animation-duration:18s; animation-delay:-5s; opacity:.42 !important; }
+
+/* ভাসমান কণা (JS inject) */
+.lx-particles{ position:fixed; inset:0; z-index:1; pointer-events:none; overflow:hidden; }
+.lx-particles i{
+  position:absolute; bottom:-10px; border-radius:50%;
+  background:radial-gradient(circle, rgba(253,185,49,.7), transparent 70%);
+  animation:lxFloat linear infinite; opacity:0;
+}
+.lx-particles i:nth-child(3n){ background:radial-gradient(circle, rgba(167,139,250,.6), transparent 70%); }
+.lx-particles i:nth-child(4n){ background:radial-gradient(circle, rgba(255,138,101,.6), transparent 70%); }
+
+/* ---------- কন্টেন্ট কন্টেইনার ---------- */
+#login-form, #welcome-step, #registration-steps{
+  position:relative; z-index:2;
+  max-width:440px; margin:0 auto; padding:8vh 26px 60px !important;
+  display:flex; flex-direction:column;
+}
+
+/* ---------- টাইপোগ্রাফি ---------- */
+.auth-title-welcome{
+  font-family:var(--lx-body) !important; font-size:13px !important; font-weight:700 !important;
+  letter-spacing:3px !important; text-transform:uppercase !important;
+  color:var(--text-muted, #8a86a0) !important; margin-bottom:10px !important;
+  display:flex; align-items:center; gap:8px;
+}
+.auth-title-welcome::before{
+  content:''; width:26px; height:2px; border-radius:2px;
+  background:linear-gradient(90deg, var(--accent, #ff7a59), transparent);
+}
+.auth-logo{
+  font-family:var(--lx-display) !important; font-size:54px !important; line-height:.95 !important;
+  font-weight:600 !important; letter-spacing:-1px !important; margin:2px 0 6px !important;
+  font-optical-sizing:auto;
+  display:flex; align-items:center; gap:6px;
+}
+.auth-logo .lx-spark{ display:inline-block; animation:lxSpark 2.6s ease-in-out infinite; transform-origin:center; }
+.auth-sub{
+  font-family:var(--lx-body) !important; font-size:15px !important; color:var(--text-secondary, #6b6783) !important;
+  margin-bottom:34px !important; font-weight:500 !important; line-height:1.5 !important;
+}
+
+/* ---------- ইনপুট গ্রুপ ---------- */
+.auth-input-group{ position:relative !important; margin-bottom:18px !important; }
+.auth-input-group > label{
+  display:block !important; font-size:11px !important; font-weight:800 !important; letter-spacing:1.4px !important;
+  text-transform:uppercase !important; color:var(--text-muted, #928ea8) !important; margin-bottom:8px !important; margin-left:2px;
+}
+.auth-input-group input{
+  width:100% !important; box-sizing:border-box !important;
+  padding:16px 16px 16px 50px !important; border-radius:16px !important;
+  background:var(--surface, #ffffff) !important;
+  border:1.5px solid var(--border, #e7e4f0) !important;
+  color:var(--text, #1c1a2e) !important; font-size:15.5px !important; font-family:var(--lx-body) !important; font-weight:500;
+  outline:none !important; transition:border-color .25s, box-shadow .25s, background .25s, transform .15s;
+  box-shadow:0 4px 14px -10px rgba(28,26,46,.25);
+}
+.auth-input-group input::placeholder{ color:#b3afc4 !important; font-weight:400; }
+.auth-input-group input:focus{
+  border-color:var(--accent, #ff7a59) !important;
+  box-shadow:0 0 0 4px color-mix(in srgb, var(--accent, #ff7a59) 16%, transparent), 0 8px 22px -12px rgba(255,122,89,.4) !important;
+  transform:translateY(-1px);
+}
+/* ইনপুট আইকন (JS inject) */
+.lx-field-ico{
+  position:absolute; left:16px; top:38px; color:var(--text-muted, #9b97b0);
+  font-size:20px; pointer-events:none; transition:color .25s;
+}
+.auth-input-group:focus-within .lx-field-ico{ color:var(--accent, #ff7a59); }
+/* eye toggle polish */
+#toggle-eye{
+  top:38px !important; right:14px !important; width:34px; height:34px; border-radius:50%;
+  display:flex !important; align-items:center; justify-content:center;
+  transition:background .2s, color .2s, transform .2s;
+}
+#toggle-eye:hover{ background:var(--surface-2, #f1eef8); color:var(--accent, #ff7a59) !important; }
+#toggle-eye:active{ transform:scale(.86); }
+
+/* ---------- Log In বাটন ---------- */
+.btn-auth-primary{
+  position:relative !important; overflow:hidden !important; width:100% !important;
+  margin-top:8px !important; padding:17px !important; border:none !important; border-radius:999px !important;
+  background:linear-gradient(110deg, #ff7a59, #ff9d5c, #fdb931, #ff9d5c, #ff7a59) !important;
+  background-size:220% 100% !important;
+  color:#fff !important; font-family:var(--lx-body) !important; font-size:16px !important; font-weight:800 !important; letter-spacing:.3px;
+  cursor:pointer; box-shadow:0 14px 30px -10px rgba(255,122,89,.6);
+  transition:transform .2s cubic-bezier(.34,1.56,.64,1), box-shadow .3s, background-position .6s ease;
+  animation:lxGradShift 6s ease infinite;
+}
+.btn-auth-primary:hover{ transform:translateY(-2px); box-shadow:0 20px 38px -12px rgba(255,122,89,.7); background-position:100% 0; }
+.btn-auth-primary:active{ transform:scale(.97); }
+.btn-auth-primary::after{
+  content:''; position:absolute; top:0; left:-60%; width:45%; height:100%;
+  background:linear-gradient(120deg, transparent, rgba(255,255,255,.5), transparent);
+  transform:skewX(-20deg); animation:lxShimmer 3.4s ease-in-out infinite;
+}
+
+/* ---------- divider (JS inject) ---------- */
+.lx-divider{
+  display:flex; align-items:center; gap:14px; margin:24px 0 18px; color:var(--text-muted, #9b97b0);
+  font-size:12px; font-weight:700; letter-spacing:1px; text-transform:uppercase;
+}
+.lx-divider::before, .lx-divider::after{ content:''; flex:1; height:1px; background:linear-gradient(90deg, transparent, var(--border, #e7e4f0), transparent); }
+
+/* ---------- Google বাটন (JS class) ---------- */
+.lx-google{
+  position:relative; width:100%; display:flex !important; align-items:center; justify-content:center; gap:12px;
+  padding:15px !important; border-radius:999px !important; cursor:pointer;
+  background:var(--surface, #fff) !important; border:1.5px solid var(--border, #e7e4f0) !important;
+  color:var(--text, #1c1a2e) !important; font-family:var(--lx-body) !important; font-size:15px !important; font-weight:700 !important;
+  box-shadow:0 6px 18px -12px rgba(28,26,46,.35);
+  transition:transform .2s, box-shadow .25s, border-color .25s, background .25s;
+}
+.lx-google:hover{ transform:translateY(-2px); border-color:#d7d3e6 !important; box-shadow:0 14px 28px -14px rgba(28,26,46,.4); }
+.lx-google:active{ transform:scale(.97); }
+.lx-google img, .lx-google svg{ width:20px; height:20px; }
+
+/* ---------- Register / foot link ---------- */
+.lx-foot{ text-align:center; margin:22px 0 4px !important; font-size:14.5px !important; color:var(--text-secondary, #6b6783) !important; font-weight:500; }
+.lx-register{
+  position:relative; color:var(--accent, #ff7a59) !important; font-weight:800 !important; cursor:pointer; text-decoration:none;
+  transition:color .2s;
+}
+.lx-register::after{
+  content:''; position:absolute; left:0; bottom:-2px; width:0; height:2px; border-radius:2px;
+  background:var(--accent, #ff7a59); transition:width .3s ease;
+}
+.lx-register:hover::after{ width:100%; }
+
+/* ---------- trust line (JS inject) ---------- */
+.lx-trust{
+  display:flex; align-items:center; justify-content:center; gap:7px; margin-top:26px;
+  font-size:12px; color:var(--text-muted, #9b97b0); font-weight:600;
+}
+.lx-trust .material-symbols-outlined{ font-size:15px; color:#22c55e; }
+
+/* ---------- auth message toast-look ---------- */
+.auth-msg{ border-radius:14px !important; font-family:var(--lx-body) !important; }
+
+/* ---------- staggered entrance ---------- */
+.auth-title-welcome{ animation:lxRise .6s cubic-bezier(.22,1,.36,1) .05s backwards; }
+.auth-logo{ animation:lxRise .6s cubic-bezier(.22,1,.36,1) .13s backwards; }
+.auth-sub{ animation:lxRise .6s cubic-bezier(.22,1,.36,1) .21s backwards; }
+.auth-input-group:nth-of-type(1){ animation:lxRise .6s cubic-bezier(.22,1,.36,1) .29s backwards; }
+.auth-input-group:nth-of-type(2){ animation:lxRise .6s cubic-bezier(.22,1,.36,1) .37s backwards; }
+.btn-auth-primary{ animation:lxRise .6s cubic-bezier(.22,1,.36,1) .45s backwards, lxGradShift 6s ease infinite; }
+.lx-foot{ animation:lxRise .6s cubic-bezier(.22,1,.36,1) .53s backwards; }
+.lx-divider{ animation:lxRise .6s cubic-bezier(.22,1,.36,1) .58s backwards; }
+.lx-google{ animation:lxRise .6s cubic-bezier(.22,1,.36,1) .63s backwards; }
+.lx-trust{ animation:lxRise .6s cubic-bezier(.22,1,.36,1) .7s backwards; }
+
+@keyframes lxRise{ from{ opacity:0; transform:translateY(18px);} to{ opacity:1; transform:translateY(0);} }
+@keyframes lxMeshSpin{ to{ transform:rotate(360deg);} }
+@keyframes lxOrbFloat{ 0%,100%{ transform:translate(0,0) scale(1);} 50%{ transform:translate(18px,-22px) scale(1.08);} }
+@keyframes lxFloat{ 0%{ transform:translateY(0) scale(.5); opacity:0;} 12%{ opacity:.7;} 88%{ opacity:.5;} 100%{ transform:translateY(-94vh) scale(1.1); opacity:0;} }
+@keyframes lxShimmer{ 0%{ left:-60%;} 55%,100%{ left:135%;} }
+@keyframes lxGradShift{ 0%,100%{ background-position:0% 50%;} 50%{ background-position:100% 50%;} }
+@keyframes lxSpark{ 0%,100%{ transform:scale(1) rotate(0);} 50%{ transform:scale(1.18) rotate(12deg);} }
+
+/* ডার্ক মোড সামঞ্জস্য */
+[data-theme="dark"] #auth-screen, .dark #auth-screen{
+  background:radial-gradient(120% 80% at 50% -10%, #1a1825 0%, #14121d 50%, #0e0c15 100%);
+}
 </style>
 
 <style>
@@ -13312,6 +13523,114 @@ function enhanceNotificationsV4(){
     }
   };
   setTimeout(watch, 1000); setTimeout(watch, 2800);
+})();
+// ═══════════════════════════════════════════════════════
+// 🎨 NEW DESIGN  ·  login-redesign  ·  2026-07-30
+// font load + living orbs + particles + icons + divider
+// loginWithEmail / togglePassword / showRegister / Google অক্ষত
+// খুঁজতে:  Ctrl+F → "login-redesign"
+// ═══════════════════════════════════════════════════════
+(function lxLoginRedesign(){
+
+  // ১. ফন্ট লোড (distinctive display + readable body)
+  if(!document.getElementById('lx-fonts')){
+    const l = document.createElement('link');
+    l.id = 'lx-fonts'; l.rel = 'stylesheet';
+    l.href = 'https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap';
+    document.head.appendChild(l);
+  }
+
+  const run = () => {
+    const screen = document.getElementById('auth-screen');
+    if(!screen || screen.dataset.lxDone) return;
+    screen.dataset.lxDone = '1';
+
+    // ২. সমতল কমলা বৃত্তগুলোকে living orb বানানো (heuristic, layout ছোঁয়া না)
+    [...screen.children].forEach(el => {
+      if(el.tagName !== 'DIV') return;
+      const cs = getComputedStyle(el);
+      const txt = (el.textContent || '').trim();
+      const w = el.offsetWidth, h = el.offsetHeight;
+      const pos = cs.position;
+      const bg = (cs.backgroundImage + cs.backgroundColor).toLowerCase();
+      const looksLikeOrb = txt === '' && (pos === 'absolute' || pos === 'fixed') &&
+        Math.abs(w - h) < 60 && w > 80 &&
+        /(rgb\(2[0-5]\d,\s*1[0-5]\d|rgb\(25[0-5],\s*1[0-9]\d|coral|salmon|orange|255,\s*1[0-9]\d|253,\s*18|255,\s*122)/.test(bg + cs.background);
+      // fallback: empty positioned square-ish div with warm bg
+      const warm = /255,\s*(1[0-9]\d|2[0-4]\d)|253,\s*1[0-9]\d|252,\s*1[0-6]\d/.test(cs.backgroundColor);
+      if(looksLikeOrb || (txt === '' && (pos==='absolute'||pos==='fixed') && w>120 && warm)){
+        el.classList.add('lx-orb');
+      }
+    });
+
+    // ৩. ভাসমান কণা
+    if(!screen.querySelector('.lx-particles')){
+      const p = document.createElement('div'); p.className = 'lx-particles';
+      let h = '';
+      for(let i=0;i<16;i++){
+        const s = 3 + Math.random()*8;
+        h += `<i style="width:${s}px;height:${s}px;left:${Math.random()*100}%;animation-duration:${9+Math.random()*11}s;animation-delay:${Math.random()*9}s;"></i>`;
+      }
+      p.innerHTML = h; screen.insertBefore(p, screen.firstChild);
+    }
+
+    // ৪. লোগোর ✦/sparkle আলাদা করে অ্যানিমেশন
+    document.querySelectorAll('.auth-logo').forEach(logo => {
+      if(logo.dataset.lxSpark) return; logo.dataset.lxSpark = '1';
+      logo.innerHTML = logo.innerHTML.replace(/(✦|✧|★|sparkle)/i, '<span class="lx-spark">$1</span>');
+    });
+
+    // ৫. ইনপুটে আইকন (label পড়ে)
+    document.querySelectorAll('#login-form .auth-input-group, #registration-steps .auth-input-group').forEach(grp => {
+      if(grp.querySelector('.lx-field-ico')) return;
+      const lbl = (grp.querySelector('label')?.textContent || '').toLowerCase();
+      const inp = grp.querySelector('input'); if(!inp) return;
+      grp.style.position = 'relative';
+      const ico = document.createElement('span');
+      ico.className = 'material-symbols-outlined lx-field-ico';
+      ico.textContent = /pass/.test(lbl) ? 'lock' : (/email|mail/.test(lbl) ? 'mail' : 'person');
+      grp.insertBefore(ico, inp);
+    });
+
+    // ৬. Google বাটন চিহ্নিত + divider + trust line
+    const forms = [document.getElementById('login-form'), document.getElementById('registration-steps')].filter(Boolean);
+    forms.forEach(form => {
+      // google button
+      const gBtn = [...form.querySelectorAll('button,div,a')].find(b => /google/i.test(b.textContent||'') && !b.classList.contains('lx-google') && !b.classList.contains('btn-auth-primary'));
+      if(gBtn && !gBtn.classList.contains('lx-google')) gBtn.classList.add('lx-google');
+
+      // divider before google (একবার)
+      if(gBtn && !form.querySelector('.lx-divider')){
+        const d = document.createElement('div'); d.className = 'lx-divider'; d.textContent = 'or continue with';
+        gBtn.parentNode.insertBefore(d, gBtn);
+      }
+      // register link
+      const reg = [...form.querySelectorAll('a,span,button,div')].find(e => e.children.length===0 && /^\s*Register\s*$/i.test(e.textContent||''));
+      if(reg) reg.classList.add('lx-register');
+      const foot = reg ? reg.parentElement : null;
+      if(foot && !foot.classList.contains('lx-foot')) foot.classList.add('lx-foot');
+
+      // trust line (একবার, google-এর পর)
+      if(gBtn && !form.querySelector('.lx-trust')){
+        const t = document.createElement('div'); t.className = 'lx-trust';
+        t.innerHTML = '<span class="material-symbols-outlined">verified_user</span> Secured with encrypted sign-in';
+        gBtn.insertAdjacentElement('afterend', t);
+      }
+    });
+  };
+
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run); else run();
+  setTimeout(run, 400); setTimeout(run, 1200);
+
+  // welcome → login সুইচে আবার চালানো (font/icon নিশ্চিত করতে)
+  const reRun = () => { delete (document.getElementById('auth-screen')||{}).dataset?.lxDone; run(); };
+  ['goToLogin','showRegister','backToLogin'].forEach(fn => {
+    const o = window[fn];
+    if(typeof o === 'function' && !o.__lxWrapped){
+      window[fn] = function(...a){ const r = o.apply(this,a); setTimeout(run, 60); return r; };
+      window[fn].__lxWrapped = true;
+    }
+  });
 })();
 </script>
 </body>
