@@ -3390,20 +3390,34 @@ body:not(.light-mode) .grid-post-card { border: 1px solid rgba(255,255,255,0.05)
     font-size: 12px; font-weight: 700; margin-bottom: 6px; line-height: 1.4;
     display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; 
 }
-/* 🚀 Messages Page Topbar Mode */
-body.messages-mode .topbar-logo {
+/* 🚀 Topbar Mode for Chats & Notifications */
+body.messages-mode .topbar-logo,
+body.notifications-mode .topbar-logo {
     font-family: 'Inter', sans-serif !important;
     font-size: 26px !important;
-    font-weight: 800 !important;
+    font-weight: 900 !important;
     background: none !important;
     -webkit-text-fill-color: var(--text) !important;
     color: var(--text) !important;
     letter-spacing: -0.5px !important;
 }
 
-body.messages-mode .topbar-btn[onclick*="notifications"] {
+body.messages-mode .topbar-btn[onclick*="notifications"],
+body.notifications-mode .topbar-btn[onclick*="notifications"] {
     display: none !important;
 }
+
+/* পেজের ভেতরের ডুপ্লিকেট টাইটেলটি হাইড করার জন্য */
+body.notifications-mode #page-notifications .section-title,
+body.notifications-mode #page-notifications > div:first-child > div:first-child {
+    display: none !important;
+}
+body.notifications-mode #page-notifications > div:first-child {
+    justify-content: flex-end !important;
+    padding-top: 4px !important;
+    padding-bottom: 0px !important;
+}
+
 /* =========================================
    🌟 MODERN ACTIVITY / NOTIFICATIONS CSS 🌟
 ========================================= */
@@ -5280,12 +5294,16 @@ function showPage(page) {
 
     // 🚀 Topbar Dynamic Logic (লোগো ও নোটিফিকেশন হাইড/শো করার ম্যাজিক)
     const topbarLogo = document.querySelector('.topbar-logo');
+    document.body.classList.remove('messages-mode', 'notifications-mode'); // আগের মোডগুলো রিসেট
+
     if (page === 'messages') {
         document.body.classList.add('messages-mode');
         if(topbarLogo) topbarLogo.textContent = 'Chats';
+    } else if (page === 'notifications') {
+        document.body.classList.add('notifications-mode'); // নতুন নোটিফিকেশন মোড
+        if(topbarLogo) topbarLogo.textContent = 'Notifications'; // লোগোর জায়গায় নোটিফিকেশন
     } else {
-        document.body.classList.remove('messages-mode');
-        if(topbarLogo) topbarLogo.textContent = '✦ GoChat';
+        if(topbarLogo) topbarLogo.textContent = '✦ GoChat'; // অন্য পেজে আবার লোগো ফিরে আসবে
     }
 
     // সেটিংস আইকন হ্যান্ডেল করার লজিক
