@@ -460,10 +460,12 @@ body:not(.light-mode) .post-card {
 .post-img {
     width: 100%;
     max-height: 400px;
+    min-height: 250px; /* 🚀 জাম্প ফিক্স করার ম্যাজিক ট্রিক */
     object-fit: cover;
     border-radius: 18px;
     margin-top: 8px;
     margin-bottom: 18px;
+    background-color: var(--surface-2); /* ছবি লোড হওয়ার আগে সুন্দর ব্যাকগ্রাউন্ড থাকবে */
     box-shadow: 0 6px 20px rgba(0,0,0,0.08);
     border: 1px solid rgba(0,0,0,0.03);
 }
@@ -8000,11 +8002,12 @@ imgUrls.push(url);
 }
 
 // ==========================================
-// ✅ GIRD VIEW AND JUMP SCROLLING FIXED 
+// ✅ ULTIMATE GRID VIEW & JUMP SCROLLING FIXED 
 // ==========================================
 function loadFeed() {
     const feedList = document.getElementById('feed-list');
     if (!feedList) return;
+
     if (feedUnsub) feedUnsub();
 
     feedUnsub = db.collection('posts').orderBy('createdAt', 'desc').limit(postLimit).onSnapshot((snap) => {
@@ -8016,52 +8019,68 @@ function loadFeed() {
             postsData.push({ id: d.id, ...d.data() });
         });
 
-        // ১. মিউটেড ইউজারদের পোস্ট হাইড করার লজিক
         const mutedList = currentUserData?.mutedFeedUsers || [];
         postsData = postsData.filter(p => !mutedList.includes(p.uid));
 
-        // ২. ট্যাব অনুযায়ী ফিল্টার
         if (currentFeedTab === 'following') { 
             postsData = postsData.filter(p => currentUserData?.following?.includes(p.uid) || p.uid === currentUser?.uid);
         }
 
+        // 🚀 ফিক্স: একটি ডেডিকেটেড কন্টেইনার তৈরি করা যাতে পুরো ফিড ডিলিট না হয়
+        const isGrid = currentUserData && currentUserData.feedViewMode === 'grid';
+        let actualContainer = feedList.querySelector('#feed-actual-container');
+        
+        if (!actualContainer) {
+            feedList.innerHTML = `<div id="feed-actual-container" class="${isGrid ? 'grid-feed-container' : 'list-feed-container'}"></div>`;
+            actualContainer = feedList.querySelector('#feed-actual-container');
+        } else {
+            // যদি ইউজার মোড চেঞ্জ করে, শুধু তখনই পুরোটা ক্লিয়ার হবে
+            const currentlyGrid = actualContainer.classList.contains('grid-feed-container');
+            if (isGrid && !currentlyGrid) {
+                actualContainer.className = 'grid-feed-container';
+                actualContainer.innerHTML = ''; 
+            } else if (!isGrid && currentlyGrid) {
+                actualContainer.className = 'list-feed-container';
+                actualContainer.innerHTML = ''; 
+            }
+        }
+
+        // খালি ফিড হ্যান্ডেলিং (আগে থেকেই কার্ড থাকলে ডিলিট করবে না)
         if (postsData.length === 0) {
-            feedList.innerHTML = '<div class="empty-feed"><span class="material-symbols-outlined">inbox</span><br>No posts yet in this feed</div>';
+            if (actualContainer.children.length === 0) {
+                actualContainer.innerHTML = '<div class="empty-feed"><span class="material-symbols-outlined">inbox</span><br>No posts yet in this feed</div>';
+            }
             const loadMoreBtn = document.getElementById('load-more-btn');
-            if(loadMoreBtn) loadMoreBtn.style.display = 'none';
+            if (loadMoreBtn) loadMoreBtn.style.display = 'none';
             return;
         }
 
-        // 🚀 SMART RENDER: হোয়াইট স্ক্রিন ও স্ক্রোল জাম্প ফিক্স + Grid View সাপোর্ট
-        const isGrid = currentUserData && currentUserData.feedViewMode === 'grid';
-        let container = isGrid ? document.querySelector('.grid-feed-container') : feedList;
-        
-        // ভিউ মোড পাল্টানোর সময় (List <-> Grid) শুধু একবার ক্লিয়ার করবে
-        if (isGrid && !document.querySelector('.grid-feed-container')) {
-            feedList.innerHTML = '<div class="grid-feed-container"></div>';
-            container = feedList.querySelector('.grid-feed-container');
-        } else if (!isGrid && document.querySelector('.grid-feed-container')) {
-            feedList.innerHTML = '';
-            container = feedList;
-        }
+        // যদি 'empty-feed' মেসেজ থাকে, তা মুছে ফেলা
+        const emptyMsg = actualContainer.querySelector('.empty-feed');
+        if (emptyMsg) emptyMsg.remove();
 
-        // বিদ্যমান পোস্ট ট্র্যাক করা
         const fetchedPostIds = postsData.map(p => p.id);
 
-        // ডাটাবেস থেকে ডিলিট হওয়া পোস্ট রিমুভ করা
-        Array.from(container.children).forEach(child => {
+        // ডিলিট হওয়া পোস্টগুলো রিমুভ করা
+        Array.from(actualContainer.children).forEach(child => {
             const childId = child.getAttribute('data-post-id');
             if (childId && !fetchedPostIds.includes(childId)) {
                 child.remove();
             }
         });
 
-        // নতুন পোস্ট অ্যাড করা এবং পুরনোগুলোর লাইক রিয়েল-টাইমে আপডেট করা
-        postsData.forEach(p => {
-            const existingCard = document.querySelector(`[data-post-id="${p.id}"]`);
+        // 🚀 মেইন ফিক্স: পোস্ট রেন্ডার এবং পজিশনিং
+        postsData.forEach((p, index) => {
+            let existingCard = actualContainer.querySelector(`[data-post-id="${p.id}"]`);
             
             if (existingCard) {
-                // পোস্ট আগে থেকেই স্ক্রিনে থাকলে শুধু লাইক/কমেন্ট আপডেট হবে (ছবি রিলোড হয়ে সাদা হবে না!)
+                // কার্ডটি যদি ভুল পজিশনে থাকে, তবে সেটিকে মুভ করে সঠিক পজিশনে আনা (রি-রেন্ডার ছাড়াই!)
+                const expectedSibling = actualContainer.children[index];
+                if (existingCard !== expectedSibling) {
+                    actualContainer.insertBefore(existingCard, expectedSibling);
+                }
+                
+                // শুধু লাইক এবং কমেন্ট আপডেট করা
                 if (!isGrid) {
                     const likeCountEl = existingCard.querySelector('.post-action-btn:nth-child(1) span');
                     const commentCountEl = existingCard.querySelector('.post-action-btn:nth-child(2) span');
@@ -8079,30 +8098,31 @@ function loadFeed() {
                         likeIcon.className = 'ph-bold ph-heart';
                     }
                 } else {
-                    // Grid view update
                     const likeCountEl = existingCard.querySelector('.grid-post-overlay > div:nth-child(2)');
                     if(likeCountEl) {
                         likeCountEl.innerHTML = `<i class="${p.likedBy && p.likedBy.includes(currentUser?.uid) ? 'ph-fill' : 'ph-bold'} ph-heart" style="font-size:15px; ${p.likedBy && p.likedBy.includes(currentUser?.uid) ? 'color:var(--danger);' : ''}"></i> ${p.likes || 0}`;
                     }
                 }
             } else {
-                // একদম নতুন পোস্ট হলে HTML তৈরি করে সুন্দর করে নিচে বসিয়ে দেবে
+                // একদম নতুন পোস্ট ক্রিয়েট করা
                 const tempDiv = document.createElement('div');
                 tempDiv.innerHTML = isGrid ? buildGridPostCardHTML(p) : buildPostCardHTML(p);
                 const newElement = tempDiv.firstElementChild;
-                newElement.setAttribute('data-post-id', p.id); // ট্র্যাকিংয়ের জন্য ID বসানো
-                container.appendChild(newElement);
+                newElement.setAttribute('data-post-id', p.id);
+                
+                const referenceNode = actualContainer.children[index];
+                if (referenceNode) {
+                    actualContainer.insertBefore(newElement, referenceNode);
+                } else {
+                    actualContainer.appendChild(newElement);
+                }
             }
         });
 
-        // লোড মোর বাটন লজিক
+        // লোড মোর বাটন
         const loadMoreBtn = document.getElementById('load-more-btn');
         if (loadMoreBtn) {
-            if (postsData.length >= postLimit) {
-                loadMoreBtn.style.display = 'block';
-            } else {
-                loadMoreBtn.style.display = 'none';
-            }
+            loadMoreBtn.style.display = postsData.length >= postLimit ? 'block' : 'none';
         }
     });
 }
