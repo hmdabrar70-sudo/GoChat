@@ -2291,12 +2291,6 @@ NESTED ACTIVITY CATEGORIES STYLES
     </div>
 </div>
 <div class="settings-card">
-<h4>Blocked Accounts</h4>
-<p>Manage the users you have blocked.</p>
-<div id="blocked-users-list" style="margin-top:10px; display:flex; flex-direction:column; gap:8px;">
-</div>
-</div>
-<div class="settings-card">
 <h4 style="color:var(--danger);">Danger Zone</h4>
 <p>Permanently delete your profile, posts, logs, data and security credentials from GoChat database.</p>
 <button class="btn-primary" style="background:var(--danger);margin-top:12px;border-radius:var(--radius-md);" onclick="handleDeleteAccount()">
@@ -2783,6 +2777,14 @@ NESTED ACTIVITY CATEGORIES STYLES
                     </div>
                     <i class="ph-bold ph-caret-right" style="color:var(--text-muted); font-size:16px;"></i>
                 </div>
+
+<div class="settings-list-item" onclick="openBlockedAccountsPage()">
+    <div style="display:flex; align-items:center; gap:16px;">
+        <i class="ph-bold ph-user-minus" style="font-size: 24px; color: var(--danger);"></i>
+        <span style="font-weight:600; font-size:15px;">Blocked Accounts</span>
+    </div>
+    <i class="ph-bold ph-caret-right" style="color:var(--text-muted); font-size:16px;"></i>
+</div>
 
                 <!-- 🚀 Archived Chats Moved to Settings -->
                 <div class="settings-list-item" onclick="closeMainSettingsScreen(); closeMainMenu(); showPage('messages'); document.getElementById('archived-chats').classList.add('show'); loadArchivedMessages();">
@@ -4619,6 +4621,35 @@ body.notifications-mode #page-notifications > div:first-child {
 
   </div>
 </div>
+
+<div id="blocked-accounts-screen" style="display:none; position:fixed; inset:0; background:var(--bg); z-index:10005; flex-direction:column; overflow-y:auto; animation:slideUp 0.3s ease;">
+    <div class="chat-topbar" style="position:sticky; top:0; z-index:100; display:flex; align-items:center; gap:12px;">
+        <div class="chat-back" onclick="closeBlockedAccountsPage()"><span class="material-symbols-outlined">arrow_back</span></div>
+        <div style="font-weight:800; font-size:18px;">Blocked Accounts</div>
+    </div>
+    
+    <div style="padding: 24px 20px;">
+        <p style="font-size:14px; color:var(--text-secondary); margin-bottom:20px;">Manage the users you have blocked. Blocked users cannot see your posts or send you messages.</p>
+        
+        <!-- আগের ফাংশন যাতে কাজ করে তাই সেইম আইডি রাখা হলো -->
+        <div id="blocked-users-list" style="display:flex; flex-direction:column; gap:8px;"></div>
+    </div>
+</div>
+
+<script>
+// Blocked Accounts পেজ ওপেন এবং ক্লোজ করার জাভাস্ক্রিপ্ট
+function openBlockedAccountsPage() {
+    document.getElementById('blocked-accounts-screen').style.display = 'flex';
+    // আপনার আগের ডাটা লোড করার ফাংশনটি কল করা হলো
+    if (typeof loadBlockedUsers === 'function') {
+        loadBlockedUsers(); 
+    }
+}
+
+function closeBlockedAccountsPage() {
+    document.getElementById('blocked-accounts-screen').style.display = 'none';
+}
+</script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
