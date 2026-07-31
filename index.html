@@ -5048,35 +5048,7 @@ function closeLoginSuccessModal() {
     if(successModal) successModal.classList.remove('open');
 }
 
-async function loginWithGoogle() {
-const provider = new firebase.auth.GoogleAuthProvider();
-try {
-const result = await auth.signInWithPopup(provider);
-const user = result.user;
-// Check Blacklist
-const banCheck = await db.collection('banned_emails').doc(user.email).get();
-if (banCheck.exists) {
-    await auth.signOut();
-    showToast("Access Denied: This account is permanently banned.");
-    return;
-}
-
-const doc = await db.collection('users').doc(user.uid).get();
-if (!doc.exists) {
-await db.collection('users').doc(user.uid).set({
-name: user.email.split('@')[0],
-email: user.email,
-avatar: '',
-bio: '', location: '', hometown: '', relationship: '', gender: '',
-followers: [], following: [], 
-blockedUsers: [], mutedChats: [], pinnedChats: [], archivedChats: [],
-online: true,
-points: 20,
-loginStreak: 1,
-lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
-createdAt: firebase.firestore.FieldValue.serverTimestamp()
-});
-}
+// --- পাসওয়ার্ড হাইড/শো করার ফাংশন ---
 function togglePasswordVisibility() {
     const passwordInput = document.getElementById('auth-password');
     const eyeIcon = event.target;
@@ -5090,12 +5062,56 @@ function togglePasswordVisibility() {
     }
 }
 
-showToast("Logged in successfully!");
-} catch (error) {
-console.error(error);
-showToast("Login failed!");
+// --- ১. গুগল লগইন ফাংশন (পপআপের বদলে রিডাইরেক্ট) ---
+function loginWithGoogle() {
+    const provider = new firebase.auth.GoogleAuthProvider();
+    auth.signInWithRedirect(provider);
 }
-}
+
+// --- ২. লগইন হয়ে ফিরে আসার পর ইউজারকে ডাটাবেসে সেভ করার লজিক ---
+auth.getRedirectResult().then(async (result) => {
+    if (result && result.user) {
+        const user = result.user;
+        
+        // Check Blacklist
+        const banCheck = await db.collection('banned_emails').doc(user.email).get();
+        if (banCheck.exists) {
+            await auth.signOut();
+            showToast("Access Denied: This account is permanently banned.");
+            return;
+        }
+
+        // Create user doc if not exists
+        const doc = await db.collection('users').doc(user.uid).get();
+        if (!doc.exists) {
+            await db.collection('users').doc(user.uid).set({
+                name: user.email.split('@')[0],
+                email: user.email,
+                avatar: '',
+                bio: '', location: '', hometown: '', relationship: '', gender: '',
+                followers: [], following: [], 
+                blockedUsers: [], mutedChats: [], pinnedChats: [], archivedChats: [],
+                online: true,
+                points: 20,
+                loginStreak: 1,
+                lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        }
+        
+        showToast("Logged in successfully!");
+        
+        // Show Success Modal
+        const successModal = document.getElementById('login-success-modal');
+        if(successModal) successModal.classList.add('open');
+        
+        setTimeout(() => {
+            if(successModal) successModal.classList.remove('open');
+        }, 3000);
+    }
+}).catch((error) => {
+    console.error("Google Login Error: ", error);
+});
 
 async function registerWithEmail(){
 const email=document.getElementById('auth-email').value.trim();
