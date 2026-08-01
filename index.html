@@ -12129,81 +12129,46 @@ function stopAllRingtones() {
 
 // ১. কল শুরু করা (Caller)
 async function startWebRTCCall() {
-    if(!currentChatId || currentChatOtherUid === 'group') {
-        showToast("Audio call is only available for 1-on-1 chats.");
+    if (!checkRateLimit()) return;
+    
+    // 🚀 এখানে video: false করে দেওয়া হয়েছে!
+    try {
+        localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+    } catch (e) {
+        showToast("Microphone permission denied.");
         return;
     }
     
-    document.getElementById('webrtc-call-screen').classList.add('active');
-    document.getElementById('webrtc-call-screen').classList.remove('minimized');
-    document.getElementById('btn-answer-call').style.display = 'none';
-    document.getElementById('call-active-controls').style.visibility = 'hidden';
-    document.getElementById('call-screen-name').textContent = document.getElementById('chat-name-display').textContent;
-    document.getElementById('call-screen-avatar').src = document.querySelector('#chat-avatar img')?.src || '';
-    document.getElementById('call-screen-status').textContent = "Calling...";
-    document.getElementById('call-pulse-anim').style.opacity = '1';
-
-    activeCallChatId = currentChatId; 
-
-    try {
-        localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-
-        peerConnection = new RTCPeerConnection(iceServers);
-        localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
-
-        // 🚀 FIX 1: সরাসরি অডিও স্ট্রিমে কানেক্ট করা হলো (মোবাইল ব্রাউজার সাপোর্ট ফিক্স)
-        peerConnection.ontrack = event => { 
-            document.getElementById('remote-audio').srcObject = event.streams[0]; 
-        };
-
-        callDocId = currentChatId;
-        const callDoc = db.collection('calls').doc(callDocId);
-        const offerCandidates = callDoc.collection('offerCandidates');
-
-        peerConnection.onicecandidate = event => {
-            if(event.candidate) offerCandidates.add(event.candidate.toJSON());
-        };
-
-        const offerDescription = await peerConnection.createOffer();
-        await peerConnection.setLocalDescription(offerDescription);
-
-        await callDoc.set({
-            offer: { type: offerDescription.type, sdp: offerDescription.sdp },
-            caller: currentUser.uid,
-            receiver: currentChatOtherUid,
-            status: 'ringing',
-            timestamp: firebase.firestore.FieldValue.serverTimestamp()
-        });
-
-        outgoingRingtone.play().catch(e => console.log('Audio play blocked by browser'));
-
-        // 🚀 FIX 2: Race Condition (টাইমিং বাগ) সলভ করা হলো
-        callUnsub = callDoc.onSnapshot(async snapshot => {
-            const data = snapshot.data();
-            if(!data || data.status === 'ended' || data.status === 'rejected') {
-                endWebRTCCall(true);
-                return;
-            }
-            if(!peerConnection.currentRemoteDescription && data.answer) {
-                // রিমোট ডেসক্রিপশন সেট হওয়া পর্যন্ত অপেক্ষা করবে
-                await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
-                stopAllRingtones(); 
-                startCallTimer();
-
-                // এরপর নেটওয়ার্ক আইপিগুলো (ICE) যুক্ত করবে
-                callDoc.collection('answerCandidates').onSnapshot(snapshot => {
-                    snapshot.docChanges().forEach(change => {
-                        if(change.type === 'added') peerConnection.addIceCandidate(new RTCIceCandidate(change.doc.data())).catch(e => console.log(e));
-                    });
-                });
-            }
-        });
-
-    } catch(e) {
-        console.error(e);
-        showToast("Microphone permission denied.");
-        endWebRTCCall(true);
-    }
+    peerConnection = new RTCPeerConnection(configuration);
+    localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+    
+    peerConnection.ontrack = event => {
+        const remoteAudio = document.getElementById('remote-audio');
+        if (remoteAudio.srcObject !== event.streams[0]) {
+            remoteAudio.srcObject = event.streams[0];
+        }
+    };
+    
+    peerConnection.onicecandidate = event => {
+        if (event.candidate) {
+            db.collection('chats').doc(currentChatId).collection('call_candidates').add({
+                candidate: event.candidate.toJSON(),
+                sender: currentUser.uid
+            });
+        }
+    };
+    
+    const offer = await peerConnection.createOffer();
+    await peerConnection.setLocalDescription(offer);
+    
+    await db.collection('chats').doc(currentChatId).set({
+        callOffer: { type: offer.type, sdp: offer.sdp },
+        callStatus: 'calling',
+        callInitiator: currentUser.uid
+    }, { merge: true });
+    
+    isCallActive = true;
+    showCallUI('calling');
 }
 
 // ২. ইনকামিং কল শোনা (Receiver)
