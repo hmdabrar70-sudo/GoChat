@@ -3827,6 +3827,36 @@ body.notifications-mode #page-notifications > div:first-child {
 [data-theme="dark"] #auth-screen, .dark #auth-screen{
   background:radial-gradient(120% 80% at 50% -10%, #1a1825 0%, #14121d 50%, #0e0c15 100%);
 }
+// ═══════════════════════════════════════════════════════
+// 🎨 NEW DESIGN  ·  chat-interior-redesign  ·  2026-08-02
+// সেন্ড বাটনে "has-text" living pulse (conservative, layout ছোঁয়া না)
+// খুঁজতে:  Ctrl+F → "chat-interior-redesign"
+// ═══════════════════════════════════════════════════════
+(function ciSendPulse(){
+  const bind = () => {
+    const inp = document.getElementById('chat-input');
+    const btn = document.querySelector('#chat-screen .chat-send-btn');
+    if(!inp || !btn || btn.dataset.ciBound) return;
+    btn.dataset.ciBound = '1';
+    const sync = () => {
+      const has = (inp.value || '').trim().length > 0;
+      btn.classList.toggle('ci-active', has);
+    };
+    inp.addEventListener('input', sync);
+    inp.addEventListener('focus', sync);
+    inp.addEventListener('blur', () => setTimeout(sync, 0));
+    sync();
+  };
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bind); else bind();
+  setTimeout(bind, 800); setTimeout(bind, 2000);
+  // চ্যাট খোলার পর ইনপুট তৈরি/রিফ্রেশ হলে আবার বাঁধা
+  let obs = null;
+  const watch = () => {
+    const sc = document.getElementById('chat-screen');
+    if(sc && !obs){ obs = new MutationObserver(bind); obs.observe(sc, { childList:true, subtree:true }); }
+  };
+  setTimeout(watch, 1200);
+})();
 </style>
 
 <style>
@@ -13281,6 +13311,36 @@ function enhanceNotificationsV4(){
       window[fn].__lxWrapped = true;
     }
   });
+})();
+// ═══════════════════════════════════════════════════════
+// 🎨 NEW DESIGN  ·  chat-interior-redesign  ·  2026-08-02
+// সেন্ড বাটনে "has-text" living pulse (conservative, layout ছোঁয়া না)
+// খুঁজতে:  Ctrl+F → "chat-interior-redesign"
+// ═══════════════════════════════════════════════════════
+(function ciSendPulse(){
+  const bind = () => {
+    const inp = document.getElementById('chat-input');
+    const btn = document.querySelector('#chat-screen .chat-send-btn');
+    if(!inp || !btn || btn.dataset.ciBound) return;
+    btn.dataset.ciBound = '1';
+    const sync = () => {
+      const has = (inp.value || '').trim().length > 0;
+      btn.classList.toggle('ci-active', has);
+    };
+    inp.addEventListener('input', sync);
+    inp.addEventListener('focus', sync);
+    inp.addEventListener('blur', () => setTimeout(sync, 0));
+    sync();
+  };
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bind); else bind();
+  setTimeout(bind, 800); setTimeout(bind, 2000);
+  // চ্যাট খোলার পর ইনপুট তৈরি/রিফ্রেশ হলে আবার বাঁধা
+  let obs = null;
+  const watch = () => {
+    const sc = document.getElementById('chat-screen');
+    if(sc && !obs){ obs = new MutationObserver(bind); obs.observe(sc, { childList:true, subtree:true }); }
+  };
+  setTimeout(watch, 1200);
 })();
 </script>
 </body>
