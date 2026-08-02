@@ -543,14 +543,16 @@ flex:1;overflow-y:auto;
 padding:16px;
 display:flex;flex-direction:column;gap:12px;
 }
-.comment-item{
-background:var(--surface);
-border:1px solid var(--border);
-padding:14px 16px;
-border-radius:var(--radius-lg);
-font-size:13px;
-align-self:flex-start;
-max-width:85%;
+/* 🚀 মডার্ন কমেন্ট আইটেম ডিজাইন (বড় বক্স মুছে ফেলা হলো) */
+.comment-item {
+    background: transparent;
+    border: none;
+    padding: 0 16px;
+    margin-bottom: 18px;
+    max-width: 100%;
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
 }
 .comment-author{font-weight:700;color:var(--text);margin-bottom:4px;font-size:14px;}
 .comment-input-bar{
@@ -2529,9 +2531,13 @@ NESTED ACTIVITY CATEGORIES STYLES
     
     <i class="ph-bold ph-dots-three-vertical" onclick="toggleChatDeleteMenu()" style="cursor: pointer; padding: 8px; font-size: 24px;"></i>
     
-    <div id="chat-delete-menu" class="chat-list-menu" style="top: 100%; right: 0; transform: none; display: none; width: max-content;">
+        <div id="chat-delete-menu" class="chat-list-menu" style="top: 100%; right: 0; transform: none; display: none; width: max-content;">
         <div class="chat-dropdown-item" onclick="openAdvancedPrivacy()">
             <i class="ph-bold ph-lock-key" style="color: var(--success); font-size: 20px;"></i> Advanced Privacy
+        </div>
+        <!-- 🚀 NEW: Export Chat Button -->
+        <div class="chat-dropdown-item" onclick="exportCurrentChat()">
+            <i class="ph-bold ph-download-simple" style="color: #3b82f6; font-size: 20px;"></i> Export Chat
         </div>
     </div>
 </div>
@@ -2557,7 +2563,7 @@ NESTED ACTIVITY CATEGORIES STYLES
 </div>
 
 <!-- Text Input -->
-<input type="text" id="chat-input" placeholder="Message..." autocomplete="off" onkeypress="if(event.key==='Enter')sendMsg()">
+<input type="text" id="chat-input" placeholder="Message..." autocomplete="off" oninput="if(currentChatId) localStorage.setItem('gochat_draft_' + currentChatId, this.value);" onkeypress="if(event.key==='Enter')sendMsg()">
 
 <!-- 🚀 NEW: Action Buttons Group (কাছাকাছি আনার জন্য) -->
 <div style="display: flex; align-items: center; gap: 2px;">
@@ -7246,27 +7252,33 @@ async function openCommentPanel(pid) {
             // 🚀 কমেন্টে ইমেজ থাকলে সেটা দেখানোর লজিক
             const commentImageHtml = c.imageUrl ? `<img src="${escapeHTML(c.imageUrl)}" style="width:100%; max-width:250px; border-radius:12px; margin-top:8px; cursor:pointer; box-shadow:var(--shadow-sm);" onclick="openImageZoom('${escapeHTML(c.imageUrl)}')">` : '';
 
-            return `<div class="comment-item" style="display:flex; gap:12px; max-width:95%;" ondblclick="showCommentActions('${pid}', ${idx}, '${c.uid}')">
-                <div class="avatar sm" style="flex-shrink:0; cursor:pointer;" onclick="closeCommentPanel(); viewUserProfile('${c.uid}')">${commentAvHtml}</div>
+                        return `<div class="comment-item" ondblclick="showCommentActions('${pid}', ${idx}, '${c.uid}')">
+                <div class="avatar sm" style="flex-shrink:0; cursor:pointer; margin-top:2px;" onclick="closeCommentPanel(); viewUserProfile('${c.uid}')">${commentAvHtml}</div>
                 <div style="flex:1; min-width:0;">
-                    <div class="comment-author" style="cursor:pointer; margin-bottom:2px;" onclick="closeCommentPanel(); viewUserProfile('${c.uid}')">${safeCName}</div>
-                    ${safeCText ? `<div style="margin-top:2px;">${safeCText}</div>` : ''}
+                    
+                    <!-- 🚀 নেম এবং কমেন্ট টেক্সট-এর সুন্দর বাবল -->
+                    <div style="background:var(--surface-2); padding:10px 14px; border-radius:4px 18px 18px 18px; display:inline-block; border:1px solid var(--border);">
+                        <div class="comment-author" style="cursor:pointer; font-size:13px; margin-bottom:4px;" onclick="closeCommentPanel(); viewUserProfile('${c.uid}')">${safeCName}</div>
+                        ${safeCText ? `<div style="font-size:14px; color:var(--text); line-height:1.4;">${safeCText}</div>` : ''}
+                    </div>
                     ${commentImageHtml}
                     
-                    <div style="display:flex; gap:18px; margin-top:10px; align-items:center;">
-                    <div style="display:flex; align-items:center; gap:6px; cursor:pointer; transition:0.2s; ${likeColor}" onclick="toggleCommentReaction('${pid}', ${idx}, 'like')">
-                        <i class="${likeIcon}" style="font-size:18px;"></i> 
-                        <span style="font-size:13px; font-weight:800;">${c.likes || 0}</span>
+                    <!-- 🚀 লাইক, ডিসলাইক ও রিপ্লাই বাটন (বাবলের নিচে) -->
+                    <div style="display:flex; gap:16px; margin-top:6px; margin-left:12px; align-items:center;">
+                        <div style="display:flex; align-items:center; gap:6px; cursor:pointer; transition:0.2s; ${likeColor}" onclick="toggleCommentReaction('${pid}', ${idx}, 'like')">
+                            <i class="${likeIcon}" style="font-size:16px;"></i> 
+                            <span style="font-size:12px; font-weight:800;">${c.likes || 0}</span>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:6px; cursor:pointer; transition:0.2s; ${dislikeColor}" onclick="toggleCommentReaction('${pid}', ${idx}, 'dislike')">
+                            <i class="${dislikeIcon}" style="font-size:16px;"></i> 
+                            <span style="font-size:12px; font-weight:800;">${c.dislikes || 0}</span>
+                        </div>
+                        <div style="font-size:12px; color:var(--text-muted); cursor:pointer; font-weight:700;" onclick="showReplyInput('${pid}',${idx},'${safeCName}')">Reply</div>
                     </div>
-                    <div style="display:flex; align-items:center; gap:6px; cursor:pointer; transition:0.2s; ${dislikeColor}" onclick="toggleCommentReaction('${pid}', ${idx}, 'dislike')">
-                        <i class="${dislikeIcon}" style="font-size:18px;"></i> 
-                        <span style="font-size:13px; font-weight:800;">${c.dislikes || 0}</span>
-                    </div>
-                    <div style="font-size:13px; color:var(--text); cursor:pointer; font-weight:700; margin-left:4px;" onclick="showReplyInput('${pid}',${idx},'${safeCName}')">Reply</div>
+                    
+                    <div id="reply-input-${idx}"></div>
+                    ${repliesHtml}
                 </div>
-                
-                <div id="reply-input-${idx}"></div>
-                ${repliesHtml}
             </div>`;
         }).join('');
     });
@@ -7560,6 +7572,10 @@ function openChat(chatId, otherUid, otherName, otherAvatar){
     currentChatId=chatId;
     currentChatOtherUid=otherUid;
     document.getElementById('chat-screen').classList.add('open');
+        // 🚀 NEW: চ্যাট ওপেন হলে সেভ করা ড্রাফট ফিরিয়ে আনা
+    const savedDraft = localStorage.getItem('gochat_draft_' + chatId);
+    document.getElementById('chat-input').value = savedDraft ? savedDraft : '';
+
         // 🚀 Group Security: রিমুভ হলে বা লিভ নিলে সাথে সাথে চ্যাট থেকে বের করে দেবে
     if (otherUid === 'group') {
         db.collection('chats').doc(chatId).onSnapshot(doc => {
@@ -8025,6 +8041,8 @@ const inp=document.getElementById('chat-input');
 const text=inp.value.trim();
 if(!text||!currentChatId||!checkRateLimit())return;
 inp.value='';
+    // 🚀 NEW: মেসেজ সেন্ড হলে ড্রাফট ক্লিয়ার করা
+    if(currentChatId) localStorage.removeItem('gochat_draft_' + currentChatId);    
 setTypingStatus(false);
 const msgData={
 uid:currentUser.uid,
@@ -14553,6 +14571,57 @@ async function sendCommentWithImage() {
     
     btnEl.disabled = false;
     btnEl.innerHTML = '<i class="ph-bold ph-paper-plane-right" style="font-size:22px;"></i>';
+}
+// =========================================
+// 📥 EXPORT CHAT OFFLINE (Zero Server Cost)
+// =========================================
+function exportCurrentChat() {
+    if (!currentChatId) return;
+    
+    // থ্রি-ডট মেনু বন্ধ করা
+    document.getElementById('chat-delete-menu').style.display = 'none';
+    showToast("Preparing download...");
+
+    const chatName = document.getElementById('chat-name-display').innerText || 'Chat';
+    const msgElements = document.querySelectorAll('#chat-messages .chat-bubble-wrapper');
+    
+    if (msgElements.length === 0) {
+        showToast("No messages to export!");
+        return;
+    }
+
+    let chatText = `--- GoChat Export: ${chatName} ---\nExported on: ${new Date().toLocaleString()}\n\n`;
+
+    // স্ক্রিনে থাকা মেসেজগুলো রিড করে টেক্সট বানানো (সার্ভার কস্ট জিরো!)
+    msgElements.forEach(wrapper => {
+        const isMine = wrapper.classList.contains('mine');
+        const bubble = wrapper.querySelector('.chat-bubble');
+        if (!bubble) return;
+        
+        // ইমেজ বা স্টিকার থাকলে সেটার টেক্সট ফরম্যাট
+        let textContent = bubble.innerText.trim().replace(/\n/g, ' ');
+        if(bubble.querySelector('img')) textContent += ' [Image Attachment]';
+        if(bubble.querySelector('video')) textContent += ' [Video Attachment]';
+        if(bubble.querySelector('audio')) textContent += ' [Voice Message]';
+
+        const sender = isMine ? 'Me' : chatName;
+        chatText += `${sender}: ${textContent}\n`;
+    });
+
+    // টেক্সট ফাইল তৈরি করে ইউজারের ফোনে অটো-ডাউনলোড করা
+    const blob = new Blob([chatText], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `GoChat_${chatName.replace(/\s+/g, '_')}_History.txt`;
+    
+    document.body.appendChild(a);
+    a.click();
+    
+    // ক্লিনআপ
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast("Chat exported to your device!");
 }
 </script>
 </body>
