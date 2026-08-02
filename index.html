@@ -4137,6 +4137,160 @@ body.notifications-mode #page-notifications > div:first-child {
 @keyframes qrncCardIn{ from{ opacity:0; transform:translateY(24px) scale(.96);} to{ opacity:1; transform:none;} }
 @keyframes qrncScan{ 0%{ top:14%;} 50%{ top:84%;} 100%{ top:14%;} }
 @keyframes qrncSpin{ to{ transform:rotate(360deg);} }
+
+/* ═══════════════════════════════════════════════════════
+   🚀 NEW FEATURE  ·  mutual-friends  ·  2026-08-02
+   Mutual Friends on Profile (overlap stack + bottom sheet)
+   inject-only (HTML/render অক্ষত) · client-side intersection
+   privacy-aware (followingPrivacy=onlyme → hide) · own-profile skip
+   signature: golden connection over app violet
+   খুঁজতে:  Ctrl+F → "mutual-friends"
+   ═══════════════════════════════════════════════════════ */
+:root{ --mf-gold:#e8c074; --mf-gold-deep:#c9972f; --mf-gold-soft:rgba(232,192,116,.16); }
+
+/* ---------- strip (other profile-এ inject) ---------- */
+.mf-strip{
+  position:relative; display:flex; align-items:center; gap:13px;
+  margin:14px 0 4px; padding:13px 15px; border-radius:18px; cursor:pointer;
+  background:linear-gradient(135deg, color-mix(in srgb, var(--accent) 8%, var(--surface-2)), var(--surface-2));
+  border:1px solid var(--border); overflow:hidden;
+  transition:transform .2s cubic-bezier(.34,1.56,.64,1), border-color .25s, box-shadow .25s;
+  animation:mfStripIn .5s cubic-bezier(.22,1,.36,1) backwards;
+  -webkit-tap-highlight-color:transparent;
+}
+.mf-strip:hover{ transform:translateY(-2px); border-color:color-mix(in srgb, var(--mf-gold) 45%, var(--border)); box-shadow:0 14px 30px -16px color-mix(in srgb, var(--mf-gold) 55%, transparent); }
+.mf-strip:active{ transform:scale(.985); }
+/* connection glow behind stack */
+.mf-strip::before{
+  content:''; position:absolute; left:8px; top:50%; transform:translateY(-50%);
+  width:84px; height:84px; border-radius:50%; pointer-events:none;
+  background:radial-gradient(circle, var(--mf-gold-soft), transparent 68%);
+}
+
+/* overlapping avatar stack */
+.mf-stack{ position:relative; z-index:1; display:flex; align-items:center; flex-shrink:0; padding:2px; }
+.mf-stack .mf-av{
+  width:38px; height:38px; border-radius:50%; margin-left:-11px;
+  border:2.5px solid var(--surface); background:var(--gradient); color:#fff;
+  display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:800; overflow:hidden;
+  box-shadow:0 3px 8px -3px rgba(0,0,0,.4);
+  transition:transform .3s cubic-bezier(.34,1.56,.64,1), margin .3s ease;
+}
+.mf-stack .mf-av:first-child{ margin-left:0; }
+.mf-stack .mf-av img{ width:100%; height:100%; object-fit:cover; }
+/* hover/press → fan out */
+.mf-strip:hover .mf-stack .mf-av:nth-child(1){ transform:translateX(-3px); }
+.mf-strip:hover .mf-stack .mf-av:nth-child(2){ transform:translateX(-1px); }
+.mf-strip:hover .mf-stack .mf-av:nth-child(3){ transform:translateX(2px); }
+.mf-strip:hover .mf-stack .mf-av:nth-child(4){ transform:translateX(4px); }
+/* golden +N badge */
+.mf-stack .mf-plus{
+  margin-left:-11px; background:linear-gradient(135deg, var(--mf-gold), var(--mf-gold-deep));
+  color:#3a2a00; font-size:12px; font-weight:900; border-color:var(--surface);
+  box-shadow:0 3px 10px -3px rgba(201,151,47,.6);
+}
+
+/* text block — strong type contrast */
+.mf-text{ position:relative; z-index:1; flex:1; min-width:0; display:flex; flex-direction:column; gap:2px; }
+.mf-text .mf-top{ display:flex; align-items:baseline; gap:7px; }
+.mf-text .mf-count{
+  font-size:21px; font-weight:900; line-height:1; color:var(--text);
+  font-variant-numeric:tabular-nums; letter-spacing:-.5px;
+}
+.mf-text .mf-label{
+  font-size:10px; font-weight:800; letter-spacing:1.6px; text-transform:uppercase;
+  color:var(--mf-gold-deep);
+}
+.mf-text .mf-names{
+  font-size:12.5px; color:var(--text-secondary); font-weight:600; line-height:1.3;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.mf-text .mf-names b{ color:var(--text); font-weight:800; }
+/* chevron */
+.mf-strip .mf-go{
+  position:relative; z-index:1; flex-shrink:0; width:32px; height:32px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center; color:var(--text-muted);
+  transition:transform .25s, color .25s, background .25s;
+}
+.mf-strip:hover .mf-go{ transform:translateX(3px); color:var(--mf-gold-deep); background:var(--mf-gold-soft); }
+
+/* ---------- bottom sheet ---------- */
+.mf-sheet{ z-index:100230; align-items:flex-end; }
+.mf-sheet .mf-box{
+  width:100%; max-width:520px; margin:0 auto; border-radius:26px 26px 0 0; overflow:hidden;
+  background:var(--surface); border:1px solid var(--border); border-bottom:none;
+  box-shadow:0 -30px 70px -30px rgba(0,0,0,.6); position:relative;
+  display:flex; flex-direction:column; max-height:82vh;
+  animation:mfSheetIn .35s cubic-bezier(.22,1,.36,1);
+}
+/* subtle top ambient (not aurora) */
+.mf-sheet .mf-box::before{
+  content:''; position:absolute; top:0; left:0; right:0; height:90px; pointer-events:none; z-index:0;
+  background:radial-gradient(80% 120% at 50% -40%, color-mix(in srgb, var(--mf-gold) 16%, transparent), transparent 70%);
+}
+.mf-sheet .mf-box > *{ position:relative; z-index:1; }
+.mf-handle{ width:42px; height:5px; border-radius:5px; background:var(--border); margin:11px auto 0; }
+.mf-sheet-head{ padding:14px 20px 12px; display:flex; align-items:center; gap:12px; }
+.mf-sheet-head .mf-sh-ico{
+  width:40px; height:40px; border-radius:13px; flex-shrink:0; display:flex; align-items:center; justify-content:center;
+  background:linear-gradient(135deg, color-mix(in srgb, var(--mf-gold) 22%, var(--surface-2)), var(--surface-2));
+  border:1px solid color-mix(in srgb, var(--mf-gold) 35%, var(--border)); color:var(--mf-gold-deep);
+}
+.mf-sheet-head .mf-sh-ico .material-symbols-outlined{ font-size:22px; font-variation-settings:'FILL' 1; }
+.mf-sheet-head .mf-sh-t{ flex:1; min-width:0; }
+.mf-sheet-head .mf-sh-t .mf-sh-title{ font-size:17px; font-weight:900; color:var(--text); letter-spacing:-.3px; }
+.mf-sheet-head .mf-sh-t .mf-sh-sub{ font-size:12px; color:var(--text-muted); font-weight:600; margin-top:1px; }
+.mf-sheet-head .mf-sh-close{
+  width:36px; height:36px; border-radius:50%; flex-shrink:0; border:1px solid var(--border);
+  background:var(--surface-2); color:var(--text-muted); cursor:pointer; display:flex; align-items:center; justify-content:center;
+  transition:transform .2s, color .2s;
+}
+.mf-sheet-head .mf-sh-close:active{ transform:scale(.86) rotate(90deg); }
+
+/* search */
+.mf-search{ padding:0 20px 12px; position:relative; }
+.mf-search .material-symbols-outlined{ position:absolute; left:34px; top:50%; transform:translateY(-50%); color:var(--text-muted); font-size:19px; pointer-events:none; }
+.mf-search input{
+  width:100%; padding:12px 14px 12px 44px; border-radius:14px; font-size:14.5px; font-family:inherit;
+  background:var(--surface-2); border:1.5px solid var(--border); color:var(--text); outline:none;
+  transition:border-color .25s, box-shadow .25s;
+}
+.mf-search input:focus{ border-color:var(--accent); box-shadow:0 0 0 4px var(--accent-glow); }
+
+/* list */
+.mf-list{ overflow-y:auto; padding:4px 14px calc(20px + env(safe-area-inset-bottom)); display:flex; flex-direction:column; gap:8px; }
+.mf-row{
+  display:flex; align-items:center; gap:13px; padding:11px 12px; border-radius:16px; cursor:pointer;
+  background:var(--surface-2); border:1px solid transparent;
+  transition:transform .18s, border-color .2s, background .2s;
+  animation:mfRowIn .4s cubic-bezier(.22,1,.36,1) backwards;
+}
+.mf-row:hover{ transform:translateX(3px); border-color:var(--border); background:var(--surface); }
+.mf-row:active{ transform:scale(.985); }
+.mf-row .mf-r-av{
+  width:46px; height:46px; border-radius:50%; flex-shrink:0; background:var(--gradient); color:#fff;
+  display:flex; align-items:center; justify-content:center; font-size:17px; font-weight:800; overflow:hidden;
+  box-shadow:0 0 0 2px var(--surface), 0 0 0 3.5px color-mix(in srgb, var(--mf-gold) 30%, transparent);
+}
+.mf-row .mf-r-av img{ width:100%; height:100%; object-fit:cover; }
+.mf-row .mf-r-info{ flex:1; min-width:0; }
+.mf-row .mf-r-name{ display:flex; align-items:center; gap:5px; font-size:14.5px; font-weight:800; color:var(--text); line-height:1.2; }
+.mf-row .mf-r-name .verified-icon{ font-size:16px; }
+.mf-row .mf-r-uname{ font-size:12px; color:var(--text-muted); font-weight:600; margin-top:2px; font-family:monospace; }
+.mf-row .mf-r-status{
+  flex-shrink:0; font-size:11px; font-weight:800; padding:5px 11px; border-radius:20px;
+  background:color-mix(in srgb, var(--accent) 14%, transparent); color:var(--accent); border:1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+}
+.mf-row .mf-r-chev{ flex-shrink:0; color:var(--text-muted); display:flex; }
+
+/* empty (search) */
+.mf-empty{ text-align:center; padding:40px 20px; color:var(--text-muted); }
+.mf-empty .material-symbols-outlined{ font-size:40px; opacity:.4; margin-bottom:8px; }
+.mf-empty .mf-e-t{ font-size:14px; font-weight:700; color:var(--text-secondary); }
+
+@keyframes mfStripIn{ from{ opacity:0; transform:translateY(12px) scale(.98);} to{ opacity:1; transform:none;} }
+@keyframes mfSheetIn{ from{ opacity:0; transform:translateY(40px);} to{ opacity:1; transform:none;} }
+@keyframes mfRowIn{ from{ opacity:0; transform:translateY(10px);} to{ opacity:1; transform:none;} }
 </style>
 
 <style>
@@ -14113,6 +14267,226 @@ document.addEventListener('keydown', (e) => {
     if(document.getElementById('qrnc-scanner').style.display === 'flex'){ qrncCloseScanner(); return; }
     if(document.getElementById('qrnc-modal').style.display === 'flex'){ qrncCloseCard(); }
   }
+});
+// ═══════════════════════════════════════════════════════
+// 🚀 NEW FEATURE  ·  mutual-friends  ·  2026-08-02
+// compute (client intersection) + strip + bottom sheet
+// inject-only · privacy-aware · own-profile skip · mfCache
+// খুঁজতে:  Ctrl+F → "mutual-friends"
+// ═══════════════════════════════════════════════════════
+const mfCache = {};                 // uid -> { mutual:[...], hidden:bool } | 'pending'
+let mfCurrentUid = null, mfCurrentList = [];
+
+/* ---------- data + intersection ---------- */
+function mfMyConns(){
+  const f = (currentUserData && currentUserData.following) || [];
+  const r = (currentUserData && currentUserData.followers) || [];
+  return new Set([...f, ...r]);
+}
+async function mfGetOther(uid){
+  if(mfCache[uid] && mfCache[uid] !== 'pending') return mfCache[uid];
+  // ১. cache
+  let u = (typeof allUsersCache !== 'undefined' && allUsersCache) ? allUsersCache.find(x => x.id === uid) : null;
+  const hasConns = u && ((u.following && u.following.length) || (u.followers && u.followers.length) || u.followingPrivacy);
+  // ২. না পেলে একবার get (পরের বার mfCache-এ থাকবে)
+  if(!u || !hasConns){
+    try{ const d = await db.collection('users').doc(uid).get(); if(d.exists) u = Object.assign({ id: uid }, d.data()); }catch(e){}
+  }
+  if(!u){ mfCache[uid] = { mutual:[], hidden:false }; return mfCache[uid]; }
+
+  // privacy: following লুকানো থাকলে mutual দেখাব না
+  if(u.followingPrivacy === 'onlyme'){ mfCache[uid] = { mutual:[], hidden:true }; return mfCache[uid]; }
+
+  const mySet = mfMyConns();
+  const otherSet = new Set([...(u.following||[]), ...(u.followers||[])]);
+  const commonIds = [...mySet].filter(id => id !== uid && otherSet.has(id));
+
+  // common ids → user objects (cache-first, batched get for missing)
+  const objs = [];
+  const missing = [];
+  commonIds.forEach(id => {
+    const c = (typeof allUsersCache !== 'undefined' && allUsersCache) ? allUsersCache.find(x => x.id === id) : null;
+    if(c) objs.push(Object.assign({ id }, c)); else missing.push(id);
+  });
+  if(missing.length){
+    try{
+      const docs = await Promise.all(missing.map(id => db.collection('users').doc(id).get().catch(()=>null)));
+      docs.forEach((d, i) => { if(d && d.exists) objs.push(Object.assign({ id: missing[i] }, d.data())); });
+    }catch(e){}
+  }
+  mfCache[uid] = { mutual: objs, hidden:false };
+  return mfCache[uid];
+}
+
+/* ---------- strip render ---------- */
+async function mfRenderStrip(uid){
+  const page = document.getElementById('page-other-profile');
+  if(!page) return;
+  if(!currentUser || uid === currentUser.uid) return;          // own profile skip
+
+  // পুরনো strip সরাও (uid বদলে re-render)
+  const old = page.querySelector('.mf-strip');
+  if(old && old.dataset.mfUid === uid) return;                // same uid already shown
+  if(old) old.remove();
+
+  const res = await mfGetOther(uid);
+  if(!res || res.hidden || res.mutual.length === 0) return;   // nothing / private → no strip
+
+  const list = res.mutual;
+  const shown = list.slice(0, 4);
+  const extra = list.length - shown.length;
+
+  const avHtml = shown.map(m => {
+    const inner = m.avatar ? `<img src="${escapeHTML(m.avatar)}">` : escapeHTML((m.name||'?').trim().charAt(0).toUpperCase());
+    return `<div class="mf-av">${inner}</div>`;
+  }).join('') + (extra > 0 ? `<div class="mf-av mf-plus">+${extra}</div>` : '');
+
+  // names line
+  const nm = list.map(m => m.name || 'User');
+  let namesLine;
+  if(list.length <= 3){ namesLine = nm.map(n => `<b>${escapeHTML(n)}</b>`).join(', '); }
+  else { namesLine = nm.slice(0,2).map(n => `<b>${escapeHTML(n)}</b>`).join(', ') + ` +${list.length-2}`; }
+
+  const strip = document.createElement('div');
+  strip.className = 'mf-strip'; strip.dataset.mfUid = uid;
+  strip.setAttribute('role','button'); strip.setAttribute('tabindex','0');
+  strip.innerHTML = `
+    <div class="mf-stack">${avHtml}</div>
+    <div class="mf-text">
+      <div class="mf-top"><span class="mf-count">${list.length}</span><span class="mf-label">Mutual</span></div>
+      <div class="mf-names">${namesLine}</div>
+    </div>
+    <div class="mf-go"><span class="material-symbols-outlined">chevron_right</span></div>`;
+  strip.onclick = () => mfOpenSheet(uid);
+  strip.onkeydown = (e) => { if(e.key==='Enter'||e.key===' '){ e.preventDefault(); mfOpenSheet(uid); } };
+
+  // anchor: Follow/Message row-এর আগে (natural decision flow)
+  const btns = page.querySelector('#other-profile-btns');
+  if(btns){ btns.parentNode.insertBefore(strip, btns); }
+  else {
+    const bio = page.querySelector('#other-profile-bio');
+    const info = page.querySelector('.profile-info-col, .profile-header');
+    (bio || info)?.insertAdjacentElement('afterend', strip);
+  }
+}
+
+/* ---------- bottom sheet ---------- */
+function mfBuildSheet(){
+  if(document.getElementById('mf-sheet')) return;
+  const ov = document.createElement('div');
+  ov.className = 'modal-overlay mf-sheet'; ov.id = 'mf-sheet'; ov.style.display = 'none';
+  ov.onclick = (e) => { if(e.target === ov) mfCloseSheet(); };
+  ov.innerHTML = `
+    <div class="mf-box">
+      <div class="mf-handle"></div>
+      <div class="mf-sheet-head">
+        <div class="mf-sh-ico"><span class="material-symbols-outlined">group</span></div>
+        <div class="mf-sh-t">
+          <div class="mf-sh-title" id="mf-sh-title">Mutual Connections</div>
+          <div class="mf-sh-sub" id="mf-sh-sub">People you both know</div>
+        </div>
+        <button class="mf-sh-close" onclick="mfCloseSheet()"><span class="material-symbols-outlined">close</span></button>
+      </div>
+      <div class="mf-search">
+        <span class="material-symbols-outlined">search</span>
+        <input type="text" id="mf-search-input" placeholder="Search mutual friends…" oninput="mfFilter(this.value)">
+      </div>
+      <div class="mf-list" id="mf-list"></div>
+    </div>`;
+  document.body.appendChild(ov);
+}
+async function mfOpenSheet(uid){
+  mfBuildSheet();
+  mfCurrentUid = uid;
+  const ov = document.getElementById('mf-sheet');
+  ov.style.display = 'flex';
+  document.getElementById('mf-search-input').value = '';
+  document.getElementById('mf-list').innerHTML = '<div class="mf-empty"><span class="material-symbols-outlined">progress_activity</span><div class="mf-e-t">Loading…</div></div>';
+
+  const res = await mfGetOther(uid);
+  mfCurrentList = (res && res.mutual) ? res.mutual : [];
+  document.getElementById('mf-sh-title').textContent = mfCurrentList.length + ' Mutual Connection' + (mfCurrentList.length===1?'':'s');
+  // যার প্রোফাইল খোলা তার নাম sub-এ
+  const other = (typeof allUsersCache!=='undefined'&&allUsersCache)?allUsersCache.find(x=>x.id===uid):null;
+  document.getElementById('mf-sh-sub').textContent = other ? ('Shared with ' + (other.name||'this profile')) : 'People you both know';
+  mfRenderList(mfCurrentList);
+}
+function mfCloseSheet(){ const ov = document.getElementById('mf-sheet'); if(ov) ov.style.display = 'none'; }
+
+function mfRenderList(arr){
+  const box = document.getElementById('mf-list'); if(!box) return;
+  if(!arr.length){ box.innerHTML = '<div class="mf-empty"><span class="material-symbols-outlined">person_search</span><div class="mf-e-t">No matches</div></div>'; return; }
+  const myFollowing = new Set((currentUserData && currentUserData.following) || []);
+  box.innerHTML = arr.map((m, i) => {
+    const av = m.avatar ? `<img src="${escapeHTML(m.avatar)}">` : escapeHTML((m.name||'?').trim().charAt(0).toUpperCase());
+    const vBadge = (typeof getVerifiedBadge === 'function') ? (getVerifiedBadge(m.email, m.isVerified) || '') : '';
+    const uname = m.username ? `<div class="mf-r-uname">@${escapeHTML(m.username)}</div>` : '';
+    const following = myFollowing.has(m.id);
+    const status = following ? `<span class="mf-r-status">Following</span>` : '';
+    return `<div class="mf-row" style="animation-delay:${Math.min(i*0.04,0.5).toFixed(2)}s" onclick="mfViewFromList('${m.id}')">
+      <div class="mf-r-av">${av}</div>
+      <div class="mf-r-info">
+        <div class="mf-r-name">${escapeHTML(m.name||'User')}${vBadge?' '+vBadge:''}</div>
+        ${uname}
+      </div>
+      ${status}
+      <div class="mf-r-chev"><span class="material-symbols-outlined">chevron_right</span></div>
+    </div>`;
+  }).join('');
+}
+function mfFilter(q){
+  const t = (q||'').trim().toLowerCase();
+  const arr = !t ? mfCurrentList : mfCurrentList.filter(m => (m.name||'').toLowerCase().includes(t) || (m.username||'').toLowerCase().includes(t));
+  mfRenderList(arr);
+}
+function mfViewFromList(uid){
+  mfCloseSheet();
+  if(typeof closeUserProfile === 'function') closeUserProfile();   // বর্তমান other profile সরিয়ে
+  setTimeout(() => { if(typeof viewUserProfile === 'function') viewUserProfile(uid); }, 120);
+}
+
+/* ---------- hook: viewUserProfile-এর পরে render ---------- */
+(function mfHookView(){
+  if(typeof window.viewUserProfile === 'function' && !window.viewUserProfile.__mfWrapped){
+    const o = window.viewUserProfile;
+    window.viewUserProfile = function(uid, ...rest){
+      const r = o.apply(this, uid, ...rest);
+      if(uid && (!currentUser || uid !== currentUser.uid)) setTimeout(() => mfRenderStrip(uid), 320);
+      return r;
+    };
+    window.viewUserProfile.__mfWrapped = true;
+  }
+})();
+
+/* ---------- backup observer (dynamic open) ---------- */
+(function mfObserve(){
+  let lastSeenUid = null;
+  const tick = () => {
+    const page = document.getElementById('page-other-profile');
+    if(!page || page.style.display === 'none' || !page.classList.contains('open')){ lastSeenUid = null; return; }
+    // current other uid ধরা: top-name নয়, data attr / cache থেকে — simplest: name থেকে নয়;
+    // আমরা wrap hook-এর ওপর ভরসা করি; এখানে শুধু strip অনুপস্থিত কিনা দেখি
+    const uid = window.__mfLastOtherUid;
+    if(uid && uid !== lastSeenUid && !page.querySelector('.mf-strip[data-mf-uid="'+uid+'"]')){
+      lastSeenUid = uid; mfRenderStrip(uid);
+    }
+  };
+  // viewUserProfile wrap-এ uid সংরক্ষণ (QR-এর সাথে coexist)
+  const ensureCapture = () => {
+    if(typeof window.viewUserProfile === 'function' && !window.viewUserProfile.__mfCap){
+      const o = window.viewUserProfile;
+      window.viewUserProfile = function(uid, ...rest){ window.__mfLastOtherUid = uid; return o.apply(this, [uid, ...rest]); };
+      window.viewUserProfile.__mfCap = true;
+    }
+  };
+  const start = () => { ensureCapture(); setInterval(tick, 500); };
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
+  setTimeout(ensureCapture, 800); setTimeout(ensureCapture, 2000);
+})();
+
+/* ESC দিয়ে sheet বন্ধ */
+document.addEventListener('keydown', (e) => {
+  if(e.key === 'Escape'){ const ov = document.getElementById('mf-sheet'); if(ov && ov.style.display === 'flex') mfCloseSheet(); }
 });
 </script>
 </body>
