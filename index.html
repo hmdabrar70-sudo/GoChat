@@ -7662,7 +7662,14 @@ function openChat(chatId, otherUid, otherName, otherAvatar){
             const m=d.data();
             const isMine=m.uid===currentUser.uid;
             let content='';
-                        let safeText = escapeHTML(m.text||'');
+                        let rawText = m.text || '';
+let safeText = escapeHTML(rawText);
+
+// 🚀 NEW: টেক্সটের ভেতরের URL বা লিংকগুলোকে স্বয়ংক্রিয়ভাবে ক্লিকেবল হাইপারলিংকে রূপান্তর করা
+const urlRegex = /(https?:\/\/[^\s]+)/g;
+safeText = safeText.replace(urlRegex, function(url) {
+    return `<a href="${url}" target="_blank" style="color: inherit; text-decoration: underline; word-break: break-all;" onclick="event.stopPropagation();">${url}</a>`;
+});
             // 🚀 4. Mention System Render in Chat
             if (currentChatOtherUid === 'group' && allUsersCache) {
                 const sortedUsers = [...allUsersCache].sort((a, b) => (b.name || '').length - (a.name || '').length);
