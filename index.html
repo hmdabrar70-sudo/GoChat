@@ -2768,6 +2768,15 @@ NESTED ACTIVITY CATEGORIES STYLES
                     <i class="ph-bold ph-caret-right" style="color:var(--text-muted); font-size:16px;"></i>
                 </div>
 
+                <!-- 🚀 NEW: Login Activity Menu Item -->
+                <div class="settings-list-item" onclick="openLoginActivity()">
+                    <div style="display:flex; align-items:center; gap:16px;">
+                        <i class="ph-bold ph-devices" style="font-size: 24px; color: #10b981;"></i>
+                        <span style="font-weight:600; font-size:15px;">Login Activity</span>
+                    </div>
+                    <i class="ph-bold ph-caret-right" style="color:var(--text-muted); font-size:16px;"></i>
+                </div>
+
                 <div class="settings-list-item" onclick="openChatPrivacyPage()">
                     <div style="display:flex; align-items:center; gap:16px;">
                         <i class="ph-bold ph-chat-circle-dots" style="font-size: 24px; color: #3b82f6;"></i>
@@ -3734,6 +3743,260 @@ body.notifications-mode #page-notifications > div:first-child {
 [data-theme="dark"] #auth-screen, .dark #auth-screen{
   background:radial-gradient(120% 80% at 50% -10%, #1a1825 0%, #14121d 50%, #0e0c15 100%);
 }
+
+/* ═══════════════════════════════════════════════════════
+   🎨 NEW DESIGN  ·  elite-obsidian-gold  ·  2026-08-02
+   Elite GoChat → ফুল-পেজ অবসিডিয়ান + লিকুইড গোল্ড পোর্টাল
+   CSS reskin (!important) + JS embellish  |  nextAppStep/CTA অক্ষত
+   display: Bodoni Moda  ·  body: Plus Jakarta Sans
+   খুঁজতে:  Ctrl+F → "elite-obsidian-gold"
+   ═══════════════════════════════════════════════════════ */
+:root{
+  --eg-gold:#e8c074; --eg-gold-bright:#f7e0a6; --eg-gold-deep:#b8862f;
+  --eg-foil:linear-gradient(102deg,#9c6f24 0%,#f7e0a6 28%,#e8c074 48%,#fff4d8 60%,#c9972f 100%);
+  --eg-obs:#0b0a07; --eg-obs-2:#15120b; --eg-obs-3:#1d1810;
+  --eg-line:rgba(232,192,116,.16); --eg-line-2:rgba(232,192,116,.30);
+  --eg-display:'Bodoni Moda', 'Georgia', serif;
+  --eg-body:'Plus Jakarta Sans', system-ui, sans-serif;
+}
+
+/* ---------- modal shell → full-screen obsidian takeover ---------- */
+#elite-app-modal{
+  background:radial-gradient(120% 90% at 50% -10%, #1a150c 0%, var(--eg-obs) 55%, #060503 100%) !important;
+  padding:0 !important; align-items:stretch !important; justify-content:stretch !important;
+  -webkit-backdrop-filter:blur(2px) !important; backdrop-filter:blur(2px) !important;
+  overflow:hidden !important;
+}
+/* ঘূর্ণায়মান লিকুইড গোল্ড sweep (aurora-blob নয় — slow metallic conic) */
+#elite-app-modal::before{
+  content:''; position:fixed; inset:-40%; z-index:0; pointer-events:none;
+  background:conic-gradient(from 0deg at 50% 38%,
+    rgba(184,134,47,.0), rgba(232,192,116,.16), rgba(247,224,166,.10),
+    rgba(184,134,47,.0), rgba(232,192,116,.12), rgba(184,134,47,.0));
+  -webkit-filter:blur(60px) saturate(1.1); filter:blur(60px) saturate(1.1);
+  animation:egSpin 30s linear infinite; opacity:.8;
+}
+/* fine film grain */
+#elite-app-modal::after{
+  content:''; position:fixed; inset:0; z-index:0; pointer-events:none; opacity:.05; mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+#elite-app-modal > *{ position:relative; z-index:2; }
+
+/* inner panel → scrollable full-height column */
+#elite-app-modal > div:first-child{
+  width:100% !important; max-width:640px !important; margin:0 auto !important;
+  height:100% !important; max-height:100% !important; border-radius:0 !important;
+  background:transparent !important; box-shadow:none !important; overflow-y:auto !important; overflow-x:hidden !important;
+  display:flex !important; flex-direction:column !important;
+  scrollbar-width:thin; scrollbar-color:var(--eg-gold-deep) transparent;
+}
+#elite-app-modal > div:first-child::-webkit-scrollbar{ width:6px; }
+#elite-app-modal > div:first-child::-webkit-scrollbar-thumb{ background:var(--eg-gold-deep); border-radius:6px; }
+
+/* ভাসমান কণা + top spotlight (JS inject) */
+.eg-particles{ position:fixed; inset:0; z-index:1; pointer-events:none; overflow:hidden; }
+.eg-particles i{
+  position:absolute; bottom:-8px; border-radius:50%;
+  background:radial-gradient(circle, rgba(247,224,166,.85), transparent 70%);
+  animation:egFloat linear infinite; opacity:0;
+}
+.eg-spotlight{
+  position:fixed; top:-30%; left:50%; transform:translateX(-50%); width:140%; height:60%;
+  z-index:1; pointer-events:none;
+  background:radial-gradient(50% 100% at 50% 0%, rgba(232,192,116,.16), transparent 70%);
+}
+
+/* ---------- আমার কাস্টম গোল্ড প্রোগ্রেস রেল ---------- */
+.eg-rail{ position:sticky; top:0; z-index:30; height:3px; background:rgba(232,192,116,.12); }
+.eg-rail > i{ display:block; height:100%; width:33%; background:var(--eg-foil); background-size:200% 100%; box-shadow:0 0 12px rgba(232,192,116,.6); transition:width .6s cubic-bezier(.22,1,.36,1); animation:egFoilMove 5s linear infinite; }
+/* পুরনো প্রোগ্রেস বার লুকানো (যদি থাকে) */
+#elite-app-modal [class*="progress" i]:not(.eg-rail):not(.eg-rail *),
+#elite-app-modal .progress-bar, #elite-app-modal .step-progress{ display:none !important; }
+
+/* ---------- হেডার: মিনিমাল গোল্ড ---------- */
+#elite-app-modal > div:first-child > div:first-child{
+  background:transparent !important; padding:18px 22px 8px !important;
+  border-bottom:1px solid var(--eg-line) !important;
+}
+#elite-app-modal .modal-close,
+#elite-app-modal [onclick*="closeElite"],
+#elite-app-modal button[class*="close" i]{
+  background:rgba(232,192,116,.08) !important; border:1px solid var(--eg-line-2) !important;
+  color:var(--eg-gold) !important; width:38px !important; height:38px !important; border-radius:50% !important;
+  transition:transform .2s, background .2s !important;
+}
+#elite-app-modal .modal-close:active,
+#elite-app-modal [onclick*="closeElite"]:active{ transform:scale(.88) rotate(90deg); }
+
+/* ---------- টাইপোগ্রাফি: Bodoni gold-foil ---------- */
+#elite-app-modal h1, #elite-app-modal h2, #elite-app-modal h3,
+#elite-app-modal .modal-title, #elite-app-modal .elite-perk-title{
+  font-family:var(--eg-display) !important; color:var(--eg-gold-bright) !important;
+  letter-spacing:-.5px !important; font-weight:600 !important;
+}
+.eg-foil{
+  font-family:var(--eg-display) !important; font-style:italic !important; font-weight:500 !important;
+  background:var(--eg-foil); background-size:200% auto;
+  -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; color:transparent;
+  animation:egFoilMove 6s linear infinite;
+}
+#elite-app-modal p, #elite-app-modal .elite-perk-sub, #elite-app-modal .elite-perk-desc,
+#elite-app-modal label, #elite-app-modal div{ font-family:var(--eg-body); }
+#elite-app-modal p, #elite-app-modal .elite-perk-sub, #elite-app-modal .elite-perk-desc{ color:rgba(247,224,166,.62) !important; }
+
+/* ---------- HERO (step 1) embellish ---------- */
+#app-step-1{ padding:8px 26px 40px !important; text-align:center; position:relative; }
+.eg-eyebrow{
+  display:flex; align-items:center; justify-content:center; gap:12px; margin:6px 0 22px;
+  font-family:var(--eg-body); font-size:11px; font-weight:800; letter-spacing:4px; text-transform:uppercase; color:var(--eg-gold);
+  animation:egRise .7s cubic-bezier(.22,1,.36,1) .05s backwards;
+}
+.eg-eyebrow::before, .eg-eyebrow::after{ content:''; width:34px; height:1px; background:linear-gradient(90deg,transparent,var(--eg-gold-deep)); }
+.eg-eyebrow::after{ background:linear-gradient(90deg,var(--eg-gold-deep),transparent); }
+/* সোনালি ক্রেস্ট */
+.eg-crest{
+  position:relative; width:128px; height:128px; margin:0 auto 26px;
+  display:flex; align-items:center; justify-content:center;
+  animation:egRise .8s cubic-bezier(.22,1,.36,1) .12s backwards;
+}
+.eg-crest::before{
+  content:''; position:absolute; inset:0; border-radius:50%;
+  background:conic-gradient(from 0deg, var(--eg-gold-deep), var(--eg-gold-bright), var(--eg-gold-deep), #fff4d8, var(--eg-gold-deep));
+  animation:egSpin 14s linear infinite; -webkit-mask:radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2px)); mask:radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2px));
+}
+.eg-crest::after{
+  content:''; position:absolute; inset:14px; border-radius:50%;
+  background:radial-gradient(circle at 50% 35%, var(--eg-obs-3), var(--eg-obs));
+  box-shadow:inset 0 0 24px rgba(0,0,0,.7), 0 0 30px rgba(232,192,116,.18);
+}
+.eg-crest .eg-mono{
+  position:relative; z-index:2; font-family:var(--eg-display); font-size:52px; font-weight:600;
+  background:var(--eg-foil); background-size:200% auto; -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
+  animation:egFoilMove 6s linear infinite;
+}
+.eg-crest .eg-laurel{ position:absolute; z-index:3; font-size:30px; bottom:-6px; filter:drop-shadow(0 2px 4px rgba(0,0,0,.6)); }
+#app-step-1 .eg-hero-h{
+  font-family:var(--eg-display) !important; font-size:46px !important; line-height:.98 !important; font-weight:600 !important;
+  color:#f3ead2 !important; letter-spacing:-1px !important; margin:0 0 16px !important;
+  animation:egRise .8s cubic-bezier(.22,1,.36,1) .2s backwards;
+}
+#app-step-1 .eg-hero-sub{
+  font-size:15px !important; line-height:1.65 !important; color:rgba(247,224,166,.7) !important; max-width:420px; margin:0 auto 26px !important;
+  animation:egRise .8s cubic-bezier(.22,1,.36,1) .28s backwards;
+}
+/* hero stat strip */
+.eg-stats{ display:flex; justify-content:center; gap:26px; margin:0 0 8px; animation:egRise .8s ease .36s backwards; }
+.eg-stat{ text-align:center; }
+.eg-stat b{ display:block; font-family:var(--eg-display); font-size:26px; color:var(--eg-gold-bright); line-height:1; }
+.eg-stat span{ font-size:10px; letter-spacing:1.5px; text-transform:uppercase; color:rgba(247,224,166,.5); font-weight:700; }
+.eg-stat + .eg-stat{ border-left:1px solid var(--eg-line); padding-left:26px; }
+
+/* ---------- PERKS → asymmetric BENTO ---------- */
+.elite-perks-list.elite-bento{
+  display:grid !important; grid-template-columns:1fr 1fr !important; gap:12px !important;
+  grid-auto-flow:dense; margin:6px 0 24px !important;
+}
+.elite-bento .elite-perk-card{
+  position:relative; flex-direction:column !important; align-items:flex-start !important; gap:10px !important;
+  padding:18px !important; border-radius:20px !important; min-height:120px; overflow:hidden;
+  background:linear-gradient(160deg, var(--eg-obs-3), var(--eg-obs-2)) !important;
+  border:1px solid var(--eg-line) !important;
+  transition:transform .3s cubic-bezier(.22,1,.36,1), border-color .3s, box-shadow .3s !important;
+}
+.elite-bento .elite-perk-card:hover{ transform:translateY(-4px); border-color:var(--eg-line-2) !important; box-shadow:0 22px 44px -22px rgba(232,192,116,.4); }
+.elite-bento .elite-perk-card.b-big{ grid-row:span 2; min-height:252px; }
+.elite-bento .elite-perk-card.b-wide{ grid-column:span 2; }
+/* gold corner accent */
+.elite-bento .elite-perk-card::before{
+  content:''; position:absolute; top:0; right:0; width:60px; height:60px; pointer-events:none;
+  background:radial-gradient(circle at top right, color-mix(in srgb, var(--perk-accent,#e8c074) 30%, transparent), transparent 70%);
+}
+.elite-bento .elite-perk-card::after{ display:none; } /* old shimmer off in bento */
+.elite-bento .elite-perk-icon{
+  width:46px !important; height:46px !important; border-radius:13px !important;
+  background:linear-gradient(135deg, color-mix(in srgb,var(--perk-accent,#e8c074) 30%, var(--eg-obs-3)), var(--eg-obs-2)) !important;
+  border:1px solid color-mix(in srgb,var(--perk-accent,#e8c074) 40%, transparent) !important;
+  box-shadow:none !important;
+}
+.elite-bento .elite-perk-icon .material-symbols-outlined{ color:var(--perk-accent,#e8c074) !important; }
+.elite-bento .elite-perk-name{ font-family:var(--eg-display) !important; font-size:18px !important; color:#f3ead2 !important; font-weight:600 !important; }
+.elite-bento .elite-perk-check{ display:none !important; }
+/* big tile-এ live badge preview */
+.eg-badge-preview{
+  margin-top:auto; display:flex; align-items:center; gap:9px; padding:10px 12px; border-radius:14px; width:100%;
+  background:rgba(0,0,0,.35); border:1px solid var(--eg-line);
+}
+.eg-badge-preview .eg-mini-av{ width:34px; height:34px; border-radius:50%; background:var(--eg-obs-3); border:2px solid var(--eg-gold-deep); display:flex; align-items:center; justify-content:center; color:var(--eg-gold); font-weight:800; font-size:13px; }
+.eg-badge-preview .eg-mini-name{ font-size:13px; font-weight:700; color:#f3ead2; display:flex; align-items:center; gap:5px; }
+.eg-badge-preview .eg-crown{ font-size:16px; animation:egCrown 2.4s ease-in-out infinite; }
+/* wide tile-এ mini meters */
+.eg-meters{ margin-top:auto; width:100%; display:flex; flex-direction:column; gap:7px; }
+.eg-meter{ height:6px; border-radius:6px; background:rgba(232,192,116,.12); overflow:hidden; }
+.eg-meter > i{ display:block; height:100%; border-radius:6px; background:var(--eg-foil); background-size:200% 100%; animation:egFoilMove 5s linear infinite, egGrow 1.4s cubic-bezier(.22,1,.36,1) backwards; }
+
+/* ---------- FINAL STEP → certificate frame ---------- */
+#app-step-3, #app-step-4{ padding:24px 22px 40px !important; }
+#app-step-3 > *, #app-step-4 > *{ position:relative; }
+#app-step-3::before, #app-step-4::before{
+  content:''; position:absolute; inset:14px; border:1px solid var(--eg-line-2); border-radius:22px; pointer-events:none;
+  -webkit-mask:linear-gradient(#000,#000) content-box, linear-gradient(#000,#000); /* frame only via padding trick below */
+}
+.eg-cert{
+  position:relative; margin:8px 0 22px; padding:30px 24px; border-radius:22px;
+  background:linear-gradient(160deg, var(--eg-obs-3), var(--eg-obs));
+  border:1px solid var(--eg-line-2); overflow:hidden;
+  box-shadow:0 30px 60px -30px rgba(0,0,0,.8), inset 0 1px 0 rgba(247,224,166,.12);
+}
+.eg-cert::before{ /* corner flourishes */
+  content:''; position:absolute; inset:10px; border:1px solid var(--eg-line); border-radius:16px; pointer-events:none;
+}
+.eg-cert .eg-seal{
+  width:64px; height:64px; margin:0 auto 14px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+  background:conic-gradient(from 0deg, var(--eg-gold-deep), var(--eg-gold-bright), var(--eg-gold-deep));
+  box-shadow:0 8px 22px -6px rgba(232,192,116,.5);
+}
+.eg-cert .eg-seal .material-symbols-outlined{ color:var(--eg-obs); font-size:30px; font-variation-settings:'FILL' 1; }
+
+/* ---------- buttons → gold ---------- */
+#elite-app-modal .elite-cta-btn,
+#elite-app-modal .btn-primary,
+#elite-app-modal button[onclick*="nextAppStep"]{
+  position:relative; overflow:hidden; border:none !important; cursor:pointer;
+  background:var(--eg-foil) !important; background-size:200% auto !important;
+  color:#241a06 !important; font-family:var(--eg-body) !important; font-weight:800 !important; letter-spacing:.4px !important;
+  border-radius:999px !important; padding:16px 26px !important;
+  box-shadow:0 14px 34px -12px rgba(232,192,116,.6), inset 0 1px 0 rgba(255,255,255,.4) !important;
+  transition:transform .25s cubic-bezier(.34,1.56,.64,1), box-shadow .3s, background-position .6s !important;
+  animation:egFoilMove 6s linear infinite;
+}
+#elite-app-modal .elite-cta-btn:hover,
+#elite-app-modal .btn-primary:hover{ transform:translateY(-2px); background-position:right center; box-shadow:0 20px 44px -12px rgba(232,192,116,.75); }
+#elite-app-modal .elite-cta-btn:active,
+#elite-app-modal .btn-primary:active{ transform:scale(.96); }
+/* outline / secondary buttons */
+#elite-app-modal button[onclick*="prev"], #elite-app-modal .btn-outline{
+  background:transparent !important; border:1px solid var(--eg-line-2) !important; color:var(--eg-gold) !important;
+  border-radius:999px !important;
+}
+
+/* inputs (application step) */
+#elite-app-modal input, #elite-app-modal textarea, #elite-app-modal select{
+  background:var(--eg-obs-2) !important; border:1px solid var(--eg-line-2) !important; color:#f3ead2 !important;
+  border-radius:14px !important; font-family:var(--eg-body) !important;
+}
+#elite-app-modal input:focus, #elite-app-modal textarea:focus{ border-color:var(--eg-gold) !important; box-shadow:0 0 0 3px rgba(232,192,116,.16) !important; outline:none !important; }
+
+/* scroll reveal */
+.eg-reveal{ opacity:0; transform:translateY(18px); transition:opacity .6s ease, transform .6s cubic-bezier(.22,1,.36,1); }
+.eg-reveal.in{ opacity:1; transform:none; }
+
+@keyframes egSpin{ to{ transform:rotate(360deg); } }
+@keyframes egFoilMove{ to{ background-position:200% center; } }
+@keyframes egFloat{ 0%{ transform:translateY(0) scale(.5); opacity:0; } 12%{ opacity:.8; } 88%{ opacity:.5; } 100%{ transform:translateY(-96vh) scale(1.1); opacity:0; } }
+@keyframes egRise{ from{ opacity:0; transform:translateY(20px); } to{ opacity:1; transform:none; } }
+@keyframes egCrown{ 0%,100%{ transform:translateY(0) rotate(-4deg); } 50%{ transform:translateY(-2px) rotate(4deg); } }
+@keyframes egGrow{ from{ width:0 !important; } }
 </style>
 
 <style>
@@ -4460,6 +4723,33 @@ body.notifications-mode #page-notifications > div:first-child {
   </div>
 </div>
 
+<!-- 🚀 NEW: Login Activity Screen -->
+<div id="login-activity-screen" style="display:none; position:fixed; inset:0; background:var(--bg); z-index:10005; flex-direction:column; overflow-y:auto; animation:slideUp 0.3s ease;">
+    <div class="chat-topbar" style="position:sticky; top:0; z-index:100; display:flex; align-items:center; gap:12px;">
+        <div class="chat-back" onclick="closeLoginActivity()"><span class="material-symbols-outlined">arrow_back</span></div>
+        <div style="font-weight:800; font-size:18px;">Login Activity</div>
+    </div>
+    
+    <div style="padding: 24px 20px;">
+        <div style="text-align:center; margin-bottom:20px;">
+            <div style="width:64px; height:64px; background:rgba(16, 185, 129, 0.1); border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 12px;">
+                <i class="ph-fill ph-shield-check" style="font-size:36px; color:#10b981;"></i>
+            </div>
+            <p style="font-size:14px; color:var(--text-secondary); line-height:1.6;">Review the devices that are currently logged into your account. If you don't recognize a device, log it out immediately.</p>
+        </div>
+        
+        <button class="btn-primary" style="background:var(--danger); width:100%; margin-bottom: 24px; box-shadow:0 6px 15px rgba(255, 77, 106, 0.2);" onclick="revokeAllOtherSessions()">
+            <i class="ph-bold ph-sign-out" style="font-size:18px;"></i> Log Out of All Devices
+        </button>
+
+        <div style="font-size:13px; font-weight:800; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:12px;">Recent Sessions</div>
+        
+        <div id="login-sessions-list" style="display:flex; flex-direction:column; gap:10px;">
+            <!-- জাভাস্ক্রিপ্ট দিয়ে লিস্ট এখানে আসবে -->
+        </div>
+    </div>
+</div>
+
 <div id="blocked-accounts-screen" style="display:none; position:fixed; inset:0; background:var(--bg); z-index:10005; flex-direction:column; overflow-y:auto; animation:slideUp 0.3s ease;">
     <div class="chat-topbar" style="position:sticky; top:0; z-index:100; display:flex; align-items:center; gap:12px;">
         <div class="chat-back" onclick="closeBlockedAccountsPage()"><span class="material-symbols-outlined">arrow_back</span></div>
@@ -4583,6 +4873,186 @@ return false;
 }
 lastActionTime = now;
 return true;
+}
+
+// --- 🚀 NEW: Device & Location Tracker (Security Guard) ---
+function getDeviceFingerprint() {
+    const ua = navigator.userAgent;
+    let browser = "Unknown Browser", os = "Unknown OS";
+    
+    if (ua.includes("Firefox")) browser = "Firefox";
+    else if (ua.includes("SamsungBrowser")) browser = "Samsung Browser";
+    else if (ua.includes("Opera") || ua.includes("OPR")) browser = "Opera";
+    else if (ua.includes("Edge") || ua.includes("Edg")) browser = "Edge";
+    else if (ua.includes("Chrome")) browser = "Chrome";
+    else if (ua.includes("Safari")) browser = "Safari";
+    
+    if (ua.includes("Win")) os = "Windows";
+    else if (ua.includes("Mac")) os = "MacOS";
+    else if (ua.includes("Android")) os = "Android";
+    else if (ua.includes("Linux")) os = "Linux";
+    else if (ua.includes("iPhone") || ua.includes("iPad")) os = "iOS";
+    
+    return { string: `${browser} on ${os}` };
+}
+
+async function checkAndAlertNewSession() {
+    if (!currentUser || !currentUserData) return;
+    
+    try {
+        const deviceInfo = getDeviceFingerprint();
+        let locationStr = "Unknown Location";
+        
+        // ফ্রিতে লোকেশন/সিটি বের করার জন্য API (Error handle করা আছে)
+        try {
+            const res = await fetch('https://ipapi.co/json/');
+            const locData = await res.json();
+            if(locData.city) locationStr = `${locData.city}, ${locData.country_name}`;
+        } catch(e) {}
+
+        // ডিভাইস চেনার জন্য ছোট আইডি তৈরি
+        const sessionString = `${deviceInfo.string} - ${locationStr}`;
+        const deviceId = btoa(deviceInfo.string).substring(0, 15); 
+        
+        let knownDevices = currentUserData.knownDevices || [];
+        
+        // 🚀 যদি ডিভাইসটি অচেনা হয় (প্রথমবার লগইন করে)
+        if (!knownDevices.includes(deviceId)) {
+            knownDevices.push(deviceId);
+            await db.collection('users').doc(currentUser.uid).update({
+                knownDevices: knownDevices
+            });
+            
+            // 🚨 ইমার্জেন্সি সিকিউরিটি নোটিফিকেশন পাঠানো
+            await db.collection('notifications').add({
+                toUid: currentUser.uid,
+                fromUid: 'system',
+                fromName: 'Security Guard',
+                type: 'security_alert',
+                alertMsg: `New login from ${deviceInfo.string}, ${locationStr}. If this wasn't you, secure your account now.`,
+                read: false,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        }
+        
+        // Login History সেভ করা
+        db.collection('users').doc(currentUser.uid).collection('loginHistory').add({
+            deviceInfo: sessionString,
+            time: firebase.firestore.FieldValue.serverTimestamp(),
+            status: 'success'
+        });
+
+    } catch (e) {
+        console.error("Security Check Failed:", e);
+    }
+}
+
+// 🛡️ "It wasn't me" বাটনের কাজ
+async function handleCompromisedAccount(notifId) {
+    if(!confirm("Are you sure? This will lock your account, sign you out, and send a password reset email immediately!")) return;
+    
+    try {
+        showToast("Securing account...");
+        // ১. নোটিফিকেশন হাইড করা
+        await db.collection('notifications').doc(notifId).update({ read: true });
+        
+        // ২. সিকিউরিটি রিসেট ইমেইল পাঠানো
+        await auth.sendPasswordResetEmail(currentUser.email);
+        
+        // ৩. অ্যাকাউন্ট সাময়িক ফ্রিজ বা লগআউট ফ্ল্যাগ দেওয়া (সব ডিভাইস থেকে কিক আউট করার জন্য)
+        await db.collection('users').doc(currentUser.uid).update({
+            sessionRevokedAt: Date.now()
+        });
+        
+        showToast("Password reset email sent! Logging out...");
+        
+        // ৪. লগআউট
+        setTimeout(() => {
+            auth.signOut().then(() => window.location.reload());
+        }, 2500);
+
+    } catch(e) {
+        showToast("Error securing account!");
+    }
+}
+
+// 🚀 Login Activity Logic
+function openLoginActivity() {
+    document.getElementById('login-activity-screen').style.display = 'flex';
+    loadLoginSessions();
+}
+
+function closeLoginActivity() {
+    document.getElementById('login-activity-screen').style.display = 'none';
+}
+
+async function loadLoginSessions() {
+    const list = document.getElementById('login-sessions-list');
+    list.innerHTML = '<div class="loading"><span class="material-symbols-outlined">autorenew</span> Loading...</div>';
+    
+    try {
+        const snap = await db.collection('users').doc(currentUser.uid).collection('loginHistory').orderBy('time', 'desc').limit(15).get();
+        
+        if(snap.empty) {
+            list.innerHTML = '<div class="empty-feed">No recent activity found.</div>';
+            return;
+        }
+        
+        let html = '';
+        snap.forEach(doc => {
+            const data = doc.data();
+            const timeStr = data.time ? getRelativeTime(data.time) : 'Just now';
+            const info = data.deviceInfo || 'Unknown Device';
+            
+            // উইন্ডোজ/ম্যাক হলে পিসির আইকন, নইলে মোবাইলের আইকন
+            const isDesktop = info.toLowerCase().includes('windows') || info.toLowerCase().includes('mac');
+            const icon = isDesktop ? 'ph-desktop' : 'ph-device-mobile';
+            const iconColor = data.status === 'success' ? '#10b981' : 'var(--danger)'; // সাকসেস হলে সবুজ, ফেইল হলে লাল
+            
+            html += `
+            <div style="background:var(--surface-2); padding:16px; border-radius:16px; border:1px solid var(--border); display:flex; align-items:center; gap:14px;">
+                <div style="width:44px; height:44px; border-radius:50%; background:rgba(124, 92, 255, 0.1); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                    <i class="ph-fill ${icon}" style="font-size:24px; color:${iconColor};"></i>
+                </div>
+                <div style="flex:1; min-width:0;">
+                    <div style="font-weight:800; font-size:15px; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHTML(info)}</div>
+                    <div style="font-size:12px; color:var(--text-muted); margin-top:4px; font-weight:600;">${timeStr} ${data.status === 'success' ? '<span style="color:#10b981;">• Logged In</span>' : '<span style="color:var(--danger);">• Blocked</span>'}</div>
+                </div>
+                <button style="background:rgba(255, 77, 106, 0.1); color:var(--danger); border:1px solid var(--danger); border-radius:8px; padding:6px 12px; font-weight:800; font-size:12px; cursor:pointer;" onclick="revokeSingleSession('${doc.id}')">Remove</button>
+            </div>`;
+        });
+        list.innerHTML = html;
+    } catch(e) {
+        list.innerHTML = '<div class="empty-feed">Error loading activity.</div>';
+    }
+}
+
+async function revokeSingleSession(sessionId) {
+    if(!confirm("Remove this device from history?")) return;
+    try {
+        await db.collection('users').doc(currentUser.uid).collection('loginHistory').doc(sessionId).delete();
+        showToast("Session removed!");
+        loadLoginSessions(); // রিফ্রেশ লিস্ট
+    } catch(e) {}
+}
+
+async function revokeAllOtherSessions() {
+    if(!confirm("Are you sure you want to log out from ALL devices? You will be signed out from everywhere.")) return;
+    showToast("Securing account...");
+    try {
+        // টাইমস্ট্যাম্প আপডেট করে দিলে অন্যান্য ডিভাইসের সেশন ইনভ্যালিড হয়ে যাবে
+        await db.collection('users').doc(currentUser.uid).update({
+            sessionRevokedAt: Date.now()
+        });
+        showToast("Logged out of all devices!");
+        
+        // নিজেকেও সিকিউরিটি চেক হিসেবে লগআউট করানো যায়, তবে এখন শুধু অ্যালার্ট দিচ্ছি
+        setTimeout(() => {
+            window.location.reload();
+        }, 1500);
+    } catch(e) {
+        showToast("Failed to secure account.");
+    }
 }
 
 async function uploadToCloudinary(file,isVideo=false){
@@ -5251,6 +5721,8 @@ if(doc.exists){
 currentUserData=doc.data();
 // --- LOCKDOWN CHECK ---
 if (currentUserData.isBanned) {
+// 🚀 Security Guard Session Scanner Call
+checkAndAlertNewSession();
     document.body.innerHTML = `
         <div style="height:100vh; display:flex; flex-direction:column; justify-content:center; align-items:center; background:#1a1a2e; color:white; font-family:sans-serif; text-align:center; padding: 20px;">
             <span class="material-symbols-outlined" style="font-size: 80px; color: #ff4d6a; margin-bottom: 20px;">gavel</span>
@@ -5300,7 +5772,23 @@ nList.innerHTML = notifs.map(data => {
     else if(data.type === 'tag') textDesc = 'tagged you in a post'; // নতুন লাইন যোগ করা হলো
     const safeName = escapeHTML(data.fromName);
 
-    
+        // 🚨 Security Alert Logic
+    let extraButtonHtml = '';
+    if (data.type === 'security_alert') {
+        textDesc = data.alertMsg || 'Unrecognized login detected!';
+        iconHtml = 'warning';
+        iconColor = '#ff4d6a'; // লাল রঙ
+        onClickAction = ''; // সিকিউরিটি অ্যালার্টে ক্লিকে কোথাও যাবে না
+        
+        // 🛡️ It wasn't me Button
+        extraButtonHtml = `
+        <div style="margin-top: 10px;">
+            <button style="background:rgba(255, 77, 106, 0.1); color:var(--danger); border:1px solid var(--danger); padding:6px 12px; font-size:12px; font-weight:800; border-radius:8px; display:inline-flex; align-items:center; gap:4px; cursor:pointer;" onclick="event.stopPropagation(); handleCompromisedAccount('${data.id}')">
+                <span class="material-symbols-outlined" style="font-size:16px;">gpp_bad</span> It wasn't me
+            </button>
+        </div>`;
+    }
+
     // নতুন ম্যাজিক: ক্লিক করলে কী হবে তার লজিক
     let onClickAction = `db.collection('notifications').doc('${data.id}').update({read:true});`;
     if (data.postId) {
@@ -5317,9 +5805,10 @@ nList.innerHTML = notifs.map(data => {
 
     return `<div class="notif-item ${!data.read ? 'unread' : ''}" onclick="if(typeof isNotifEditMode !== 'undefined' && isNotifEditMode){toggleNotifSelection('${data.id}');}else{${onClickAction}}">
         <div class="avatar sm">${avatarInitial(data.fromName)}</div>
-        <div class="notif-text">
+                <div class="fb-notif-content">
             <strong>${safeName}</strong> ${textDesc}
-            <div class="notif-time">${getRelativeTime(data.createdAt)}</div>
+            ${extraButtonHtml}
+            <div class="fb-notif-time">${getRelativeTime(data.createdAt)}</div>
         </div>
         <input type="checkbox" class="notif-checkbox" id="notif-cb-${data.id}" ${isChecked ? 'checked' : ''} style="display:${displayCb}; pointer-events:none; width:22px; height:22px; accent-color:var(--danger);">
     </div>`;
@@ -12935,6 +13424,218 @@ function buildGridPostCardHTML(p) {
       window[fn].__lxWrapped = true;
     }
   });
+})();
+// ═══════════════════════════════════════════════════════
+// 🎨 NEW DESIGN  ·  elite-obsidian-gold  ·  2026-08-02
+// font + ambient + progress sync + bento reflow + hero + reveals
+// কোনো বাটন/লজিক মুছে না → nextAppStep/CTA/WhatsApp অক্ষত
+// খুঁজতে:  Ctrl+F → "elite-obsidian-gold"
+// ═══════════════════════════════════════════════════════
+(function eliteObsidianGold(){
+
+  // ১. ফন্ট (luxury serif + readable body)
+  if(!document.getElementById('eg-fonts')){
+    const l = document.createElement('link');
+    l.id = 'eg-fonts'; l.rel = 'stylesheet';
+    l.href = 'https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,500;0,6..96,600;1,6..96,500&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap';
+    document.head.appendChild(l);
+  }
+
+  const TOTAL_STEPS = 3;
+  const modal = () => document.getElementById('elite-app-modal');
+
+  // ২. ambient layers (একবার)
+  function buildAmbient(m){
+    if(m.querySelector('.eg-particles')) return;
+    const spot = document.createElement('div'); spot.className = 'eg-spotlight';
+    const p = document.createElement('div'); p.className = 'eg-particles';
+    let h = '';
+    for(let i=0;i<22;i++){
+      const s = 2 + Math.random()*4;
+      h += `<i style="width:${s}px;height:${s}px;left:${Math.random()*100}%;animation-duration:${10+Math.random()*12}s;animation-delay:${Math.random()*10}s;"></i>`;
+    }
+    p.innerHTML = h;
+    m.insertBefore(spot, m.firstChild);
+    m.insertBefore(p, m.firstChild);
+  }
+
+  // ৩. কাস্টম গোল্ড প্রোগ্রেস রেল + nextAppStep sync
+  function buildRail(m){
+    const panel = m.querySelector(':scope > div');
+    if(!panel || panel.querySelector('.eg-rail')) return;
+    const rail = document.createElement('div'); rail.className = 'eg-rail';
+    rail.innerHTML = '<i></i>';
+    panel.insertBefore(rail, panel.firstChild);
+  }
+  function syncRail(){
+    const m = modal(); if(!m) return;
+    const fill = m.querySelector('.eg-rail > i'); if(!fill) return;
+    let active = 1;
+    for(let n=1;n<=TOTAL_STEPS;n++){
+      const s = document.getElementById('app-step-'+n);
+      if(s && getComputedStyle(s).display !== 'none') active = n;
+    }
+    fill.style.width = Math.round((active/TOTAL_STEPS)*100) + '%';
+  }
+  function hookNextStep(){
+    if(typeof window.nextAppStep === 'function' && !window.nextAppStep.__egWrapped){
+      const o = window.nextAppStep;
+      window.nextAppStep = function(...a){ const r = o.apply(this,a); setTimeout(()=>{ syncRail(); revealScan(); }, 70); return r; };
+      window.nextAppStep.__egWrapped = true;
+    }
+  }
+
+  // ৪. HERO embellish (step 1) — insert only, text না মুছে
+  function buildHero(m){
+    const s1 = document.getElementById('app-step-1');
+    if(!s1 || s1.dataset.egHero) return; s1.dataset.egHero = '1';
+    const crest = document.createElement('div');
+    crest.className = 'eg-crest';
+    crest.innerHTML = `<span class="eg-mono">G</span><span class="eg-laurel">🏅</span>`;
+    const eyebrow = document.createElement('div');
+    eyebrow.className = 'eg-eyebrow';
+    eyebrow.textContent = 'By Invitation Only';
+    const sub = document.createElement('p');
+    sub.className = 'eg-hero-sub';
+    sub.textContent = 'A private tier for those who create, lead and shine. Unlock the gold standard of GoChat — badge, presence and reach reserved for the few.';
+    const stats = document.createElement('div');
+    stats.className = 'eg-stats';
+    stats.innerHTML = `
+      <div class="eg-stat"><b data-count="2400">0</b><span>Elite Members</span></div>
+      <div class="eg-stat"><b data-count="5">0</b><span>Premium Perks</span></div>
+      <div class="eg-stat"><b>24/7</b><span>Priority</span></div>`;
+    // existing first heading → hero-h + foil accent line
+    const firstH = s1.querySelector('h1,h2,h3,.modal-title');
+    if(firstH){
+      firstH.classList.add('eg-hero-h');
+      const txt = firstH.textContent.trim();
+      const parts = txt.split(/\s+/);
+      if(parts.length > 1){
+        const last = parts.pop();
+        firstH.innerHTML = escapeHTMLSafe(parts.join(' ')) + ' <span class="eg-foil">' + escapeHTMLSafe(last) + '</span>';
+      }
+    }
+    // inject order: eyebrow, crest, (heading already there), sub, stats
+    s1.insertBefore(eyebrow, s1.firstChild);
+    s1.insertBefore(crest, firstH || s1.firstChild);
+    if(firstH) firstH.insertAdjacentElement('afterend', sub);
+    s1.appendChild(stats);
+    countUp(stats);
+  }
+  function escapeHTMLSafe(s){ return (s||'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+  // ৫. PERKS → bento reflow (static modal = safe)
+  function buildBento(m){
+    const list = m.querySelector('.elite-perks-list');
+    if(!list || list.classList.contains('elite-bento')) return;
+    const cards = [...list.querySelectorAll('.elite-perk-card')];
+    if(cards.length < 3) return;
+    list.classList.add('elite-bento');
+    const sizeClass = ['b-big','','','b-wide','b-wide']; // asymmetric
+    cards.forEach((c,i)=>{
+      c.classList.add(sizeClass[i] || '');
+      c.classList.add('eg-reveal');
+      // big tile (Elite Badge) → live badge preview
+      if(i === 0 && !c.querySelector('.eg-badge-preview')){
+        const me = (window.currentUserData && currentUserData.name) ? currentUserData.name : 'You';
+        const ini = me.trim().charAt(0).toUpperCase();
+        const pv = document.createElement('div');
+        pv.className = 'eg-badge-preview';
+        pv.innerHTML = `<div class="eg-mini-av">${escapeHTMLSafe(ini)}</div>
+          <div class="eg-mini-name">${escapeHTMLSafe(me)} <span class="eg-crown">👑</span></div>`;
+        c.appendChild(pv);
+      }
+      // wide tiles → mini meters
+      if((i === 3 || i === 4) && !c.querySelector('.eg-meters')){
+        const vals = i === 3 ? [92,78] : [88,64,95];
+        const mt = document.createElement('div'); mt.className = 'eg-meters';
+        mt.innerHTML = vals.map((v,k)=>`<div class="eg-meter"><i style="width:${v}%;animation-delay:${k*0.12}s"></i></div>`).join('');
+        c.appendChild(mt);
+      }
+    });
+  }
+
+  // ৬. FINAL step → certificate wrap (একবার)
+  function buildCert(m){
+    const fin = document.getElementById('app-step-3') || document.getElementById('app-step-4');
+    if(!fin || fin.dataset.egCert) return; fin.dataset.egCert = '1';
+    const frame = document.createElement('div'); frame.className = 'eg-cert eg-reveal';
+    frame.innerHTML = `<div class="eg-seal"><span class="material-symbols-outlined">workspace_premium</span></div>
+      <div style="text-align:center;font-family:var(--eg-display);font-size:13px;letter-spacing:3px;text-transform:uppercase;color:var(--eg-gold);">Certificate of Elite Access</div>`;
+    fin.insertBefore(frame, fin.firstChild);
+  }
+
+  // ৭. magnetic + reveal + countup
+  function magnetize(m){
+    m.querySelectorAll('.elite-cta-btn, .btn-primary, button[onclick*="nextAppStep"]').forEach(btn=>{
+      if(btn.dataset.egMag) return; btn.dataset.egMag = '1';
+      btn.addEventListener('pointermove', e=>{
+        const r = btn.getBoundingClientRect();
+        const x = (e.clientX - r.left - r.width/2) * 0.18;
+        const y = (e.clientY - r.top - r.height/2) * 0.25;
+        btn.style.transform = `translate(${x}px,${y}px)`;
+      });
+      btn.addEventListener('pointerleave', ()=> btn.style.transform = '');
+    });
+  }
+  function revealScan(){
+    const m = modal(); if(!m) return;
+    m.querySelectorAll('.eg-reveal:not(.in)').forEach(el=>{
+      const r = el.getBoundingClientRect();
+      if(r.top < (window.innerHeight - 40)) el.classList.add('in');
+    });
+  }
+  function countUp(scope){
+    scope.querySelectorAll('[data-count]').forEach(el=>{
+      const target = parseInt(el.dataset.count,10); const dur = 1200; const t0 = performance.now();
+      const tick = t => {
+        const p = Math.min((t - t0)/dur, 1);
+        const eased = 1 - Math.pow(1-p, 3);
+        el.textContent = Math.round(target*eased).toLocaleString() + (target>=1000?'+':'');
+        if(p<1) requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    });
+  }
+
+  // ---------- master ----------
+  function enhance(){
+    const m = modal();
+    if(!m || getComputedStyle(m).display === 'none') return;
+    buildAmbient(m);
+    buildRail(m);
+    hookNextStep();
+    buildHero(m);
+    buildBento(m);
+    buildCert(m);
+    magnetize(m);
+    syncRail();
+    // reveal: যেগুলো ভিউপোর্টে আছে এখনই দেখাও
+    requestAnimationFrame(()=>{ revealScan(); setTimeout(revealScan, 300); });
+  }
+
+  // open hook (display none→flex ধরে)
+  (function observeOpen(){
+    let last = 'none';
+    const tick = ()=>{
+      const m = modal(); if(!m) return;
+      const d = getComputedStyle(m).display;
+      if(d !== 'none' && last === 'none') setTimeout(enhance, 60);
+      last = d;
+    };
+    setInterval(tick, 250);
+    if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', tick); else tick();
+  })();
+
+  // scroll reveal (modal panel স্ক্রল হলে)
+  setInterval(()=>{
+    const m = modal(); if(!m) return;
+    const panel = m.querySelector(':scope > div');
+    if(panel && !panel.dataset.egScroll){
+      panel.dataset.egScroll = '1';
+      panel.addEventListener('scroll', revealScan, { passive:true });
+    }
+  }, 600);
 })();
 </script>
 </body>
