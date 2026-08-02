@@ -2668,6 +2668,21 @@ NESTED ACTIVITY CATEGORIES STYLES
     </div>
 </div>
 
+<!-- 🚨 NEW: Security Alert Modal -->
+<div class="modal-overlay" id="security-alert-modal" style="z-index: 100010;">
+    <div class="modal-box" style="text-align: center; max-width: 320px;">
+        <span class="material-symbols-outlined" style="font-size: 50px; color: var(--danger); margin-bottom: 15px;">gpp_maybe</span>
+        <div class="modal-title" style="font-size: 20px; margin-bottom: 10px;">New Login Detected!</div>
+        <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px; line-height: 1.5;" id="security-alert-text">
+            A new login was detected from a new device.
+        </p>
+        <div style="display: flex; gap: 12px; justify-content: center;">
+            <button class="btn-outline" style="flex: 1; border: none; background: var(--surface-2); color: var(--text);" onclick="document.getElementById('security-alert-modal').classList.remove('open')">It was me</button>
+            <button class="btn-primary" style="flex: 1; background: var(--danger); box-shadow: 0 4px 15px rgba(255, 68, 68, 0.3);" onclick="handleCompromisedAccountGlobal()">Secure Account</button>
+        </div>
+    </div>
+</div>
+
 <div class="modal-overlay" id="login-success-modal" style="z-index: 10007;">
     <div class="modal-box" style="text-align: center; max-width: 320px; padding: 30px 20px;">
         <div style="width: 80px; height: 80px; background: linear-gradient(135deg, var(--success), #2ecc71); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px auto; box-shadow: 0 4px 20px rgba(46, 204, 113, 0.4); animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;">
@@ -5310,19 +5325,15 @@ async function checkAndAlertNewSession() {
         // 🚀 যদি ডিভাইসটি অচেনা হয় (প্রথমবার লগইন করে)
         if (!knownDevices.includes(deviceId)) {
             knownDevices.push(deviceId);
-            await db.collection('users').doc(currentUser.uid).update({
-                knownDevices: knownDevices
-            });
             
-            // 🚨 ইমার্জেন্সি সিকিউরিটি নোটিফিকেশন পাঠানো
-            await db.collection('notifications').add({
-                toUid: currentUser.uid,
-                fromUid: 'system',
-                fromName: 'Security Guard',
-                type: 'security_alert',
-                alertMsg: `New login from ${deviceInfo.string}, ${locationStr}. If this wasn't you, secure your account now.`,
-                read: false,
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            // নোটিফিকেশনের বদলে ইউজারের প্রোফাইলে গ্লোবাল অ্যালার্ট সেট করা হলো
+            await db.collection('users').doc(currentUser.uid).update({
+                knownDevices: knownDevices,
+                newLoginAlert: {
+                    deviceInfo: deviceInfo.string,
+                    location: locationStr,
+                    time: Date.now()
+                }
             });
         }
         
@@ -5430,17 +5441,35 @@ async function revokeSingleSession(sessionId) {
 async function revokeAllOtherSessions() {
     if(!confirm("Are you sure you want to log out from ALL devices? You will be signed out from everywhere.")) return;
     showToast("Securing account...");
+    
     try {
-        // টাইমস্ট্যাম্প আপডেট করে দিলে অন্যান্য ডিভাইসের সেশন ইনভ্যালিড হয়ে যাবে
+        // ১. টাইমস্ট্যাম্প আপডেট করে অন্যান্য ডিভাইসের সেশন ইনভ্যালিড করে দেওয়া
         await db.collection('users').doc(currentUser.uid).update({
-            sessionRevokedAt: Date.now()
+            sessionRevokedAt: Date.now(),
+            knownDevices: [] // সব সেভ করা ডিভাইস রিমুভ করা
         });
+        
+        // ২. ডাটাবেস থেকে ইউজারের সমস্ত লগইন হিস্ট্রি/সেশন ডিলিট করা
+        const sessionsRef = db.collection('users').doc(currentUser.uid).collection('loginHistory');
+        const snap = await sessionsRef.get();
+        
+        if (!snap.empty) {
+            const batch = db.batch();
+            snap.forEach(doc => batch.delete(doc.ref));
+            await batch.commit();
+        }
+        
         showToast("Logged out of all devices!");
         
-        // নিজেকেও সিকিউরিটি চেক হিসেবে লগআউট করানো যায়, তবে এখন শুধু অ্যালার্ট দিচ্ছি
+        // লিস্ট সাথে সাথে ফাঁকা দেখানোর জন্য
+        const list = document.getElementById('login-sessions-list');
+        if (list) list.innerHTML = '<div class="empty-feed">No recent activity found.</div>';
+        
+        // নিজেকেও সিকিউরিটি চেক হিসেবে লগআউট করানো
         setTimeout(() => {
-            window.location.reload();
+            auth.signOut().then(() => window.location.reload());
         }, 1500);
+        
     } catch(e) {
         showToast("Failed to secure account.");
     }
@@ -6118,8 +6147,42 @@ loadUserUI(); loadFeed(); loadMessages(); loadStories(); cleanupExpiredPosts(); 
 db.collection('users').doc(user.uid).onSnapshot(doc=>{
 if(doc.exists){
 currentUserData=doc.data();
+
+// 🚀 NEW: Remote Kill Switch (অন্য ডিভাইস থেকে কিক আউট করার ম্যাজিক)
+if (currentUserData.sessionRevokedAt) {
+    let myLoginTime = parseInt(sessionStorage.getItem('my_login_time') || "0");
+    
+    // ব্রাউজারে প্রথমবার ঢুকলে সেশন টাইম সেট করা
+    if (myLoginTime === 0) {
+        myLoginTime = Date.now();
+        sessionStorage.setItem('my_login_time', myLoginTime);
+    }
+    
+    // যদি ডাটাবেসের লগআউট কমান্ডটি এই ডিভাইসের লগইন করার সময়ের পরে আসে, তারমানে কিক আউট!
+    if (currentUserData.sessionRevokedAt > myLoginTime) {
+        firebase.auth().signOut().then(() => {
+            alert("Security Alert: You have been signed out from all devices.");
+            window.location.reload();
+        });
+        return; // কিক আউটের পর আর কোনো কোড রান করবে না
+    }
+}
+
+// 🚨 NEW: Security Popup Alert (নতুন ডিভাইসে লগইন হলে পপ-আপ আসবে)
+if (currentUserData.newLoginAlert) {
+    let lastAlertTime = sessionStorage.getItem('last_security_alert');
+    // যদি এই অ্যালার্টটি এই ডিভাইসে আগে না দেখানো হয়ে থাকে, তবেই দেখাবে
+    if (lastAlertTime != currentUserData.newLoginAlert.time) {
+        document.getElementById('security-alert-text').innerHTML = `We noticed a new login from <b style="color:var(--text);">${escapeHTML(currentUserData.newLoginAlert.deviceInfo)}</b> near ${escapeHTML(currentUserData.newLoginAlert.location)}.<br><br>If this wasn't you, secure your account immediately.`;
+        document.getElementById('security-alert-modal').classList.add('open');
+        sessionStorage.setItem('last_security_alert', currentUserData.newLoginAlert.time);
+    }
+}
+
 // --- LOCKDOWN CHECK ---
 if (currentUserData.isBanned) {
+// 🚀 Security Guard Session Scanner Call
+checkAndAlertNewSession();
     document.body.innerHTML = `
         <div style="height:100vh; display:flex; flex-direction:column; justify-content:center; align-items:center; background:#1a1a2e; color:white; font-family:sans-serif; text-align:center; padding: 20px;">
             <span class="material-symbols-outlined" style="font-size: 80px; color: #ff4d6a; margin-bottom: 20px;">gavel</span>
@@ -14642,6 +14705,23 @@ function exportCurrentChat() {
     `;
 
     document.body.appendChild(exportModal);
+}
+// 🛡️ গ্লোবাল সিকিউরিটি অ্যালার্ট বাটন
+async function handleCompromisedAccountGlobal() {
+    if(!confirm("Are you sure? This will lock your account, sign you out, and send a password reset email immediately!")) return;
+    document.getElementById('security-alert-modal').classList.remove('open');
+    showToast("Securing account...");
+    
+    try {
+        await auth.sendPasswordResetEmail(currentUser.email);
+        await db.collection('users').doc(currentUser.uid).update({
+            sessionRevokedAt: Date.now()
+        });
+        showToast("Password reset email sent! Logging out...");
+        setTimeout(() => { auth.signOut().then(() => window.location.reload()); }, 2500);
+    } catch(e) {
+        showToast("Error securing account!");
+    }
 }
 </script>
 </body>
