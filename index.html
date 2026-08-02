@@ -2668,21 +2668,6 @@ NESTED ACTIVITY CATEGORIES STYLES
     </div>
 </div>
 
-<!-- 🚨 NEW: Security Alert Modal -->
-<div class="modal-overlay" id="security-alert-modal" style="z-index: 100010;">
-    <div class="modal-box" style="text-align: center; max-width: 320px;">
-        <span class="material-symbols-outlined" style="font-size: 50px; color: var(--danger); margin-bottom: 15px;">gpp_maybe</span>
-        <div class="modal-title" style="font-size: 20px; margin-bottom: 10px;">New Login Detected!</div>
-        <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px; line-height: 1.5;" id="security-alert-text">
-            A new login was detected from a new device.
-        </p>
-        <div style="display: flex; gap: 12px; justify-content: center;">
-            <button class="btn-outline" style="flex: 1; border: none; background: var(--surface-2); color: var(--text);" onclick="document.getElementById('security-alert-modal').classList.remove('open')">It was me</button>
-            <button class="btn-primary" style="flex: 1; background: var(--danger); box-shadow: 0 4px 15px rgba(255, 68, 68, 0.3);" onclick="handleCompromisedAccountGlobal()">Secure Account</button>
-        </div>
-    </div>
-</div>
-
 <div class="modal-overlay" id="login-success-modal" style="z-index: 10007;">
     <div class="modal-box" style="text-align: center; max-width: 320px; padding: 30px 20px;">
         <div style="width: 80px; height: 80px; background: linear-gradient(135deg, var(--success), #2ecc71); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px auto; box-shadow: 0 4px 20px rgba(46, 204, 113, 0.4); animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;">
@@ -2817,15 +2802,6 @@ NESTED ACTIVITY CATEGORIES STYLES
                     <div style="display:flex; align-items:center; gap:16px;">
                         <i class="ph-bold ph-at" style="font-size: 24px; color: #3b82f6;"></i>
                         <span style="font-weight:600; font-size:15px;">Username</span>
-                    </div>
-                    <i class="ph-bold ph-caret-right" style="color:var(--text-muted); font-size:16px;"></i>
-                </div>
-
-                <!-- 🚀 NEW: Login Activity Menu Item -->
-                <div class="settings-list-item" onclick="openLoginActivity()">
-                    <div style="display:flex; align-items:center; gap:16px;">
-                        <i class="ph-bold ph-devices" style="font-size: 24px; color: #10b981;"></i>
-                        <span style="font-weight:600; font-size:15px;">Login Activity</span>
                     </div>
                     <i class="ph-bold ph-caret-right" style="color:var(--text-muted); font-size:16px;"></i>
                 </div>
@@ -5070,33 +5046,6 @@ body.notifications-mode #page-notifications > div:first-child {
   </div>
 </div>
 
-<!-- 🚀 NEW: Login Activity Screen -->
-<div id="login-activity-screen" style="display:none; position:fixed; inset:0; background:var(--bg); z-index:10005; flex-direction:column; overflow-y:auto; animation:slideUp 0.3s ease;">
-    <div class="chat-topbar" style="position:sticky; top:0; z-index:100; display:flex; align-items:center; gap:12px;">
-        <div class="chat-back" onclick="closeLoginActivity()"><span class="material-symbols-outlined">arrow_back</span></div>
-        <div style="font-weight:800; font-size:18px;">Login Activity</div>
-    </div>
-    
-    <div style="padding: 24px 20px;">
-        <div style="text-align:center; margin-bottom:20px;">
-            <div style="width:64px; height:64px; background:rgba(16, 185, 129, 0.1); border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 12px;">
-                <i class="ph-fill ph-shield-check" style="font-size:36px; color:#10b981;"></i>
-            </div>
-            <p style="font-size:14px; color:var(--text-secondary); line-height:1.6;">Review the devices that are currently logged into your account. If you don't recognize a device, log it out immediately.</p>
-        </div>
-        
-        <button class="btn-primary" style="background:var(--danger); width:100%; margin-bottom: 24px; box-shadow:0 6px 15px rgba(255, 77, 106, 0.2);" onclick="revokeAllOtherSessions()">
-            <i class="ph-bold ph-sign-out" style="font-size:18px;"></i> Log Out of All Devices
-        </button>
-
-        <div style="font-size:13px; font-weight:800; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:12px;">Recent Sessions</div>
-        
-        <div id="login-sessions-list" style="display:flex; flex-direction:column; gap:10px;">
-            <!-- জাভাস্ক্রিপ্ট দিয়ে লিস্ট এখানে আসবে -->
-        </div>
-    </div>
-</div>
-
 <div id="blocked-accounts-screen" style="display:none; position:fixed; inset:0; background:var(--bg); z-index:10005; flex-direction:column; overflow-y:auto; animation:slideUp 0.3s ease;">
     <div class="chat-topbar" style="position:sticky; top:0; z-index:100; display:flex; align-items:center; gap:12px;">
         <div class="chat-back" onclick="closeBlockedAccountsPage()"><span class="material-symbols-outlined">arrow_back</span></div>
@@ -5275,204 +5224,6 @@ return false;
 }
 lastActionTime = now;
 return true;
-}
-
-// --- 🚀 NEW: Device & Location Tracker (Security Guard) ---
-function getDeviceFingerprint() {
-    const ua = navigator.userAgent;
-    let browser = "Unknown Browser", os = "Unknown OS";
-    
-    if (ua.includes("Firefox")) browser = "Firefox";
-    else if (ua.includes("SamsungBrowser")) browser = "Samsung Browser";
-    else if (ua.includes("Opera") || ua.includes("OPR")) browser = "Opera";
-    else if (ua.includes("Edge") || ua.includes("Edg")) browser = "Edge";
-    else if (ua.includes("Chrome")) browser = "Chrome";
-    else if (ua.includes("Safari")) browser = "Safari";
-    
-    if (ua.includes("Win")) os = "Windows";
-    else if (ua.includes("Mac")) os = "MacOS";
-    else if (ua.includes("Android")) os = "Android";
-    else if (ua.includes("Linux")) os = "Linux";
-    else if (ua.includes("iPhone") || ua.includes("iPad")) os = "iOS";
-    
-    return { string: `${browser} on ${os}` };
-}
-
-async function checkAndAlertNewSession() {
-    if (!currentUser || !currentUserData) return;
-    
-    // 🚀 NEW: শুধু একবার হিস্ট্রি সেভ করবে (রিফ্রেশ দিলে বারবার ডাটাবেস ভরবে না)
-    if (sessionStorage.getItem('session_tracked')) return;
-    sessionStorage.setItem('session_tracked', 'true');
-    
-    try {
-        const deviceInfo = getDeviceFingerprint();
-        let locationStr = "Unknown Location";
-        
-        // ফ্রিতে লোকেশন/সিটি বের করার জন্য API (Error handle করা আছে)
-        try {
-            const res = await fetch('https://ipapi.co/json/');
-            const locData = await res.json();
-            if(locData.city) locationStr = `${locData.city}, ${locData.country_name}`;
-        } catch(e) {}
-
-        // ডিভাইস চেনার জন্য ছোট আইডি তৈরি
-        const sessionString = `${deviceInfo.string} - ${locationStr}`;
-        const deviceId = btoa(deviceInfo.string).substring(0, 15); 
-        
-        let knownDevices = currentUserData.knownDevices || [];
-        
-        // 🚀 যদি ডিভাইসটি অচেনা হয় (প্রথমবার লগইন করে)
-        if (!knownDevices.includes(deviceId)) {
-            knownDevices.push(deviceId);
-            
-            // নোটিফিকেশনের বদলে ইউজারের প্রোফাইলে গ্লোবাল অ্যালার্ট সেট করা হলো
-            await db.collection('users').doc(currentUser.uid).update({
-                knownDevices: knownDevices,
-                newLoginAlert: {
-                    deviceInfo: deviceInfo.string,
-                    location: locationStr,
-                    time: Date.now()
-                }
-            });
-        }
-        
-        // Login History সেভ করা
-        db.collection('users').doc(currentUser.uid).collection('loginHistory').add({
-            deviceInfo: sessionString,
-            time: firebase.firestore.FieldValue.serverTimestamp(),
-            status: 'success'
-        });
-
-    } catch (e) {
-        console.error("Security Check Failed:", e);
-    }
-}
-
-// 🛡️ "It wasn't me" বাটনের কাজ
-async function handleCompromisedAccount(notifId) {
-    if(!confirm("Are you sure? This will lock your account, sign you out, and send a password reset email immediately!")) return;
-    
-    try {
-        showToast("Securing account...");
-        // ১. নোটিফিকেশন হাইড করা
-        await db.collection('notifications').doc(notifId).update({ read: true });
-        
-        // ২. সিকিউরিটি রিসেট ইমেইল পাঠানো
-        await auth.sendPasswordResetEmail(currentUser.email);
-        
-        // ৩. অ্যাকাউন্ট সাময়িক ফ্রিজ বা লগআউট ফ্ল্যাগ দেওয়া (সব ডিভাইস থেকে কিক আউট করার জন্য)
-        await db.collection('users').doc(currentUser.uid).update({
-            sessionRevokedAt: Date.now()
-        });
-        
-        showToast("Password reset email sent! Logging out...");
-        
-        // ৪. লগআউট
-        setTimeout(() => {
-            auth.signOut().then(() => window.location.reload());
-        }, 2500);
-
-    } catch(e) {
-        showToast("Error securing account!");
-    }
-}
-
-// 🚀 Login Activity Logic
-function openLoginActivity() {
-    document.getElementById('login-activity-screen').style.display = 'flex';
-    loadLoginSessions();
-}
-
-function closeLoginActivity() {
-    document.getElementById('login-activity-screen').style.display = 'none';
-}
-
-async function loadLoginSessions() {
-    const list = document.getElementById('login-sessions-list');
-    list.innerHTML = '<div class="loading"><span class="material-symbols-outlined">autorenew</span> Loading...</div>';
-    
-    try {
-        const snap = await db.collection('users').doc(currentUser.uid).collection('loginHistory').orderBy('time', 'desc').limit(15).get();
-        
-        if(snap.empty) {
-            list.innerHTML = '<div class="empty-feed">No recent activity found.</div>';
-            return;
-        }
-        
-        let html = '';
-        snap.forEach(doc => {
-            const data = doc.data();
-            const timeStr = data.time ? getRelativeTime(data.time) : 'Just now';
-            const info = data.deviceInfo || 'Unknown Device';
-            
-            // উইন্ডোজ/ম্যাক হলে পিসির আইকন, নইলে মোবাইলের আইকন
-            const isDesktop = info.toLowerCase().includes('windows') || info.toLowerCase().includes('mac');
-            const icon = isDesktop ? 'ph-desktop' : 'ph-device-mobile';
-            const iconColor = data.status === 'success' ? '#10b981' : 'var(--danger)'; // সাকসেস হলে সবুজ, ফেইল হলে লাল
-            
-            html += `
-            <div style="background:var(--surface-2); padding:16px; border-radius:16px; border:1px solid var(--border); display:flex; align-items:center; gap:14px;">
-                <div style="width:44px; height:44px; border-radius:50%; background:rgba(124, 92, 255, 0.1); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
-                    <i class="ph-fill ${icon}" style="font-size:24px; color:${iconColor};"></i>
-                </div>
-                <div style="flex:1; min-width:0;">
-                    <div style="font-weight:800; font-size:15px; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHTML(info)}</div>
-                    <div style="font-size:12px; color:var(--text-muted); margin-top:4px; font-weight:600;">${timeStr} ${data.status === 'success' ? '<span style="color:#10b981;">• Logged In</span>' : '<span style="color:var(--danger);">• Blocked</span>'}</div>
-                </div>
-                <button style="background:rgba(255, 77, 106, 0.1); color:var(--danger); border:1px solid var(--danger); border-radius:8px; padding:6px 12px; font-weight:800; font-size:12px; cursor:pointer;" onclick="revokeSingleSession('${doc.id}')">Remove</button>
-            </div>`;
-        });
-        list.innerHTML = html;
-    } catch(e) {
-        list.innerHTML = '<div class="empty-feed">Error loading activity.</div>';
-    }
-}
-
-async function revokeSingleSession(sessionId) {
-    if(!confirm("Remove this device from history?")) return;
-    try {
-        await db.collection('users').doc(currentUser.uid).collection('loginHistory').doc(sessionId).delete();
-        showToast("Session removed!");
-        loadLoginSessions(); // রিফ্রেশ লিস্ট
-    } catch(e) {}
-}
-
-async function revokeAllOtherSessions() {
-    if(!confirm("Are you sure you want to log out from ALL devices? You will be signed out from everywhere.")) return;
-    showToast("Securing account...");
-    
-    try {
-        // ১. টাইমস্ট্যাম্প আপডেট করে অন্যান্য ডিভাইসের সেশন ইনভ্যালিড করে দেওয়া
-        await db.collection('users').doc(currentUser.uid).update({
-            sessionRevokedAt: Date.now(),
-            knownDevices: [] // সব সেভ করা ডিভাইস রিমুভ করা
-        });
-        
-        // ২. ডাটাবেস থেকে ইউজারের সমস্ত লগইন হিস্ট্রি/সেশন ডিলিট করা
-        const sessionsRef = db.collection('users').doc(currentUser.uid).collection('loginHistory');
-        const snap = await sessionsRef.get();
-        
-        if (!snap.empty) {
-            const batch = db.batch();
-            snap.forEach(doc => batch.delete(doc.ref));
-            await batch.commit();
-        }
-        
-        showToast("Logged out of all devices!");
-        
-        // লিস্ট সাথে সাথে ফাঁকা দেখানোর জন্য
-        const list = document.getElementById('login-sessions-list');
-        if (list) list.innerHTML = '<div class="empty-feed">No recent activity found.</div>';
-        
-        // নিজেকেও সিকিউরিটি চেক হিসেবে লগআউট করানো
-        setTimeout(() => {
-            auth.signOut().then(() => window.location.reload());
-        }, 1500);
-        
-    } catch(e) {
-        showToast("Failed to secure account.");
-    }
 }
 
 async function uploadToCloudinary(file,isVideo=false){
@@ -6017,16 +5768,13 @@ document.getElementById('app-screen').style.display='block';
 // 🚀 ম্যাক্সিমাম ১.৫ সেকেন্ডের একটা টাইমার, যাতে ডাটাবেস স্লো থাকলেও অ্যাপ আটকে না থাকে
 const splashFallbackTimer = setTimeout(removeSplash, 1500);
 
-    try{
-    const snap=await db.collection('users').doc(user.uid).get();
-    currentUserData=snap.exists?snap.data():{name:user.email.split('@')[0],email:user.email};
-    }catch(e){currentUserData={name:user.email.split('@')[0],email:user.email};}
+try{
+const snap=await db.collection('users').doc(user.uid).get();
+currentUserData=snap.exists?snap.data():{name:user.email.split('@')[0],email:user.email};
+}catch(e){currentUserData={name:user.email.split('@')[0],email:user.email};}
 
-    // 🚀 NEW: Security Guard কল করা হলো (যাতে লগইন হিস্ট্রি ও নোটিফিকেশন কাজ করে)
-    checkAndAlertNewSession();
-
-    // 🚀 ডাটাবেস লোড হয়ে গেলে টাইমার ক্যানসেল করে সাথে সাথেই স্প্ল্যাশ সরিয়ে দেবে
-    clearTimeout(splashFallbackTimer);
+// 🚀 ডাটাবেস লোড হয়ে গেলে টাইমার ক্যানসেল করে সাথে সাথেই স্প্ল্যাশ সরিয়ে দেবে
+clearTimeout(splashFallbackTimer);
 removeSplash();
 cleanupPrivateChatsOnLoad(); 
 
@@ -6147,42 +5895,8 @@ loadUserUI(); loadFeed(); loadMessages(); loadStories(); cleanupExpiredPosts(); 
 db.collection('users').doc(user.uid).onSnapshot(doc=>{
 if(doc.exists){
 currentUserData=doc.data();
-
-// 🚀 NEW: Remote Kill Switch (অন্য ডিভাইস থেকে কিক আউট করার ম্যাজিক)
-if (currentUserData.sessionRevokedAt) {
-    let myLoginTime = parseInt(sessionStorage.getItem('my_login_time') || "0");
-    
-    // ব্রাউজারে প্রথমবার ঢুকলে সেশন টাইম সেট করা
-    if (myLoginTime === 0) {
-        myLoginTime = Date.now();
-        sessionStorage.setItem('my_login_time', myLoginTime);
-    }
-    
-    // যদি ডাটাবেসের লগআউট কমান্ডটি এই ডিভাইসের লগইন করার সময়ের পরে আসে, তারমানে কিক আউট!
-    if (currentUserData.sessionRevokedAt > myLoginTime) {
-        firebase.auth().signOut().then(() => {
-            alert("Security Alert: You have been signed out from all devices.");
-            window.location.reload();
-        });
-        return; // কিক আউটের পর আর কোনো কোড রান করবে না
-    }
-}
-
-// 🚨 NEW: Security Popup Alert (নতুন ডিভাইসে লগইন হলে পপ-আপ আসবে)
-if (currentUserData.newLoginAlert) {
-    let lastAlertTime = sessionStorage.getItem('last_security_alert');
-    // যদি এই অ্যালার্টটি এই ডিভাইসে আগে না দেখানো হয়ে থাকে, তবেই দেখাবে
-    if (lastAlertTime != currentUserData.newLoginAlert.time) {
-        document.getElementById('security-alert-text').innerHTML = `We noticed a new login from <b style="color:var(--text);">${escapeHTML(currentUserData.newLoginAlert.deviceInfo)}</b> near ${escapeHTML(currentUserData.newLoginAlert.location)}.<br><br>If this wasn't you, secure your account immediately.`;
-        document.getElementById('security-alert-modal').classList.add('open');
-        sessionStorage.setItem('last_security_alert', currentUserData.newLoginAlert.time);
-    }
-}
-
 // --- LOCKDOWN CHECK ---
 if (currentUserData.isBanned) {
-// 🚀 Security Guard Session Scanner Call
-checkAndAlertNewSession();
     document.body.innerHTML = `
         <div style="height:100vh; display:flex; flex-direction:column; justify-content:center; align-items:center; background:#1a1a2e; color:white; font-family:sans-serif; text-align:center; padding: 20px;">
             <span class="material-symbols-outlined" style="font-size: 80px; color: #ff4d6a; margin-bottom: 20px;">gavel</span>
@@ -6205,85 +5919,78 @@ else{fBadge.style.display='none';}
 }
 }
 });
-notifUnsub=db.collection('notifications').where('toUid','==',user.uid).onSnapshot(async nSnap=>{
-    // 🚀 NEW: নিশ্চিত করা যে ইউজারের ডেটাবেস আগে লোড হয়েছে
+notifUnsub = db.collection('notifications').where('toUid', '==', user.uid).onSnapshot(async nSnap => {
     if (!allUsersCache) await fetchAllUsers();
-    let notifs=nSnap.docs.map(nd=>({id:nd.id,...nd.data()}));
-notifs.sort((a,b)=>{
-const ta=a.createdAt?.toMillis?a.createdAt.toMillis():0;
-const tb=b.createdAt?.toMillis?b.createdAt.toMillis():0;
-return tb-ta;
-});
+    
+    let notifs = [];
+    nSnap.forEach(doc => {
+        notifs.push({ id: doc.id, ...doc.data() });
+    });
 
-const unreadNotif=notifs.filter(nd=>nd.read===false).length;
-const nBadge=document.getElementById('notif-badge');
-if(nBadge){
-if(unreadNotif>0){nBadge.textContent=unreadNotif;nBadge.style.display='flex';}
-else{nBadge.style.display='none';}
-}
+    // সময় অনুযায়ী সাজানো (সবচেয়ে নতুনটা সবার ওপরে)
+    notifs.sort((a, b) => {
+        const ta = a.createdAt?.toMillis ? a.createdAt.toMillis() : (a.createdAt?.seconds ? a.createdAt.seconds * 1000 : 0);
+        const tb = b.createdAt?.toMillis ? b.createdAt.toMillis() : (b.createdAt?.seconds ? b.createdAt.seconds * 1000 : 0);
+        return tb - ta;
+    });
 
-const nList=document.getElementById('notifications-list');
-if(!nList)return;
-if(notifs.length===0){nList.innerHTML='<div class="empty-feed">No notifications yet</div>';return;}
-
-nList.innerHTML = notifs.map(data => {
-    let textDesc = 'interacted with you';
-    if(data.type === 'like') textDesc = 'liked your post';
-    else if(data.type === 'comment') textDesc = 'commented on your post';
-    else if(data.type === 'follow') textDesc = 'started following you';
-    else if(data.type === 'tag') textDesc = 'tagged you in a post'; // নতুন লাইন যোগ করা হলো
-    const safeName = escapeHTML(data.fromName);
-
-        // 🚨 Security Alert Logic
-    let extraButtonHtml = '';
-    if (data.type === 'security_alert') {
-        textDesc = data.alertMsg || 'Unrecognized login detected!';
-        iconHtml = 'warning';
-        iconColor = '#ff4d6a'; // লাল রঙ
-        onClickAction = ''; // সিকিউরিটি অ্যালার্টে ক্লিকে কোথাও যাবে না
-        
-        // 🛡️ It wasn't me Button
-        extraButtonHtml = `
-        <div style="margin-top: 10px;">
-            <button style="background:rgba(255, 77, 106, 0.1); color:var(--danger); border:1px solid var(--danger); padding:6px 12px; font-size:12px; font-weight:800; border-radius:8px; display:inline-flex; align-items:center; gap:4px; cursor:pointer;" onclick="event.stopPropagation(); handleCompromisedAccount('${data.id}')">
-                <span class="material-symbols-outlined" style="font-size:16px;">gpp_bad</span> It wasn't me
-            </button>
-        </div>`;
-    }
-
-    // নতুন ম্যাজিক: ক্লিক করলে কী হবে তার লজিক
-    let onClickAction = `db.collection('notifications').doc('${data.id}').update({read:true});`;
-    if (data.postId) {
-        // লাইক বা কমেন্ট হলে সরাসরি ওই পোস্ট ওপেন হবে
-        onClickAction += ` openSinglePostView('${data.postId}');`;
-    } else if (data.type === 'friend_request' || data.type === 'request_accepted') {
-        // ফ্রেন্ড রিকোয়েস্ট হলে ফ্রেন্ডস পেজে নিয়ে যাবে
-        onClickAction += ` showPage('friends');`; 
-    }
-
-    // 🚀 Checkbox UI included, cross icon removed
-    const isChecked = typeof selectedNotifs !== 'undefined' && selectedNotifs.includes(data.id);
-    const displayCb = typeof isNotifEditMode !== 'undefined' && isNotifEditMode ? 'block' : 'none';
-
-        // 🚀 NEW: ইউজারের আসল প্রোফাইল পিকচার বের করা
-    let userAvatarHtml = avatarInitial(data.fromName);
-    if (allUsersCache) {
-        const senderData = allUsersCache.find(u => u.id === data.fromUid);
-        if (senderData && senderData.avatar) {
-            userAvatarHtml = `<img src="${escapeHTML(senderData.avatar)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
+    const unreadNotif = notifs.filter(nd => nd.read === false).length;
+    const nBadge = document.getElementById('notif-badge');
+    if (nBadge) {
+        if (unreadNotif > 0) {
+            nBadge.textContent = unreadNotif;
+            nBadge.style.display = 'flex';
+        } else {
+            nBadge.style.display = 'none';
         }
     }
 
-    return `<div class="notif-item ${!data.read ? 'unread' : ''}" onclick="if(typeof isNotifEditMode !== 'undefined' && isNotifEditMode){toggleNotifSelection('${data.id}');}else{${onClickAction}}">
-        <div class="avatar sm">${userAvatarHtml}</div>
-                <div class="fb-notif-content">
-            <strong>${safeName}</strong> ${textDesc}
-            ${extraButtonHtml}
-            <div class="fb-notif-time">${getRelativeTime(data.createdAt)}</div>
-        </div>
-        <input type="checkbox" class="notif-checkbox" id="notif-cb-${data.id}" ${isChecked ? 'checked' : ''} style="display:${displayCb}; pointer-events:none; width:22px; height:22px; accent-color:var(--danger);">
-    </div>`;
-}).join('');
+    const nList = document.getElementById('notifications-list');
+    if (!nList) return;
+    
+    if (notifs.length === 0) {
+        nList.innerHTML = '<div class="empty-feed">No notifications yet</div>';
+        return;
+    }
+
+    nList.innerHTML = notifs.map(data => {
+        let textDesc = 'interacted with you';
+        if (data.type === 'like') textDesc = 'liked your post';
+        else if (data.type === 'comment') textDesc = 'commented on your post';
+        else if (data.type === 'follow') textDesc = 'started following you';
+        else if (data.type === 'tag') textDesc = 'tagged you in a post';
+        
+        const safeName = escapeHTML(data.fromName || 'Someone');
+        
+        // ক্লিক করলে কী হবে
+        let onClickAction = `db.collection('notifications').doc('${data.id}').update({read:true});`;
+        if (data.postId) {
+            onClickAction += ` openSinglePostView('${data.postId}');`;
+        } else if (data.type === 'friend_request' || data.type === 'request_accepted') {
+            onClickAction += ` showPage('friends');`;
+        }
+
+        const isChecked = typeof selectedNotifs !== 'undefined' && selectedNotifs.includes(data.id);
+        const displayCb = typeof isNotifEditMode !== 'undefined' && isNotifEditMode ? 'block' : 'none';
+
+        let userAvatarHtml = avatarInitial(data.fromName || 'U');
+        if (allUsersCache) {
+            const senderData = allUsersCache.find(u => u.id === data.fromUid);
+            if (senderData && senderData.avatar) {
+                userAvatarHtml = `<img src="${escapeHTML(senderData.avatar)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
+            }
+        }
+
+        return `
+        <div class="notif-item ${!data.read ? 'unread' : ''}" onclick="if(typeof isNotifEditMode !== 'undefined' && isNotifEditMode){toggleNotifSelection('${data.id}');}else{${onClickAction}}">
+            <div class="avatar sm">${userAvatarHtml}</div>
+            <div class="fb-notif-content" style="flex:1;">
+                <strong>${safeName}</strong> ${textDesc}
+                <div class="fb-notif-time">${getRelativeTime(data.createdAt)}</div>
+            </div>
+            <input type="checkbox" class="notif-checkbox" id="notif-cb-${data.id}" ${isChecked ? 'checked' : ''} style="display:${displayCb}; pointer-events:none; width:22px; height:22px; accent-color:var(--danger);">
+        </div>`;
+    }).join('');
 });
 }else{
 currentUser=null;currentUserData=null;
@@ -14705,23 +14412,6 @@ function exportCurrentChat() {
     `;
 
     document.body.appendChild(exportModal);
-}
-// 🛡️ গ্লোবাল সিকিউরিটি অ্যালার্ট বাটন
-async function handleCompromisedAccountGlobal() {
-    if(!confirm("Are you sure? This will lock your account, sign you out, and send a password reset email immediately!")) return;
-    document.getElementById('security-alert-modal').classList.remove('open');
-    showToast("Securing account...");
-    
-    try {
-        await auth.sendPasswordResetEmail(currentUser.email);
-        await db.collection('users').doc(currentUser.uid).update({
-            sessionRevokedAt: Date.now()
-        });
-        showToast("Password reset email sent! Logging out...");
-        setTimeout(() => { auth.signOut().then(() => window.location.reload()); }, 2500);
-    } catch(e) {
-        showToast("Error securing account!");
-    }
 }
 </script>
 </body>
