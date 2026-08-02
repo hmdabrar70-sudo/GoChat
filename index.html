@@ -6131,8 +6131,10 @@ else{fBadge.style.display='none';}
 }
 }
 });
-notifUnsub=db.collection('notifications').where('toUid','==',user.uid).onSnapshot(nSnap=>{
-let notifs=nSnap.docs.map(nd=>({id:nd.id,...nd.data()}));
+notifUnsub=db.collection('notifications').where('toUid','==',user.uid).onSnapshot(async nSnap=>{
+    // 🚀 NEW: নিশ্চিত করা যে ইউজারের ডেটাবেস আগে লোড হয়েছে
+    if (!allUsersCache) await fetchAllUsers();
+    let notifs=nSnap.docs.map(nd=>({id:nd.id,...nd.data()}));
 notifs.sort((a,b)=>{
 const ta=a.createdAt?.toMillis?a.createdAt.toMillis():0;
 const tb=b.createdAt?.toMillis?b.createdAt.toMillis():0;
@@ -6189,8 +6191,17 @@ nList.innerHTML = notifs.map(data => {
     const isChecked = typeof selectedNotifs !== 'undefined' && selectedNotifs.includes(data.id);
     const displayCb = typeof isNotifEditMode !== 'undefined' && isNotifEditMode ? 'block' : 'none';
 
+        // 🚀 NEW: ইউজারের আসল প্রোফাইল পিকচার বের করা
+    let userAvatarHtml = avatarInitial(data.fromName);
+    if (allUsersCache) {
+        const senderData = allUsersCache.find(u => u.id === data.fromUid);
+        if (senderData && senderData.avatar) {
+            userAvatarHtml = `<img src="${escapeHTML(senderData.avatar)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
+        }
+    }
+
     return `<div class="notif-item ${!data.read ? 'unread' : ''}" onclick="if(typeof isNotifEditMode !== 'undefined' && isNotifEditMode){toggleNotifSelection('${data.id}');}else{${onClickAction}}">
-        <div class="avatar sm">${avatarInitial(data.fromName)}</div>
+        <div class="avatar sm">${userAvatarHtml}</div>
                 <div class="fb-notif-content">
             <strong>${safeName}</strong> ${textDesc}
             ${extraButtonHtml}
@@ -7223,15 +7234,26 @@ async function openCommentPanel(pid) {
             const dislikeIcon = hasDisliked ? 'ph-fill ph-thumbs-down' : 'ph-bold ph-thumbs-down';
             const dislikeColor = hasDisliked ? 'color:var(--accent);' : 'color:var(--text-muted);';
 
+                        // 🚀 NEW: কমেন্ট করা ইউজারের প্রোফাইল পিকচার বের করা
+            let commentAvHtml = avatarInitial(c.name);
+            if (allUsersCache) {
+                const commentUser = allUsersCache.find(u => u.id === c.uid);
+                if (commentUser && commentUser.avatar) {
+                    commentAvHtml = `<img src="${escapeHTML(commentUser.avatar)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
+                }
+            }
+
             // 🚀 কমেন্টে ইমেজ থাকলে সেটা দেখানোর লজিক
             const commentImageHtml = c.imageUrl ? `<img src="${escapeHTML(c.imageUrl)}" style="width:100%; max-width:250px; border-radius:12px; margin-top:8px; cursor:pointer; box-shadow:var(--shadow-sm);" onclick="openImageZoom('${escapeHTML(c.imageUrl)}')">` : '';
 
-            return `<div class="comment-item" ondblclick="showCommentActions('${pid}', ${idx}, '${c.uid}')">
-                <div class="comment-author" style="cursor:pointer;" onclick="closeCommentPanel(); viewUserProfile('${c.uid}')">${safeCName}</div>
-                ${safeCText ? `<div style="margin-top:4px;">${safeCText}</div>` : ''}
-                ${commentImageHtml}
-                
-                <div style="display:flex; gap:18px; margin-top:10px; align-items:center;">
+            return `<div class="comment-item" style="display:flex; gap:12px; max-width:95%;" ondblclick="showCommentActions('${pid}', ${idx}, '${c.uid}')">
+                <div class="avatar sm" style="flex-shrink:0; cursor:pointer;" onclick="closeCommentPanel(); viewUserProfile('${c.uid}')">${commentAvHtml}</div>
+                <div style="flex:1; min-width:0;">
+                    <div class="comment-author" style="cursor:pointer; margin-bottom:2px;" onclick="closeCommentPanel(); viewUserProfile('${c.uid}')">${safeCName}</div>
+                    ${safeCText ? `<div style="margin-top:2px;">${safeCText}</div>` : ''}
+                    ${commentImageHtml}
+                    
+                    <div style="display:flex; gap:18px; margin-top:10px; align-items:center;">
                     <div style="display:flex; align-items:center; gap:6px; cursor:pointer; transition:0.2s; ${likeColor}" onclick="toggleCommentReaction('${pid}', ${idx}, 'like')">
                         <i class="${likeIcon}" style="font-size:18px;"></i> 
                         <span style="font-size:13px; font-weight:800;">${c.likes || 0}</span>
