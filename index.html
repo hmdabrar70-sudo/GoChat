@@ -2146,6 +2146,12 @@ NESTED ACTIVITY CATEGORIES STYLES
     <div class="chat-topbar" style="position:sticky;top:0;z-index:100;">
         <div class="chat-back" onclick="closeUserProfile()"><span class="material-symbols-outlined">arrow_back</span></div>
         <div class="chat-name" id="other-profile-top-name" style="margin-left:8px;">Profile</div>
+        
+        <!-- 🚀 NEW: Other User QR Button -->
+        <div class="icon-btn" onclick="openOtherUserQR()" style="background:var(--surface-2);padding:8px;border:none;margin-right:8px;color:var(--text);">
+            <i class="ph-bold ph-qr-code" style="font-size:20px;"></i>
+        </div>
+
         <div class="icon-btn" onclick="event.stopPropagation();toggleProfileMenu()" style="background:var(--surface-2);padding:8px;border:none;position:relative;">
             <span class="material-symbols-outlined">more_vert</span>
             <div class="profile-menu" id="profile-menu" onclick="event.stopPropagation();">
@@ -2740,6 +2746,15 @@ NESTED ACTIVITY CATEGORIES STYLES
                     <div style="display:flex; align-items:center; gap:16px;">
                         <i class="ph-bold ph-user-circle" style="font-size: 24px;"></i>
                         <span style="font-weight:600; font-size:15px;">Account info</span>
+                    </div>
+                    <i class="ph-bold ph-caret-right" style="color:var(--text-muted); font-size:16px;"></i>
+                </div>
+
+                <!-- 🚀 NEW: My QR Card Menu Item -->
+                <div class="settings-list-item" onclick="closeMainSettingsScreen(); closeMainMenu(); openQRCodeModal();">
+                    <div style="display:flex; align-items:center; gap:16px;">
+                        <i class="ph-bold ph-qr-code" style="font-size: 24px; color: var(--accent);"></i>
+                        <span style="font-weight:600; font-size:15px;">My QR Card</span>
                     </div>
                     <i class="ph-bold ph-caret-right" style="color:var(--text-muted); font-size:16px;"></i>
                 </div>
@@ -13835,19 +13850,15 @@ function buildGridPostCardHTML(p) {
   setInterval(loop, 300);   // modal re-render / open হলে নিজে থেকেই ঠিক করবে
 })();
 // ═══════════════════════════════════════════════════════
-// 🚀 NEW FEATURE  ·  profile-qr-namecard  ·  2026-08-02
-// QR generate + name card + download/share/copy + scan
-// সব global-এ qrnc- prefix (name-collision মুক্ত)
-// inject-only → HTML/ফাংশন অক্ষত · deep-link reuse
-// খুঁজতে:  Ctrl+F → "profile-qr-namecard"
+// 🚀 UPDATED FEATURE  ·  profile-qr-namecard (Fixed for Settings)
 // ═══════════════════════════════════════════════════════
 const QRNC_LIB_QR  = 'https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js';
 const QRNC_LIB_SCAN= 'https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js';
-const QRNC_LOGO    = '✦';                 // QR-এর মাঝে fallback glyph
+const QRNC_LOGO    = '✦';                 
 let qrncCurrentUid = null, qrncCurrentData = null, qrncScanStream = null, qrncScanRAF = null;
 const qrncScriptCache = {};
 
-/* ---------- dynamic script loader (cached + timeout) ---------- */
+/* ---------- dynamic script loader ---------- */
 function qrncLoadScript(url){
   if(qrncScriptCache[url]) return qrncScriptCache[url];
   qrncScriptCache[url] = new Promise((resolve, reject) => {
@@ -13861,15 +13872,13 @@ function qrncLoadScript(url){
   return qrncScriptCache[url];
 }
 
-/* ---------- profile link (copyProfileLink-এর সাথে consistent) ---------- */
 function qrncBase(){ return location.origin + location.pathname.replace(/\/+$/,''); }
 function qrncProfileLink(u){
   if(!u) return qrncBase();
-  const id = u.username || u.id;            // username priority (deep-link যেভাবে কাজ করে)
+  const id = u.username || u.id;            
   return qrncBase() + '/?user=' + encodeURIComponent(id);
 }
 
-/* ---------- data load (own / other) ---------- */
 async function qrncLoadUser(uid){
   if(currentUser && uid === currentUser.uid && typeof currentUserData !== 'undefined' && currentUserData){
     return Object.assign({ id: currentUser.uid }, currentUserData);
@@ -13882,9 +13891,8 @@ async function qrncLoadUser(uid){
   return { id: uid, name: 'User' };
 }
 
-/* ---------- QR matrix via qrcode-generator (EC=H → logo safe) ---------- */
 function qrncMakeMatrix(text){
-  const qr = qrcode(0, 'H');                // type 0 = auto version
+  const qr = qrcode(0, 'H');                
   qr.addData(text); qr.make();
   const n = qr.getModuleCount();
   const m = [];
@@ -13892,7 +13900,6 @@ function qrncMakeMatrix(text){
   return { m, n };
 }
 
-/* ---------- draw QR on a canvas (with center logo gap) ---------- */
 function qrncDrawQR(canvas, matrix, size, darkColor, logoImg){
   const { m, n } = matrix;
   const dpr = Math.min(window.devicePixelRatio || 1, 3);
@@ -13902,7 +13909,6 @@ function qrncDrawQR(canvas, matrix, size, darkColor, logoImg){
   ctx.scale(dpr, dpr);
   ctx.fillStyle = '#ffffff'; ctx.fillRect(0,0,size,size);
   const cell = size / n;
-  // center logo gap (≈ 23% → EC-H safe)
   const gapR = logoImg ? Math.floor(n * 0.135) : 0;
   const mid = (n - 1) / 2;
   ctx.fillStyle = darkColor || '#1c1a2e';
@@ -13910,7 +13916,6 @@ function qrncDrawQR(canvas, matrix, size, darkColor, logoImg){
     for(let c=0;c<n;c++){
       if(!m[r][c]) continue;
       if(gapR && Math.abs(r-mid) <= gapR && Math.abs(c-mid) <= gapR) continue;
-      // soft rounded modules
       const x = c*cell, y = r*cell;
       ctx.beginPath();
       ctx.roundRect ? ctx.roundRect(x+cell*0.08, y+cell*0.08, cell*0.84, cell*0.84, cell*0.22)
@@ -13918,7 +13923,6 @@ function qrncDrawQR(canvas, matrix, size, darkColor, logoImg){
       ctx.fill();
     }
   }
-  // center logo
   if(logoImg){
     const ls = cell * gapR * 1.7;
     const lx = (size - ls)/2, ly = (size - ls)/2;
@@ -13928,7 +13932,6 @@ function qrncDrawQR(canvas, matrix, size, darkColor, logoImg){
   }
 }
 
-/* ---------- image loader (crossOrigin for canvas-safe) ---------- */
 function qrncLoadImg(url){
   return new Promise(res => {
     if(!url){ res(null); return; }
@@ -13947,13 +13950,11 @@ async function qrncOpenCard(uid){
   const modal = document.getElementById('qrnc-modal');
   modal.style.display = 'flex';
 
-  // reset
   const frame = document.getElementById('qrnc-qr-frame');
   const oldC = frame.querySelector('canvas'); if(oldC) oldC.remove();
   const oldL = frame.querySelector('.qrnc-qr-logo'); if(oldL) oldL.remove();
   document.getElementById('qrnc-qr-loading').style.display = 'flex';
 
-  // populate identity
   const u = await qrncLoadUser(uid);
   qrncCurrentData = u;
   const safeName = escapeHTML(u.name || 'User');
@@ -13978,11 +13979,10 @@ async function qrncOpenCard(uid){
   const link = qrncProfileLink(u);
   document.getElementById('qrnc-url').textContent = link.replace(/^https?:\/\//,'');
 
-  // build QR
   try{
     await qrncLoadScript(QRNC_LIB_QR);
     const matrix = qrncMakeMatrix(link);
-    const logoImg = await qrncLoadImg(u.avatar);     // null হলে logo gap ছাড়া
+    const logoImg = await qrncLoadImg(u.avatar);     
     const canvas = document.createElement('canvas');
     qrncDrawQR(canvas, matrix, 200, '#1c1a2e', logoImg);
     document.getElementById('qrnc-qr-loading').style.display = 'none';
@@ -14000,7 +14000,6 @@ async function qrncOpenCard(uid){
 
 function qrncCloseCard(){ document.getElementById('qrnc-modal').style.display = 'none'; }
 
-/* ---------- COPY ---------- */
 function qrncCopy(){
   const link = qrncCurrentData ? qrncProfileLink(qrncCurrentData) : '';
   if(!link) return;
@@ -14017,7 +14016,7 @@ function qrncFallbackCopy(text, cb){
   document.body.removeChild(ta);
 }
 
-/* ---------- DOWNLOAD (canvas-drawn premium card, dependency-free) ---------- */
+/* ---------- DOWNLOAD ---------- */
 async function qrncDownload(){
   if(!qrncCurrentData) return;
   const u = qrncCurrentData;
@@ -14031,20 +14030,16 @@ async function qrncDownload(){
     const dpr = 2; cv.width = W*dpr; cv.height = H*dpr;
     const ctx = cv.getContext('2d'); ctx.scale(dpr, dpr);
 
-    // background
     ctx.fillStyle = '#0e0c15'; ctx.fillRect(0,0,W,H);
-    // top gradient header
     const g = ctx.createLinearGradient(0,0,W,420);
     g.addColorStop(0,'#5b3fd6'); g.addColorStop(.55,'#7c5cff'); g.addColorStop(1,'#c084fc');
     ctx.fillStyle = g; ctx.fillRect(0,0,W,440);
     ctx.fillStyle = 'rgba(255,255,255,.10)';
     ctx.beginPath(); ctx.arc(W-120,40,260,0,Math.PI*2); ctx.fill();
 
-    // brand
     ctx.fillStyle = 'rgba(255,255,255,.92)'; ctx.font = '700 30px system-ui, sans-serif';
     ctx.textBaseline = 'middle'; ctx.fillText('✦  GOCHAT', pad, 70);
 
-    // avatar
     const avImg = await qrncLoadImg(u.avatar);
     const avX = pad, avY = 300, avS = 180;
     ctx.save();
@@ -14056,22 +14051,18 @@ async function qrncDownload(){
     else { ctx.fillStyle='#7c5cff'; ctx.fill(); ctx.fillStyle='#fff'; ctx.font='800 70px system-ui'; ctx.textAlign='center'; ctx.fillText((u.name||'U').trim().charAt(0).toUpperCase(), avX+avS/2, avY+avS/2+4); ctx.textAlign='left'; }
     ctx.restore();
 
-    // name + username + bio (right of avatar, on header)
     ctx.textBaseline = 'alphabetic';
     ctx.fillStyle = '#ffffff'; ctx.font = '800 52px system-ui, sans-serif';
     const nameX = avX + avS + 36;
     ctx.fillText(qrncTruncate(ctx, u.name||'User', W - nameX - pad), nameX, 360);
     if(u.username){ ctx.fillStyle = 'rgba(255,255,255,.85)'; ctx.font = '700 30px monospace'; ctx.fillText('@'+u.username, nameX, 405); }
 
-    // white card body
     const by = 520;
     ctx.fillStyle = '#ffffff'; qrncRoundRect(ctx, pad, by, W-pad*2, H-by-pad, 36); ctx.fill();
 
-    // bio inside card
     let cy = by + 70;
     if(u.bio){ ctx.fillStyle = '#5b5870'; ctx.font = '500 30px system-ui, sans-serif'; cy = qrncWrap(ctx, u.bio, pad+50, cy, W-pad*2-100, 42, 2) + 24; }
 
-    // stats
     const fc = (u.followers&&u.followers.length)||0, fg = (u.following&&u.following.length)||0;
     if(fc || fg){
       ctx.fillStyle = '#1c1a2e'; ctx.font = '800 38px system-ui';
@@ -14083,26 +14074,21 @@ async function qrncDownload(){
       cy += 60;
     }
 
-    // QR panel
     const qpY = cy + 20, qpH = 460;
     ctx.fillStyle = '#f4f2fb'; qrncRoundRect(ctx, pad+40, qpY, W-pad*2-80, qpH, 28); ctx.fill();
-    // white qr box
     const qrSize = 320, qx = (W-qrSize)/2, qy = qpY + 36;
     ctx.fillStyle = '#fff'; qrncRoundRect(ctx, qx-16, qy-16, qrSize+32, qrSize+32, 18); ctx.fill();
     const qrCv = document.createElement('canvas');
     qrncDrawQR(qrCv, matrix, qrSize, '#1c1a2e', avImg);
     try{ ctx.drawImage(qrCv, qx, qy, qrSize, qrSize); }catch(e){}
-    // hint
     ctx.fillStyle = '#6b6783'; ctx.font = '700 26px system-ui'; ctx.textAlign='center';
     ctx.fillText('Scan to view profile', W/2, qy + qrSize + 56);
     ctx.textAlign = 'left';
 
-    // footer link
     ctx.fillStyle = '#928ea8'; ctx.font = '600 24px monospace'; ctx.textAlign='center';
     ctx.fillText(link.replace(/^https?:\/\//,''), W/2, H - pad - 30);
     ctx.textAlign = 'left';
 
-    // download
     cv.toBlob(blob => {
       if(!blob){ showToast('Could not generate image'); return; }
       const a = document.createElement('a');
@@ -14118,12 +14104,11 @@ function qrncRoundRect(ctx,x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.a
 function qrncTruncate(ctx,t,max){ let s=t; while(ctx.measureText(s).width>max && s.length>1){ s=s.slice(0,-1); } return s.length<t.length? s+'…':s; }
 function qrncWrap(ctx,t,x,y,maxW,lh,maxL){ const words=t.split(' '); let line='',lines=0; for(const w of words){ const test=line?line+' '+w:w; if(ctx.measureText(test).width>maxW && line){ ctx.fillText(line,x,y); y+=lh; line=w; lines++; if(lines>=maxL){ ctx.fillText(qrncTruncate(ctx,line+' …',maxW),x,y); return y; } } else line=test; } if(line){ ctx.fillText(line,x,y); y+=lh; } return y; }
 
-/* ---------- SHARE (Web Share API + file, fallback copy) ---------- */
+/* ---------- SHARE ---------- */
 async function qrncShare(){
   if(!qrncCurrentData) return;
   const u = qrncCurrentData; const link = qrncProfileLink(u);
   const title = (u.name||'User') + ' on GoChat';
-  // try file share
   if(navigator.canShare && navigator.share){
     try{
       await qrncLoadScript(QRNC_LIB_QR);
@@ -14139,13 +14124,12 @@ async function qrncShare(){
         }
       }
     }catch(e){ if(e.name === 'AbortError') return; }
-    // fallback text share
     try{ await navigator.share({ title, text: link }); return; }catch(e){ if(e.name === 'AbortError') return; }
   }
-  qrncCopy();   // last fallback
+  qrncCopy();   
 }
 
-/* ---------- SCANNER (jsQR + getUserMedia, graceful) ---------- */
+/* ---------- SCANNER ---------- */
 async function qrncOpenScanner(){
   const msg = document.getElementById('qrnc-scan-msg');
   msg.className = 'qrnc-scan-msg'; msg.textContent = 'Starting camera…';
@@ -14154,7 +14138,7 @@ async function qrncOpenScanner(){
 
   if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
     msg.className = 'qrnc-scan-msg err';
-    msg.textContent = 'Camera not supported here. Use your phone camera app to scan the QR — it opens the profile directly.';
+    msg.textContent = 'Camera not supported here. Use your phone camera app to scan the QR.';
     return;
   }
   try{
@@ -14162,13 +14146,12 @@ async function qrncOpenScanner(){
     video.srcObject = qrncScanStream;
     await video.play();
     msg.textContent = 'Point your camera at a GoChat QR code…';
-    // load jsQR lazily
     try{ await qrncLoadScript(QRNC_LIB_SCAN); }catch(e){ msg.className='qrnc-scan-msg err'; msg.textContent='Scanner library unavailable offline.'; qrncStopStream(); return; }
     qrncScanLoop();
   }catch(e){
     console.error(e);
     msg.className = 'qrnc-scan-msg err';
-    msg.textContent = 'Camera access denied. You can still scan with your phone camera app — the link opens the profile automatically.';
+    msg.textContent = 'Camera access denied. You can still scan with your phone camera app.';
   }
 }
 function qrncScanLoop(){
@@ -14193,7 +14176,7 @@ function qrncScanLoop(){
           setTimeout(() => { if(typeof viewUserProfile === 'function') viewUserProfile(id); }, 250);
           return;
         } else {
-          msg.className = 'qrnc-scan-msg err'; msg.textContent = 'Not a GoChat QR code. Try a GoChat profile card.';
+          msg.className = 'qrnc-scan-msg err'; msg.textContent = 'Not a GoChat QR code.';
         }
       }
     }
@@ -14204,64 +14187,15 @@ function qrncScanLoop(){
 function qrncStopStream(){ if(qrncScanStream){ qrncScanStream.getTracks().forEach(t => t.stop()); qrncScanStream = null; } if(qrncScanRAF){ cancelAnimationFrame(qrncScanRAF); qrncScanRAF = null; } }
 function qrncCloseScanner(){ qrncStopStream(); const v = document.getElementById('qrnc-video'); if(v) v.srcObject = null; document.getElementById('qrnc-scanner').style.display = 'none'; }
 
-/* ---------- inject buttons into profiles (own + other) ---------- */
-function qrncInject(){
-  // OWN profile
-  const own = document.getElementById('page-profile');
-  if(own && !own.querySelector('.qrnc-trigger')){
-    const btn = document.createElement('button');
-    btn.className = 'qrnc-trigger qrnc-gold';
-    btn.innerHTML = '<span class="material-symbols-outlined">qr_code_2</span> My QR Card';
-    btn.onclick = () => qrncOpenCard(currentUser.uid);
-    // place near edit/leaderboard row, else after info section
-    const row = own.querySelector('.profile-actions-row') || own.querySelector('[class*="actions" i]');
-    if(row){ row.style.flexWrap='wrap'; row.appendChild(btn); }
-    else { const info = own.querySelector('.profile-info-col, .profile-info-section, .profile-header'); if(info) info.insertAdjacentElement('afterend', btn); }
-  }
-  // OTHER profile
-  const other = document.getElementById('page-other-profile');
-  if(other && other.style.display !== 'none' && !other.querySelector('.qrnc-trigger')){
-    const btn = document.createElement('button');
-    btn.className = 'qrnc-trigger';
-    btn.innerHTML = '<span class="material-symbols-outlined">qr_code_2</span> QR Card';
-    btn.onclick = () => qrncOpenCard(window.__qrncLastViewedUid);
-    const row = other.querySelector('.profile-actions-row, .other-profile-actions, [class*="actions" i]');
-    if(row){ row.style.flexWrap='wrap'; row.appendChild(btn); }
-    else { const info = other.querySelector('.profile-info-col, .profile-header'); if(info) info.insertAdjacentElement('afterend', btn); }
-  }
+// 🚀 HTML বাটনগুলোর সাথে যুক্ত করার জন্য নতুন ফাংশন
+function openQRCodeModal() {
+    if(currentUser) qrncOpenCard(currentUser.uid);
 }
 
-// capture viewed uid by wrapping viewUserProfile (reliable for "other")
-(function qrncWrapView(){
-  if(typeof window.viewUserProfile === 'function' && !window.viewUserProfile.__qrncWrapped){
-    const o = window.viewUserProfile;
-    window.viewUserProfile = function(uid, ...rest){ window.__qrncLastViewedUid = uid; return o.call(this, uid, ...rest); };
-    window.viewUserProfile.__qrncWrapped = true;
-  }
-})();
+function openOtherUserQR() {
+    if(currentOtherProfileUid) qrncOpenCard(currentOtherProfileUid);
+}
 
-// boot + observe (profile opens dynamically)
-(function qrncBoot(){
-  const run = () => { qrncInject(); };
-  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run); else run();
-  setTimeout(run, 700); setTimeout(run, 1800); setTimeout(run, 3500);
-  let obs = null;
-  const watch = () => {
-    if(obs) return;
-    obs = new MutationObserver(() => {
-      const o = document.getElementById('page-other-profile');
-      const p = document.getElementById('page-profile');
-      if((o && o.style.display !== 'none' && !o.querySelector('.qrnc-trigger')) ||
-         (p && p.style.display !== 'none' && !p.querySelector('.qrnc-trigger'))) {
-        requestAnimationFrame(run);
-      }
-    });
-    obs.observe(document.body, { attributes:true, attributeFilter:['style'], subtree:true });
-  };
-  setTimeout(watch, 1500);
-})();
-
-// ESC / back handling hook (optional, safe)
 document.addEventListener('keydown', (e) => {
   if(e.key === 'Escape'){
     if(document.getElementById('qrnc-scanner').style.display === 'flex'){ qrncCloseScanner(); return; }
