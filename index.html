@@ -3468,176 +3468,61 @@ body.notifications-mode #page-notifications > div:first-child {
     border-left: 4px solid var(--accent);
     background: linear-gradient(to right, rgba(124, 92, 255, 0.05), var(--surface));
 }
-/* ═══════════════════════════════════════════════════════
-   🎨 NEW DESIGN  ·  notif-redesign-v5  ·  2026-08-02
-   Facebook-style Activity: কার্ড-বিহীন ফ্ল্যাট লিস্ট +
-   বড় অ্যাভাটার + টাইপ ব্যাজ + New/Today/Earlier গ্রুপ +
-   unread-এ নীল wash + three-dot popover
-   লেআউট CSS-only (render-safe) · JS = inject only
-   খুঁজতে:  Ctrl+F → "notif-redesign-v5"
-   ═══════════════════════════════════════════════════════ */
+/* =======================================================
+   🎨 NEW DESIGN  ·  notif-activity-v4  ·  2026-07-30
+   ======================================================= */
 
-/* ---------- পেজ: ক্লিন ক্যানভাস (কার্ড-বিহীন লুকের জন্য) ---------- */
-#page-notifications{ position:relative; background:var(--bg); }
+/* ---------- ambient (scoped, no aurora-blob) ---------- */
+#page-notifications{ position:relative; }
 #page-notifications::before{
-  content:''; position:fixed; inset:0; z-index:0; pointer-events:none; opacity:.5;
-  background:radial-gradient(60% 24% at 50% -6%, color-mix(in srgb, var(--accent) 7%, transparent), transparent 70%);
+  content:''; position:fixed; inset:0; z-index:0; pointer-events:none;
+  background:
+    radial-gradient(70% 40% at 16% -8%, color-mix(in srgb, var(--accent) 13%, transparent), transparent 60%),
+    radial-gradient(52% 34% at 90% -2%, color-mix(in srgb, #f59e0b 9%, transparent), transparent 64%);
 }
 #page-notifications > *{ position:relative; z-index:1; }
 
-/* ---------- হেডার: বড় বোল্ড টাইটেল + ডান অ্যাকশন ---------- */
-#page-notifications > div:first-child{
-  padding:14px 16px 6px !important; align-items:center !important; gap:12px !important;
-}
+/* ---------- হেডার টাইপ কনট্রাস্ট ---------- */
 #page-notifications .section-title{
-  font-size:31px !important; font-weight:800 !important; letter-spacing:-1.2px !important;
-  line-height:1 !important; color:var(--text) !important; padding:0 !important; flex:1;
-}
-/* Edit pill (ফিচার অক্ষত) — subtle, সার্চের আগে */
-#page-notifications #notif-edit-btn,
-#page-notifications > div:first-child button{
-  order:2; padding:7px 14px !important; border-radius:20px !important; font-size:12.5px !important;
-  font-weight:700 !important; background:var(--surface-2) !important; color:var(--text-secondary) !important;
-  border:none !important; cursor:pointer; transition:transform .18s, background .2s, color .2s;
-}
-#page-notifications #notif-edit-btn:active,
-#page-notifications > div:first-child button:active{ transform:scale(.93); }
-
-/* ---------- লিস্ট: edge-to-edge (wash পুরো width যাবে) ---------- */
-#notifications-list{ padding:4px 0 110px !important; margin:0 !important; display:block !important; }
-
-/* ---------- আইটেম: ফ্ল্যাট, কার্ড-বিহীন ---------- */
-#notifications-list .notif-item{
-  position:relative !important; display:flex !important; align-items:flex-start !important; gap:13px !important;
-  padding:11px 14px !important; margin:0 !important; border:none !important; border-radius:0 !important;
-  background:transparent !important; box-shadow:none !important; cursor:pointer;
-  transition:background .18s ease !important;
-  animation:nf5Rise .42s cubic-bezier(.22,1,.36,1) backwards;
-}
-#notifications-list .notif-item:nth-child(1){ animation-delay:.01s; }
-#notifications-list .notif-item:nth-child(2){ animation-delay:.04s; }
-#notifications-list .notif-item:nth-child(3){ animation-delay:.07s; }
-#notifications-list .notif-item:nth-child(4){ animation-delay:.10s; }
-#notifications-list .notif-item:nth-child(5){ animation-delay:.13s; }
-#notifications-list .notif-item:nth-child(n+6){ animation-delay:.16s; }
-#notifications-list .notif-item:hover{ background:color-mix(in srgb, var(--text) 5%, transparent) !important; }
-#notifications-list .notif-item:active{ background:color-mix(in srgb, var(--text) 8%, transparent) !important; }
-
-/* unread = হালকা নীল wash (কার্ড নয়, পুরো row) */
-#notifications-list .notif-item.unread{
-  background:var(--nf5-unread, #e7f1ff) !important;
-}
-#notifications-list .notif-item.unread:hover{ background:color-mix(in srgb, var(--nf5-unread, #e7f1ff) 80%, var(--text) 6%) !important; }
-
-/* ---------- অ্যাভাটার: বড় + ব্যাজের জন্য anchor ---------- */
-#notifications-list .notif-item .avatar{
-  position:relative !important; width:62px !important; height:62px !important; min-width:62px !important;
-  border-radius:50% !important; font-size:23px !important; font-weight:700 !important; margin:0 !important;
-  box-shadow:none !important; border:none !important;
-}
-#notifications-list .notif-item .avatar img{ width:100% !important; height:100% !important; border-radius:50% !important; object-fit:cover !important; }
-
-/* টাইপ ব্যাজ (অ্যাভাটারের bottom-right, overlap) */
-#notifications-list .notif-item .avatar .nf5-badge{
-  position:absolute; right:-3px; bottom:-3px; width:27px; height:27px; border-radius:50%;
-  display:flex; align-items:center; justify-content:center; z-index:3;
-  border:2.5px solid var(--bg); box-shadow:0 2px 6px rgba(0,0,0,.25);
-  font-size:15px; line-height:1;
-  animation:nf5BadgePop .4s cubic-bezier(.34,1.56,.64,1) backwards;
-}
-#notifications-list .notif-item .avatar .nf5-badge .material-symbols-outlined{ font-size:16px; color:#fff; font-variation-settings:'FILL' 1; }
-
-/* ---------- টেক্সট ---------- */
-#notifications-list .notif-item .notif-text{
-  display:block !important; flex:1 !important; min-width:0 !important; margin:2px 0 0 !important;
-  font-size:15px !important; line-height:1.34 !important; color:var(--text) !important; font-weight:400 !important;
-}
-#notifications-list .notif-item .notif-text strong{ font-weight:700 !important; color:var(--text) !important; }
-#notifications-list .notif-item.unread .notif-text{ font-weight:500 !important; }
-#notifications-list .notif-item.unread .notif-text strong{ font-weight:800 !important; }
-
-/* সময় — ধূসর, ছোট, "ago" JS-এ কাটা হবে */
-#notifications-list .notif-item .notif-time{
-  display:block !important; margin-top:3px !important; font-size:13px !important;
-  color:var(--text-muted) !important; font-weight:500 !important;
-}
-#notifications-list .notif-item.unread .notif-time{ color:var(--accent) !important; font-weight:700 !important; }
-
-/* ---------- ডান three-dot ---------- */
-#notifications-list .notif-item .notif-delete{
-  width:34px !important; height:34px !important; min-width:34px !important; padding:0 !important; margin:0 0 0 auto !important;
-  border-radius:50% !important; display:flex !important; align-items:center !important; justify-content:center !important;
-  color:var(--text-muted) !important; background:transparent !important; flex-shrink:0 !important;
-  transition:background .18s, color .18s, transform .18s !important;
-}
-#notifications-list .notif-item .notif-delete:hover{ background:color-mix(in srgb, var(--text) 9%, transparent) !important; color:var(--text) !important; }
-#notifications-list .notif-item .notif-delete:active{ transform:scale(.86); }
-#notifications-list .notif-item .notif-delete .material-symbols-outlined{ font-size:21px !important; }
-
-/* ---------- গ্রুপ হেডার (New / Today / Earlier) ---------- */
-#notifications-list .nf5-group{
-  padding:18px 16px 7px !important; animation:nf5Rise .35s ease backwards;
-}
-#notifications-list .nf5-group .nf5-glabel{
-  font-size:22px !important; font-weight:800 !important; letter-spacing:-.6px !important; color:var(--text) !important; line-height:1;
+  font-size:32px !important; font-weight:900 !important; letter-spacing:-1.4px !important;
+  line-height:.95 !important; color:var(--text) !important; padding:0 !important;
 }
 
-/* ---------- See previous বাটন ---------- */
-#notifications-list .nf5-seemore{
-  margin:10px 16px 4px !important; padding:13px !important; width:calc(100% - 32px) !important;
-  border:none !important; border-radius:10px !important; cursor:pointer;
-  background:var(--surface-2) !important; color:var(--text) !important;
-  font-size:15px !important; font-weight:700 !important; transition:transform .18s, background .2s;
-  animation:nf5Rise .4s ease backwards;
-}
-#notifications-list .nf5-seemore:hover{ background:color-mix(in srgb, var(--text) 9%, transparent) !important; }
-#notifications-list .nf5-seemore:active{ transform:scale(.985); }
-
-/* collapse/hidden (See previous-এর আগে) */
-#notifications-list .notif-item.nf5-hidden{ display:none !important; }
-
-/* ---------- three-dot popover ---------- */
-.nf5-popover{
-  position:fixed; z-index:100300; min-width:188px; padding:6px; border-radius:12px;
-  background:var(--surface); border:1px solid var(--border);
-  box-shadow:0 18px 44px -12px rgba(0,0,0,.5); opacity:0; transform:scale(.92) translateY(-4px);
-  transform-origin:top right; pointer-events:none; transition:opacity .15s ease, transform .2s cubic-bezier(.34,1.4,.5,1);
-}
-.nf5-popover.open{ opacity:1; transform:scale(1) translateY(0); pointer-events:auto; }
-.nf5-popover button{
-  width:100%; display:flex; align-items:center; gap:11px; padding:11px 12px; border:none; border-radius:9px;
-  background:transparent; color:var(--text); font-size:14.5px; font-weight:600; cursor:pointer; text-align:left;
-  transition:background .15s;
-}
-.nf5-popover button:hover{ background:var(--surface-2); }
-.nf5-popover button .material-symbols-outlined{ font-size:20px; color:var(--text-secondary); }
-.nf5-popover button.nf5-pop-danger{ color:var(--danger); }
-.nf5-popover button.nf5-pop-danger .material-symbols-outlined{ color:var(--danger); }
-
-/* ---------- খালি ---------- */
-#notifications-list .empty-feed{
-  display:flex !important; flex-direction:column !important; align-items:center !important; gap:10px !important;
-  padding:70px 24px !important; text-align:center !important; color:var(--text-muted) !important; font-size:15px !important;
-}
-#notifications-list .empty-feed::before{
-  content:'notifications_none'; font-family:'Material Symbols Outlined'; font-size:44px; color:var(--accent);
-  width:84px; height:84px; border-radius:26px; display:flex; align-items:center; justify-content:center;
-  background:var(--surface-2); border:1px solid var(--border); animation:nf5Float 3.4s ease-in-out infinite;
+/* ---------- নোটিফিকেশন লিস্ট আইটেম ডিজাইন ---------- */
+#notifications-list .notif-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    margin: 10px 16px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+    cursor: pointer;
+    transition: transform 0.2s, background 0.2s;
 }
 
-/* ---------- সিলেকশন মোড (Edit) মানানসই ---------- */
-#notifications-list .notif-item .notif-checkbox{ width:22px !important; height:22px !important; accent-color:var(--accent) !important; margin-top:18px !important; }
+#notifications-list .notif-item:active { transform: scale(0.98); }
 
-/* ---------- ডার্ক মোড ---------- */
-[data-theme="dark"] #notifications-list .notif-item.unread,
-.dark #notifications-list .notif-item.unread,
-body:not(.light-mode) #notifications-list .notif-item.unread{ --nf5-unread: rgba(56,132,255,.15); }
-[data-theme="dark"] #notifications-list .notif-item .avatar .nf5-badge,
-body:not(.light-mode) #notifications-list .notif-item .avatar .nf5-badge{ border-color:#0e0c15; }
+#notifications-list .notif-item.unread {
+    border-left: 4px solid var(--accent);
+    background: linear-gradient(to right, rgba(124, 92, 255, 0.05), var(--surface));
+}
 
-@keyframes nf5Rise{ from{ opacity:0; transform:translateY(12px);} to{ opacity:1; transform:translateY(0);} }
-@keyframes nf5BadgePop{ from{ transform:scale(0);} to{ transform:scale(1);} }
-@keyframes nf5Float{ 0%,100%{ transform:translateY(0);} 50%{ transform:translateY(-7px);} }
+#notifications-list .notif-text {
+    flex: 1;
+    font-size: 14px;
+    line-height: 1.4;
+    color: var(--text);
+}
+
+#notifications-list .notif-time {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 4px;
+    font-weight: 600;
+}
 
 /* ═══════════════════════════════════════════════════════
    🎨 NEW DESIGN  ·  login-redesign  ·  2026-07-30
@@ -13050,202 +12935,6 @@ function buildGridPostCardHTML(p) {
       window[fn].__lxWrapped = true;
     }
   });
-})();
-// ═══════════════════════════════════════════════════════
-// 🎨 NEW DESIGN  ·  notif-redesign-v5  ·  2026-08-02
-// Facebook-style: গ্রুপ + টাইপ ব্যাজ + three-dot popover + see-more
-// লেআউট CSS-only; এখানে inject only (existing element নড়ায় না)
-// খুঁজতে:  Ctrl+F → "notif-redesign-v5"
-// ═══════════════════════════════════════════════════════
-const NF5_BADGE = {
-  like:    { kind:'icon', ic:'thumb_up',     bg:'#1877f2' },
-  comment: { kind:'icon', ic:'chat_bubble',  bg:'#22a559' },
-  follow:  { kind:'icon', ic:'person_add',   bg:'#1877f2' },
-  tag:     { kind:'icon', ic:'sell',         bg:'#8b5cf6' },
-  share:   { kind:'icon', ic:'share',        bg:'#ec4899' },
-  default: { kind:'icon', ic:'notifications',bg:'#8b5cf6' }
-};
-const NF5_COLLAPSE_AFTER = 8;   // এর বেশি হলে "See previous"
-
-function nf5List(){ return document.getElementById('notifications-list'); }
-
-function nf5DetectType(text){
-  const t = (text||'').toLowerCase();
-  if(/liked|reacted|loved|love|reacted to/.test(t)) return 'like';
-  if(/comment|replied/.test(t)) return 'comment';
-  if(/follow|suggestion|add friend|request/.test(t)) return 'follow';
-  if(/tagged|mentioned|highlighted/.test(t)) return 'tag';
-  if(/shared|share/.test(t)) return 'share';
-  return 'default';
-}
-function nf5Hours(timeText){
-  const m = (timeText||'').match(/(\d+)\s*(m|min|h|hr|d|w|mo|y)/i);
-  if(!m) return 9999;
-  const n = parseInt(m[1]); const u = m[2].toLowerCase();
-  if(u==='m'||u==='min') return n/60;
-  if(u==='h'||u==='hr')  return n;
-  if(u==='d')            return n*24;
-  if(u==='w')            return n*168;
-  return n*720;
-}
-function nf5GroupOf(item){
-  if(item.classList.contains('unread')) return 'New';
-  return nf5Hours(item.querySelector('.notif-time')?.textContent) < 24 ? 'Today' : 'Earlier';
-}
-
-// ---------- ১. টাইপ ব্যাজ + time clean + three-dot ----------
-function nf5EnhanceItem(item){
-  const textEl = item.querySelector('.notif-text');
-  const txt = textEl ? textEl.textContent : '';
-  const type = nf5DetectType(txt);
-
-  // ব্যাজ (একবার)
-  const av = item.querySelector('.avatar');
-  if(av && !av.querySelector('.nf5-badge')){
-    const b = NF5_BADGE[type] || NF5_BADGE.default;
-    const badge = document.createElement('span');
-    badge.className = 'nf5-badge';
-    badge.style.background = b.bg;
-    badge.innerHTML = `<span class="material-symbols-outlined">${b.ic}</span>`;
-    av.appendChild(badge);
-  }
-
-  // time থেকে "ago" সরানো (ফেসবুক "2h" দেখায়) — textContent edit, layout-safe
-  const timeEl = item.querySelector('.notif-time');
-  if(timeEl && !timeEl.dataset.nf5t){
-    timeEl.dataset.nf5t = '1';
-    timeEl.textContent = (timeEl.textContent || '').replace(/\s*ago\s*$/i, '').trim();
-  }
-
-  // three-dot-এ রূপান্তর + popover (delete ফাংশনালিটি সংরক্ষিত)
-  const del = item.querySelector('.notif-delete');
-  if(del && !del.dataset.nf5menu){
-    del.dataset.nf5menu = '1';
-    const ico = del.querySelector('.material-symbols-outlined');
-    if(ico) ico.textContent = 'more_horiz';
-    const m = (del.getAttribute('onclick') || '').match(/deleteNotification\(['"]([^'"]+)['"]\)/);
-    const nid = m ? m[1] : '';
-    del.setAttribute('onclick', '');   // পুরনো inline সরানো
-    del.addEventListener('click', (e) => { e.stopPropagation(); nf5OpenPopover(e.currentTarget, nid, item); });
-  }
-}
-
-// ---------- ২. three-dot popover ----------
-let nf5Pop = null;
-function nf5BuildPopover(){
-  if(nf5Pop) return nf5Pop;
-  nf5Pop = document.createElement('div');
-  nf5Pop.className = 'nf5-popover';
-  nf5Pop.innerHTML = `
-    <button data-act="read"><span class="material-symbols-outlined">mark_email_read</span>Mark as read</button>
-    <button class="nf5-pop-danger" data-act="delete"><span class="material-symbols-outlined">delete</span>Delete notification</button>`;
-  document.body.appendChild(nf5Pop);
-  return nf5Pop;
-}
-function nf5OpenPopover(anchor, nid, item){
-  const pop = nf5BuildPopover();
-  pop.dataset.nid = nid;
-  pop._item = item;
-  // read অপশন লুকানো যদি আগেই read হয়
-  pop.querySelector('[data-act="read"]').style.display = item.classList.contains('unread') ? '' : 'none';
-  pop.classList.add('open');
-  const r = anchor.getBoundingClientRect();
-  const pw = pop.offsetWidth || 190, ph = pop.offsetHeight || 96;
-  let left = r.right - pw; left = Math.max(8, left);
-  let top = r.bottom + 6;
-  if(top + ph > window.innerHeight - 8) top = r.top - ph - 6;
-  pop.style.left = left + 'px'; pop.style.top = top + 'px';
-  setTimeout(() => document.addEventListener('pointerdown', nf5PopOutside, true), 0);
-}
-function nf5ClosePopover(){
-  if(nf5Pop){ nf5Pop.classList.remove('open'); }
-  document.removeEventListener('pointerdown', nf5PopOutside, true);
-}
-function nf5PopOutside(e){ if(nf5Pop && !nf5Pop.contains(e.target)) nf5ClosePopover(); }
-// popover অ্যাকশন (event delegation)
-document.addEventListener('click', (e) => {
-  const btn = e.target.closest && e.target.closest('.nf5-popover button');
-  if(!btn || !nf5Pop) return;
-  const nid = nf5Pop.dataset.nid; const item = nf5Pop._item;
-  const act = btn.dataset.act;
-  nf5ClosePopover();
-  if(!nid) return;
-  if(act === 'delete'){
-    if(typeof deleteNotification === 'function') deleteNotification(nid);
-  } else if(act === 'read'){
-    if(item) item.classList.remove('unread');
-    db.collection('notifications').doc(nid).update({ read:true }).catch(()=>{});
-  }
-}, true);
-
-// ---------- ৩. গ্রুপ হেডার + see-more ----------
-function nf5BuildGroups(){
-  const list = nf5List(); if(!list) return;
-  list.querySelectorAll('.nf5-group, .nf5-seemore').forEach(g => g.remove());
-
-  const items = [...list.querySelectorAll('.notif-item')];
-  if(items.length === 0) return;
-
-  // collapse: ৮ এর পরের read items লুকানো (See previous-এর আগে)
-  let shown = 0;
-  const collapsible = items.filter(it => !it.classList.contains('unread'));
-  const collapseSet = new Set();
-  if(items.length > NF5_COLLAPSE_AFTER){
-    items.forEach(it => {
-      if(shown < NF5_COLLAPSE_AFTER){ shown++; }
-      else if(!it.classList.contains('unread')){ collapseSet.add(it); }
-      else { shown++; }
-    });
-  }
-  collapseSet.forEach(it => it.classList.add('nf5-hidden'));
-
-  // visible items ধরে গ্রুপ হেডার বসানো
-  const visible = items.filter(it => !it.classList.contains('nf5-hidden'));
-  let lastGroup = null;
-  visible.forEach(it => {
-    const g = nf5GroupOf(it);
-    if(g !== lastGroup){
-      const head = document.createElement('div');
-      head.className = 'nf5-group';
-      head.innerHTML = `<span class="nf5-glabel">${g}</span>`;
-      list.insertBefore(head, it);
-      lastGroup = g;
-    }
-  });
-
-  // See previous
-  if(collapseSet.size > 0){
-    const btn = document.createElement('button');
-    btn.className = 'nf5-seemore';
-    btn.textContent = 'See previous notifications';
-    btn.onclick = () => {
-      list.querySelectorAll('.notif-item.nf5-hidden').forEach(it => it.classList.remove('nf5-hidden'));
-      nf5BuildGroups();   // গ্রুপ রিবিল্ড (এবার সব visible)
-    };
-    list.appendChild(btn);
-  }
-}
-
-// ---------- মাস্টার রান ----------
-function enhanceNotificationsV5(){
-  const list = nf5List(); if(!list) return;
-  [...list.querySelectorAll('.notif-item')].forEach(nf5EnhanceItem);
-  nf5BuildGroups();
-}
-
-(function nf5Boot(){
-  const run = () => { if(nf5List()) enhanceNotificationsV5(); };
-  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run); else run();
-  setTimeout(run, 500); setTimeout(run, 1400); setTimeout(run, 3000);
-  let obs = null;
-  const watch = () => {
-    const list = nf5List();
-    if(list && !obs){
-      obs = new MutationObserver(() => requestAnimationFrame(run));
-      obs.observe(list, { childList:true });
-    }
-  };
-  setTimeout(watch, 1000); setTimeout(watch, 2800);
 })();
 </script>
 </body>
