@@ -14579,8 +14579,8 @@ function exportCurrentChat() {
     if (!currentChatId) return;
     
     // থ্রি-ডট মেনু বন্ধ করা
-    document.getElementById('chat-delete-menu').style.display = 'none';
-    showToast("Preparing download...");
+    const menu = document.getElementById('chat-delete-menu');
+    if(menu) menu.style.display = 'none';
 
     const chatName = document.getElementById('chat-name-display').innerText || 'Chat';
     const msgElements = document.querySelectorAll('#chat-messages .chat-bubble-wrapper');
@@ -14590,15 +14590,16 @@ function exportCurrentChat() {
         return;
     }
 
+    showToast("Preparing chat history...");
+
     let chatText = `--- GoChat Export: ${chatName} ---\nExported on: ${new Date().toLocaleString()}\n\n`;
 
-    // স্ক্রিনে থাকা মেসেজগুলো রিড করে টেক্সট বানানো (সার্ভার কস্ট জিরো!)
+    // স্ক্রিনে থাকা মেসেজগুলো রিড করে টেক্সট বানানো
     msgElements.forEach(wrapper => {
         const isMine = wrapper.classList.contains('mine');
         const bubble = wrapper.querySelector('.chat-bubble');
         if (!bubble) return;
         
-        // ইমেজ বা স্টিকার থাকলে সেটার টেক্সট ফরম্যাট
         let textContent = bubble.innerText.trim().replace(/\n/g, ' ');
         if(bubble.querySelector('img')) textContent += ' [Image Attachment]';
         if(bubble.querySelector('video')) textContent += ' [Video Attachment]';
@@ -14608,20 +14609,34 @@ function exportCurrentChat() {
         chatText += `${sender}: ${textContent}\n`;
     });
 
-    // টেক্সট ফাইল তৈরি করে ইউজারের ফোনে অটো-ডাউনলোড করা
-    const blob = new Blob([chatText], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `GoChat_${chatName.replace(/\s+/g, '_')}_History.txt`;
+    // 🚀 NEW: টেক্সট ফাইল তৈরি করার বদলে, একটি সুন্দর মডাল পপআপে লেখাগুলো দেখানো
+    // যাতে ইউজার সহজেই কপি করে যেকোনো জায়গায় রাখতে পারে (বিশেষ করে মোবাইলে)
     
-    document.body.appendChild(a);
-    a.click();
-    
-    // ক্লিনআপ
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    showToast("Chat exported to your device!");
+    // যদি আগে কোনো এক্সপোর্ট মডাল থাকে, মুছে ফেলা
+    const oldModal = document.getElementById('export-chat-modal');
+    if (oldModal) oldModal.remove();
+
+    // নতুন মডাল তৈরি
+    const exportModal = document.createElement('div');
+    exportModal.id = 'export-chat-modal';
+    exportModal.style.cssText = `
+        position: fixed; inset: 0; background: var(--bg); z-index: 100010; 
+        display: flex; flex-direction: column; animation: slideUp 0.3s ease;
+    `;
+
+    exportModal.innerHTML = `
+        <div class="chat-topbar" style="position: sticky; top: 0; z-index: 10;">
+            <div class="chat-back" onclick="document.getElementById('export-chat-modal').remove()"><span class="material-symbols-outlined">close</span></div>
+            <div class="chat-name" style="font-weight: 800; font-size: 16px;">Exported Chat</div>
+            <button class="btn-primary" style="margin:0; padding:6px 12px; width:auto; border-radius:20px; font-size:13px;" onclick="navigator.clipboard.writeText(document.getElementById('exported-chat-text').value); showToast('Copied to clipboard!');">Copy All</button>
+        </div>
+        <div style="padding: 16px; flex: 1; display: flex; flex-direction: column;">
+            <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 12px;">Here is your chat history with <b>${escapeHTML(chatName)}</b>. You can copy this text and save it anywhere.</p>
+            <textarea id="exported-chat-text" readonly style="flex: 1; width: 100%; background: var(--surface-2); border: 1px solid var(--border); border-radius: 12px; color: var(--text); padding: 16px; font-size: 14px; font-family: monospace; resize: none; outline: none; line-height: 1.6;">${chatText}</textarea>
+        </div>
+    `;
+
+    document.body.appendChild(exportModal);
 }
 </script>
 </body>
