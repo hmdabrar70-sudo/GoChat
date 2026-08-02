@@ -5286,6 +5286,10 @@ function getDeviceFingerprint() {
 async function checkAndAlertNewSession() {
     if (!currentUser || !currentUserData) return;
     
+    // 🚀 NEW: শুধু একবার হিস্ট্রি সেভ করবে (রিফ্রেশ দিলে বারবার ডাটাবেস ভরবে না)
+    if (sessionStorage.getItem('session_tracked')) return;
+    sessionStorage.setItem('session_tracked', 'true');
+    
     try {
         const deviceInfo = getDeviceFingerprint();
         let locationStr = "Unknown Location";
@@ -5984,13 +5988,16 @@ document.getElementById('app-screen').style.display='block';
 // 🚀 ম্যাক্সিমাম ১.৫ সেকেন্ডের একটা টাইমার, যাতে ডাটাবেস স্লো থাকলেও অ্যাপ আটকে না থাকে
 const splashFallbackTimer = setTimeout(removeSplash, 1500);
 
-try{
-const snap=await db.collection('users').doc(user.uid).get();
-currentUserData=snap.exists?snap.data():{name:user.email.split('@')[0],email:user.email};
-}catch(e){currentUserData={name:user.email.split('@')[0],email:user.email};}
+    try{
+    const snap=await db.collection('users').doc(user.uid).get();
+    currentUserData=snap.exists?snap.data():{name:user.email.split('@')[0],email:user.email};
+    }catch(e){currentUserData={name:user.email.split('@')[0],email:user.email};}
 
-// 🚀 ডাটাবেস লোড হয়ে গেলে টাইমার ক্যানসেল করে সাথে সাথেই স্প্ল্যাশ সরিয়ে দেবে
-clearTimeout(splashFallbackTimer);
+    // 🚀 NEW: Security Guard কল করা হলো (যাতে লগইন হিস্ট্রি ও নোটিফিকেশন কাজ করে)
+    checkAndAlertNewSession();
+
+    // 🚀 ডাটাবেস লোড হয়ে গেলে টাইমার ক্যানসেল করে সাথে সাথেই স্প্ল্যাশ সরিয়ে দেবে
+    clearTimeout(splashFallbackTimer);
 removeSplash();
 cleanupPrivateChatsOnLoad(); 
 
@@ -6113,8 +6120,6 @@ if(doc.exists){
 currentUserData=doc.data();
 // --- LOCKDOWN CHECK ---
 if (currentUserData.isBanned) {
-// 🚀 Security Guard Session Scanner Call
-checkAndAlertNewSession();
     document.body.innerHTML = `
         <div style="height:100vh; display:flex; flex-direction:column; justify-content:center; align-items:center; background:#1a1a2e; color:white; font-family:sans-serif; text-align:center; padding: 20px;">
             <span class="material-symbols-outlined" style="font-size: 80px; color: #ff4d6a; margin-bottom: 20px;">gavel</span>
