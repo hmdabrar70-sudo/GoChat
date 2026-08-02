@@ -14269,15 +14269,16 @@ document.addEventListener('keydown', (e) => {
   }
 });
 // ═══════════════════════════════════════════════════════
-// 🚀 NEW FEATURE  ·  mutual-friends  ·  2026-08-02
-// compute (client intersection) + strip + bottom sheet
-// inject-only · privacy-aware · own-profile skip · mfCache
+// 🚀 NEW FEATURE  ·  mutual-friends  ·  2026-08-02  (v2 — wrap fix)
+// Mutual Friends on Profile (overlap stack + bottom sheet)
+// inject-only · SINGLE safe wrap (call, NOT apply) → viewUserProfile অক্ষত
+// privacy-aware (followingPrivacy=onlyme → hide) · own-profile skip · mfCache
 // খুঁজতে:  Ctrl+F → "mutual-friends"
 // ═══════════════════════════════════════════════════════
-const mfCache = {};                 // uid -> { mutual:[...], hidden:bool } | 'pending'
+const mfCache = {};                 // uid -> { mutual:[...], hidden:bool }
 let mfCurrentUid = null, mfCurrentList = [];
 
-/* ---------- data + intersection ---------- */
+/* ---------- data + intersection (সব ফোনে) ---------- */
 function mfMyConns(){
   const f = (currentUserData && currentUserData.following) || [];
   const r = (currentUserData && currentUserData.followers) || [];
@@ -14285,25 +14286,21 @@ function mfMyConns(){
 }
 async function mfGetOther(uid){
   if(mfCache[uid] && mfCache[uid] !== 'pending') return mfCache[uid];
-  // ১. cache
   let u = (typeof allUsersCache !== 'undefined' && allUsersCache) ? allUsersCache.find(x => x.id === uid) : null;
   const hasConns = u && ((u.following && u.following.length) || (u.followers && u.followers.length) || u.followingPrivacy);
-  // ২. না পেলে একবার get (পরের বার mfCache-এ থাকবে)
   if(!u || !hasConns){
     try{ const d = await db.collection('users').doc(uid).get(); if(d.exists) u = Object.assign({ id: uid }, d.data()); }catch(e){}
   }
   if(!u){ mfCache[uid] = { mutual:[], hidden:false }; return mfCache[uid]; }
 
-  // privacy: following লুকানো থাকলে mutual দেখাব না
+  // privacy: ওর following লুকানো থাকলে mutual দেখাব না
   if(u.followingPrivacy === 'onlyme'){ mfCache[uid] = { mutual:[], hidden:true }; return mfCache[uid]; }
 
   const mySet = mfMyConns();
   const otherSet = new Set([...(u.following||[]), ...(u.followers||[])]);
   const commonIds = [...mySet].filter(id => id !== uid && otherSet.has(id));
 
-  // common ids → user objects (cache-first, batched get for missing)
-  const objs = [];
-  const missing = [];
+  const objs = [], missing = [];
   commonIds.forEach(id => {
     const c = (typeof allUsersCache !== 'undefined' && allUsersCache) ? allUsersCache.find(x => x.id === id) : null;
     if(c) objs.push(Object.assign({ id }, c)); else missing.push(id);
@@ -14322,15 +14319,14 @@ async function mfGetOther(uid){
 async function mfRenderStrip(uid){
   const page = document.getElementById('page-other-profile');
   if(!page) return;
-  if(!currentUser || uid === currentUser.uid) return;          // own profile skip
+  if(!currentUser || uid === currentUser.uid) return;          // নিজের প্রোফাইলে কিছু না
 
-  // পুরনো strip সরাও (uid বদলে re-render)
   const old = page.querySelector('.mf-strip');
-  if(old && old.dataset.mfUid === uid) return;                // same uid already shown
+  if(old && old.dataset.mfUid === uid) return;                // same uid ইতিমধ্যে আছে
   if(old) old.remove();
 
   const res = await mfGetOther(uid);
-  if(!res || res.hidden || res.mutual.length === 0) return;   // nothing / private → no strip
+  if(!res || res.hidden || res.mutual.length === 0) return;   // কিছু নেই / private → strip নয়
 
   const list = res.mutual;
   const shown = list.slice(0, 4);
@@ -14341,7 +14337,6 @@ async function mfRenderStrip(uid){
     return `<div class="mf-av">${inner}</div>`;
   }).join('') + (extra > 0 ? `<div class="mf-av mf-plus">+${extra}</div>` : '');
 
-  // names line
   const nm = list.map(m => m.name || 'User');
   let namesLine;
   if(list.length <= 3){ namesLine = nm.map(n => `<b>${escapeHTML(n)}</b>`).join(', '); }
@@ -14360,7 +14355,7 @@ async function mfRenderStrip(uid){
   strip.onclick = () => mfOpenSheet(uid);
   strip.onkeydown = (e) => { if(e.key==='Enter'||e.key===' '){ e.preventDefault(); mfOpenSheet(uid); } };
 
-  // anchor: Follow/Message row-এর আগে (natural decision flow)
+  // anchor: Follow/Message row-এর আগে
   const btns = page.querySelector('#other-profile-btns');
   if(btns){ btns.parentNode.insertBefore(strip, btns); }
   else {
@@ -14406,7 +14401,6 @@ async function mfOpenSheet(uid){
   const res = await mfGetOther(uid);
   mfCurrentList = (res && res.mutual) ? res.mutual : [];
   document.getElementById('mf-sh-title').textContent = mfCurrentList.length + ' Mutual Connection' + (mfCurrentList.length===1?'':'s');
-  // যার প্রোফাইল খোলা তার নাম sub-এ
   const other = (typeof allUsersCache!=='undefined'&&allUsersCache)?allUsersCache.find(x=>x.id===uid):null;
   document.getElementById('mf-sh-sub').textContent = other ? ('Shared with ' + (other.name||'this profile')) : 'People you both know';
   mfRenderList(mfCurrentList);
@@ -14441,47 +14435,22 @@ function mfFilter(q){
 }
 function mfViewFromList(uid){
   mfCloseSheet();
-  if(typeof closeUserProfile === 'function') closeUserProfile();   // বর্তমান other profile সরিয়ে
+  if(typeof closeUserProfile === 'function') closeUserProfile();
   setTimeout(() => { if(typeof viewUserProfile === 'function') viewUserProfile(uid); }, 120);
 }
 
-/* ---------- hook: viewUserProfile-এর পরে render ---------- */
+/* ---------- ✅ SINGLE safe wrap: orig.CALL (not apply) → viewUserProfile ১০০% অক্ষত ---------- */
 (function mfHookView(){
-  if(typeof window.viewUserProfile === 'function' && !window.viewUserProfile.__mfWrapped){
-    const o = window.viewUserProfile;
-    window.viewUserProfile = function(uid, ...rest){
-      const r = o.apply(this, uid, ...rest);
-      if(uid && (!currentUser || uid !== currentUser.uid)) setTimeout(() => mfRenderStrip(uid), 320);
-      return r;
-    };
-    window.viewUserProfile.__mfWrapped = true;
-  }
-})();
-
-/* ---------- backup observer (dynamic open) ---------- */
-(function mfObserve(){
-  let lastSeenUid = null;
-  const tick = () => {
-    const page = document.getElementById('page-other-profile');
-    if(!page || page.style.display === 'none' || !page.classList.contains('open')){ lastSeenUid = null; return; }
-    // current other uid ধরা: top-name নয়, data attr / cache থেকে — simplest: name থেকে নয়;
-    // আমরা wrap hook-এর ওপর ভরসা করি; এখানে শুধু strip অনুপস্থিত কিনা দেখি
-    const uid = window.__mfLastOtherUid;
-    if(uid && uid !== lastSeenUid && !page.querySelector('.mf-strip[data-mf-uid="'+uid+'"]')){
-      lastSeenUid = uid; mfRenderStrip(uid);
+  if(typeof window.viewUserProfile !== 'function' || window.viewUserProfile.__mfWrapped) return;
+  const orig = window.viewUserProfile;
+  window.viewUserProfile = function(uid, ...rest){
+    const r = orig.call(this, uid, ...rest);          // ← সঠিক: call, তাই uid অক্ষত যায়
+    if(uid && (typeof currentUser === 'undefined' || !currentUser || uid !== currentUser.uid)){
+      setTimeout(() => mfRenderStrip(uid), 320);
     }
+    return r;
   };
-  // viewUserProfile wrap-এ uid সংরক্ষণ (QR-এর সাথে coexist)
-  const ensureCapture = () => {
-    if(typeof window.viewUserProfile === 'function' && !window.viewUserProfile.__mfCap){
-      const o = window.viewUserProfile;
-      window.viewUserProfile = function(uid, ...rest){ window.__mfLastOtherUid = uid; return o.apply(this, [uid, ...rest]); };
-      window.viewUserProfile.__mfCap = true;
-    }
-  };
-  const start = () => { ensureCapture(); setInterval(tick, 500); };
-  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
-  setTimeout(ensureCapture, 800); setTimeout(ensureCapture, 2000);
+  window.viewUserProfile.__mfWrapped = true;
 })();
 
 /* ESC দিয়ে sheet বন্ধ */
