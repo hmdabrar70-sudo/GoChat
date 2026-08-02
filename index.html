@@ -2128,7 +2128,7 @@ NESTED ACTIVITY CATEGORIES STYLES
     </button>
     <button class="icon-btn" style="border-radius:30px; padding:10px 24px; border:1px solid #f59e0b; color:#f59e0b; background:transparent; display:flex; align-items:center; gap:8px; font-size:14px; font-weight:700;" onclick="openLeaderboard()">
         <i class="ph-bold ph-trophy" style="font-size:20px;"></i> Leaderboard
-    </button>
+    </button>    
 </div>
 
 </div>
@@ -3997,6 +3997,146 @@ body.notifications-mode #page-notifications > div:first-child {
 @keyframes egRise{ from{ opacity:0; transform:translateY(20px); } to{ opacity:1; transform:none; } }
 @keyframes egCrown{ 0%,100%{ transform:translateY(0) rotate(-4deg); } 50%{ transform:translateY(-2px) rotate(4deg); } }
 @keyframes egGrow{ from{ width:0 !important; } }
+
+/* ═══════════════════════════════════════════════════════
+   🚀 NEW FEATURE  ·  profile-qr-namecard  ·  2026-08-02
+   Profile QR + Name Card (generate / download / share / scan)
+   inject-only (HTML অক্ষত) · deep-link reuse · graceful fallback
+   খুঁজতে:  Ctrl+F → "profile-qr-namecard"
+   ═══════════════════════════════════════════════════════ */
+
+/* প্রোফাইলে inject হওয়া QR বাটন */
+.qrnc-trigger{
+  display:inline-flex; align-items:center; justify-content:center; gap:8px;
+  padding:13px 16px; border-radius:16px; cursor:pointer; border:1px solid var(--border);
+  background:linear-gradient(135deg, color-mix(in srgb,var(--accent) 14%, var(--surface-2)), var(--surface-2));
+  color:var(--text); font-size:13.5px; font-weight:800; letter-spacing:.2px;
+  transition:transform .2s cubic-bezier(.34,1.56,.64,1), border-color .25s, box-shadow .25s;
+  animation:qrncPop .45s cubic-bezier(.34,1.56,.64,1) backwards;
+}
+.qrnc-trigger:hover{ transform:translateY(-2px); border-color:color-mix(in srgb,var(--accent) 45%,var(--border)); box-shadow:0 12px 26px -14px color-mix(in srgb,var(--accent) 60%,transparent); }
+.qrnc-trigger:active{ transform:scale(.94); }
+.qrnc-trigger .material-symbols-outlined{ font-size:20px; color:var(--accent); }
+.qrnc-trigger.qrnc-gold{ background:linear-gradient(135deg,#fbbf24,#d97706); color:#3a2a00; border-color:transparent; box-shadow:0 10px 22px -10px rgba(217,119,6,.5); }
+.qrnc-trigger.qrnc-gold .material-symbols-outlined{ color:#3a2a00; }
+
+/* ---------- Name Card Modal ---------- */
+#qrnc-modal{ z-index:100210; }
+#qrnc-modal .qrnc-box{
+  width:100%; max-width:420px; margin:auto; border-radius:26px; overflow:hidden;
+  background:var(--surface); border:1px solid var(--border);
+  box-shadow:0 40px 90px -30px rgba(0,0,0,.6); position:relative;
+  animation:qrncCardIn .4s cubic-bezier(.22,1,.36,1);
+}
+.qrnc-banner{
+  position:relative; height:96px;
+  background:linear-gradient(135deg, var(--accent-dark,#5b3fd6), var(--accent) 55%, #c084fc);
+  overflow:hidden;
+}
+.qrnc-banner::after{
+  content:''; position:absolute; inset:0;
+  background:radial-gradient(60% 120% at 80% -20%, rgba(255,255,255,.35), transparent 60%);
+}
+.qrnc-banner .qrnc-close{
+  position:absolute; top:12px; right:12px; z-index:3; width:34px; height:34px; border-radius:50%;
+  background:rgba(0,0,0,.28); border:none; color:#fff; cursor:pointer; display:flex; align-items:center; justify-content:center;
+  -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px); transition:transform .2s, background .2s;
+}
+.qrnc-banner .qrnc-close:active{ transform:scale(.85) rotate(90deg); }
+.qrnc-banner .qrnc-brand{
+  position:absolute; left:16px; bottom:12px; z-index:2; display:flex; align-items:center; gap:7px;
+  color:#fff; font-weight:900; letter-spacing:1.5px; font-size:12px; text-transform:uppercase; opacity:.92;
+}
+.qrnc-banner .qrnc-brand .material-symbols-outlined{ font-size:18px; }
+
+.qrnc-body{ padding:0 22px 22px; margin-top:-44px; position:relative; z-index:2; }
+.qrnc-av{
+  width:88px; height:88px; border-radius:50%; background:var(--surface); padding:4px;
+  box-shadow:0 10px 26px -10px rgba(0,0,0,.4); margin-bottom:12px;
+}
+.qrnc-av > *{ width:100%; height:100%; border-radius:50%; object-fit:cover; display:flex; align-items:center; justify-content:center; background:var(--gradient); color:#fff; font-weight:800; font-size:32px; }
+.qrnc-av img{ width:100%; height:100%; border-radius:50%; object-fit:cover; }
+.qrnc-name{ display:flex; align-items:center; gap:6px; flex-wrap:wrap; font-size:21px; font-weight:900; color:var(--text); letter-spacing:-.4px; line-height:1.1; }
+.qrnc-name .verified-icon{ font-size:19px; }
+.qrnc-uname{ font-size:13.5px; font-weight:700; color:var(--accent); margin-top:3px; font-family:monospace; }
+.qrnc-bio{ font-size:13.5px; color:var(--text-secondary); margin-top:9px; line-height:1.5; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+.qrnc-stats{ display:flex; gap:18px; margin-top:13px; }
+.qrnc-stats .qrnc-st b{ font-size:16px; font-weight:900; color:var(--text); }
+.qrnc-stats .qrnc-st span{ font-size:11px; color:var(--text-muted); font-weight:700; margin-left:4px; }
+
+/* QR panel */
+.qrnc-qr-wrap{
+  margin-top:18px; padding:16px; border-radius:20px; text-align:center;
+  background:linear-gradient(160deg, var(--surface-2), color-mix(in srgb,var(--accent) 6%, var(--surface)));
+  border:1px solid var(--border); position:relative;
+}
+.qrnc-qr-frame{
+  display:inline-block; padding:12px; border-radius:16px; background:#fff;
+  box-shadow:0 8px 22px -12px rgba(0,0,0,.35); position:relative;
+}
+.qrnc-qr-frame canvas{ display:block; border-radius:8px; }
+.qrnc-qr-logo{
+  position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+  width:38px; height:38px; border-radius:10px; background:#fff; padding:3px;
+  box-shadow:0 4px 10px rgba(0,0,0,.25); object-fit:cover;
+}
+.qrnc-scan-hint{ margin-top:12px; font-size:12px; font-weight:700; color:var(--text-muted); display:flex; align-items:center; justify-content:center; gap:6px; }
+.qrnc-scan-hint .material-symbols-outlined{ font-size:16px; color:var(--accent); }
+.qrnc-link-row{
+  margin-top:12px; display:flex; align-items:center; gap:8px; padding:9px 12px; border-radius:12px;
+  background:var(--surface); border:1px solid var(--border); cursor:pointer; transition:border-color .2s, background .2s;
+}
+.qrnc-link-row:hover{ border-color:color-mix(in srgb,var(--accent) 40%,var(--border)); }
+.qrnc-link-row .qrnc-url{ flex:1; min-width:0; font-size:12px; color:var(--text-secondary); font-family:monospace; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.qrnc-link-row .material-symbols-outlined{ font-size:17px; color:var(--accent); flex-shrink:0; }
+
+/* actions */
+.qrnc-actions{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:18px; }
+.qrnc-act{
+  display:flex; align-items:center; justify-content:center; gap:7px; padding:13px; border-radius:14px; cursor:pointer;
+  border:1px solid var(--border); background:var(--surface-2); color:var(--text); font-size:13px; font-weight:800;
+  transition:transform .18s, background .2s, border-color .2s;
+}
+.qrnc-act:hover{ transform:translateY(-2px); border-color:color-mix(in srgb,var(--accent) 40%,var(--border)); }
+.qrnc-act:active{ transform:scale(.95); }
+.qrnc-act .material-symbols-outlined{ font-size:19px; color:var(--accent); }
+.qrnc-act.qrnc-primary{ grid-column:1 / -1; background:linear-gradient(135deg, var(--accent-dark,#5b3fd6), var(--accent)); color:#fff; border-color:transparent; box-shadow:0 12px 26px -12px color-mix(in srgb,var(--accent) 70%,transparent); }
+.qrnc-act.qrnc-primary .material-symbols-outlined{ color:#fff; }
+.qrnc-act.qrnc-scan{ grid-column:1 / -1; }
+
+/* ---------- Scanner overlay ---------- */
+#qrnc-scanner{ z-index:100220; background:rgba(0,0,0,.92); }
+#qrnc-scanner .qrnc-scan-box{ width:100%; max-width:420px; margin:auto; text-align:center; padding:24px; }
+.qrnc-scan-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:18px; color:#fff; }
+.qrnc-scan-head .qrnc-scan-title{ font-size:20px; font-weight:900; display:flex; align-items:center; gap:8px; }
+.qrnc-scan-head .qrnc-scan-title .material-symbols-outlined{ color:var(--accent); }
+.qrnc-scan-close{ width:38px; height:38px; border-radius:50%; background:rgba(255,255,255,.12); border:none; color:#fff; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+.qrnc-scan-close:active{ transform:scale(.88); }
+.qrnc-viewport{ position:relative; width:100%; aspect-ratio:1; border-radius:24px; overflow:hidden; background:#000; box-shadow:0 0 0 2px rgba(255,255,255,.08); }
+.qrnc-viewport video{ width:100%; height:100%; object-fit:cover; }
+.qrnc-viewport canvas{ position:absolute; inset:0; width:100%; height:100%; }
+/* scan frame corners */
+.qrnc-frame{ position:absolute; inset:14%; pointer-events:none; }
+.qrnc-frame::before, .qrnc-frame::after,
+.qrnc-frame > i::before, .qrnc-frame > i::after{
+  content:''; position:absolute; width:30px; height:30px; border:3px solid var(--accent);
+}
+.qrnc-frame::before{ top:0; left:0; border-right:none; border-bottom:none; border-top-left-radius:10px; }
+.qrnc-frame::after{ top:0; right:0; border-left:none; border-bottom:none; border-top-right-radius:10px; }
+.qrnc-frame > i::before{ bottom:0; left:0; border-right:none; border-top:none; border-bottom-left-radius:10px; }
+.qrnc-frame > i::after{ bottom:0; right:0; border-left:none; border-top:none; border-bottom-right-radius:10px; }
+.qrnc-scanline{ position:absolute; left:14%; right:14%; height:2px; top:14%; background:linear-gradient(90deg,transparent,var(--accent),transparent); box-shadow:0 0 12px var(--accent); animation:qrncScan 2.2s ease-in-out infinite; }
+.qrnc-scan-msg{ margin-top:16px; color:rgba(255,255,255,.8); font-size:13.5px; line-height:1.5; min-height:40px; }
+.qrnc-scan-msg.err{ color:#ff8a8a; }
+
+/* loading / fallback inside QR frame */
+.qrnc-qr-loading{ width:180px; height:180px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; color:var(--text-muted); font-size:12px; font-weight:700; }
+.qrnc-qr-loading .material-symbols-outlined{ font-size:26px; animation:qrncSpin 1s linear infinite; }
+
+@keyframes qrncPop{ from{ opacity:0; transform:scale(.6);} to{ opacity:1; transform:scale(1);} }
+@keyframes qrncCardIn{ from{ opacity:0; transform:translateY(24px) scale(.96);} to{ opacity:1; transform:none;} }
+@keyframes qrncScan{ 0%{ top:14%;} 50%{ top:84%;} 100%{ top:14%;} }
+@keyframes qrncSpin{ to{ transform:rotate(360deg);} }
 </style>
 
 <style>
@@ -4778,6 +4918,61 @@ function closeBlockedAccountsPage() {
     document.getElementById('blocked-accounts-screen').style.display = 'none';
 }
 </script>
+
+<!-- ═══════════════════════════════════════════════════════
+     🚀 NEW FEATURE  ·  profile-qr-namecard  ·  2026-08-02
+     Name Card modal + Scanner overlay
+     ═══════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="qrnc-modal" style="display:none; align-items:center; padding:20px;" onclick="if(event.target===this) qrncCloseCard()">
+  <div class="qrnc-box">
+    <div class="qrnc-banner">
+      <button class="qrnc-close" onclick="qrncCloseCard()"><span class="material-symbols-outlined">close</span></button>
+      <div class="qrnc-brand"><span class="material-symbols-outlined">auto_awesome</span> GOCHAT</div>
+    </div>
+    <div class="qrnc-body">
+      <div class="qrnc-av" id="qrnc-av">?</div>
+      <div class="qrnc-name" id="qrnc-name">—</div>
+      <div class="qrnc-uname" id="qrnc-uname" style="display:none;"></div>
+      <div class="qrnc-bio" id="qrnc-bio" style="display:none;"></div>
+      <div class="qrnc-stats" id="qrnc-stats" style="display:none;"></div>
+
+      <div class="qrnc-qr-wrap">
+        <div class="qrnc-qr-frame" id="qrnc-qr-frame">
+          <div class="qrnc-qr-loading" id="qrnc-qr-loading"><span class="material-symbols-outlined">progress_activity</span>Generating…</div>
+        </div>
+        <div class="qrnc-scan-hint"><span class="material-symbols-outlined">qr_code_scanner</span> Scan to view this profile</div>
+        <div class="qrnc-link-row" onclick="qrncCopy()">
+          <span class="qrnc-url" id="qrnc-url">—</span>
+          <span class="material-symbols-outlined">content_copy</span>
+        </div>
+      </div>
+
+      <div class="qrnc-actions">
+        <button class="qrnc-act qrnc-primary" onclick="qrncDownload()"><span class="material-symbols-outlined">download</span> Download Card</button>
+        <button class="qrnc-act" onclick="qrncShare()"><span class="material-symbols-outlined">share</span> Share</button>
+        <button class="qrnc-act" onclick="qrncCopy()"><span class="material-symbols-outlined">link</span> Copy Link</button>
+        <button class="qrnc-act qrnc-scan" id="qrnc-scan-btn" onclick="qrncOpenScanner()"><span class="material-symbols-outlined">qr_code_scanner</span> Scan a QR Code</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Scanner -->
+<div class="modal-overlay" id="qrnc-scanner" style="display:none; align-items:center; padding:20px;">
+  <div class="qrnc-scan-box">
+    <div class="qrnc-scan-head">
+      <div class="qrnc-scan-title"><span class="material-symbols-outlined">qr_code_scanner</span> Scan QR</div>
+      <button class="qrnc-scan-close" onclick="qrncCloseScanner()"><span class="material-symbols-outlined">close</span></button>
+    </div>
+    <div class="qrnc-viewport">
+      <video id="qrnc-video" playsinline muted></video>
+      <canvas id="qrnc-scan-canvas" style="display:none;"></canvas>
+      <div class="qrnc-frame"><i></i></div>
+      <div class="qrnc-scanline"></div>
+    </div>
+    <div class="qrnc-scan-msg" id="qrnc-scan-msg">Point your camera at a GoChat QR code…</div>
+  </div>
+</div>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
@@ -13426,217 +13621,499 @@ function buildGridPostCardHTML(p) {
   });
 })();
 // ═══════════════════════════════════════════════════════
-// 🎨 NEW DESIGN  ·  elite-obsidian-gold  ·  2026-08-02
-// font + ambient + progress sync + bento reflow + hero + reveals
-// কোনো বাটন/লজিক মুছে না → nextAppStep/CTA/WhatsApp অক্ষত
-// খুঁজতে:  Ctrl+F → "elite-obsidian-gold"
+// 🛠 FIX  ·  elite-obsidian-gold-native  ·  2026-08-02
+// inner white-box reset (structure-proof, inline !important)
+// CSS-selector mismatch-এর ভরসা নয় → wrapper depth যাই হোক ঠিক হবে
+// খুঁজতে:  Ctrl+F → "elite-shell-fix"
 // ═══════════════════════════════════════════════════════
-(function eliteObsidianGold(){
+(function eliteShellFix(){
+  const SEL = '#elite-app-modal';
+  const imp = (el, props) => { for(const k in props) el.style.setProperty(k, props[k], 'important'); };
 
-  // ১. ফন্ট (luxury serif + readable body)
-  if(!document.getElementById('eg-fonts')){
-    const l = document.createElement('link');
-    l.id = 'eg-fonts'; l.rel = 'stylesheet';
-    l.href = 'https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,500;0,6..96,600;1,6..96,500&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap';
-    document.head.appendChild(l);
-  }
+  function fix(){
+    const modal = document.querySelector(SEL);
+    if(!modal || getComputedStyle(modal).display === 'none') return;
+    const step = modal.querySelector('.eg-step, [id^="app-step"]');
+    if(!step) return;
 
-  const TOTAL_STEPS = 3;
-  const modal = () => document.getElementById('elite-app-modal');
-
-  // ২. ambient layers (একবার)
-  function buildAmbient(m){
-    if(m.querySelector('.eg-particles')) return;
-    const spot = document.createElement('div'); spot.className = 'eg-spotlight';
-    const p = document.createElement('div'); p.className = 'eg-particles';
-    let h = '';
-    for(let i=0;i<22;i++){
-      const s = 2 + Math.random()*4;
-      h += `<i style="width:${s}px;height:${s}px;left:${Math.random()*100}%;animation-duration:${10+Math.random()*12}s;animation-delay:${Math.random()*10}s;"></i>`;
-    }
-    p.innerHTML = h;
-    m.insertBefore(spot, m.firstChild);
-    m.insertBefore(p, m.firstChild);
-  }
-
-  // ৩. কাস্টম গোল্ড প্রোগ্রেস রেল + nextAppStep sync
-  function buildRail(m){
-    const panel = m.querySelector(':scope > div');
-    if(!panel || panel.querySelector('.eg-rail')) return;
-    const rail = document.createElement('div'); rail.className = 'eg-rail';
-    rail.innerHTML = '<i></i>';
-    panel.insertBefore(rail, panel.firstChild);
-  }
-  function syncRail(){
-    const m = modal(); if(!m) return;
-    const fill = m.querySelector('.eg-rail > i'); if(!fill) return;
-    let active = 1;
-    for(let n=1;n<=TOTAL_STEPS;n++){
-      const s = document.getElementById('app-step-'+n);
-      if(s && getComputedStyle(s).display !== 'none') active = n;
-    }
-    fill.style.width = Math.round((active/TOTAL_STEPS)*100) + '%';
-  }
-  function hookNextStep(){
-    if(typeof window.nextAppStep === 'function' && !window.nextAppStep.__egWrapped){
-      const o = window.nextAppStep;
-      window.nextAppStep = function(...a){ const r = o.apply(this,a); setTimeout(()=>{ syncRail(); revealScan(); }, 70); return r; };
-      window.nextAppStep.__egWrapped = true;
-    }
-  }
-
-  // ৪. HERO embellish (step 1) — insert only, text না মুছে
-  function buildHero(m){
-    const s1 = document.getElementById('app-step-1');
-    if(!s1 || s1.dataset.egHero) return; s1.dataset.egHero = '1';
-    const crest = document.createElement('div');
-    crest.className = 'eg-crest';
-    crest.innerHTML = `<span class="eg-mono">G</span><span class="eg-laurel">🏅</span>`;
-    const eyebrow = document.createElement('div');
-    eyebrow.className = 'eg-eyebrow';
-    eyebrow.textContent = 'By Invitation Only';
-    const sub = document.createElement('p');
-    sub.className = 'eg-hero-sub';
-    sub.textContent = 'A private tier for those who create, lead and shine. Unlock the gold standard of GoChat — badge, presence and reach reserved for the few.';
-    const stats = document.createElement('div');
-    stats.className = 'eg-stats';
-    stats.innerHTML = `
-      <div class="eg-stat"><b data-count="2400">0</b><span>Elite Members</span></div>
-      <div class="eg-stat"><b data-count="5">0</b><span>Premium Perks</span></div>
-      <div class="eg-stat"><b>24/7</b><span>Priority</span></div>`;
-    // existing first heading → hero-h + foil accent line
-    const firstH = s1.querySelector('h1,h2,h3,.modal-title');
-    if(firstH){
-      firstH.classList.add('eg-hero-h');
-      const txt = firstH.textContent.trim();
-      const parts = txt.split(/\s+/);
-      if(parts.length > 1){
-        const last = parts.pop();
-        firstH.innerHTML = escapeHTMLSafe(parts.join(' ')) + ' <span class="eg-foil">' + escapeHTMLSafe(last) + '</span>';
-      }
-    }
-    // inject order: eyebrow, crest, (heading already there), sub, stats
-    s1.insertBefore(eyebrow, s1.firstChild);
-    s1.insertBefore(crest, firstH || s1.firstChild);
-    if(firstH) firstH.insertAdjacentElement('afterend', sub);
-    s1.appendChild(stats);
-    countUp(stats);
-  }
-  function escapeHTMLSafe(s){ return (s||'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
-
-  // ৫. PERKS → bento reflow (static modal = safe)
-  function buildBento(m){
-    const list = m.querySelector('.elite-perks-list');
-    if(!list || list.classList.contains('elite-bento')) return;
-    const cards = [...list.querySelectorAll('.elite-perk-card')];
-    if(cards.length < 3) return;
-    list.classList.add('elite-bento');
-    const sizeClass = ['b-big','','','b-wide','b-wide']; // asymmetric
-    cards.forEach((c,i)=>{
-      c.classList.add(sizeClass[i] || '');
-      c.classList.add('eg-reveal');
-      // big tile (Elite Badge) → live badge preview
-      if(i === 0 && !c.querySelector('.eg-badge-preview')){
-        const me = (window.currentUserData && currentUserData.name) ? currentUserData.name : 'You';
-        const ini = me.trim().charAt(0).toUpperCase();
-        const pv = document.createElement('div');
-        pv.className = 'eg-badge-preview';
-        pv.innerHTML = `<div class="eg-mini-av">${escapeHTMLSafe(ini)}</div>
-          <div class="eg-mini-name">${escapeHTMLSafe(me)} <span class="eg-crown">👑</span></div>`;
-        c.appendChild(pv);
-      }
-      // wide tiles → mini meters
-      if((i === 3 || i === 4) && !c.querySelector('.eg-meters')){
-        const vals = i === 3 ? [92,78] : [88,64,95];
-        const mt = document.createElement('div'); mt.className = 'eg-meters';
-        mt.innerHTML = vals.map((v,k)=>`<div class="eg-meter"><i style="width:${v}%;animation-delay:${k*0.12}s"></i></div>`).join('');
-        c.appendChild(mt);
-      }
+    // ১. modal overlay → obsidian + stretch (backstop)
+    imp(modal, {
+      background:'radial-gradient(120% 90% at 50% -10%, #1a150c 0%, #0b0a07 55%, #060503 100%)',
+      alignItems:'stretch', justifyContent:'stretch', padding:'0', overflow:'hidden'
     });
-  }
 
-  // ৬. FINAL step → certificate wrap (একবার)
-  function buildCert(m){
-    const fin = document.getElementById('app-step-3') || document.getElementById('app-step-4');
-    if(!fin || fin.dataset.egCert) return; fin.dataset.egCert = '1';
-    const frame = document.createElement('div'); frame.className = 'eg-cert eg-reveal';
-    frame.innerHTML = `<div class="eg-seal"><span class="material-symbols-outlined">workspace_premium</span></div>
-      <div style="text-align:center;font-family:var(--eg-display);font-size:13px;letter-spacing:3px;text-transform:uppercase;color:var(--eg-gold);">Certificate of Elite Access</div>`;
-    fin.insertBefore(frame, fin.firstChild);
-  }
-
-  // ৭. magnetic + reveal + countup
-  function magnetize(m){
-    m.querySelectorAll('.elite-cta-btn, .btn-primary, button[onclick*="nextAppStep"]').forEach(btn=>{
-      if(btn.dataset.egMag) return; btn.dataset.egMag = '1';
-      btn.addEventListener('pointermove', e=>{
-        const r = btn.getBoundingClientRect();
-        const x = (e.clientX - r.left - r.width/2) * 0.18;
-        const y = (e.clientY - r.top - r.height/2) * 0.25;
-        btn.style.transform = `translate(${x}px,${y}px)`;
+    // ২. step → modal পর্যন্ত সব মাঝের wrapper neutralize (সাদা বক্স গায়েব)
+    let el = step.parentElement;
+    while(el && el !== modal){
+      imp(el, {
+        width:'100%', maxWidth:'100%', margin:'0', background:'transparent',
+        border:'none', borderRadius:'0', boxShadow:'none', padding:'0',
+        height:'auto', maxHeight:'none', overflow:'visible'
       });
-      btn.addEventListener('pointerleave', ()=> btn.style.transform = '');
-    });
-  }
-  function revealScan(){
-    const m = modal(); if(!m) return;
-    m.querySelectorAll('.eg-reveal:not(.in)').forEach(el=>{
-      const r = el.getBoundingClientRect();
-      if(r.top < (window.innerHeight - 40)) el.classList.add('in');
-    });
-  }
-  function countUp(scope){
-    scope.querySelectorAll('[data-count]').forEach(el=>{
-      const target = parseInt(el.dataset.count,10); const dur = 1200; const t0 = performance.now();
-      const tick = t => {
-        const p = Math.min((t - t0)/dur, 1);
-        const eased = 1 - Math.pow(1-p, 3);
-        el.textContent = Math.round(target*eased).toLocaleString() + (target>=1000?'+':'');
-        if(p<1) requestAnimationFrame(tick);
-      };
-      requestAnimationFrame(tick);
-    });
-  }
-
-  // ---------- master ----------
-  function enhance(){
-    const m = modal();
-    if(!m || getComputedStyle(m).display === 'none') return;
-    buildAmbient(m);
-    buildRail(m);
-    hookNextStep();
-    buildHero(m);
-    buildBento(m);
-    buildCert(m);
-    magnetize(m);
-    syncRail();
-    // reveal: যেগুলো ভিউপোর্টে আছে এখনই দেখাও
-    requestAnimationFrame(()=>{ revealScan(); setTimeout(revealScan, 300); });
-  }
-
-  // open hook (display none→flex ধরে)
-  (function observeOpen(){
-    let last = 'none';
-    const tick = ()=>{
-      const m = modal(); if(!m) return;
-      const d = getComputedStyle(m).display;
-      if(d !== 'none' && last === 'none') setTimeout(enhance, 60);
-      last = d;
-    };
-    setInterval(tick, 250);
-    if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', tick); else tick();
-  })();
-
-  // scroll reveal (modal panel স্ক্রল হলে)
-  setInterval(()=>{
-    const m = modal(); if(!m) return;
-    const panel = m.querySelector(':scope > div');
-    if(panel && !panel.dataset.egScroll){
-      panel.dataset.egScroll = '1';
-      panel.addEventListener('scroll', revealScan, { passive:true });
+      el = el.parentElement;
     }
-  }, 600);
+
+    // ৩. modal-এর direct child = scroll shell (align stretch → রেল full-width থাকবে)
+    const shell = modal.firstElementChild;
+    if(shell){
+      imp(shell, {
+        width:'100%', maxWidth:'100%', margin:'0', height:'100%', maxHeight:'100%',
+        overflowY:'auto', overflowX:'hidden', background:'transparent', borderRadius:'0',
+        display:'flex', flexDirection:'column', alignItems:'stretch', boxSizing:'border-box'
+      });
+    }
+
+    // ৪. প্রতিটা step → centered max-width column (content আর কাটবে না)
+    modal.querySelectorAll('.eg-step, [id^="app-step"]').forEach(st => {
+      imp(st, {
+        width:'100%', maxWidth:'640px', margin:'0 auto',
+        boxSizing:'border-box', overflowX:'hidden'
+      });
+    });
+
+    // ৫. প্রোগ্রেস রেল → horizontal নিশ্চিত (খাড়া লাইন ফিক্স)
+    const rail = modal.querySelector('.eg-rail');
+    if(rail) imp(rail, { width:'100%', alignSelf:'stretch', flexShrink:'0' });
+  }
+
+  const loop = () => fix();
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', loop); else loop();
+  setInterval(loop, 300);   // modal re-render / open হলে নিজে থেকেই ঠিক করবে
 })();
+// ═══════════════════════════════════════════════════════
+// 🚀 NEW FEATURE  ·  profile-qr-namecard  ·  2026-08-02
+// QR generate + name card + download/share/copy + scan
+// সব global-এ qrnc- prefix (name-collision মুক্ত)
+// inject-only → HTML/ফাংশন অক্ষত · deep-link reuse
+// খুঁজতে:  Ctrl+F → "profile-qr-namecard"
+// ═══════════════════════════════════════════════════════
+const QRNC_LIB_QR  = 'https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js';
+const QRNC_LIB_SCAN= 'https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js';
+const QRNC_LOGO    = '✦';                 // QR-এর মাঝে fallback glyph
+let qrncCurrentUid = null, qrncCurrentData = null, qrncScanStream = null, qrncScanRAF = null;
+const qrncScriptCache = {};
+
+/* ---------- dynamic script loader (cached + timeout) ---------- */
+function qrncLoadScript(url){
+  if(qrncScriptCache[url]) return qrncScriptCache[url];
+  qrncScriptCache[url] = new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = url; s.async = true;
+    const t = setTimeout(() => reject(new Error('timeout')), 9000);
+    s.onload  = () => { clearTimeout(t); resolve(true); };
+    s.onerror = () => { clearTimeout(t); delete qrncScriptCache[url]; reject(new Error('load-failed')); };
+    document.head.appendChild(s);
+  });
+  return qrncScriptCache[url];
+}
+
+/* ---------- profile link (copyProfileLink-এর সাথে consistent) ---------- */
+function qrncBase(){ return location.origin + location.pathname.replace(/\/+$/,''); }
+function qrncProfileLink(u){
+  if(!u) return qrncBase();
+  const id = u.username || u.id;            // username priority (deep-link যেভাবে কাজ করে)
+  return qrncBase() + '/?user=' + encodeURIComponent(id);
+}
+
+/* ---------- data load (own / other) ---------- */
+async function qrncLoadUser(uid){
+  if(currentUser && uid === currentUser.uid && typeof currentUserData !== 'undefined' && currentUserData){
+    return Object.assign({ id: currentUser.uid }, currentUserData);
+  }
+  if(typeof allUsersCache !== 'undefined' && allUsersCache){
+    const c = allUsersCache.find(x => x.id === uid);
+    if(c) return Object.assign({ id: uid }, c);
+  }
+  try{ const d = await db.collection('users').doc(uid).get(); if(d.exists) return Object.assign({ id: uid }, d.data()); }catch(e){}
+  return { id: uid, name: 'User' };
+}
+
+/* ---------- QR matrix via qrcode-generator (EC=H → logo safe) ---------- */
+function qrncMakeMatrix(text){
+  const qr = qrcode(0, 'H');                // type 0 = auto version
+  qr.addData(text); qr.make();
+  const n = qr.getModuleCount();
+  const m = [];
+  for(let r=0;r<n;r++){ m[r]=[]; for(let c=0;c<n;c++) m[r][c] = qr.isDark(r,c); }
+  return { m, n };
+}
+
+/* ---------- draw QR on a canvas (with center logo gap) ---------- */
+function qrncDrawQR(canvas, matrix, size, darkColor, logoImg){
+  const { m, n } = matrix;
+  const dpr = Math.min(window.devicePixelRatio || 1, 3);
+  canvas.width = size * dpr; canvas.height = size * dpr;
+  canvas.style.width = size + 'px'; canvas.style.height = size + 'px';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  ctx.fillStyle = '#ffffff'; ctx.fillRect(0,0,size,size);
+  const cell = size / n;
+  // center logo gap (≈ 23% → EC-H safe)
+  const gapR = logoImg ? Math.floor(n * 0.135) : 0;
+  const mid = (n - 1) / 2;
+  ctx.fillStyle = darkColor || '#1c1a2e';
+  for(let r=0;r<n;r++){
+    for(let c=0;c<n;c++){
+      if(!m[r][c]) continue;
+      if(gapR && Math.abs(r-mid) <= gapR && Math.abs(c-mid) <= gapR) continue;
+      // soft rounded modules
+      const x = c*cell, y = r*cell;
+      ctx.beginPath();
+      ctx.roundRect ? ctx.roundRect(x+cell*0.08, y+cell*0.08, cell*0.84, cell*0.84, cell*0.22)
+                    : ctx.rect(x+cell*0.08, y+cell*0.08, cell*0.84, cell*0.84);
+      ctx.fill();
+    }
+  }
+  // center logo
+  if(logoImg){
+    const ls = cell * gapR * 1.7;
+    const lx = (size - ls)/2, ly = (size - ls)/2;
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.roundRect ? ctx.roundRect(lx-4, ly-4, ls+8, ls+8, 12) : ctx.rect(lx-4, ly-4, ls+8, ls+8); ctx.fill();
+    try{ ctx.drawImage(logoImg, lx, ly, ls, ls); }catch(e){}
+  }
+}
+
+/* ---------- image loader (crossOrigin for canvas-safe) ---------- */
+function qrncLoadImg(url){
+  return new Promise(res => {
+    if(!url){ res(null); return; }
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload  = () => res(img);
+    img.onerror = () => res(null);
+    img.src = url;
+  });
+}
+
+/* ---------- OPEN CARD ---------- */
+async function qrncOpenCard(uid){
+  if(!uid) return;
+  qrncCurrentUid = uid;
+  const modal = document.getElementById('qrnc-modal');
+  modal.style.display = 'flex';
+
+  // reset
+  const frame = document.getElementById('qrnc-qr-frame');
+  const oldC = frame.querySelector('canvas'); if(oldC) oldC.remove();
+  const oldL = frame.querySelector('.qrnc-qr-logo'); if(oldL) oldL.remove();
+  document.getElementById('qrnc-qr-loading').style.display = 'flex';
+
+  // populate identity
+  const u = await qrncLoadUser(uid);
+  qrncCurrentData = u;
+  const safeName = escapeHTML(u.name || 'User');
+  const vBadge = (typeof getVerifiedBadge === 'function') ? getVerifiedBadge(u.email, u.isVerified) : '';
+  document.getElementById('qrnc-av').innerHTML = u.avatar ? `<img src="${escapeHTML(u.avatar)}">` : avatarInitial(u.name||'U');
+  document.getElementById('qrnc-name').innerHTML = safeName + (vBadge ? ' ' + vBadge : '');
+
+  const unameEl = document.getElementById('qrnc-uname');
+  if(u.username){ unameEl.style.display='block'; unameEl.textContent = '@' + u.username; } else unameEl.style.display='none';
+
+  const bioEl = document.getElementById('qrnc-bio');
+  if(u.bio){ bioEl.style.display='block'; bioEl.textContent = u.bio; } else bioEl.style.display='none';
+
+  const statsEl = document.getElementById('qrnc-stats');
+  const fc = (u.followers && u.followers.length) || 0;
+  const fg = (u.following && u.following.length) || 0;
+  if(fc || fg){
+    statsEl.style.display='flex';
+    statsEl.innerHTML = `<div class="qrnc-st"><b>${fc}</b><span>Followers</span></div><div class="qrnc-st"><b>${fg}</b><span>Following</span></div>`;
+  } else statsEl.style.display='none';
+
+  const link = qrncProfileLink(u);
+  document.getElementById('qrnc-url').textContent = link.replace(/^https?:\/\//,'');
+
+  // build QR
+  try{
+    await qrncLoadScript(QRNC_LIB_QR);
+    const matrix = qrncMakeMatrix(link);
+    const logoImg = await qrncLoadImg(u.avatar);     // null হলে logo gap ছাড়া
+    const canvas = document.createElement('canvas');
+    qrncDrawQR(canvas, matrix, 200, '#1c1a2e', logoImg);
+    document.getElementById('qrnc-qr-loading').style.display = 'none';
+    frame.insertBefore(canvas, frame.firstChild);
+    if(logoImg){
+      const lo = document.createElement('img');
+      lo.className = 'qrnc-qr-logo'; lo.src = u.avatar; lo.alt='';
+      frame.appendChild(lo);
+    }
+  }catch(e){
+    console.error('QR gen failed', e);
+    document.getElementById('qrnc-qr-loading').innerHTML = '<span class="material-symbols-outlined" style="animation:none;">wifi_off</span>QR unavailable offline';
+  }
+}
+
+function qrncCloseCard(){ document.getElementById('qrnc-modal').style.display = 'none'; }
+
+/* ---------- COPY ---------- */
+function qrncCopy(){
+  const link = qrncCurrentData ? qrncProfileLink(qrncCurrentData) : '';
+  if(!link) return;
+  const done = () => showToast('Link copied! 🔗');
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(link).then(done).catch(() => qrncFallbackCopy(link, done));
+  } else qrncFallbackCopy(link, done);
+}
+function qrncFallbackCopy(text, cb){
+  const ta = document.createElement('textarea');
+  ta.value = text; ta.style.position='fixed'; ta.style.opacity='0';
+  document.body.appendChild(ta); ta.select();
+  try{ document.execCommand('copy'); cb && cb(); }catch(e){}
+  document.body.removeChild(ta);
+}
+
+/* ---------- DOWNLOAD (canvas-drawn premium card, dependency-free) ---------- */
+async function qrncDownload(){
+  if(!qrncCurrentData) return;
+  const u = qrncCurrentData;
+  try{
+    await qrncLoadScript(QRNC_LIB_QR);
+    const link = qrncProfileLink(u);
+    const matrix = qrncMakeMatrix(link);
+
+    const W = 1080, H = 1380, pad = 70;
+    const cv = document.createElement('canvas');
+    const dpr = 2; cv.width = W*dpr; cv.height = H*dpr;
+    const ctx = cv.getContext('2d'); ctx.scale(dpr, dpr);
+
+    // background
+    ctx.fillStyle = '#0e0c15'; ctx.fillRect(0,0,W,H);
+    // top gradient header
+    const g = ctx.createLinearGradient(0,0,W,420);
+    g.addColorStop(0,'#5b3fd6'); g.addColorStop(.55,'#7c5cff'); g.addColorStop(1,'#c084fc');
+    ctx.fillStyle = g; ctx.fillRect(0,0,W,440);
+    ctx.fillStyle = 'rgba(255,255,255,.10)';
+    ctx.beginPath(); ctx.arc(W-120,40,260,0,Math.PI*2); ctx.fill();
+
+    // brand
+    ctx.fillStyle = 'rgba(255,255,255,.92)'; ctx.font = '700 30px system-ui, sans-serif';
+    ctx.textBaseline = 'middle'; ctx.fillText('✦  GOCHAT', pad, 70);
+
+    // avatar
+    const avImg = await qrncLoadImg(u.avatar);
+    const avX = pad, avY = 300, avS = 180;
+    ctx.save();
+    ctx.shadowColor = 'rgba(0,0,0,.4)'; ctx.shadowBlur = 30; ctx.shadowOffsetY = 12;
+    ctx.fillStyle = '#0e0c15'; ctx.beginPath(); ctx.arc(avX+avS/2, avY+avS/2, avS/2+8, 0, Math.PI*2); ctx.fill();
+    ctx.restore();
+    ctx.save(); ctx.beginPath(); ctx.arc(avX+avS/2, avY+avS/2, avS/2, 0, Math.PI*2); ctx.clip();
+    if(avImg){ try{ ctx.drawImage(avImg, avX, avY, avS, avS); }catch(e){ ctx.fillStyle='#7c5cff'; ctx.fill(); } }
+    else { ctx.fillStyle='#7c5cff'; ctx.fill(); ctx.fillStyle='#fff'; ctx.font='800 70px system-ui'; ctx.textAlign='center'; ctx.fillText((u.name||'U').trim().charAt(0).toUpperCase(), avX+avS/2, avY+avS/2+4); ctx.textAlign='left'; }
+    ctx.restore();
+
+    // name + username + bio (right of avatar, on header)
+    ctx.textBaseline = 'alphabetic';
+    ctx.fillStyle = '#ffffff'; ctx.font = '800 52px system-ui, sans-serif';
+    const nameX = avX + avS + 36;
+    ctx.fillText(qrncTruncate(ctx, u.name||'User', W - nameX - pad), nameX, 360);
+    if(u.username){ ctx.fillStyle = 'rgba(255,255,255,.85)'; ctx.font = '700 30px monospace'; ctx.fillText('@'+u.username, nameX, 405); }
+
+    // white card body
+    const by = 520;
+    ctx.fillStyle = '#ffffff'; qrncRoundRect(ctx, pad, by, W-pad*2, H-by-pad, 36); ctx.fill();
+
+    // bio inside card
+    let cy = by + 70;
+    if(u.bio){ ctx.fillStyle = '#5b5870'; ctx.font = '500 30px system-ui, sans-serif'; cy = qrncWrap(ctx, u.bio, pad+50, cy, W-pad*2-100, 42, 2) + 24; }
+
+    // stats
+    const fc = (u.followers&&u.followers.length)||0, fg = (u.following&&u.following.length)||0;
+    if(fc || fg){
+      ctx.fillStyle = '#1c1a2e'; ctx.font = '800 38px system-ui';
+      ctx.fillText(String(fc), pad+50, cy+10);
+      ctx.fillStyle = '#928ea8'; ctx.font = '700 24px system-ui'; ctx.fillText('Followers', pad+50+ctx.measureText(String(fc)).width+14, cy+10);
+      ctx.fillStyle = '#1c1a2e'; ctx.font = '800 38px system-ui';
+      const sx = pad+330; ctx.fillText(String(fg), sx, cy+10);
+      ctx.fillStyle = '#928ea8'; ctx.font = '700 24px system-ui'; ctx.fillText('Following', sx+ctx.measureText(String(fg)).width+14, cy+10);
+      cy += 60;
+    }
+
+    // QR panel
+    const qpY = cy + 20, qpH = 460;
+    ctx.fillStyle = '#f4f2fb'; qrncRoundRect(ctx, pad+40, qpY, W-pad*2-80, qpH, 28); ctx.fill();
+    // white qr box
+    const qrSize = 320, qx = (W-qrSize)/2, qy = qpY + 36;
+    ctx.fillStyle = '#fff'; qrncRoundRect(ctx, qx-16, qy-16, qrSize+32, qrSize+32, 18); ctx.fill();
+    const qrCv = document.createElement('canvas');
+    qrncDrawQR(qrCv, matrix, qrSize, '#1c1a2e', avImg);
+    try{ ctx.drawImage(qrCv, qx, qy, qrSize, qrSize); }catch(e){}
+    // hint
+    ctx.fillStyle = '#6b6783'; ctx.font = '700 26px system-ui'; ctx.textAlign='center';
+    ctx.fillText('Scan to view profile', W/2, qy + qrSize + 56);
+    ctx.textAlign = 'left';
+
+    // footer link
+    ctx.fillStyle = '#928ea8'; ctx.font = '600 24px monospace'; ctx.textAlign='center';
+    ctx.fillText(link.replace(/^https?:\/\//,''), W/2, H - pad - 30);
+    ctx.textAlign = 'left';
+
+    // download
+    cv.toBlob(blob => {
+      if(!blob){ showToast('Could not generate image'); return; }
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'GoChat-' + (u.username || u.name || 'card').replace(/\s+/g,'_') + '.png';
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+      showToast('Card downloaded! 🖼️');
+    }, 'image/png');
+  }catch(e){ console.error(e); showToast('Download failed — try again'); }
+}
+function qrncRoundRect(ctx,x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
+function qrncTruncate(ctx,t,max){ let s=t; while(ctx.measureText(s).width>max && s.length>1){ s=s.slice(0,-1); } return s.length<t.length? s+'…':s; }
+function qrncWrap(ctx,t,x,y,maxW,lh,maxL){ const words=t.split(' '); let line='',lines=0; for(const w of words){ const test=line?line+' '+w:w; if(ctx.measureText(test).width>maxW && line){ ctx.fillText(line,x,y); y+=lh; line=w; lines++; if(lines>=maxL){ ctx.fillText(qrncTruncate(ctx,line+' …',maxW),x,y); return y; } } else line=test; } if(line){ ctx.fillText(line,x,y); y+=lh; } return y; }
+
+/* ---------- SHARE (Web Share API + file, fallback copy) ---------- */
+async function qrncShare(){
+  if(!qrncCurrentData) return;
+  const u = qrncCurrentData; const link = qrncProfileLink(u);
+  const title = (u.name||'User') + ' on GoChat';
+  // try file share
+  if(navigator.canShare && navigator.share){
+    try{
+      await qrncLoadScript(QRNC_LIB_QR);
+      const matrix = qrncMakeMatrix(link);
+      const qrCv = document.createElement('canvas');
+      qrncDrawQR(qrCv, matrix, 360, '#1c1a2e', await qrncLoadImg(u.avatar));
+      const blob = await new Promise(r => qrCv.toBlob(r, 'image/png'));
+      if(blob){
+        const file = new File([blob], 'gochat-qr.png', { type:'image/png' });
+        if(navigator.canShare({ files:[file] })){
+          await navigator.share({ files:[file], title, text: link });
+          return;
+        }
+      }
+    }catch(e){ if(e.name === 'AbortError') return; }
+    // fallback text share
+    try{ await navigator.share({ title, text: link }); return; }catch(e){ if(e.name === 'AbortError') return; }
+  }
+  qrncCopy();   // last fallback
+}
+
+/* ---------- SCANNER (jsQR + getUserMedia, graceful) ---------- */
+async function qrncOpenScanner(){
+  const msg = document.getElementById('qrnc-scan-msg');
+  msg.className = 'qrnc-scan-msg'; msg.textContent = 'Starting camera…';
+  document.getElementById('qrnc-scanner').style.display = 'flex';
+  const video = document.getElementById('qrnc-video');
+
+  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+    msg.className = 'qrnc-scan-msg err';
+    msg.textContent = 'Camera not supported here. Use your phone camera app to scan the QR — it opens the profile directly.';
+    return;
+  }
+  try{
+    qrncScanStream = await navigator.mediaDevices.getUserMedia({ video:{ facingMode:'environment' }, audio:false });
+    video.srcObject = qrncScanStream;
+    await video.play();
+    msg.textContent = 'Point your camera at a GoChat QR code…';
+    // load jsQR lazily
+    try{ await qrncLoadScript(QRNC_LIB_SCAN); }catch(e){ msg.className='qrnc-scan-msg err'; msg.textContent='Scanner library unavailable offline.'; qrncStopStream(); return; }
+    qrncScanLoop();
+  }catch(e){
+    console.error(e);
+    msg.className = 'qrnc-scan-msg err';
+    msg.textContent = 'Camera access denied. You can still scan with your phone camera app — the link opens the profile automatically.';
+  }
+}
+function qrncScanLoop(){
+  const video = document.getElementById('qrnc-video');
+  const canvas = document.getElementById('qrnc-scan-canvas');
+  const ctx = canvas.getContext('2d', { willReadFrequently:true });
+  const msg = document.getElementById('qrnc-scan-msg');
+  const tick = () => {
+    if(!qrncScanStream){ return; }
+    if(video.readyState === video.HAVE_ENOUGH_DATA){
+      canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const img = ctx.getImageData(0,0,canvas.width,canvas.height);
+      const code = jsQR(img.data, img.width, img.height, { inversionAttempts:'dontInvert' });
+      if(code && code.data){
+        const m = code.data.match(/[?&]user=([^&]+)/);
+        if(m){
+          const id = decodeURIComponent(m[1]);
+          qrncCloseScanner(); qrncCloseCard();
+          if(navigator.vibrate) navigator.vibrate(40);
+          showToast('Profile found! Opening…');
+          setTimeout(() => { if(typeof viewUserProfile === 'function') viewUserProfile(id); }, 250);
+          return;
+        } else {
+          msg.className = 'qrnc-scan-msg err'; msg.textContent = 'Not a GoChat QR code. Try a GoChat profile card.';
+        }
+      }
+    }
+    qrncScanRAF = requestAnimationFrame(tick);
+  };
+  qrncScanRAF = requestAnimationFrame(tick);
+}
+function qrncStopStream(){ if(qrncScanStream){ qrncScanStream.getTracks().forEach(t => t.stop()); qrncScanStream = null; } if(qrncScanRAF){ cancelAnimationFrame(qrncScanRAF); qrncScanRAF = null; } }
+function qrncCloseScanner(){ qrncStopStream(); const v = document.getElementById('qrnc-video'); if(v) v.srcObject = null; document.getElementById('qrnc-scanner').style.display = 'none'; }
+
+/* ---------- inject buttons into profiles (own + other) ---------- */
+function qrncInject(){
+  // OWN profile
+  const own = document.getElementById('page-profile');
+  if(own && !own.querySelector('.qrnc-trigger')){
+    const btn = document.createElement('button');
+    btn.className = 'qrnc-trigger qrnc-gold';
+    btn.innerHTML = '<span class="material-symbols-outlined">qr_code_2</span> My QR Card';
+    btn.onclick = () => qrncOpenCard(currentUser.uid);
+    // place near edit/leaderboard row, else after info section
+    const row = own.querySelector('.profile-actions-row') || own.querySelector('[class*="actions" i]');
+    if(row){ row.style.flexWrap='wrap'; row.appendChild(btn); }
+    else { const info = own.querySelector('.profile-info-col, .profile-info-section, .profile-header'); if(info) info.insertAdjacentElement('afterend', btn); }
+  }
+  // OTHER profile
+  const other = document.getElementById('page-other-profile');
+  if(other && other.style.display !== 'none' && !other.querySelector('.qrnc-trigger')){
+    const btn = document.createElement('button');
+    btn.className = 'qrnc-trigger';
+    btn.innerHTML = '<span class="material-symbols-outlined">qr_code_2</span> QR Card';
+    btn.onclick = () => qrncOpenCard(window.__qrncLastViewedUid);
+    const row = other.querySelector('.profile-actions-row, .other-profile-actions, [class*="actions" i]');
+    if(row){ row.style.flexWrap='wrap'; row.appendChild(btn); }
+    else { const info = other.querySelector('.profile-info-col, .profile-header'); if(info) info.insertAdjacentElement('afterend', btn); }
+  }
+}
+
+// capture viewed uid by wrapping viewUserProfile (reliable for "other")
+(function qrncWrapView(){
+  if(typeof window.viewUserProfile === 'function' && !window.viewUserProfile.__qrncWrapped){
+    const o = window.viewUserProfile;
+    window.viewUserProfile = function(uid, ...rest){ window.__qrncLastViewedUid = uid; return o.call(this, uid, ...rest); };
+    window.viewUserProfile.__qrncWrapped = true;
+  }
+})();
+
+// boot + observe (profile opens dynamically)
+(function qrncBoot(){
+  const run = () => { qrncInject(); };
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run); else run();
+  setTimeout(run, 700); setTimeout(run, 1800); setTimeout(run, 3500);
+  let obs = null;
+  const watch = () => {
+    if(obs) return;
+    obs = new MutationObserver(() => {
+      const o = document.getElementById('page-other-profile');
+      const p = document.getElementById('page-profile');
+      if((o && o.style.display !== 'none' && !o.querySelector('.qrnc-trigger')) ||
+         (p && p.style.display !== 'none' && !p.querySelector('.qrnc-trigger'))) {
+        requestAnimationFrame(run);
+      }
+    });
+    obs.observe(document.body, { attributes:true, attributeFilter:['style'], subtree:true });
+  };
+  setTimeout(watch, 1500);
+})();
+
+// ESC / back handling hook (optional, safe)
+document.addEventListener('keydown', (e) => {
+  if(e.key === 'Escape'){
+    if(document.getElementById('qrnc-scanner').style.display === 'flex'){ qrncCloseScanner(); return; }
+    if(document.getElementById('qrnc-modal').style.display === 'flex'){ qrncCloseCard(); }
+  }
+});
 </script>
 </body>
 </html>
