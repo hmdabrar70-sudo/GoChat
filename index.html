@@ -2773,6 +2773,14 @@ NESTED ACTIVITY CATEGORIES STYLES
                     <i class="ph-bold ph-caret-right" style="color:var(--text-muted); font-size:16px;"></i>
                 </div>
 
+<div class="settings-list-item" onclick="openScheduledPosts()">
+  <div style="display:flex; align-items:center; gap:16px;">
+    <i class="ph-bold ph-clock" style="font-size: 24px; color: #3b82f6;"></i>
+    <span style="font-weight:600; font-size:15px;">Scheduled Posts</span>
+  </div>
+  <i class="ph-bold ph-caret-right" style="color:var(--text-muted); font-size:16px;"></i>
+</div>
+
                 <!-- 🚀 NEW: My QR Card Menu Item -->
                 <div class="settings-list-item" onclick="closeMainSettingsScreen(); closeMainMenu(); openQRCodeModal();">
                     <div style="display:flex; align-items:center; gap:16px;">
@@ -4320,6 +4328,385 @@ body.notifications-mode #page-notifications > div:first-child {
 @keyframes mfStripIn{ from{ opacity:0; transform:translateY(12px) scale(.98);} to{ opacity:1; transform:none;} }
 @keyframes mfSheetIn{ from{ opacity:0; transform:translateY(40px);} to{ opacity:1; transform:none;} }
 @keyframes mfRowIn{ from{ opacity:0; transform:translateY(10px);} to{ opacity:1; transform:none;} }
+
+/* ═══════════════════════════════════════════════════════
+   🚀 NEW FEATURE  ·  quick-reply-templates  ·  2026-08-02
+   Quick Reply Templates (সেটিংস + চ্যাট স্ক্রিনে চিপস)
+   localStorage-ভিত্তিক · Firebase খরচ শূন্য
+   খুঁজতে:  Ctrl+F → "quick-reply-templates"
+   ═══════════════════════════════════════════════════════ */
+
+/* চ্যাট স্ক্রিনে ⚡ বাটন */
+.qr-trigger{
+  width:40px; height:40px; border-radius:50%; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center; cursor:pointer;
+  background:linear-gradient(135deg, color-mix(in srgb, var(--accent) 20%, var(--surface-2)), var(--surface-2));
+  border:1px solid color-mix(in srgb, var(--accent) 35%, var(--border));
+  color:var(--accent); transition:transform .2s cubic-bezier(.34,1.56,.64,1), background .2s, box-shadow .25s;
+  animation:qrBtnPop .4s cubic-bezier(.34,1.56,.64,1) backwards;
+}
+.qr-trigger:hover{ transform:translateY(-2px) scale(1.08); box-shadow:0 10px 22px -8px color-mix(in srgb, var(--accent) 60%, transparent); }
+.qr-trigger:active{ transform:scale(.86); }
+.qr-trigger .material-symbols-outlined{ font-size:20px; }
+
+/* চিপস পপআপ */
+.qr-chips-popup{
+  position:absolute; bottom:70px; left:14px; right:14px; z-index:100200;
+  background:var(--surface); border:1px solid var(--border); border-radius:20px;
+  box-shadow:0 20px 50px -20px rgba(0,0,0,.6);
+  max-height:320px; overflow-y:auto; overflow-x:hidden;
+  animation:qrChipsIn .35s cubic-bezier(.22,1,.36,1);
+  display:none;
+}
+.qr-chips-popup.open{ display:block; }
+.qr-chips-header{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:14px 16px; border-bottom:1px solid var(--border);
+  background:linear-gradient(135deg, color-mix(in srgb, var(--accent) 8%, var(--surface-2)), var(--surface-2));
+  border-radius:20px 20px 0 0;
+}
+.qr-chips-header .qr-title{ font-size:15px; font-weight:800; color:var(--text); display:flex; align-items:center; gap:7px; }
+.qr-chips-header .qr-title .material-symbols-outlined{ font-size:18px; color:var(--accent); }
+.qr-chips-header .qr-close{
+  width:28px; height:28px; border-radius:50%; border:none; background:var(--surface-2); color:var(--text-muted);
+  cursor:pointer; display:flex; align-items:center; justify-content:center; transition:transform .2s, background .2s;
+}
+.qr-chips-header .qr-close:hover{ background:var(--card); }
+.qr-chips-header .qr-close:active{ transform:scale(.86) rotate(90deg); }
+.qr-chips-list{ padding:10px; display:flex; flex-direction:column; gap:8px; }
+.qr-chip-item{
+  display:flex; align-items:center; justify-content:space-between; gap:12px;
+  padding:12px 14px; border-radius:14px; cursor:pointer;
+  background:var(--surface-2); border:1px solid var(--border);
+  transition:transform .18s, background .2s, border-color .2s;
+  animation:qrChipIn .3s cubic-bezier(.22,1,.36,1) backwards;
+}
+.qr-chip-item:hover{ transform:translateX(4px); background:var(--surface); border-color:color-mix(in srgb, var(--accent) 40%, var(--border)); }
+.qr-chip-item:active{ transform:scale(.98); }
+.qr-chip-item .qr-text{ flex:1; min-width:0; font-size:13.5px; color:var(--text); font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.qr-chip-item .qr-actions{ display:flex; gap:6px; }
+.qr-chip-item .qr-del{
+  width:26px; height:26px; border-radius:50%; border:none; background:transparent; color:var(--text-muted);
+  cursor:pointer; display:flex; align-items:center; justify-content:center; transition:background .2s, color .2s;
+}
+.qr-chip-item .qr-del:hover{ background:rgba(255,77,106,.12); color:var(--danger); }
+.qr-chips-empty{ text-align:center; padding:24px 16px; color:var(--text-muted); font-size:13px; }
+.qr-chips-empty .material-symbols-outlined{ font-size:32px; opacity:.4; margin-bottom:8px; }
+.qr-chips-footer{
+  padding:10px 16px 14px; border-top:1px solid var(--border);
+  display:flex; gap:8px; justify-content:flex-end;
+}
+.qr-chips-footer button{
+  padding:9px 16px; border-radius:12px; border:none; cursor:pointer; font-size:13px; font-weight:700;
+  transition:transform .18s, background .2s;
+}
+.qr-chips-footer .qr-manage{ background:var(--surface-2); color:var(--text); }
+.qr-chips-footer .qr-manage:hover{ background:var(--card); }
+.qr-chips-footer .qr-manage:active{ transform:scale(.95); }
+
+/* ম্যানেজ স্ক্রিন (সেটিংসে) */
+.qr-manage-screen{
+  display:none; position:fixed; inset:0; background:var(--bg); z-index:100250; flex-direction:column;
+  animation:qrManageIn .35s cubic-bezier(.22,1,.36,1);
+}
+.qr-manage-screen.open{ display:flex; }
+.qr-manage-head{
+  display:flex; align-items:center; gap:12px; padding:16px 18px; border-bottom:1px solid var(--border);
+  background:var(--surface); position:sticky; top:0; z-index:10;
+}
+.qr-manage-head .qr-back{
+  width:38px; height:38px; border-radius:50%; border:none; background:var(--surface-2); color:var(--text);
+  cursor:pointer; display:flex; align-items:center; justify-content:center; transition:transform .2s;
+}
+.qr-manage-head .qr-back:active{ transform:scale(.86) rotate(-90deg); }
+.qr-manage-head .qr-title{ font-size:19px; font-weight:800; color:var(--text); flex:1; }
+.qr-manage-head .qr-add{
+  padding:9px 16px; border-radius:20px; border:none; background:var(--accent); color:#fff;
+  font-size:13px; font-weight:800; cursor:pointer; display:flex; align-items:center; gap:6px;
+  transition:transform .2s, box-shadow .25s;
+}
+.qr-manage-head .qr-add:hover{ transform:translateY(-1px); box-shadow:0 8px 18px -8px color-mix(in srgb, var(--accent) 70%, transparent); }
+.qr-manage-head .qr-add:active{ transform:scale(.94); }
+.qr-manage-list{ flex:1; overflow-y:auto; padding:16px; display:flex; flex-direction:column; gap:10px; }
+.qr-manage-item{
+  display:flex; align-items:flex-start; gap:12px; padding:14px; border-radius:16px;
+  background:var(--surface-2); border:1px solid var(--border);
+  transition:transform .18s, background .2s, border-color .2s;
+  animation:qrManageItemIn .35s cubic-bezier(.22,1,.36,1) backwards;
+}
+.qr-manage-item:hover{ transform:translateX(4px); background:var(--surface); border-color:color-mix(in srgb, var(--accent) 35%, var(--border)); }
+.qr-manage-item .qr-m-text{ flex:1; min-width:0; }
+.qr-manage-item .qr-m-text .qr-m-txt{ font-size:14px; color:var(--text); font-weight:500; margin-bottom:4px; word-break:break-word; }
+.qr-manage-item .qr-m-text .qr-m-meta{ font-size:11px; color:var(--text-muted); }
+.qr-manage-item .qr-m-actions{ display:flex; gap:6px; }
+.qr-manage-item .qr-m-btn{
+  width:32px; height:32px; border-radius:50%; border:none; background:transparent; color:var(--text-muted);
+  cursor:pointer; display:flex; align-items:center; justify-content:center; transition:background .2s, color .2s, transform .2s;
+}
+.qr-manage-item .qr-m-btn:hover{ background:var(--surface); }
+.qr-manage-item .qr-m-btn.qr-edit:hover{ color:var(--accent); }
+.qr-manage-item .qr-m-btn.qr-delete:hover{ background:rgba(255,77,106,.12); color:var(--danger); }
+.qr-manage-item .qr-m-btn:active{ transform:scale(.86); }
+.qr-manage-empty{ text-align:center; padding:60px 20px; color:var(--text-muted); }
+.qr-manage-empty .material-symbols-outlined{ font-size:48px; opacity:.35; margin-bottom:12px; }
+.qr-manage-empty .qr-e-t{ font-size:15px; font-weight:700; color:var(--text-secondary); margin-bottom:6px; }
+.qr-manage-empty .qr-e-s{ font-size:13px; line-height:1.5; }
+
+/* এডিট/অ্যাড মডাল */
+.qr-editor-modal{
+  display:none; position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:100260; align-items:center; justify-content:center; padding:20px;
+}
+.qr-editor-modal.open{ display:flex; }
+.qr-editor-box{
+  width:100%; max-width:420px; background:var(--surface); border:1px solid var(--border); border-radius:24px;
+  box-shadow:0 40px 90px -30px rgba(0,0,0,.6); overflow:hidden; animation:qrEditorIn .35s cubic-bezier(.22,1,.36,1);
+}
+.qr-editor-head{
+  display:flex; align-items:center; justify-content:space-between; padding:16px 18px; border-bottom:1px solid var(--border);
+  background:linear-gradient(135deg, color-mix(in srgb, var(--accent) 8%, var(--surface-2)), var(--surface-2));
+}
+.qr-editor-head .qr-e-title{ font-size:17px; font-weight:800; color:var(--text); }
+.qr-editor-head .qr-e-close{
+  width:32px; height:32px; border-radius:50%; border:none; background:var(--surface-2); color:var(--text-muted);
+  cursor:pointer; display:flex; align-items:center; justify-content:center; transition:transform .2s;
+}
+.qr-editor-head .qr-e-close:active{ transform:scale(.86) rotate(90deg); }
+.qr-editor-body{ padding:18px; }
+.qr-editor-body textarea{
+  width:100%; min-height:120px; padding:14px; border-radius:14px; border:1.5px solid var(--border);
+  background:var(--surface-2); color:var(--text); font-size:14.5px; font-family:inherit; resize:vertical; outline:none;
+  transition:border-color .25s, box-shadow .25s;
+}
+.qr-editor-body textarea:focus{ border-color:var(--accent); box-shadow:0 0 0 4px var(--accent-glow); }
+.qr-editor-footer{ padding:14px 18px 18px; display:flex; gap:10px; justify-content:flex-end; }
+.qr-editor-footer button{
+  padding:11px 20px; border-radius:14px; border:none; cursor:pointer; font-size:14px; font-weight:700;
+  transition:transform .18s, background .2s;
+}
+.qr-editor-footer .qr-cancel{ background:var(--surface-2); color:var(--text); }
+.qr-editor-footer .qr-cancel:hover{ background:var(--card); }
+.qr-editor-footer .qr-cancel:active{ transform:scale(.95); }
+.qr-editor-footer .qr-save{ background:var(--accent); color:#fff; }
+.qr-editor-footer .qr-save:hover{ transform:translateY(-1px); box-shadow:0 8px 18px -8px color-mix(in srgb, var(--accent) 70%, transparent); }
+.qr-editor-footer .qr-save:active{ transform:scale(.94); }
+
+@keyframes qrBtnPop{ from{ opacity:0; transform:scale(.3);} to{ opacity:1; transform:scale(1);} }
+@keyframes qrChipsIn{ from{ opacity:0; transform:translateY(12px) scale(.96);} to{ opacity:1; transform:none;} }
+@keyframes qrChipIn{ from{ opacity:0; transform:translateX(-8px);} to{ opacity:1; transform:none;} }
+@keyframes qrManageIn{ from{ opacity:0; transform:translateX(100%);} to{ opacity:1; transform:none;} }
+@keyframes qrManageItemIn{ from{ opacity:0; transform:translateY(10px);} to{ opacity:1; transform:none;} }
+@keyframes qrEditorIn{ from{ opacity:0; transform:translateY(20px) scale(.96);} to{ opacity:1; transform:none;} }
+
+/* ═══════════════════════════════════════════════════════
+   🚀 NEW FEATURE  ·  post-schedule  ·  2026-08-03
+   Schedule posts for later publishing
+   খুঁজতে:  Ctrl+F → "post-schedule"
+   ═══════════════════════════════════════════════════════ */
+
+/* Schedule toggle button */
+.schedule-toggle-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+.schedule-toggle-btn:hover {
+  background: var(--surface);
+  border-color: var(--accent);
+}
+.schedule-toggle-btn.active {
+  background: var(--accent-glow);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.schedule-toggle-btn .material-symbols-outlined {
+  font-size: 18px;
+}
+
+/* Schedule info display */
+.schedule-info {
+  display: none;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: var(--accent-glow);
+  border: 1px solid var(--accent);
+  border-radius: 12px;
+  margin-top: 12px;
+  font-size: 13px;
+  color: var(--accent);
+}
+.schedule-info.show {
+  display: flex;
+}
+.schedule-info .material-symbols-outlined {
+  font-size: 18px;
+}
+.schedule-info .schedule-time {
+  flex: 1;
+  font-weight: 600;
+}
+.schedule-info .schedule-cancel {
+  cursor: pointer;
+  padding: 4px;
+}
+
+/* Schedule bottom sheet */
+.schedule-sheet {
+  z-index: 100020;
+  align-items: flex-end;
+}
+.schedule-sheet .schedule-box {
+  width: 100%;
+  max-width: 520px;
+  margin: 0 auto;
+  background: var(--surface);
+  border-radius: 24px 24px 0 0;
+  padding: 24px 20px;
+  max-height: 70vh;
+  overflow-y: auto;
+  animation: scheduleSlideUp 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+@keyframes scheduleSlideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+.schedule-handle {
+  width: 40px;
+  height: 5px;
+  background: var(--border);
+  border-radius: 3px;
+  margin: 0 auto 20px;
+}
+
+.schedule-title {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+.schedule-subtitle {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 24px;
+}
+
+.schedule-datetime {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.schedule-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.schedule-field label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.schedule-field input {
+  padding: 14px 16px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  color: var(--text);
+  font-size: 15px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.schedule-field input:focus {
+  border-color: var(--accent);
+}
+
+.schedule-actions {
+  display: flex;
+  gap: 12px;
+}
+.schedule-actions button {
+  flex: 1;
+  padding: 14px;
+  border-radius: 12px;
+  border: none;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.schedule-cancel-btn {
+  background: var(--surface-2);
+  color: var(--text);
+}
+.schedule-cancel-btn:hover {
+  background: var(--surface);
+}
+.schedule-confirm-btn {
+  background: var(--gradient);
+  color: #fff;
+  box-shadow: var(--shadow-glow);
+}
+.schedule-confirm-btn:hover {
+  transform: translateY(-2px);
+}
+
+/* Scheduled posts list */
+.scheduled-post-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  margin-bottom: 10px;
+}
+.scheduled-post-info {
+  flex: 1;
+  min-width: 0;
+}
+.scheduled-post-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.scheduled-post-time {
+  font-size: 12px;
+  color: var(--accent);
+  font-weight: 600;
+  margin-top: 4px;
+}
+.scheduled-post-cancel {
+  padding: 8px 12px;
+  background: rgba(255, 77, 106, 0.1);
+  color: var(--danger);
+  border: 1px solid var(--danger);
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.scheduled-post-cancel:hover {
+  background: var(--danger);
+  color: #fff;
+}
 </style>
 
 <style>
@@ -5127,6 +5514,79 @@ function closeBlockedAccountsPage() {
       <div class="qrnc-scanline"></div>
     </div>
     <div class="qrnc-scan-msg" id="qrnc-scan-msg">Point your camera at a GoChat QR code…</div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     🚀 NEW FEATURE  ·  quick-reply-templates  ·  2026-08-02
+     Quick Replies Manage Screen + Editor Modal
+     ═══════════════════════════════════════════════════════ -->
+
+<!-- Manage Screen (সেটিংসের ভেতরে) -->
+<div id="qr-manage-screen" class="qr-manage-screen">
+  <div class="qr-manage-head">
+    <button class="qr-back" onclick="qrCloseManage()"><span class="material-symbols-outlined">arrow_back</span></button>
+    <div class="qr-title">Quick Replies</div>
+    <button class="qr-add" onclick="qrOpenEditor()"><span class="material-symbols-outlined">add</span> New</button>
+  </div>
+  <div class="qr-manage-list" id="qr-manage-list"></div>
+</div>
+
+<!-- Editor Modal -->
+<div class="qr-editor-modal" id="qr-editor-modal" onclick="if(event.target===this) qrCloseEditor()">
+  <div class="qr-editor-box">
+    <div class="qr-editor-head">
+      <div class="qr-e-title" id="qr-editor-title">New Quick Reply</div>
+      <button class="qr-e-close" onclick="qrCloseEditor()"><span class="material-symbols-outlined">close</span></button>
+    </div>
+    <div class="qr-editor-body">
+      <textarea id="qr-editor-text" placeholder="Type your quick reply here...&#10;Example: ধন্যবাদ! পরে কথা বলি।"></textarea>
+    </div>
+    <div class="qr-editor-footer">
+      <button class="qr-cancel" onclick="qrCloseEditor()">Cancel</button>
+      <button class="qr-save" onclick="qrSaveTemplate()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     🚀 NEW FEATURE  ·  post-schedule  ·  2026-08-03
+     Schedule post bottom sheet
+     ═══════════════════════════════════════════════════════ -->
+<div class="modal-overlay schedule-sheet" id="schedule-sheet" onclick="if(event.target===this) closeScheduleSheet()">
+  <div class="schedule-box">
+    <div class="schedule-handle"></div>
+    <div class="schedule-title">Schedule Post</div>
+    <div class="schedule-subtitle">Choose when to publish your post</div>
+    
+    <div class="schedule-datetime">
+      <div class="schedule-field">
+        <label>Date</label>
+        <input type="date" id="schedule-date">
+      </div>
+      <div class="schedule-field">
+        <label>Time</label>
+        <input type="time" id="schedule-time">
+      </div>
+    </div>
+    
+    <div class="schedule-actions">
+      <button class="schedule-cancel-btn" onclick="closeScheduleSheet()">Cancel</button>
+      <button class="schedule-confirm-btn" onclick="confirmSchedule()">Schedule</button>
+    </div>
+  </div>
+</div>
+
+<!-- Scheduled Posts Screen -->
+<div id="scheduled-posts-screen" style="display:none; position:fixed; inset:0; background:var(--bg); z-index:10005; flex-direction:column; overflow-y:auto; animation:slideUp 0.3s ease;">
+  <div class="chat-topbar" style="position:sticky; top:0; z-index:100; display:flex; justify-content:space-between; align-items:center;">
+    <div style="display:flex; align-items:center; gap:12px;">
+      <div class="chat-back" onclick="closeScheduledPosts()"><span class="material-symbols-outlined">arrow_back</span></div>
+      <div style="font-weight:800; font-size:18px;">Scheduled Posts</div>
+    </div>
+  </div>
+  <div style="padding: 20px;">
+    <div id="scheduled-posts-list"></div>
   </div>
 </div>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -14413,6 +14873,597 @@ function exportCurrentChat() {
 
     document.body.appendChild(exportModal);
 }
+// ═══════════════════════════════════════════════════════
+// 🚀 NEW FEATURE  ·  quick-reply-templates  ·  2026-08-02
+// Quick Reply Templates (localStorage-ভিত্তিক)
+// খুঁজতে:  Ctrl+F → "quick-reply-templates"
+// ══════════════════════════════════════════════════════
+const QR_STORAGE_KEY = 'gochat_quick_replies';
+let qrEditIndex = null;
+
+/* ---------- ডাটা ম্যানেজমেন্ট ---------- */
+function qrGetTemplates(){
+  try{
+    const data = localStorage.getItem(QR_STORAGE_KEY);
+    return data ? JSON.parse(data) : [];
+  }catch(e){ return []; }
+}
+function qrSaveTemplates(templates){
+  try{
+    localStorage.setItem(QR_STORAGE_KEY, JSON.stringify(templates));
+  }catch(e){ showToast('Failed to save template'); }
+}
+function qrAddTemplate(text){
+  const templates = qrGetTemplates();
+  templates.push({ text, createdAt: Date.now() });
+  qrSaveTemplates(templates);
+}
+function qrDeleteTemplate(index){
+  const templates = qrGetTemplates();
+  templates.splice(index, 1);
+  qrSaveTemplates(templates);
+}
+function qrUpdateTemplate(index, text){
+  const templates = qrGetTemplates();
+  if(templates[index]) templates[index].text = text;
+  qrSaveTemplates(templates);
+}
+
+/* ---------- চ্যাট স্ক্রিনে ⚡ বাটন ইনজেক্ট ---------- */
+function qrInjectChatButton(){
+  const inputBar = document.querySelector('.chat-input-bar');
+  if(!inputBar || inputBar.querySelector('.qr-trigger')) return;
+  
+  const btn = document.createElement('button');
+  btn.className = 'qr-trigger';
+  btn.type = 'button';
+  btn.setAttribute('aria-label', 'Quick Replies');
+  btn.title = 'Quick Replies';
+  btn.innerHTML = '<span class="material-symbols-outlined">bolt</span>';
+  btn.onclick = (e) => { e.stopPropagation(); qrToggleChips(); };
+  
+  // ইনপুটের আগে বসানো
+  const input = inputBar.querySelector('input');
+  if(input){ inputBar.insertBefore(btn, input); }
+  else{ inputBar.appendChild(btn); }
+}
+
+/* ---------- চিপস পপআপ ---------- */
+function qrToggleChips(){
+  const popup = document.getElementById('qr-chips-popup');
+  if(!popup){ qrBuildChipsPopup(); }
+  const p = document.getElementById('qr-chips-popup');
+  if(p.classList.contains('open')){ p.classList.remove('open'); }
+  else{ qrRenderChips(); p.classList.add('open'); }
+}
+function qrBuildChipsPopup(){
+  if(document.getElementById('qr-chips-popup')) return;
+  
+  const popup = document.createElement('div');
+  popup.id = 'qr-chips-popup';
+  popup.className = 'qr-chips-popup';
+  popup.innerHTML = `
+    <div class="qr-chips-header">
+      <div class="qr-title"><span class="material-symbols-outlined">bolt</span> Quick Replies</div>
+      <button class="qr-close" onclick="qrToggleChips()"><span class="material-symbols-outlined">close</span></button>
+    </div>
+    <div class="qr-chips-list" id="qr-chips-list"></div>
+    <div class="qr-chips-footer">
+      <button class="qr-manage" onclick="qrOpenManage()">Manage</button>
+    </div>
+  `;
+  
+  // চ্যাট স্ক্রিনে বসানো
+  const chatScreen = document.getElementById('chat-screen');
+  if(chatScreen){ chatScreen.appendChild(popup); }
+  
+  // বাইরে ক্লিকে বন্ধ
+  document.addEventListener('click', (e) => {
+    if(popup && !popup.contains(e.target) && !e.target.closest('.qr-trigger')){
+      popup.classList.remove('open');
+    }
+  });
+}
+function qrRenderChips(){
+  const list = document.getElementById('qr-chips-list');
+  if(!list) return;
+  
+  const templates = qrGetTemplates();
+  if(templates.length === 0){
+    list.innerHTML = `<div class="qr-chips-empty"><span class="material-symbols-outlined">inbox</span><div>No quick replies yet</div></div>`;
+    return;
+  }
+  
+  list.innerHTML = templates.map((t, i) => `
+    <div class="qr-chip-item" style="animation-delay:${i*0.04}s" onclick="qrUseTemplate(${i})">
+      <div class="qr-text">${escapeHTML(t.text)}</div>
+      <div class="qr-actions">
+        <button class="qr-del" onclick="event.stopPropagation(); qrDeleteFromChips(${i})"><span class="material-symbols-outlined">delete</span></button>
+      </div>
+    </div>
+  `).join('');
+}
+function qrUseTemplate(index){
+  const templates = qrGetTemplates();
+  if(!templates[index]) return;
+  
+  const input = document.getElementById('chat-input');
+  if(input){
+    input.value = templates[index].text;
+    input.focus();
+    // ক্যারেক্টার শেষে নিয়ে যাওয়া
+    const len = input.value.length;
+    input.setSelectionRange(len, len);
+  }
+  
+  document.getElementById('qr-chips-popup').classList.remove('open');
+  showToast('Template inserted');
+}
+function qrDeleteFromChips(index){
+  qrDeleteTemplate(index);
+  qrRenderChips();
+  showToast('Template deleted');
+}
+
+/* ---------- Manage Screen (সেটিংস) ---------- */
+function qrOpenManage(){
+  document.getElementById('qr-chips-popup').classList.remove('open');
+  const screen = document.getElementById('qr-manage-screen');
+  screen.classList.add('open');
+  qrRenderManageList();
+}
+function qrCloseManage(){
+  document.getElementById('qr-manage-screen').classList.remove('open');
+}
+function qrRenderManageList(){
+  const list = document.getElementById('qr-manage-list');
+  if(!list) return;
+  
+  const templates = qrGetTemplates();
+  if(templates.length === 0){
+    list.innerHTML = `
+      <div class="qr-manage-empty">
+        <span class="material-symbols-outlined">bolt</span>
+        <div class="qr-e-t">No quick replies yet</div>
+        <div class="qr-e-s">Tap "New" to create your first quick reply template.</div>
+      </div>
+    `;
+    return;
+  }
+  
+  list.innerHTML = templates.map((t, i) => `
+    <div class="qr-manage-item" style="animation-delay:${i*0.04}s">
+      <div class="qr-m-text">
+        <div class="qr-m-txt">${escapeHTML(t.text)}</div>
+        <div class="qr-m-meta">${new Date(t.createdAt).toLocaleString()}</div>
+      </div>
+      <div class="qr-m-actions">
+        <button class="qr-m-btn qr-edit" onclick="qrEditItem(${i})"><span class="material-symbols-outlined">edit</span></button>
+        <button class="qr-m-btn qr-delete" onclick="qrDeleteItem(${i})"><span class="material-symbols-outlined">delete</span></button>
+      </div>
+    </div>
+  `).join('');
+}
+function qrEditItem(index){
+  qrEditIndex = index;
+  const templates = qrGetTemplates();
+  const modal = document.getElementById('qr-editor-modal');
+  const title = document.getElementById('qr-editor-title');
+  const text = document.getElementById('qr-editor-text');
+  
+  title.textContent = 'Edit Quick Reply';
+  text.value = templates[index].text;
+  modal.classList.add('open');
+}
+function qrDeleteItem(index){
+  if(!confirm('Delete this quick reply?')) return;
+  qrDeleteTemplate(index);
+  qrRenderManageList();
+  showToast('Template deleted');
+}
+
+/* ---------- Editor Modal ---------- */
+function qrOpenEditor(index = null){
+  qrEditIndex = index;
+  const modal = document.getElementById('qr-editor-modal');
+  const title = document.getElementById('qr-editor-title');
+  const text = document.getElementById('qr-editor-text');
+  
+  if(index === null){
+    title.textContent = 'New Quick Reply';
+    text.value = '';
+  }
+  
+  modal.classList.add('open');
+  setTimeout(() => text.focus(), 100);
+}
+function qrCloseEditor(){
+  document.getElementById('qr-editor-modal').classList.remove('open');
+  qrEditIndex = null;
+}
+function qrSaveTemplate(){
+  const text = document.getElementById('qr-editor-text').value.trim();
+  if(!text){ showToast('Please enter some text'); return; }
+  if(text.length > 200){ showToast('Text is too long (max 200 chars)'); return; }
+  
+  if(qrEditIndex !== null){
+    qrUpdateTemplate(qrEditIndex, text);
+    showToast('Template updated');
+  }else{
+    qrAddTemplate(text);
+    showToast('Template saved');
+  }
+  
+  qrCloseEditor();
+  qrRenderManageList();
+}
+
+/* ---------- সেটিংস মেনুতে লিংক যোগ ---------- */
+function qrAddToSettings(){
+  const menu = document.querySelector('.settings-list');
+  if(!menu || menu.querySelector('.qr-settings-item')) return;
+  
+  const item = document.createElement('div');
+  item.className = 'setting-item qr-settings-item';
+  item.innerHTML = '<span class="material-symbols-outlined">bolt</span> Quick Replies';
+  item.onclick = () => qrOpenManage();
+  
+  // কোন জায়গায় বসাতে হবে খোঁজা
+  const refItem = [...menu.querySelectorAll('.setting-item')].find(i => /notification|privacy/i.test(i.textContent));
+  if(refItem){ refItem.parentNode.insertBefore(item, refItem); }
+  else{ menu.appendChild(item); }
+}
+
+/* ---------- Boot ---------- */
+(function qrBoot(){
+  // সেটিংসে লিংক যোগ
+  const addSettings = () => {
+    if(document.querySelector('.settings-list')) qrAddToSettings();
+  };
+  
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', addSettings); else addSettings();
+  setTimeout(addSettings, 800);
+  
+  // চ্যাট খোলার সময় বাটন ইনজেক্ট
+  if(typeof window.openChat === 'function' && !window.openChat.__qrWrapped){
+    const orig = window.openChat;
+    window.openChat = function(...args){
+      const r = orig.apply(this, args);
+      setTimeout(() => qrInjectChatButton(), 300);
+      return r;
+    };
+    window.openChat.__qrWrapped = true;
+  }
+  
+  // ESC দিয়ে মডাল বন্ধ
+  document.addEventListener('keydown', (e) => {
+    if(e.key === 'Escape'){
+      const chips = document.getElementById('qr-chips-popup');
+      if(chips && chips.classList.contains('open')) chips.classList.remove('open');
+      const manage = document.getElementById('qr-manage-screen');
+      if(manage && manage.classList.contains('open')) qrCloseManage();
+      const editor = document.getElementById('qr-editor-modal');
+      if(editor && editor.classList.contains('open')) qrCloseEditor();
+    }
+  });
+})();
+// ═══════════════════════════════════════════════════════
+// 🚀 NEW FEATURE  ·  post-schedule  ·  2026-08-03
+// Schedule posts for later publishing
+// খুঁজতে:  Ctrl+F → "post-schedule"
+// ═══════════════════════════════════════════════════════
+
+let isScheduled = false;
+let scheduledDateTime = null;
+
+// Schedule toggle in create post screen
+function toggleSchedule() {
+  isScheduled = !isScheduled;
+  const btn = document.getElementById('schedule-toggle');
+  const info = document.getElementById('schedule-info');
+  
+  if (isScheduled) {
+    btn.classList.add('active');
+    // Open schedule sheet
+    openScheduleSheet();
+  } else {
+    btn.classList.remove('active');
+    info.classList.remove('show');
+    scheduledDateTime = null;
+  }
+}
+
+function openScheduleSheet() {
+  const sheet = document.getElementById('schedule-sheet');
+  sheet.classList.add('open');
+  
+  // Set default date/time (tomorrow, same time)
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  document.getElementById('schedule-date').value = tomorrow.toISOString().split('T')[0];
+  document.getElementById('schedule-time').value = new Date().toTimeString().slice(0, 5);
+}
+
+function closeScheduleSheet() {
+  const sheet = document.getElementById('schedule-sheet');
+  sheet.classList.remove('open');
+  isScheduled = false;
+  document.getElementById('schedule-toggle').classList.remove('active');
+  document.getElementById('schedule-info').classList.remove('show');
+  scheduledDateTime = null;
+}
+
+async function confirmSchedule() {
+  const date = document.getElementById('schedule-date').value;
+  const time = document.getElementById('schedule-time').value;
+  
+  if (!date || !time) {
+    showToast('Please select date and time');
+    return;
+  }
+  
+  const scheduledTime = new Date(`${date}T${time}`);
+  const now = new Date();
+  
+  if (scheduledTime <= now) {
+    showToast('Please select a future time');
+    return;
+  }
+  
+  scheduledDateTime = scheduledTime.toISOString();
+  isScheduled = true;
+  document.getElementById('schedule-toggle').classList.add('active');
+  
+  // Show schedule info
+  const info = document.getElementById('schedule-info');
+  info.innerHTML = `
+    <span class="material-symbols-outlined">schedule</span>
+    <span class="schedule-time">Scheduled for ${scheduledTime.toLocaleString()}</span>
+    <span class="schedule-cancel" onclick="cancelSchedule()">
+      <span class="material-symbols-outlined">close</span>
+    </span>
+  `;
+  info.classList.add('show');
+  
+  closeScheduleSheet();
+  showToast('Post scheduled!');
+}
+
+function cancelSchedule() {
+  isScheduled = false;
+  scheduledDateTime = null;
+  document.getElementById('schedule-toggle').classList.remove('active');
+  document.getElementById('schedule-info').classList.remove('show');
+  showToast('Schedule cancelled');
+}
+
+// Modified submitPost to handle scheduling
+async function submitPost() {
+  const title = document.getElementById('post-title').value.trim();
+  if (!title && composeImages.length === 0) return;
+  if (!checkRateLimit()) return;
+  
+  let imgUrls = [];
+  if (composeImages.length > 0) {
+    showToast('Uploading images...');
+    try {
+      for (let i = 0; i < composeImages.length; i++) {
+        const url = await uploadToCloudinary(composeImages[i].file, false);
+        imgUrls.push(url);
+      }
+    } catch (e) {
+      showToast('Image upload failed!');
+      return;
+    }
+  }
+  
+  try {
+    const postData = {
+      uid: currentUser.uid,
+      bgColor: currentPostBgColor,
+      name: currentUserData.name || currentUser.email.split('@')[0],
+      email: currentUserData.email || '',
+      isVerified: currentUserData.isVerified || false,
+      avatar: currentUserData.avatar || '',
+      title: title,
+      imgUrls: imgUrls,
+      imgUrl: imgUrls[0] || '',
+      likes: 0,
+      likedBy: [],
+      comments: [],
+      tagged: currentTaggedFriends,
+      taggedNames: currentTaggedNames,
+      activity: currentPostActivity,
+      isPinned: false,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      expiresAt: new Date(Date.now() + ONE_YEAR_MS)
+    };
+    
+    if (isScheduled && scheduledDateTime) {
+      // Save to scheduled_posts collection
+      postData.scheduledAt = new Date(scheduledDateTime);
+      await db.collection('scheduled_posts').add(postData);
+      showToast('Post scheduled successfully!');
+    } else {
+      // Publish immediately
+      await db.collection('posts').add(postData);
+      showToast('Posted!');
+      awardPoints(currentUser.uid, 20);
+    }
+    
+    // Send notifications to tagged friends
+    if (currentTaggedFriends && currentTaggedFriends.length > 0) {
+      currentTaggedFriends.forEach(taggedUid => {
+        if (taggedUid !== currentUser.uid) {
+          db.collection('notifications').add({
+            toUid: taggedUid,
+            fromUid: currentUser.uid,
+            fromName: currentUserData.name || 'User',
+            type: 'tag',
+            postId: 'pending',
+            read: false,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+          });
+        }
+      });
+    }
+    
+    currentPostBgColor = 'default';
+    closeCreatePost();
+    isScheduled = false;
+    scheduledDateTime = null;
+    
+  } catch (e) {
+    showToast('Error saving post.');
+  }
+}
+
+// Check and publish scheduled posts
+async function checkScheduledPosts() {
+  if (!currentUser) return;
+  
+  try {
+    const now = new Date();
+    const snap = await db.collection('scheduled_posts')
+      .where('scheduledAt', '<=', now)
+      .get();
+    
+    const batch = db.batch();
+    
+    snap.forEach(doc => {
+      const data = doc.data();
+      // Move to posts collection
+      const postRef = db.collection('posts').doc();
+      batch.set(postRef, {
+        ...data,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      // Delete from scheduled_posts
+      batch.delete(doc.ref);
+    });
+    
+    if (!snap.empty) {
+      await batch.commit();
+      console.log(`Published ${snap.size} scheduled post(s)`);
+    }
+  } catch (e) {
+    console.error('Error checking scheduled posts:', e);
+  }
+}
+
+// Load scheduled posts for user
+async function loadScheduledPosts() {
+  const list = document.getElementById('scheduled-posts-list');
+  if (!list) return;
+  
+  list.innerHTML = '<div class="loading"><span class="material-symbols-outlined">autorenew</span> Loading...</div>';
+  
+  try {
+    const snap = await db.collection('scheduled_posts')
+      .where('uid', '==', currentUser.uid)
+      .orderBy('scheduledAt', 'asc')
+      .get();
+    
+    if (snap.empty) {
+      list.innerHTML = '<div class="empty-feed">No scheduled posts</div>';
+      return;
+    }
+    
+    let html = '';
+    snap.forEach(doc => {
+      const data = doc.data();
+      const scheduledTime = data.scheduledAt.toDate();
+      html += `
+        <div class="scheduled-post-item">
+          <div class="scheduled-post-info">
+            <div class="scheduled-post-title">${escapeHTML(data.title || 'Photo post')}</div>
+            <div class="scheduled-post-time">${scheduledTime.toLocaleString()}</div>
+          </div>
+          <button class="scheduled-post-cancel" onclick="cancelScheduledPost('${doc.id}')">Cancel</button>
+        </div>
+      `;
+    });
+    
+    list.innerHTML = html;
+  } catch (e) {
+    list.innerHTML = '<div class="empty-feed">Failed to load</div>';
+  }
+}
+
+async function cancelScheduledPost(postId) {
+  if (!confirm('Cancel this scheduled post?')) return;
+  
+  try {
+    await db.collection('scheduled_posts').doc(postId).delete();
+    showToast('Post cancelled');
+    loadScheduledPosts();
+  } catch (e) {
+    showToast('Failed to cancel');
+  }
+}
+
+function openScheduledPosts() {
+  document.getElementById('scheduled-posts-screen').style.display = 'flex';
+  loadScheduledPosts();
+}
+
+function closeScheduledPosts() {
+  document.getElementById('scheduled-posts-screen').style.display = 'none';
+}
+
+// Add schedule toggle to create post screen
+function addScheduleToggleToCreatePost() {
+  const createPostScreen = document.getElementById('create-post-screen');
+  if (!createPostScreen) return;
+  
+  // Find the post button area
+  const topbar = createPostScreen.querySelector('.chat-topbar');
+  if (!topbar) return;
+  
+  // Add schedule toggle next to post button
+  const postBtn = document.getElementById('modal-post-btn');
+  if (!postBtn) return;
+  
+  const scheduleBtn = document.createElement('button');
+  scheduleBtn.id = 'schedule-toggle';
+  scheduleBtn.className = 'schedule-toggle-btn';
+  scheduleBtn.innerHTML = '<span class="material-symbols-outlined">schedule</span> Schedule';
+  scheduleBtn.onclick = toggleSchedule;
+  
+  postBtn.parentNode.insertBefore(scheduleBtn, postBtn);
+  
+  // Add schedule info display
+  const scheduleInfo = document.createElement('div');
+  scheduleInfo.id = 'schedule-info';
+  scheduleInfo.className = 'schedule-info';
+  scheduleInfo.style.display = 'none';
+  
+  postBtn.parentNode.insertBefore(scheduleInfo, postBtn);
+}
+
+// Initialize on DOM load
+document.addEventListener('DOMContentLoaded', () => {
+  addScheduleToggleToCreatePost();
+  
+  // Check scheduled posts every 30 seconds
+  setInterval(checkScheduledPosts, 30000);
+  
+  // Also check on app load
+  if (currentUser) {
+    checkScheduledPosts();
+  }
+});
+
+// Add to auth state listener
+const originalAuthListener = auth.onAuthStateChanged;
+auth.onAuthStateChanged = function(callback) {
+  return originalAuthListener.call(auth, (user) => {
+    if (user) {
+      checkScheduledPosts();
+    }
+    callback(user);
+  });
+};
 </script>
 </body>
 </html>
