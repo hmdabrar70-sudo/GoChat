@@ -5397,6 +5397,16 @@ const auth=firebase.auth();
 const db=firebase.firestore();
 db.settings({ experimentalForceLongPolling: true });
 
+// 🚀 Enable Firebase Offline Persistence (পুরনো ডেটা অফলাইনে দেখার জন্য)
+db.enablePersistence()
+  .catch(function(err) {
+      if (err.code == 'failed-precondition') {
+          console.log('Multiple tabs open, persistence failed.');
+      } else if (err.code == 'unimplemented') {
+          console.log('Browser does not support offline persistence.');
+      }
+  });
+
 // ===== STATE VARIABLES =====
 let currentUser=null,currentUserData=null,currentChatId=null,currentChatOtherUid=null;
 let feedUnsub=null,chatUnsub=null,notifUnsub=null,storyUnsub=null,onlineUnsub=null;
