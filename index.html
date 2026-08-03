@@ -479,7 +479,7 @@ body:not(.light-mode) .post-card {
 
 .post-action-btn {
     flex: 1;
-    background: var(--surface-2);
+    background: transparent; /* 🚀 ব্যাকগ্রাউন্ড সরিয়ে ফেলা হলো */
     border: none;
     cursor: pointer;
     padding: 10px 0;
@@ -494,8 +494,8 @@ body:not(.light-mode) .post-card {
     transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
-body.light-mode .post-action-btn { background: #f0f2f5; color: #4b5563; }
-body.light-mode .post-action-btn:hover { background: #e5e7eb; }
+body.light-mode .post-action-btn { background: transparent; color: #4b5563; }
+body.light-mode .post-action-btn:hover { background: rgba(0,0,0,0.05); }
 
 .post-action-btn:hover {
     transform: translateY(-3px);
@@ -2548,7 +2548,8 @@ NESTED ACTIVITY CATEGORIES STYLES
     
     <div class="mention-dropdown" id="chat-mention-dropdown" style="bottom: 100%; top: auto; left: 0; width: 100%; margin-bottom: 10px;"></div>
     
-<div id="reply-preview-container"></div>
+<!-- 🚀 NEW: Reply Preview Container (Absolute Position) -->
+<div id="reply-preview-container" style="position: absolute; bottom: 100%; left: 0; width: 100%; padding: 0 16px; box-sizing: border-box; z-index: 20;"></div>
 
 <!-- 🚀 NEW: Voice Recording Active UI -->
 <div id="recording-ui" class="recording-ui">
@@ -2562,27 +2563,38 @@ NESTED ACTIVITY CATEGORIES STYLES
     </div>
 </div>
 
-<!-- Text Input -->
-<input type="text" id="chat-input" placeholder="Message..." autocomplete="off" oninput="if(currentChatId) localStorage.setItem('gochat_draft_' + currentChatId, this.value);" onkeypress="if(event.key==='Enter')sendMsg()">
+<!-- 🚀 NEW: Attachment Menu Popup -->
+<div id="chat-attach-menu" style="display:none; position:absolute; bottom: 75px; left: 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); z-index: 100; flex-direction: column; gap: 4px; width: 220px; animation: slideUp 0.2s ease;">
 
-<!-- 🚀 NEW: Action Buttons Group (কাছাকাছি আনার জন্য) -->
-<div style="display: flex; align-items: center; gap: 2px;">
-    
-    <!-- Start Voice Record Button -->
-    <button id="voice-start-btn" onclick="startVoiceRecord()" style="background:none; border:none; cursor:pointer; color:var(--accent); padding:4px; display:flex; outline:none; transition:0.2s;">
-        <i class="ph-light ph-microphone" style="font-size:26px;"></i>
-    </button>
-
-    <!-- Image Upload Button -->
-    <label for="chat-img-input" style="cursor:pointer; color:var(--accent); padding:4px; display:flex; margin:0;" id="image-upload-btn">
-        <i class="ph-light ph-image-square" style="font-size:26px;"></i>
+    <!-- 🖼️ Gallery Option -->
+    <label for="chat-img-input" onclick="toggleAttachMenu();" style="display:flex; align-items:center; gap:12px; padding:12px; cursor:pointer; border-radius:12px; color:var(--text); font-weight:600; font-size:14px; margin:0; transition:0.2s;" onmouseover="this.style.background='var(--surface-2)'" onmouseout="this.style.background='transparent'">
+        <div style="width:36px; height:36px; border-radius:50%; background:rgba(34,197,94,0.1); color:var(--success); display:flex; align-items:center; justify-content:center;"><i class="ph-fill ph-image" style="font-size:20px;"></i></div>
+        Gallery
     </label>
-    <input type="file" id="chat-img-input" accept="image/*" style="display:none;" onchange="sendChatImage(this)">
 
-    <!-- Send Button -->
-    <button class="chat-send-btn" id="text-send-btn" onclick="sendMsg()" style="margin-left: 4px;">
-        <i class="ph-light ph-paper-plane-right" style="font-size:22px;"></i>
-    </button>
+    <!-- 🎤 Voice Record Option -->
+    <div onclick="toggleAttachMenu(); if(typeof startVoiceRecord === 'function') startVoiceRecord();" style="display:flex; align-items:center; gap:12px; padding:12px; cursor:pointer; border-radius:12px; color:var(--text); font-weight:600; font-size:14px; transition:0.2s;" onmouseover="this.style.background='var(--surface-2)'" onmouseout="this.style.background='transparent'">
+        <div style="width:36px; height:36px; border-radius:50%; background:rgba(255,77,106,0.1); color:var(--danger); display:flex; align-items:center; justify-content:center;"><i class="ph-fill ph-microphone" style="font-size:20px;"></i></div>
+        Voice Record
+    </div>
+
+</div>
+
+<!-- Hidden File Input for Image -->
+<input type="file" id="chat-img-input" accept="image/*" style="display:none;" onchange="sendChatImage(this)">
+
+<!-- 🔗 Link / Attachment Button -->
+<button onclick="toggleAttachMenu()" style="background:var(--surface-2); border:1px solid var(--border); border-radius:50%; width:42px; height:42px; display:flex; align-items:center; justify-content:center; cursor:pointer; color:var(--text); flex-shrink:0; transition:0.2s; box-shadow: var(--shadow-sm); padding:0; outline:none;">
+    <i class="ph-bold ph-link" style="font-size:20px;"></i>
+</button>
+
+<!-- 📝 Text Input -->
+<input type="text" id="chat-input" placeholder="Message..." autocomplete="off" oninput="if(currentChatId) localStorage.setItem('gochat_draft_' + currentChatId, this.value);" onkeypress="if(event.key==='Enter')sendMsg()" style="min-width: 0; flex: 1;">
+
+<!-- 📤 Send Button -->
+<button class="chat-send-btn" id="text-send-btn" onclick="sendMsg()" style="flex-shrink:0; width:42px; height:42px; margin-left:0; outline:none;">
+    <i class="ph-bold ph-paper-plane-right" style="font-size:20px;"></i>
+</button>
     
 </div>
 </div>
@@ -2773,11 +2785,11 @@ NESTED ACTIVITY CATEGORIES STYLES
                     <i class="ph-bold ph-caret-right" style="color:var(--text-muted); font-size:16px;"></i>
                 </div>
 
-                <!-- 🚀 NEW: My QR Card Menu Item -->
+                <!-- 🚀 NEW: Share profile Menu Item -->
                 <div class="settings-list-item" onclick="closeMainSettingsScreen(); closeMainMenu(); openQRCodeModal();">
                     <div style="display:flex; align-items:center; gap:16px;">
                         <i class="ph-bold ph-qr-code" style="font-size: 24px; color: var(--accent);"></i>
-                        <span style="font-weight:600; font-size:15px;">My QR Card</span>
+                        <span style="font-weight:600; font-size:15px;">Share profile</span>
                     </div>
                     <i class="ph-bold ph-caret-right" style="color:var(--text-muted); font-size:16px;"></i>
                 </div>
@@ -7874,19 +7886,13 @@ function showReactionPicker(event, msgId) {
     const picker = document.createElement('div');
     picker.className = 'reaction-picker show';
     
-    // 🚀 NEW: আপনার দেওয়া ১১টি স্পেশাল ইমোজি লিস্ট
+        // 🚀 NEW: আপনার সিলেক্ট করা ৫টি স্পেশাল ইমোজি লিস্ট
     picker.innerHTML = `
-        <span class="reaction-emoji" onclick="toggleMessageReaction('${msgId}','👍')">👍</span>
-        <span class="reaction-emoji" onclick="toggleMessageReaction('${msgId}','😆')">😆</span>
         <span class="reaction-emoji" onclick="toggleMessageReaction('${msgId}','❤️')">❤️</span>
-        <span class="reaction-emoji" onclick="toggleMessageReaction('${msgId}','🤩')">🤩</span>
+        <span class="reaction-emoji" onclick="toggleMessageReaction('${msgId}','😆')">😆</span>
         <span class="reaction-emoji" onclick="toggleMessageReaction('${msgId}','🥰')">🥰</span>
-        <span class="reaction-emoji" onclick="toggleMessageReaction('${msgId}','🎉')">🎉</span>
-        <span class="reaction-emoji" onclick="toggleMessageReaction('${msgId}','😡')">😡</span>
         <span class="reaction-emoji" onclick="toggleMessageReaction('${msgId}','😥')">😥</span>
-        <span class="reaction-emoji" onclick="toggleMessageReaction('${msgId}','😎')">😎</span>
-        <span class="reaction-emoji" onclick="toggleMessageReaction('${msgId}','🤑')">🤑</span>
-        <span class="reaction-emoji" onclick="toggleMessageReaction('${msgId}','😵‍💫')">😵‍💫</span>
+        <span class="reaction-emoji" onclick="toggleMessageReaction('${msgId}','😡')">😡</span>
     `;
     
     wrapper.appendChild(picker);
@@ -7971,12 +7977,12 @@ async function replyToMessage(msgId) {
             
             const container = document.getElementById('reply-preview-container');
             container.innerHTML = `
-                <div class="reply-preview" style="display:flex; justify-content:space-between; align-items:center; background:var(--surface-2); padding:10px 14px; border-left:4px solid var(--accent); border-radius:12px; margin-bottom:8px; width:100%; border: 1px solid var(--border);">
-                    <div style="display:flex; flex-direction:column; overflow:hidden;">
+                <div class="reply-preview" style="display:flex; justify-content:space-between; align-items:center; background:var(--surface-2); padding:10px 14px; border-left:4px solid var(--accent); border-radius:16px 16px 0 0; margin-bottom:0; width:100%; border: 1px solid var(--border); border-bottom: none; box-shadow: 0 -4px 15px rgba(0,0,0,0.05);">
+                    <div style="display:flex; flex-direction:column; overflow:hidden; flex: 1; margin-right: 10px;">
                         <span style="font-size:12px; font-weight:800; color:var(--accent); margin-bottom:2px;">Replying to ${escapeHTML(replyToMsgData.senderName || 'User')}</span>
                         <span style="font-size:13px; color:var(--text-secondary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${shortText}</span>
                     </div>
-                    <span class="material-symbols-outlined" style="cursor:pointer; color:var(--text-muted); padding:6px; background:rgba(0,0,0,0.2); border-radius:50%;" onclick="cancelReply()">close</span>
+                    <span class="material-symbols-outlined" style="cursor:pointer; color:var(--text-muted); padding:6px; background:rgba(0,0,0,0.1); border-radius:50%; flex-shrink: 0;" onclick="cancelReply()">close</span>
                 </div>
             `;
             input.placeholder = 'Reply to ' + (replyToMsgData.senderName || 'User') + '...';
@@ -14887,6 +14893,24 @@ function qrAddToSettings(){
     }
   });
 })();
+// 🚀 Attachment / Link Menu Toggle Function
+function toggleAttachMenu() {
+    const menu = document.getElementById('chat-attach-menu');
+    if (menu.style.display === 'none' || menu.style.display === '') {
+        menu.style.display = 'flex';
+        // স্ক্রিনের অন্য কোথাও ক্লিক করলে মেনুটা নিজে নিজেই হাইড হয়ে যাবে
+        setTimeout(() => {
+            document.addEventListener('click', function closeAttach(e) {
+                if (!menu.contains(e.target)) {
+                    menu.style.display = 'none';
+                    document.removeEventListener('click', closeAttach);
+                }
+            }, { once: true });
+        }, 50);
+    } else {
+        menu.style.display = 'none';
+    }
+}
 </script>
 </body>
 </html>
