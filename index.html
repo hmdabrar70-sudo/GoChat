@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>GoChat V2</title>
-<link rel="manifest" href="./manifest.json">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <script src="https://unpkg.com/@phosphor-icons/web"></script>
@@ -5343,11 +5342,6 @@ function closeBlockedAccountsPage() {
     </div>
   </div>
 </div>
-
-<!-- Offline Status Banner -->
-<div id="offline-banner" style="display:none; position:fixed; top:0; left:0; right:0; background:#ff4444; color:white; text-align:center; padding:8px; font-size:13px; font-weight:600; z-index:999999;">
-  🔴 You are offline. Changes will be saved locally and synced when you're back online.
-</div>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
@@ -5397,16 +5391,6 @@ const auth=firebase.auth();
 const db=firebase.firestore();
 db.settings({ experimentalForceLongPolling: true });
 
-// 🚀 Enable Firebase Offline Persistence (পুরনো ডেটা অফলাইনে দেখার জন্য)
-db.enablePersistence()
-  .catch(function(err) {
-      if (err.code == 'failed-precondition') {
-          console.log('Multiple tabs open, persistence failed.');
-      } else if (err.code == 'unimplemented') {
-          console.log('Browser does not support offline persistence.');
-      }
-  });
-
 // ===== STATE VARIABLES =====
 let currentUser=null,currentUserData=null,currentChatId=null,currentChatOtherUid=null;
 let feedUnsub=null,chatUnsub=null,notifUnsub=null,storyUnsub=null,onlineUnsub=null;
@@ -5435,185 +5419,6 @@ let postLimit = 10;
 let isFriendsEditMode = false;
 let friendsToDelete = [];
 let lastActionTime = 0;
-
-// ═══════════════════════════════════════════════════════
-// 🚀 OFFLINE MODE INFRASTRUCTURE & SW REGISTRATION
-// ═══════════════════════════════════════════════════════
-// Register Service Worker
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js') // 👈 এখানে ডট (.) দেওয়া হয়েছে
-    .then(registration => {
-      console.log('SW registered:', registration);
-    })
-    .catch(error => {
-      console.log('SW registration failed:', error);
-    });
-}
-
-// IndexedDB Setup
-const DB_NAME = 'GoChatOfflineDB';
-const DB_VERSION = 1;
-let localDb;
-
-function initOfflineDB() {
-  return new Promise((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME, DB_VERSION);
-    request.onerror = (e) => { console.error('IndexedDB error:', e); reject(e); };
-    request.onsuccess = (e) => { localDb = e.target.result; resolve(localDb); };
-    request.onupgradeneeded = (e) => {
-      const database = e.target.result;
-      if (!database.objectStoreNames.contains('pendingMessages')) {
-        const msgStore = database.createObjectStore('pendingMessages', { keyPath: 'id', autoIncrement: true });
-        msgStore.createIndex('chatId', 'chatId', { unique: false });
-      }
-      if (!database.objectStoreNames.contains('pendingActions')) {
-        const actStore = database.createObjectStore('pendingActions', { keyPath: 'id', autoIncrement: true });
-        actStore.createIndex('type', 'type', { unique: false });
-      }
-    };
-  });
-}
-
-// Queue Management
-const OfflineQueue = {
-  async addPendingMessage(message) {
-    return new Promise((resolve, reject) => {
-      const tx = localDb.transaction(['pendingMessages'], 'readwrite');
-      const store = tx.objectStore('pendingMessages');
-      const request = store.add({ ...message, timestamp: Date.now(), synced: false });
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = (e) => reject(e);
-    });
-  },
-  async getPendingMessages() {
-    return new Promise((resolve, reject) => {
-      const tx = localDb.transaction(['pendingMessages'], 'readonly');
-      const request = tx.objectStore('pendingMessages').getAll();
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = (e) => reject(e);
-    });
-  },
-  async clearSyncedMessages() {
-    return new Promise((resolve, reject) => {
-      const tx = localDb.transaction(['pendingMessages'], 'readwrite');
-      const store = tx.objectStore('pendingMessages');
-      const request = store.openCursor();
-      request.onsuccess = (e) => {
-        const cursor = e.target.result;
-        if (cursor) { if (cursor.value.synced) cursor.delete(); cursor.continue(); } 
-        else resolve();
-      };
-    });
-  },
-  async addPendingAction(action) {
-    return new Promise((resolve, reject) => {
-      const tx = localDb.transaction(['pendingActions'], 'readwrite');
-      const request = tx.objectStore('pendingActions').add({ ...action, timestamp: Date.now(), synced: false });
-      request.onsuccess = () => resolve(request.result);
-    });
-  },
-  async getPendingActions() {
-    return new Promise((resolve, reject) => {
-      const tx = localDb.transaction(['pendingActions'], 'readonly');
-      const request = tx.objectStore('pendingActions').getAll();
-      request.onsuccess = () => resolve(request.result);
-    });
-  },
-  async clearSyncedActions() {
-    return new Promise((resolve, reject) => {
-      const tx = localDb.transaction(['pendingActions'], 'readwrite');
-      const store = tx.objectStore('pendingActions');
-      const request = store.openCursor();
-      request.onsuccess = (e) => {
-        const cursor = e.target.result;
-        if (cursor) { if (cursor.value.synced) cursor.delete(); cursor.continue(); } 
-        else resolve();
-      };
-    });
-  }
-};
-
-// Network Detection
-let isOnline = navigator.onLine;
-function updateNetworkStatus() {
-  isOnline = navigator.onLine;
-  const banner = document.getElementById('offline-banner');
-  if (isOnline) {
-    if (banner) banner.style.display = 'none';
-    showToast('🟢 Back online! Syncing data...');
-    syncPendingData();
-  } else {
-    if (banner) banner.style.display = 'block';
-    showToast('🔴 You are offline. Changes saved locally.');
-  }
-}
-window.addEventListener('online', updateNetworkStatus);
-window.addEventListener('offline', updateNetworkStatus);
-
-// Sync Data Function
-async function syncPendingData() {
-  if (!isOnline || !currentUser || !localDb) return;
-  try {
-    const pMsgs = await OfflineQueue.getPendingMessages();
-    for (const msg of pMsgs) {
-      if (!msg.synced) {
-        if(msg.type === 'post') {
-            await db.collection('posts').add(msg.data);
-        } else {
-            await db.collection('chats').doc(msg.chatId).collection('messages').add(msg.data);
-        }
-        msg.synced = true;
-        const tx = localDb.transaction(['pendingMessages'], 'readwrite');
-        tx.objectStore('pendingMessages').put(msg);
-      }
-    }
-    
-    const pActs = await OfflineQueue.getPendingActions();
-    for (const act of pActs) {
-      if (!act.synced) {
-        if (act.type === 'like') await toggleLike(act.postId, true);
-        else if (act.type === 'comment') await addComment(act.postId, act.text, true);
-        act.synced = true;
-        const tx = localDb.transaction(['pendingActions'], 'readwrite');
-        tx.objectStore('pendingActions').put(act);
-      }
-    }
-    await OfflineQueue.clearSyncedMessages();
-    await OfflineQueue.clearSyncedActions();
-    updatePendingCount();
-  } catch (e) { console.error('Sync error:', e); }
-}
-
-initOfflineDB().then(() => {
-  updateNetworkStatus();
-  setInterval(() => { if (isOnline) syncPendingData(); }, 30000);
-});
-
-// Pending Badge UI
-async function updatePendingCount() {
-  if (!isOnline && localDb) {
-    const m = await OfflineQueue.getPendingMessages();
-    const a = await OfflineQueue.getPendingActions();
-    const total = m.length + a.length;
-    const badge = document.getElementById('pending-badge');
-    if (badge) {
-      badge.textContent = total;
-      badge.style.display = total > 0 ? 'flex' : 'none';
-    }
-  } else {
-      const badge = document.getElementById('pending-badge');
-      if(badge) badge.style.display = 'none';
-  }
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-  const navProfile = document.getElementById('nav-profile');
-  if (navProfile) {
-    navProfile.style.position = 'relative';
-    navProfile.insertAdjacentHTML('beforeend', '<div id="pending-badge" style="display:none; position:absolute; top:-5px; right:-5px; background:#ff9500; color:white; border-radius:10px; min-width:18px; height:18px; padding:0 5px; font-size:10px; font-weight:700; align-items:center; justify-content:center; border:2px solid var(--surface); z-index:10;">0</div>');
-  }
-  setInterval(updatePendingCount, 5000);
-});
 
 // ===== UTILITY FUNCTIONS =====
 function escapeHTML(str){
@@ -7274,44 +7079,67 @@ async function reactToCurrentStory(){
     }
 }
 // ===== POSTS AND LIKE LOGIC =====
-async function toggleLike(pid, forceOnline = false) {
-  if (!currentUser || !checkRateLimit()) return;
-  
-  if (!isOnline && !forceOnline) {
-    await OfflineQueue.addPendingAction({ type: 'like', postId: pid });
-    showToast('👍 Like saved locally. Will sync when online.');
-    const likeBtn = document.querySelector(`button[onclick*="toggleLike('${pid}')"]`);
-    if (likeBtn) {
-        likeBtn.classList.toggle('liked');
-        const icon = likeBtn.querySelector('i');
-        if(icon) icon.className = likeBtn.classList.contains('liked') ? 'ph-fill ph-heart' : 'ph-bold ph-heart';
-    }
-    updatePendingCount();
-    return;
-  }
-  
-  const ref = db.collection('posts').doc(pid);
-  const doc = await ref.get();
-  if (doc.exists) {
-    const p = doc.data();
-    let likedBy = p.likedBy || [];
-    let likes = p.likes || 0;
+// 🚀 সুপার ফাস্ট লাইক সিস্টেম (Optimistic UI Update)
+async function toggleLike(pid) {
+    if (!currentUser || !checkRateLimit()) return;
+
+    // ১. ডাটাবেসে যাওয়ার আগেই স্ক্রিনে সাথে সাথে লাইক আপডেট করে দেবে (ম্যাজিক!)
+    const likeButtons = document.querySelectorAll(`button[onclick*="toggleLike('${pid}')"]`);
     
-    if (likedBy.includes(currentUser.uid)) {
-      likedBy = likedBy.filter(id => id !== currentUser.uid);
-      likes = Math.max(0, likes - 1);
-    } else {
-      likedBy.push(currentUser.uid);
-      likes++;
-      if (p.uid !== currentUser.uid) {
-        db.collection('notifications').add({
-          toUid: p.uid, fromUid: currentUser.uid, fromName: currentUserData.name, type: 'like', postId: pid, read: false, createdAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
-        awardPoints(p.uid, 5);
-      }
+    let isCurrentlyLiked = false;
+    let currentLikes = 0;
+
+    likeButtons.forEach(btn => {
+        const icon = btn.querySelector('i');
+        const countSpan = btn.querySelector('span');
+        currentLikes = parseInt(countSpan.innerText) || 0;
+        isCurrentlyLiked = btn.classList.contains('liked');
+
+        if (isCurrentlyLiked) {
+            // আনলাইক করা
+            btn.classList.remove('liked');
+            if (icon) icon.className = 'ph-bold ph-heart';
+            if (countSpan) countSpan.innerText = Math.max(0, currentLikes - 1);
+        } else {
+            // লাইক করা
+            btn.classList.add('liked');
+            if (icon) icon.className = 'ph-fill ph-heart';
+            if (countSpan) countSpan.innerText = currentLikes + 1;
+        }
+    });
+
+    // ২. এরপর ব্যাকগ্রাউন্ডে ডাটাবেস আপডেট হবে
+    const ref = db.collection('posts').doc(pid);
+    const doc = await ref.get();
+    
+    if (doc.exists) {
+        const p = doc.data();
+        let likedBy = p.likedBy || [];
+        let likes = p.likes || 0;
+        
+        if (likedBy.includes(currentUser.uid)) {
+            likedBy = likedBy.filter(id => id !== currentUser.uid);
+            likes = Math.max(0, likes - 1);
+        } else {
+            likedBy.push(currentUser.uid);
+            likes++;
+            
+            // নিজের পোস্টে লাইক দিলে খামোখা নোটিফিকেশন বা পয়েন্ট যাবে না
+            if (p.uid !== currentUser.uid) {
+                db.collection('notifications').add({
+                    toUid: p.uid, 
+                    fromUid: currentUser.uid,
+                    fromName: currentUserData.name,
+                    type: 'like', 
+                    postId: pid, 
+                    read: false,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                awardPoints(p.uid, 5);
+            }
+        }
+        await ref.update({ likes, likedBy });
     }
-    await ref.update({ likes, likedBy });
-  }
 }
 
 function handleDoubleTap(pid,event){
@@ -8190,62 +8018,54 @@ currentChatOtherUid=null;
 setTypingStatus(false);
 }
 
-async function sendMsg() {
-  const inp = document.getElementById('chat-input');
-  const text = inp.value.trim();
-  if (!text || !currentChatId || !checkRateLimit()) return;
-  
-  inp.value = '';
-  setTypingStatus(false);
-  
-  const msgData = {
-    uid: currentUser.uid,
-    senderName: currentUserData.name || 'User',
-    text: text,
-    createdAt: firebase.firestore.FieldValue.serverTimestamp()
-  };
-  
-  if (isOnline) {
-    try {
-      await db.collection('chats').doc(currentChatId).collection('messages').add(msgData);
-      await updateChatLastMessage(text);
-    } catch (e) {
-      showToast('Failed to send. Saving locally...');
-      await OfflineQueue.addPendingMessage({ chatId: currentChatId, data: msgData });
-      updatePendingCount();
-    }
-  } else {
-    await OfflineQueue.addPendingMessage({ chatId: currentChatId, data: msgData });
-    showToast('💾 Message saved locally. Will send when online.');
-    const tempMsg = { ...msgData, id: 'temp_' + Date.now(), createdAt: new Date() };
-    appendMessageToChat(tempMsg, true);
-    updatePendingCount();
-  }
+async function sendMsg(){
+const inp=document.getElementById('chat-input');
+const text=inp.value.trim();
+if(!text||!currentChatId||!checkRateLimit())return;
+inp.value='';
+    // 🚀 NEW: মেসেজ সেন্ড হলে ড্রাফট ক্লিয়ার করা
+    if(currentChatId) localStorage.removeItem('gochat_draft_' + currentChatId);    
+setTypingStatus(false);
+const msgData={
+uid:currentUser.uid,
+senderName: currentUserData.name || 'User', // <-- ফায়ারবেসে নাম সেভ হবে
+text:text,
+createdAt:firebase.firestore.FieldValue.serverTimestamp()
+};
+// 🚀 রিপ্লাইয়ের বিস্তারিত তথ্য মেসেজের সাথে সেভ হবে
+if(currentReplyMsgId && replyToMsgData){
+    msgData.replyTo = currentReplyMsgId;
+    msgData.replySender = replyToMsgData.senderName || 'User';
+    msgData.replyText = replyToMsgData.text || '📷 Photo';
+    
+    // রিসেট করা
+    currentReplyMsgId = null;
+    replyToMsgData = null;
+    document.getElementById('reply-preview-container').innerHTML = '';
+    inp.placeholder = 'Message...';
+}
+await db.collection('chats').doc(currentChatId).collection('messages').add(msgData);
+
+// লাস্ট মেসেজে সেন্ডারের নাম দেখানো (গ্রুপের জন্য)
+let lastText = text;
+if (currentChatOtherUid === 'group') {
+    lastText = (currentUserData.name || 'User') + ": " + text;
 }
 
-async function updateChatLastMessage(text) {
-  let lastText = text;
-  if (currentChatOtherUid === 'group') {
-    lastText = (currentUserData.name || 'User') + ": " + text;
-  }
-  await db.collection('chats').doc(currentChatId).set({
+await db.collection('chats').doc(currentChatId).set({
     lastMsg: lastText,
     lastAt: firebase.firestore.FieldValue.serverTimestamp(),
-    lastSender: currentUser.uid,
-    isRead: false
-  }, { merge: true });
-}
-
-function appendMessageToChat(msg, isPending = false) {
-  const list = document.getElementById('chat-messages');
-  if(!list) return;
-  const isMine = msg.uid === currentUser.uid;
-  const msgDiv = document.createElement('div');
-  msgDiv.className = `chat-bubble-wrapper ${isMine ? 'mine' : 'theirs'}`;
-  if (isPending) msgDiv.style.opacity = '0.6';
-  msgDiv.innerHTML = `<div class="chat-bubble ${isMine ? 'mine' : 'theirs'}">${escapeHTML(msg.text)} ${isPending ? '<div style="font-size:10px; opacity:0.7; margin-top:4px;"> ⏳ Pending</div>' : ''}</div>`;
-  list.appendChild(msgDiv);
-  list.scrollTop = list.scrollHeight;
+    names: { 
+        [currentUser.uid]: currentUserData.name, 
+        [currentChatOtherUid]: document.getElementById('chat-name-display').textContent 
+    },
+    avatars: { 
+        [currentUser.uid]: currentUserData.avatar || '', 
+        [currentChatOtherUid]: '' 
+    },
+    lastSender: currentUser.uid, // কে মেসেজ পাঠালো
+    isRead: false // মেসেজটি এখনো পড়া হয়নি
+}, { merge: true });
 }
 
 async function sendChatImage(input){
@@ -9125,74 +8945,66 @@ loadMyPosts();
 }catch(e){showToast('Failed to pin post');}
 }
 
-async function submitPost() {
-  const title = document.getElementById('post-title').value.trim();
-  if (!title && composeImages.length === 0) return;
-  if (!checkRateLimit()) return;
-  
-  let imgUrls = [];
-  if (composeImages.length > 0 && isOnline) {
-    showToast('Uploading images...');
-    try {
-      for (let i = 0; i < composeImages.length; i++) {
-        const url = await uploadToCloudinary(composeImages[i].file, false);
-        imgUrls.push(url);
-      }
-    } catch (e) {
-      showToast('Image upload failed!');
-      return;
-    }
-  } else if (composeImages.length > 0 && !isOnline) {
-      showToast('Cannot upload images while offline.');
-      return; // অফলাইনে ইমেজ আপলোড আপাতত ব্লক রাখা হলো
-  }
-  
-  const postData = {
-    uid: currentUser.uid,
-    bgColor: typeof currentPostBgColor !== 'undefined' ? currentPostBgColor : 'default',
-    name: currentUserData.name || currentUser.email.split('@')[0],
-    email: currentUserData.email || '',
-    isVerified: currentUserData.isVerified || false,
-    avatar: currentUserData.avatar || '',
-    title: title,
-    imgUrls: imgUrls,
-    imgUrl: imgUrls[0] || '',
-    likes: 0,
-    likedBy: [],
-    comments: [],
-    tagged: typeof currentTaggedFriends !== 'undefined' ? currentTaggedFriends : [],
-    taggedNames: typeof currentTaggedNames !== 'undefined' ? currentTaggedNames : [],
-    activity: typeof currentPostActivity !== 'undefined' ? currentPostActivity : null,
-    isPinned: false,
-    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-    expiresAt: new Date(Date.now() + ONE_YEAR_MS)
-  };
-  
-  if (!isOnline) {
-    await OfflineQueue.addPendingMessage({ type: 'post', data: postData });
-    showToast('📝 Post saved locally. Will publish when online.');
-    if(typeof closeCreatePost === 'function') closeCreatePost();
-    updatePendingCount();
-    return;
-  }
-  
-  try {
-    const newPostRef = await db.collection('posts').add(postData);
-    if (typeof currentTaggedFriends !== 'undefined' && currentTaggedFriends.length > 0) {
-      currentTaggedFriends.forEach(taggedUid => {
-        if (taggedUid !== currentUser.uid) {
-          db.collection('notifications').add({
-            toUid: taggedUid, fromUid: currentUser.uid, fromName: currentUserData.name || 'User', type: 'tag', postId: newPostRef.id, read: false, createdAt: firebase.firestore.FieldValue.serverTimestamp()
-          });
+async function submitPost(){
+const title=document.getElementById('post-title').value.trim();
+if(!title&&composeImages.length===0)return;
+if(!checkRateLimit()) return;
+
+let imgUrls=[];
+if(composeImages.length>0){
+showToast('Uploading images...');
+try{
+for(let i=0;i<composeImages.length;i++){
+const url=await uploadToCloudinary(composeImages[i].file,false);
+imgUrls.push(url);
+}
+}catch(e){showToast('Image upload failed!');return;}
+}
+    try{
+        const expireAt=new Date(Date.now()+ONE_YEAR_MS);
+                const newPostRef = await db.collection('posts').add({
+            uid:currentUser.uid,
+            bgColor: currentPostBgColor,
+            name:currentUserData.name||currentUser.email.split('@')[0],
+            email:currentUserData.email||'',
+            isVerified: currentUserData.isVerified || false,
+            avatar:currentUserData.avatar||'',
+            title:title,
+            imgUrls:imgUrls,
+            imgUrl:imgUrls[0]||'',
+            likes:0,
+            likedBy:[],
+            comments:[],
+            tagged:currentTaggedFriends,
+            taggedNames: currentTaggedNames,
+            activity: currentPostActivity, /* <-- এই নতুন লাইনটি এখানে যোগ হবে */
+            isPinned:false,
+            createdAt:firebase.firestore.FieldValue.serverTimestamp(),
+            expiresAt:expireAt
+        });
+
+        // নতুন: ট্যাগ করা বন্ধুদের কাছে নোটিফিকেশন পাঠানো
+        if (currentTaggedFriends && currentTaggedFriends.length > 0) {
+            currentTaggedFriends.forEach(taggedUid => {
+                if (taggedUid !== currentUser.uid) { // নিজেকে নিজে ট্যাগ করলে নোটিফিকেশন যাবে না
+                    db.collection('notifications').add({
+                        toUid: taggedUid,
+                        fromUid: currentUser.uid,
+                        fromName: currentUserData.name || 'User',
+                        type: 'tag', // ট্যাগ নোটিফিকেশনের টাইপ
+                        postId: newPostRef.id, // ক্লিক করলে যেন এই পোস্টে নিয়ে যায়
+                        read: false,
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                }
+            });
         }
-      });
-    }
-    if(typeof closeCreatePost === 'function') closeCreatePost();
-    showToast('Posted!');
-    awardPoints(currentUser.uid, 20);
-  } catch (e) {
-    showToast('Error saving post.');
-  }
+
+        currentPostBgColor = 'default';
+        closeCreatePost();
+        showToast('Posted!');
+        awardPoints(currentUser.uid, 20);
+    }catch(e){showToast('Error saving post.');}
 }
 
 // ==========================================
