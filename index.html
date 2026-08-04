@@ -2006,7 +2006,10 @@ NESTED ACTIVITY CATEGORIES STYLES
 
 <div id="app-screen">
 <div class="topbar">
-<div class="topbar-logo" onclick="refreshFeed()">✦ GoChat</div>
+  <div class="topbar-logo" onclick="refreshFeed()">✦ GoChat</div>
+  <button id="menu-btn" onclick="openHomeSidebar()">
+    <span class="material-symbols-outlined">menu</span>
+  </button>
 <div class="topbar-actions">
     <div class="topbar-btn" id="topbar-settings-btn" onclick="openMainMenu()" style="display:none;">
     <i class="ph-bold ph-list" style="font-size: 24px;"></i>
@@ -4582,6 +4585,145 @@ body.notifications-mode #page-notifications > div:first-child {
 @keyframes ptPop{ from{ opacity:0; transform:scale(.4);} to{ opacity:1; transform:scale(1);} }
 @keyframes ptSheet{ from{ transform:translateY(60px); opacity:0;} to{ transform:translateY(0); opacity:1;} }
 @keyframes ptRise{ from{ opacity:0; transform:translateY(12px);} to{ opacity:1; transform:translateY(0);} }
+
+/* ═══════════════════════════════════════════════════════
+   🚀 UPDATE  ·  home-sidebar-v2  ·  2026-08-05
+   লোগো → Menu Button, Feed Tabs → Sidebar
+   শুধু হোম ফিডে দেখাবে
+   ═══════════════════════════════════════════════════════ */
+
+/* Topbar এ menu button */
+#menu-btn {
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  display: none; /* শুধু হোম ফিডে দেখাবে */
+  align-items: center; justify-content: center;
+  cursor: pointer;
+  color: var(--text);
+  transition: all 0.2s;
+}
+#menu-btn.show { display: flex; }
+#menu-btn:hover { background: var(--card); transform: scale(1.05); }
+#menu-btn:active { transform: scale(0.95); }
+#menu-btn .material-symbols-outlined { font-size: 22px; }
+
+/* Logo hide on home feed */
+body.feed-mode .topbar-logo { display: none !important; }
+
+/* Sidebar overlay */
+#home-sidebar {
+  position: fixed;
+  top: 0; left: 0;
+  width: 280px;
+  height: 100vh;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  z-index: 10000;
+  transform: translateX(-100%);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow-y: auto;
+  box-shadow: 4px 0 20px rgba(0,0,0,0.3);
+}
+#home-sidebar.open { transform: translateX(0); }
+
+/* Sidebar backdrop */
+#sidebar-backdrop {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(0,0,0,0.5);
+  z-index: 9999;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s;
+}
+#sidebar-backdrop.show { opacity: 1; pointer-events: auto; }
+
+/* Sidebar header */
+.sb-header {
+  padding: 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.sb-header .sb-title {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--text);
+}
+.sb-header .sb-close {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  color: var(--text-muted);
+  transition: all 0.2s;
+}
+.sb-header .sb-close:hover { background: var(--card); color: var(--text); }
+.sb-header .sb-close:active { transform: scale(0.9); }
+
+/* Feed tabs in sidebar */
+.sb-feed-tabs {
+  display: flex;
+  gap: 10px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+}
+.sb-tab {
+  flex: 1;
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: center;
+}
+.sb-tab.active {
+  background: var(--gradient);
+  color: #fff;
+  border-color: transparent;
+}
+.sb-tab:active { transform: scale(0.95); }
+
+/* Sidebar menu items */
+.sb-menu-list {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.sb-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 600;
+}
+.sb-item:hover { background: var(--surface-2); }
+.sb-item:active { transform: scale(0.98); }
+.sb-item .material-symbols-outlined {
+  font-size: 22px;
+  color: var(--text-secondary);
+}
+.sb-item.active .material-symbols-outlined { color: var(--accent); }
+.sb-item.active { color: var(--accent); }
+
+/* Hide feed tabs on home feed */
+body.feed-mode .feed-tabs { display: none !important; }
 </style>
 
 <style>
@@ -5423,6 +5565,49 @@ function closeBlockedAccountsPage() {
     </div>
   </div>
 </div>
+
+<!-- ═══════════════════════════════════════════════════════
+     🚀 UPDATE  ·  home-sidebar-v2  ·  2026-08-05
+     ═══════════════════════════════════════════════════════ -->
+
+<!-- Sidebar Backdrop -->
+<div id="sidebar-backdrop" onclick="closeHomeSidebar()"></div>
+
+<!-- Home Sidebar -->
+<div id="home-sidebar">
+  <div class="sb-header">
+    <div class="sb-title">GoChat</div>
+    <button class="sb-close" onclick="closeHomeSidebar()">
+      <span class="material-symbols-outlined">close</span>
+    </button>
+  </div>
+  
+  <!-- Feed Tabs -->
+  <div class="sb-feed-tabs">
+    <div class="sb-tab active" id="sb-tab-foryou" onclick="switchSidebarTab('foryou')">For You</div>
+    <div class="sb-tab" id="sb-tab-following" onclick="switchSidebarTab('following')">Following</div>
+  </div>
+  <div id="main-menu-screen" style="display:none; position:fixed; inset:0; background:var(--bg); z-index:1000; flex-direction:column; overflow-y:auto; animation:slideUp 0.3s ease;">
+  <div class="chat-topbar" style="position:sticky; top:0; z-index:100;">
+    <div class="chat-back" onclick="closeMainMenu()"><i class="ph-bold ph-arrow-left" style="font-size:20px;"></i></div>
+    <div class="chat-name" style="font-size: 18px; font-weight: 800;">Menu</div>
+  </div>
+  <div style="padding: 20px; display: flex; flex-direction: column; gap: 8px;">
+    
+    <!-- 🚀 শুধু For You এবং Following ট্যাব রাখা হলো -->
+    <div style="display:flex; gap:10px; margin-bottom:16px;">
+      <button onclick="setFeedTab('foryou'); closeMainMenu();" style="flex:1; padding:14px; border-radius:16px; border:1px solid var(--border); background:var(--surface-2); color:var(--text); font-size:14px; font-weight:700; cursor:pointer; transition:all 0.2s;">
+        For You
+      </button>
+      <button onclick="setFeedTab('following'); closeMainMenu();" style="flex:1; padding:14px; border-radius:16px; border:1px solid var(--border); background:var(--accent); color:#fff; font-size:14px; font-weight:700; cursor:pointer; transition:all 0.2s;">
+        Following
+      </button>
+    </div>
+
+    <!-- বাকি সব আইটেম সরিয়ে দেওয়া হয়েছে -->
+
+  </div>
+</div>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
@@ -5835,55 +6020,56 @@ function togglePasswordVisibility() {
     }
 }
 
-// --- গুগল লগইন ফাংশন (স্মার্ট পপআপ সিস্টেম) ---
-async function loginWithGoogle() {
+// --- ১. গুগল লগইন ফাংশন (পপআপের বদলে রিডাইরেক্ট) ---
+function loginWithGoogle() {
     const provider = new firebase.auth.GoogleAuthProvider();
-    try {
-        const result = await auth.signInWithPopup(provider);
-        if (result && result.user) {
-            const user = result.user;
-            
-            // Check Blacklist
-            const banCheck = await db.collection('banned_emails').doc(user.email).get();
-            if (banCheck.exists) {
-                await auth.signOut();
-                showToast("Access Denied: This account is permanently banned.");
-                return;
-            }
-
-            // Create user doc if not exists
-            const doc = await db.collection('users').doc(user.uid).get();
-            if (!doc.exists) {
-                await db.collection('users').doc(user.uid).set({
-                    name: user.email.split('@')[0],
-                    email: user.email,
-                    avatar: '',
-                    bio: '', location: '', hometown: '', relationship: '', gender: '',
-                    followers: [], following: [], 
-                    blockedUsers: [], mutedChats: [], pinnedChats: [], archivedChats: [],
-                    online: true,
-                    points: 20,
-                    loginStreak: 1,
-                    lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
-            }
-            
-            showToast("Logged in successfully!");
-            
-            // Show Success Modal
-            const successModal = document.getElementById('login-success-modal');
-            if(successModal) successModal.classList.add('open');
-            
-            setTimeout(() => {
-                if(successModal) successModal.classList.remove('open');
-            }, 3000);
-        }
-    } catch (error) {
-        console.error("Google Login Error: ", error);
-        showToast("Google Login Cancelled or Failed.");
-    }
+    auth.signInWithRedirect(provider);
 }
+
+// --- ২. লগইন হয়ে ফিরে আসার পর ইউজারকে ডাটাবেসে সেভ করার লজিক ---
+auth.getRedirectResult().then(async (result) => {
+    if (result && result.user) {
+        const user = result.user;
+        
+        // Check Blacklist
+        const banCheck = await db.collection('banned_emails').doc(user.email).get();
+        if (banCheck.exists) {
+            await auth.signOut();
+            showToast("Access Denied: This account is permanently banned.");
+            return;
+        }
+
+        // Create user doc if not exists
+        const doc = await db.collection('users').doc(user.uid).get();
+        if (!doc.exists) {
+            await db.collection('users').doc(user.uid).set({
+                name: user.email.split('@')[0],
+                email: user.email,
+                avatar: '',
+                bio: '', location: '', hometown: '', relationship: '', gender: '',
+                followers: [], following: [], 
+                blockedUsers: [], mutedChats: [], pinnedChats: [], archivedChats: [],
+                online: true,
+                points: 20,
+                loginStreak: 1,
+                lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        }
+        
+        showToast("Logged in successfully!");
+        
+        // Show Success Modal
+        const successModal = document.getElementById('login-success-modal');
+        if(successModal) successModal.classList.add('open');
+        
+        setTimeout(() => {
+            if(successModal) successModal.classList.remove('open');
+        }, 3000);
+    }
+}).catch((error) => {
+    console.error("Google Login Error: ", error);
+});
 
 async function registerWithEmail(){
 const email=document.getElementById('auth-email').value.trim();
@@ -7837,7 +8023,7 @@ safeText = safeText.replace(urlRegex, function(url) {
                 senderNameHtml = `<div style="font-size: 12px; font-weight: 800; color: #ff7e67; margin-bottom: 6px; cursor: pointer;" onclick="viewUserProfile('${m.uid}')">${escapeHTML(m.senderName)}</div>`;
             }
 
-                    // 🚀 আপডেট ২: Message Bubble Avatar Fix
+                    // ?? আপডেট ২: Message Bubble Avatar Fix
         let msgAvatarHtml = '';
         if (!isMine) {
             let sAv = finalOtherAvatar;
@@ -15100,6 +15286,67 @@ function ptApply(i){
 /* ESC-এ শিট বন্ধ */
 document.addEventListener('keydown', (e) => {
   if(e.key === 'Escape'){ const ov = document.getElementById('pt-sheet'); if(ov) ov.classList.remove('open'); }
+});
+// ══════════════════════════════════════════════════════
+// 🚀 UPDATE  ·  home-sidebar-v2  ·  2026-08-05
+// ══════════════════════════════════════════════════════
+
+// Sidebar open/close
+function openHomeSidebar() {
+  document.getElementById('home-sidebar').classList.add('open');
+  document.getElementById('sidebar-backdrop').classList.add('show');
+}
+
+function closeHomeSidebar() {
+  document.getElementById('home-sidebar').classList.remove('open');
+  document.getElementById('sidebar-backdrop').classList.remove('show');
+}
+
+// Sidebar tab switch (For You / Following)
+function switchSidebarTab(tab) {
+  // Update sidebar tabs
+  document.querySelectorAll('.sb-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('sb-tab-' + tab).classList.add('active');
+  
+  // Feed tab change
+  currentFeedTab = tab;
+  postLimit = 10;
+  
+  // Update original feed tabs (hidden but synced)
+  document.querySelectorAll('.feed-tab').forEach(t => t.classList.remove('active'));
+  const tabEl = document.getElementById('tab-' + tab);
+  if (tabEl) tabEl.classList.add('active');
+  
+  loadFeed();
+  closeHomeSidebar();
+}
+
+// Show menu button only on home feed
+function updateMenuButton() {
+  const menuBtn = document.getElementById('menu-btn');
+  const feedPage = document.getElementById('page-feed');
+  
+  if (feedPage && feedPage.classList.contains('active')) {
+    menuBtn.classList.add('show');
+    document.body.classList.add('feed-mode');
+  } else {
+    menuBtn.classList.remove('show');
+    document.body.classList.remove('feed-mode');
+  }
+}
+
+// Override showPage to update menu button
+const originalShowPage = window.showPage;
+window.showPage = function(page) {
+  if (typeof originalShowPage === 'function') {
+    originalShowPage(page);
+  }
+  updateMenuButton();
+};
+
+// Initialize on load
+document.addEventListener('DOMContentLoaded', () => {
+  updateMenuButton();
 });
 </script>
 </body>
