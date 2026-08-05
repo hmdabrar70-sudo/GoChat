@@ -662,8 +662,9 @@ showPage = function(pageId) {
         loadMyProfile();
     }
 };
+
 // ==========================================
-// 13. INBOX (MESSAGE LIST) SYSTEM
+// 13. INBOX (MESSAGE LIST) SYSTEM (FIXED)
 // ==========================================
 let chatListUnsub = null;
 
@@ -675,23 +676,24 @@ function loadMessageList() {
 
     if (chatListUnsub) chatListUnsub();
 
-    //     ,    
+    // Firebase Index error    where  ,   JS  
     chatListUnsub = db.collection('chats')
         .where('participants', 'array-contains', currentUser.uid)
-        .orderBy('lastAt', 'desc')
         .onSnapshot(async snap => {
             if (snap.empty) {
-                list.innerHTML = '<div class="empty-feed"><span class="material-symbols-outlined">chat_bubble</span><br>No conversations yet.</div>';
+                list.innerHTML = '<div class="empty-feed"><span class="material-symbols-outlined" style="font-size:48px; opacity:0.5;">chat_bubble</span><br>No conversations yet.</div>';
                 return;
             }
 
+            //      
+            let chatsData = [];
+            snap.forEach(d => chatsData.push(d.data()));
+            chatsData.sort((a, b) => (b.lastAt?.toMillis() || 0) - (a.lastAt?.toMillis() || 0));
+
             let html = '';
-            for (let d of snap.docs) {
-                const chat = d.data();
-                //     
+            for (let chat of chatsData) {
                 const otherUid = chat.participants.find(id => id !== currentUser.uid);
                 
-                //         (Cache    ,     )
                 try {
                     const uDoc = await db.collection('users').doc(otherUid).get();
                     if (uDoc.exists) {
@@ -717,6 +719,7 @@ function loadMessageList() {
             list.innerHTML = html;
         });
 }
+
 
 // ==========================================
 // 14. NOTIFICATIONS SYSTEM
@@ -1061,3 +1064,214 @@ function doLogout() {
         showToast("Logged out successfully");
     });
 }
+// ==========================================
+// 18. CONNECTIONS (FRIENDS) LIST SYSTEM
+// ==========================================
+async function loadConnections() {
+    const list = document.getElementById('all-friends-list');
+    if (!list || !currentUserData) return;
+
+    list.innerHTML = '<div class="loading" style="text-align:center; padding:30px;"><span class="material-symbols-outlined" style="animation:spin 1s linear infinite;">autorenew</span></div>';
+
+    const following = currentUserData.following || [];
+    if (following.length === 0) {
+        list.innerHTML = '<div class="empty-feed"><span class="material-symbols-outlined" style="font-size:48px; opacity:0.5;">group</span><br>You are not following anyone yet.</div>';
+        return;
+    }
+
+    try {
+        let html = '';
+        for (let uid of following) {
+            const doc = await db.collection('users').doc(uid).get();
+            if (doc.exists) {
+                const u = doc.data();
+                const av = u.avatar ? `<img src="${u.avatar}" class="post-avatar">` : `<div class="post-avatar">${avatarInitial(u.name)}</div>`;
+                html += `
+                <div class="user-list-item">
+                    <div class="user-list-info" onclick="viewUserProfile('${uid}')">
+                        <div style="display:flex; align-items:center; gap:12px;">
+                            ${av}
+                            <div style="font-weight:700; color:var(--text);">${escapeHTML(u.name)}</div>
+                        </div>
+                    </div>
+                    <button class="btn-unfollow" style="padding:6px 16px; font-size:12px; margin-top:0;" onclick="toggleFollow('${uid}'); setTimeout(loadConnections, 500);">Unfollow</button>
+                </div>`;
+            }
+        }
+        list.innerHTML = html;
+    } catch (e) {
+        list.innerHTML = '<div class="empty-feed">Failed to load connections</div>';
+    }
+}
+// ==========================================
+// 19. FINAL NAVIGATION SYSTEM
+// ==========================================
+const finalShowPage = showPage;
+showPage = function(pageId) {
+    //    
+    finalShowPage(pageId);
+    
+    //      
+    if (pageId === 'messages') {
+        loadMessageList();
+    } else if (pageId === 'notifications') {
+        loadNotifications();
+    } else if (pageId === 'friends') {
+        loadConnections();
+    } else if (pageId === 'profile') {
+        loadMyProfile();
+    } else if (pageId === 'feed') {
+        loadStories();
+    }
+};
+// ==========================================
+// 20. FOLLOWERS LIST MODAL
+// ==========================================
+function openFollowersModal() {
+    document.getElementById('followers-modal').style.display = 'flex';
+    const container = document.getElementById('followers-list-container');
+    container.innerHTML = '<div class="loading" style="text-align:center; padding:20px;"><span class="material-symbols-outlined" style="animation:spin 1s linear infinite;">autorenew</span></div>';
+
+    const followers = currentUserData?.followers || [];
+    if (followers.length === 0) {
+        container.innerHTML = '<div style="text-align:center; color:var(--text-muted); padding:30px;">No one is following you yet.</div>';
+        return;
+    }
+
+    //    
+    Promise.all(followers.map(uid => db.collection('users').doc(uid).get()))
+        .then(docs => {
+            let html = '';
+            docs.forEach(doc => {
+                if (doc.exists) {
+                    const u = doc.data();
+                    const av = u.avatar ? `<img src="${u.avatar}" class="post-avatar">` : `<div class="post-avatar">${avatarInitial(u.name)}</div>`;
+                    html += `
+                    <div class="user-list-item" style="margin:6px 0; border:none; border-bottom:1px solid var(--border); border-radius:0;">
+                        <div class="user-list-info" onclick="closeFollowersModal(); viewUserProfile('${doc.id}')">
+                            <div style="display:flex; align-items:center; gap:12px;">
+                                ${av}
+                                <div style="font-weight:700; color:var(--text);">${escapeHTML(u.name)}</div>
+                            </div>
+                        </div>
+                    </div>`;
+                }
+            });
+            container.innerHTML = html;
+        })
+        .catch(e => {
+            container.innerHTML = '<div style="text-align:center; color:var(--danger); padding:20px;">Error loading followers.</div>';
+        });
+}
+
+function closeFollowersModal() {
+    document.getElementById('followers-modal').style.display = 'none';
+}
+
+//  PROFILE UPDATE: Followers      
+function loadMyProfile() {
+    if (!currentUser || !currentUserData) return;
+    
+    const safeName = escapeHTML(currentUserData.name || 'User');
+    const followersCount = (currentUserData.followers || []).length;
+    const followingCount = (currentUserData.following || []).length;
+    
+    document.getElementById('my-profile-header').innerHTML = `
+        <div class="profile-avatar-large">${currentUserData.avatar ? `<img src="${currentUserData.avatar}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">` : avatarInitial(currentUserData.name)}</div>
+        <div class="profile-name">${safeName}</div>
+        <div style="font-size:14px; color:var(--text-muted); margin-bottom:15px;">${escapeHTML(currentUserData.bio || 'Welcome to my GoChat profile!')}</div>
+        
+        <div class="profile-stats">
+            <div style="cursor:pointer;" onclick="openFollowersModal()"><b>${followersCount}</b> Followers</div>
+            <div><b>${followingCount}</b> Following</div>
+        </div>
+        
+        <div style="display:flex; justify-content:center; gap:10px; margin-top:15px;">
+            <button class="btn-follow" style="width:auto; border-radius:30px;" onclick="openEditProfile()">
+                <span class="material-symbols-outlined" style="vertical-align:middle; font-size:18px;">edit</span> Edit Profile
+            </button>
+            <button class="btn-unfollow" style="width:auto; border-color:var(--danger); color:var(--danger); border-radius:30px;" onclick="doLogout()">
+                <span class="material-symbols-outlined" style="vertical-align:middle; font-size:18px;">logout</span>
+            </button>
+        </div>
+    `;
+    
+    loadOtherUserPosts(currentUser.uid);
+}
+
+// ==========================================
+// 21. LEADERBOARD SYSTEM
+// ==========================================
+async function loadLeaderboard() {
+    const list = document.getElementById('leaderboard-list');
+    const podium = document.getElementById('leaderboard-podium');
+    if (!list || !podium) return;
+
+    list.innerHTML = '<div class="loading" style="text-align:center; padding:30px;"><span class="material-symbols-outlined" style="animation:spin 1s linear infinite;">autorenew</span></div>';
+    podium.innerHTML = '';
+
+    try {
+        //         
+        const snap = await db.collection('users').orderBy('points', 'desc').limit(20).get();
+        let topUsers = [];
+        snap.forEach(d => topUsers.push({ id: d.id, ...d.data() }));
+
+        if (topUsers.length === 0) {
+            list.innerHTML = '<div class="empty-feed">No data available</div>';
+            return;
+        }
+
+        //         (2nd, 1st, 3rd)
+        let htmlPodium = '';
+        const order = [1, 0, 2]; // 0=1st, 1=2nd, 2=3rd
+        
+        order.forEach(index => {
+            const u = topUsers[index];
+            if (u) {
+                const rank = index + 1;
+                const av = u.avatar ? `<img src="${u.avatar}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">` : avatarInitial(u.name);
+                htmlPodium += `
+                <div class="podium-item podium-${rank}" onclick="viewUserProfile('${u.id}')">
+                    <div class="podium-avatar">
+                        ${av}
+                        <div class="podium-rank" style="background:${rank===1 ? '#ffd700' : rank===2 ? '#c0c0c0' : '#cd7f32'}; color:#000;">${rank}</div>
+                    </div>
+                    <div class="podium-bar">
+                        <div class="podium-name">${escapeHTML(u.name)}</div>
+                        <div class="podium-pts">${u.points || 0} pts</div>
+                    </div>
+                </div>`;
+            }
+        });
+        podium.innerHTML = htmlPodium;
+
+        //     
+        let htmlList = '';
+        for (let i = 3; i < topUsers.length; i++) {
+            const u = topUsers[i];
+            const av = u.avatar ? `<img src="${u.avatar}" class="post-avatar">` : `<div class="post-avatar">${avatarInitial(u.name)}</div>`;
+            htmlList += `
+            <div class="user-list-item" onclick="viewUserProfile('${u.id}')">
+                <div style="font-size:16px; font-weight:800; color:var(--text-muted); width:24px; text-align:center;">${i + 1}</div>
+                ${av}
+                <div class="user-list-info">
+                    <div style="font-weight:700; color:var(--text);">${escapeHTML(u.name)}</div>
+                </div>
+                <div style="font-weight:800; color:var(--accent); font-size:14px;">${u.points || 0} pts</div>
+            </div>`;
+        }
+        list.innerHTML = htmlList;
+
+    } catch (e) {
+        list.innerHTML = '<div class="empty-feed">Failed to load leaderboard</div>';
+    }
+}
+
+//      
+const finalShowPageForLeaderboard = showPage;
+showPage = function(pageId) {
+    finalShowPageForLeaderboard(pageId);
+    if (pageId === 'leaderboard') {
+        loadLeaderboard();
+    }
+};
