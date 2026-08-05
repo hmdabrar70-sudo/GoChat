@@ -1,410 +1,932 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>GoChat V3 - Premium</title>
-    <!-- Google Fonts & Icons -->
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block" />
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <script src="https://unpkg.com/@phosphor-icons/web"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative&display=swap" rel="stylesheet">
-    <!-- CSS File -->
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>GoChat - Connect & Share</title>
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=Bodoni+Moda:ital,wght@0,500;0,600;1,500&family=Cinzel+Decorative:wght@700&display=swap" rel="stylesheet">
+  
+  <!-- Icons -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.0.3/src/regular/style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.0.3/src/bold/style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.0.3/src/fill/style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.0.3/src/light/style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.0.3/src/duotone/style.css">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Symbols+Outlined" rel="stylesheet">
+  
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+  
+  <!-- QR Libraries -->
+  <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+  
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
-    <!-- Splash Screen -->
-    <div id="splash-screen">
-        <div class="splash-logo">✦ GoChat</div>
-    </div>
+  <!-- ═══════════════════════════════════════════════════════
+       SPLASH SCREEN
+       ═══════════════════════════════════════════════════════ -->
+  <div id="splash-screen">
+    <div class="splash-logo">✦ GoChat</div>
+    <div class="splash-sub">Connecting moments...</div>
+  </div>
 
-    <!-- Authentication Screen -->
-    <div id="auth-screen" style="display:none;">
-        <div class="auth-box">
-            <div id="login-form">
-                <div class="auth-title-welcome">Welcome to</div>
-                <div class="auth-logo">✦ GoChat</div>
-                <div class="auth-sub">Connect and share your moments</div>
-                
-                <div class="auth-input-group">
-                    <label>Email Address</label>
-                    <input type="email" id="auth-email" placeholder="example@email.com">
-                </div>
-                <div class="auth-input-group" style="position: relative;">
-                    <label>Password</label>
-                    <input type="password" id="auth-password" placeholder="••••••••">
-                    <span id="toggle-eye" class="material-symbols-outlined" onclick="togglePasswordVisibility()">visibility</span>
-                </div>
-                <button class="btn-auth-primary" onclick="loginWithEmail()">Log In</button>
-                <div class="auth-switch">New to GoChat? <span onclick="showRegister()">Register</span></div>
-            </div>
-
-            <div id="registration-steps" style="display:none;">
-                <h2 class="auth-title-welcome">Create Account</h2>
-                <div class="auth-input-group"><label>Full Name</label><input type="text" id="reg-name" placeholder="Your Name"></div>
-                <div class="auth-input-group"><label>Email</label><input type="email" id="reg-email" placeholder="email@example.com"></div>
-                <div class="auth-input-group"><label>Password</label><input type="password" id="reg-pass" placeholder="••••••••"></div>
-                <button class="btn-auth-primary" onclick="registerWithEmail()">Register</button>
-                <div class="auth-switch">Already have an account? <span onclick="showLogin()">Log In</span></div>
-            </div>
-            <div id="auth-msg" class="auth-msg"></div>
-        </div>
-    </div>
-
-    <!-- Main App Screen -->
-    <div id="app-screen" style="display:none;">
+  <!-- ═══════════════════════════════════════════════════════
+       AUTH SCREEN (Login / Register)
+       ═══════════════════════════════════════════════════════ -->
+  <div id="auth-screen" style="display:none;">
+    <div class="auth-container">
+      <!-- Welcome Step -->
+      <div id="welcome-step">
+        <div class="auth-title-welcome">Welcome back to</div>
+        <div class="auth-logo"> GoChat</div>
+        <div class="auth-sub">Connect and share your moments</div>
         
-        <!-- Topbar -->
-        <div class="topbar">
-            <div class="topbar-logo">✦ GoChat</div>
-            <div class="topbar-actions">
-                <div class="topbar-btn" onclick="showPage('notifications')">
-                    <i class="ph-bold ph-bell"></i><div class="nav-badge" id="notif-badge">0</div>
-                </div>
-                <div class="topbar-btn" onclick="showPage('search')">
-                    <i class="ph-bold ph-magnifying-glass"></i>
-                </div>
-                                <div class="topbar-btn" onclick="showPage('leaderboard')">
-                    <span class="material-symbols-outlined" style="color:var(--warning);">social_leaderboard</span>
-                </div>
-            </div>
-        </div>
-
-        <!-- 1. Home Feed Page -->
-        <div class="page active" id="page-feed">
-            <div class="feed-tabs">
-                <div class="feed-tab active" id="tab-foryou" onclick="setFeedTab('foryou')">For You</div>
-                <div class="feed-tab" id="tab-following" onclick="setFeedTab('following')">Following</div>
-            </div>
-                        <!-- Stories Container -->
-            <div id="stories-list" class="stories-wrapper"></div>
-            <div id="feed-list"></div>
-        </div>
-
-        <!-- 2. Search Page -->
-        <div class="page" id="page-search">
-            <div class="search-container">
-                <div class="search-input-wrap">
-                    <span class="material-symbols-outlined">search</span>
-                    <input type="text" id="search-input" placeholder="Search users..." oninput="searchUsers()">
-                </div>
-            </div>
-            <div id="search-results-list"></div>
-        </div>
-
-        <!-- 3. Friends & Connections Page -->
-        <div class="page" id="page-friends">
-            <div class="section-title">Connections</div>
-            <div id="all-friends-list"></div>
-        </div>
-
-        <!-- 4. Notifications Page -->
-        <div class="page" id="page-notifications">
-            <div class="section-title">Notifications</div>
-            <div id="notifications-list"></div>
-        </div>
-
-        <!-- 5. Messages Page -->
-        <div class="page" id="page-messages">
-            <div class="section-title">Chats</div>
-            <div id="msg-list"></div>
-        </div>
-
-        <!-- 6. My Profile Page -->
-        <div class="page" id="page-profile">
-            <div class="profile-header" id="my-profile-header">
-                <!-- Profile Data will be injected here via JS -->
-            </div>
-            <div id="my-posts-list"></div>
-        </div>
-
-        <!-- Bottom Navigation -->
-                        <!-- Create Post Modal (Updated with Image Upload) -->
-        <div id="create-post-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:200; align-items:center; justify-content:center; backdrop-filter: blur(5px);">
-            <div style="background:var(--surface); width:90%; max-width: 450px; border-radius:20px; padding:20px; border: 1px solid var(--border);">
-                <h3 style="margin-bottom:15px; font-weight: 800;">Create Post</h3>
-                <textarea id="post-input-text" placeholder="What's on your mind?" style="width:100%; height:100px; background:var(--surface-2); color:var(--text); border:none; padding:15px; border-radius:15px; outline:none; font-family:inherit; resize:none;"></textarea>
-                
-                <!-- Image Preview Area -->
-                <div id="post-img-preview" style="width:100%; max-height:200px; margin-top:10px; border-radius:10px; overflow:hidden; display:none;"></div>
-                
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-top:15px;">
-                    <label style="cursor:pointer; color:var(--accent); display:flex; align-items:center; gap:5px; font-weight:600;">
-                        <span class="material-symbols-outlined">image</span> Add Photo
-                        <input type="file" id="post-image-input" accept="image/*" style="display:none;" onchange="previewPostImage(this)">
-                    </label>
-                    <div style="display:flex; gap:10px;">
-                        <button onclick="closeCreatePost()" style="padding:10px 20px; border-radius:30px; background:var(--surface-2); color:var(--text); border:none; cursor:pointer; font-weight: 600;">Cancel</button>
-                        <button onclick="submitPost()" id="btn-submit-post" style="padding:10px 20px; border-radius:30px; background:var(--gradient); color:white; border:none; cursor:pointer; font-weight: 700; box-shadow: 0 4px 15px var(--accent-glow);">Post</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="bottom-nav">
-            <div class="nav-capsule">
-                <div class="nav-item active" id="nav-feed" onclick="showPage('feed')"><i class="ph ph-house"></i></div>
-                <div class="nav-item" id="nav-friends" onclick="showPage('friends')"><i class="ph ph-users"></i></div>
-                <div class="nav-item fab-wrap" onclick="openCreatePost()"><div class="nav-fab"><i class="ph-bold ph-plus"></i></div></div>
-                <div class="nav-item" id="nav-messages" onclick="showPage('messages')"><i class="ph ph-chat-circle-dots"></i></div>
-                <div class="nav-item" id="nav-profile" onclick="showPage('profile')"><i class="ph ph-user"></i></div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Global Toast Message -->
-    <div id="toast"></div>
-
-    <!-- Firebase SDKs (Exactly as before) -->
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging-compat.js"></script>
-   
- <!-- Comment Panel -->
-    <div id="comment-panel" style="display:none; position:fixed; inset:0; background:var(--bg); z-index:300; flex-direction:column;">
-        <div class="topbar">
-            <div class="topbar-btn" onclick="closeCommentPanel()"><span class="material-symbols-outlined">arrow_back</span></div>
-            <div class="topbar-logo" style="font-size:18px;">Comments</div>
-        </div>
-        <div id="comment-list" style="flex:1; overflow-y:auto; padding:16px;"></div>
-        
-        <div style="padding:12px 16px; background:var(--surface); border-top:1px solid var(--border); display:flex; gap:10px; align-items:center;">
-            <input type="text" id="comment-input" placeholder="Write a comment..." style="flex:1; padding:12px 18px; border-radius:30px; background:var(--surface-2); border:1px solid var(--border); color:white; outline:none; font-size:14px;">
-            <button onclick="submitComment()" style="background:var(--accent); color:white; border:none; border-radius:50%; width:44px; height:44px; display:flex; align-items:center; justify-content:center; cursor:pointer; box-shadow:0 4px 15px var(--accent-glow);">
-                <span class="material-symbols-outlined" style="font-size:20px;">send</span>
-            </button>
-        </div>
-    </div>
-
-        <!-- 7. Leaderboard Page -->
-        <div class="page" id="page-leaderboard">
-            <div class="section-title">Top Users</div>
-            <div id="leaderboard-podium" style="display:flex; justify-content:center; align-items:flex-end; gap:10px; padding:20px 10px; margin-bottom:10px; border-bottom:1px solid var(--border);">
-                <!-- Podium will load here -->
-            </div>
-            <div id="leaderboard-list">
-                <!-- Other users will load here -->
-            </div>
-        </div>
-
-    <!-- Other User Profile Screen -->
-    <div id="other-profile-screen" style="display:none; position:fixed; inset:0; background:var(--bg); z-index:250; flex-direction:column; overflow-y:auto;">
-        <div class="topbar">
-            <div class="topbar-btn" onclick="closeUserProfile()"><span class="material-symbols-outlined">arrow_back</span></div>
-            <div class="topbar-logo" style="font-size:18px;">Profile</div>
-        </div>
-        <div class="profile-header" id="other-profile-header">
-            <!-- Profile Info Will Load Here -->
-        </div>
-        <div id="other-posts-list"></div>
-    </div>
-
-    <!-- Chat Screen -->
-    <div id="chat-screen" style="display:none; position:fixed; inset:0; background:var(--bg); z-index:400; flex-direction:column;">
-        <div class="topbar">
-            <div class="topbar-btn" onclick="closeChat()"><span class="material-symbols-outlined">arrow_back</span></div>
-            <div class="topbar-logo" id="chat-name-display" style="font-size:18px;">Chat</div>
+        <div id="login-form">
+          <div class="auth-input-group">
+            <label>Email Address</label>
+            <input type="email" id="auth-email" placeholder="example@email.com">
+          </div>
+          <div class="auth-input-group">
+            <label>Password</label>
+            <input type="password" id="auth-password" placeholder="••••••••">
+            <span id="toggle-eye" class="material-symbols-outlined" onclick="togglePasswordVisibility()">visibility</span>
+          </div>
+          <button class="btn-auth-primary" onclick="loginWithEmail()">Log In</button>
+          <div class="lx-foot">New to GoChat? <span class="lx-register" onclick="showRegister()">Register</span></div>
+          <div class="lx-divider">or continue with</div>
+          <button class="lx-google" onclick="loginWithGoogle()">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" alt="Google">
+            Continue with Google
+          </button>
         </div>
         
-        <!-- Messages Area -->
-        <div id="chat-messages" style="flex:1; overflow-y:auto; padding:15px; display:flex; flex-direction:column; gap:10px;"></div>
-        
-                <!-- Chat Input (Updated with Mic) -->
-        <div style="padding:12px 16px; background:var(--surface); border-top:1px solid var(--border); display:flex; gap:10px; align-items:center;">
-            
-            <!-- Mic Button -->
-            <button id="mic-btn" onmousedown="startRecording()" onmouseup="stopRecording()" ontouchstart="startRecording()" ontouchend="stopRecording()" style="background:var(--surface-2); color:var(--text); border:none; border-radius:50%; width:44px; height:44px; display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; transition:0.2s;">
-                <span class="material-symbols-outlined" id="mic-icon" style="font-size:22px;">mic</span>
-            </button>
-
-            <!-- Text Input -->
-            <input type="text" id="chat-input" placeholder="Type a message..." style="flex:1; padding:12px 18px; border-radius:30px; background:var(--surface-2); border:1px solid var(--border); color:white; outline:none; font-size:14px;">
-            
-            <!-- Send Button -->
-            <button onclick="sendMsg()" style="background:var(--gradient); color:white; border:none; border-radius:50%; width:44px; height:44px; display:flex; align-items:center; justify-content:center; cursor:pointer; box-shadow:0 4px 15px var(--accent-glow); flex-shrink:0;">
-                <span class="material-symbols-outlined" style="font-size:20px;">send</span>
-            </button>
-        </div>
-    </div>
-
-    <!-- Story Viewer Screen -->
-    <div id="story-viewer" style="display:none; position:fixed; inset:0; background:#000; z-index:500; flex-direction:column;">
-        <!-- Progress Bar -->
-        <div id="story-progress-bar" style="display:flex; gap:4px; padding:15px 10px 10px; position:absolute; top:0; width:100%; z-index:10;"></div>
-        
-        <!-- Story Header -->
-        <div style="position:absolute; top:35px; left:15px; display:flex; align-items:center; gap:10px; z-index:10;">
-            <div id="sv-avatar" style="width:40px; height:40px; border-radius:50%; overflow:hidden; background:var(--gradient); border:2px solid #fff;"></div>
-            <div style="color:white; font-weight:700; text-shadow:0 1px 5px rgba(0,0,0,0.8);" id="sv-name"></div>
-        </div>
-        
-        <button onclick="closeStory()" style="position:absolute; top:35px; right:15px; background:none; border:none; color:white; z-index:10; cursor:pointer;">
-            <span class="material-symbols-outlined" style="font-size:30px; text-shadow:0 1px 5px rgba(0,0,0,0.8);">close</span>
-        </button>
-        
-        <!-- Media Container -->
-        <div id="sv-media-container" style="flex:1; display:flex; align-items:center; justify-content:center; position:relative; overflow:hidden;"></div>
-    </div>
-
-    <!-- Edit Profile Modal -->
-    <div id="edit-profile-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:600; align-items:center; justify-content:center; backdrop-filter: blur(5px);">
-        <div style="background:var(--surface); width:90%; max-width: 400px; border-radius:20px; padding:20px; border: 1px solid var(--border);">
-            <h3 style="margin-bottom:20px; font-weight: 800; text-align:center;">Edit Profile</h3>
-            
-            <!-- Avatar Upload Section -->
-            <div style="text-align:center; margin-bottom:20px;">
-                <label style="cursor:pointer; display:inline-block; position:relative;">
-                    <div id="edit-avatar-preview" style="width:80px; height:80px; border-radius:50%; background:var(--surface-2); border:2px solid var(--accent); display:flex; align-items:center; justify-content:center; overflow:hidden; margin:0 auto;">
-                        <span class="material-symbols-outlined" style="font-size:30px; color:var(--text-muted);">add_a_photo</span>
-                    </div>
-                    <input type="file" id="edit-avatar-input" accept="image/*" style="display:none;" onchange="previewAvatar(this)">
-                </label>
-                <div style="font-size:12px; color:var(--text-muted); margin-top:8px;">Tap to change photo</div>
-            </div>
-
-            <!-- Inputs -->
+        <!-- Registration Steps -->
+        <div id="registration-steps" style="display:none;">
+          <div id="step-1">
+            <h2 class="auth-title-welcome">Create account</h2>
+            <p class="auth-sub">Step 1: Basic Information</p>
             <div class="auth-input-group">
-                <label>Full Name</label>
-                <input type="text" id="edit-name-input" placeholder="Your Name">
+              <label>First Name</label>
+              <input type="text" id="reg-fname" placeholder="John">
             </div>
             <div class="auth-input-group">
-                <label>Bio</label>
-                <input type="text" id="edit-bio-input" placeholder="Write something about yourself...">
+              <label>Last Name</label>
+              <input type="text" id="reg-lname" placeholder="Doe">
             </div>
-            
-            <!-- Action Buttons -->
-            <div style="display:flex; justify-content:space-between; gap:10px; margin-top:25px;">
-                <button onclick="closeEditProfile()" style="flex:1; padding:12px; border-radius:30px; background:var(--surface-2); color:white; border:none; cursor:pointer; font-weight: 600;">Cancel</button>
-                <button onclick="saveProfile()" style="flex:1; padding:12px; border-radius:30px; background:var(--gradient); color:white; border:none; cursor:pointer; font-weight: 700; box-shadow: 0 4px 15px var(--accent-glow);">Save</button>
+            <div class="auth-input-group">
+              <label>Email</label>
+              <input type="email" id="reg-email" placeholder="example@email.com">
             </div>
+            <button class="btn-auth-primary" onclick="nextRegStep(2)">Next</button>
+            <div class="lx-foot">Already have an account? <span class="lx-register" onclick="goToLogin()">Log In</span></div>
+          </div>
+          
+          <div id="step-2" style="display:none;">
+            <h2 class="auth-title-welcome">Create account</h2>
+            <p class="auth-sub">Step 2: Set Password</p>
+            <div class="auth-input-group">
+              <label>Password</label>
+              <input type="password" id="reg-pass" placeholder="Min 6 characters">
+            </div>
+            <div class="auth-input-group">
+              <label>Confirm Password</label>
+              <input type="password" id="reg-confirm" placeholder="Re-enter password">
+            </div>
+            <button class="btn-auth-primary" onclick="registerWithEmail()">Create Account</button>
+            <div class="lx-foot"><span class="lx-register" onclick="nextRegStep(1)">Back</span></div>
+          </div>
         </div>
+      </div>
     </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════
+       MAIN APP CONTAINER
+       ═══════════════════════════════════════════════════════ -->
+  <div id="app-container" style="display:none;">
     
-        <!-- Followers List Modal -->
-    <div id="followers-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:600; align-items:center; justify-content:center; backdrop-filter: blur(5px);">
-        <div style="background:var(--surface); width:90%; max-width: 400px; max-height:80vh; border-radius:20px; display:flex; flex-direction:column; border: 1px solid var(--border); overflow:hidden;">
-            <div class="topbar" style="position:static; border-radius:20px 20px 0 0;">
-                <div class="topbar-btn" onclick="closeFollowersModal()"><span class="material-symbols-outlined">close</span></div>
-                <div class="topbar-logo" style="font-size:18px;">Your Followers</div>
-            </div>
-            <div id="followers-list-container" style="flex:1; overflow-y:auto; padding:15px;"></div>
-        </div>
+    <!-- Topbar -->
+    <div class="topbar" id="main-topbar">
+      <div class="topbar-logo" onclick="refreshFeed()">✦ GoChat</div>
+      <div class="topbar-actions">
+        <button class="topbar-btn" onclick="openMainMenu()">
+          <span class="material-symbols-outlined">menu</span>
+        </button>
+        <button class="topbar-btn" onclick="showPage('notifications')">
+          <span class="material-symbols-outlined">notifications</span>
+          <span class="notif-badge" id="notif-badge" style="display:none;">0</span>
+        </button>
+        <button class="topbar-btn" onclick="showPage('search')">
+          <span class="material-symbols-outlined">search</span>
+        </button>
+      </div>
     </div>
 
-    <!-- Settings Modal -->
-    <div id="settings-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:700; align-items:flex-end; justify-content:center; backdrop-filter: blur(5px);">
-        <div style="background:var(--surface); width:100%; max-width: 520px; border-radius:20px 20px 0 0; padding:25px 20px; border-top: 1px solid var(--border); animation: slideUp 0.3s ease;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-                <h3 style="font-weight: 800;">Settings</h3>
-                <span class="material-symbols-outlined" style="cursor:pointer; color:var(--text-muted);" onclick="closeSettings()">close</span>
+    <!-- ═══════════════════════════════════════════════════════
+         PAGE: FEED (Home)
+         ═══════════════════════════════════════════════════════ -->
+    <div id="page-feed" class="page active">
+      <!-- Stories -->
+      <div class="stories-wrapper" id="stories-list"></div>
+      
+      <!-- Feed Tabs -->
+      <div class="feed-tabs">
+        <div class="feed-tab active" id="tab-foryou" onclick="setFeedTab('foryou')">For You</div>
+        <div class="feed-tab" id="tab-following" onclick="setFeedTab('following')">Following</div>
+      </div>
+      
+      <!-- Loading Skeleton -->
+      <div id="feed-loading">
+        <div class="skeleton-card">
+          <div class="skeleton-header">
+            <div class="skeleton-avatar"></div>
+            <div class="skeleton-text-wrap">
+              <div class="skeleton-text w-40"></div>
+              <div class="skeleton-text w-20"></div>
             </div>
-            
-            <div class="user-list-item" style="border:none; border-bottom:1px solid var(--border); border-radius:0; padding:15px 0;">
-                <div class="user-list-info" style="font-weight:700;">Light Mode</div>
-                <label class="switch">
-                    <input type="checkbox" id="theme-toggle" onchange="toggleTheme()">
-                    <span class="slider round"></span>
-                </label>
-            </div>
-            
-            <div class="user-list-item" style="border:none; border-bottom:1px solid var(--border); border-radius:0; padding:15px 0; cursor:pointer;" onclick="openGallery()">
-                <div class="user-list-info" style="font-weight:700;"><span class="material-symbols-outlined" style="vertical-align:middle; margin-right:8px;">photo_library</span> My Gallery</div>
-                <span class="material-symbols-outlined" style="color:var(--text-muted);">chevron_right</span>
-            </div>
+          </div>
+          <div class="skeleton-box"></div>
         </div>
+      </div>
+      
+      <!-- Feed List -->
+      <div id="feed-list"></div>
     </div>
 
-    <!-- Gallery Modal -->
-    <div id="gallery-modal" style="display:none; position:fixed; inset:0; background:var(--bg); z-index:800; flex-direction:column;">
-        <div class="topbar">
-            <div class="topbar-btn" onclick="closeGallery()"><span class="material-symbols-outlined">arrow_back</span></div>
-            <div class="topbar-logo" style="font-size:18px;">My Gallery</div>
+    <!-- ═══════════════════════════════════════════════════════
+         PAGE: FRIENDS
+         ═══════════════════════════════════════════════════════ -->
+    <div id="page-friends" class="page">
+      <div class="chat-topbar">
+        <div class="chat-back" onclick="showPage('feed')">
+          <span class="material-symbols-outlined">arrow_back</span>
         </div>
-        <div id="gallery-grid" class="gallery-grid" style="flex:1; overflow-y:auto;">
-            <!-- Photos will load here -->
-        </div>
+        <div class="chat-name">Friends</div>
+      </div>
+      <div id="friends-list" style="padding: 16px;"></div>
     </div>
 
-    <!-- Single Post View Modal -->
-    <div id="single-post-modal" style="display:none; position:fixed; inset:0; background:var(--bg); z-index:450; flex-direction:column; overflow-y:auto;">
-        <div class="topbar">
-            <div class="topbar-btn" onclick="closeSinglePost()"><span class="material-symbols-outlined">arrow_back</span></div>
-            <div class="topbar-logo" style="font-size:18px;">Post</div>
+    <!-- ═══════════════════════════════════════════════════════
+         PAGE: MESSAGES
+         ═══════════════════════════════════════════════════════ -->
+    <div id="page-messages" class="page">
+      <div class="chat-topbar">
+        <div class="chat-back" onclick="showPage('feed')">
+          <span class="material-symbols-outlined">arrow_back</span>
         </div>
-        <div id="single-post-container" style="padding-bottom: 20px;">
-            <!-- Post details will load here -->
+        <div class="chat-name">Messages</div>
+        <div class="chat-header-actions">
+          <span class="material-symbols-outlined" onclick="openGroupModal()">group_add</span>
+        </div>
+      </div>
+      <div class="msg-list-header">
+        <div class="msg-title">Messages</div>
+        <button class="archived-btn" onclick="showArchivedChats()">
+          <span class="material-symbols-outlined">archive</span> Archived
+        </button>
+      </div>
+      <div id="chat-list"></div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════
+         PAGE: NOTIFICATIONS
+         ═══════════════════════════════════════════════════════ -->
+    <div id="page-notifications" class="page">
+      <div class="chat-topbar">
+        <div class="chat-back" onclick="showPage('feed')">
+          <span class="material-symbols-outlined">arrow_back</span>
+        </div>
+        <div class="chat-name">Notifications</div>
+        <button class="notif-edit-btn" onclick="toggleNotifEditMode()">Edit</button>
+      </div>
+      <div id="notifications-list"></div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════
+         PAGE: SEARCH
+         ══════════════════════════════════════════════════════ -->
+    <div id="page-search" class="page">
+      <div class="chat-topbar">
+        <div class="chat-back" onclick="showPage('feed')">
+          <span class="material-symbols-outlined">arrow_back</span>
+        </div>
+        <div class="chat-name">Search</div>
+      </div>
+      <div class="search-container">
+        <div class="search-input-wrap">
+          <span class="material-symbols-outlined">search</span>
+          <input type="text" id="search-input" placeholder="Search users..." oninput="handleSearch(this.value)">
+        </div>
+      </div>
+      <div id="search-results"></div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════
+         PAGE: PROFILE (Own)
+         ═══════════════════════════════════════════════════════ -->
+    <div id="page-profile" class="page">
+      <div class="profile-header">
+        <div class="profile-avatar-wrap">
+          <div class="avatar lg" id="profile-avatar"></div>
+          <button class="avatar-edit-btn" onclick="document.getElementById('avatar-input').click()">
+            <span class="material-symbols-outlined">edit</span>
+          </button>
+          <input type="file" id="avatar-input" accept="image/*" style="display:none;" onchange="uploadAvatar(event)">
+        </div>
+        <div class="profile-info">
+          <div class="profile-name" id="profile-name">—</div>
+          <div class="profile-username" id="profile-username">@username</div>
+          <div class="profile-friend-count">
+            <span onclick="openFollowList('followers', currentUser.uid)">
+              <b id="my-followers-count">0</b> Followers
+            </span>
+            <span onclick="openFollowList('following', currentUser.uid)">
+              <b id="my-following-count">0</b> Following
+            </span>
+          </div>
+        </div>
+      </div>
+      
+      <div class="profile-bio" id="profile-bio-display"></div>
+      <div class="profile-personal-details" id="profile-details-display"></div>
+      
+      <div class="profile-actions">
+        <button class="btn-primary" onclick="openEditProfile()">
+          <span class="material-symbols-outlined">edit</span> Edit Profile
+        </button>
+        <button class="btn-primary" onclick="openLeaderboard()">
+          <span class="material-symbols-outlined">emoji_events</span> Leaderboard
+        </button>
+      </div>
+      
+      <!-- Profile Tabs -->
+      <div class="profile-tabs">
+        <div class="profile-tab active" id="profile-tab-posts" onclick="loadProfileTab('posts')">Posts</div>
+        <div class="profile-tab" id="profile-tab-saved" onclick="loadProfileTab('saved')">Saved</div>
+        <div class="profile-tab" id="profile-tab-reposts" onclick="loadProfileTab('reposts')">Reposts</div>
+      </div>
+      
+      <div id="profile-posts-list" style="padding: 16px;"></div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════
+         PAGE: OTHER PROFILE
+         ═══════════════════════════════════════════════════════ -->
+    <div id="page-other-profile" class="page">
+      <div class="chat-topbar">
+        <div class="chat-back" onclick="closeOtherProfile()">
+          <span class="material-symbols-outlined">arrow_back</span>
+        </div>
+        <div class="chat-name">Profile</div>
+        <div class="chat-header-actions">
+          <button class="hdr-qr-btn" onclick="openOtherUserQR()">
+            <span class="material-symbols-outlined">qr_code_2</span>
+          </button>
+          <span class="material-symbols-outlined" onclick="toggleProfileMenu()">more_vert</span>
+          <div class="profile-menu" id="profile-menu" onclick="event.stopPropagation();">
+            <div class="chat-dropdown-item danger" id="block-user-btn" onclick="blockCurrentUser()">
+              <i class="ph-bold ph-prohibit"></i> Block User
+            </div>
+            <div class="chat-dropdown-item" onclick="toggleMuteFeed(currentOtherProfileUid)">
+              <i class="ph-bold ph-bell-slash"></i> Mute Feed
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="profile-header">
+        <div class="avatar lg" id="other-profile-avatar"></div>
+        <div class="profile-info">
+          <div class="profile-name" id="other-profile-name">—</div>
+          <div class="profile-username" id="other-profile-username">@username</div>
+          <div id="other-profile-follow-stats" class="profile-friend-count">
+            <span onclick="openFollowList('followers', currentOtherProfileUid)">
+              <b id="other-followers-count">0</b> Followers
+            </span>
+            <span onclick="openFollowList('following', currentOtherProfileUid)">
+              <b id="other-following-count">0</b> Following
+            </span>
+          </div>
+        </div>
+      </div>
+      
+      <div class="profile-bio" id="other-profile-bio"></div>
+      <div class="profile-personal-details" id="other-profile-details"></div>
+      
+      <div id="other-profile-btns" class="profile-actions">
+        <button class="btn-primary" id="follow-btn" onclick="toggleFollow(currentOtherProfileUid)">
+          <span class="material-symbols-outlined">person_add</span> Follow
+        </button>
+        <button class="btn-primary" onclick="openChatWithUser(currentOtherProfileUid)">
+          <span class="material-symbols-outlined">chat</span> Message
+        </button>
+        <button class="btn-primary" onclick="openLeaderboard()">
+          <span class="material-symbols-outlined">emoji_events</span> Rank
+        </button>
+      </div>
+      
+      <div class="profile-tabs">
+        <div class="profile-tab active">Posts</div>
+      </div>
+      
+      <div id="other-profile-posts-list" style="padding: 16px;"></div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════
+         PAGE: CHAT (Individual/Group)
+         ═══════════════════════════════════════════════════════ -->
+    <div id="page-chat" class="page">
+      <div class="chat-topbar">
+        <div class="chat-back" onclick="closeChat()">
+          <span class="material-symbols-outlined">arrow_back</span>
+        </div>
+        <div class="avatar sm" id="chat-avatar" onclick="openQuickProfile()"></div>
+        <div class="chat-name" id="chat-name" onclick="openQuickProfile()">—</div>
+        <div class="chat-header-actions">
+          <span class="material-symbols-outlined" onclick="startWebRTCCall()">phone</span>
+          <span class="material-symbols-outlined" onclick="toggleChatDeleteMenu()">more_vert</span>
+          <div id="chat-delete-menu" class="chat-list-menu">
+            <div class="chat-dropdown-item" onclick="openAdvancedPrivacy()">
+              <i class="ph-bold ph-lock-key"></i> Advanced Privacy
+            </div>
+            <div class="chat-dropdown-item" onclick="exportChat()">
+              <i class="ph-bold ph-export"></i> Export Chat
+            </div>
+            <div class="chat-dropdown-item danger" onclick="deleteChat()">
+              <i class="ph-bold ph-trash"></i> Delete Chat
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="chat-messages" id="chat-messages"></div>
+      
+      <div class="chat-input-bar">
+        <button id="voice-start-btn" onclick="startVoiceRecord()">
+          <i class="ph-light ph-microphone"></i>
+        </button>
+        <label for="chat-img-input" id="image-upload-btn">
+          <i class="ph-light ph-image-square"></i>
+        </label>
+        <input type="file" id="chat-img-input" accept="image/*" style="display:none;" onchange="uploadChatImage(event)">
+        <input type="text" id="chat-input" placeholder="Message..." oninput="handleTyping()" onkeypress="if(event.key==='Enter')sendMsg()">
+        <button class="chat-send-btn" onclick="sendMsg()">
+          <span class="material-symbols-outlined">send</span>
+        </button>
+      </div>
+      
+      <!-- Voice Recording UI -->
+      <div id="recording-ui" style="display:none;">
+        <div class="recording-timer" id="record-time">0:00</div>
+        <button class="btn-cancel" onclick="cancelVoiceRecord()">Cancel</button>
+        <button class="btn-send" onclick="sendVoiceRecord()">Send</button>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════
+         PAGE: SETTINGS
+         ═══════════════════════════════════════════════════════ -->
+    <div id="page-settings" class="page">
+      <div class="chat-topbar">
+        <div class="chat-back" onclick="showPage('profile')">
+          <span class="material-symbols-outlined">arrow_back</span>
+        </div>
+        <div class="chat-name">Settings</div>
+      </div>
+      <div class="settings-search">
+        <span class="material-symbols-outlined">search</span>
+        <input type="text" placeholder="Search settings..." oninput="filterMenuSettings(this.value)">
+      </div>
+      <div class="settings-list">
+        <div class="settings-list-item" onclick="openEliteGoChat()">
+          <i class="ph-duotone ph-crown" style="color: #f59e0b;"></i>
+          <span>Elite GoChat</span>
+          <i class="ph-bold ph-caret-right"></i>
+        </div>
+        <div class="settings-list-item" onclick="openCategoryScreen()">
+          <i class="ph-bold ph-squares-four" style="color: #10b981;"></i>
+          <span>Category</span>
+          <i class="ph-bold ph-caret-right"></i>
+        </div>
+        <div class="settings-list-item" onclick="openMemories()">
+          <i class="ph-bold ph-clock-counter-clockwise" style="color: #a78bfa;"></i>
+          <span>Memories</span>
+          <i class="ph-bold ph-caret-right"></i>
+        </div>
+        <div class="settings-list-item" onclick="openSavedItems()">
+          <i class="ph-bold ph-bookmark-simple" style="color: #8b5cf6;"></i>
+          <span>Saved</span>
+          <i class="ph-bold ph-caret-right"></i>
+        </div>
+        <div class="settings-list-item" onclick="openUsernameSettings()">
+          <i class="ph-bold ph-at" style="color: #3b82f6;"></i>
+          <span>Username</span>
+          <i class="ph-bold ph-caret-right"></i>
+        </div>
+        <div class="settings-list-item" onclick="openChatPrivacyPage()">
+          <i class="ph-bold ph-chat-circle-dots" style="color: #3b82f6;"></i>
+          <span>Chat Privacy</span>
+          <i class="ph-bold ph-caret-right"></i>
+        </div>
+        <div class="settings-list-item" onclick="openBlockedAccountsPage()">
+          <i class="ph-bold ph-user-minus" style="color: var(--danger);"></i>
+          <span>Blocked Accounts</span>
+          <i class="ph-bold ph-caret-right"></i>
+        </div>
+        <div class="settings-list-item" onclick="openActiveTimePage()">
+          <i class="ph-bold ph-clock" style="color: #3b82f6;"></i>
+          <span>Active Time</span>
+          <i class="ph-bold ph-caret-right"></i>
+        </div>
+        <div class="settings-list-item" onclick="openSupportPage()">
+          <i class="ph-bold ph-headset" style="color: #3b82f6;"></i>
+          <span>Support</span>
+          <i class="ph-bold ph-caret-right"></i>
+        </div>
+        <div class="settings-list-item" onclick="handleLogout()" style="color: var(--danger);">
+          <i class="ph-bold ph-sign-out"></i>
+          <span>Log out</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════
+         BOTTOM NAVIGATION
+         ═══════════════════════════════════════════════════════ -->
+    <div class="bottom-nav" id="bottom-nav">
+      <div class="nav-item active" onclick="showPage('feed')">
+        <span class="material-symbols-outlined">home</span>
+      </div>
+      <div class="nav-item" onclick="showPage('friends')">
+        <span class="material-symbols-outlined">group</span>
+      </div>
+      <div class="nav-item fab" onclick="toggleFabMenu()">
+        <span class="material-symbols-outlined">add</span>
+      </div>
+      <div class="nav-item" onclick="showPage('messages')">
+        <span class="material-symbols-outlined">chat_bubble</span>
+      </div>
+      <div class="nav-item" onclick="showPage('profile')">
+        <div class="avatar xs" id="nav-profile-avatar"></div>
+      </div>
+    </div>
+
+    <!-- FAB Menu -->
+    <div class="fab-menu" id="fab-menu">
+      <div class="fab-item" onclick="openCreatePost()">
+        <i class="ph-bold ph-pencil-simple"></i> Create Post
+      </div>
+      <div class="fab-item" onclick="openTextStoryModal()">
+        <i class="ph-bold ph-image"></i> Text Story
+      </div>
+      <div class="fab-item" onclick="openMediaStoryModal()">
+        <i class="ph-bold ph-camera"></i> Media Story
+      </div>
+    </div>
+
+  </div> <!-- End App Container -->
+
+  <!-- ═══════════════════════════════════════════════════════
+       MODALS & OVERLAYS
+       ═══════════════════════════════════════════════════════ -->
+
+  <!-- Create Post Modal -->
+  <div class="modal-overlay" id="create-post-screen">
+    <div class="modal-box">
+      <div class="chat-topbar">
+        <div class="chat-back" onclick="closeCreatePost()">
+          <span class="material-symbols-outlined">close</span>
+        </div>
+        <div class="chat-name">Create Post</div>
+        <button class="btn-primary" id="modal-post-btn" onclick="submitPost()" disabled>Post</button>
+      </div>
+      
+      <div class="post-creator">
+        <div class="post-creator-header">
+          <div class="avatar" id="post-creator-avatar"></div>
+          <div class="post-creator-name" id="post-creator-name">—</div>
         </div>
         
-        <!-- Quick Comment Section -->
-        <div style="padding:12px 16px; background:var(--surface); border-top:1px solid var(--border); display:flex; gap:10px; align-items:center; position:sticky; bottom:0;">
-            <input type="text" id="single-comment-input" placeholder="Write a comment..." style="flex:1; padding:12px 18px; border-radius:30px; background:var(--surface-2); border:1px solid var(--border); color:var(--text); outline:none; font-size:14px;">
-            <button onclick="submitSingleComment()" style="background:var(--accent); color:white; border:none; border-radius:50%; width:44px; height:44px; display:flex; align-items:center; justify-content:center; cursor:pointer; box-shadow:0 4px 15px var(--accent-glow);">
-                <span class="material-symbols-outlined" style="font-size:20px;">send</span>
-            </button>
-        </div>
-    </div>
-
-    <!-- Menu Page -->
-    <div class="page" id="page-menu">
-        <div class="topbar">
-            <div class="topbar-btn" onclick="showPage('profile')"><span class="material-symbols-outlined">arrow_back</span></div>
-            <div class="topbar-logo" style="font-size:18px;">Menu</div>
+        <textarea id="post-title" placeholder="What's on your mind?" oninput="checkPostInputs()"></textarea>
+        
+        <div id="post-image-preview" class="post-image-preview"></div>
+        <input type="file" id="post-img-input" accept="image/*" multiple style="display:none;" onchange="handlePostImages(event)">
+        
+        <!-- Activity/Feeling -->
+        <div class="activity-selector" id="activity-selector">
+          <div class="activity-current" onclick="openActivityModal()">
+            <span id="activity-icon">😊</span>
+            <span id="activity-text">How are you feeling?</span>
+          </div>
         </div>
         
-        <div style="padding: 15px;">
-            <!-- Search Settings -->
-            <div style="background:var(--surface); border:1px solid var(--border); border-radius:20px; padding:12px 18px; display:flex; align-items:center; gap:12px; margin-bottom:20px;">
-                <span class="material-symbols-outlined" style="color:var(--text-muted);">search</span>
-                <input type="text" placeholder="Search settings..." style="background:none; border:none; color:var(--text); outline:none; width:100%; font-size:14px;">
-            </div>
-
-            <!-- Menu Items (Matching your screenshot) -->
-            <div class="inbox-item" onclick="showToast('Elite GoChat feature coming soon!')" style="margin: 10px 0;">
-                <div class="notif-icon" style="color:var(--warning); background:rgba(255,193,7,0.1);"><span class="material-symbols-outlined">workspace_premium</span></div>
-                <div class="inbox-info"><div class="inbox-name" style="color:var(--warning);">Elite GoChat</div></div>
-                <span class="material-symbols-outlined" style="color:var(--text-muted);">chevron_right</span>
-            </div>
-
-            <div class="inbox-item" onclick="showToast('Memories feature coming soon!')" style="margin: 10px 0;">
-                <div class="notif-icon" style="color:var(--accent); background:rgba(124,58,237,0.1);"><span class="material-symbols-outlined">history</span></div>
-                <div class="inbox-info"><div class="inbox-name">Memories</div></div>
-                <span class="material-symbols-outlined" style="color:var(--text-muted);">chevron_right</span>
-            </div>
-
-            <div class="inbox-item" onclick="openSavedPosts()" style="margin: 10px 0;">
-                <div class="notif-icon" style="color:var(--accent); background:rgba(124,58,237,0.1);"><span class="material-symbols-outlined">bookmark</span></div>
-                <div class="inbox-info"><div class="inbox-name">Saved</div></div>
-                <span class="material-symbols-outlined" style="color:var(--text-muted);">chevron_right</span>
-            </div>
-
-            <div class="inbox-item" onclick="openSettings()" style="margin: 10px 0;">
-                <div class="notif-icon" style="color:var(--text); background:var(--surface-2);"><span class="material-symbols-outlined">settings</span></div>
-                <div class="inbox-info"><div class="inbox-name">Settings & Privacy</div></div>
-                <span class="material-symbols-outlined" style="color:var(--text-muted);">chevron_right</span>
-            </div>
-
-            <div class="inbox-item" onclick="showToast('Active Time stats coming soon!')" style="margin: 10px 0;">
-                <div class="notif-icon" style="color:var(--accent); background:rgba(124,58,237,0.1);"><span class="material-symbols-outlined">schedule</span></div>
-                <div class="inbox-info"><div class="inbox-name">Active Time</div></div>
-                <span class="material-symbols-outlined" style="color:var(--text-muted);">chevron_right</span>
-            </div>
-
-            <div class="inbox-item" onclick="showToast('Support center coming soon!')" style="margin: 10px 0;">
-                <div class="notif-icon" style="color:var(--accent); background:rgba(124,58,237,0.1);"><span class="material-symbols-outlined">support_agent</span></div>
-                <div class="inbox-info"><div class="inbox-name">Support</div></div>
-                <span class="material-symbols-outlined" style="color:var(--text-muted);">chevron_right</span>
-            </div>
-
-            <div class="inbox-item" onclick="doLogout()" style="margin: 10px 0; border-color:var(--danger);">
-                <div class="notif-icon" style="color:var(--danger); background:rgba(255,77,106,0.1);"><span class="material-symbols-outlined">logout</span></div>
-                <div class="inbox-info"><div class="inbox-name" style="color:var(--danger);">Log out</div></div>
-            </div>
+        <!-- Tag Friends -->
+        <div id="tag-preview-list" class="tag-preview-list"></div>
+        
+        <!-- Color Picker -->
+        <div class="bg-color-picker" id="bg-color-picker">
+          <div class="color-circle" style="background: #7c5cff;" onclick="selectPostBg('#7c5cff', this)"></div>
+          <div class="color-circle" style="background: #ec4899;" onclick="selectPostBg('#ec4899', this)"></div>
+          <div class="color-circle" style="background: #10b981;" onclick="selectPostBg('#10b981', this)"></div>
+          <div class="color-circle" style="background: #f59e0b;" onclick="selectPostBg('#f59e0b', this)"></div>
+          <div class="color-circle" style="background: #ef4444;" onclick="selectPostBg('#ef4444', this)"></div>
+          <div class="color-circle" style="background: #3b82f6;" onclick="selectPostBg('#3b82f6', this)"></div>
+          <div class="color-circle" style="background: #9c27b0;" onclick="selectPostBg('#9c27b0', this)"></div>
+          <div class="color-circle" style="background: #ff5722;" onclick="selectPostBg('#ff5722', this)"></div>
         </div>
+        
+        <!-- Add to post -->
+        <div class="post-add-bar">
+          <div style="font-weight:700; font-size:14px; color:var(--text-secondary);">Add to your post</div>
+          <div class="img-btn" onclick="toggleColorPicker()">
+            <i class="ph-bold ph-palette" style="color: #f59e0b;"></i>
+          </div>
+          <div class="img-btn" onclick="openActivityModal()">
+            <i class="ph-bold ph-smiley" style="color: #ec4899;"></i>
+          </div>
+          <div class="img-btn" onclick="openTagModal()">
+            <i class="ph-bold ph-user-plus" style="color: #1DA1F2;"></i> Tag
+            <span id="tag-count" class="tag-badge" style="display:none;">0</span>
+          </div>
+          <label for="post-img-input" class="img-btn">
+            <i class="ph-bold ph-image" style="color: var(--success);"></i>
+          </label>
+        </div>
+      </div>
     </div>
+  </div>
 
-    <!-- Custom JS -->
-    <script src="app.js"></script>
+  <!-- Story Viewer -->
+  <div id="story-viewer" class="story-viewer">
+    <div class="story-progress-bar" id="story-progress"></div>
+    <div class="story-header">
+      <div class="avatar sm" id="sv-avatar"></div>
+      <div class="story-user-info">
+        <div class="story-username" id="sv-username">—</div>
+        <div class="story-time" id="sv-time">—</div>
+      </div>
+      <div class="story-actions">
+        <span class="material-symbols-outlined" onclick="downloadStory()">download</span>
+        <span class="material-symbols-outlined" onclick="closeStory()">close</span>
+      </div>
+    </div>
+    <div class="sv-media-container" id="sv-media-container"></div>
+    <div class="story-reply-bar">
+      <input type="text" id="story-reply-input" placeholder="Reply to story...">
+      <button onclick="sendStoryReply()">
+        <span class="material-symbols-outlined">send</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Comment Panel -->
+  <div class="modal-overlay" id="comment-panel">
+    <div class="modal-box comment-modal">
+      <div class="chat-topbar">
+        <div class="chat-back" onclick="closeCommentPanel()">
+          <span class="material-symbols-outlined">arrow_back</span>
+        </div>
+        <div class="chat-name">Comments</div>
+      </div>
+      <div id="comments-list" class="comments-list"></div>
+      <div class="comment-input-bar">
+        <div class="avatar xs" id="comment-avatar"></div>
+        <input type="text" id="comment-input" placeholder="Add a comment..." onkeypress="if(event.key==='Enter')submitComment()">
+        <button onclick="submitComment()">
+          <span class="material-symbols-outlined">send</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Single Post View -->
+  <div class="modal-overlay" id="single-post-view">
+    <div class="modal-box">
+      <div class="chat-topbar">
+        <div class="chat-back" onclick="closeSinglePostView()">
+          <span class="material-symbols-outlined">arrow_back</span>
+        </div>
+        <div class="chat-name">Post</div>
+      </div>
+      <div id="single-post-content"></div>
+    </div>
+  </div>
+
+  <!-- Share Modal -->
+  <div class="modal-overlay" id="share-modal">
+    <div class="modal-box">
+      <div class="chat-topbar">
+        <div class="chat-back" onclick="closeShareModal()">
+          <span class="material-symbols-outlined">close</span>
+        </div>
+        <div class="chat-name">Share Post</div>
+      </div>
+      <div class="share-search">
+        <span class="material-symbols-outlined">search</span>
+        <input type="text" id="share-search-input" placeholder="Search friends..." oninput="filterShareFriends(this.value)">
+      </div>
+      <div id="share-friends-list"></div>
+    </div>
+  </div>
+
+  <!-- Tag Modal -->
+  <div class="modal-overlay" id="tag-modal">
+    <div class="modal-box">
+      <div class="chat-topbar">
+        <div class="chat-back" onclick="closeTagModal()">
+          <span class="material-symbols-outlined">close</span>
+        </div>
+        <div class="chat-name">Tag Friends</div>
+      </div>
+      <div class="tag-search">
+        <input type="text" id="tag-search-input" placeholder="Search friends..." oninput="filterTagFriends(this.value)">
+      </div>
+      <div id="tag-friends-list"></div>
+    </div>
+  </div>
+
+  <!-- Activity/Feeling Modal -->
+  <div class="modal-overlay" id="activity-modal">
+    <div class="modal-box">
+      <div class="chat-topbar">
+        <div class="chat-back" onclick="closeActivityModal()">
+          <span class="material-symbols-outlined">close</span>
+        </div>
+        <div class="chat-name">How are you feeling?</div>
+      </div>
+      <div class="activity-grid" id="activity-grid"></div>
+    </div>
+  </div>
+
+  <!-- Edit Profile Modal -->
+  <div class="modal-overlay" id="edit-profile-modal">
+    <div class="modal-box">
+      <div class="chat-topbar">
+        <div class="chat-back" onclick="closeEditProfile()">
+          <span class="material-symbols-outlined">close</span>
+        </div>
+        <div class="chat-name">Edit Profile</div>
+      </div>
+      <div class="edit-profile-form">
+        <div class="input-group">
+          <label>Name</label>
+          <input type="text" id="edit-name">
+        </div>
+        <div class="input-group">
+          <label>Bio</label>
+          <textarea id="edit-bio" rows="3"></textarea>
+        </div>
+        <div class="input-group">
+          <label>Gender</label>
+          <select id="edit-gender">
+            <option value="">Select</option>
+            <option value="Male">Male</option>
+            <option value="Female">Female</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+        <div class="input-group">
+          <label>Relationship</label>
+          <select id="edit-relationship">
+            <option value="">Select Status</option>
+            <option value="Single">Single</option>
+            <option value="In a relationship">In a relationship</option>
+            <option value="Married">Married</option>
+          </select>
+        </div>
+        <div class="input-group">
+          <label>Profession</label>
+          <input type="text" id="edit-profession" placeholder="e.g. Graphic Designer">
+        </div>
+        <div class="input-group">
+          <label>Lives in</label>
+          <input type="text" id="edit-lives" placeholder="City">
+        </div>
+        <div class="input-group">
+          <label>From</label>
+          <input type="text" id="edit-from" placeholder="Hometown">
+        </div>
+        <button class="btn-primary" onclick="saveProfile()">Save Changes</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Follow List Modal -->
+  <div class="modal-overlay" id="follow-list-modal">
+    <div class="modal-box">
+      <div class="chat-topbar">
+        <div class="chat-back" onclick="closeFollowList()">
+          <span class="material-symbols-outlined">close</span>
+        </div>
+        <div class="chat-name" id="follow-list-title">Followers</div>
+      </div>
+      <div id="follow-list-content"></div>
+    </div>
+  </div>
+
+  <!-- Leaderboard Modal -->
+  <div class="modal-overlay" id="leaderboard-modal">
+    <div class="modal-box">
+      <div class="chat-topbar">
+        <div class="chat-back" onclick="closeLeaderboard()">
+          <span class="material-symbols-outlined">close</span>
+        </div>
+        <div class="chat-name">Leaderboard</div>
+      </div>
+      <div id="leaderboard-content"></div>
+    </div>
+  </div>
+
+  <!-- Elite GoChat Modal -->
+  <div class="modal-overlay" id="elite-app-modal">
+    <div class="modal-box">
+      <div class="chat-topbar">
+        <div class="chat-back" onclick="closeEliteGoChat()">
+          <span class="material-symbols-outlined">close</span>
+        </div>
+        <div class="chat-name">Elite GoChat</div>
+      </div>
+      <div id="elite-content">
+        <div id="app-progress-bar-container">
+          <div id="app-progress-bar"></div>
+        </div>
+        <div id="app-step-1"></div>
+        <div id="app-step-2" style="display:none;"></div>
+        <div id="app-step-3" style="display:none;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- QR Code Modal -->
+  <div class="modal-overlay" id="qrnc-modal">
+    <div class="qrnc-box">
+      <div class="qrnc-banner">
+        <button class="qrnc-close" onclick="qrncCloseCard()">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+        <div class="qrnc-brand">
+          <span class="material-symbols-outlined">auto_awesome</span> GOCHAT
+        </div>
+      </div>
+      <div class="qrnc-body">
+        <div class="qrnc-av" id="qrnc-av">?</div>
+        <div class="qrnc-name" id="qrnc-name">—</div>
+        <div class="qrnc-uname" id="qrnc-uname" style="display:none;"></div>
+        <div class="qrnc-bio" id="qrnc-bio" style="display:none;"></div>
+        <div class="qrnc-stats" id="qrnc-stats" style="display:none;"></div>
+        
+        <div class="qrnc-qr-wrap">
+          <div class="qrnc-qr-frame" id="qrnc-qr-frame">
+            <div class="qrnc-qr-loading" id="qrnc-qr-loading">
+              <span class="material-symbols-outlined">progress_activity</span>
+              Generating…
+            </div>
+          </div>
+          <div class="qrnc-scan-hint">
+            <span class="material-symbols-outlined">qr_code_scanner</span>
+            Scan to view this profile
+          </div>
+          <div class="qrnc-link-row" onclick="qrncCopy()">
+            <span class="qrnc-url" id="qrnc-url">—</span>
+            <span class="material-symbols-outlined">content_copy</span>
+          </div>
+        </div>
+        
+        <div class="qrnc-actions">
+          <button class="qrnc-act qrnc-primary" onclick="qrncDownload()">
+            <span class="material-symbols-outlined">download</span> Download Card
+          </button>
+          <button class="qrnc-act" onclick="qrncShare()">
+            <span class="material-symbols-outlined">share</span> Share
+          </button>
+          <button class="qrnc-act" onclick="qrncCopy()">
+            <span class="material-symbols-outlined">link</span> Copy Link
+          </button>
+          <button class="qrnc-act qrnc-scan" onclick="qrncOpenScanner()">
+            <span class="material-symbols-outlined">qr_code_scanner</span> Scan a QR Code
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- QR Scanner -->
+  <div class="modal-overlay" id="qrnc-scanner">
+    <div class="qrnc-scan-box">
+      <div class="qrnc-scan-head">
+        <div class="qrnc-scan-title">
+          <span class="material-symbols-outlined">qr_code_scanner</span> Scan QR
+        </div>
+        <button class="qrnc-scan-close" onclick="qrncCloseScanner()">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+      <div class="qrnc-viewport">
+        <video id="qrnc-video" playsinline muted></video>
+        <canvas id="qrnc-scan-canvas" style="display:none;"></canvas>
+        <div class="qrnc-frame"><i></i></div>
+        <div class="qrnc-scanline"></div>
+      </div>
+      <div class="qrnc-scan-msg" id="qrnc-scan-msg">Point your camera at a GoChat QR code…</div>
+    </div>
+  </div>
+
+  <!-- Text Story Modal -->
+  <div class="modal-overlay" id="create-text-story-modal">
+    <div class="modal-box">
+      <div class="chat-topbar">
+        <div class="chat-back" onclick="closeTextStoryModal()">
+          <span class="material-symbols-outlined">close</span>
+        </div>
+        <div class="chat-name">Text Story</div>
+      </div>
+      <div class="text-story-creator">
+        <div class="text-story-preview" id="text-story-preview"></div>
+        <textarea id="text-story-input" placeholder="Write your story..." oninput="checkTextStoryInput()"></textarea>
+        <div class="story-bg-picker">
+          <div class="color-circle" style="background: linear-gradient(135deg, #7c5cff 0%, #c084fc 100%);" onclick="selectTextStoryBg('linear-gradient(135deg, #7c5cff 0%, #c084fc 100%)', this)"></div>
+          <div class="color-circle" style="background: linear-gradient(135deg, #ec4899 0%, #f472b6 100%);" onclick="selectTextStoryBg('linear-gradient(135deg, #ec4899 0%, #f472b6 100%)', this)"></div>
+          <div class="color-circle" style="background: linear-gradient(135deg, #10b981 0%, #34d399 100%);" onclick="selectTextStoryBg('linear-gradient(135deg, #10b981 0%, #34d399 100%)', this)"></div>
+          <div class="color-circle" style="background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%);" onclick="selectTextStoryBg('linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%)', this)"></div>
+          <div class="color-circle" style="background: linear-gradient(135deg, #ef4444 0%, #f87171 100%);" onclick="selectTextStoryBg('linear-gradient(135deg, #ef4444 0%, #f87171 100%)', this)"></div>
+          <div class="color-circle" style="background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%);" onclick="selectTextStoryBg('linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%)', this)"></div>
+        </div>
+        <button class="btn-primary" id="modal-text-story-btn" onclick="submitTextStory()" disabled>Post Story</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Media Story Modal -->
+  <div class="modal-overlay" id="create-media-story-modal">
+    <div class="modal-box">
+      <div class="chat-topbar">
+        <div class="chat-back" onclick="closeMediaStoryModal()">
+          <span class="material-symbols-outlined">close</span>
+        </div>
+        <div class="chat-name">Media Story</div>
+      </div>
+      <div class="media-story-creator">
+        <div class="media-story-preview" id="media-story-preview"></div>
+        <label for="story-media-input" class="btn-primary">
+          <span class="material-symbols-outlined">upload</span> Choose Media
+        </label>
+        <input type="file" id="story-media-input" accept="image/*,video/*" style="display:none;" onchange="handleStoryMedia(event)">
+        <button class="btn-primary" id="modal-media-story-btn" onclick="submitMediaStory()" disabled>Post Story</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- WebRTC Call Screen -->
+  <div id="webrtc-call-screen">
+    <div class="call-bg"></div>
+    <div class="call-content">
+      <div class="call-avatar-wrap">
+        <div class="avatar xl" id="call-screen-avatar"></div>
+        <div class="call-pulse-anim" id="call-pulse-anim"></div>
+      </div>
+      <div class="call-screen-name" id="call-screen-name">—</div>
+      <div class="call-screen-status" id="call-screen-status">Calling...</div>
+      <div class="call-timer" id="call-timer" style="display:none;">0:00</div>
+    </div>
+    <div class="call-controls">
+      <button class="btn-control" id="btn-speaker" onclick="toggleSpeaker()">
+        <i class="ph-fill ph-speaker-high"></i>
+      </button>
+      <button class="btn-control" onclick="minimizeCall()">
+        <i class="ph-bold ph-arrows-in-simple"></i>
+      </button>
+    </div>
+    <div class="call-actions">
+      <button class="btn-call-action btn-reject" onclick="endWebRTCCall()">
+        <i class="ph-fill ph-phone-x"></i>
+      </button>
+      <button class="btn-call-action btn-answer" id="btn-answer-call" onclick="answerWebRTCCall()">
+        <i class="ph-fill ph-phone-call"></i>
+      </button>
+    </div>
+    <audio id="remote-audio" autoplay></audio>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast-container"></div>
+
+  <!-- Custom JS -->
+  <script src="01-firebase-init.js"></script>
+<script src="02-auth.js"></script>
+<script src="03-feed.js"></script>
+<script src="04-posts.js"></script>
+<script src="05-stories.js"></script>
+<script src="06-chat.js"></script>
+<script src="07-profile.js"></script>
+<script src="08-advanced.js"></script>
 </body>
 </html>
