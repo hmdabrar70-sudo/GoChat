@@ -1,4 +1,4 @@
-// Blocked Accounts পেজ ওপেন এবং ক্লোজ করার জাভাস্ক্রিপ্ট
+
 function openBlockedAccountsPage() {
     document.getElementById('blocked-accounts-screen').style.display = 'flex';
     // আপনার আগের ডাটা লোড করার ফাংশনটি কল করা হলো
