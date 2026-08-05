@@ -1,7 +1,7 @@
-// Blocked Accounts      
+// Blocked Accounts পেজ ওপেন এবং ক্লোজ করার জাভাস্ক্রিপ্ট
 function openBlockedAccountsPage() {
     document.getElementById('blocked-accounts-screen').style.display = 'flex';
-    //         
+    // আপনার আগের ডাটা লোড করার ফাংশনটি কল করা হলো
     if (typeof loadBlockedUsers === 'function') {
         loadBlockedUsers(); 
     }
@@ -10,6 +10,7 @@ function openBlockedAccountsPage() {
 function closeBlockedAccountsPage() {
     document.getElementById('blocked-accounts-screen').style.display = 'none';
 }
+
 const ONE_YEAR_MS = 365 * 24 * 60 * 60 * 1000;
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
@@ -59,14 +60,14 @@ let activeCommentPostId=null,commentPanelListener=null;
 let currentFeedTab='foryou';
 let currentTaggedFriends=[];
 let currentTaggedNames = [];
-let currentPostActivity = null; //    
+let currentPostActivity = null; // নতুন যোগ করা হলো
 let currentEditPostId=null;
 let activeStoryGroup=[];
 let currentStoryIndex=0;
 let storyTimer=null;
 let composeImages=[];
 let currentReplyMsgId=null;
-let replyToMsgData=null; //  Reply Preview Data Store
+let replyToMsgData=null; // 🚀 Reply Preview Data Store
 let currentForwardMsgData=null;
 let currentOtherProfileUid=null;
 let onlineStatusInterval=null;
@@ -125,15 +126,15 @@ usersCacheTimestamp = now;
 return allUsersCache;
 }
 
-// ===  Dark Mode Toggle Logic ===
+// === 🚀 Dark Mode Toggle Logic ===
 function toggleDarkMode() {
     document.body.classList.toggle('light-mode');
     const isLight = document.body.classList.contains('light-mode');
     
-    //    
+    // লোকাল স্টোরেজে সেভ করা
     localStorage.setItem('theme', isLight ? 'light' : 'dark');
     
-    // UI  
+    // UI আপডেট করা
     updateDarkModeUI();
     showToast(`Dark Mode is now ${isLight ? 'OFF' : 'ON'}`);
 }
@@ -143,9 +144,9 @@ function updateDarkModeUI() {
     if (toggleEl) {
         const isLight = document.body.classList.contains('light-mode');
         if (!isLight) {
-            toggleEl.classList.add('active'); //       
+            toggleEl.classList.add('active'); // ডার্ক মোড অন থাকলে বাটন অন হবে
         } else {
-            toggleEl.classList.remove('active'); //      
+            toggleEl.classList.remove('active'); // লাইট মোড হলে বাটন অফ হবে
         }
     }
 }
@@ -198,7 +199,7 @@ return Math.floor(h/24)+'d ago';
 }
 
 function getVerifiedBadge(email, isVerified) {
-    //     isVerified: true   
+    // এখন শুধু ডাটাবেস থেকে isVerified: true হলেই ব্যাজ পাবে
     if (isVerified === true) {
         return '<span class="material-symbols-outlined verified-icon" title="Verified">verified</span>';
     }
@@ -206,7 +207,7 @@ function getVerifiedBadge(email, isVerified) {
 }
 
 function openSettingsPrivacy(){
-  //      
+  // পুরনো মেনু থাকলে সেটা হাইড করবে
   const oldMenu = document.getElementById('settings-menu');
   if(oldMenu) oldMenu.classList.remove('open');
   
@@ -214,9 +215,9 @@ function openSettingsPrivacy(){
   const el = document.getElementById('contact-email-display');
   if(el) el.textContent = currentUser ? currentUser.email : 'Not logged in';
   
-  //    
+  // ব্লক লিস্ট লোড হবে
   loadBlockedUsers(); 
-  renderLinkedAccountsUI(); //    
+  renderLinkedAccountsUI(); // বাইন্ডিং অপশন লোড করবে
 }
 
 function closeSettingsPrivacy(){
@@ -240,7 +241,7 @@ console.log("Error awarding points", e);
 }
 
 // ==========================================
-//  PREMIUM LEADERBOARD (same data, new look)
+// 🏆 PREMIUM LEADERBOARD (same data, new look)
 // ==========================================
 function formatLBNum(n){
   n = n || 0;
@@ -256,7 +257,7 @@ async function openLeaderboard() {
   const podium  = document.getElementById('leaderboard-podium');
   const list    = document.getElementById('leaderboard-list');
 
-  //  
+  // লোডিং স্টেট
   meCard.innerHTML = '';
   podium.innerHTML = '';
   list.innerHTML = '<div class="loading"><span class="material-symbols-outlined">autorenew</span> Loading Champions...</div>';
@@ -282,7 +283,7 @@ async function openLeaderboard() {
       : avatarInitial((currentUserData && currentUserData.name) || 'You');
     const rankLabel = myRank > 0 ? `#${myRank}` : '50+';
     const encourage = myRank > 0
-      ? 'Keep going  you are on the board! '
+      ? 'Keep going — you are on the board! 🔥'
       : 'Post & engage to climb the ranks!';
     meCard.innerHTML = `
       <div class="lb-me-card">
@@ -309,27 +310,27 @@ async function openLeaderboard() {
               ${crown ? `<div class="lb-crown">${crown}</div>` : ''}
               ${av}
             </div>
-            <div class="lb-pod-name">${escapeHTML(u.name)}${r.isMe ? ' ' : ''}</div>
+            <div class="lb-pod-name">${escapeHTML(u.name)}${r.isMe ? ' ⭐' : ''}</div>
             <div class="lb-pod-pts">${formatLBNum(u.points||0)} pts</div>
             <div class="lb-pod-bar" style="animation-delay:${delay};">${medal}</div>
           </div>`;
       };
-      //  :     
+      // ভিজ্যুয়াল ক্রম: ২য় — ১ম — ৩য়
       podium.innerHTML = `<div class="lb-podium">`
-        + makePod(rows[1], 'r2', '', '')
-        + makePod(rows[0], 'r1', '', '')
-        + makePod(rows[2], 'r3', '', '')
+        + makePod(rows[1], 'r2', '🥈', '')
+        + makePod(rows[0], 'r1', '🥇', '👑')
+        + makePod(rows[2], 'r3', '🥉', '')
         + `</div>`;
     } else {
-      podium.innerHTML = ''; //       
+      podium.innerHTML = ''; // ৩ জনের কম হলে পোডিয়াম দেখাবে না
     }
 
     // ---------- 3) Rest of the list (rank 4 onward) ----------
     const rest = rows.slice(3);
     if (rest.length === 0 && rows.length <= 3) {
-      //     -  
+      // খুব কম ইউজার থাকলে পোডিয়াম-বহির্ভূত লিস্ট খালি
       list.innerHTML = rows.length === 0
-        ? '<div style="text-align:center;padding:30px;color:var(--text-muted);">No champions yet. Be the first! </div>'
+        ? '<div style="text-align:center;padding:30px;color:var(--text-muted);">No champions yet. Be the first! 🚀</div>'
         : '';
     } else {
       let html = '';
@@ -377,14 +378,14 @@ async function loginWithEmail(){
     try {
         await auth.signInWithEmailAndPassword(email, pass);
         
-        //          
+        // 🚀 লগইন সফল হলে ফর্মের লেখা মুছে সুন্দর পপআপটি দেখাবে
         document.getElementById('auth-password').value = '';
         msg.textContent = '';
         
         const successModal = document.getElementById('login-success-modal');
         if(successModal) successModal.classList.add('open');
         
-        //                  
+        // 🚀 ৩ সেকেন্ড পর ইউজার কন্টিনিউ বাটনে ক্লিক না করলেও নিজে থেকেই মডাল বন্ধ হয়ে ফিডে চলে যাবে
         setTimeout(() => {
             if(successModal) successModal.classList.remove('open');
         }, 3000);
@@ -395,13 +396,13 @@ async function loginWithEmail(){
     }
 }
 
-//        ( loginWithEmail    )
+// 🚀 লগইন মডাল বন্ধ করার ম্যানুয়াল ফাংশন (এটি loginWithEmail এর ঠিক নিচেই থাকবে)
 function closeLoginSuccessModal() {
     const successModal = document.getElementById('login-success-modal');
     if(successModal) successModal.classList.remove('open');
 }
 
-// ---  /   ---
+// --- পাসওয়ার্ড হাইড/শো করার ফাংশন ---
 function togglePasswordVisibility() {
     const passwordInput = document.getElementById('auth-password');
     const eyeIcon = event.target;
@@ -415,13 +416,13 @@ function togglePasswordVisibility() {
     }
 }
 
-// --- .    (  ) ---
+// --- ১. গুগল লগইন ফাংশন (পপআপের বদলে রিডাইরেক্ট) ---
 function loginWithGoogle() {
     const provider = new firebase.auth.GoogleAuthProvider();
     auth.signInWithRedirect(provider);
 }
 
-// --- .           ---
+// --- ২. লগইন হয়ে ফিরে আসার পর ইউজারকে ডাটাবেসে সেভ করার লজিক ---
 auth.getRedirectResult().then(async (result) => {
     if (result && result.user) {
         const user = result.user;
@@ -497,9 +498,9 @@ createdAt:firebase.firestore.FieldValue.serverTimestamp()
 }catch(e){msg.textContent='Registration failed: '+e.message;msg.className='auth-msg error';}
 }
 
-// ===    ===
+// === স্মার্ট লগআউট সিস্টেম ===
 function doLogout() {
-    //       
+    // সরাসরি লগআউট না করে পপআপ ওপেন করবে
     document.getElementById('logout-confirm-modal').classList.add('open');
 }
 
@@ -573,14 +574,14 @@ showToast("Failed to delete account. Please try again.");
 
 function updateOnlineStatus(){
     if(currentUser){
-        //   ON    
+        // যদি স্ট্যাটাস ON থাকে তবেই অনলাইনে দেখাবে
         if (currentUserData.showActiveStatus !== false) {
             db.collection('users').doc(currentUser.uid).update({
                 online: true,
                 lastSeen: firebase.firestore.FieldValue.serverTimestamp()
             }).catch(()=>{});
         } else {
-            // OFF     (    )
+            // OFF থাকলে অনলাইনে দেখাবে না (সাথে লাস্ট সিন আপডেট করবে)
             db.collection('users').doc(currentUser.uid).update({
                 online: false,
                 lastSeen: firebase.firestore.FieldValue.serverTimestamp()
@@ -596,7 +597,7 @@ db.collection('system').doc('settings').onSnapshot(doc => {
             const overlay = document.createElement('div');
             overlay.id = 'maintenance-overlay';
             overlay.style = 'position:fixed; top:0; left:0; width:100%; height:100%; background:#f4f7f6; z-index:99999; display:flex; justify-content:center; align-items:center; flex-direction:column;';
-            overlay.innerHTML = '<h2 style="color:#333;"> App Under Maintenance</h2><p>We are updating GoChat. Please wait!</p>';
+            overlay.innerHTML = '<h2 style="color:#333;">🛠️ App Under Maintenance</h2><p>We are updating GoChat. Please wait!</p>';
             document.body.appendChild(overlay);
         }
     } else {
@@ -607,7 +608,7 @@ db.collection('system').doc('settings').onSnapshot(doc => {
 
 db.collection('system').doc('announcement').onSnapshot(doc => {
     if (doc.exists && doc.data().message) {
-        alert(" GoChat Notice:\n\n" + doc.data().message);
+        alert("📢 GoChat Notice:\n\n" + doc.data().message);
     }
 });
 // ==========================================
@@ -617,7 +618,7 @@ db.collection('system').doc('announcement').onSnapshot(doc => {
 // ===== AUTH STATE LISTENER =====
 auth.onAuthStateChanged(async(user)=>{
 
-//      
+// 🚀 স্প্ল্যাশ স্ক্রিন সরানোর স্মার্ট ম্যাজিক
 const removeSplash = () => {
     const splash = document.getElementById('splash-screen');
     if (splash && splash.style.display !== 'none') { 
@@ -628,18 +629,18 @@ const removeSplash = () => {
 
 if(user){
 currentUser=user;
-// Median OneSignal-     
+// Median OneSignal-এর সাথে ফায়ারবেস ইউজার লিংক করা
 if (navigator.userAgent.toLowerCase().includes('median')) {
     if (window.median && window.median.onesignal) {
         window.median.onesignal.login({ externalId: user.uid });
     }
 }
 
-//           ,      
+// 🚀 ইউজার লগইন থাকলে সাথে সাথেই মেইন স্ক্রিন অন করে দেবো, যাতে ফিডের স্কেলেটন লোডিং দেখা যায়
 document.getElementById('auth-screen').style.display='none';
 document.getElementById('app-screen').style.display='block';
 
-//   .   ,        
+// 🚀 ম্যাক্সিমাম ১.৫ সেকেন্ডের একটা টাইমার, যাতে ডাটাবেস স্লো থাকলেও অ্যাপ আটকে না থাকে
 const splashFallbackTimer = setTimeout(removeSplash, 1500);
 
 try{
@@ -647,7 +648,7 @@ const snap=await db.collection('users').doc(user.uid).get();
 currentUserData=snap.exists?snap.data():{name:user.email.split('@')[0],email:user.email};
 }catch(e){currentUserData={name:user.email.split('@')[0],email:user.email};}
 
-//             
+// 🚀 ডাটাবেস লোড হয়ে গেলে টাইমার ক্যানসেল করে সাথে সাথেই স্প্ল্যাশ সরিয়ে দেবে
 clearTimeout(splashFallbackTimer);
 removeSplash();
 cleanupPrivateChatsOnLoad(); 
@@ -659,7 +660,7 @@ await updateOnlineStatus();
 if(onlineStatusInterval)clearInterval(onlineStatusInterval);
 onlineStatusInterval=setInterval(updateOnlineStatus,60000);
 
-// ---  -    (Ghost User Filter) ---
+// --- 🚀 রিয়েল-টাইম অ্যাডভান্সড অনলাইন সিঙ্ক (Ghost User Filter) ---
 setInterval(async () => {
     if (!currentUser) return;
     try {
@@ -669,22 +670,22 @@ setInterval(async () => {
         
         snap.forEach(d => {
             const data = d.data();
-            // .         
+            // ১. চেক করবে ইউজার সেটিং থেকে বাতি বন্ধ করেছে কিনা
             if (data.showActiveStatus !== false) {
-                // .   :        ?
+                // ২. ঘোস্ট ইউজার চেক: ইউজারের লাস্ট সিন কি ৩ মিনিটের বেশি পুরনো?
                 const lastSeenTime = data.lastSeen?.toMillis ? data.lastSeen.toMillis() : now;
                 const timeDiff = now - lastSeenTime;
                 
-                                if (timeDiff < 180000) { // 180000 ms = 3 
+                                if (timeDiff < 180000) { // 180000 ms = 3 মিনিট
                     onlineUids.push(d.id);
                 } else {
-                    //     ,        (Ghost)
+                    // যদি ৩ মিনিটের বেশি হয়, তারমানে সে ভুল করে অফলাইনে আটকে গেছে (Ghost)
                     d.ref.update({ online: false }).catch(()=>{});
                 }
             }
         });
         
-        //  NEW LOGIC:    ,     !
+        // 🚀 NEW LOGIC: নিজের স্ট্যাটাস অফ থাকলে, অন্যদের লিস্টও ফাঁকা করে দেবে!
         if (currentUserData && currentUserData.showActiveStatus === false) {
             onlineUids.length = 0; 
         }
@@ -693,7 +694,7 @@ setInterval(async () => {
             allUsersCache.forEach(u => { u.online = onlineUids.includes(u.id); });
         }
 
-        //   -  
+        // চ্যাট হেডারে রিয়েল-টাইম অনলাইন আপডেট
         if (currentChatId && currentChatOtherUid && currentChatOtherUid !== 'group') {
             const chatAvEl = document.getElementById('chat-avatar');
             if (chatAvEl) {
@@ -706,7 +707,7 @@ setInterval(async () => {
             }
         }
 
-        //    
+        // মেসেজ লিস্টে বাতি আপডেট
         document.querySelectorAll('.msg-item').forEach(item => {
             const uid = item.getAttribute('data-other-uid');
             if (uid && uid !== 'group') {
@@ -724,28 +725,28 @@ setInterval(async () => {
     } catch (e) {}
 }, 30000);
 
-        //  NEW: Deep Linking Profile Routing (      )
+        // 🚀 NEW: Deep Linking Profile Routing (লিংক থেকে সরাসরি প্রোফাইল ওপেন করার ম্যাজিক)
         const urlParams = new URLSearchParams(window.location.search);
         const profileUidToOpen = urlParams.get('user');
 
         if (profileUidToOpen && profileUidToOpen.length > 5) {
-            //     ,        
+            // যদি লিংকে ইউজার আইডি থাকে, তাহলে একটু সময় নিয়ে প্রোফাইলটি ওপেন করে দেবে
             setTimeout(() => {
                 viewUserProfile(profileUidToOpen);
                 
-                //        ?user=...     
+                // প্রোফাইল ওপেন হওয়ার পর ব্রাউজারের লিংক থেকে ?user=... মুছে একদম ফ্রেশ করে দেবে
                 const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
                 window.history.replaceState({path:newUrl}, '', newUrl);
-            }, 1000); //         
+            }, 1000); // ডাটাবেস লোড হওয়ার জন্য ১ সেকেন্ড সময় দেওয়া হলো
         }
 
-//     (      )
+// 🚀 স্মার্ট ভিজিবিলিটি ট্র্যাকার (অ্যাপ মিনিমাইজ করলে বা ব্যাকগ্রাউন্ডে গেলে অফলাইন)
 function handleAppVisibility() {
     if (!currentUser) return;
     if (document.visibilityState === 'visible') {
-        updateOnlineStatus(); //        
+        updateOnlineStatus(); // অ্যাপে ঢুকলে বা স্ক্রিন অন করলে আবার অনলাইন
     } else {
-        //          
+        // অ্যাপ থেকে বের হলে বা মিনিমাইজ করলে সাথে সাথে অফলাইন
         db.collection('users').doc(currentUser.uid).update({
             online: false,
             lastSeen: firebase.firestore.FieldValue.serverTimestamp()
@@ -801,7 +802,7 @@ notifUnsub = db.collection('notifications').where('toUid', '==', user.uid).onSna
         notifs.push({ id: doc.id, ...doc.data() });
     });
 
-    //    (   )
+    // সময় অনুযায়ী সাজানো (সবচেয়ে নতুনটা সবার ওপরে)
     notifs.sort((a, b) => {
         const ta = a.createdAt?.toMillis ? a.createdAt.toMillis() : (a.createdAt?.seconds ? a.createdAt.seconds * 1000 : 0);
         const tb = b.createdAt?.toMillis ? b.createdAt.toMillis() : (b.createdAt?.seconds ? b.createdAt.seconds * 1000 : 0);
@@ -836,7 +837,7 @@ notifUnsub = db.collection('notifications').where('toUid', '==', user.uid).onSna
         
         const safeName = escapeHTML(data.fromName || 'Someone');
         
-        //    
+        // ক্লিক করলে কী হবে
         let onClickAction = `db.collection('notifications').doc('${data.id}').update({read:true});`;
         if (data.postId) {
             onClickAction += ` openSinglePostView('${data.postId}');`;
@@ -870,7 +871,7 @@ notifUnsub = db.collection('notifications').where('toUid', '==', user.uid).onSna
 currentUser=null;currentUserData=null;
 document.getElementById('auth-screen').style.display='flex';
 document.getElementById('app-screen').style.display='none';
-//         
+// লগআউট থাকলে লগইন পেজ রেডি হওয়ার পর স্প্ল্যাশ সরবে
 removeSplash();
 
 if(feedUnsub)feedUnsub();
@@ -879,14 +880,14 @@ if(storyUnsub)storyUnsub();
 if(onlineStatusInterval)clearInterval(onlineStatusInterval);
 }
 });
-//        
+// নতুন মেইন মেনু ওপেন এবং ক্লোজ করার লজিক
 function openMainMenu() {
     document.getElementById('main-menu-screen').style.display = 'flex';
-    //          
+    // 🚀 মেনু ওপেন হলে সব সুইচের স্টেট আপডেট করে দেবে
     if (typeof updatePrivateAccountUI === 'function') updatePrivateAccountUI();
     if (typeof updateActiveStatusUI === 'function') updateActiveStatusUI();
     if (typeof updateMessageSoundUI === 'function') updateMessageSoundUI();
-    if (typeof updateDarkModeUI === 'function') updateDarkModeUI(); //   
+    if (typeof updateDarkModeUI === 'function') updateDarkModeUI(); // ডার্ক মোড আপডেট
 }
 
 function closeMainMenu() {
@@ -895,16 +896,16 @@ function closeMainMenu() {
 
 // === Elite GoChat Placeholder Function ===
 function openEliteGoChat() {
-    //        
-    //           
+    // আপাতত ক্লিক করলে একটি টোস্ট মেসেজ দেখাবে। 
+    // ভবিষ্যতে এখানে নতুন মডাল বা পেজ ওপেন করার কোড যুক্ত হবে।
     showToast('Elite GoChat features are coming soon!');
 }
 
-//        
+// সেটিংসের নতুন পেজ ওপেন এবং ক্লোজ করার লজিক
 function openMainSettingsScreen() {
     document.getElementById('main-settings-screen').style.display = 'flex';
     
-    //      (On/Off)   
+    // মডাল ওপেন হলে সুইচগুলোর স্টেট (On/Off) আপডেট করে দেবে
     if (typeof updatePrivateAccountUI === 'function') updatePrivateAccountUI();
     if (typeof updateActiveStatusUI === 'function') updateActiveStatusUI();
     if (typeof updateMessageSoundUI === 'function') updateMessageSoundUI();
@@ -918,7 +919,7 @@ function closeMainSettingsScreen() {
 
 // ===== NAVIGATION =====
 function showPage(page) {
-    //    
+    // 🚀 স্মার্ট রিফ্রেশ লজিক
     if (page === 'feed' && document.getElementById('page-feed').classList.contains('active')) {
         refreshFeed(); 
         window.scrollTo({top: 0, behavior: 'smooth'}); 
@@ -934,21 +935,21 @@ function showPage(page) {
     const nEl = document.getElementById('nav-' + page);
     if(nEl) nEl.classList.add('active');
 
-    //  Topbar Dynamic Logic (   /  )
+    // 🚀 Topbar Dynamic Logic (লোগো ও নোটিফিকেশন হাইড/শো করার ম্যাজিক)
     const topbarLogo = document.querySelector('.topbar-logo');
-    document.body.classList.remove('messages-mode', 'notifications-mode'); //   
+    document.body.classList.remove('messages-mode', 'notifications-mode'); // আগের মোডগুলো রিসেট
 
     if (page === 'messages') {
         document.body.classList.add('messages-mode');
         if(topbarLogo) topbarLogo.textContent = 'Chats';
     } else if (page === 'notifications') {
-        document.body.classList.add('notifications-mode'); //   
-        if(topbarLogo) topbarLogo.textContent = 'Notifications'; //   
+        document.body.classList.add('notifications-mode'); // নতুন নোটিফিকেশন মোড
+        if(topbarLogo) topbarLogo.textContent = 'Notifications'; // লোগোর জায়গায় নোটিফিকেশন
     } else {
-        if(topbarLogo) topbarLogo.textContent = ' GoChat'; //      
+        if(topbarLogo) topbarLogo.textContent = '✦ GoChat'; // অন্য পেজে আবার লোগো ফিরে আসবে
     }
 
-    //     
+    // সেটিংস আইকন হ্যান্ডেল করার লজিক
     const settingsIcon = document.getElementById('topbar-settings-btn');
     if (page === 'profile') {
         settingsIcon.style.display = 'flex'; 
@@ -1099,7 +1100,7 @@ async function loadAllFriends() {
     
     list.innerHTML = '<div class="loading"><span class="material-symbols-outlined">autorenew</span> Loading...</div>';
     
-    //       
+    // ফলোয়িং লিস্ট থেকে ইউজার আইডি নেওয়া হচ্ছে
     const following = currentUserData.following || [];
     
     if (following.length === 0) {
@@ -1118,7 +1119,7 @@ async function loadAllFriends() {
                 const safeName = escapeHTML(u.name);
                 const avHtml = u.avatar ? `<img src="${u.avatar}">` : avatarInitial(u.name);
                 
-                //      
+                // নাম এবং আনফলো বাটনসহ লিস্ট আইটেম
                 html += `
                 <div class="friend-item-check" style="justify-content: space-between;">
                     <div style="display:flex; align-items:center; gap:12px;" onclick="viewUserProfile('${following[index]}')">
@@ -1216,11 +1217,11 @@ list.innerHTML = '<div class="empty-feed">Failed to load requests</div>';
 async function toggleFollow(targetUid) {
     if(!checkRateLimit()) return;
     
-    //        
+    // চেক করবে আগে থেকেই ফলো করা আছে কিনা
     const isFollowing = currentUserData.following?.includes(targetUid);
     
     if (isFollowing) {
-        //  (Unfollow)  
+        // আনফলো (Unfollow) করার লজিক
         await db.collection('users').doc(currentUser.uid).update({
             following: firebase.firestore.FieldValue.arrayRemove(targetUid)
         });
@@ -1229,7 +1230,7 @@ async function toggleFollow(targetUid) {
         });
         showToast('Unfollowed');
     } else {
-        //  (Follow)  
+        // ফলো (Follow) করার লজিক
         await db.collection('users').doc(currentUser.uid).update({
             following: firebase.firestore.FieldValue.arrayUnion(targetUid)
         });
@@ -1238,7 +1239,7 @@ async function toggleFollow(targetUid) {
         });
         showToast('Following!');
         
-        //    
+        // ফলো করলে নোটিফিকেশন পাঠানো
         db.collection('notifications').add({
             toUid: targetUid,
             fromUid: currentUser.uid,
@@ -1249,7 +1250,7 @@ async function toggleFollow(targetUid) {
         });
     }
     
-    //       
+    // বাটনগুলোর স্টেট সাথে সাথে আপডেট করার জন্য
     if(document.getElementById('page-other-profile').classList.contains('active') || document.getElementById('page-other-profile').classList.contains('open')) {
         viewUserProfile(targetUid);
     }
@@ -1262,14 +1263,14 @@ async function searchUsers() {
     const q = input.value.trim().toLowerCase();
     const res = document.getElementById('search-results-list');
 
-    // . :        (   )
+    // ১. কন্ডিশন: ৩ অক্ষরের কম হলে সার্চ হবে না (অ্যাপের চাপ কমানোর জন্য)
     if (q.length < 3) {
-        if (q.length === 0) renderRecentSearches(); //    
+        if (q.length === 0) renderRecentSearches(); // ফাঁকা হলে রিসেন্ট দেখাবে
         else res.innerHTML = '<div class="empty-feed">Type at least 3 characters...</div>';
         return;
     }
 
-    // .  (Debouncing):       -  
+    // ২. ডিবাউন্সিং (Debouncing): ইউজার টাইপ করা থামানোর পর ৫০০ মিলি-সেকেন্ড অপেক্ষা করবে
     clearTimeout(searchTimeout);
     res.innerHTML = '<div class="loading"><span class="material-symbols-outlined">autorenew</span> Searching...</div>';
 
@@ -1277,7 +1278,7 @@ async function searchUsers() {
         const users = await fetchAllUsers();
         let html = '';
         
-        //   
+        // রেজাল্ট ফিল্টার করা
         const filteredUsers = users.filter(u => 
             u.id !== currentUser.uid && 
             u.name && 
@@ -1307,7 +1308,7 @@ async function searchUsers() {
             </div>`;
         });
         res.innerHTML = html;
-    }, 500); //  -  
+    }, 500); // ৫০০ মিলি-সেকেন্ড অপেক্ষা করবে
 }
 
 // ===== RECENT SEARCH LOGIC =====
@@ -1331,7 +1332,7 @@ async function renderRecentSearches() {
             if(u) {
                 const safeName = escapeHTML(u.name);
                 const avHtml = u.avatar ? `<img src="${u.avatar}">` : avatarInitial(u.name);
-                //     (  )
+                // রিসেন্ট ইউজার লিস্টের ডিজাইন (সাথে ক্রস বাটন)
                 html += `<div class="msg-item" onclick="viewUserProfile('${uid}')">
                     <div class="avatar">${avHtml}</div>
                     <div class="msg-info" style="margin-left:10px;">
@@ -1351,18 +1352,18 @@ async function addToRecentSearches(uid) {
     if(!currentUser) return;
     let recents = currentUserData.recentSearches || [];
     
-    //     ,       
+    // যদি আগে থেকেই লিস্টে থাকে, তবে সেটা মুছে আগে সবার উপরে আনবে
     recents = recents.filter(id => id !== uid);
     recents.unshift(uid); 
     
-    //    
+    // সর্বোচ্চ ৩ জনকে রাখবে
     if(recents.length > 3) {
         recents = recents.slice(0, 3);
     }
     
     currentUserData.recentSearches = recents;
     
-    //   
+    // ফায়ারবেসে সেভ করা
     db.collection('users').doc(currentUser.uid).update({
         recentSearches: recents
     }).catch(e => console.log(e));
@@ -1373,7 +1374,7 @@ async function removeRecentSearch(uid) {
     recents = recents.filter(id => id !== uid);
     currentUserData.recentSearches = recents;
     
-    renderRecentSearches(); //   UI  
+    renderRecentSearches(); // সাথে সাথে UI আপডেট হবে
     
     db.collection('users').doc(currentUser.uid).update({
         recentSearches: recents
@@ -1452,9 +1453,9 @@ function loadStories(){
         });
         
         let html='';
-        let userIdsOrder = []; //    
+        let userIdsOrder = []; // সিরিয়াল সেভ করার জন্য
         
-        // .     
+        // ১. নিজের স্টোরি সবসময় প্রথমে থাকবে
         if(grouped[currentUser.uid]){
             const av=currentUserData.avatar||'https://via.placeholder.com/150/7c5cff/FFFFFF?text='+avatarInitial(currentUserData.name);
             html+=`<div>
@@ -1467,22 +1468,22 @@ function loadStories(){
             delete grouped[currentUser.uid];
         }
         
-        // .   'seen'  'unseen'   
+        // ২. অন্যদের স্টোরিগুলোকে 'seen' এবং 'unseen' এ ভাগ করা
         let unseenUsers = [];
         let seenUsers = [];
         
         for(let uid in grouped){
-            //           
+            // চেক করা হচ্ছে এই ইউজারের সব স্টোরি দেখা হয়ে গেছে কিনা
             const allSeen = grouped[uid].every(s => s.views && s.views.includes(currentUser.uid));
             
             if(allSeen) {
-                seenUsers.push(uid); //    seen 
+                seenUsers.push(uid); // দেখা হয়ে গেলে seen লিস্টে
             } else {
-                unseenUsers.push(uid); //    unseen 
+                unseenUsers.push(uid); // না দেখা থাকলে unseen লিস্টে
             }
         }
         
-        // .  unseen ( )    (  )
+        // ৩. আগে unseen (না দেখা) স্টোরিগুলো রেন্ডার করা (রঙিন রিং সহ)
         unseenUsers.forEach(uid => {
             const uName=grouped[uid][0].name;
             const safeUName=escapeHTML(uName);
@@ -1496,12 +1497,12 @@ function loadStories(){
             userIdsOrder.push(uid);
         });
 
-        // .  seen ()    (  ,  )
+        // ৪. এরপর seen (দেখা) স্টোরিগুলো রেন্ডার করা (গ্রে রিং সহ, একদম শেষে)
         seenUsers.forEach(uid => {
             const uName=grouped[uid][0].name;
             const safeUName=escapeHTML(uName);
             const uAv=grouped[uid][0].avatar||'https://via.placeholder.com/150/7c5cff/FFFFFF?text='+avatarInitial(uName);
-            // .seen          
+            // .seen ক্লাস যোগ করা হয়েছে যাতে রিংয়ের রঙ ম্লান হয়ে যায়
             html+=`<div>
             <div class="story-circle seen" onclick="playStories('${uid}')">
             <img src="${uAv}">
@@ -1520,7 +1521,7 @@ function loadStories(){
 function playStories(uid, startIndex = 0){
     if(!window.allStoriesData)return;
     
-    //        
+    // কোন ইউজারের স্টোরি চলছে তার ইনডেক্স বের করা
     window.currentStoryUidIndex = window.storyUserIds.indexOf(uid); 
     
     activeStoryGroup=window.allStoriesData.filter(s=>s.uid===uid).sort((a,b)=>{
@@ -1530,7 +1531,7 @@ function playStories(uid, startIndex = 0){
     });
     
     if(activeStoryGroup.length===0)return;
-    currentStoryIndex = startIndex; //    
+    currentStoryIndex = startIndex; // যেখান থেকে শুরু হবে
     document.getElementById('story-viewer').classList.add('open');
     renderCurrentStory();
 }
@@ -1540,23 +1541,23 @@ function renderCurrentStory(){
     if(currentStoryIndex>=activeStoryGroup.length){closeStory();return;}
     const s=activeStoryGroup[currentStoryIndex];
     const safeName=escapeHTML(s.name);
-    //      
+    // আমরা এখন ব্যাজসহ নাম রেন্ডার করব
 const sVerified = s.isVerified || false; 
 document.getElementById('sv-name').innerHTML = safeName + getVerifiedBadge(s.email, sVerified);
     
-    // . -    
+    // ১. থ্রি-ডট মেনুটি সবার স্টোরিতেই দেখাবে
     const svMenuBtn = document.getElementById('sv-menu-btn');
     if(svMenuBtn) {
         svMenuBtn.style.display = 'block'; 
     }
 
-    // .       ,      (CSS Conflict Fix)
+    // ২. ডিলিট বাটনটি শুধু নিজের স্টোরি হলে দেখাবে, অন্যের হলে হাইড হয়ে যাবে (CSS Conflict Fix)
     const svDeleteBtn = document.getElementById('sv-delete-btn');
     if(svDeleteBtn) {
         if (s.uid === currentUser.uid) {
             svDeleteBtn.style.setProperty('display', 'flex', 'important');
         } else {
-            svDeleteBtn.style.setProperty('display', 'none', 'important'); //    
+            svDeleteBtn.style.setProperty('display', 'none', 'important'); // জোর করে লুকানো হলো
         }
     }
 
@@ -1564,7 +1565,7 @@ document.getElementById('sv-name').innerHTML = safeName + getVerifiedBadge(s.ema
     if(sm) sm.classList.remove('open');
     document.getElementById('sv-avatar').innerHTML=s.avatar?`<img src="${s.avatar}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`:avatarInitial(s.name);
     
-    //     
+    // ভিউ কাউন্ট এবং রিয়্যাক্ট কাউন্ট
     document.getElementById('sv-views').textContent=(s.views||[]).length;
     const reactCountDisplay = document.getElementById('sv-react-count');
     if(reactCountDisplay) {
@@ -1582,7 +1583,7 @@ document.getElementById('sv-name').innerHTML = safeName + getVerifiedBadge(s.ema
 
     const mediaCont = document.getElementById('sv-media-container');
     
-    //      
+    // নতুন টেক্সট স্টোরি রেন্ডার করার লজিক
     if (s.isText) {
         const safeText = escapeHTML(s.text).replace(/\n/g, '<br>');
         mediaCont.innerHTML = `
@@ -1592,7 +1593,7 @@ document.getElementById('sv-name').innerHTML = safeName + getVerifiedBadge(s.ema
         clearTimeout(storyTimer);
         storyTimer = setTimeout(nextStorySegment, 5000);
     } 
-    //     
+    // আগের ভিডিও ও ছবির লজিক
     else if(s.isVideo) {
         mediaCont.innerHTML=`<video src="${s.mediaUrl}" autoplay playsinline onended="nextStorySegment()" style="width:100%;max-height:85vh;object-fit:contain;"></video>`;
         clearTimeout(storyTimer);
@@ -1610,39 +1611,42 @@ document.getElementById('sv-name').innerHTML = safeName + getVerifiedBadge(s.ema
         });
     }
 }
-//    
+
+
+
+// পরের স্টোরিতে যাওয়ার লজিক
 function nextStorySegment(){
     if(currentStoryIndex < activeStoryGroup.length - 1) {
-        //    
+        // একই ইউজারের পরের স্টোরি
         currentStoryIndex++;
         renderCurrentStory();
     } else {
-        //    ,    
+        // ইউজারের সব স্টোরি শেষ, পরের ইউজারের স্টোরিতে যাবে
         if(window.storyUserIds && window.currentStoryUidIndex < window.storyUserIds.length - 1) {
             window.currentStoryUidIndex++;
             let nextUid = window.storyUserIds[window.currentStoryUidIndex];
             playStories(nextUid, 0); 
         } else {
-            closeStory(); //       
+            closeStory(); // সবার স্টোরি শেষ হলে তবেই ক্লোজ হবে
         }
     }
 }
 
-//    
+// আগের স্টোরিতে যাওয়ার লজিক
 function prevStorySegment(){
     if(currentStoryIndex > 0) {
-        //    
+        // একই ইউজারের আগের স্টোরি
         currentStoryIndex--;
         renderCurrentStory();
     } else {
-        //     
+        // আগের ইউজারের শেষ স্টোরিতে যাবে
         if(window.storyUserIds && window.currentStoryUidIndex > 0) {
             window.currentStoryUidIndex--;
             let prevUid = window.storyUserIds[window.currentStoryUidIndex];
             let prevGroup = window.allStoriesData.filter(s=>s.uid===prevUid);
             playStories(prevUid, prevGroup.length - 1);
         } else {
-            //           
+            // একদম প্রথম ইউজারের প্রথম স্টোরি হলে আবার শুরু থেকে প্লে হবে
             currentStoryIndex = 0;
             renderCurrentStory();
         }
@@ -1656,15 +1660,15 @@ clearTimeout(storyTimer);
 document.getElementById('sv-media-container').innerHTML='';
 }
 
-//     
+// স্টোরি থেকে প্রোফাইল দেখার ফাংশন
 function viewProfileFromStory() {
     if (!activeStoryGroup || currentStoryIndex >= activeStoryGroup.length) return;
     const uid = activeStoryGroup[currentStoryIndex].uid;
     
-    // .   -   
+    // ১. আগে স্টোরি পপ-আপটি বন্ধ করে দেওয়া
     closeStory();
     
-    // .     ,      
+    // ২. নিজের স্টোরি হলে নিজের প্রোফাইলে, আর অন্যের হলে তার প্রোফাইলে যাওয়া
     if (uid === currentUser.uid) {
         showPage('profile');
     } else {
@@ -1705,25 +1709,25 @@ async function reactToCurrentStory(){
     const s=activeStoryGroup[currentStoryIndex];
     const ref=db.collection('stories').doc(s.id);
     const reactBtn=document.getElementById('sv-react-btn');
-    const reactCountDisplay=document.getElementById('sv-react-count'); //  
+    const reactCountDisplay=document.getElementById('sv-react-count'); // নতুন লাইন
 
         if(s.reacts&&s.reacts.includes(currentUser.uid)){
-        //    
+        // রিয়্যাক্ট রিমুভ করার লজিক
         await ref.update({reacts:firebase.firestore.FieldValue.arrayRemove(currentUser.uid)});
         s.reacts=s.reacts.filter(id=>id!==currentUser.uid);
         
         reactBtn.style.color='#fff';
         reactBtn.className='ph-bold ph-heart';
-        reactCountDisplay.textContent = s.reacts.length; //  
+        reactCountDisplay.textContent = s.reacts.length; // কাউন্ট আপডেট
     }else{
-        //    
+        // রিয়্যাক্ট এড করার লজিক
         await ref.update({reacts:firebase.firestore.FieldValue.arrayUnion(currentUser.uid)});
         if(!s.reacts)s.reacts=[];
         s.reacts.push(currentUser.uid);
         
         reactBtn.style.color='var(--danger)';
         reactBtn.className='ph-fill ph-heart';
-        reactCountDisplay.textContent = s.reacts.length; //  
+        reactCountDisplay.textContent = s.reacts.length; // কাউন্ট আপডেট
         // ...
         
         if(s.uid!==currentUser.uid){
@@ -1737,11 +1741,11 @@ async function reactToCurrentStory(){
     }
 }
 // ===== POSTS AND LIKE LOGIC =====
-//      (Optimistic UI Update)
+// 🚀 সুপার ফাস্ট লাইক সিস্টেম (Optimistic UI Update)
 async function toggleLike(pid) {
     if (!currentUser || !checkRateLimit()) return;
 
-    // .           (!)
+    // ১. ডাটাবেসে যাওয়ার আগেই স্ক্রিনে সাথে সাথে লাইক আপডেট করে দেবে (ম্যাজিক!)
     const likeButtons = document.querySelectorAll(`button[onclick*="toggleLike('${pid}')"]`);
     
     let isCurrentlyLiked = false;
@@ -1754,19 +1758,19 @@ async function toggleLike(pid) {
         isCurrentlyLiked = btn.classList.contains('liked');
 
         if (isCurrentlyLiked) {
-            //  
+            // আনলাইক করা
             btn.classList.remove('liked');
             if (icon) icon.className = 'ph-bold ph-heart';
             if (countSpan) countSpan.innerText = Math.max(0, currentLikes - 1);
         } else {
-            //  
+            // লাইক করা
             btn.classList.add('liked');
             if (icon) icon.className = 'ph-fill ph-heart';
             if (countSpan) countSpan.innerText = currentLikes + 1;
         }
     });
 
-    // .     
+    // ২. এরপর ব্যাকগ্রাউন্ডে ডাটাবেস আপডেট হবে
     const ref = db.collection('posts').doc(pid);
     const doc = await ref.get();
     
@@ -1782,7 +1786,7 @@ async function toggleLike(pid) {
             likedBy.push(currentUser.uid);
             likes++;
             
-            //          
+            // নিজের পোস্টে লাইক দিলে খামোখা নোটিফিকেশন বা পয়েন্ট যাবে না
             if (p.uid !== currentUser.uid) {
                 db.collection('notifications').add({
                     toUid: p.uid, 
@@ -1824,7 +1828,7 @@ async function openCommentPanel(pid) {
     document.getElementById('comment-panel').classList.add('open');
     if (commentPanelListener) commentPanelListener();
     
-    // . 'window.allUsersCache'    'allUsersCache'    (  )
+    // ১. 'window.allUsersCache' এর বদলে শুধু 'allUsersCache' ব্যবহার করা হলো (এটাই মূল ফিক্স)
     if (!allUsersCache) {
         await fetchAllUsers();
     }
@@ -1839,8 +1843,8 @@ async function openCommentPanel(pid) {
             const safeCName = escapeHTML(c.name);
             let safeCText = escapeHTML(c.text);
             
-            // ---      ---
-            if (allUsersCache) { //  window   
+            // --- মেইন কমেন্টে মেনশন ক্লিকেবল করা ---
+            if (allUsersCache) { // এখানেও window বাদ দেওয়া হয়েছে
                 const sortedUsers = [...allUsersCache].sort((a, b) => (b.name || '').length - (a.name || '').length);
                 sortedUsers.forEach(u => {
                     if (u.name) {
@@ -1856,8 +1860,8 @@ async function openCommentPanel(pid) {
                     const safeRName = escapeHTML(r.name);
                     let safeRText = escapeHTML(r.text);
                     
-                    // ---      ---
-                    if (allUsersCache) { //  window   
+                    // --- রিপ্লাইয়ের টেক্সটেও মেনশন ক্লিকেবল করা ---
+                    if (allUsersCache) { // এখানেও window বাদ দেওয়া হয়েছে
                         const sortedUsers = [...allUsersCache].sort((a, b) => (b.name || '').length - (a.name || '').length);
                         sortedUsers.forEach(u => {
                             if (u.name) {
@@ -1874,19 +1878,19 @@ async function openCommentPanel(pid) {
                 }).join('');
             }
             
-                        //  /    
+                        // 🚀 লাইক/ডিসলাইকের কালার এবং আইকন চেক
             const uid = currentUser ? currentUser.uid : null;
             const hasLiked = c.likedBy && c.likedBy.includes(uid);
             const hasDisliked = c.dislikedBy && c.dislikedBy.includes(uid);
             
-            //        
+            // মেইন ফিডের মতো হার্ট আইকন এবং সুন্দর ডিজাইন
             const likeIcon = hasLiked ? 'ph-fill ph-heart' : 'ph-bold ph-heart';
             const likeColor = hasLiked ? 'color:var(--danger);' : 'color:var(--text-muted);';
             
             const dislikeIcon = hasDisliked ? 'ph-fill ph-thumbs-down' : 'ph-bold ph-thumbs-down';
             const dislikeColor = hasDisliked ? 'color:var(--accent);' : 'color:var(--text-muted);';
 
-                        //  NEW:       
+                        // 🚀 NEW: কমেন্ট করা ইউজারের প্রোফাইল পিকচার বের করা
             let commentAvHtml = avatarInitial(c.name);
             if (allUsersCache) {
                 const commentUser = allUsersCache.find(u => u.id === c.uid);
@@ -1895,21 +1899,21 @@ async function openCommentPanel(pid) {
                 }
             }
 
-            //       
+            // 🚀 কমেন্টে ইমেজ থাকলে সেটা দেখানোর লজিক
             const commentImageHtml = c.imageUrl ? `<img src="${escapeHTML(c.imageUrl)}" style="width:100%; max-width:250px; border-radius:12px; margin-top:8px; cursor:pointer; box-shadow:var(--shadow-sm);" onclick="openImageZoom('${escapeHTML(c.imageUrl)}')">` : '';
 
                         return `<div class="comment-item" ondblclick="showCommentActions('${pid}', ${idx}, '${c.uid}')">
                 <div class="avatar sm" style="flex-shrink:0; cursor:pointer; margin-top:2px;" onclick="closeCommentPanel(); viewUserProfile('${c.uid}')">${commentAvHtml}</div>
                 <div style="flex:1; min-width:0;">
                     
-                    <!--     -   -->
+                    <!-- 🚀 নেম এবং কমেন্ট টেক্সট-এর সুন্দর বাবল -->
                     <div style="background:var(--surface-2); padding:10px 14px; border-radius:4px 18px 18px 18px; display:inline-block; border:1px solid var(--border);">
                         <div class="comment-author" style="cursor:pointer; font-size:13px; margin-bottom:4px;" onclick="closeCommentPanel(); viewUserProfile('${c.uid}')">${safeCName}</div>
                         ${safeCText ? `<div style="font-size:14px; color:var(--text); line-height:1.4;">${safeCText}</div>` : ''}
                     </div>
                     ${commentImageHtml}
                     
-                    <!--  ,     ( ) -->
+                    <!-- 🚀 লাইক, ডিসলাইক ও রিপ্লাই বাটন (বাবলের নিচে) -->
                     <div style="display:flex; gap:16px; margin-top:6px; margin-left:12px; align-items:center;">
                         <div style="display:flex; align-items:center; gap:6px; cursor:pointer; transition:0.2s; ${likeColor}" onclick="toggleCommentReaction('${pid}', ${idx}, 'like')">
                             <i class="${likeIcon}" style="font-size:16px;"></i> 
@@ -1941,7 +1945,7 @@ async function toggleCommentReaction(pid, commentIdx, type) {
     let comment = comments[commentIdx];
     if (!comment) return;
     
-    //          (  )
+    // লাইক এবং ডিসলাইকের জন্য আলাদা ট্র্যাকিং লিস্ট তৈরি করা (যদি না থাকে)
     if (!comment.likedBy) comment.likedBy = [];
     if (!comment.dislikedBy) comment.dislikedBy = [];
     
@@ -1953,12 +1957,12 @@ async function toggleCommentReaction(pid, commentIdx, type) {
 
     if (type === 'like') {
         if (hasLiked) {
-            //      
+            // আগে লাইক করা থাকলে রিমুভ করবে
             comment.likedBy = comment.likedBy.filter(id => id !== uid);
             comment.likes = Math.max(0, (comment.likes || 0) - 1);
             toastMsg = 'Like removed';
         } else {
-            //          
+            // নতুন লাইক অ্যাড করবে এবং ডিসলাইক থাকলে সেটা রিমুভ করবে
             comment.likedBy.push(uid);
             comment.likes = (comment.likes || 0) + 1;
             
@@ -1970,12 +1974,12 @@ async function toggleCommentReaction(pid, commentIdx, type) {
         }
     } else if (type === 'dislike') {
         if (hasDisliked) {
-            //      
+            // আগে ডিসলাইক করা থাকলে রিমুভ করবে
             comment.dislikedBy = comment.dislikedBy.filter(id => id !== uid);
             comment.dislikes = Math.max(0, (comment.dislikes || 0) - 1);
             toastMsg = 'Dislike removed';
         } else {
-            //          
+            // নতুন ডিসলাইক অ্যাড করবে এবং লাইক থাকলে সেটা রিমুভ করবে
             comment.dislikedBy.push(uid);
             comment.dislikes = (comment.dislikes || 0) + 1;
             
@@ -1987,7 +1991,7 @@ async function toggleCommentReaction(pid, commentIdx, type) {
         }
     }
     
-    //  reactedBy      (   )
+    // পুরনো reactedBy অ্যারে থাকলে তা মুছে ফেলা (ডাটাবেস ক্লিন রাখার জন্য)
     if (comment.reactedBy && comment.reactedBy.includes(uid)) {
         comment.reactedBy = comment.reactedBy.filter(id => id !== uid);
     }
@@ -1996,7 +2000,7 @@ async function toggleCommentReaction(pid, commentIdx, type) {
     showToast(toastMsg);
 }
 
-//       (Fixed)
+// 🚀 রিপ্লাইয়ের বক্স ওপেন করার ফাংশন (Fixed)
 function showReplyInput(pid, idx, name) {
     const container = document.getElementById(`reply-input-${idx}`);
     if (!container) return;
@@ -2006,7 +2010,7 @@ function showReplyInput(pid, idx, name) {
         return;
     }
     
-    // button  onclick  event.stopPropagation()   ,      
+    // button এর onclick এ event.stopPropagation() যুক্ত করা হলো, নাহলে ডাবল ক্লিক ট্রিগার হয়ে যাচ্ছিল
     container.innerHTML = `
         <div class="reply-input-container">
             <input type="text" id="reply-text-${idx}" placeholder="Reply to ${escapeHTML(name)}..." onclick="event.stopPropagation();" onkeypress="if(event.key==='Enter'){event.stopPropagation(); submitReply('${pid}', ${idx});}">
@@ -2020,14 +2024,14 @@ function showReplyInput(pid, idx, name) {
     }, 50);
 }
 
-//      
+// 🚀 রিপ্লাই সেন্ড করার আপডেট ফাংশন
 async function submitReply(pid, idx) {
     const input = document.getElementById(`reply-text-${idx}`);
     if (!input) return;
     const txt = input.value.trim();
     if (!txt) return;
     
-    input.disabled = true; //     
+    input.disabled = true; // পাঠানোর সময় ইনপুট ব্লক রাখা
     
     const ref = db.collection('posts').doc(pid);
     const doc = await ref.get();
@@ -2050,7 +2054,7 @@ async function submitReply(pid, idx) {
     }
     showToast('Reply added!');
     
-    //        
+    // সেন্ড হওয়ার পর রিপ্লাই বক্সটি বন্ধ করে দেওয়া
     const container = document.getElementById(`reply-input-${idx}`);
     if (container) container.innerHTML = '';
 }
@@ -2070,7 +2074,7 @@ async function viewUserProfile(uid){
     const safeName=escapeHTML(u.name);
     const verifiedBadge = getVerifiedBadge(u.email, u.isVerified);
 
-        // ---         ---
+        // --- এখানে ব্যাজ ও নামের লেআউট আপডেট করা হলো ---
     const nameHtml = `
         <div style="display: inline; line-height: 1.4;">
             ${safeName}
@@ -2078,7 +2082,7 @@ async function viewUserProfile(uid){
         </div>
     `;
     document.getElementById('other-profile-name').innerHTML = nameHtml;
-        //      
+        // 🚀 অন্যের প্রোফাইলে ইউজারনেম শো করা
     const otherUsernameDisplay = document.getElementById('other-profile-username-display');
     if (otherUsernameDisplay) {
         if (u.username) {
@@ -2093,12 +2097,12 @@ async function viewUserProfile(uid){
     const avHtml=u.avatar?`<img src="${u.avatar}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`:avatarInitial(u.name);
     document.getElementById('other-profile-avatar').innerHTML=avHtml;
     
-        // ---        ---
+        // --- প্রোফাইলের ছবির পাশে অনলাইন বাতি যুক্ত করা ---
     const profileWrap = document.getElementById('other-profile-avatar').parentElement;
     const existingDot = profileWrap.querySelector('.online-dot');
-    if (existingDot) existingDot.remove(); //    
+    if (existingDot) existingDot.remove(); // আগে থাকলে মুছে ফেলবে
     
-    //    + Mutual Visibility:        
+    // 🚀 স্মার্ট চেক + Mutual Visibility: নিজের অফ থাকলে প্রোফাইলে অন্যেরটাও দেখতে পাবে না
     if (currentUserData.showActiveStatus !== false && u.online === true && u.showActiveStatus !== false) {
         profileWrap.insertAdjacentHTML('beforeend', '<div class="online-dot" style="width:20px; height:20px; bottom:2px; right:2px; border:4px solid var(--bg);"></div>');
     }    
@@ -2111,7 +2115,7 @@ async function viewUserProfile(uid){
     if(otherFollowersCount) otherFollowersCount.textContent = (u.followers || []).length;
     if(otherFollowingCount) {
         if (u.followingPrivacy === 'onlyme') {
-            otherFollowingCount.textContent = '';
+            otherFollowingCount.textContent = '🔒';
         } else {
             otherFollowingCount.textContent = (u.following || []).length;
         }
@@ -2127,7 +2131,7 @@ async function viewUserProfile(uid){
     if(u.email) dHtml += `<div class="detail-item"><i class="ph-bold ph-envelope-simple" style="font-size:20px; color:var(--accent-dark);"></i> <strong>${escapeHTML(u.email)}</strong></div>`;
 
     document.getElementById('other-profile-details-display').innerHTML=dHtml; 
-    //     Premium Check (Without Badge) 
+    // 🌟 অন্যের প্রোফাইলের জন্য Premium Check (Without Badge) 🌟
     const otherProfileHeader = document.querySelector('#page-other-profile .profile-header');
     
     if (u.isVerified) {
@@ -2140,7 +2144,7 @@ async function viewUserProfile(uid){
     const isFollowing=currentUserData.following?.includes(uid);
     let btnHtml='';
     
-    //         flex: 1   
+    // 🚀 বাটনগুলোকে রেসপন্সিভ এবং এক লাইনে রাখার জন্য flex: 1 ব্যবহার করা হয়েছে
     if(isBlocked){
         btnHtml=`<button class="icon-btn" style="flex:1; border-radius:30px; padding:10px 0; border:1px solid var(--success); color:var(--success); background:transparent; display:flex; justify-content:center; align-items:center; gap:4px; font-size:13px; font-weight:700;" onclick="unblockUser('${uid}')"><i class="ph-bold ph-lock-key-open" style="font-size:18px;"></i> Unblock</button>`;
     }else if(isFollowing){
@@ -2158,7 +2162,7 @@ async function viewUserProfile(uid){
         }
     }
     
-    //  flex-wrap: nowrap      ,   (Follow -> Message -> Rank)  
+    // 🚀 flex-wrap: nowrap দেওয়া হলো যেন লাইন না ভাঙে, এবং সিরিয়াল (Follow -> Message -> Rank) করা হলো
     document.getElementById('other-profile-btns').innerHTML=`
         <div style="display:flex; justify-content:center; gap:8px; width:100%; margin-top:16px; flex-wrap:nowrap;">
             ${btnHtml}
@@ -2171,7 +2175,7 @@ async function viewUserProfile(uid){
         </div>
     `;
     
-    //      (Step 3)
+    // 🚀 প্রাইভেট অ্যাকাউন্ট চেক লজিক (Step 3)
     const isOwnProfile = (currentUser && currentUser.uid === uid);
     const isPrivate = (u.isPrivate === true);
 
@@ -2184,7 +2188,7 @@ async function viewUserProfile(uid){
             </div>
         `;
     } else {
-        //        
+        // প্রাইভেট না হলে আগের মতোই ছবিগুলো লোড করবে
         loadOtherUserPosts(uid);
     }    
 }
@@ -2218,11 +2222,11 @@ function openChat(chatId, otherUid, otherName, otherAvatar){
     currentChatId=chatId;
     currentChatOtherUid=otherUid;
     document.getElementById('chat-screen').classList.add('open');
-        //  NEW:        
+        // 🚀 NEW: চ্যাট ওপেন হলে সেভ করা ড্রাফট ফিরিয়ে আনা
     const savedDraft = localStorage.getItem('gochat_draft_' + chatId);
     document.getElementById('chat-input').value = savedDraft ? savedDraft : '';
 
-        //  Group Security:            
+        // 🚀 Group Security: রিমুভ হলে বা লিভ নিলে সাথে সাথে চ্যাট থেকে বের করে দেবে
     if (otherUid === 'group') {
         db.collection('chats').doc(chatId).onSnapshot(doc => {
             if (doc.exists && doc.data().members && !doc.data().members.includes(currentUser.uid)) {
@@ -2235,16 +2239,16 @@ function openChat(chatId, otherUid, otherName, otherAvatar){
     }
 
     
-    //     'Read'  
+    // চ্যাট ওপেন করলেই মেসেজ 'Read' হয়ে যাবে
     db.collection('chats').doc(chatId).set({ isRead: true }, { merge: true });
 
-    //    
+    // ইনপুট বার ঠিক রাখা
     document.getElementById('chat-input-area').style.display = 'flex';
     if(typeof closeSelectionMode === 'function') closeSelectionMode();
         
     const safeName=escapeHTML(otherName);
     
-     // ---   :      ---
+     // --- 🚀 আপডেট ১: হেডারের লাইভ প্রোফাইল পিকচার ফিক্স ---
     const chatAvatarEl = document.getElementById('chat-avatar');
     let finalOtherName = otherName;
     let finalOtherAvatar = otherAvatar;
@@ -2266,7 +2270,7 @@ function openChat(chatId, otherUid, otherName, otherAvatar){
         }
         
         document.getElementById('chat-name-display').textContent = finalOtherName;
-        //  NEW LOGIC:        
+        // 🚀 NEW LOGIC: নিজের অফ থাকলে চ্যাট স্ক্রিনে অন্যেরটাও অফ দেখাবে
         const isOnline = currentUserData.showActiveStatus !== false && liveUser && liveUser.online === true && liveUser.showActiveStatus !== false;
         const onlineIndicator = isOnline ? '<div class="online-dot" style="bottom: 0px; right: 0px; border: 2px solid var(--surface);"></div>' : '';
 
@@ -2280,7 +2284,7 @@ function openChat(chatId, otherUid, otherName, otherAvatar){
     
     setupTypingIndicator(chatId, otherUid);
         
-    //  Check and Apply Advanced Privacy on Chat Load
+    // 🚀 Check and Apply Advanced Privacy on Chat Load
     db.collection('chats').doc(chatId).get().then(doc => {
         if (doc.exists && doc.data().advancedPrivacy === true) {
             const chatMessagesEl = document.getElementById('chat-messages');
@@ -2297,7 +2301,7 @@ function openChat(chatId, otherUid, otherName, otherAvatar){
         }
     });
     
-        //  Chat Wallpaper Set Logic (100% Working Full Screen)
+        // 🚀 Chat Wallpaper Set Logic (100% Working Full Screen)
     const chatScreenEl = document.getElementById('chat-screen');
     const chatMessagesEl = document.getElementById('chat-messages');
     const wallpaperBg = document.getElementById('chat-wallpaper-bg');
@@ -2327,12 +2331,12 @@ function openChat(chatId, otherUid, otherName, otherAvatar){
                         let rawText = m.text || '';
 let safeText = escapeHTML(rawText);
 
-//  NEW:   URL       
+// 🚀 NEW: টেক্সটের ভেতরের URL বা লিংকগুলোকে স্বয়ংক্রিয়ভাবে ক্লিকেবল হাইপারলিংকে রূপান্তর করা
 const urlRegex = /(https?:\/\/[^\s]+)/g;
 safeText = safeText.replace(urlRegex, function(url) {
     return `<a href="${url}" target="_blank" style="color: inherit; text-decoration: underline; word-break: break-all;" onclick="event.stopPropagation();">${url}</a>`;
 });
-            //  4. Mention System Render in Chat
+            // 🚀 4. Mention System Render in Chat
             if (currentChatOtherUid === 'group' && allUsersCache) {
                 const sortedUsers = [...allUsersCache].sort((a, b) => (b.name || '').length - (a.name || '').length);
                 sortedUsers.forEach(u => {
@@ -2343,7 +2347,7 @@ safeText = safeText.replace(urlRegex, function(url) {
                 });
             }
 
-                       //  NEW: Shared Post rendering in chat
+                       // 🚀 NEW: Shared Post rendering in chat
             if (m.sharedPostId) {
                 const safeImg = m.sharedPostImg ? escapeHTML(m.sharedPostImg) : '';
                 const safeTitle = escapeHTML(m.sharedPostTitle || 'View Post');
@@ -2364,14 +2368,14 @@ safeText = safeText.replace(urlRegex, function(url) {
             } else {
                 content=safeText;
             }
-            //      
+            // 🚀 রিপ্লাই মেসেজ প্রিভিউ ইন চ্যাট
             let replyHtml='';
             if(m.replyTo){
                 let repName = m.replySender ? escapeHTML(m.replySender) : 'Someone';
                 let repText = m.replyText ? escapeHTML(m.replyText) : 'Replying to a message';
                 if(repText.length > 50) repText = repText.substring(0, 50) + '...';
                 
-                //       
+                // নিজের এবং অন্যের মেসেজের জন্য আলাদা ডিজাইন
                 let repBg = isMine ? 'rgba(0,0,0,0.25)' : 'var(--surface-2)';
                 let borderCol = isMine ? 'rgba(255,255,255,0.8)' : 'var(--accent)';
                 let nameCol = isMine ? '#fff' : 'var(--accent)';
@@ -2415,7 +2419,7 @@ safeText = safeText.replace(urlRegex, function(url) {
                 senderNameHtml = `<div style="font-size: 12px; font-weight: 800; color: #ff7e67; margin-bottom: 6px; cursor: pointer;" onclick="viewUserProfile('${m.uid}')">${escapeHTML(m.senderName)}</div>`;
             }
 
-                    // ??  : Message Bubble Avatar Fix
+                    // ?? আপডেট ২: Message Bubble Avatar Fix
         let msgAvatarHtml = '';
         if (!isMine) {
             let sAv = finalOtherAvatar;
@@ -2488,7 +2492,7 @@ function setupTypingIndicator(chatId, otherUid) {
         const data = doc.data();
         
         
-        // ---  4. Group Mention Setup (Load Members) ---
+        // --- 🚀 4. Group Mention Setup (Load Members) ---
         if(data.isGroup && data.members) {
             mentionData.friends = data.members.map(uid => {
                 const u = allUsersCache ? allUsersCache.find(user => user.id === uid) : null;
@@ -2514,6 +2518,8 @@ function setupTypingIndicator(chatId, otherUid) {
         }
     });
 }
+
+
 function setTypingStatus(isTyping) {
 if (!currentChatId || !currentUser) return;
 if (typingTimeout) clearTimeout(typingTimeout);
@@ -2543,18 +2549,18 @@ function showReactionPicker(event, msgId) {
     const picker = document.createElement('div');
     picker.className = 'reaction-picker show';
     
-        //  NEW:       
+        // 🚀 NEW: আপনার সিলেক্ট করা ৫টি স্পেশাল ইমোজি লিস্ট
     picker.innerHTML = `
-        <span class="reaction-emoji" onclick="toggleMessageReaction('${msgId}','')"></span>
-        <span class="reaction-emoji" onclick="toggleMessageReaction('${msgId}','')"></span>
-        <span class="reaction-emoji" onclick="toggleMessageReaction('${msgId}','')"></span>
-        <span class="reaction-emoji" onclick="toggleMessageReaction('${msgId}','')"></span>
-        <span class="reaction-emoji" onclick="toggleMessageReaction('${msgId}','')"></span>
+        <span class="reaction-emoji" onclick="toggleMessageReaction('${msgId}','❤️')">❤️</span>
+        <span class="reaction-emoji" onclick="toggleMessageReaction('${msgId}','😆')">😆</span>
+        <span class="reaction-emoji" onclick="toggleMessageReaction('${msgId}','🥰')">🥰</span>
+        <span class="reaction-emoji" onclick="toggleMessageReaction('${msgId}','😥')">😥</span>
+        <span class="reaction-emoji" onclick="toggleMessageReaction('${msgId}','😡')">😡</span>
     `;
     
     wrapper.appendChild(picker);
     
-    //      -   
+    // স্ক্রিনের যেকোনো জায়গায় ক্লিক করলে পপ-আপ বন্ধ হয়ে যাবে
     setTimeout(() => {
         document.addEventListener('click', function closePicker() {
             if(picker) picker.remove();
@@ -2589,12 +2595,12 @@ function showMessageMenu(event, msgId) {
     if (existing) existing.remove();
     
     const wrapper = event.currentTarget.closest('.chat-bubble-wrapper');
-    const isMine = wrapper.classList.contains('mine'); //      
+    const isMine = wrapper.classList.contains('mine'); // চেক করবে মেসেজটা আপনার নাকি বন্ধুর
     
     const menu = document.createElement('div');
     menu.className = 'chat-bubble-menu show';
     
-    //         (    )
+    // মোবাইলের স্ক্রিন অনুযায়ী মেনুটা ডান বা বামে সরাবে (যাতে স্ক্রিনের বাইরে না যায়)
     const alignPosition = isMine ? 'right: 35px;' : 'left: 35px;';
     
     menu.style.cssText = `position:absolute; top: 10px; ${alignPosition} background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:6px; z-index:99999; box-shadow:var(--shadow-lg); width: 150px;`;
@@ -2624,12 +2630,12 @@ async function replyToMessage(msgId) {
     const input = document.getElementById('chat-input');
     input.focus();
     
-    //        
+    // 🚀 অরিজিনাল মেসেজ ডাটাবেস থেকে এনে প্রিভিউ দেখানো
     try {
         const doc = await db.collection('chats').doc(currentChatId).collection('messages').doc(msgId).get();
         if(doc.exists) {
             replyToMsgData = doc.data();
-            let shortText = replyToMsgData.text ? escapeHTML(replyToMsgData.text) : ' Photo';
+            let shortText = replyToMsgData.text ? escapeHTML(replyToMsgData.text) : '📷 Photo';
             if(shortText.length > 50) shortText = shortText.substring(0, 50) + '...';
             
             const container = document.getElementById('reply-preview-container');
@@ -2663,7 +2669,7 @@ showToast('Message deleted');
 function closeChat(){
 document.getElementById('chat-screen').classList.remove('open');
 
-//     -    
+// 🚀 চ্যাট বন্ধ করলে ফুল-স্ক্রিন ওয়ালপেপার হাইড করে দেবে
 const wallpaperBg = document.getElementById('chat-wallpaper-bg');
 if(wallpaperBg) wallpaperBg.style.display = 'none';
 
@@ -2679,22 +2685,22 @@ const inp=document.getElementById('chat-input');
 const text=inp.value.trim();
 if(!text||!currentChatId||!checkRateLimit())return;
 inp.value='';
-    //  NEW:      
+    // 🚀 NEW: মেসেজ সেন্ড হলে ড্রাফট ক্লিয়ার করা
     if(currentChatId) localStorage.removeItem('gochat_draft_' + currentChatId);    
 setTypingStatus(false);
 const msgData={
 uid:currentUser.uid,
-senderName: currentUserData.name || 'User', // <--    
+senderName: currentUserData.name || 'User', // <-- ফায়ারবেসে নাম সেভ হবে
 text:text,
 createdAt:firebase.firestore.FieldValue.serverTimestamp()
 };
-//        
+// 🚀 রিপ্লাইয়ের বিস্তারিত তথ্য মেসেজের সাথে সেভ হবে
 if(currentReplyMsgId && replyToMsgData){
     msgData.replyTo = currentReplyMsgId;
     msgData.replySender = replyToMsgData.senderName || 'User';
-    msgData.replyText = replyToMsgData.text || ' Photo';
+    msgData.replyText = replyToMsgData.text || '📷 Photo';
     
-    //  
+    // রিসেট করা
     currentReplyMsgId = null;
     replyToMsgData = null;
     document.getElementById('reply-preview-container').innerHTML = '';
@@ -2702,7 +2708,7 @@ if(currentReplyMsgId && replyToMsgData){
 }
 await db.collection('chats').doc(currentChatId).collection('messages').add(msgData);
 
-//      ( )
+// লাস্ট মেসেজে সেন্ডারের নাম দেখানো (গ্রুপের জন্য)
 let lastText = text;
 if (currentChatOtherUid === 'group') {
     lastText = (currentUserData.name || 'User') + ": " + text;
@@ -2719,8 +2725,8 @@ await db.collection('chats').doc(currentChatId).set({
         [currentUser.uid]: currentUserData.avatar || '', 
         [currentChatOtherUid]: '' 
     },
-    lastSender: currentUser.uid, //   
-    isRead: false //    
+    lastSender: currentUser.uid, // কে মেসেজ পাঠালো
+    isRead: false // মেসেজটি এখনো পড়া হয়নি
 }, { merge: true });
 }
 
@@ -2738,11 +2744,11 @@ let imageMsgData = {
     createdAt:firebase.firestore.FieldValue.serverTimestamp()
 };
 
-//       
+// 🚀 ইমেজের সাথেও রিপ্লাই ডাটা সেভ হবে
 if(currentReplyMsgId && replyToMsgData){
     imageMsgData.replyTo = currentReplyMsgId;
     imageMsgData.replySender = replyToMsgData.senderName || 'User';
-    imageMsgData.replyText = replyToMsgData.text || ' Photo';
+    imageMsgData.replyText = replyToMsgData.text || '📷 Photo';
     
     currentReplyMsgId = null;
     replyToMsgData = null;
@@ -2751,13 +2757,13 @@ if(currentReplyMsgId && replyToMsgData){
 }
 await db.collection('chats').doc(currentChatId).collection('messages').add({
 uid:currentUser.uid,
-senderName: currentUserData.name || 'User', // <--     
+senderName: currentUserData.name || 'User', // <-- ছবির সাথে নাম সেভ হবে
 text:'',
 imageUrl:url,
 createdAt:firebase.firestore.FieldValue.serverTimestamp()
 });
 
-let lastText = ' Photo';
+let lastText = '📷 Photo';
 if (currentChatOtherUid === 'group') {
     lastText = (currentUserData.name || 'User') + " sent a photo";
 }
@@ -2773,7 +2779,7 @@ showToast('Image sent!');
 input.value='';
 }
 
-// --- -   (Smart Version) ---
+// --- ইন-অ্যাপ নোটিফিকেশন ফাংশন (Smart Version) ---
 const notifSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
 
 function showInAppMessageNotification(chatId, data) {
@@ -2801,7 +2807,7 @@ function showInAppMessageNotification(chatId, data) {
 
     const popup = document.createElement('div');
     popup.className = 'msg-popup';
-    popup.id = `popup-${chatId}`; //  FIX:         
+    popup.id = `popup-${chatId}`; // 🚀 FIX: আগের পপআপ রিমুভ করার জন্য আইডি যুক্ত করা হলো
     popup.style.flexDirection = 'column';
     popup.style.alignItems = 'stretch';
 
@@ -2861,12 +2867,12 @@ function showInAppMessageNotification(chatId, data) {
     }, 5000);
 }
 
-//    
+// কুইক রিপ্লাই পাঠানোর লজিক
 async function sendQuickReply(chatId, otherUid, text, btnElement) {
     text = text.trim();
     if(!text || !currentUser) return;
     
-    //  
+    // সেন্ডিং অ্যানিমেশন
     btnElement.disabled = true;
     btnElement.innerHTML = '<span class="material-symbols-outlined" style="font-size:16px; animation:spin 1s linear infinite;">autorenew</span>';
 
@@ -2892,7 +2898,7 @@ async function sendQuickReply(chatId, otherUid, text, btnElement) {
             isRead: false
         }, { merge: true });
 
-        //        
+        // মেসেজ গেলে পপআপ নিজে থেকেই হাইড হয়ে যাবে
         const popup = btnElement.closest('.msg-popup');
         if(popup) {
             popup.classList.add('hide');
@@ -2927,7 +2933,7 @@ function loadMessages(){
         const blockedUsers = currentUserData?.blockedUsers || [];
         let chats = [];
 
-        // .   
+        // ১. কঠোর নোটিফিকেশন লজিক
         snap.docChanges().forEach(change => {
             const data = change.doc.data();
             const chatId = change.doc.id;
@@ -2962,7 +2968,7 @@ function loadMessages(){
         });
         isInitialChatLoad = false;
 
-        // .   
+        // ২. মেসেজ লিস্ট তৈরি
         snap.forEach(d => {
             const data = d.data();
             const chatId = d.id;
@@ -2995,7 +3001,7 @@ function loadMessages(){
             }
         });
         
-        // .  (   ,   )
+        // ৩. সর্টিং (পিন করা গুলো উপরে, বাকিগুলো সময়ের ভিত্তিতে)
         chats.sort((a,b) => {
             if(a.isPinned && !b.isPinned) return -1;
             if(!a.isPinned && b.isPinned) return 1;
@@ -3004,7 +3010,7 @@ function loadMessages(){
             return timeB - timeA; 
         });
 
-        // .   
+        // ৪. আনরিড ব্যাজ আপডেট
         let unreadCount = 0;
         chats.forEach(chat => {
             if (chat.data.lastSender !== currentUser.uid && chat.data.isRead === false) {
@@ -3018,18 +3024,18 @@ function loadMessages(){
             badge.style.display = unreadCount > 0 ? 'flex' : 'none';
         }
 
-        // . HTML  (  )
+        // ৫. HTML রেন্ডারিং (নতুন আনরিড ডিজাইনসহ)
         let html = '';
         chats.forEach(chat => {
             const pinIcon = chat.isPinned ? '<span class="material-symbols-outlined" style="font-size:16px;color:var(--accent);margin-right:4px;">push_pin</span>' : '';
             const muteIcon = chat.isMuted ? '<span class="material-symbols-outlined" style="font-size:16px;color:var(--text-muted);margin-right:4px;">notifications_off</span>' : '';
             
-            //   
+            // 🚀 আনরিড চেক
             const isUnread = (chat.data.lastSender !== currentUser.uid && chat.data.isRead === false);
             const unreadClass = isUnread ? 'unread-chat' : '';
             const unreadDot = isUnread ? '<div class="unread-badge-dot"></div>' : '';
 
-            //  Profile Picture Real-time Fix
+            // 🚀 Profile Picture Real-time Fix
             let finalAv = chat.otherAv;
             let finalName = chat.otherName;
 
@@ -3056,7 +3062,7 @@ function loadMessages(){
             chat.otherName = finalName;
             
             const chatUser = allUsersCache ? allUsersCache.find(u => u.id === chat.otherUid) : null;
-            //  NEW LOGIC:        
+            // 🚀 NEW LOGIC: নিজের অফ থাকলে মেসেজ লিস্টে অন্যেরটাও অফ দেখাবে
             const isOnline = (currentUserData.showActiveStatus !== false && !chat.isGroup && chatUser && chatUser.online === true && chatUser.showActiveStatus !== false);
             const onlineIndicator = isOnline ? '<div class="online-dot"></div>' : '';
 
@@ -3089,7 +3095,7 @@ function loadMessages(){
             </div>`;
         });
         
-        //      ,    !
+        // 🚀 আগেরবার এই অংশটুকু মিসিং ছিল, যার কারণে এররটি এসেছিল!
         list.innerHTML = html || '<div class="empty-feed">No messages yet</div>';
     });
 }
@@ -3197,7 +3203,7 @@ loadMessages();
 }catch(e){showToast('Failed to delete chat');}
 }
 
-//  -      
+// নতুন ফুল-স্ক্রিন এডিট প্রোফাইল ওপেন ও ক্লোজ ফাংশন
 function openProfileEdit(){
     document.getElementById('edit-profile-screen').style.display = 'flex';
     
@@ -3222,25 +3228,25 @@ async function saveProfileChanges(){
     const emojiRegex = /[\p{Emoji_Presentation}\p{Extended_Pictographic}]/u;
     if(emojiRegex.test(newName)){showToast('Name cannot contain emojis!'); return;}
 
-    // .       
+    // ১. চেক করব ইউজার সত্যিই নাম পাল্টেছে কিনা
     const isNameChanged = (newName !== currentUserData.name);
 
-    // .     ,      
+    // ২. যদি নাম পাল্টানোর চেষ্টা করে, তবেই ৭ দিনের লিমিট চেক করবে
     if (isNameChanged && currentUserData.lastNameChange) {
         const lastChange = currentUserData.lastNameChange;
         if (Date.now() - lastChange < SEVEN_DAYS_MS) {
             showToast('Name can only be changed once every 7 days'); 
-            return; //         
+            return; // ৭ দিন না হলে এখানেই সেভ বন্ধ করে দেবে
         }
     }
 
-    //        
+    // ইউজারনেম থেকে স্পেস এবং স্পেশাল ক্যারেক্টার মুছে ফেলা
     let newUsername = document.getElementById('edit-username').value.trim().toLowerCase();
     newUsername = newUsername.replace(/[^a-z0-9_]/g, '');
 
-    // .    
+    // ৩. আপডেটের ডাটাগুলো রেডি করা
     const updates = {
-        username: newUsername, //  :   
+        username: newUsername, // 🚀 নতুন: ইউজারনেম ডাটাবেসে সেভ
         name: newName,
         bio: document.getElementById('edit-bio').value.trim(),
         gender: document.getElementById('edit-gender').value,
@@ -3252,24 +3258,24 @@ async function saveProfileChanges(){
     profession: document.getElementById('edit-profession').value.trim()
     };
 
-    // .    ,       
+    // ৪. যদি নাম আসলেই পাল্টায়, শুধু তখনই নামের নতুন টাইমস্ট্যাম্প আপডেট হবে
     if (isNameChanged) {
         updates.lastNameChange = Date.now(); 
     }    
 showToast('Saving profile...');
 await db.collection('users').doc(currentUser.uid).update(updates);
-        // ===  :        ===
+        // === নতুন ম্যাজিক: ইউজারের আগের সব পোস্টের নাম আপডেট করা ===
         try {
-            // 'posts'         
+            // 'posts' ফোল্ডার থেকে এই ইউজারের সব পোস্ট খুঁজে বের করা
             const postsSnapshot = await db.collection('posts').where('uid', '==', currentUser.uid).get();
             
             if (!postsSnapshot.empty) {
                 const batch = db.batch();
                 postsSnapshot.forEach((doc) => {
                     batch.update(doc.ref, { name: newName }); 
-                    // (:       'authorName' ,  'name'   'authorName' )
+                    // (নোট: আপনার পোস্ট ডাটাবেসে নামের ফিল্ড যদি 'authorName' হয়, তবে 'name' এর বদলে 'authorName' দেবেন)
                 });
-                await batch.commit(); //     !
+                await batch.commit(); // সব পোস্ট এক ক্লিকে আপডেট!
             }
         } catch (error) {
             console.error("Error updating old posts: ", error);
@@ -3294,9 +3300,9 @@ function closeCreatePost(){
     removePostImages();
     currentTaggedFriends=[];
     currentTaggedNames=[];
-    currentPostActivity = null; //    
+    currentPostActivity = null; // নতুন যোগ করা হলো
     document.getElementById('tag-count').style.display='none';
-    updateTagPreview(); //    
+    updateTagPreview(); // ফিল্ড ক্লিয়ার করার জন্য
 }
 
 
@@ -3372,7 +3378,7 @@ function closeActivityModal() {
 function selectActivity(icon, text) {
     currentPostActivity = { icon: icon, text: text };
     closeActivityModal();
-    updateTagPreview(); //       
+    updateTagPreview(); // নাম এবং স্ট্যাটাস একসাথে লাইভ প্রিভিউ হবে
 }
 
 async function openTagModal(){
@@ -3397,7 +3403,7 @@ async function openTagModal(){
             const safeName=escapeHTML(u.name);
             const avHtml=u.avatar?`<img src="${u.avatar}">`:avatarInitial(u.name);
             
-            //  onclick   safeName   
+            // এখানে onclick এর ভেতর safeName পাস করা হয়েছে
             html+=`<div class="msg-item" onclick="toggleTag('${fId}', '${safeName}', this)">
             <div class="avatar">${avHtml}</div>
             <div class="msg-info" style="margin-left:10px;">${safeName}</div>
@@ -3423,22 +3429,22 @@ function toggleTag(uid, name, el){
   tagCount.style.display=currentTaggedFriends.length>0?'inline-block':'none';
   tagCount.textContent=currentTaggedFriends.length;
   
-  // :    
+  // নতুন: ট্যাগ প্রিভিউ আপডেট করবে
   updateTagPreview();
 }
 
 
-//  :     
+// নতুন ফাংশন: ট্যাগ প্রিভিউ আপডেট করার জন্য
 function updateTagPreview(){
   const container = document.getElementById('tag-preview-container');
   const list = document.getElementById('tag-preview-list');
-  const nameEl = document.getElementById('modal-composer-name'); //  
+  const nameEl = document.getElementById('modal-composer-name'); // নতুন লাইন
 
   if(currentTaggedFriends.length === 0){
     container.classList.remove('show');
     list.innerHTML = '';
     
-    //          
+    // ট্যাগ না থাকলে নাম আবার আগের মতো স্বাভাবিক হয়ে যাবে
 if(nameEl && currentUserData) {
    nameEl.innerHTML = `<span style="display:flex; align-items:center; gap:4px;">${escapeHTML(currentUserData.name || 'User')} ${getVerifiedBadge(currentUserData.email, currentUserData.isVerified)}</span>`;
 }
@@ -3463,7 +3469,7 @@ return;
   
   list.innerHTML = html;
 
-  // --- Create Post     ( ) ---
+  // --- Create Post স্ক্রিনে লাইভ নাম আপডেট (নতুন আপডেট) ---
   if(nameEl && currentUserData) {
       const safeName = escapeHTML(currentUserData.name || 'User');
       const vBadge = getVerifiedBadge(currentUserData.email);
@@ -3477,7 +3483,7 @@ return;
           previewWithText = `<span style="font-weight:500; color:var(--text-secondary); font-size:14px; margin-left:4px;">is with</span> <strong style="color:var(--text); font-size:14px; margin-left:4px;">${escapeHTML(currentTaggedNames[0])}</strong> <span style="font-weight:500; color:var(--text-secondary); font-size:14px; margin-left:4px;">and</span> <strong style="color:var(--text); font-size:14px; margin-left:4px;">${currentTaggedNames.length - 1} others</strong>`;
       }
 
-      //  Activity Preview 
+      // নতুন Activity Preview 
       let activityText = '';
       if (currentPostActivity) {
           activityText = `<span style="font-weight:500; color:var(--text-secondary); font-size:14px; margin-left:4px;">is ${currentPostActivity.text}</span> <span class="material-symbols-outlined" style="font-size:16px; margin-left:4px; vertical-align:middle; color:var(--accent);">${currentPostActivity.icon}</span>`;
@@ -3489,20 +3495,20 @@ return;
 }
 
 
-//  :      
+// নতুন ফাংশন: প্রিভিউ থেকে ট্যাগ রিমুভ করার জন্য
 function removeTagFromPreview(uid, name){
   currentTaggedFriends = currentTaggedFriends.filter(id => id !== uid);
   currentTaggedNames = currentTaggedNames.filter(n => n !== name);
   
-  //   
+  // ট্যাগ কাউন্ট আপডেট
   const tagCount = document.getElementById('tag-count');
   tagCount.style.display = currentTaggedFriends.length > 0 ? 'inline-block' : 'none';
   tagCount.textContent = currentTaggedFriends.length;
   
-  //  
+  // প্রিভিউ আপডেট
   updateTagPreview();
   
-  //    
+  // মডালের চেকবক্সও আপডেট হবে
   const modalList = document.getElementById('tag-friends-list');
   if(modalList){
     const items = modalList.querySelectorAll('.msg-item');
@@ -3552,22 +3558,22 @@ showToast('Post deleted!');
 if(document.getElementById('page-profile').classList.contains('active'))loadMyPosts();
 closeSinglePost();
 }
-//  FIXED: Single Post View with Working Like & Share Buttons
-let singlePostUnsub = null; // -   
+// 🚀 FIXED: Single Post View with Working Like & Share Buttons
+let singlePostUnsub = null; // রিয়েল-টাইম আপডেটের জন্য ভ্যারিয়েবল
 
 async function openSinglePostView(pid) {
     document.getElementById('single-post-screen').classList.add('open');
     const container = document.getElementById('single-post-container');
     container.innerHTML = SKELETON_HTML; 
     
-    //      
+    // আগের কোনো লিসেনার থাকলে রিমুভ করা
     if (singlePostUnsub) singlePostUnsub();
 
     try {
-        // -    onSnapshot   
+        // রিয়েল-টাইম ডাটা আনার জন্য onSnapshot ব্যবহার করা হলো
         singlePostUnsub = db.collection('posts').doc(pid).onSnapshot(doc => {
             if (doc.exists) {
-                //       ,     
+                // মেইন ফিডের মতোই সেম কার্ড তৈরি হবে, তাই সব বাটন কাজ করবে
                 container.innerHTML = buildPostCardHTML({id: doc.id, ...doc.data()});
             } else {
                 container.innerHTML = '<div class="empty-feed">Post not found</div>';
@@ -3578,7 +3584,7 @@ async function openSinglePostView(pid) {
     }
 }
 
-//      ,      
+// যখন সিঙ্গেল পোস্ট ক্লোজ করা হবে, তখন লিসেনার অফ করে দিতে হবে
 function closeSinglePost() {
     document.getElementById('single-post-screen').classList.remove('open');
     if (singlePostUnsub) {
@@ -3633,22 +3639,22 @@ imgUrls.push(url);
             comments:[],
             tagged:currentTaggedFriends,
             taggedNames: currentTaggedNames,
-            activity: currentPostActivity, /* <--       */
+            activity: currentPostActivity, /* <-- এই নতুন লাইনটি এখানে যোগ হবে */
             isPinned:false,
             createdAt:firebase.firestore.FieldValue.serverTimestamp(),
             expiresAt:expireAt
         });
 
-        // :      
+        // নতুন: ট্যাগ করা বন্ধুদের কাছে নোটিফিকেশন পাঠানো
         if (currentTaggedFriends && currentTaggedFriends.length > 0) {
             currentTaggedFriends.forEach(taggedUid => {
-                if (taggedUid !== currentUser.uid) { //       
+                if (taggedUid !== currentUser.uid) { // নিজেকে নিজে ট্যাগ করলে নোটিফিকেশন যাবে না
                     db.collection('notifications').add({
                         toUid: taggedUid,
                         fromUid: currentUser.uid,
                         fromName: currentUserData.name || 'User',
-                        type: 'tag', //   
-                        postId: newPostRef.id, //       
+                        type: 'tag', // ট্যাগ নোটিফিকেশনের টাইপ
+                        postId: newPostRef.id, // ক্লিক করলে যেন এই পোস্টে নিয়ে যায়
                         read: false,
                         createdAt: firebase.firestore.FieldValue.serverTimestamp()
                     });
@@ -3664,7 +3670,7 @@ imgUrls.push(url);
 }
 
 // ==========================================
-//  ULTIMATE GRID VIEW & JUMP SCROLLING FIXED 
+// ✅ ULTIMATE GRID VIEW & JUMP SCROLLING FIXED 
 // ==========================================
 function loadFeed() {
     const feedList = document.getElementById('feed-list');
@@ -3688,7 +3694,7 @@ function loadFeed() {
             postsData = postsData.filter(p => currentUserData?.following?.includes(p.uid) || p.uid === currentUser?.uid);
         }
 
-        //  :           
+        // 🚀 ফিক্স: একটি ডেডিকেটেড কন্টেইনার তৈরি করা যাতে পুরো ফিড ডিলিট না হয়
         const isGrid = currentUserData && currentUserData.feedViewMode === 'grid';
         let actualContainer = feedList.querySelector('#feed-actual-container');
         
@@ -3696,7 +3702,7 @@ function loadFeed() {
             feedList.innerHTML = `<div id="feed-actual-container" class="${isGrid ? 'grid-feed-container' : 'list-feed-container'}"></div>`;
             actualContainer = feedList.querySelector('#feed-actual-container');
         } else {
-            //     ,     
+            // যদি ইউজার মোড চেঞ্জ করে, শুধু তখনই পুরোটা ক্লিয়ার হবে
             const currentlyGrid = actualContainer.classList.contains('grid-feed-container');
             if (isGrid && !currentlyGrid) {
                 actualContainer.className = 'grid-feed-container';
@@ -3707,7 +3713,7 @@ function loadFeed() {
             }
         }
 
-        //    (      )
+        // খালি ফিড হ্যান্ডেলিং (আগে থেকেই কার্ড থাকলে ডিলিট করবে না)
         if (postsData.length === 0) {
             if (actualContainer.children.length === 0) {
                 actualContainer.innerHTML = '<div class="empty-feed"><span class="material-symbols-outlined">inbox</span><br>No posts yet in this feed</div>';
@@ -3717,13 +3723,13 @@ function loadFeed() {
             return;
         }
 
-        //  'empty-feed'  ,   
+        // যদি 'empty-feed' মেসেজ থাকে, তা মুছে ফেলা
         const emptyMsg = actualContainer.querySelector('.empty-feed');
         if (emptyMsg) emptyMsg.remove();
 
         const fetchedPostIds = postsData.map(p => p.id);
 
-        //     
+        // ডিলিট হওয়া পোস্টগুলো রিমুভ করা
         Array.from(actualContainer.children).forEach(child => {
             const childId = child.getAttribute('data-post-id');
             if (childId && !fetchedPostIds.includes(childId)) {
@@ -3731,18 +3737,18 @@ function loadFeed() {
             }
         });
 
-        //   :    
+        // 🚀 মেইন ফিক্স: পোস্ট রেন্ডার এবং পজিশনিং
         postsData.forEach((p, index) => {
             let existingCard = actualContainer.querySelector(`[data-post-id="${p.id}"]`);
             
             if (existingCard) {
-                //     ,        (- !)
+                // কার্ডটি যদি ভুল পজিশনে থাকে, তবে সেটিকে মুভ করে সঠিক পজিশনে আনা (রি-রেন্ডার ছাড়াই!)
                 const expectedSibling = actualContainer.children[index];
                 if (existingCard !== expectedSibling) {
                     actualContainer.insertBefore(existingCard, expectedSibling);
                 }
                 
-                //      
+                // শুধু লাইক এবং কমেন্ট আপডেট করা
                 if (!isGrid) {
                     const likeCountEl = existingCard.querySelector('.post-action-btn:nth-child(1) span');
                     const commentCountEl = existingCard.querySelector('.post-action-btn:nth-child(2) span');
@@ -3766,7 +3772,7 @@ function loadFeed() {
                     }
                 }
             } else {
-                //     
+                // একদম নতুন পোস্ট ক্রিয়েট করা
                 const tempDiv = document.createElement('div');
                 tempDiv.innerHTML = isGrid ? buildGridPostCardHTML(p) : buildPostCardHTML(p);
                 const newElement = tempDiv.firstElementChild;
@@ -3781,7 +3787,7 @@ function loadFeed() {
             }
         });
 
-        //   
+        // লোড মোর বাটন
         const loadMoreBtn = document.getElementById('load-more-btn');
         if (loadMoreBtn) {
             loadMoreBtn.style.display = postsData.length >= postLimit ? 'block' : 'none';
@@ -3790,7 +3796,7 @@ function loadFeed() {
 }
 
 // ==========================================
-//  INFINITE SCROLLING SYSTEM
+// 🚀 INFINITE SCROLLING SYSTEM
 // ==========================================
 let isLoadingMore = false;
 
@@ -3806,12 +3812,12 @@ function loadMorePosts() {
     }, 1500);
 }
 
-//       
+// অটোমেটিক স্ক্রোল ডিটেক্ট করার জন্য অবজার্ভার সেটআপ
 function initInfiniteScroll() {
     window.addEventListener('scroll', () => {
-        //        (   ) 
+        // ইউজার স্ক্রোল করে যখন একদম শেষের কাছাকাছি (২০০ পিক্সেল বাকি থাকতে) পৌঁছাবে
         if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 250) {
-            //    active    
+            // শুধুমাত্র ফিড পেজ active থাকলেই এটি কাজ করবে
             const feedPage = document.getElementById('page-feed');
             if (feedPage && feedPage.classList.contains('active')) {
                 loadMorePosts();
@@ -3820,7 +3826,7 @@ function initInfiniteScroll() {
     });
 }
 
-//          
+// অ্যাপ রান হওয়ার সাথে সাথে ইনফিনিট স্ক্রোল একটিভ করে দেওয়া
 document.addEventListener('DOMContentLoaded', () => {
     initInfiniteScroll();
 });
@@ -3842,16 +3848,16 @@ document.getElementById('image-zoom-modal').classList.add('open');
 function closeImageZoom(){
     document.getElementById('image-zoom-modal').classList.remove('open');
     document.getElementById('zoom-image').src='';
-    // -       
+    // থ্রি-ডট মেনু ওপেন থাকলে সেটা বন্ধ করে দেবে
     const menu = document.getElementById('zoom-menu');
     if(menu) menu.classList.remove('open');
 }
 
-//  :     (APK  Web   )
+// নতুন ফাংশন: ছবি ডাউনলোড করার জন্য (APK এবং Web উভয়ের জন্য ফিক্সড)
 async function downloadZoomedImage(event) {
     if(event) event.stopPropagation();
     
-    //   
+    // মেনু হাইড করা
     const menu = document.getElementById('zoom-menu');
     if(menu) menu.classList.remove('open');
     
@@ -3860,18 +3866,18 @@ async function downloadZoomedImage(event) {
 
     showToast("Starting download...");
 
-    // APK (WebView) : Cloudinary-  fl_attachment  
-    //        ,      
+    // APK (WebView) ফিক্স: Cloudinary-এর লিংকে fl_attachment যোগ করা
+    // এটি সার্ভার থেকে সরাসরি ফাইল ডাউনলোডের নির্দেশ দেয়, যা অ্যাপ খুব সহজেই ধরতে পারে।
     if (imgUrl.includes('cloudinary.com')) {
         if (!imgUrl.includes('fl_attachment')) {
             imgUrl = imgUrl.replace('/upload/', '/upload/fl_attachment:GoChat_Photo/');
         }
-        // WebView-      
+        // WebView-তে ডাউনলোড ট্রিগার করার সবচেয়ে বিশ্বস্ত উপায়
         window.location.href = imgUrl;
         return;
     }
 
-    // Cloudinary         (Blob)  
+    // Cloudinary ছাড়া অন্য কোনো লিংক হলে সাধারণ ব্রাউজারের নিয়ম (Blob) কাজ করবে
     try {
         const response = await fetch(imgUrl);
         const blob = await response.blob();
@@ -3887,7 +3893,7 @@ async function downloadZoomedImage(event) {
         window.URL.revokeObjectURL(blobUrl);
         document.body.removeChild(a);
     } catch (e) {
-        //         
+        // একদম শেষে কোনো কারণে ফেইল করলে লিংকে নিয়ে যাবে
         window.open(imgUrl, '_blank');
     }
 }
@@ -3916,7 +3922,7 @@ const safeName=escapeHTML(p.name||'User');
 const safeTitle=escapeHTML(p.title||'');
 const safeTitleForAttr=(p.title||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;');
 
-// ---  : "is with..."    () ---
+// --- নতুন আপডেট: "is with..." টেক্সট তৈরি করা (ক্লিকেবল) ---
 let withText = '';
 if (p.taggedNames && p.taggedNames.length > 0 && p.tagged) {
     if (p.taggedNames.length === 1) {
@@ -3928,7 +3934,7 @@ if (p.taggedNames && p.taggedNames.length > 0 && p.tagged) {
     }
 }
 
-// : Activity/Feeling Render
+// নতুন: Activity/Feeling Render
 let activityHtml = '';
 if (p.activity) {
     activityHtml = `<span style="font-weight:500; color:var(--text-secondary); font-size:14px; margin-left:4px;">is ${escapeHTML(p.activity.text)}</span> <span class="material-symbols-outlined" style="font-size:16px; margin-left:4px; vertical-align:middle; color:var(--accent);">${escapeHTML(p.activity.icon)}</span>`;
@@ -3996,20 +4002,20 @@ if(p.uid === currentUser?.uid){
 }
 postDropdownHtml += `</div></div>`;
 
-    //     
+    // 🚀 কুইক ফলো বাটন লজিক
     const isMePost = (p.uid === currentUser?.uid);
     const isAlreadyFollowing = currentUserData?.following?.includes(p.uid);
     let quickFollowBtn = '';
     
-    //            ,    
+    // যদি নিজের পোস্ট না হয় এবং আগে থেকে ফলো করা না থাকে, তবেই ফলো বাটন দেখাবে
     if (!isMePost && !isAlreadyFollowing) {
         quickFollowBtn = `<span onclick="event.stopPropagation(); toggleFollow('${p.uid}'); this.style.display='none';" style="color: var(--accent); font-size: 12px; font-weight: 700; cursor: pointer; margin-left: 8px; padding: 2px 10px; background: var(--surface-2); border-radius: 12px; border: 1px solid var(--accent); transition: all 0.2s;">Follow</span>`;
     }
 
-    //  Check if the post author is verified to apply premium class
+    // 🌟 Check if the post author is verified to apply premium class
     const premiumPostClass = p.isVerified ? 'verified-premium-post' : '';
 
-//    onclick   
+// 🚀 মেইন কার্ডে onclick যুক্ত করা হলো
 return`<div class="post-card ${premiumPostClass}" style="cursor:pointer;" onclick="openSinglePostView('${pid}')">
 <div class="post-header">
 <div class="avatar" style="width:44px;height:44px;cursor:pointer;" onclick="event.stopPropagation(); viewUserProfile('${p.uid}')">${av}</div>
@@ -4045,7 +4051,7 @@ ${p.title ? (() => {
 })() : ''}
 ${mediaHtml}
 <div class="post-actions">
-<!--   event.stopPropagation()   -->
+<!-- 🚀 বাটনগুলোতে event.stopPropagation() দেওয়া হলো -->
 <button class="post-action-btn ${isLiked ? 'liked' : ''}" onclick="event.stopPropagation(); toggleLike('${pid}')">
 <i class="${isLiked ? 'ph-fill' : 'ph-bold'} ph-heart" style="font-size:24px;"></i>
 <span style="font-size:14px;">${p.likes || 0}</span>
@@ -4055,7 +4061,7 @@ ${mediaHtml}
 <i class="ph-bold ph-chat-circle" style="font-size:24px;"></i>
 <span style="font-size:14px;">${commentCount}</span>
 </button>
-<!--     (  ) -->
+<!-- 🚀 নতুন শেয়ার বাটন (শেয়ার কাউন্ট সহ) -->
 <button class="post-action-btn" onclick="event.stopPropagation(); openShareModal('${pid}', '${safeTitleForAttr}', '${imgUrls[0] || ''}')">
 <i class="ph-bold ph-share-network" style="font-size:24px;"></i>
 <span style="font-size:14px;">${p.shares || 0}</span>
@@ -4066,7 +4072,7 @@ ${mediaHtml}
 
 function closeSinglePost(){document.getElementById('single-post-screen').classList.remove('open');}
 
-//     (  + )
+// নিজের প্রোফাইলের পোস্ট লোড (গ্রিড ভিউ + স্কেলেটন)
 async function loadMyPosts(){
     const list=document.getElementById('my-posts-list');
     if(!list)return;
@@ -4084,7 +4090,7 @@ async function loadMyPosts(){
         });
         if(mine.length===0){list.innerHTML='<div class="empty-feed">No posts yet</div>';return;}
         
-        //   
+        // গ্রিড জেনারেট করা
         let html = '<div class="profile-photo-grid">';
         mine.forEach(p => {
             const imgUrls = p.imgUrls && p.imgUrls.length > 0 ? p.imgUrls : (p.imgUrl ? [p.imgUrl] : []);
@@ -4104,7 +4110,7 @@ async function loadMyPosts(){
     }catch(e){list.innerHTML='<div class="empty-feed">Network issue. Could not load posts.</div>';}
 }
 
-//      (  + )
+// অন্য ইউজারের প্রোফাইলের পোস্ট লোড (গ্রিড ভিউ + স্কেলেটন)
 async function loadOtherUserPosts(uid){
     const list=document.getElementById('other-user-posts-list');
     if(!list)return;
@@ -4120,7 +4126,7 @@ async function loadOtherUserPosts(uid){
         });
         if(posts.length===0){list.innerHTML='<div class="empty-feed">No posts yet</div>';return;}
         
-        //   
+        // গ্রিড জেনারেট করা
         let html = '<div class="profile-photo-grid">';
         posts.forEach(p => {
             const imgUrls = p.imgUrls && p.imgUrls.length > 0 ? p.imgUrls : (p.imgUrl ? [p.imgUrl] : []);
@@ -4147,7 +4153,7 @@ function loadUserUI(){
     const safeName = escapeHTML(name);
     const verifiedBadge = getVerifiedBadge(currentUser.email, currentUserData.isVerified);
     
-    // --- :     ---
+    // --- আপডেট: নাম ও ব্যাজের লেআউট ---
     const nameHtml = `
         <div style="display: flex; align-items: center; flex-wrap: nowrap; gap: 4px;">
             <span style="white-space: nowrap;">${safeName}</span>
@@ -4157,10 +4163,10 @@ function loadUserUI(){
     
     const setSafeHTML=(id,html)=>{const el=document.getElementById(id);if(el)el.innerHTML=html;};
     setSafeHTML('modal-composer-avatar', avHtml);
-    setSafeHTML('modal-composer-name', safeName + verifiedBadge); //    
-    setSafeHTML('profile-name-display', nameHtml); //     
+    setSafeHTML('modal-composer-name', safeName + verifiedBadge); // পোস্ট করার স্ক্রিনের জন্য
+    setSafeHTML('profile-name-display', nameHtml); // মেইন প্রোফাইল নাম ও ব্যাজ
     setSafeHTML('profile-avatar-big', avHtml);
-        //      
+        // 🚀 নিজের প্রোফাইলে ইউজারনেম শো করা
     const usernameDisplay = document.getElementById('profile-username-display');
     if (usernameDisplay) {
         if (currentUserData.username) {
@@ -4172,7 +4178,7 @@ function loadUserUI(){
     }
 
     
-       //        
+       // 🚀 নেভিগেশন বারে ইউজারের ছবি আপডেট করার লজিক
     const navPicContainer = document.getElementById('nav-profile-pic-container');
     if (navPicContainer) {
         if (currentUserData.avatar) {
@@ -4199,14 +4205,14 @@ function loadUserUI(){
         const year = joinedDate.getFullYear();
         dHtml += `<div class="detail-item"><i class="ph-bold ph-clock" style="font-size:20px; color:var(--accent-dark);"></i> Joined <strong>${month} ${year}</strong></div>`;
     }
-    setSafeHTML('profile-details-display', dHtml); /*     */
+    setSafeHTML('profile-details-display', dHtml); /* 🚀 ঠিক করা হয়েছে */
     
     const followersCount = document.getElementById('my-followers-count');
     const followingCount = document.getElementById('my-following-count');
     if(followersCount) followersCount.textContent = (currentUserData.followers || []).length;
     if(followingCount) followingCount.textContent = (currentUserData.following || []).length;
     
-        //     Premium Check (Without Badge) 
+        // 🌟 নিজের প্রোফাইলের জন্য Premium Check (Without Badge) 🌟
     const myProfileHeader = document.querySelector('#page-profile .profile-header');
     
     if (currentUserData.isVerified) {
@@ -4248,18 +4254,18 @@ uploadToCloudinary(file,false)
 .then(async url=>{
 await db.collection('users').doc(currentUser.uid).update({avatar:url});
 currentUserData.avatar=url;
-        // ===  :        ===
+        // === নতুন ম্যাজিক: ইউজারের আগের সব পোস্টের ছবি আপডেট করা ===
         try {
-            // 'posts'         
+            // 'posts' ফোল্ডার থেকে এই ইউজারের সব পোস্ট খুঁজে বের করা
             const postsSnapshot = await db.collection('posts').where('uid', '==', currentUser.uid).get();
             
             if (!postsSnapshot.empty) {
                 const batch = db.batch();
                 postsSnapshot.forEach((doc) => {
                     batch.update(doc.ref, { avatar: url }); 
-                    // (:        'avatar'     ,   )
+                    // (নোট: আপনার পোস্ট ডাটাবেসে ছবির ফিল্ডের নাম যদি 'avatar' না হয়ে অন্য কিছু হয়, তবে সেটা বসাবেন)
                 });
-                await batch.commit(); //       !
+                await batch.commit(); // সব পোস্টে এক ক্লিকে নতুন ছবি আপডেট!
             }
         } catch (error) {
             console.error("Error updating old posts avatar: ", error);
@@ -4351,7 +4357,7 @@ awardPoints(doc.data().uid, 10);
 }
 // ===== BLOCKED ACCOUNTS SETTINGS LOGIC =====
 
-//     
+// ব্লক লিস্ট লোড করার ফাংশন
 async function loadBlockedUsers() {
   const list = document.getElementById('blocked-users-list');
   if (!list) return;
@@ -4376,7 +4382,7 @@ async function loadBlockedUsers() {
         const avHtml = u.avatar ? `<img src="${u.avatar}">` : avatarInitial(u.name);
         const uid = blocked[index];
         
-        //    ,    
+        // আপনার লজিক অনুযায়ী ছবি, নাম এবং আনব্লক বাটন
         html += `<div class="msg-item" style="margin:0; padding:10px; border-radius:12px; border:1px solid var(--border);">
           <div class="avatar sm">${avHtml}</div>
           <div class="msg-info" style="margin-left:10px;">
@@ -4392,21 +4398,21 @@ async function loadBlockedUsers() {
   }
 }
 
-//      
+// আনব্লক বাটনে ক্লিক করলে যা হবে
 async function unblockUserFromList(uid) {
   if(!confirm("Are you sure you want to unblock this user?")) return;
   
-  //     
+  // ফায়ারবেস থেকে ব্লক রিমুভ করা
   await db.collection('users').doc(currentUser.uid).update({
     blockedUsers: firebase.firestore.FieldValue.arrayRemove(uid)
   });
   
-  //    
+  // লোকাল ডাটা আপডেট করা
   currentUserData.blockedUsers = currentUserData.blockedUsers.filter(id => id !== uid);
   
   showToast('User Unblocked Successfully!');
   
-  //           
+  // লিস্ট রিলোড করা যাতে আনব্লক করা মানুষটি লিস্ট থেকে সরে যায়
   loadBlockedUsers(); 
 }
 
@@ -4439,7 +4445,7 @@ async function unblockUserFromList(uid) {
         });
     }
 })();
-//    /  
+// চ্যাট হেডারের মেনু ওপেন/ক্লোজ করার ফাংশন
 function toggleChatDeleteMenu() {
     const menu = document.getElementById('chat-delete-menu');
     if (menu.style.display === 'block') {
@@ -4449,7 +4455,7 @@ function toggleChatDeleteMenu() {
     }
 }
 
-//         
+// স্ক্রিনের অন্য কোথাও ক্লিক করলে মেনু হাইড করার জন্য
 document.addEventListener('click', function(event) {
     const menu = document.getElementById('chat-delete-menu');
     const actionsDiv = document.querySelector('.chat-header-actions');
@@ -4457,12 +4463,12 @@ document.addEventListener('click', function(event) {
         menu.style.display = 'none';
     }
 });
-// Delete for Everyone   
+// Delete for Everyone এর আসল ফাংশন
 async function deleteChatForEveryone() {
-    //      
+    // মেনুটা সাথে সাথে বন্ধ করে দেওয়া
     document.getElementById('chat-delete-menu').style.display = 'none';
 
-    //    
+    // ইউজারকে একটা ওয়ার্নিং দেওয়া
     const confirmDelete = confirm("Are you sure? This will permanently delete all messages for both sides and cannot be undone.");
     if (!confirmDelete) return;
 
@@ -4472,29 +4478,29 @@ async function deleteChatForEveryone() {
             return;
         }
 
-        // .         
+        // ১. চোখের সামনে থেকে মেসেজগুলো সাথে সাথে গায়েব করে দেওয়া
         const chatMessagesDiv = document.getElementById('chat-messages');
         if (chatMessagesDiv) {
             chatMessagesDiv.innerHTML = '<div style="text-align:center; padding:20px; color:var(--text-muted);">All messages deleted.</div>';
         }
 
-        // . - (messages)      
+        // ২. সাব-ফোল্ডার (messages) থেকে সব মেসেজ খুঁজে বের করা
         const messagesRef = db.collection('chats').doc(currentChatId).collection('messages');
         const messagesSnapshot = await messagesRef.get();
         
-        // .        (batch)  
+        // ৩. সবগুলো মেসেজ একবারে ডিলিট করার জন্য ব্যাচ (batch) তৈরি করা
         const batch = db.batch();
         messagesSnapshot.forEach((doc) => {
             batch.delete(doc.ref);
         });
-        await batch.commit(); //    
+        await batch.commit(); // ব্যাচ ডিলিট কমপ্লিট করা
 
-        // .    (last message )  
+        // ৪. মেইন চ্যাটের ইনফরমেশন (last message ইত্যাদি) ডিলিট করা
         await db.collection('chats').doc(currentChatId).delete();
         
         alert("Chat deleted for everyone successfully! Storage freed.");
         
-        //     
+        // চ্যাট স্ক্রিনটা বন্ধ করে দেওয়া
         if (typeof closeChat === 'function') {
             closeChat();
         }
@@ -4506,16 +4512,16 @@ async function deleteChatForEveryone() {
 }
 // ===== Password Visibility Toggle =====
 function togglePasswordVisibility() {
-    //   auth-password    
+    // আপনার কোডের auth-password আইডিটা ব্যবহার করা হলো
     const passwordInput = document.getElementById('auth-password');
     const eyeIcon = document.getElementById('toggle-eye');
 
     if (passwordInput.type === 'password') {
-        passwordInput.type = 'text'; //  
-        eyeIcon.innerText = 'visibility_off'; //   
+        passwordInput.type = 'text'; // পাসওয়ার্ড দেখাবে
+        eyeIcon.innerText = 'visibility_off'; // চোখটা কাটা দেখাবে
     } else {
-        passwordInput.type = 'password'; //    
-        eyeIcon.innerText = 'visibility'; //    
+        passwordInput.type = 'password'; // আবার হাইড করে দেবে
+        eyeIcon.innerText = 'visibility'; // স্বাভাবিক চোখ হয়ে যাবে
     }
 }
 // ===== GROUP CHAT LOGIC (STEP 2: Create & Load Friends) =====
@@ -4523,9 +4529,9 @@ let selectedGroupFriends = [];
 
 async function openCreateGroupModal() {
     document.getElementById('create-group-modal').style.display = 'flex';
-    selectedGroupFriends = []; //      
-    document.getElementById('group-name-input').value = ''; //   
-    await loadFriendsForGroup(); //    
+    selectedGroupFriends = []; // মডাল ওপেন হলে সিলেকশন ফাঁকা হবে
+    document.getElementById('group-name-input').value = ''; // নাম ফাঁকা হবে
+    await loadFriendsForGroup(); // বন্ধুদের লিস্ট লোড করবে
 }
 
 function closeCreateGroupModal() {
@@ -4555,7 +4561,7 @@ async function loadFriendsForGroup() {
                 const safeName = escapeHTML(u.name);
                 const avHtml = u.avatar ? `<img src="${u.avatar}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">` : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:var(--gradient);color:#fff;font-weight:bold;">${safeName[0].toUpperCase()}</div>`;
                 
-                //      -
+                // বন্ধুদের লিস্ট এবং টিক দেওয়ার চেক-বক্স
                 html += `
                 <div class="msg-item" onclick="toggleGroupFriend('${uid}', this)" style="margin: 0; padding: 10px; cursor: pointer; border-radius: 8px;">
                     <div class="avatar sm">${avHtml}</div>
@@ -4574,10 +4580,10 @@ function toggleGroupFriend(uid, element) {
     const checkbox = element.querySelector('input[type="checkbox"]');
     if (selectedGroupFriends.includes(uid)) {
         selectedGroupFriends = selectedGroupFriends.filter(id => id !== uid);
-        checkbox.checked = false; //   
+        checkbox.checked = false; // টিক মুছে যাবে
     } else {
         selectedGroupFriends.push(uid);
-        checkbox.checked = true; //  
+        checkbox.checked = true; // টিক বসবে
     }
 }
 
@@ -4596,13 +4602,13 @@ async function createGroupAction() {
     const btn = document.querySelector('#create-group-modal button');
     const originalText = btn.textContent;
     btn.textContent = "Creating Group...";
-    btn.disabled = true; //   
+    btn.disabled = true; // ডাবল ক্লিক বন্ধ
 
     try {
-        const groupId = 'group_' + Date.now(); //    
-        const members = [currentUser.uid, ...selectedGroupFriends]; //  +  
+        const groupId = 'group_' + Date.now(); // গ্রুপের জন্য ইউনিক আইডি
+        const members = [currentUser.uid, ...selectedGroupFriends]; // আপনি + আপনার বন্ধুরা
         
-        //    
+        // ফায়ারবেসে গ্রুপ সেভ করা
         await db.collection('chats').doc(groupId).set({
             isGroup: true,
             groupName: groupName,
@@ -4613,10 +4619,10 @@ async function createGroupAction() {
             createdAt: firebase.firestore.FieldValue.serverTimestamp()
         });
 
-        showToast("Group created successfully! ");
+        showToast("Group created successfully! 🚀");
         closeCreateGroupModal();
         
-        // ,      !       
+        // ভাই, গ্রুপ তো ডাটাবেসে সেভ হয়ে গেছে! কিন্তু স্ক্রিনে দেখানোর জন্য তৃতীয় ধাপ লাগবে।
         setTimeout(() => {
             showToast("Ready for Step 3 to show the group in message list!");
         }, 2000);
@@ -4656,15 +4662,15 @@ function handleMsgTouchMove(event) {
         let currentX = event.touches[0].clientX;
         let currentY = event.touches[0].clientY;
         
-        //       ,    (Long Press)  
+        // যদি ইউজার স্ক্রল করে বা সোয়াইপ করে, তবে ডিলিট সিলেকশন (Long Press) বাতিল হবে
         if(Math.abs(currentX - touchStartX) > 15 || Math.abs(currentY - touchStartY) > 15) {
             isSwiping = true;
             if(msgPressTimer) clearTimeout(msgPressTimer);
         }
         
-        //      (   )
+        // ডানদিকে সোয়াইপ করার ভিজ্যুয়াল ইফেক্ট (মেসেজ আঙুলের সাথে সরবে)
         if(currentX - touchStartX > 20 && Math.abs(currentY - touchStartY) < 30) {
-           let moveX = Math.min(currentX - touchStartX, 80); //    
+           let moveX = Math.min(currentX - touchStartX, 80); // সর্বোচ্চ ৮০ পিক্সেল সরবে
            event.currentTarget.style.transform = `translateX(${moveX}px)`;
         }
     }
@@ -4673,7 +4679,7 @@ function handleMsgTouchMove(event) {
 function handleMsgTouchEnd(msgId, event) {
     if(msgPressTimer) clearTimeout(msgPressTimer);
     
-    //      ( )
+    // মেসেজ আগের জায়গায় ফেরত যাবে (বাউন্স ইফেক্ট)
     if(event && event.currentTarget) {
         event.currentTarget.style.transform = 'translateX(0)';
     }
@@ -4683,10 +4689,10 @@ function handleMsgTouchEnd(msgId, event) {
         let touchEndX = event.changedTouches[0].clientX;
         let touchEndY = event.changedTouches[0].clientY;
         
-        //       ,      
+        // যদি ৬০ পিক্সেলের বেশি ডানদিকে সোয়াইপ হয়, তবে সাথে সাথে রিপ্লাই অন হবে
         if(touchEndX - touchStartX > 60 && Math.abs(touchEndY - touchStartY) < 40) {
             replyToMessage(msgId);
-            if(navigator.vibrate) navigator.vibrate(40); //      
+            if(navigator.vibrate) navigator.vibrate(40); // রিপ্লাই অন হলে হালকা ভাইব্রেশন হবে
         }
     }
     touchStartX = 0;
@@ -4785,30 +4791,30 @@ async function executeDelete(type) {
 }
 // ===== NEW CHAT HEADER MENU FUNCTIONS =====
 
-//       -  
-// -      
+// চ্যাট থেকে নামের ওপর ক্লিক করলে পপ-আপ ওপেন হবে
+// পপ-আপ ওপেন করার ফাংশনটি এভাবে আপডেট করুন
 function viewProfileFromChat() {
     document.getElementById('chat-delete-menu').style.display = 'none';
     if (currentChatOtherUid === 'group') {
-        //       
+        // 🚀 গ্রুপ হলে নতুন মডাল ওপেন হবে
         openGroupInfoModal(currentChatId);
         return;
     }
         
-    //      
+    // চ্যাটের টপবার থেকে নাম কপি করা
     const nameText = document.getElementById('chat-name-display').innerText; 
     const avatarHtml = document.getElementById('chat-avatar').innerHTML;
     
-    //        
+    // ভেরিফাইড ব্যাজ পাওয়ার জন্য ইউজার ডাটা চেক করা
     const otherUser = allUsersCache ? allUsersCache.find(u => u.id === currentChatOtherUid) : null;
     const isV = otherUser ? otherUser.isVerified : false;
     const vBadge = getVerifiedBadge(otherUser ? otherUser.email : '', isV);
     
-    //     
+    // নামের সাথে ব্যাজটি যোগ করা
     document.getElementById('qp-name').innerHTML = nameText + vBadge;
     document.getElementById('qp-avatar').innerHTML = avatarHtml;
         
-    //            
+    // ইউজারের চ্যাট মিউট করা আছে কিনা চেক করে বাটনের টেক্সট ঠিক করা
     const isMuted = currentUserData.mutedChats?.includes(currentChatId);
     const muteBtn = document.getElementById('qp-mute-btn');
     if (isMuted) {
@@ -4816,17 +4822,17 @@ function viewProfileFromChat() {
     } else {
         muteBtn.innerHTML = '<i class="ph-bold ph-bell-slash" style="font-size:18px;"></i> Mute';
     }
-    // -  
+    // পপ-আপ ওপেন করা
     document.getElementById('quick-profile-modal').classList.add('open');
 }
 
 
-// -   
+// পপ-আপ বন্ধ করার ফাংশন
 function closeQuickProfile() {
     document.getElementById('quick-profile-modal').classList.remove('open');
 }
 
-// "View Profile"      
+// "View Profile" বাটনে ক্লিক করলে ফুল প্রোফাইলে যাবে
 function goToFullProfile() {
     closeQuickProfile();
     const profilePage = document.getElementById('page-other-profile');
@@ -4837,7 +4843,7 @@ function goToFullProfile() {
     setTimeout(() => { closeChat(); }, 50);
 }
 
-//    
+// অন্যান্য অ্যাকশন বাটনগুলোর ফাংশন
 async function toggleMuteFromQP() {
     await muteChat(currentChatId);
     closeQuickProfile();
@@ -4846,7 +4852,7 @@ async function toggleMuteFromQP() {
 async function archiveFromQP() {
     await archiveChat(currentChatId);
     closeQuickProfile();
-    closeChat(); //        
+    closeChat(); // আর্কাইভ করার পর চ্যাট পেজ বন্ধ হয়ে যাবে
 }
 
 async function blockFromQP() {
@@ -4860,7 +4866,7 @@ async function clearChatFromQP() {
 }
 
 
-// . Clear Chat (Delete for me) 
+// ৩. Clear Chat (Delete for me) ফাংশন
 async function clearChatForMe() {
     document.getElementById('chat-delete-menu').style.display = 'none';
     if (!confirm("Are you sure you want to clear this chat for yourself?")) return;
@@ -4876,7 +4882,7 @@ async function clearChatForMe() {
         });
         await batch.commit();
         
-        //        
+        // স্ক্রিন থেকে সাথে সাথে মেসেজ গায়েব করে দেবে
         document.getElementById('chat-messages').innerHTML = '<div style="text-align:center; padding:20px; color:var(--text-muted);">Chat cleared</div>';
         showToast("Chat cleared!");
     } catch (e) {
@@ -4884,7 +4890,7 @@ async function clearChatForMe() {
     }
 }
 
-// . Block User 
+// ৪. Block User ফাংশন
 async function blockUserFromChat() {
     document.getElementById('chat-delete-menu').style.display = 'none';
     if (currentChatOtherUid === 'group') {
@@ -4898,8 +4904,8 @@ async function blockUserFromChat() {
             blockedUsers: firebase.firestore.FieldValue.arrayUnion(currentChatOtherUid)
         });
         showToast("User blocked successfully");
-        closeChat(); //        
-        loadMessages(); //    
+        closeChat(); // ব্লক করার পর চ্যাট থেকে বের করে দেবে
+        loadMessages(); // চ্যাট লিস্ট আপডেট করবে
     } catch (e) {
         showToast("Failed to block user");
     }
@@ -4950,10 +4956,10 @@ async function editComment(pid, idx) {
 }
 
 function copyComment(btnElement) {
-    //     
+    // কমেন্ট আইটেমটি খুঁজে বের করা
     const commentItem = btnElement.closest('.comment-item');
     if (commentItem) {
-        //  -    (  )
+        // দ্বিতীয় ডিভ-এর ভেতরে টেক্সট থাকে (আগের গঠন অনুযায়ী)
         const textToCopy = commentItem.querySelector('div[style*="margin-top:4px"]').textContent;
         navigator.clipboard.writeText(textToCopy).then(() => {
             showToast("Copied to clipboard!");
@@ -4973,7 +4979,7 @@ async function deleteComment(pid, idx) {
     showToast("Comment deleted!");
 }
 async function fixMissingNamesInChats() {
-    //         
+    // শুধুমাত্র যারা বর্তমানে লগইন করা তাদের চ্যাটগুলো চেক করবে
     if (!currentUser) return;
     
     const chatsRef = db.collection('chats');
@@ -4981,13 +4987,13 @@ async function fixMissingNamesInChats() {
     
     snap.forEach(async (doc) => {
         const data = doc.data();
-        //   'names'      'User' 
+        // যদি চ্যাটে 'names' ফিল্ড মিসিং থাকে বা নাম 'User' থাকে
         if (!data.names || Object.keys(data.names).length < 2) {
             const parts = doc.id.split('_');
             if (parts.length === 2) {
                 const otherUid = parts[0] === currentUser.uid ? parts[1] : parts[0];
                 
-                //      
+                // ওই ইউজারের সঠিক নাম বের করা
                 const userDoc = await db.collection('users').doc(otherUid).get();
                 if (userDoc.exists) {
                     const userName = userDoc.data().name;
@@ -5014,7 +5020,7 @@ let mentionData = {
   endPos: 0
 };
 
-//     
+// ফ্রেন্ডস লিস্ট লোড করে রাখা
 async function loadMentionFriends() {
   if (!currentUserData || !currentUserData.friends || currentUserData.friends.length === 0) {
     mentionData.friends = [];
@@ -5038,7 +5044,7 @@ async function loadMentionFriends() {
   }
 }
 
-// @ Mention  
+// @ Mention হ্যান্ডেল করা
 function handleMentionInput(textarea, dropdownId, event) {
   const dropdown = document.getElementById(dropdownId);
   if (!dropdown) return;
@@ -5046,41 +5052,41 @@ function handleMentionInput(textarea, dropdownId, event) {
   const text = textarea.value;
   const cursorPos = textarea.selectionStart;
   
-  // @ 
+  // @ খোঁজা
   const lastAtIndex = text.lastIndexOf('@', cursorPos - 1);
   
-  //  @    @    
+  // যদি @ না থাকে বা @ এর পরে স্পেস থাকে
   if (lastAtIndex === -1) {
     hideMentionDropdown(dropdown);
     return;
   }
   
-  // @      
+  // @ এবং কার্সারের মাঝে স্পেস চেক করা
   const betweenText = text.substring(lastAtIndex + 1, cursorPos);
   if (betweenText.includes(' ') || betweenText.includes('\n')) {
     hideMentionDropdown(dropdown);
     return;
   }
   
-    //    
+    // ড্রপডাউন পজিশন সেট করা
   if (dropdownId === 'comment-mention-dropdown') {
-      //       ( ) 
+      // কমেন্ট সেকশনের জন্য লিস্টটি কিবোর্ডের উপরে (উপরের দিকে) দেখাবে
       dropdown.style.left = '16px';
       dropdown.style.bottom = '75px'; 
       dropdown.style.top = 'auto';
       dropdown.style.width = 'calc(100% - 32px)'; 
   } else {
-      //   (  )    
+      // অন্যান্য জায়গায় (যেমন পোস্ট ক্রিয়েট) আগের মতোই কাজ করবে
       const coords = getCaretCoordinates(textarea, cursorPos);
       dropdown.style.left = coords.left + 'px';
       dropdown.style.top = (coords.top + textarea.offsetTop + 30) + 'px';
       dropdown.style.bottom = 'auto';
   }
   
-  //  
+  // ফিল্টার টেক্সট
   const filterText = betweenText.toLowerCase();
   
-  //   
+  // ফ্রেন্ডস ফিল্টার করা
   const filtered = mentionData.friends.filter(f => 
     f.name.toLowerCase().includes(filterText)
   );
@@ -5090,10 +5096,11 @@ function handleMentionInput(textarea, dropdownId, event) {
     return;
   }
   
-  //   
+  // ড্রপডাউন রেন্ডার করা
   renderMentionDropdown(dropdown, filtered, textarea, lastAtIndex, cursorPos);
 }
-// Mention Dropdown  
+
+// Mention Dropdown রেন্ডার করা
 function renderMentionDropdown(dropdown, friends, textarea, startPos, endPos) {
   mentionData.selectedIndex = 0;
   
@@ -5118,38 +5125,38 @@ function renderMentionDropdown(dropdown, friends, textarea, startPos, endPos) {
   dropdown.innerHTML = html;
   dropdown.classList.add('show');
   
-  //  
+  // স্টোর করা
   mentionData.textarea = textarea;
   mentionData.dropdown = dropdown;
   mentionData.startPos = startPos;
   mentionData.endPos = endPos;
 }
 
-// Mention  
+// Mention সিলেক্ট করা
 function selectMention(uid, name, startPos, endPos) {
   if (!mentionData.textarea) return;
   
   const textarea = mentionData.textarea;
   const text = textarea.value;
   
-  // @mention   
+  // @mention দিয়ে রিপ্লেস করা
   const beforeText = text.substring(0, startPos);
   const afterText = text.substring(endPos);
   const mentionText = `@${name} `;
   
   textarea.value = beforeText + mentionText + afterText;
   
-  //    
+  // কার্সার পজিশন সেট করা
   const newPos = startPos + mentionText.length;
   textarea.setSelectionRange(newPos, newPos);
   textarea.focus();
   
-  //   
+  // ড্রপডাউন হাইড করা
   if (mentionData.dropdown) {
     hideMentionDropdown(mentionData.dropdown);
   }
   
-  //     ( )
+  // ট্যাগড ফ্রেন্ডস এড করা (পোস্টের জন্য)
   if (currentTaggedFriends && !currentTaggedFriends.includes(uid)) {
     currentTaggedFriends.push(uid);
     currentTaggedNames.push(name);
@@ -5158,7 +5165,7 @@ function selectMention(uid, name, startPos, endPos) {
   }
 }
 
-// Mention Index   ( )
+// Mention Index সিলেক্ট করা (হোভারের জন্য)
 function selectMentionIndex(index) {
   mentionData.selectedIndex = index;
   const items = mentionData.dropdown.querySelectorAll('.mention-item');
@@ -5167,7 +5174,7 @@ function selectMentionIndex(index) {
   });
 }
 
-// Mention Dropdown  
+// Mention Dropdown হাইড করা
 function hideMentionDropdown(dropdown) {
   if (dropdown) {
     dropdown.classList.remove('show');
@@ -5176,12 +5183,12 @@ function hideMentionDropdown(dropdown) {
   mentionData.dropdown = null;
 }
 
-//   
+// কার্সার পজিশন পাওয়া
 function getCaretCoordinates(element, position) {
   const div = document.createElement('div');
   const style = getComputedStyle(element);
   
-  //   
+  // স্টাইল কপি করা
   Array.from(style).forEach(prop => {
     div.style.setProperty(prop, style.getPropertyValue(prop));
   });
@@ -5210,7 +5217,7 @@ function getCaretCoordinates(element, position) {
   return coords;
 }
 
-//  
+// কীবোর্ড নেভিগেশন
 function handleMentionKeydown(event, dropdownId) {
   const dropdown = document.getElementById(dropdownId);
   if (!dropdown || !dropdown.classList.contains('show')) return;
@@ -5249,7 +5256,7 @@ function updateMentionSelection(items) {
   });
 }
 
-//   
+// ট্যাগ কাউন্ট আপডেট
 function updateTagCount() {
   const tagCount = document.getElementById('tag-count');
   if (tagCount) {
@@ -5258,9 +5265,9 @@ function updateTagCount() {
   }
 }
 
-//   
+// ইভেন্ট লিসেনার সেটআপ
 document.addEventListener('DOMContentLoaded', () => {
-  //  
+  // পোস্ট টেক্সটএরিয়া
   const postTextarea = document.getElementById('post-title');
   if (postTextarea) {
     postTextarea.addEventListener('input', (e) => {
@@ -5271,7 +5278,7 @@ document.addEventListener('DOMContentLoaded', () => {
       handleMentionKeydown(e, 'post-mention-dropdown');
     });
     
-    //    
+    // ক্লিক করলে ড্রপডাউন হাইড
     document.addEventListener('click', (e) => {
       if (!e.target.closest('#post-mention-dropdown') && e.target !== postTextarea) {
         const dropdown = document.getElementById('post-mention-dropdown');
@@ -5280,7 +5287,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
   
-  //  
+  // কমেন্ট ইনপুট
   const commentInput = document.getElementById('comment-panel-input');
   if (commentInput) {
     commentInput.addEventListener('input', (e) => {
@@ -5300,18 +5307,18 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
-//     ,   
+// যখন পোস্ট স্ক্রিন ওপেন হবে, ফ্রেন্ডস লোড করবে
 const originalOpenCreatePost = window.openCreatePost;
 window.openCreatePost = function() {
   if (originalOpenCreatePost) originalOpenCreatePost();
   loadMentionFriends();
 };
-// Interested    (  )
+// Interested বাটনে ক্লিক করলে (আসল সেভ লজিক)
 async function markInterested(postId) {
     closeAllDropdowns();
     if (!currentUser) return;
 
-    //    
+    // লোকাল ডাটাবেসে সেভ করা
     if (!currentUserData.savedPosts) currentUserData.savedPosts = [];
     
     if (!currentUserData.savedPosts.includes(postId)) {
@@ -5319,7 +5326,7 @@ async function markInterested(postId) {
         showToast("Saving post...");
         
         try {
-            //    
+            // ফায়ারবেসে পার্মানেন্টলি সেভ করা
             await db.collection('users').doc(currentUser.uid).update({
                 savedPosts: firebase.firestore.FieldValue.arrayUnion(postId)
             });
@@ -5333,18 +5340,18 @@ async function markInterested(postId) {
     }
 }
 
-// Not Interested   
+// Not Interested বাটনে ক্লিক করলে
 function markNotInterested(pid, element) {
     closeAllDropdowns();
     showToast('Post hidden from your feed');
     
-    //          
+    // পোস্টটি যেন সাথে সাথেই আপনার ফিড থেকে হাইড হয়ে যায়
     const postCard = element.closest('.post-card');
     if(postCard) {
         postCard.style.display = 'none';
     }
 }
-//    
+// স্টোরি ডাউনলোড করার ফাংশন
 async function downloadCurrentStory(event) {
     if(event) event.stopPropagation();
     
@@ -5398,7 +5405,7 @@ function toggleColorPicker() {
 function selectPostBg(color, element) {
     currentPostBgColor = color;
     
-    //          
+    // সবগুলো থেকে সিলেক্টেড ক্লাস সরিয়ে যাকে ক্লিক করেছে তাকে দেওয়া
     const circles = document.querySelectorAll('.color-circle');
     circles.forEach(c => c.classList.remove('selected'));
     if (element) element.classList.add('selected');
@@ -5412,7 +5419,7 @@ function selectPostBg(color, element) {
         textarea.style.padding = '0';
     } else {
         textarea.style.background = color;
-        textarea.style.color = '#ffffff'; //      
+        textarea.style.color = '#ffffff'; // রঙিন ব্যাকগ্রাউন্ডে সাদা টেক্সট ভালো দেখাবে
         textarea.style.textAlign = 'center';
         textarea.style.fontWeight = '800';
         textarea.style.padding = '30px 20px';
@@ -5421,7 +5428,7 @@ function selectPostBg(color, element) {
 }
 async function toggleMuteFeed(uid) {
     if (!currentUser) return;
-    //      
+    // ইউজারের ডাটাবেসে মিউটেড লিস্ট আপডেট করা
     let mutedList = currentUserData.mutedFeedUsers || [];
     if (mutedList.includes(uid)) {
         await db.collection('users').doc(currentUser.uid).update({
@@ -5438,7 +5445,7 @@ async function toggleMuteFeed(uid) {
     closeUserProfile();
     loadFeed();
 }
-// Followers  Following    
+// Followers এবং Following লিস্ট ওপেন করার ফাংশন
 async function openFollowList(type, uid) {
     const modal = document.getElementById('friends-list-modal');
     modal.style.zIndex = "100000"; 
@@ -5455,7 +5462,7 @@ async function openFollowList(type, uid) {
     
     const userData = doc.data();
 
-    //    (   )
+    // 🔒 প্রাইভেসি চেক (নতুন যোগ করা হলো)
     if (uid !== currentUser.uid && type === 'following') {
         const privacy = userData.followingPrivacy || 'everyone';
         if (privacy === 'onlyme') {
@@ -5506,7 +5513,7 @@ async function setFollowingPrivacy(mode) {
 }
 // ===== GALLERY SYSTEM LOGIC =====
 let isGalleryEditMode = false;
-let selectedGalleryImages = []; //   postId  imgIndex  
+let selectedGalleryImages = []; // এখানে শুধু postId এবং imgIndex সেভ হবে
 
 async function openGallery() {
     document.getElementById('gallery-screen').style.display = 'flex';
@@ -5561,11 +5568,11 @@ async function loadGalleryImages() {
         snap.forEach(doc => {
             const data = doc.data();
             let urls = [];
-            //     
+            // ডাটাবেস থেকে ছবিগুলো নেওয়া হচ্ছে
             if(data.imgUrls && data.imgUrls.length > 0) urls = data.imgUrls;
             else if(data.imgUrl) urls = [data.imgUrl];
             
-            //   (imgIndex)    
+            // সিরিয়াল নম্বর (imgIndex) সহ সেভ করা হচ্ছে
             urls.forEach((url, index) => {
                 allImages.push({ 
                     postId: doc.id, 
@@ -5576,7 +5583,7 @@ async function loadGalleryImages() {
             });
         });
         
-        //      
+        // নতুন ছবিগুলো আগে দেখানোর জন্য সর্টিং
         allImages.sort((a,b) => {
             const ta = a.createdAt?.toMillis ? a.createdAt.toMillis() : 0;
             const tb = b.createdAt?.toMillis ? b.createdAt.toMillis() : 0;
@@ -5591,7 +5598,7 @@ async function loadGalleryImages() {
         let html = '';
         allImages.forEach(img => {
             const safeUrl = escapeHTML(img.imgUrl);
-            //   postId  imgIndex (number )   
+            // এখানে শুধু postId এবং imgIndex (number হিসেবে) পাস করা হলো
             html += `
             <div class="gallery-item ${isGalleryEditMode ? 'edit-mode' : ''}" onclick="handleGalleryItemClick('${img.postId}', ${img.imgIndex}, '${safeUrl}', this)">
                 <img src="${safeUrl}">
@@ -5615,11 +5622,11 @@ function handleGalleryItemClick(postId, imgIndex, imgUrl, element) {
     const isSelected = element.classList.contains('selected');
     if(isSelected) {
         element.classList.remove('selected');
-        //      
+        // নিখুঁতভাবে ইনডেক্স মিলিয়ে আনসিলেক্ট করা হচ্ছে
         selectedGalleryImages = selectedGalleryImages.filter(item => !(item.postId === postId && item.imgIndex === imgIndex));
     } else {
         element.classList.add('selected');
-        //    
+        // ইনডেক্স সেভ করা হচ্ছে
         selectedGalleryImages.push({ postId: postId, imgIndex: imgIndex });
     }
     
@@ -5654,14 +5661,14 @@ async function deleteSelectedGalleryImages() {
                 if(data.imgUrls && data.imgUrls.length > 0) currentUrls = data.imgUrls;
                 else if(data.imgUrl) currentUrls = [data.imgUrl];
                 
-                //        (URL    )
+                // সিরিয়াল নম্বর মিলিয়ে ছবি ডিলিট করা হচ্ছে (URL মেলানোর কোনো ঝামেলাই নেই)
                 const remainingUrls = currentUrls.filter((url, idx) => !indexesToDelete.includes(idx));
                 
-                //           ,   
+                // যদি সব ছবি মুছে যায় এবং পোস্টে কোনো লেখাও না থাকে, পুরো পোস্ট ডিলিট
                 if(remainingUrls.length === 0 && (!data.title || data.title.trim() === '')) {
                     batch.delete(doc.ref);
                 } else {
-                    //    ,       (   )
+                    // আর যদি লেখা থাকে, শুধু ছবিগুলো মুছে ডাটাবেস আপডেট হবে (ফাঁকা অ্যারে সেভ হবে)
                     batch.update(doc.ref, {
                         imgUrls: remainingUrls,
                         imgUrl: remainingUrls.length > 0 ? remainingUrls[0] : ''
@@ -5672,14 +5679,14 @@ async function deleteSelectedGalleryImages() {
         
         await batch.commit();
         
-        //     
+        // গ্যালারি এডিট মোড অফ করা
         isGalleryEditMode = false;
         selectedGalleryImages = [];
         updateGalleryUI();
         
         showToast("Images deleted successfully!");
         
-        // UI 
+        // UI রিফ্রেশ
         await loadGalleryImages();
         if(document.getElementById('page-profile').classList.contains('active')) loadMyPosts();
         loadFeed();
@@ -5690,12 +5697,12 @@ async function deleteSelectedGalleryImages() {
         if(btn) { btn.disabled = false; btn.innerHTML = '<span class="material-symbols-outlined">delete</span> Delete'; }
     }
 }
-//        
+// ওয়েলকাম স্ক্রিন থেকে মূল লগইন পেজে যাওয়ার লজিক
 function goToLogin() {
     document.getElementById('welcome-step').style.display = 'none';
     document.getElementById('login-form').style.display = 'block';
 }
-//   
+// রেজিস্ট্রেশন সুইচিং লজিক
 function showRegister() {
     document.getElementById('login-form').style.display = 'none';
     document.getElementById('registration-steps').style.display = 'block';
@@ -5789,7 +5796,7 @@ async function submitTextStory() {
             uid: currentUser.uid,
             name: currentUserData.name,
             avatar: currentUserData.avatar || '',
-            isText: true, //     
+            isText: true, // এটি টেক্সট স্টোরি চেনার উপায়
             text: text,
             bgColor: currentTextStoryBg,
             views: [],
@@ -5808,20 +5815,20 @@ async function submitTextStory() {
         btn.disabled = false;
     }
 }
-// Active Status    (Updated & Instant)
+// Active Status টগল করার লজিক (Updated & Instant)
 async function toggleActiveStatus() {
     if (!currentUser) return;
     
     const currentStatus = currentUserData.showActiveStatus !== false; 
     const newStatus = !currentStatus;
     
-    //          
+    // 🚀 ডাটাবেসে একসাথেই সেটিং এবং অনলাইন স্ট্যাটাস আপডেট করে দেবে
     await db.collection('users').doc(currentUser.uid).update({
         showActiveStatus: newStatus,
         online: newStatus 
     });
     
-    //   
+    // লোকাল ডাটা আপডেট
     currentUserData.showActiveStatus = newStatus;
     currentUserData.online = newStatus;
     
@@ -5829,7 +5836,7 @@ async function toggleActiveStatus() {
     showToast(`Active Status is now ${newStatus ? 'ON' : 'OFF'}`);
 }
 
-// UI   
+// UI আপডেট করার ফাংশন
 function updateActiveStatusUI() {
     const toggleEl = document.getElementById('active-status-toggle');
     if (toggleEl) {
@@ -5847,7 +5854,7 @@ function openChangeEmailModal() {
 }
 
 function closeChangeEmailModal() {
-    //        
+    // মডাল বন্ধ করার সময় ফিল্ডগুলো ফাঁকা করে দেওয়া
     const passInput = document.getElementById('email-curr-pass');
     const newEmailInput = document.getElementById('email-new');
     if(passInput) passInput.value = '';
@@ -5865,7 +5872,7 @@ async function changeEmailAction() {
     const btn = document.querySelector('#change-email-modal .btn-primary');
 
     if(!pass || !newEmail) { 
-        alert(" Please fill all the fields!"); 
+        alert("⚠️ Please fill all the fields!"); 
         return; 
     }
 
@@ -5876,45 +5883,45 @@ async function changeEmailAction() {
     try {
         const user = auth.currentUser;
         
-        // .      (High Security)
+        // ১. নতুন করে লগইন ভেরিফাই করা (High Security)
         const cred = firebase.auth.EmailAuthProvider.credential(user.email, pass);
         await user.reauthenticateWithCredential(cred);
         
-        // .   
+        // ২. ইমেইল আপডেট করা
         await user.updateEmail(newEmail);
         
-        // .     
+        // ৩. ডাটাবেসে ইউজার তথ্য আপডেট করা
         await db.collection('users').doc(user.uid).update({
             email: newEmail
         });
 
-        // .       
+        // ৪. অ্যাপের ভেতর বর্তমান ইমেইল লেখাটি পাল্টে দেওয়া
         currentUserData.email = newEmail;
         const displayEl = document.getElementById('contact-email-display');
         if(displayEl) displayEl.textContent = newEmail;
 
-        // .  
-        alert(" Success! Your email has been transferred to " + newEmail);
+        // ৫. কনফার্মেশন পপআপ
+        alert("✅ Success! Your email has been transferred to " + newEmail);
         
         closeChangeEmailModal();
-        doLogout(); //         
+        doLogout(); // নিরাপত্তার খাতিরে নতুন ইমেইল দিয়ে আবার লগইন করতে হবে
         
     } catch(e) {
         console.error(e);
-        //      
+        // সঠিক কারণটি ইউজারকে অ্যালার্ট করে জানানো
         if (e.code === 'auth/wrong-password') {
-            alert(" Error: Incorrect current password!");
+            alert("❌ Error: Incorrect current password!");
         } else if (e.code === 'auth/invalid-email') {
-            alert(" Error: The new email format is invalid!");
+            alert("❌ Error: The new email format is invalid!");
         } else if (e.code === 'auth/email-already-in-use') {
-            alert(" Error: This email is already in use by another account!");
+            alert("❌ Error: This email is already in use by another account!");
         } else if (e.code === 'auth/requires-recent-login') {
-            alert(" Error: For security, please log out and log in again before changing email.");
+            alert("❌ Error: For security, please log out and log in again before changing email.");
         } else {
-            alert(" Error: " + e.message);
+            alert("❌ Error: " + e.message);
         }
     } finally {
-        //       
+        // সবশেষে বাটন আবার আগের মতো করে দেওয়া
         btn.textContent = originalText;
         btn.disabled = false;
     }
@@ -5923,19 +5930,19 @@ async function changeEmailAction() {
 async function togglePrivateAccount() {
     if (!currentUser) return;
     
-    //    
+    // বর্তমান স্টেট চেক করা
     const currentStatus = currentUserData.isPrivate === true; 
     const newStatus = !currentStatus;
     
-    //  
+    // ডাটাবেসে আপডেট
     await db.collection('users').doc(currentUser.uid).update({
         isPrivate: newStatus
     });
     
-    //   
+    // লোকাল ডাটা আপডেট
     currentUserData.isPrivate = newStatus;
     
-    // UI 
+    // UI আপডেট
     updatePrivateAccountUI();
     showToast(`Private Account is now ${newStatus ? 'ON' : 'OFF'}`);
 }
@@ -5951,23 +5958,23 @@ function updatePrivateAccountUI() {
         }
     }
 }
-// ===  Message Sound Toggle Logic ===
+// === 🚀 Message Sound Toggle Logic ===
 async function toggleMessageSound() {
     if (!currentUser) return;
     
-    //   ON ,  undefined  true 
+    // ডিফল্টভাবে সাউন্ড ON থাকে, তাই undefined হলে true ধরবো
     const currentStatus = currentUserData.messageSound !== false; 
     const newStatus = !currentStatus;
     
-    //  
+    // ডাটাবেসে আপডেট
     await db.collection('users').doc(currentUser.uid).update({
         messageSound: newStatus
     });
     
-    //   
+    // লোকাল ডাটা আপডেট
     currentUserData.messageSound = newStatus;
     
-    // UI 
+    // UI আপডেট
     updateMessageSoundUI();
     showToast(`Message Sound is now ${newStatus ? 'ON' : 'OFF'}`);
 }
@@ -5975,7 +5982,7 @@ async function toggleMessageSound() {
 function updateMessageSoundUI() {
     const toggleEl = document.getElementById('message-sound-toggle');
     if (toggleEl) {
-        const isOn = (currentUserData.messageSound !== false); //  ON
+        const isOn = (currentUserData.messageSound !== false); // ডিফল্ট ON
         if (isOn) {
             toggleEl.classList.add('active');
         } else {
@@ -5984,7 +5991,7 @@ function updateMessageSoundUI() {
     }
 }
 // ==========================================
-//  SAVED ITEMS SYSTEM LOGIC
+// 🚀 SAVED ITEMS SYSTEM LOGIC
 // ==========================================
 function openSavedItems() {
     document.getElementById('saved-items-screen').style.display = 'block';
@@ -5999,7 +6006,7 @@ async function loadSavedPosts() {
     const container = document.getElementById('saved-posts-container');
     container.innerHTML = '<div style="text-align:center; padding: 40px; color: var(--text-muted);">Loading your saved posts...</div>';
 
-    // .         
+    // ১. চেক করা ইউজার কোনো পোস্ট সেভ করেছে কি না
     if (!currentUser || !currentUserData.savedPosts || currentUserData.savedPosts.length === 0) {
         container.innerHTML = `
             <div style="text-align:center; padding: 60px 20px; color: var(--text-muted);">
@@ -6012,19 +6019,19 @@ async function loadSavedPosts() {
     }
 
     try {
-        // .         
+        // ২. ফায়ারবেস থেকে সেভ করা পোস্টগুলোর আইডি দিয়ে ডাটা আনা
         const postPromises = currentUserData.savedPosts.map(id => db.collection('posts').doc(id).get());
         const postSnaps = await Promise.all(postPromises);
         
         let html = '';
         
-        // .    HTML  
+        // ৩. পোস্টগুলো লুপ করে HTML কার্ড বানানো
         for (let snap of postSnaps) {
             if (snap.exists) {
                 const p = snap.data();
                 p.id = snap.id;
                 
-                //    
+                // পোস্টদাতার ইনফরমেশন বের করা
                 let uName = 'Unknown User';
                 let uAv = '<span class="material-symbols-outlined" style="font-size:24px; color:white;">person</span>';
                 let uVer = false;
@@ -6038,7 +6045,7 @@ async function loadSavedPosts() {
                     }
                 }
                 
-                //   
+                // পোস্ট রেন্ডার করা
                 html += buildPostCardHTML(p, uAv, uName, uVer);
             }
         }
@@ -6054,23 +6061,23 @@ async function loadSavedPosts() {
     }
 }
 // ==========================================
-//  UNSAVE POST LOGIC
+// 🚀 UNSAVE POST LOGIC
 // ==========================================
 async function unsavePost(postId) {
     closeAllDropdowns();
     if (!currentUser || !currentUserData.savedPosts) return;
 
-    // .     
+    // ১. লোকাল ডাটাবেস থেকে রিমুভ করা
     currentUserData.savedPosts = currentUserData.savedPosts.filter(id => id !== postId);
     
     try {
-        // .     
+        // ২. ফায়ারবেস থেকে পার্মানেন্টলি রিমুভ করা
         await db.collection('users').doc(currentUser.uid).update({
             savedPosts: firebase.firestore.FieldValue.arrayRemove(postId)
         });
         showToast("Post removed from saved items!");
         
-        // .  :   'Saved Items'   ,          
+        // ৩. 🚀 ম্যাজিক: যদি ইউজার 'Saved Items' স্ক্রিনের ভেতরেই থাকে, তবে সাথে সাথে পেজ রিফ্রেশ হয়ে পোস্টটা গায়েব হয়ে যাবে
         const savedScreen = document.getElementById('saved-items-screen');
         if (savedScreen && savedScreen.style.display !== 'none') {
             loadSavedPosts();
@@ -6081,10 +6088,10 @@ async function unsavePost(postId) {
     }
 }
 // ==========================================
-//  CHAT WALLPAPER SYSTEM LOGIC
+// 🚀 CHAT WALLPAPER SYSTEM LOGIC
 // ==========================================
 function openWallpaperPicker() {
-    closeQuickProfile(); //    
+    closeQuickProfile(); // আগের পপআপটা বন্ধ করবে
     document.getElementById('wallpaper-modal').classList.add('open');
 }
 
@@ -6095,11 +6102,11 @@ function closeWallpaperPicker() {
 async function setChatWallpaper(color) {
     if (!currentUser || !currentChatId) return;
 
-    // .   
+    // ১. লোকাল ডাটা আপডেট
     if (!currentUserData.chatWallpapers) currentUserData.chatWallpapers = {};
     currentUserData.chatWallpapers[currentChatId] = color;
 
-    // . UI       (  )
+    // ২. UI তে সাথে সাথেই কালার পাল্টে যাবে (পেজ রিফ্রেশ ছাড়াই)
     const chatScreenEl = document.getElementById('chat-screen');
     const chatMessagesEl = document.getElementById('chat-messages');
     const wallpaperBg = document.getElementById('chat-wallpaper-bg');
@@ -6117,7 +6124,7 @@ async function setChatWallpaper(color) {
         chatMessagesEl.style.background = 'transparent';
     }
 
-    // .     (     )
+    // ৩. ফায়ারবেস ডাটাবেসে সেভ করা (যাতে শুধু এই ইউজারের কাছেই থাকে)
     try {
         await db.collection('users').doc(currentUser.uid).set({
             chatWallpapers: {
@@ -6130,10 +6137,10 @@ async function setChatWallpaper(color) {
         showToast("Failed to update wallpaper");
     }
     
-    closeWallpaperPicker(); //   
+    closeWallpaperPicker(); // মডাল বন্ধ করা
 }
 // ==========================================
-//  ADVANCED GROUP CHAT LOGIC (Members, Add, Remove, Leave)
+// 🚀 ADVANCED GROUP CHAT LOGIC (Members, Add, Remove, Leave)
 // ==========================================
 let activeGroupData = null;
 let activeGroupId = null;
@@ -6166,10 +6173,10 @@ async function loadGroupMembers() {
         document.getElementById('group-member-count').textContent = (activeGroupData.members || []).length;
         
         const members = activeGroupData.members || [];
-        const admins = activeGroupData.admins || [activeGroupData.admin]; //  3. Multiple Admins Support
+        const admins = activeGroupData.admins || [activeGroupData.admin]; // 🚀 3. Multiple Admins Support
         const isMeAdmin = admins.includes(currentUser.uid);
         
-        //     
+        // অ্যাডমিন হলে এডিট বাটন দেখাবে
         document.getElementById('group-avatar-edit-btn').style.display = isMeAdmin ? 'flex' : 'none';
         document.getElementById('group-name-edit-btn').style.display = isMeAdmin ? 'block' : 'none';
 
@@ -6184,7 +6191,7 @@ async function loadGroupMembers() {
             const isUserAdmin = admins.includes(uid);
             let roleBadge = '';
             if(isUserAdmin) {
-                roleBadge = '<span style="font-size:10px; background:var(--accent); color:white; padding:3px 8px; border-radius:12px; margin-left:8px; font-weight:bold;">Admin </span>';
+                roleBadge = '<span style="font-size:10px; background:var(--accent); color:white; padding:3px 8px; border-radius:12px; margin-left:8px; font-weight:bold;">Admin 👑</span>';
             } else if (uid === currentUser.uid) {
                 roleBadge = '<span style="font-size:10px; background:var(--surface-2); color:var(--text); padding:3px 8px; border-radius:12px; margin-left:8px; border: 1px solid var(--border);">You</span>';
             }
@@ -6219,14 +6226,14 @@ async function loadGroupMembers() {
 async function removeGroupMember(uid, name) {
     if(!confirm(`Are you sure you want to remove ${name} from the group?`)) return;
     try {
-        //     
+        // ফায়ারবেস থেকে মেম্বার রিমুভ করা
         await db.collection('chats').doc(activeGroupId).update({
             members: firebase.firestore.FieldValue.arrayRemove(uid),
             lastMsg: `${name} was removed by Admin`,
             lastAt: firebase.firestore.FieldValue.serverTimestamp()
         });
         showToast("Member removed!");
-        loadGroupMembers(); //  
+        loadGroupMembers(); // লিস্ট রিফ্রেশ
     } catch(e) { showToast("Error removing member"); }
 }
 
@@ -6254,7 +6261,7 @@ async function openAddGroupMemberUI() {
     const friends = currentUserData.friends || [];
     const currentMembers = activeGroupData.members || [];
     
-    //          
+    // যারা অলরেডি গ্রুপে আছে তাদের বাদ দিয়ে ফ্রেন্ড লিস্ট বানানো
     const availableFriends = friends.filter(fId => !currentMembers.includes(fId));
     
     if(availableFriends.length === 0) {
@@ -6303,7 +6310,7 @@ async function confirmAddGroupMembers() {
     btn.disabled = true;
     
     try {
-        //       
+        // নির্বাচিত সব ফ্রেন্ডকে একবারে গ্রুপে অ্যাড করা
         await db.collection('chats').doc(activeGroupId).update({
             members: firebase.firestore.FieldValue.arrayUnion(...newMembersToGroup),
             lastMsg: `${currentUserData.name} added new members`,
@@ -6311,7 +6318,7 @@ async function confirmAddGroupMembers() {
         });
         showToast("Members added successfully!");
         document.getElementById('add-group-member-ui').style.display = 'none';
-        loadGroupMembers(); //    
+        loadGroupMembers(); // মেম্বার লিস্ট রিফ্রেশ করা
     } catch(e) {
         showToast("Error adding members");
     } finally {
@@ -6320,7 +6327,7 @@ async function confirmAddGroupMembers() {
     }
 }
 // ==========================================
-//  NEW GROUP FEATURES (Edit, Admins, Media, Pin, Mention)
+// 🚀 NEW GROUP FEATURES (Edit, Admins, Media, Pin, Mention)
 // ==========================================
 
 async function updateGroupAvatar(input) {
@@ -6399,7 +6406,7 @@ async function toggleGroupMedia() {
     } catch(e) { grid.innerHTML = '<div style="grid-column:1/-1; text-align:center; font-size:12px; color:var(--danger);">Error loading media</div>'; }
 }
 
-//      (Event Listener)
+// 🚀 চ্যাট ইনপুটে মেনশন সাপোর্ট (Event Listener)
 document.addEventListener('DOMContentLoaded', () => {
   const chatInputBox = document.getElementById('chat-input');
   if (chatInputBox) {
@@ -6421,14 +6428,14 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 });
-//  Click to Scroll and Highlight Message
+// 🚀 Click to Scroll and Highlight Message
 function scrollToMessage(msgId) {
     const targetMsg = document.querySelector(`.chat-bubble-wrapper[data-msgid="${msgId}"] .chat-bubble`);
     if(targetMsg) {
-        //   
+        // মেসেজে স্ক্রল করবে
         targetMsg.scrollIntoView({ behavior: 'smooth', block: 'center' });
         
-        //   
+        // চমৎকার হাইলাইট ইফেক্ট
         const originalBg = targetMsg.style.background;
         const originalShadow = targetMsg.style.boxShadow;
         
@@ -6445,7 +6452,7 @@ function scrollToMessage(msgId) {
     }
 }
 
-//  Advanced Privacy Logic
+// 🚀 Advanced Privacy Logic
 let isAdvancedPrivacyOn = false;
 
 function openAdvancedPrivacy() {
@@ -6463,26 +6470,26 @@ async function toggleAdvancedPrivacy() {
     if (!currentChatId) return;
     
     const toggle = document.getElementById('advanced-privacy-toggle');
-    //      
+    // চেক করবে বর্তমানে অন নাকি অফ
     const isCurrentlyOn = toggle.classList.contains('active');
     const newStatus = !isCurrentlyOn;
 
     try {
-        // .    
+        // ১. ডাটাবেসে স্ট্যাটাস আপডেট করা
         await db.collection('chats').doc(currentChatId).set({
             advancedPrivacy: newStatus
         }, { merge: true });
 
-        // .     
+        // ২. টগল বাটনের কালার চেঞ্জ করা
         if (newStatus) {
             toggle.classList.add('active');
-            showToast(" Advanced Privacy ON");
+            showToast("🔒 Advanced Privacy ON");
         } else {
             toggle.classList.remove('active');
-            showToast(" Advanced Privacy OFF");
+            showToast("🔓 Advanced Privacy OFF");
         }
 
-        // .     / 
+        // . চ্যাট স্ক্রিনে প্রোটেকশন ক্লাস যোগ/রিমুভ করা
         const chatMessagesEl = document.getElementById('chat-messages');
         if (chatMessagesEl) {
             if (newStatus) {
@@ -6653,41 +6660,41 @@ document.addEventListener('DOMContentLoaded', () => {
     renderMainActivities();
 });
 // ==========================================
-//  PRIVATE CHAT SYSTEM LOGIC
+// 🚀 PRIVATE CHAT SYSTEM LOGIC
 // ==========================================
 
-// .      ""    
+// . অ্যাপ লোড হওয়ার সাথে সাথে "ঝামেলা" মেসেজ ক্লিন করার ফাংশন
 async function cleanupPrivateChatsOnLoad() {
     if (!currentUser) return;
     try {
-        //             
+        // নিজের ইউজার ডাটা থেকে কোন চ্যাটগুলোতে প্রাইভেট মোড চালু ছিল তা চেক করা
         const activePrivateChats = currentUserData.activePrivateChats || [];
         
         if (activePrivateChats.length > 0) {
-            console.log(" Cleaning up", activePrivateChats.length, "private chat sessions...");
+            console.log("🧹 Cleaning up", activePrivateChats.length, "private chat sessions...");
             
             const batch = db.batch();
             let cleanedCount = 0;
 
             for (const chatId of activePrivateChats) {
-                //       
+                // ওই চ্যাটের সব মেসেজ খুঁজে বের করা
                 const messagesRef = db.collection('chats').doc(chatId).collection('messages');
                 const snap = await messagesRef.get();
                 
-                //        
+                // ব্যাচে সব মেসেজ ডিলিট করার জন্য যোগ করা
                 snap.forEach(doc => {
                     batch.delete(doc.ref);
                     cleanedCount++;
                 });
             }
 
-            //     
+            // একসাথে সব ডিলিট কমিট করা
             if (cleanedCount > 0) {
                 await batch.commit();
-                console.log(` Successfully deleted ${cleanedCount} private messages.`);
+                console.log(`✅ Successfully deleted ${cleanedCount} private messages.`);
             }
 
-            // .   "Active Private Chats"         
+            // ৩. ডাটাবেস থেকে "Active Private Chats" লিস্টটাও ক্লিয়ার করা যাতে পরবর্তী লোডে আবার না আসে
             await db.collection('users').doc(currentUser.uid).update({
                 activePrivateChats: [] 
             });
@@ -6697,41 +6704,41 @@ async function cleanupPrivateChatsOnLoad() {
     }
 }
 
-// . Quick Profile   Private Chat   
+// ২. Quick Profile মডাল থেকে Private Chat টগল করার ফাংশন
 async function togglePrivateChatFromQP() {
     if (!currentChatId) return;
     
     const btnText = document.getElementById('qp-private-chat-text');
     const btn = document.getElementById('qp-private-chat-btn');
     
-    //          
+    // চেক করা এই চ্যাটে এখন প্রাইভেট মোড অন আছে কিনা
     const isCurrentlyPrivate = currentUserData.activePrivateChats?.includes(currentChatId);
     
     if (isCurrentlyPrivate) {
-        // --- MODE OFF:     ---
+        // --- MODE OFF: সব মেসেজ পার্মানেন্টলি ডিলিট ---
         if(!confirm("Turning OFF Private Chat will PERMANENTLY delete all messages in this chat from everyone's device and Firebase. Continue?")) return;
         
-        showToast(" Wiping private messages...");
+        showToast("️ Wiping private messages...");
         
         try {
-            // )   
+            // ক) সব মেসেজ ডিলিট
             const messagesRef = db.collection('chats').doc(currentChatId).collection('messages');
             const snap = await messagesRef.get();
             const batch = db.batch();
             snap.forEach(doc => batch.delete(doc.ref));
             await batch.commit();
             
-            // )       
+            // খ) লিস্ট থেকে এই চ্যাট আইডি রিমুভ করা
             await db.collection('users').doc(currentUser.uid).update({
                 activePrivateChats: firebase.firestore.FieldValue.arrayRemove(currentChatId)
             });
             
-            // ) UI 
+            // গ) UI আপডেট
             currentUserData.activePrivateChats = currentUserData.activePrivateChats.filter(id => id !== currentChatId);
             updatePrivateChatUI();
             showToast("Private Chat OFF. All messages deleted.");
             
-            // )   
+            // ঘ) চ্যাট স্ক্রিন রিফ্রেশ
             if(document.getElementById('chat-screen').classList.contains('open')) {
                 openChat(currentChatId, currentChatOtherUid, document.getElementById('chat-name-display').textContent, '');
             }
@@ -6742,7 +6749,7 @@ async function togglePrivateChatFromQP() {
         }
         
     } else {
-        // --- MODE ON:     ---
+        // --- MODE ON: শুধু ট্র্যাক করা শুরু ---
         try {
             await db.collection('users').doc(currentUser.uid).update({
                 activePrivateChats: firebase.firestore.FieldValue.arrayUnion(currentChatId)
@@ -6759,7 +6766,7 @@ async function togglePrivateChatFromQP() {
     closeQuickProfile();
 }
 
-// .       
+// ৩. বাটনের টেক্সট ও স্টাইল আপডেট করার ফাংশন
 function updatePrivateChatUI() {
     const btnText = document.getElementById('qp-private-chat-text');
     const btn = document.getElementById('qp-private-chat-btn');
@@ -6780,10 +6787,10 @@ function updatePrivateChatUI() {
     }
 }
 // ==========================================
-//  FIX: QUICK REPLY POPUP STICKY & SEND LOGIC
+// 🚀 FIX: QUICK REPLY POPUP STICKY & SEND LOGIC
 // ==========================================
 document.addEventListener('DOMContentLoaded', () => {
-    //        "" 
+    // প্রতিবার নতুন পপআপ তৈরি হলে ইনপুট বক্সকে "স্টিকি" করা
     const observer = new MutationObserver(() => {
         const activePopup = document.querySelector('.msg-popup');
         if (activePopup) {
@@ -6791,29 +6798,29 @@ document.addEventListener('DOMContentLoaded', () => {
             const sendBtn = activePopup.querySelector('button');
             
             if (input && !input.dataset.fixed) {
-                // .      
+                // ১. ক্লিক করলে পপআপ বন্ধ হবে না
                 input.onclick = (e) => e.stopPropagation();
                 input.onmousedown = (e) => e.stopPropagation();
                 input.ontouchstart = (e) => e.stopPropagation();
                 input.dataset.fixed = "true";
                 
-                // .       
+                // ২. ইনপুটে ফোকাস আসলে অটোমেটিক কিবোর্ড ওপেন হবে
                 setTimeout(() => input.focus(), 100);
             }
 
-            // .      
+            // . সেন্ড বাটনে ক্লিক করলে রিপ্লাই পাঠানো
             if (sendBtn && !sendBtn.dataset.fixed) {
                 sendBtn.onclick = (e) => {
-                    e.stopPropagation(); //    
+                    e.stopPropagation(); // পপআপ বন্ধ হবে না
                     const text = input.value.trim();
                     if (!text || !currentUser) return;
                     
-                    //         
+                    // পপআপ থেকে চ্যাট আইডি এবং ইউজার আইডি বের করা
                     const popupId = activePopup.id.replace('popup-', '');
                     const parts = popupId.split('_');
                     const otherUid = parts[0] === currentUser.uid ? parts[1] : parts[0];
                     
-                    //  
+                    // মেসেজ পাঠানো
                     db.collection('chats').doc(popupId).collection('messages').add({
                         uid: currentUser.uid,
                         senderName: currentUserData.name || 'User',
@@ -6829,14 +6836,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     }, { merge: true });
                     
                     showToast("Reply sent!");
-                    activePopup.remove(); //     
+                    activePopup.remove(); // পাঠানোর পর পপআপ মুছে যাবে
                 };
                 sendBtn.dataset.fixed = "true";
             }
         }
     });
     
-    //    
+    // স্ক্রিনের পরিবর্তন ট্র্যাক করা
     observer.observe(document.body, { childList: true, subtree: true });
 });
 // ==========================================
@@ -6944,7 +6951,7 @@ function renderAdvancedTimeChart() {
     container.innerHTML = html;
 }
 // ==========================================
-//  SUPPORT PAGE LOGIC
+// 🚀 SUPPORT PAGE LOGIC
 // ==========================================
 function openSupportPage() {
     document.getElementById('support-screen').style.display = 'flex';
@@ -6954,14 +6961,14 @@ function closeSupportPage() {
     document.getElementById('support-screen').style.display = 'none';
 }
 // ==========================================
-//  CHAT PRIVACY SYSTEM LOGIC
+// 🚀 CHAT PRIVACY SYSTEM LOGIC
 // ==========================================
 
-// .    
+// ১. পেজ ওপেন করার ফাংশন
 function openChatPrivacyPage() {
     document.getElementById('chat-privacy-screen').style.display = 'flex';
     
-    //    
+    // বর্তমান সেটিং লোড করা
     const currentSetting = currentUserData.chatPrivacy || 'public';
     if(currentSetting === 'following') {
         document.getElementById('opt-following').checked = true;
@@ -6970,12 +6977,12 @@ function openChatPrivacyPage() {
     }
 }
 
-// .    
+// ২. পেজ ক্লোজ করার ফাংশন
 function closeChatPrivacyPage() {
     document.getElementById('chat-privacy-screen').style.display = 'none';
 }
 
-// .    
+// ৩. সেটিং সেভ করার ফাংশন
 async function saveChatPrivacy() {
     const selectedOption = document.querySelector('input[name="chat-privacy"]:checked').value;
     
@@ -6986,7 +6993,7 @@ async function saveChatPrivacy() {
             chatPrivacy: selectedOption
         });
         
-        //   
+        // লোকাল ডাটা আপডেট
         currentUserData.chatPrivacy = selectedOption;
         
         showToast(`Chat privacy set to: ${selectedOption === 'public' ? 'Public' : 'Those I follow'}`);
@@ -6997,26 +7004,26 @@ async function saveChatPrivacy() {
     }
 }
 // ==========================================
-//  MENU SETTINGS SEARCH LOGIC
+// 🚀 MENU SETTINGS SEARCH LOGIC
 // ==========================================
 function filterMenuSettings(query) {
-    const menuContainer = document.querySelector('#main-menu-screen .settings-list-item'); //   (Elite GoChat)
+    const menuContainer = document.querySelector('#main-menu-screen .settings-list-item'); // প্রথম আইটেম (Elite GoChat)
     if (!menuContainer) return;
     
-    //     (Log out )
+    // মেনুর সব আইটেম ধরা (Log out বাদে)
     const allItems = Array.from(document.querySelectorAll('#main-menu-screen .settings-list-item'));
     const lowerQuery = query.toLowerCase().trim();
     
-    //     ,  
+    // যদি সার্চ বক্স খালি থাকে, সব দেখাবে
     if (lowerQuery === '') {
         allItems.forEach(item => item.style.display = 'flex');
-        // - (Settings & Privacy)     
+        // সাব-মেনু (Settings & Privacy) ওপেন থাকলে সেটাও রিসেট করা
         const subMenu = document.getElementById('settings-sub-menu');
         if(subMenu) subMenu.style.display = 'none'; 
         return;
     }
 
-    //  
+    // সার্চ লজিক
     let foundAny = false;
     allItems.forEach(item => {
         const text = item.innerText.toLowerCase();
@@ -7024,7 +7031,7 @@ function filterMenuSettings(query) {
             item.style.display = 'flex';
             foundAny = true;
             
-            //  "Settings & Privacy"      ,  -  
+            // যদি "Settings & Privacy" এর ভেতরের কোনো আইটেম ম্যাচ করে, তবে সাব-মেনু ওপেন করা
             if (item.closest('#settings-sub-menu') && document.getElementById('settings-sub-menu')) {
                 document.getElementById('settings-sub-menu').style.display = 'flex';
                 document.getElementById('settings-arrow').textContent = 'expand_less';
@@ -7034,13 +7041,13 @@ function filterMenuSettings(query) {
         }
     });
 
-    //      ,    ()
+    // যদি কোনো ম্যাচ না পাওয়া যায়, একটি মেসেজ দেখানো (অপশনাল)
     if (!foundAny) {
-        //     "No results found"    
+        // আপনি চাইলে এখানে একটি "No results found" মেসেজ যোগ করতে পারেন
     }
 }
 // ==========================================
-//  ELITE APP SYSTEM V2.0
+// 🚀 ELITE APP SYSTEM V2.0
 // ==========================================
 let currentAppStep = 1;
 
@@ -7062,11 +7069,11 @@ function nextAppStep(step) {
         const wp = document.getElementById('app-wp').value.trim();
         
         if(!name || !username || !email || !wp) {
-            showToast(" Please fill all required fields!");
+            showToast("⚠️ Please fill all required fields!");
             return;
         }
         if(!email.includes('@') || !email.includes('.')) {
-            showToast(" Please enter a valid email address!");
+            showToast("⚠️ Please enter a valid email address!");
             return;
         }
     }
@@ -7099,11 +7106,11 @@ function resetAppForm() {
 async function submitEliteApplication() {
     const facePhoto = document.getElementById('app-face-photo').files[0];
     if(!facePhoto) {
-        showToast(" Please upload your selfie to finish!");
+        showToast("⚠️ Please upload your selfie to finish!");
         return;
     }
 
-    showToast(" Preparing application...");
+    showToast("🚀 Preparing application...");
     closeEliteAppModal();
 
     const name = document.getElementById('app-name').value.trim();
@@ -7112,28 +7119,28 @@ async function submitEliteApplication() {
     const wpNumber = document.getElementById('app-wp').value.trim();
     
     // Formatted Message for WhatsApp
-    let msg = `* NEW ELITE APPLICATION *\n\n`;
-    msg += ` *Name:* ${name}\n`;
+    let msg = `* NEW ELITE APPLICATION 🔥*\n\n`;
+    msg += `👤 *Name:* ${name}\n`;
     msg += ` *Username:* @${username}\n`;
-    msg += ` *Email:* ${email}\n`;
-    msg += ` *WhatsApp:* ${wpNumber}\n`;
-    msg += ` *Date:* ${new Date().toLocaleString()}\n\n`;
+    msg += `📧 *Email:* ${email}\n`;
+    msg += `📱 *WhatsApp:* ${wpNumber}\n`;
+    msg += `📅 *Date:* ${new Date().toLocaleString()}\n\n`;
     msg += `_Please verify within 72 hours._`;
 
-    const targetPhone = "8801948303440"; //  
+    const targetPhone = "8801948303440"; // আপনার নাম্বার
     const waLink = `https://wa.me/${targetPhone}?text=${encodeURIComponent(msg)}`;
 
     window.open(waLink, '_blank');
-    showToast(" Application sent to WhatsApp!");
+    showToast("✅ Application sent to WhatsApp!");
 }
 // ==========================================
-//  FIXED & MODERN USERNAME SETTINGS V3.0
+// 🚀 FIXED & MODERN USERNAME SETTINGS V3.0
 // ==========================================
 
 function openUsernameSettings() {
     openProfileEdit();
     
-    // .  :       
+    // . ডুপ্লিকেশন রোধ: আগে থেকে কোনো ইনপুট থাকলে মুছে ফেলা
     const existingWrapper = document.getElementById('modern-username-wrapper');
     if(existingWrapper) existingWrapper.remove();
     
@@ -7144,7 +7151,7 @@ function openUsernameSettings() {
     const nameInputContainer = document.getElementById('edit-name')?.parentElement;
     
     if(editScreen && nameInputContainer) {
-        // .     (   )
+        // . নতুন আধুনিক ইনপুট তৈরি (নিচের ফিল্ডগুলোর মতো স্টাইল)
         const wrapper = document.createElement('div');
         wrapper.id = 'modern-username-wrapper';
         wrapper.style.marginBottom = '16px';
@@ -7164,13 +7171,13 @@ function openUsernameSettings() {
             </div>
         `;
         
-        //     
+        // নামের ইনপুটের ঠিক পরে বসানো
         nameInputContainer.insertAdjacentElement('afterend', wrapper);
         
-        //      
+        // ৭ দিনের চেক ও টাইমার দেখানো
         checkUsernameCooldownV3();
 
-        // - 
+        // রিয়েল-টাইম ভ্যালিডেশন
         const inputEl = document.getElementById('modern-username-input');
         inputEl.addEventListener('input', (e) => {
             const val = e.target.value;
@@ -7187,7 +7194,7 @@ function openUsernameSettings() {
     }
 }
 
-// .    ( )
+// ২. আপডেটেড কুলডাউন চেক (ডুপ্লিকেশন ছাড়া)
 function checkUsernameCooldownV3() {
     const msgContainer = document.querySelector('.username-status-msg');
     if(!msgContainer) return;
@@ -7198,7 +7205,7 @@ function checkUsernameCooldownV3() {
         if(daysPassed < 7) {
             const daysLeft = Math.ceil(7 - daysPassed);
             
-            //     
+            // মেসেজটি লাল ব্যাজে পরিবর্তন করা
             msgContainer.style.background = 'rgba(239, 68, 68, 0.1)';
             msgContainer.style.color = '#ef4444';
             msgContainer.style.padding = '8px 12px';
@@ -7209,7 +7216,7 @@ function checkUsernameCooldownV3() {
                 Change available in ${daysLeft} day${daysLeft > 1 ? 's' : ''}
             `;
             
-            //   
+            // ইনপুট ডিজেবল করা
             const input = document.getElementById('modern-username-input');
             if(input) {
                 input.disabled = true;
@@ -7220,8 +7227,8 @@ function checkUsernameCooldownV3() {
     }
 }
 
-// . Search Users  Username   
-//  existing searchUsers()   users.forEach     
+// ৩. Search Users ফাংশনে Username সাপোর্ট যোগ করা
+// আপনার existing searchUsers() ফাংশনের ভেতরে users.forEach লুপের আগে এই লজিক বসান
 const originalSearchUsers = window.searchUsers;
 window.searchUsers = async function() {
     clearTimeout(searchTimeout);
@@ -7234,15 +7241,15 @@ window.searchUsers = async function() {
         const users = await fetchAllUsers();
         let html = '';
         
-        //       
+        // নাম এবং ইউজারনেম দুটো দিয়েই সার্চ হবে
         users.forEach(u => {
             const uId = u.id;
             const matchesName = (u.name || '').toLowerCase().includes(q);
             const matchesUsername = (u.username || '').toLowerCase().includes(q);
             
             if(matchesName || matchesUsername) {
-                // ...  existing user rendering code here ...
-                // :
+                // ... আপনার existing user rendering code here ...
+                // উদাহরণস্বরূপ:
                 const safeName = escapeHTML(u.name);
                 const avHtml = u.avatar ? `<img src="${u.avatar}">` : avatarInitial(u.name);
                 html += `<div class="msg-item" onclick="addToRecentSearches('${uId}'); viewUserProfile('${uId}')">
@@ -7257,11 +7264,11 @@ window.searchUsers = async function() {
     }, 300);
 };
 
-// . Copy Profile Link  Username  
-//  existing copyProfileLink()      
+// ৪. Copy Profile Link এ Username যুক্ত করা
+// আপনার existing copyProfileLink() ফাংশনটি এই কোড দিয়ে রিপ্লেস করুন
 window.copyProfileLink = function() {
     const username = currentUserData.username;
-    //       ,   UID 
+    // যদি ইউজারনেম থাকে তবে সেটা দিয়ে লিংক, না থাকলে UID দিয়ে
     const profileLink = username 
         ? `https://go-chat-zyp2.vercel.app/?user=${username}` 
         : `https://go-chat-zyp2.vercel.app/?user=${currentUser.uid}`;
@@ -7274,14 +7281,14 @@ window.copyProfileLink = function() {
     });
 };
 // ==========================================
-//  CATEGORY SYSTEM LOGIC (Fast Filtering)
+// 🚀 CATEGORY SYSTEM LOGIC (Fast Filtering)
 // ==========================================
 let currentCategoryTab = 'all';
 
 function openCategoryScreen() {
-    closeMainMenu(); //   
+    closeMainMenu(); // মেনু বন্ধ করবে
     document.getElementById('category-screen').style.display = 'flex';
-    switchCategoryTab('all'); //  All   
+    switchCategoryTab('all'); // প্রথমে All ট্যাব লোড হবে
 }
 
 function closeCategoryScreen() {
@@ -7291,7 +7298,7 @@ function closeCategoryScreen() {
 function switchCategoryTab(tabName) {
     currentCategoryTab = tabName;
     
-    //   
+    // ট্যাবের রঙ পরিবর্তন
     const tabs = document.querySelectorAll('.cat-tab');
     tabs.forEach(t => t.classList.remove('active'));
     
@@ -7309,24 +7316,24 @@ async function loadCategoryPosts(tabName) {
     list.innerHTML = '<div class="loading" style="text-align:center; padding:40px; color:var(--text-muted);"><span class="material-symbols-outlined" style="animation: spin 1s linear infinite;">autorenew</span> Loading...</div>';
     
     try {
-        //      
+        // ফায়ারবেস থেকে লেটেস্ট ৫০টি পোস্ট আনবো
         const snap = await db.collection('posts').orderBy('createdAt', 'desc').limit(50).get();
         let posts = [];
         
-        //     
-        const funnyKeywords = ['', '', '', '', '', 'funny', 'laugh', 'haha', 'crazy', 'ridiculous', 'joy', 'happy', 'lmao', 'lol', 'silly'];
-        const sadKeywords = ['', '', '', '', '', 'sad', 'painful', 'broken', 'cry', 'depressed', 'hurt', 'pain', 'sorrow', 'alone'];
+        // 🚀 আমাদের স্মার্ট কিওয়ার্ড ডিটেক্টর
+        const funnyKeywords = ['😂', '😆', '🤣', '😜', '🤪', 'funny', 'laugh', 'haha', 'crazy', 'ridiculous', 'joy', 'happy', 'lmao', 'lol', 'silly'];
+        const sadKeywords = ['😢', '😭', '💔', '😔', '😞', 'sad', 'painful', 'broken', 'cry', 'depressed', 'hurt', 'pain', 'sorrow', 'alone'];
         
         snap.forEach(d => {
             const p = { id: d.id, ...d.data() };
             
-            //     /    
+            // পোস্টের টাইটেল এবং অ্যাক্টিভিটি ইমোজি/টেক্সট একসাথে মিলিয়ে চেক করবো
             const fullText = ((p.title || '') + ' ' + (p.activity ? p.activity.text + ' ' + p.activity.icon : '')).toLowerCase();
             
             let isFunny = funnyKeywords.some(kw => fullText.includes(kw));
             let isSad = sadKeywords.some(kw => fullText.includes(kw));
             
-            //  
+            // ফিল্টারিং ম্যাজিক
             if (tabName === 'all') {
                 posts.push(p);
             } else if (tabName === 'ridiculous' && isFunny) {
@@ -7336,11 +7343,11 @@ async function loadCategoryPosts(tabName) {
             }
         });
         
-        //      
+        // মিউট করা ইউজারদের পোস্ট বাদ দেওয়া
         const mutedList = currentUserData?.mutedFeedUsers || [];
         posts = posts.filter(p => !mutedList.includes(p.uid));
         
-        //       
+        // যদি ওই ক্যাটাগরিতে কোনো পোস্ট না থাকে
         if (posts.length === 0) {
             list.innerHTML = `<div style="text-align:center; padding: 60px 20px; color: var(--text-muted);">
                 <span class="material-symbols-outlined" style="font-size: 60px; margin-bottom:15px; opacity:0.3;">inbox</span>
@@ -7350,7 +7357,7 @@ async function loadCategoryPosts(tabName) {
             return;
         }
         
-        //    
+        // পোস্টগুলো স্ক্রিনে রেন্ডার করা
         list.innerHTML = posts.map(p => buildPostCardHTML(p)).join('');
         
     } catch (error) {
@@ -7359,7 +7366,7 @@ async function loadCategoryPosts(tabName) {
     }
 }
 // ==========================================
-//  NEW: ADVANCED VOICE RECORDING SYSTEM
+// 🚀 NEW: ADVANCED VOICE RECORDING SYSTEM
 // ==========================================
 let mediaRecorder;
 let audioChunks = [];
@@ -7377,27 +7384,27 @@ async function startVoiceRecord() {
         };
 
         mediaRecorder.onstop = async () => {
-            //    
+            // মাইক এক্সেস বন্ধ করা
             stream.getTracks().forEach(track => track.stop());
             
-            //    ,     
+            // যদি ক্যান্সেল করা হয়, তবে অডিও আপলোড হবে না
             if (audioChunks.length === 0) return;
             
             const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
             await uploadAndSendVoice(audioBlob);
         };
 
-        //   
+        // রেকর্ডিং শুরু করা
         mediaRecorder.start();
         
-        // UI   (    )
+        // UI পরিবর্তন করা (বক্স হাইড করে টাইমার দেখানো)
         document.getElementById('chat-input').style.display = 'none';
         document.getElementById('voice-start-btn').style.display = 'none';
         document.getElementById('image-upload-btn').style.display = 'none';
         document.getElementById('text-send-btn').style.display = 'none';
         document.getElementById('recording-ui').style.display = 'flex';
         
-        //  
+        // টাইমার শুরু
         recordSeconds = 0;
         document.getElementById('record-time').textContent = "00:00";
         recordInterval = setInterval(() => {
@@ -7415,7 +7422,7 @@ async function startVoiceRecord() {
 
 function cancelVoiceRecord() {
     if (mediaRecorder && mediaRecorder.state !== "inactive") {
-        audioChunks = []; //      onstop   
+        audioChunks = []; // অ্যারে ফাঁকা করে দেওয়া যাতে onstop আপলোড না করে
         mediaRecorder.stop();
     }
     resetRecordUI();
@@ -7424,7 +7431,7 @@ function cancelVoiceRecord() {
 
 function sendVoiceRecord() {
     if (mediaRecorder && mediaRecorder.state !== "inactive") {
-        mediaRecorder.stop(); //  onstop      
+        mediaRecorder.stop(); // এটি onstop ট্রিগার করবে এবং অডিও সেন্ড হবে
     }
     resetRecordUI();
 }
@@ -7442,7 +7449,7 @@ async function uploadAndSendVoice(audioBlob) {
     if (!currentChatId || !checkRateLimit()) return;
     showToast("Sending voice message...");
     
-    // Cloudinary   (Cloudinary   /video/upload   )
+    // Cloudinary তে আপলোড (Cloudinary অডিওর জন্য /video/upload এন্ডপয়েন্ট ব্যবহার করে)
     const formData = new FormData();
     formData.append('file', audioBlob, 'voicemsg.webm');
     formData.append('upload_preset', 'gochat'); 
@@ -7457,20 +7464,20 @@ async function uploadAndSendVoice(audioBlob) {
         
         const audioUrl = data.secure_url;
         
-        //    
+        // ফায়ারবেস ডাটাবেসে সেভ করা
         const msgData = {
             uid: currentUser.uid,
             senderName: currentUserData.name || 'User',
             text: '',
-            audioUrl: audioUrl, //   
+            audioUrl: audioUrl, // নতুন অডিও ফিল্ড
             createdAt: firebase.firestore.FieldValue.serverTimestamp()
         };
 
-        //      
+        // যদি কোনো মেসেজের রিপ্লাই হিসেবে দেয়
         if(currentReplyMsgId && replyToMsgData){
             msgData.replyTo = currentReplyMsgId;
             msgData.replySender = replyToMsgData.senderName || 'User';
-            msgData.replyText = replyToMsgData.text || (replyToMsgData.audioUrl ? ' Voice Message' : ' Photo');
+            msgData.replyText = replyToMsgData.text || (replyToMsgData.audioUrl ? '🎤 Voice Message' : '📷 Photo');
             
             currentReplyMsgId = null;
             replyToMsgData = null;
@@ -7480,7 +7487,7 @@ async function uploadAndSendVoice(audioBlob) {
 
         await db.collection('chats').doc(currentChatId).collection('messages').add(msgData);
 
-        let lastText = ' Voice Message';
+        let lastText = '🎤 Voice Message';
         if (currentChatOtherUid === 'group') {
             lastText = (currentUserData.name || 'User') + " sent a voice message";
         }
@@ -7500,26 +7507,26 @@ async function uploadAndSendVoice(audioBlob) {
 }
 
 // ==========================================
-//  SMART BACK BUTTON & HISTORY MANAGER
+// 🚀 SMART BACK BUTTON & HISTORY MANAGER
 // ==========================================
 let backPressTimer = null;
 
-//        
+// শুরুতে একটা ডামি হিস্ট্রি পুশ করে রাখা হলো
 history.pushState({ page: 'gochat_home' }, "", window.location.href);
 
 window.addEventListener('popstate', function(event) {
-    //       ,    
+    // যদি কোনো স্ক্রিন বা মডাল ওপেন থাকে, তবে সেটা ক্লোজ হবে
     if (closeTopMostView()) {
-        //         
+        // বের হওয়া ঠেকাতে আবার হিস্ট্রি পুশ করে দেওয়া হলো
         history.pushState({ page: 'gochat_home' }, "", window.location.href);
     } else {
-        //     ,     
+        // যদি ইউজার মেইন ফিডে থাকে, তখন ডাবল ট্যাপ এক্সিট লজিক
         if (backPressTimer) {
             clearTimeout(backPressTimer);
-            //       ( popstate     )
+            // দ্বিতীয়বার চাপলে সত্যি বের হয়ে যাবে (ইতিমধ্যেই popstate হয়ে এক ধাপ পিছনে গেছে)
         } else {
             showToast("Press back again to exit");
-            //         
+            // ভুল করে বের হওয়া ঠেকাতে আবার পুশ করা হলো
             history.pushState({ page: 'gochat_home' }, "", window.location.href);
             backPressTimer = setTimeout(() => {
                 backPressTimer = null;
@@ -7528,17 +7535,17 @@ window.addEventListener('popstate', function(event) {
     }
 });
 
-//                 
+// 🚀 এই ফাংশনটি চেক করবে স্ক্রিনে এই মুহূর্তে কী ওপেন আছে এবং সবচেয়ে ওপরের জিনিসটা বন্ধ করবে
 function closeTopMostView() {
-    // . Full Screen Image Zoom
+    // ১. Full Screen Image Zoom
     const imageZoom = document.getElementById('image-zoom-modal');
     if (imageZoom && imageZoom.classList.contains('open')) { closeImageZoom(); return true; }
 
-    // . Story Viewer
+    // ২. Story Viewer
     const storyViewer = document.getElementById('story-viewer');
     if (storyViewer && storyViewer.classList.contains('open')) { closeStory(); return true; }
 
-    // . Bottom Sheets / Action Modals
+    // ৪. Bottom Sheets / Action Modals
     const deleteSheet = document.getElementById('delete-sheet-modal');
     if (deleteSheet && deleteSheet.classList.contains('open')) { closeDeleteSheet(); return true; }
     
@@ -7551,7 +7558,7 @@ function closeTopMostView() {
     const forwardModal = document.getElementById('forward-modal');
     if (forwardModal && forwardModal.classList.contains('open')) { closeForwardModal(); return true; }
 
-    // . Sub Screens (Chat, Profile, Post etc)
+    // ৫. Sub Screens (Chat, Profile, Post etc)
     const commentPanel = document.getElementById('comment-panel');
     if (commentPanel && commentPanel.classList.contains('open')) { closeCommentPanel(); return true; }
 
@@ -7570,7 +7577,7 @@ function closeTopMostView() {
     const groupInfo = document.getElementById('group-info-modal');
     if (groupInfo && groupInfo.style.display === 'flex') { closeGroupInfoModal(); return true; }
 
-    // . Settings & Menus
+    // ৬. Settings & Menus
     const editProfile = document.getElementById('edit-profile-screen');
     if (editProfile && editProfile.style.display === 'flex') { closeProfileEdit(); return true; }
 
@@ -7586,25 +7593,25 @@ function closeTopMostView() {
     const mainMenu = document.getElementById('main-menu-screen');
     if (mainMenu && mainMenu.style.display === 'flex') { closeMainMenu(); return true; }
 
-    // . Bottom Navigation Pages (Back to Feed)
+    // ৭. Bottom Navigation Pages (Back to Feed)
     const feedPage = document.getElementById('page-feed');
     if (feedPage && !feedPage.classList.contains('active')) {
         showPage('feed'); return true;
     }
 
-    //     false   (    )
+    // কিছু ওপেন না থাকলে false রিটার্ন করবে (অর্থাৎ ইউজার মেইন ফিডে আছে)
     return false;
 }
 // ==========================================
-//  ACCOUNT BINDING (LINKING) SYSTEM 
+// 🚀 ACCOUNT BINDING (LINKING) SYSTEM 🚀
 // ==========================================
 
-// . UI   
+// ১. UI রেন্ডার করার ফাংশন
 function renderLinkedAccountsUI() {
     const list = document.getElementById('linked-accounts-list');
     if (!list || !currentUser) return;
 
-    //          
+    // ইউজার কোন কোন অ্যাকাউন্টের সাথে যুক্ত আছে তা বের করা
     const providers = currentUser.providerData.map(p => p.providerId);
     const isGoogleLinked = providers.includes('google.com');
 
@@ -7625,16 +7632,16 @@ function renderLinkedAccountsUI() {
     `;
 }
 
-// . Google   (Link)  
+// ২. Google অ্যাকাউন্ট বাইন্ড (Link) করার ফাংশন
 async function bindGoogleAccount() {
     if(!checkRateLimit()) return;
     const provider = new firebase.auth.GoogleAuthProvider();
     try {
         showToast("Opening Google login...");
-        // -   
+        // পপ-আপের মাধ্যমে লিংক করা
         await currentUser.linkWithPopup(provider);
-        showToast("Google Account Linked Successfully! ");
-        renderLinkedAccountsUI(); // UI 
+        showToast("Google Account Linked Successfully! 🚀");
+        renderLinkedAccountsUI(); // UI আপডেট
     } catch (error) {
         console.error(error);
         if (error.code === 'auth/credential-already-in-use') {
@@ -7645,17 +7652,17 @@ async function bindGoogleAccount() {
     }
 }
 
-// .   (Unbind)  
+// ৩. অ্যাকাউন্ট আনলিংক (Unbind) করার ফাংশন
 async function unlinkAccount(providerId) {
     if(!confirm("Are you sure you want to unlink this account? You won't be able to quick-login with it anymore.")) return;
     try {
         showToast("Unlinking...");
         await currentUser.unlink(providerId);
         showToast("Account unlinked successfully.");
-        renderLinkedAccountsUI(); // UI 
+        renderLinkedAccountsUI(); // UI আপডেট
     } catch (error) {
         console.error(error);
-        //          ,     
+        // যদি পাসওয়ার্ড সেট না থাকে এবং একটাই লগইন অপশন থাকে, তবে আনলিংক করা যাবে না
         if (error.code === 'auth/no-such-provider') {
              showToast("Provider not found.");
         } else {
@@ -7663,27 +7670,27 @@ async function unlinkAccount(providerId) {
         }
     }
 }
-//  Settings & Privacy Search Function
+// 🚀 Settings & Privacy Search Function
 function filterPrivacySettings(query) {
     const lowerQuery = query.toLowerCase().trim();
     const listContainer = document.getElementById('privacy-settings-list');
     if (!listContainer) return;
 
-    //     
+    // লিস্টের সবগুলো আইটেম সিলেক্ট করা
     const items = listContainer.querySelectorAll('.settings-list-item');
     
     items.forEach(item => {
         const text = item.innerText.toLowerCase();
-        //        ,  ,  
+        // যদি সার্চ করা লেখাটি এই আইটেমের ভেতর থাকে, তবে দেখাবে, নাহলে লুকাবে
         if (text.includes(lowerQuery)) {
-            item.style.display = 'flex'; //   flex  flex  
+            item.style.display = 'flex'; // ডিফল্ট স্টাইল flex তাই flex দেওয়া হলো
         } else {
             item.style.display = 'none';
         }
     });
 }
 // ==========================================
-//  NOTIFICATION BATCH DELETE SYSTEM 
+// 🚀 NOTIFICATION BATCH DELETE SYSTEM 🚀
 // ==========================================
 let isNotifEditMode = false;
 let selectedNotifs = [];
@@ -7756,14 +7763,14 @@ async function deleteSelectedNotifs() {
     }
 }
 // ==========================================
-//  CATEGORY SYSTEM (REAL-TIME FIX) 
+// 🚀 CATEGORY SYSTEM (REAL-TIME FIX) 🚀
 // ==========================================
 let categoryUnsub = null;
 
 function openCategoryScreen() {
     closeMainMenu();
     document.getElementById('category-screen').style.display = 'flex';
-    //  'All'   
+    // ডিফল্টভাবে 'All' ট্যাব লোড হবে
     switchCategoryTab('all', document.querySelector('.cat-tab'));
 }
 
@@ -7776,7 +7783,7 @@ function closeCategoryScreen() {
 }
 
 function switchCategoryTab(catName, tabElement) {
-    //   (Active Color)  
+    // ট্যাবের ডিজাইন (Active Color) আপডেট করা
     if(tabElement) {
         document.querySelectorAll('.cat-tab').forEach(t => t.classList.remove('active'));
         tabElement.classList.add('active');
@@ -7785,28 +7792,28 @@ function switchCategoryTab(catName, tabElement) {
     const list = document.getElementById('category-posts-list');
     list.innerHTML = '<div class="loading" style="padding:40px 20px; text-align:center;"><span class="material-symbols-outlined" style="font-size:32px; animation:spin 1s linear infinite;">autorenew</span><br><br>Loading Posts...</div>';
 
-    //        (    )
+    // আগের কোনো লিসেনার চললে সেটা বন্ধ করা (যাতে ডাবল লোড না হয়)
     if (categoryUnsub) categoryUnsub();
 
-    //  -   (/    )
+    // 🚀 রিয়েল-টাইম ডাটাবেস লিসেনার (লাইক/কমেন্ট সাথে সাথে আপডেট হবে)
     categoryUnsub = db.collection('posts').orderBy('createdAt', 'desc').onSnapshot(snap => {
         let posts = [];
         
         snap.forEach(d => {
             let p = { id: d.id, ...d.data() };
             
-            //    
+            // ক্যাটাগরি অনুযায়ী ফিল্টার লজিক
             if (catName === 'all') {
                 posts.push(p);
             } else {
-                //   activity       
+                // পোস্টের ভেতর activity টেক্সট থাকলে সেটার সাথে মিলিয়ে দেখা হবে
                 if (p.activity && p.activity.text && p.activity.text.toLowerCase() === catName.toLowerCase()) {
                     posts.push(p);
                 }
             }
         });
 
-        //       ()
+        // মিউটেড ইউজারদের পোস্ট হাইড করার লজিক (প্রাইভেসি)
         const mutedList = currentUserData?.mutedFeedUsers || [];
         posts = posts.filter(p => !mutedList.includes(p.uid));
 
@@ -7815,36 +7822,36 @@ function switchCategoryTab(catName, tabElement) {
             return;
         }
 
-        //         
+        // মেইন ফিডের মতোই সেম কার্ড ডিজাইন দিয়ে রেন্ডার করা
         list.innerHTML = posts.map(p => buildPostCardHTML(p)).join('');
     });
 }
-//  Main Menu Search Function (Fixed)
+// 🚀 Main Menu Search Function (Fixed)
 function filterMenuSettings(query) {
     const lowerQuery = query.toLowerCase().trim();
     
-    //       
+    // মেইন মেনুর স্ক্রিনকে সরাসরি টার্গেট করা হচ্ছে
     const menuScreen = document.getElementById('main-menu-screen');
     if (!menuScreen) return;
 
-    //       ( .mi-done  )   
+    // মেইন মেনুর ভেতরের শুধুমাত্র মেইন আইটেমগুলোকে (যেগুলোতে .mi-done ক্লাস আছে) সিলেক্ট করা হচ্ছে
     const items = menuScreen.querySelectorAll('.settings-list-item.mi-done');
     
     items.forEach(item => {
-        //    (: Elite GoChat, Category, Saved )  
+        // আইটেমের ভেতরের টেক্সট (যেমন: Elite GoChat, Category, Saved ইত্যাদি) পড়া হচ্ছে
         const text = item.innerText.toLowerCase();
         
         if (text.includes(lowerQuery)) {
-            //   
+            // ম্যাচ করলে দেখাবে
             item.style.setProperty('display', 'flex', 'important');
         } else {
-            //     
+            // ম্যাচ না করলে লুকিয়ে ফেলবে
             item.style.setProperty('display', 'none', 'important');
         }
     });
 }
 // ==========================================
-//  PUSH NOTIFICATION (FCM) SETUP 
+// 🚀 PUSH NOTIFICATION (FCM) SETUP 🚀
 // ==========================================
 let messaging = null;
 
@@ -7856,7 +7863,7 @@ try {
     console.log("Firebase Messaging not supported in this environment:", e);
 }
 
-//       
+// ইউজারের কাছ থেকে নোটিফিকেশনের পারমিশন নেওয়ার ফাংশন
 async function requestPushNotificationPermission() {
     if (!messaging || !currentUser) return;
     
@@ -7865,14 +7872,14 @@ async function requestPushNotificationPermission() {
         if (permission === 'granted') {
             console.log('Notification permission granted.');
             
-            //      
-            // (:     Web Push Certificates (VAPID key)    )
+            // ফায়ারবেস ক্লাউড মেসেজিং টোকেন জেনারেট করা
+            // (নোট: এর জন্য ফায়ারবেস কনসোলে Web Push Certificates (VAPID key) পেয়ার সেটআপ থাকতে হবে)
             const token = await messaging.getToken({
-                vapidKey: 'YOUR_WEB_PUSH_VAPID_KEY_HERE' //       
+                vapidKey: 'YOUR_WEB_PUSH_VAPID_KEY_HERE' // চাইলে ফায়ারবেস কনসোল থেকে কি বসাতে পারেন
             });
             
             if (token) {
-                //      ,      
+                // টোকেনটি ইউজারের ডাটাবেসে সেভ করে রাখা, যাতে সার্ভার থেকে নোটিফিকেশন পাঠানো যায়
                 await db.collection('users').doc(currentUser.uid).set({
                     fcmToken: token
                 }, { merge: true });
@@ -7886,14 +7893,14 @@ async function requestPushNotificationPermission() {
     }
 }
 // ==========================================
-//  POST INSIGHTS SYSTEM
+// 📈 POST INSIGHTS SYSTEM
 // ==========================================
 
-// . Insights   (    )
+// ১. Insights মডাল ওপেন (শুধু নিজের পোস্টে কল হবে)
 async function openPostInsights(pid){
   closeAllDropdowns();
   const modal = document.getElementById('post-insights-modal');
-  //  
+  // লোডিং স্টেট
   document.getElementById('pi-metrics').innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:30px;color:var(--text-muted);">Loading insights...</div>';
   document.getElementById('pi-chart').innerHTML = '';
   document.getElementById('pi-engagement').innerHTML = '';
@@ -7907,7 +7914,7 @@ async function openPostInsights(pid){
     if(!doc.exists){ showToast("Post not found"); closePostInsights(); return; }
     const p = doc.data();
 
-    // :     
+    // নিরাপত্তা: শুধু নিজের পোস্টের ইনসাইট দেখাবে
     if(p.uid !== currentUser.uid){ showToast("You can only view your own insights"); closePostInsights(); return; }
 
     renderPostInsights(p);
@@ -7924,7 +7931,7 @@ function closePostInsights(){
   modal.style.display = 'none';
 }
 
-// .  
+// ২. ইনসাইট রেন্ডার
 function renderPostInsights(p){
   const views    = p.views || 0;
   const likes    = (p.likedBy && p.likedBy.length) || 0;
@@ -7933,11 +7940,11 @@ function renderPostInsights(p){
   const total    = likes + comments + shares;
   const engRate  = views > 0 ? ((total / views) * 100) : 0;
 
-  //  
-  document.getElementById('pi-post-title').textContent = p.title ? ('' + p.title + '') : '(Photo post)';
-  document.getElementById('pi-subtitle').textContent = 'Live performance  updated now';
+  // পোস্ট টাইটেল
+  document.getElementById('pi-post-title').textContent = p.title ? ('“' + p.title + '”') : '(Photo post)';
+  document.getElementById('pi-subtitle').textContent = 'Live performance • updated now';
 
-  //  
+  // মেট্রিক কার্ড
   const cards = [
     {ico:'visibility',  val:views,    lbl:'Views',    grad:'linear-gradient(135deg,#60a5fa,#2563eb)'},
     {ico:'favorite',    val:likes,    lbl:'Likes',    grad:'linear-gradient(135deg,#fb7185,#e11d48)'},
@@ -7951,15 +7958,15 @@ function renderPostInsights(p){
       <div class="pi-lbl">${c.lbl}</div>
     </div>`).join('');
 
-  //  
+  // এনগেজমেন্ট হাইলাইট
   const engColor = engRate >= 8 ? '#22c55e' : (engRate >= 3 ? '#f59e0b' : '#94a3b8');
-  const engMsg = engRate >= 8 ? ' Outstanding reach!' : (engRate >= 3 ? ' Performing well' : ' Try posting at peak hours');
+  const engMsg = engRate >= 8 ? '🔥 Outstanding reach!' : (engRate >= 3 ? '👍 Performing well' : '💡 Try posting at peak hours');
   document.getElementById('pi-engagement').innerHTML = `
     <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;">Engagement Rate</div>
     <div style="font-size:34px;font-weight:900;color:${engColor};margin:4px 0;">${engRate.toFixed(1)}%</div>
     <div style="font-size:12px;color:var(--text-secondary);">${engMsg}</div>`;
 
-  //  
+  // বার চার্ট
   const max = Math.max(views, likes, comments, shares, 1);
   const rows = [
     {lbl:'Views',    val:views,    col:'#3b82f6'},
@@ -7973,19 +7980,19 @@ function renderPostInsights(p){
       <div class="pi-bar-track"><div class="pi-bar-fill" data-w="${(r.val/max*100).toFixed(1)}" style="background:${r.col};"></div></div>
       <div class="pi-bar-num">${formatInsightNum(r.val)}</div>
     </div>`).join('');
-  //  
+  // অ্যানিমেটেড ফিল
   setTimeout(()=>{ document.querySelectorAll('#pi-chart .pi-bar-fill').forEach(b=> b.style.width = (b.dataset.w || 0) + '%'); }, 80);
 
-  //  
+  // এলিট সেকশন
   renderInsightsElitePanel(p, {views, likes, comments, shares, engRate});
 }
 
-// .   ( / )
+// ৩. এলিট প্যানেল (লক / আনলক)
 function renderInsightsElitePanel(p, m){
   const isElite = (currentUserData.isVerified === true) || (currentUserData.isElite === true);
   const box = document.getElementById('pi-elite-section');
 
-  //    computed  (fake )
+  // বাস্তব ডাটা থেকে computed রেটিও (fake না)
   const likeRate    = m.views ? (m.likes / m.views * 100) : 0;
   const commentRate = m.views ? (m.comments / m.views * 100) : 0;
   const shareRate   = m.views ? (m.shares / m.views * 100) : 0;
@@ -8014,7 +8021,7 @@ function renderInsightsElitePanel(p, m){
         </div>
       </div>
       <div style="margin-top:14px;font-size:12px;color:var(--text-secondary);line-height:1.5;background:var(--accent-glow);padding:10px 12px;border-radius:12px;">
-         ${likeRate > commentRate ? 'Your audience loves reacting  post more visual content!' : 'Strong conversations  ask questions to boost comments further.'}
+        💡 ${likeRate > commentRate ? 'Your audience loves reacting — post more visual content!' : 'Strong conversations — ask questions to boost comments further.'}
       </div>
     </div>`;
 
@@ -8053,13 +8060,13 @@ function formatInsightNum(n){
   return String(n);
 }
 
-// . View Tracking  openSinglePostView  wrap  (owner )  
+// ৪. View Tracking — openSinglePostView কে wrap করে (owner বাদে) ভিউ বাড়াবে
 (function patchViewTracking(){
   const _orig = window.openSinglePostView;
   if(typeof _orig !== 'function') return;
   window.openSinglePostView = function(pid, ...rest){
     const ret = _orig.apply(this, [pid, ...rest]);
-    //  session-     (honest unique-ish view)
+    // এক session-এ এক পোস্ট একবারই গণনা (honest unique-ish view)
     try{
       const flag = 'pi_viewed_' + pid;
       if(!sessionStorage.getItem(flag)){
@@ -8075,7 +8082,7 @@ function formatInsightNum(n){
   };
 })();
 // ==========================================
-//  SHARE POST TO CHAT LOGIC (COMPLETE & FIXED)
+// 🚀 SHARE POST TO CHAT LOGIC (COMPLETE & FIXED)
 // ==========================================
 let currentSharePostData = null;
 let allShareChats = []; 
@@ -8085,7 +8092,7 @@ function openShareModal(postId, postTitle, postImg) {
     document.getElementById('share-post-modal').classList.add('open');
     document.getElementById('share-chat-list').innerHTML = '<div class="loading" style="text-align:center; padding:20px; color:var(--text-muted);"><span class="material-symbols-outlined" style="animation: spin 1s linear infinite;">autorenew</span> Loading chats...</div>';
     
-    //       
+    // মডাল ওপেন হলেই চ্যাট লিস্ট লোড হবে
     loadShareChatList();
 }
 
@@ -8095,10 +8102,10 @@ function closeShareModal() {
     currentSharePostData = null;
 }
 
-//        (  )
+// 🚀 চ্যাট লিস্ট লোড করার আপডেট ফাংশন (লাইভ ছবি সহ)
 async function loadShareChatList() {
     const list = document.getElementById('share-chat-list');
-    if (!allUsersCache) await fetchAllUsers(); //       
+    if (!allUsersCache) await fetchAllUsers(); // ছবি আনার জন্য ডাটাবেস ক্যাশ লোড করা
     
     try {
         const snap = await db.collection('chats').get();
@@ -8127,7 +8134,7 @@ async function loadShareChatList() {
                     const otherUid = parts[0] === currentUser.uid ? parts[1] : parts[0];
                     const blockedUsers = currentUserData?.blockedUsers || [];
                     if (!blockedUsers.includes(otherUid)) {
-                        //       
+                        // 🚀 লাইভ ছবি এবং নাম আনা হচ্ছে
                         const liveUser = allUsersCache ? allUsersCache.find(u => u.id === otherUid) : null;
                         const finalAv = liveUser ? liveUser.avatar : (data.avatars?.[otherUid] || '');
                         const finalName = liveUser ? liveUser.name : (data.names?.[otherUid] || 'User');
@@ -8185,11 +8192,11 @@ function filterShareList(query) {
     renderShareChatList(filtered);
 }
 
-//       (   )
+// 🚀 ডেটাবেসে মেসেজ সেন্ড করার ফাংশন (শেয়ার কাউন্ট আপডেট সহ)
 async function sendSharedPost(chatId, otherUid, btn) {
     if (!currentSharePostData || !checkRateLimit()) return;
     
-    //   
+    // বাটন লোডিং হওয়া
     btn.disabled = true;
     btn.innerHTML = '<span class="material-symbols-outlined" style="font-size:16px; animation:spin 1s linear infinite;">autorenew</span>';
 
@@ -8206,9 +8213,9 @@ async function sendSharedPost(chatId, otherUid, btn) {
     try {
         await db.collection('chats').doc(chatId).collection('messages').add(msgData);
         
-        let lastText = " Shared a post";
+        let lastText = "🔗 Shared a post";
         if (otherUid === 'group') {
-            lastText = (currentUserData.name || 'User') + ":  Shared a post";
+            lastText = (currentUserData.name || 'User') + ": 🔗 Shared a post";
         }
 
         await db.collection('chats').doc(chatId).set({
@@ -8218,7 +8225,7 @@ async function sendSharedPost(chatId, otherUid, btn) {
             isRead: false
         }, { merge: true });
 
-        //   :     +1  
+        // 🚀 মেইন ম্যাজিক: ডেটাবেসে পোস্টের শেয়ার সংখ্যা +1 করে দেওয়া
         try {
             await db.collection('posts').doc(currentSharePostData.id).update({
                 shares: firebase.firestore.FieldValue.increment(1)
@@ -8227,7 +8234,7 @@ async function sendSharedPost(chatId, otherUid, btn) {
             console.log("Failed to update share count");
         }
 
-        //      Sent  
+        // সাকসেস হলে বাটন সবুজ হয়ে Sent লেখা আসবে
         btn.innerHTML = 'Sent <i class="ph-bold ph-check"></i>';
         btn.style.background = 'var(--success)';
         btn.style.color = '#fff';
@@ -8240,33 +8247,33 @@ async function sendSharedPost(chatId, otherUid, btn) {
     }
 }
 // ==========================================
-//  MENU SEARCH BAR LOGIC
+// 🚀 MENU SEARCH BAR LOGIC
 // ==========================================
 
-// . Main Menu-     
+// ১. Main Menu-এর সার্চ বার ফিল্টার করার ফাংশন
 function filterMenuSettings(query) {
     const q = query.toLowerCase();
     
-    //         
+    // মেইন মেনুর আইটেমগুলো যেই কন্টেইনারে আছে সেটা সিলেক্ট করা
     const mainMenuContainer = document.getElementById('main-menu-screen').children[1];
     
-    //       
+    // কন্টেইনারের ভেতরের সব লিস্ট আইটেম চেক করা
     Array.from(mainMenuContainer.children).forEach(child => {
-        //       (   )
+        // শুধু মেইন মেনুর আইটেমগুলোকে টার্গেট করবে (ভেতরের সেটিংস পেজকে নয়)
         if (child.classList.contains('settings-list-item')) {
             const text = child.textContent.toLowerCase();
             if (text.includes(q)) {
-                //    
+                // ম্যাচ করলে শো করবে
                 child.style.setProperty('display', 'flex', 'important');
             } else {
-                //      
+                // ম্যাচ না করলে হাইড করে দেবে
                 child.style.setProperty('display', 'none', 'important');
             }
         }
     });
 }
 
-// . Settings & Privacy-      ()
+// ২. Settings & Privacy-এর সার্চ বার ফিল্টার করার ফাংশন (বোনাস)
 function filterPrivacySettings(query) {
     const q = query.toLowerCase();
     const list = document.getElementById('privacy-settings-list');
@@ -8282,7 +8289,7 @@ function filterPrivacySettings(query) {
         }
     });
 }
-//  .      
+// 🚀 ১. স্টোরি ক্রিয়েটর মডাল ওপেন করার ফাংশন
 function openStoryCreatorModal() {
     let modal = document.getElementById('story-creator-modal');
     if (!modal) {
@@ -8296,7 +8303,7 @@ function openStoryCreatorModal() {
                 <div class="modal-title" style="margin-bottom: 24px;">Create Story</div>
                 
                 <div style="display: flex; flex-direction: column; gap: 12px;">
-                    <!--      -->
+                    <!-- ফটো বা ভিডিও স্টোরি অপশন -->
                     <label class="story-type-card">
                         <div style="width: 44px; height: 44px; border-radius: 50%; background: rgba(255,77,106,0.1); color: var(--danger); display: flex; align-items: center; justify-content: center;">
                             <span class="material-symbols-outlined" style="font-size: 24px;">photo_library</span>
@@ -8308,7 +8315,7 @@ function openStoryCreatorModal() {
                         <input type="file" accept="image/*,video/*" style="display:none;" onchange="closeStoryCreatorModal(); uploadStory(this);">
                     </label>
 
-                    <!--    -->
+                    <!-- টেক্সট স্টোরি অপশন -->
                     <div class="story-type-card" onclick="closeStoryCreatorModal(); openTextStoryModal();">
                         <div style="width: 44px; height: 44px; border-radius: 50%; background: rgba(245,158,11,0.1); color: var(--warning); display: flex; align-items: center; justify-content: center;">
                             <span class="material-symbols-outlined" style="font-size: 24px;">text_fields</span>
@@ -8330,7 +8337,7 @@ function closeStoryCreatorModal() {
     const modal = document.getElementById('story-creator-modal');
     if (modal) modal.classList.remove('open');
 }
-//  Grid View  
+// 🚀 Grid View টগল ফাংশন
 async function toggleFeedViewMode() {
     if (!currentUser) return;
     const currentMode = currentUserData.feedViewMode || 'list';
@@ -8341,7 +8348,7 @@ async function toggleFeedViewMode() {
     
     updateGridToggleUI();
     
-    //       
+    // হোম ফিডে থাকলে সাথে সাথে রিফ্রেশ হবে
     if (document.getElementById('page-feed').classList.contains('active')) {
         loadFeed(); 
     }
@@ -8359,7 +8366,7 @@ function updateGridToggleUI() {
     }
 }
 
-//  Grid Post Card 
+// 🚀 Grid Post Card জেনারেটর
 function buildGridPostCardHTML(p) {
     const pid = p.id;
     const imgUrls = p.imgUrls && p.imgUrls.length > 0 ? p.imgUrls : (p.imgUrl ? [p.imgUrl] : []);
@@ -8395,15 +8402,15 @@ function buildGridPostCardHTML(p) {
         </div>
     </div>`;
 }
-// �������������������������������������������������������
-//  NEW DESIGN  �  login-redesign  �  2026-07-30
+// ═══════════════════════════════════════════════════════
+// 🎨 NEW DESIGN  ·  login-redesign  ·  2026-07-30
 // font load + living orbs + particles + icons + divider
-// loginWithEmail / togglePassword / showRegister / Google 
-// :  Ctrl+F  "login-redesign"
-// �������������������������������������������������������
+// loginWithEmail / togglePassword / showRegister / Google অক্ষত
+// খুঁজতে:  Ctrl+F → "login-redesign"
+// ═══════════════════════════════════════════════════════
 (function lxLoginRedesign(){
 
-  // .   (distinctive display + readable body)
+  // ১. ফন্ট লোড (distinctive display + readable body)
   if(!document.getElementById('lx-fonts')){
     const l = document.createElement('link');
     l.id = 'lx-fonts'; l.rel = 'stylesheet';
@@ -8416,7 +8423,7 @@ function buildGridPostCardHTML(p) {
     if(!screen || screen.dataset.lxDone) return;
     screen.dataset.lxDone = '1';
 
-    // .    living orb  (heuristic, layout  )
+    // ২. সমতল কমলা বৃত্তগুলোকে living orb বানানো (heuristic, layout ছোঁয়া না)
     [...screen.children].forEach(el => {
       if(el.tagName !== 'DIV') return;
       const cs = getComputedStyle(el);
@@ -8434,7 +8441,7 @@ function buildGridPostCardHTML(p) {
       }
     });
 
-    // .  
+    // ৩. ভাসমান কণা
     if(!screen.querySelector('.lx-particles')){
       const p = document.createElement('div'); p.className = 'lx-particles';
       let h = '';
@@ -8445,13 +8452,13 @@ function buildGridPostCardHTML(p) {
       p.innerHTML = h; screen.insertBefore(p, screen.firstChild);
     }
 
-    // .  /sparkle   
+    // ৪. লোগোর ✦/sparkle আলাদা করে অ্যানিমেশন
     document.querySelectorAll('.auth-logo').forEach(logo => {
       if(logo.dataset.lxSpark) return; logo.dataset.lxSpark = '1';
-      logo.innerHTML = logo.innerHTML.replace(/(|||sparkle)/i, '<span class="lx-spark">$1</span>');
+      logo.innerHTML = logo.innerHTML.replace(/(✦|✧|★|sparkle)/i, '<span class="lx-spark">$1</span>');
     });
 
-    // .   (label )
+    // ৫. ইনপুটে আইকন (label পড়ে)
     document.querySelectorAll('#login-form .auth-input-group, #registration-steps .auth-input-group').forEach(grp => {
       if(grp.querySelector('.lx-field-ico')) return;
       const lbl = (grp.querySelector('label')?.textContent || '').toLowerCase();
@@ -8463,14 +8470,14 @@ function buildGridPostCardHTML(p) {
       grp.insertBefore(ico, inp);
     });
 
-    // . Google   + divider + trust line
+    // ৬. Google বাটন চিহ্নিত + divider + trust line
     const forms = [document.getElementById('login-form'), document.getElementById('registration-steps')].filter(Boolean);
     forms.forEach(form => {
       // google button
       const gBtn = [...form.querySelectorAll('button,div,a')].find(b => /google/i.test(b.textContent||'') && !b.classList.contains('lx-google') && !b.classList.contains('btn-auth-primary'));
       if(gBtn && !gBtn.classList.contains('lx-google')) gBtn.classList.add('lx-google');
 
-      // divider before google ()
+      // divider before google (একবার)
       if(gBtn && !form.querySelector('.lx-divider')){
         const d = document.createElement('div'); d.className = 'lx-divider'; d.textContent = 'or continue with';
         gBtn.parentNode.insertBefore(d, gBtn);
@@ -8481,7 +8488,7 @@ function buildGridPostCardHTML(p) {
       const foot = reg ? reg.parentElement : null;
       if(foot && !foot.classList.contains('lx-foot')) foot.classList.add('lx-foot');
 
-      // trust line (, google- )
+      // trust line (একবার, google-এর পর)
       if(gBtn && !form.querySelector('.lx-trust')){
         const t = document.createElement('div'); t.className = 'lx-trust';
         t.innerHTML = '<span class="material-symbols-outlined">verified_user</span> Secured with encrypted sign-in';
@@ -8493,7 +8500,7 @@ function buildGridPostCardHTML(p) {
   if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run); else run();
   setTimeout(run, 400); setTimeout(run, 1200);
 
-  // welcome  login    (font/icon  )
+  // welcome → login সুইচে আবার চালানো (font/icon নিশ্চিত করতে)
   const reRun = () => { delete (document.getElementById('auth-screen')||{}).dataset?.lxDone; run(); };
   ['goToLogin','showRegister','backToLogin'].forEach(fn => {
     const o = window[fn];
@@ -8503,12 +8510,12 @@ function buildGridPostCardHTML(p) {
     }
   });
 })();
-// �������������������������������������������������������
-//  FIX  �  elite-obsidian-gold-native  �  2026-08-02
+// ═══════════════════════════════════════════════════════
+// 🛠 FIX  ·  elite-obsidian-gold-native  ·  2026-08-02
 // inner white-box reset (structure-proof, inline !important)
-// CSS-selector mismatch-    wrapper depth    
-// :  Ctrl+F  "elite-shell-fix"
-// �������������������������������������������������������
+// CSS-selector mismatch-এর ভরসা নয় → wrapper depth যাই হোক ঠিক হবে
+// খুঁজতে:  Ctrl+F → "elite-shell-fix"
+// ═══════════════════════════════════════════════════════
 (function eliteShellFix(){
   const SEL = '#elite-app-modal';
   const imp = (el, props) => { for(const k in props) el.style.setProperty(k, props[k], 'important'); };
@@ -8519,13 +8526,13 @@ function buildGridPostCardHTML(p) {
     const step = modal.querySelector('.eg-step, [id^="app-step"]');
     if(!step) return;
 
-    // . modal overlay  obsidian + stretch (backstop)
+    // ১. modal overlay → obsidian + stretch (backstop)
     imp(modal, {
       background:'radial-gradient(120% 90% at 50% -10%, #1a150c 0%, #0b0a07 55%, #060503 100%)',
       alignItems:'stretch', justifyContent:'stretch', padding:'0', overflow:'hidden'
     });
 
-    // . step  modal    wrapper neutralize (  )
+    // ২. step → modal পর্যন্ত সব মাঝের wrapper neutralize (সাদা বক্স গায়েব)
     let el = step.parentElement;
     while(el && el !== modal){
       imp(el, {
@@ -8536,7 +8543,7 @@ function buildGridPostCardHTML(p) {
       el = el.parentElement;
     }
 
-    // . modal- direct child = scroll shell (align stretch   full-width )
+    // ৩. modal-এর direct child = scroll shell (align stretch → রেল full-width থাকবে)
     const shell = modal.firstElementChild;
     if(shell){
       imp(shell, {
@@ -8546,7 +8553,7 @@ function buildGridPostCardHTML(p) {
       });
     }
 
-    // .  step  centered max-width column (content   )
+    // ৪. প্রতিটা step → centered max-width column (content আর কাটবে না)
     modal.querySelectorAll('.eg-step, [id^="app-step"]').forEach(st => {
       imp(st, {
         width:'100%', maxWidth:'640px', margin:'0 auto',
@@ -8554,21 +8561,21 @@ function buildGridPostCardHTML(p) {
       });
     });
 
-    // .    horizontal  (  )
+    // ৫. প্রোগ্রেস রেল → horizontal নিশ্চিত (খাড়া লাইন ফিক্স)
     const rail = modal.querySelector('.eg-rail');
     if(rail) imp(rail, { width:'100%', alignSelf:'stretch', flexShrink:'0' });
   }
 
   const loop = () => fix();
   if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', loop); else loop();
-  setInterval(loop, 300);   // modal re-render / open     
+  setInterval(loop, 300);   // modal re-render / open হলে নিজে থেকেই ঠিক করবে
 })();
-// �������������������������������������������������������
-//  UPDATED FEATURE  �  profile-qr-namecard (Fixed for Settings)
-// �������������������������������������������������������
+// ═══════════════════════════════════════════════════════
+// 🚀 UPDATED FEATURE  ·  profile-qr-namecard (Fixed for Settings)
+// ═══════════════════════════════════════════════════════
 const QRNC_LIB_QR  = 'https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js';
 const QRNC_LIB_SCAN= 'https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js';
-const QRNC_LOGO    = '';                 
+const QRNC_LOGO    = '✦';                 
 let qrncCurrentUid = null, qrncCurrentData = null, qrncScanStream = null, qrncScanRAF = null;
 const qrncScriptCache = {};
 
@@ -8717,7 +8724,7 @@ function qrncCloseCard(){ document.getElementById('qrnc-modal').style.display = 
 function qrncCopy(){
   const link = qrncCurrentData ? qrncProfileLink(qrncCurrentData) : '';
   if(!link) return;
-  const done = () => showToast('Link copied! ');
+  const done = () => showToast('Link copied! 🔗');
   if(navigator.clipboard && navigator.clipboard.writeText){
     navigator.clipboard.writeText(link).then(done).catch(() => qrncFallbackCopy(link, done));
   } else qrncFallbackCopy(link, done);
@@ -8752,7 +8759,7 @@ async function qrncDownload(){
     ctx.beginPath(); ctx.arc(W-120,40,260,0,Math.PI*2); ctx.fill();
 
     ctx.fillStyle = 'rgba(255,255,255,.92)'; ctx.font = '700 30px system-ui, sans-serif';
-    ctx.textBaseline = 'middle'; ctx.fillText('  GOCHAT', pad, 70);
+    ctx.textBaseline = 'middle'; ctx.fillText('✦  GOCHAT', pad, 70);
 
     const avImg = await qrncLoadImg(u.avatar);
     const avX = pad, avY = 300, avS = 180;
@@ -8810,13 +8817,13 @@ async function qrncDownload(){
       a.download = 'GoChat-' + (u.username || u.name || 'card').replace(/\s+/g,'_') + '.png';
       document.body.appendChild(a); a.click(); a.remove();
       setTimeout(() => URL.revokeObjectURL(a.href), 4000);
-      showToast('Card downloaded! ');
+      showToast('Card downloaded! 🖼️');
     }, 'image/png');
-  }catch(e){ console.error(e); showToast('Download failed  try again'); }
+  }catch(e){ console.error(e); showToast('Download failed — try again'); }
 }
 function qrncRoundRect(ctx,x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
-function qrncTruncate(ctx,t,max){ let s=t; while(ctx.measureText(s).width>max && s.length>1){ s=s.slice(0,-1); } return s.length<t.length? s+'':s; }
-function qrncWrap(ctx,t,x,y,maxW,lh,maxL){ const words=t.split(' '); let line='',lines=0; for(const w of words){ const test=line?line+' '+w:w; if(ctx.measureText(test).width>maxW && line){ ctx.fillText(line,x,y); y+=lh; line=w; lines++; if(lines>=maxL){ ctx.fillText(qrncTruncate(ctx,line+' ',maxW),x,y); return y; } } else line=test; } if(line){ ctx.fillText(line,x,y); y+=lh; } return y; }
+function qrncTruncate(ctx,t,max){ let s=t; while(ctx.measureText(s).width>max && s.length>1){ s=s.slice(0,-1); } return s.length<t.length? s+'…':s; }
+function qrncWrap(ctx,t,x,y,maxW,lh,maxL){ const words=t.split(' '); let line='',lines=0; for(const w of words){ const test=line?line+' '+w:w; if(ctx.measureText(test).width>maxW && line){ ctx.fillText(line,x,y); y+=lh; line=w; lines++; if(lines>=maxL){ ctx.fillText(qrncTruncate(ctx,line+' …',maxW),x,y); return y; } } else line=test; } if(line){ ctx.fillText(line,x,y); y+=lh; } return y; }
 
 /* ---------- SHARE ---------- */
 async function qrncShare(){
@@ -8846,7 +8853,7 @@ async function qrncShare(){
 /* ---------- SCANNER ---------- */
 async function qrncOpenScanner(){
   const msg = document.getElementById('qrnc-scan-msg');
-  msg.className = 'qrnc-scan-msg'; msg.textContent = 'Starting camera';
+  msg.className = 'qrnc-scan-msg'; msg.textContent = 'Starting camera…';
   document.getElementById('qrnc-scanner').style.display = 'flex';
   const video = document.getElementById('qrnc-video');
 
@@ -8859,7 +8866,7 @@ async function qrncOpenScanner(){
     qrncScanStream = await navigator.mediaDevices.getUserMedia({ video:{ facingMode:'environment' }, audio:false });
     video.srcObject = qrncScanStream;
     await video.play();
-    msg.textContent = 'Point your camera at a GoChat QR code';
+    msg.textContent = 'Point your camera at a GoChat QR code…';
     try{ await qrncLoadScript(QRNC_LIB_SCAN); }catch(e){ msg.className='qrnc-scan-msg err'; msg.textContent='Scanner library unavailable offline.'; qrncStopStream(); return; }
     qrncScanLoop();
   }catch(e){
@@ -8886,7 +8893,7 @@ function qrncScanLoop(){
           const id = decodeURIComponent(m[1]);
           qrncCloseScanner(); qrncCloseCard();
           if(navigator.vibrate) navigator.vibrate(40);
-          showToast('Profile found! Opening');
+          showToast('Profile found! Opening…');
           setTimeout(() => { if(typeof viewUserProfile === 'function') viewUserProfile(id); }, 250);
           return;
         } else {
@@ -8901,7 +8908,7 @@ function qrncScanLoop(){
 function qrncStopStream(){ if(qrncScanStream){ qrncScanStream.getTracks().forEach(t => t.stop()); qrncScanStream = null; } if(qrncScanRAF){ cancelAnimationFrame(qrncScanRAF); qrncScanRAF = null; } }
 function qrncCloseScanner(){ qrncStopStream(); const v = document.getElementById('qrnc-video'); if(v) v.srcObject = null; document.getElementById('qrnc-scanner').style.display = 'none'; }
 
-//  HTML       
+// 🚀 HTML বাটনগুলোর সাথে যুক্ত করার জন্য নতুন ফাংশন
 function openQRCodeModal() {
     if(currentUser) qrncOpenCard(currentUser.uid);
 }
@@ -8916,17 +8923,17 @@ document.addEventListener('keydown', (e) => {
     if(document.getElementById('qrnc-modal').style.display === 'flex'){ qrncCloseCard(); }
   }
 });
-// �������������������������������������������������������
-//  NEW FEATURE  �  mutual-friends  �  2026-08-02  (v2  wrap fix)
+// ═══════════════════════════════════════════════════════
+// 🚀 NEW FEATURE  ·  mutual-friends  ·  2026-08-02  (v2 — wrap fix)
 // Mutual Friends on Profile (overlap stack + bottom sheet)
-// inject-only � SINGLE safe wrap (call, NOT apply)  viewUserProfile 
-// privacy-aware (followingPrivacy=onlyme  hide) � own-profile skip � mfCache
-// :  Ctrl+F  "mutual-friends"
-// �������������������������������������������������������
+// inject-only · SINGLE safe wrap (call, NOT apply) → viewUserProfile অক্ষত
+// privacy-aware (followingPrivacy=onlyme → hide) · own-profile skip · mfCache
+// খুঁজতে:  Ctrl+F → "mutual-friends"
+// ═══════════════════════════════════════════════════════
 const mfCache = {};                 // uid -> { mutual:[...], hidden:bool }
 let mfCurrentUid = null, mfCurrentList = [];
 
-/* ---------- data + intersection ( ) ---------- */
+/* ---------- data + intersection (সব ফোনে) ---------- */
 function mfMyConns(){
   const f = (currentUserData && currentUserData.following) || [];
   const r = (currentUserData && currentUserData.followers) || [];
@@ -8941,7 +8948,7 @@ async function mfGetOther(uid){
   }
   if(!u){ mfCache[uid] = { mutual:[], hidden:false }; return mfCache[uid]; }
 
-  // privacy:  following   mutual  
+  // privacy: ওর following লুকানো থাকলে mutual দেখাব না
   if(u.followingPrivacy === 'onlyme'){ mfCache[uid] = { mutual:[], hidden:true }; return mfCache[uid]; }
 
   const mySet = mfMyConns();
@@ -8967,14 +8974,14 @@ async function mfGetOther(uid){
 async function mfRenderStrip(uid){
   const page = document.getElementById('page-other-profile');
   if(!page) return;
-  if(!currentUser || uid === currentUser.uid) return;          //    
+  if(!currentUser || uid === currentUser.uid) return;          // নিজের প্রোফাইলে কিছু না
 
   const old = page.querySelector('.mf-strip');
-  if(old && old.dataset.mfUid === uid) return;                // same uid  
+  if(old && old.dataset.mfUid === uid) return;                // same uid ইতিমধ্যে আছে
   if(old) old.remove();
 
   const res = await mfGetOther(uid);
-  if(!res || res.hidden || res.mutual.length === 0) return;   //   / private  strip 
+  if(!res || res.hidden || res.mutual.length === 0) return;   // কিছু নেই / private → strip নয়
 
   const list = res.mutual;
   const shown = list.slice(0, 4);
@@ -9003,7 +9010,7 @@ async function mfRenderStrip(uid){
   strip.onclick = () => mfOpenSheet(uid);
   strip.onkeydown = (e) => { if(e.key==='Enter'||e.key===' '){ e.preventDefault(); mfOpenSheet(uid); } };
 
-  // anchor: Follow/Message row- 
+  // anchor: Follow/Message row-এর আগে
   const btns = page.querySelector('#other-profile-btns');
   if(btns){ btns.parentNode.insertBefore(strip, btns); }
   else {
@@ -9032,7 +9039,7 @@ function mfBuildSheet(){
       </div>
       <div class="mf-search">
         <span class="material-symbols-outlined">search</span>
-        <input type="text" id="mf-search-input" placeholder="Search mutual friends" oninput="mfFilter(this.value)">
+        <input type="text" id="mf-search-input" placeholder="Search mutual friends…" oninput="mfFilter(this.value)">
       </div>
       <div class="mf-list" id="mf-list"></div>
     </div>`;
@@ -9044,7 +9051,7 @@ async function mfOpenSheet(uid){
   const ov = document.getElementById('mf-sheet');
   ov.style.display = 'flex';
   document.getElementById('mf-search-input').value = '';
-  document.getElementById('mf-list').innerHTML = '<div class="mf-empty"><span class="material-symbols-outlined">progress_activity</span><div class="mf-e-t">Loading</div></div>';
+  document.getElementById('mf-list').innerHTML = '<div class="mf-empty"><span class="material-symbols-outlined">progress_activity</span><div class="mf-e-t">Loading…</div></div>';
 
   const res = await mfGetOther(uid);
   mfCurrentList = (res && res.mutual) ? res.mutual : [];
@@ -9087,12 +9094,12 @@ function mfViewFromList(uid){
   setTimeout(() => { if(typeof viewUserProfile === 'function') viewUserProfile(uid); }, 120);
 }
 
-/* ----------  SINGLE safe wrap: orig.CALL (not apply)  viewUserProfile %  ---------- */
+/* ---------- ✅ SINGLE safe wrap: orig.CALL (not apply) → viewUserProfile ১০০% অক্ষত ---------- */
 (function mfHookView(){
   if(typeof window.viewUserProfile !== 'function' || window.viewUserProfile.__mfWrapped) return;
   const orig = window.viewUserProfile;
   window.viewUserProfile = function(uid, ...rest){
-    const r = orig.call(this, uid, ...rest);          //  : call,  uid  
+    const r = orig.call(this, uid, ...rest);          // ← সঠিক: call, তাই uid অক্ষত যায়
     if(uid && (typeof currentUser === 'undefined' || !currentUser || uid !== currentUser.uid)){
       setTimeout(() => mfRenderStrip(uid), 320);
     }
@@ -9101,16 +9108,16 @@ function mfViewFromList(uid){
   window.viewUserProfile.__mfWrapped = true;
 })();
 
-/* ESC  sheet  */
+/* ESC দিয়ে sheet বন্ধ */
 document.addEventListener('keydown', (e) => {
   if(e.key === 'Escape'){ const ov = document.getElementById('mf-sheet'); if(ov && ov.style.display === 'flex') mfCloseSheet(); }
 });
 // =========================================
-//  COMMENT IMAGE UPLOAD SYSTEM
+// 🚀 COMMENT IMAGE UPLOAD SYSTEM
 // =========================================
 let selectedCommentImage = null;
 
-//     
+// ছবি সিলেক্ট করলে প্রিভিউ দেখাবে
 function previewCommentImage(input) {
     const file = input.files[0];
     if (file) {
@@ -9124,7 +9131,7 @@ function previewCommentImage(input) {
     }
 }
 
-//       
+// ক্রস বাটনে ক্লিক করলে ছবি রিমুভ হবে
 function removeCommentImage() {
     selectedCommentImage = null;
     document.getElementById('comment-img-input').value = '';
@@ -9132,7 +9139,7 @@ function removeCommentImage() {
     document.getElementById('comment-preview-img').src = '';
 }
 
-//  ( + )   
+// কমেন্ট (টেক্সট + ছবি) ডাটাবেসে সেভ করা
 async function sendCommentWithImage() {
     if (!activeCommentPostId || !currentUser) return;
     
@@ -9140,7 +9147,7 @@ async function sendCommentWithImage() {
     const text = inputEl.value.trim();
     const btnEl = document.getElementById('comment-panel-send-btn');
     
-    //       
+    // টেক্সট বা ছবি অন্তত একটা থাকতে হবে
     if (!text && !selectedCommentImage) return; 
     
     btnEl.disabled = true;
@@ -9150,7 +9157,7 @@ async function sendCommentWithImage() {
     if (selectedCommentImage) {
         showToast("Uploading image...");
         try {
-            //     Cloudinary     
+            // আপনার আগের তৈরি করা Cloudinary আপলোড ফাংশন ব্যবহার করা হলো
             imageUrl = await uploadToCloudinary(selectedCommentImage, false);
         } catch(e) {
             showToast("Failed to upload image");
@@ -9164,7 +9171,7 @@ async function sendCommentWithImage() {
         uid: currentUser.uid,
         name: currentUserData.name,
         text: text,
-        imageUrl: imageUrl, //      
+        imageUrl: imageUrl, // 🚀 ডাটাবেসে ছবির লিংক সেভ হবে
         time: Date.now(),
         likes: 0,
         dislikes: 0,
@@ -9181,7 +9188,7 @@ async function sendCommentWithImage() {
             comments.push(newComment);
             await ref.update({ comments });
             
-            //  
+            // নোটিফিকেশন পাঠানো
             if (docSnap.data().uid !== currentUser.uid) {
                 db.collection('notifications').add({
                     toUid: docSnap.data().uid,
@@ -9196,7 +9203,7 @@ async function sendCommentWithImage() {
             }
         }
         
-        //     
+        // ইনপুট এবং প্রিভিউ ক্লিয়ার করা
         inputEl.value = '';
         removeCommentImage();
         showToast("Comment added!");
@@ -9210,12 +9217,12 @@ async function sendCommentWithImage() {
     btnEl.innerHTML = '<i class="ph-bold ph-paper-plane-right" style="font-size:22px;"></i>';
 }
 // =========================================
-//  EXPORT CHAT OFFLINE (Zero Server Cost)
+// 📥 EXPORT CHAT OFFLINE (Zero Server Cost)
 // =========================================
 function exportCurrentChat() {
     if (!currentChatId) return;
     
-    // -   
+    // থ্রি-ডট মেনু বন্ধ করা
     const menu = document.getElementById('chat-delete-menu');
     if(menu) menu.style.display = 'none';
 
@@ -9231,7 +9238,7 @@ function exportCurrentChat() {
 
     let chatText = `--- GoChat Export: ${chatName} ---\nExported on: ${new Date().toLocaleString()}\n\n`;
 
-    //       
+    // স্ক্রিনে থাকা মেসেজগুলো রিড করে টেক্সট বানানো
     msgElements.forEach(wrapper => {
         const isMine = wrapper.classList.contains('mine');
         const bubble = wrapper.querySelector('.chat-bubble');
@@ -9246,14 +9253,14 @@ function exportCurrentChat() {
         chatText += `${sender}: ${textContent}\n`;
     });
 
-    //  NEW:     ,      
-    //          (  )
+    // 🚀 NEW: টেক্সট ফাইল তৈরি করার বদলে, একটি সুন্দর মডাল পপআপে লেখাগুলো দেখানো
+    // যাতে ইউজার সহজেই কপি করে যেকোনো জায়গায় রাখতে পারে (বিশেষ করে মোবাইলে)
     
-    //      ,  
+    // যদি আগে কোনো এক্সপোর্ট মডাল থাকে, মুছে ফেলা
     const oldModal = document.getElementById('export-chat-modal');
     if (oldModal) oldModal.remove();
 
-    //   
+    // নতুন মডাল তৈরি
     const exportModal = document.createElement('div');
     exportModal.id = 'export-chat-modal';
     exportModal.style.cssText = `
@@ -9275,15 +9282,15 @@ function exportCurrentChat() {
 
     document.body.appendChild(exportModal);
 }
-// �������������������������������������������������������
-//  NEW FEATURE  �  quick-reply-templates  �  2026-08-02
-// Quick Reply Templates (localStorage-)
-// :  Ctrl+F  "quick-reply-templates"
-// ������������������������������������������������������
+// ═══════════════════════════════════════════════════════
+// 🚀 NEW FEATURE  ·  quick-reply-templates  ·  2026-08-02
+// Quick Reply Templates (localStorage-ভিত্তিক)
+// খুঁজতে:  Ctrl+F → "quick-reply-templates"
+// ══════════════════════════════════════════════════════
 const QR_STORAGE_KEY = 'gochat_quick_replies';
 let qrEditIndex = null;
 
-/* ----------   ---------- */
+/* ---------- ডাটা ম্যানেজমেন্ট ---------- */
 function qrGetTemplates(){
   try{
     const data = localStorage.getItem(QR_STORAGE_KEY);
@@ -9311,7 +9318,7 @@ function qrUpdateTemplate(index, text){
   qrSaveTemplates(templates);
 }
 
-/* ----------      ---------- */
+/* ---------- চ্যাট স্ক্রিনে ⚡ বাটন ইনজেক্ট ---------- */
 function qrInjectChatButton(){
   const inputBar = document.querySelector('.chat-input-bar');
   if(!inputBar || inputBar.querySelector('.qr-trigger')) return;
@@ -9324,13 +9331,13 @@ function qrInjectChatButton(){
   btn.innerHTML = '<span class="material-symbols-outlined">bolt</span>';
   btn.onclick = (e) => { e.stopPropagation(); qrToggleChips(); };
   
-  //   
+  // ইনপুটের আগে বসানো
   const input = inputBar.querySelector('input');
   if(input){ inputBar.insertBefore(btn, input); }
   else{ inputBar.appendChild(btn); }
 }
 
-/* ----------   ---------- */
+/* ---------- চিপস পপআপ ---------- */
 function qrToggleChips(){
   const popup = document.getElementById('qr-chips-popup');
   if(!popup){ qrBuildChipsPopup(); }
@@ -9355,11 +9362,11 @@ function qrBuildChipsPopup(){
     </div>
   `;
   
-  //   
+  // চ্যাট স্ক্রিনে বসানো
   const chatScreen = document.getElementById('chat-screen');
   if(chatScreen){ chatScreen.appendChild(popup); }
   
-  //   
+  // বাইরে ক্লিকে বন্ধ
   document.addEventListener('click', (e) => {
     if(popup && !popup.contains(e.target) && !e.target.closest('.qr-trigger')){
       popup.classList.remove('open');
@@ -9393,7 +9400,7 @@ function qrUseTemplate(index){
   if(input){
     input.value = templates[index].text;
     input.focus();
-    //    
+    // ক্যারেক্টার শেষে নিয়ে যাওয়া
     const len = input.value.length;
     input.setSelectionRange(len, len);
   }
@@ -9407,7 +9414,7 @@ function qrDeleteFromChips(index){
   showToast('Template deleted');
 }
 
-/* ---------- Manage Screen () ---------- */
+/* ---------- Manage Screen (সেটিংস) ---------- */
 function qrOpenManage(){
   document.getElementById('qr-chips-popup').classList.remove('open');
   const screen = document.getElementById('qr-manage-screen');
@@ -9500,7 +9507,7 @@ function qrSaveTemplate(){
   qrRenderManageList();
 }
 
-/* ----------     ---------- */
+/* ---------- সেটিংস মেনুতে লিংক যোগ ---------- */
 function qrAddToSettings(){
   const menu = document.querySelector('.settings-list');
   if(!menu || menu.querySelector('.qr-settings-item')) return;
@@ -9510,7 +9517,7 @@ function qrAddToSettings(){
   item.innerHTML = '<span class="material-symbols-outlined">bolt</span> Quick Replies';
   item.onclick = () => qrOpenManage();
   
-  //     
+  // কোন জায়গায় বসাতে হবে খোঁজা
   const refItem = [...menu.querySelectorAll('.setting-item')].find(i => /notification|privacy/i.test(i.textContent));
   if(refItem){ refItem.parentNode.insertBefore(item, refItem); }
   else{ menu.appendChild(item); }
@@ -9518,7 +9525,7 @@ function qrAddToSettings(){
 
 /* ---------- Boot ---------- */
 (function qrBoot(){
-  //   
+  // সেটিংসে লিংক যোগ
   const addSettings = () => {
     if(document.querySelector('.settings-list')) qrAddToSettings();
   };
@@ -9526,7 +9533,7 @@ function qrAddToSettings(){
   if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', addSettings); else addSettings();
   setTimeout(addSettings, 800);
   
-  //     
+  // চ্যাট খোলার সময় বাটন ইনজেক্ট
   if(typeof window.openChat === 'function' && !window.openChat.__qrWrapped){
     const orig = window.openChat;
     window.openChat = function(...args){
@@ -9537,7 +9544,7 @@ function qrAddToSettings(){
     window.openChat.__qrWrapped = true;
   }
   
-  // ESC   
+  // ESC দিয়ে মডাল বন্ধ
   document.addEventListener('keydown', (e) => {
     if(e.key === 'Escape'){
       const chips = document.getElementById('qr-chips-popup');
@@ -9549,51 +9556,51 @@ function qrAddToSettings(){
     }
   });
 })();
-// �������������������������������������������������������
-//  NEW FEATURE  �  post-templates  �  2026-08-02
-// Post Templates  one-tap ready text + matching background
-//      POST_TEMPLATES    
-// :  Ctrl+F  "post-templates"
-// �������������������������������������������������������
+// ═══════════════════════════════════════════════════════
+// 🚀 NEW FEATURE  ·  post-templates  ·  2026-08-02
+// Post Templates — one-tap ready text + matching background
+// নিজের টেমপ্লেট যোগ করতে শুধু POST_TEMPLATES অ্যারেতে লাইন যোগ করো
+// খুঁজতে:  Ctrl+F → "post-templates"
+// ═══════════════════════════════════════════════════════
 const PT_CATS = [
-  { key:'all',       label:' All' },
-  { key:'celebrate', label:' Celebrate' },
-  { key:'announce',  label:' Announce' },
-  { key:'quotes',    label:' Quotes' },
-  { key:'question',  label:' Questions' },
-  { key:'promo',     label:' Promo' }
+  { key:'all',       label:'✨ All' },
+  { key:'celebrate', label:'🎉 Celebrate' },
+  { key:'announce',  label:'📢 Announce' },
+  { key:'quotes',    label:'💭 Quotes' },
+  { key:'question',  label:'❓ Questions' },
+  { key:'promo',     label:'💼 Promo' }
 ];
 const POST_TEMPLATES = [
-  { cat:'celebrate', emoji:'', title:'Birthday Wish', bg:'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-    text:' Happy Birthday! \nWishing you a day full of love, laughter and blessings. May this year bring you endless happiness! ' },
-  { cat:'celebrate', emoji:'', title:'Congratulations', bg:'linear-gradient(135deg, #fbbf24, #d97706)',
-    text:' Congratulations! So proud of you  you truly deserve this moment! ' },
-  { cat:'celebrate', emoji:'', title:'Anniversary', bg:'linear-gradient(135deg, #eb3349, #f45c43)',
-    text:' Happy Anniversary! May your bond grow stronger with every passing year. ' },
-  { cat:'announce', emoji:'', title:'Big Announcement', bg:'linear-gradient(to right, #4facfe 0%, #00f2fe 100%)',
-    text:' Big news coming soon! Stay tuned something special is on the way! ' },
-  { cat:'announce', emoji:'', title:'Life Update', bg:'default',
-    text:' Life update: [   ] ' },
-  { cat:'announce', emoji:'', title:'Thank You', bg:'linear-gradient(to right, #fa709a 0%, #fee140 100%)',
-    text:' Thank you all for your love and support! I\'m truly grateful. ' },
-  { cat:'quotes', emoji:'', title:'Quote of the Day', bg:'default',
-    text:' "Dream big. Work hard. Stay humble." ' },
-  { cat:'quotes', emoji:'', title:'Motivation', bg:'linear-gradient(135deg, #1a1a2e, #4a00e0)',
-    text:' Don\'t stop until you\'re proud.' },
-  { cat:'quotes', emoji:'', title:'Late Night Thought', bg:'linear-gradient(to right, #0f2027, #203a43, #2c5364)',
-    text:' Some thoughts only make sense at 2 AM' },
-  { cat:'question', emoji:'', title:'Ask Me Anything', bg:'linear-gradient(to right, #00b09b, #96c93d)',
-    text:' Ask me anything in the comments! I\'ll answer everyone ' },
-  { cat:'question', emoji:'', title:'This or That?', bg:'linear-gradient(135deg, #8e2de2, #4a00e0)',
-    text:' This or that? Drop your choice below! ' },
-  { cat:'question', emoji:'', title:'Need Your Advice', bg:'default',
-    text:' I need your advice! What would you do in my place? ' },
-  { cat:'promo', emoji:'', title:'New Drop Alert', bg:'linear-gradient(135deg, #f83600 0%, #f9d423 100%)',
-    text:' New drop alert!  Check out what I\'ve been working on DM to order! ' },
-  { cat:'promo', emoji:'', title:'Photo Dump', bg:'default',
-    text:' Little moments, big memories. Swipe through my week! ' },
-  { cat:'promo', emoji:'', title:'Good Morning', bg:'linear-gradient(135deg, #ff9d8c 0%, #3d7eaa 100%)',
-    text:' Good morning!  May your day be as warm as your coffee. ' }
+  { cat:'celebrate', emoji:'🎂', title:'Birthday Wish', bg:'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+    text:'🎂 Happy Birthday! 🎉\nWishing you a day full of love, laughter and blessings. May this year bring you endless happiness! ❤️' },
+  { cat:'celebrate', emoji:'🎉', title:'Congratulations', bg:'linear-gradient(135deg, #fbbf24, #d97706)',
+    text:'🎉 Congratulations! So proud of you — you truly deserve this moment! 👏✨' },
+  { cat:'celebrate', emoji:'❤️', title:'Anniversary', bg:'linear-gradient(135deg, #eb3349, #f45c43)',
+    text:'❤️ Happy Anniversary! May your bond grow stronger with every passing year. 💫' },
+  { cat:'announce', emoji:'📢', title:'Big Announcement', bg:'linear-gradient(to right, #4facfe 0%, #00f2fe 100%)',
+    text:'📢 Big news coming soon! Stay tuned… something special is on the way! ✨' },
+  { cat:'announce', emoji:'📍', title:'Life Update', bg:'default',
+    text:'📍 Life update: [এখানে তোমার আপডেট লেখো] …' },
+  { cat:'announce', emoji:'🙏', title:'Thank You', bg:'linear-gradient(to right, #fa709a 0%, #fee140 100%)',
+    text:'🙏 Thank you all for your love and support! I\'m truly grateful. ❤️' },
+  { cat:'quotes', emoji:'💭', title:'Quote of the Day', bg:'default',
+    text:'💭 "Dream big. Work hard. Stay humble." ✨' },
+  { cat:'quotes', emoji:'🔥', title:'Motivation', bg:'linear-gradient(135deg, #1a1a2e, #4a00e0)',
+    text:'🔥 Don\'t stop until you\'re proud.' },
+  { cat:'quotes', emoji:'🌙', title:'Late Night Thought', bg:'linear-gradient(to right, #0f2027, #203a43, #2c5364)',
+    text:'🌙 Some thoughts only make sense at 2 AM…' },
+  { cat:'question', emoji:'❓', title:'Ask Me Anything', bg:'linear-gradient(to right, #00b09b, #96c93d)',
+    text:'❓ Ask me anything in the comments! I\'ll answer everyone 👇' },
+  { cat:'question', emoji:'🤔', title:'This or That?', bg:'linear-gradient(135deg, #8e2de2, #4a00e0)',
+    text:'🤔 This or that? Drop your choice below! 👇' },
+  { cat:'question', emoji:'💡', title:'Need Your Advice', bg:'default',
+    text:'💡 I need your advice! What would you do in my place? 🤔' },
+  { cat:'promo', emoji:'💼', title:'New Drop Alert', bg:'linear-gradient(135deg, #f83600 0%, #f9d423 100%)',
+    text:'💼 New drop alert! 🛍️ Check out what I\'ve been working on… DM to order! 📩' },
+  { cat:'promo', emoji:'📸', title:'Photo Dump', bg:'default',
+    text:'📸 Little moments, big memories. Swipe through my week! 🎞️' },
+  { cat:'promo', emoji:'🌅', title:'Good Morning', bg:'linear-gradient(135deg, #ff9d8c 0%, #3d7eaa 100%)',
+    text:'🌅 Good morning! ☕ May your day be as warm as your coffee. 💛' }
 ];
 let ptActiveCat = 'all';
 
@@ -9609,7 +9616,7 @@ function ptBuild(){
       <div class="pt-head-ico"><span class="material-symbols-outlined">auto_awesome</span></div>
       <div style="flex:1;min-width:0;">
         <div class="pt-title-big">Post Templates</div>
-        <div class="pt-sub">Tap a template  text & background apply instantly</div>
+        <div class="pt-sub">Tap a template — text & background apply instantly</div>
       </div>
       <button class="pt-close" onclick="ptClose()"><span class="material-symbols-outlined">close</span></button>
     </div>
@@ -9648,14 +9655,14 @@ function ptApply(i){
   const t = POST_TEMPLATES[i]; if(!t) return;
   const ta = document.getElementById('post-title'); if(!ta) return;
   const cur = ta.value.trim();
-  ta.value = cur ? cur + '\n\n' + t.text : t.text;   //   ,   
+  ta.value = cur ? cur + '\n\n' + t.text : t.text;   // খালি হলে বসাবে, নাহলে যোগ করবে
   if(typeof selectPostBg === 'function' && t.bg) selectPostBg(t.bg, null);
   if(typeof checkPostInputs === 'function') checkPostInputs();
   ptClose();
-  showToast('Template applied ');
+  showToast('Template applied ✨');
 }
 
-/* "Add to your post"   auto-inject */
+/* "Add to your post" বারে বাটন auto-inject */
 (function ptInject(){
   const inject = () => {
     const palette = document.querySelector('label[onclick="toggleColorPicker()"]');
@@ -9672,13 +9679,13 @@ function ptApply(i){
   setTimeout(inject, 600); setTimeout(inject, 1500);
 })();
 
-/* ESC-   */
+/* ESC-এ শিট বন্ধ */
 document.addEventListener('keydown', (e) => {
   if(e.key === 'Escape'){ const ov = document.getElementById('pt-sheet'); if(ov) ov.classList.remove('open'); }
 });
-// ������������������������������������������������������
-//  UPDATE  �  home-sidebar-v2  �  2026-08-05
-// ������������������������������������������������������
+// ══════════════════════════════════════════════════════
+// 🚀 UPDATE  ·  home-sidebar-v2  ·  2026-08-05
+// ══════════════════════════════════════════════════════
 
 // Sidebar open/close
 function openHomeSidebar() {
