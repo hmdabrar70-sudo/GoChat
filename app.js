@@ -548,29 +548,27 @@ function loadMyProfile() {
     const followersCount = (currentUserData.followers || []).length;
     const followingCount = (currentUserData.following || []).length;
     
-        document.getElementById('my-profile-header').innerHTML = `
+            document.getElementById('my-profile-header').innerHTML = `
         <div class="profile-avatar-large">${currentUserData.avatar ? `<img src="${currentUserData.avatar}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">` : avatarInitial(currentUserData.name)}</div>
         <div class="profile-name">${safeName}</div>
         <div style="font-size:14px; color:var(--text-muted); margin-bottom:15px;">${escapeHTML(currentUserData.bio || 'Welcome to my GoChat profile!')}</div>
         
         <div class="profile-stats">
-            <div><b>${followersCount}</b> Followers</div>
+            <div style="cursor:pointer;" onclick="openFollowersModal()"><b>${followersCount}</b> Followers</div>
             <div><b>${followingCount}</b> Following</div>
         </div>
         
-               <div style="display:flex; justify-content:center; gap:10px; margin-top:15px;">
+        <div style="display:flex; justify-content:center; gap:10px; margin-top:15px;">
             <button class="btn-follow" style="width:auto; border-radius:30px;" onclick="openEditProfile()">
                 <span class="material-symbols-outlined" style="vertical-align:middle; font-size:18px;">edit</span> Edit Profile
             </button>
-            <button class="btn-unfollow" style="width:auto; border-radius:30px; padding: 10px 15px;" onclick="openSettings()">
-                <span class="material-symbols-outlined" style="vertical-align:middle; font-size:20px;">settings</span>
+            <button class="btn-unfollow" style="width:auto; border-radius:30px; padding: 10px 15px;" onclick="showPage('menu')">
+                <span class="material-symbols-outlined" style="vertical-align:middle; font-size:20px;">menu</span> Menu
             </button>
         </div>
     `;
     
-    //     
     loadOtherUserPosts(currentUser.uid);
-}
 
 // ==========================================
 // 12. REAL-TIME CHAT SYSTEM
