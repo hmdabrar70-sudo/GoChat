@@ -567,7 +567,6 @@ function loadMyProfile() {
             </button>
         </div>
     `;
-    
     loadOtherUserPosts(currentUser.uid);
 
 // ==========================================
