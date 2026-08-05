@@ -558,12 +558,12 @@ function loadMyProfile() {
             <div><b>${followingCount}</b> Following</div>
         </div>
         
-        <div style="display:flex; justify-content:center; gap:10px; margin-top:15px;">
+               <div style="display:flex; justify-content:center; gap:10px; margin-top:15px;">
             <button class="btn-follow" style="width:auto; border-radius:30px;" onclick="openEditProfile()">
                 <span class="material-symbols-outlined" style="vertical-align:middle; font-size:18px;">edit</span> Edit Profile
             </button>
-            <button class="btn-unfollow" style="width:auto; border-color:var(--danger); color:var(--danger); border-radius:30px;" onclick="doLogout()">
-                <span class="material-symbols-outlined" style="vertical-align:middle; font-size:18px;">logout</span>
+            <button class="btn-unfollow" style="width:auto; border-radius:30px; padding: 10px 15px;" onclick="openSettings()">
+                <span class="material-symbols-outlined" style="vertical-align:middle; font-size:20px;">settings</span>
             </button>
         </div>
     `;
@@ -1274,4 +1274,389 @@ showPage = function(pageId) {
     if (pageId === 'leaderboard') {
         loadLeaderboard();
     }
+};
+// ==========================================
+// 22. SETTINGS & THEME SYSTEM
+// ==========================================
+function openSettings() {
+    document.getElementById('settings-modal').style.display = 'flex';
+    //     
+    const isLight = document.body.classList.contains('light-mode');
+    document.getElementById('theme-toggle').checked = isLight;
+}
+
+function closeSettings() {
+    document.getElementById('settings-modal').style.display = 'none';
+}
+
+function toggleTheme() {
+    const isLight = document.getElementById('theme-toggle').checked;
+    if (isLight) {
+        document.body.classList.add('light-mode');
+        localStorage.setItem('theme', 'light');
+    } else {
+        document.body.classList.remove('light-mode');
+        localStorage.setItem('theme', 'dark');
+    }
+}
+
+//         
+window.onload = () => {
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme === 'light') {
+        document.body.classList.add('light-mode');
+    }
+};
+
+// ==========================================
+// 23. MY GALLERY MANAGER
+// ==========================================
+async function openGallery() {
+    closeSettings();
+    document.getElementById('gallery-modal').style.display = 'flex';
+    const grid = document.getElementById('gallery-grid');
+    
+    grid.innerHTML = '<div style="grid-column: span 3; text-align:center; padding:40px;"><span class="material-symbols-outlined" style="animation:spin 1s linear infinite;">autorenew</span></div>';
+
+    if (!currentUser) return;
+
+    try {
+        //         (imgUrl)  (   imgUrl  )
+        const snap = await db.collection('posts')
+            .where('uid', '==', currentUser.uid)
+            .get();
+        
+        let photos = [];
+        snap.forEach(doc => {
+            const data = doc.data();
+            if (data.imgUrl) photos.push({ id: doc.id, url: data.imgUrl, time: data.createdAt });
+        });
+
+        if (photos.length === 0) {
+            grid.innerHTML = '<div style="grid-column: span 3; text-align:center; padding:40px; color:var(--text-muted);">No photos uploaded yet</div>';
+            return;
+        }
+
+        //    (  )
+        photos.sort((a, b) => (b.time?.toMillis() || 0) - (a.time?.toMillis() || 0));
+
+        grid.innerHTML = photos.map(p => `
+            <img src="${escapeHTML(p.url)}" class="gallery-item" onclick="openSinglePost('${p.id}')">
+        `).join('');
+
+    } catch (e) {
+        console.error(e);
+        grid.innerHTML = '<div style="grid-column: span 3; text-align:center; padding:40px;">Error loading gallery</div>';
+    }
+}
+
+function closeGallery() {
+    document.getElementById('gallery-modal').style.display = 'none';
+}
+// ==========================================
+// 24. UPDATED POST CREATION (WITH IMAGE)
+// ==========================================
+let postImageFile = null;
+
+function previewPostImage(input) {
+    if (input.files && input.files[0]) {
+        postImageFile = input.files[0];
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const previewDiv = document.getElementById('post-img-preview');
+            previewDiv.style.display = 'block';
+            previewDiv.innerHTML = `<img src="${e.target.result}" style="width:100%; height:100%; object-fit:cover;">`;
+        }
+        reader.readAsDataURL(postImageFile);
+    }
+}
+
+//  submitPost         (   )
+submitPost = async function() {
+    const text = document.getElementById('post-input-text').value.trim();
+    const btn = document.getElementById('btn-submit-post');
+    
+    if (!text && !postImageFile) return;
+    if (!currentUser) return;
+
+    btn.textContent = "Posting...";
+    btn.disabled = true;
+    showToast("Posting...");
+    
+    try {
+        let imgUrl = '';
+        //     ,     
+        if (postImageFile) {
+            imgUrl = await uploadToCloudinary(postImageFile, false);
+        }
+
+        //    
+        await db.collection('posts').add({
+            uid: currentUser.uid,
+            name: currentUserData.name || 'User',
+            avatar: currentUserData.avatar || '',
+            title: text,
+            imgUrl: imgUrl, //   
+            likes: 0,
+            likedBy: [],
+            comments: [],
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        
+        closeCreatePost();
+        showToast("Posted successfully!");
+    } catch (e) {
+        showToast("Error: " + e.message);
+    } finally {
+        btn.textContent = "Post";
+        btn.disabled = false;
+    }
+};
+
+// Create Post       
+const oldCloseCreatePost = closeCreatePost;
+closeCreatePost = function() {
+    oldCloseCreatePost();
+    postImageFile = null;
+    const previewDiv = document.getElementById('post-img-preview');
+    if (previewDiv) {
+        previewDiv.style.display = 'none';
+        previewDiv.innerHTML = '';
+    }
+    document.getElementById('post-image-input').value = '';
+};
+
+// ==========================================
+// 25. SINGLE POST VIEW
+// ==========================================
+let currentSinglePostId = null;
+let singlePostUnsub = null;
+
+function openSinglePost(pid) {
+    currentSinglePostId = pid;
+    document.getElementById('single-post-modal').style.display = 'flex';
+    const container = document.getElementById('single-post-container');
+    
+    container.innerHTML = '<div class="loading" style="text-align:center; padding:40px;"><span class="material-symbols-outlined" style="animation:spin 1s linear infinite;">autorenew</span></div>';
+
+    if (singlePostUnsub) singlePostUnsub();
+
+    singlePostUnsub = db.collection('posts').doc(pid).onSnapshot(doc => {
+        if (!doc.exists) {
+            container.innerHTML = '<div class="empty-feed">Post not found or deleted.</div>';
+            return;
+        }
+
+        const p = doc.data();
+        const safeName = escapeHTML(p.name || 'User');
+        const isLiked = p.likedBy && p.likedBy.includes(currentUser?.uid);
+        const avHtml = p.avatar ? `<img src="${escapeHTML(p.avatar)}" class="post-avatar">` : `<div class="post-avatar">${avatarInitial(p.name)}</div>`;
+        const comments = p.comments || [];
+
+        let html = `
+        <div style="background:var(--surface); margin-bottom:10px; padding:16px; border-bottom:1px solid var(--border);">
+            <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px;" onclick="viewUserProfile('${p.uid}')">
+                ${avHtml}
+                <div>
+                    <div style="font-weight:700; font-size:15px; color:var(--text);">${safeName}</div>
+                    <div style="font-size:11px; color:var(--text-muted);">${getRelativeTime(p.createdAt)}</div>
+                </div>
+            </div>
+            <div style="margin-bottom:16px; line-height:1.5; color:var(--text); font-size:15px; word-break: break-word;">
+                ${escapeHTML(p.title || '')}
+            </div>
+            ${p.imgUrl ? `<img src="${escapeHTML(p.imgUrl)}" style="width:100%; max-height:400px; object-fit:cover; border-radius:14px; margin-bottom:16px;">` : ''}
+            
+            <div style="display:flex; gap:20px; border-top:1px solid var(--border); padding-top:12px;">
+                <div onclick="toggleLike('${doc.id}')" style="cursor:pointer; display:flex; align-items:center; gap:6px; font-weight:600; font-size:14px; color:${isLiked ? 'var(--danger)' : 'var(--text-muted)'};">
+                    <span class="material-symbols-outlined" style="font-variation-settings:'FILL' ${isLiked ? '1' : '0'}; font-size:20px;">favorite</span> 
+                    ${p.likes || 0}
+                </div>
+                <div style="display:flex; align-items:center; gap:6px; font-weight:600; font-size:14px; color:var(--text-muted);">
+                    <span class="material-symbols-outlined" style="font-size:20px;">chat_bubble</span> 
+                    ${comments.length}
+                </div>
+            </div>
+        </div>
+        
+        <div style="padding:16px;">
+            <h4 style="margin-bottom:15px;">Comments</h4>
+            ${comments.length === 0 ? '<div style="color:var(--text-muted); text-align:center; padding:20px;">No comments yet.</div>' : ''}
+        `;
+
+        comments.forEach(c => {
+            html += `
+            <div class="comment-item">
+                <div class="comment-avatar" onclick="viewUserProfile('${c.uid}')" style="cursor:pointer;">${avatarInitial(c.name)}</div>
+                <div class="comment-body">
+                    <div class="comment-name" onclick="viewUserProfile('${c.uid}')" style="cursor:pointer;">${escapeHTML(c.name)}</div>
+                    <div class="comment-text">${escapeHTML(c.text)}</div>
+                </div>
+            </div>`;
+        });
+
+        html += `</div>`;
+        container.innerHTML = html;
+    });
+}
+
+function closeSinglePost() {
+    document.getElementById('single-post-modal').style.display = 'none';
+    if (singlePostUnsub) singlePostUnsub();
+    currentSinglePostId = null;
+}
+
+async function submitSingleComment() {
+    const input = document.getElementById('single-comment-input');
+    const text = input.value.trim();
+    if (!text || !currentSinglePostId || !currentUser) return;
+    
+    input.value = '';
+    const ref = db.collection('posts').doc(currentSinglePostId);
+    
+    try {
+        const doc = await ref.get();
+        if (doc.exists) {
+            let comments = doc.data().comments || [];
+            comments.push({
+                uid: currentUser.uid,
+                name: currentUserData.name || 'User',
+                text: text,
+                time: Date.now()
+            });
+            await ref.update({ comments });
+        }
+    } catch (e) {
+        showToast("Failed to post comment");
+    }
+}
+// ==========================================
+// 26. VOICE MESSAGE RECORDING SYSTEM
+// ==========================================
+let mediaRecorder;
+let audioChunks = [];
+let isRecording = false;
+
+async function startRecording() {
+    if (isRecording) return;
+    
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaRecorder = new MediaRecorder(stream);
+        
+        mediaRecorder.ondataavailable = event => {
+            if (event.data.size > 0) audioChunks.push(event.data);
+        };
+        
+        mediaRecorder.onstop = async () => {
+            //   
+            const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+            const audioFile = new File([audioBlob], "voice_msg.webm", { type: 'audio/webm' });
+            audioChunks = [];
+            
+            //    
+            await sendAudioMsg(audioFile);
+        };
+
+        mediaRecorder.start();
+        isRecording = true;
+        
+        // UI  ( )
+        document.getElementById('mic-btn').classList.add('recording-active');
+        document.getElementById('mic-icon').textContent = 'mic_none';
+        document.getElementById('chat-input').placeholder = "Recording...";
+        document.getElementById('chat-input').disabled = true;
+        
+    } catch (e) {
+        showToast("Microphone access denied!");
+    }
+}
+
+function stopRecording() {
+    if (!isRecording || !mediaRecorder) return;
+    
+    mediaRecorder.stop();
+    //    
+    mediaRecorder.stream.getTracks().forEach(track => track.stop());
+    
+    isRecording = false;
+    
+    // UI   
+    document.getElementById('mic-btn').classList.remove('recording-active');
+    document.getElementById('mic-icon').textContent = 'mic';
+    document.getElementById('chat-input').placeholder = "Type a message...";
+    document.getElementById('chat-input').disabled = false;
+}
+
+async function sendAudioMsg(file) {
+    if (!currentChatId || !currentUser) return;
+    showToast("Sending voice message...");
+    
+    try {
+        //  /  
+        const audioUrl = await uploadToCloudinary(file, true);
+        
+        await db.collection('chats').doc(currentChatId).collection('messages').add({
+            uid: currentUser.uid,
+            text: ' Voice message',
+            audioUrl: audioUrl,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        await db.collection('chats').doc(currentChatId).set({
+            lastMsg: ' Voice message',
+            lastAt: firebase.firestore.FieldValue.serverTimestamp(),
+            participants: [currentUser.uid, currentChatOtherUid]
+        }, { merge: true });
+        
+    } catch (e) {
+        showToast("Failed to send voice message");
+        console.error(e);
+    }
+}
+
+//     (  )
+const oldOpenChatForAudio = openChat;
+openChat = function(otherUid, otherName) {
+    //         
+    currentChatId = [currentUser.uid, otherUid].sort().join('_');
+    currentChatOtherUid = otherUid;
+    
+    document.getElementById('chat-name-display').textContent = escapeHTML(otherName);
+    document.getElementById('chat-screen').style.display = 'flex';
+    
+    const list = document.getElementById('chat-messages');
+    list.innerHTML = '<div class="loading" style="text-align:center; padding:20px; color:var(--text-muted);"><span class="material-symbols-outlined" style="animation:spin 1s linear infinite;">autorenew</span></div>';
+
+    if (chatUnsub) chatUnsub();
+    
+    chatUnsub = db.collection('chats').doc(currentChatId).collection('messages')
+        .orderBy('createdAt')
+        .onSnapshot(snap => {
+            let html = '';
+            snap.forEach(doc => {
+                const m = doc.data();
+                const isMine = m.uid === currentUser.uid;
+                
+                let timeString = '';
+                if (m.createdAt) {
+                    const date = m.createdAt.toDate ? m.createdAt.toDate() : new Date(m.createdAt);
+                    timeString = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                }
+
+                //       
+                let contentHtml = escapeHTML(m.text);
+                if (m.audioUrl) {
+                    contentHtml = `<audio controls src="${escapeHTML(m.audioUrl)}" class="audio-msg-player"></audio>`;
+                }
+
+                html += `
+                <div class="chat-bubble ${isMine ? 'mine' : 'theirs'}" style="${m.audioUrl ? 'padding: 5px; background: transparent; box-shadow: none;' : ''}">
+                    ${contentHtml}
+                    <span class="chat-time" style="${m.audioUrl ? 'color: var(--text-muted);' : ''}">${timeString}</span>
+                </div>`;
+            });
+            list.innerHTML = html || '<div style="text-align:center; padding:30px; color:var(--text-muted);">Send a message to start chatting!</div>';
+            list.scrollTop = list.scrollHeight;
+        });
 };
