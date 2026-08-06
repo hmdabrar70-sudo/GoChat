@@ -2152,6 +2152,36 @@ body.light-mode #page-search {
     background-color: var(--surface) !important;
     min-height: 100vh;
 }
+
+/* =========================================
+🚀 NEW FEATURE · posted-snackbar · 2026-08-07 (Update #24)
+পোস্ট সফল হলে ✓ Posted + View স্ন্যাকবার
+খুঁজতে: Ctrl+F → "posted-snackbar"
+========================================= */
+.gc-posted-bar{
+position:fixed;
+left:16px;right:16px;
+bottom:110px;
+z-index:100600;
+display:flex;align-items:center;justify-content:space-between;
+gap:12px;
+background:rgba(20,20,30,0.92);
+color:#fff;
+border-radius:16px;
+padding:14px 16px;
+box-shadow:0 12px 32px rgba(0,0,0,0.35);
+backdrop-filter:blur(8px);
+-webkit-backdrop-filter:blur(8px);
+transform:translateY(20px);
+opacity:0;
+pointer-events:none;
+transition:all .3s cubic-bezier(.22,1,.36,1);
+}
+.gc-posted-bar.show{transform:translateY(0);opacity:1;pointer-events:auto;}
+.gc-posted-left{display:flex;align-items:center;gap:10px;font-size:15px;font-weight:700;}
+.gc-posted-check{width:22px;height:22px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;flex-shrink:0;}
+.gc-posted-view{border:none;background:rgba(255,255,255,0.12);color:#fff;font-size:14px;font-weight:800;padding:8px 18px;border-radius:12px;cursor:pointer;transition:background .2s;}
+.gc-posted-view:active{background:rgba(255,255,255,0.25);}
 </style>
 </head>
 <body>
@@ -15896,6 +15926,53 @@ gcOpenSheetFromMenu(menu);   // Threads স্টাইল শিট খুল�
 }
 });
 window.gcChatTopObs.observe(menu, {attributes:true, attributeFilter:['style']});
+})();
+// ═══════════════════════════════════════════════════════
+// 🚀 NEW FEATURE · posted-snackbar · 2026-08-07 (Update #24)
+// পোস্ট আপলোড সম্পন্ন হলে ✓ Posted + View স্ন্যাকবার
+// খুঁজতে: Ctrl+F → "posted-snackbar"
+// ═══════════════════════════════════════════════════════
+function gcShowPostedSnackbar(pid){
+const oldToast = document.getElementById('toast');
+if(oldToast) oldToast.classList.remove('show'); // পুরনো টোস্ট যেন ওভারল্যাপ না করে
+let bar = document.getElementById('gc-posted-bar');
+if(!bar){
+bar = document.createElement('div');
+bar.id = 'gc-posted-bar';
+bar.className = 'gc-posted-bar';
+document.body.appendChild(bar);
+}
+bar.innerHTML = '<div class="gc-posted-left"><span class="gc-posted-check">✓</span> Posted</div><button class="gc-posted-view" onclick="gcViewPosted()">View</button>';
+bar.dataset.pid = pid;
+bar.classList.add('show');
+clearTimeout(window.gcPostedTimer);
+window.gcPostedTimer = setTimeout(function(){ bar.classList.remove('show'); }, 4000);
+}
+function gcViewPosted(){
+const bar = document.getElementById('gc-posted-bar');
+const pid = bar ? bar.dataset.pid : null;
+if(bar) bar.classList.remove('show');
+if(pid && typeof openSinglePostView === 'function') openSinglePostView(pid);
+}
+(function gcStartPostedWatcher(){
+if(window.gcPostedObs) return;
+window.gcPostedObs = true;
+const waitReady = setInterval(function(){
+if(typeof currentUser !== 'undefined' && currentUser && typeof db !== 'undefined'){
+clearInterval(waitReady);
+db.collection('posts').where('uid','==',currentUser.uid).onSnapshot(function(snap){
+snap.docChanges().forEach(function(ch){
+if(ch.type === 'added'){
+const d = ch.doc.data();
+const t = (d.createdAt && d.createdAt.toMillis) ? d.createdAt.toMillis() : 0;
+if(t > Date.now() - 5000){ // মাত্র ৫ সেকেন্ডের মধ্যে তৈরি হওয়া পোস্ট
+gcShowPostedSnackbar(ch.doc.id);
+}
+}
+});
+});
+}
+}, 800);
 })();
 </script>
 </body>
