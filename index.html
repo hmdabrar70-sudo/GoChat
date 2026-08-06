@@ -1263,6 +1263,20 @@ display:flex;justify-content:space-between;align-items:center;
     animation: emojiPopUp 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
 }
 
+/* =========================================
+🚀 Update #15 · reaction-picker-flip · 2026-08-06
+উপরে জায়গা না থাকলে পিকার নিচে খুলবে
+খুঁজতে: Ctrl+F → "reaction-picker-flip"
+========================================= */
+.reaction-picker{z-index:9999;}
+.reaction-picker.below{
+bottom:auto;
+top:100%;
+margin-top:6px;
+transform-origin:top left;
+}
+.chat-bubble-wrapper.mine .reaction-picker.below{transform-origin:top right;}
+
 @keyframes emojiPopUp {
     0% { transform: scale(0.4) translateY(20px); opacity: 0; }
     100% { transform: scale(1) translateY(-10px); opacity: 1; }
@@ -8257,14 +8271,21 @@ function showReactionPicker(event, msgId) {
         <span class="reaction-emoji" onclick="toggleMessageReaction('${msgId}','😡')">😡</span>
     `;
     
-    wrapper.appendChild(picker);
     
-    // স্ক্রিনের যেকোনো জায়গায় ক্লিক করলে পপ-আপ বন্ধ হয়ে যাবে
+wrapper.style.zIndex = '9999';
+wrapper.appendChild(picker);
+// 🚀 Update #15 · reaction-picker-flip: উপরে জায়গা না থাকলে পিকার নিচে দেখাবে
+requestAnimationFrame(function(){
+const pr = picker.getBoundingClientRect();
+if(pr.top < 140){ picker.classList.add('below'); }
+});
+// স্ক্রিনের যেকোনো জায়গায় ক্লিক করলে পপ-আপ বন্ধ হয়ে যাবে
     setTimeout(() => {
         document.addEventListener('click', function closePicker() {
-            if(picker) picker.remove();
-            document.removeEventListener('click', closePicker);
-        }, { once: true });
+if(picker) picker.remove();
+wrapper.style.zIndex = '';
+document.removeEventListener('click', closePicker);
+}, { once: true });
     }, 100);
 }
 
