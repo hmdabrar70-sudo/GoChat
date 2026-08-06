@@ -515,19 +515,57 @@ body.light-mode .post-action-btn:hover { background: rgba(0,0,0,0.05); }
 
 body.light-mode .post-action-btn.liked { background: #ffe4e6; }
 
-/* কুইক ফলো বাটন ডিজাইন */
-.post-name span[onclick*="toggleFollow"] {
-    background: linear-gradient(135deg, var(--accent-light), var(--accent));
-    color: #fff;
-    border: none;
-    padding: 6px 14px;
-    border-radius: 20px;
-    box-shadow: 0 4px 12px var(--accent-glow);
-    margin-left: auto;
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+/* =========================================
+🚀 NEW FEATURE · threads-style-follow · 2026-08-06 (Update #1)
+অ্যাভাটার প্লাস ব্যাজ + Threads স্টাইল ফলো পপআপ
+খুঁজতে: Ctrl+F → "threads-style-follow"
+========================================= */
+.tf-av-wrap{
+position:relative;
+width:44px;height:44px;
+flex-shrink:0;
 }
+.tf-plus-badge{
+position:absolute;
+bottom:-2px;left:-6px;
+width:20px;height:20px;
+border-radius:50%;
+background:#0a0a0f;
+color:#fff;
+border:2px solid var(--surface);
+display:flex;align-items:center;justify-content:center;
+padding:0;
+cursor:pointer;
+z-index:2;
+transition:transform .2s;
+}
+.tf-plus-badge i{font-size:12px;}
+.tf-plus-badge:active{transform:scale(.85);}
+body.light-mode .tf-plus-badge{background:#000;border-color:#fff;}
+.tf-popup{
+display:none;
+position:fixed;
+z-index:100300;
+min-width:190px;
+background:var(--surface);
+border:1px solid var(--border);
+border-radius:14px;
+box-shadow:var(--shadow-lg);
+overflow:hidden;
+animation:menuSlide .2s ease;
+}
+.tf-popup-item{
+display:flex;align-items:center;justify-content:space-between;
+gap:16px;
+padding:14px 16px;
+font-size:15px;font-weight:600;
+color:var(--text);
+cursor:pointer;
+transition:background .2s;
+}
+.tf-popup-item:hover{background:var(--surface-2);}
+.tf-popup-item + .tf-popup-item{border-top:1px solid var(--border);}
+.tf-popup-item i{font-size:20px;}
 .comment-panel{
 display:none;position:fixed;inset:0;
 background:var(--bg);z-index:999;
@@ -2761,6 +2799,17 @@ body.light-mode #page-messages {
 
 <div id="in-app-notif-container"></div>
 <div id="toast"></div>
+<!-- 🚀 NEW FEATURE · threads-style-follow · Update #1 -->
+<div id="tf-popup" class="tf-popup">
+<div class="tf-popup-item" onclick="tfVisitProfile()">
+<span>Visit profile</span>
+<i class="ph-bold ph-user"></i>
+</div>
+<div class="tf-popup-item" onclick="tfFollow()">
+<span>Follow</span>
+<i class="ph-bold ph-plus-circle"></i>
+</div>
+</div>
 <div id="main-menu-screen" style="display:none; position:fixed; inset:0; background:var(--bg); z-index:1000; flex-direction:column; overflow-y:auto; animation:slideUp 0.3s ease;">
     <div class="chat-topbar" style="position:sticky; top:0; z-index:100;">
         <div class="chat-back" onclick="closeMainMenu()"><i class="ph-bold ph-arrow-left" style="font-size:20px;"></i></div>
@@ -6601,11 +6650,73 @@ async function toggleFollow(targetUid) {
     }
     
     // বাটনগুলোর স্টেট সাথে সাথে আপডেট করার জন্য
-    if(document.getElementById('page-other-profile').classList.contains('active') || document.getElementById('page-other-profile').classList.contains('open')) {
-        viewUserProfile(targetUid);
-    }
-    searchUsers();
+if(document.getElementById('page-other-profile').classList.contains('active') || document.getElementById('page-other-profile').classList.contains('open')) {
+viewUserProfile(targetUid);
 }
+// 🚀 Update #1 · threads-style-follow: ফিডের প্লাস ব্যাজ সিঙ্ক
+syncFollowBadges(targetUid, !isFollowing);
+searchUsers();
+}
+
+// ═══════════════════════════════════════════════════════
+// 🚀 NEW FEATURE · threads-style-follow · 2026-08-06 (Update #1)
+// অ্যাভাটার প্লাস ব্যাজ + Threads স্টাইল ফলো পপআপ
+// খুঁজতে: Ctrl+F → "threads-style-follow"
+// ═══════════════════════════════════════════════════════
+let tfCurrentUid = null;
+function openFollowPopup(badgeEl){
+const wrap = badgeEl.closest('.tf-av-wrap');
+if(!wrap) return;
+tfCurrentUid = wrap.getAttribute('data-uid');
+const popup = document.getElementById('tf-popup');
+if(!popup) return;
+popup.style.display = 'block';
+const rect = badgeEl.getBoundingClientRect();
+const pw = popup.offsetWidth, ph = popup.offsetHeight;
+let left = rect.left - 4;
+let top = rect.bottom + 8;
+if(left + pw > window.innerWidth - 8) left = window.innerWidth - pw - 8;
+if(left < 8) left = 8;
+if(top + ph > window.innerHeight - 8) top = rect.top - ph - 8;
+popup.style.left = left + 'px';
+popup.style.top = top + 'px';
+}
+function closeFollowPopup(){
+const popup = document.getElementById('tf-popup');
+if(popup) popup.style.display = 'none';
+tfCurrentUid = null;
+}
+function tfVisitProfile(){
+const uid = tfCurrentUid;
+closeFollowPopup();
+if(uid) viewUserProfile(uid);
+}
+function tfFollow(){
+const uid = tfCurrentUid;
+closeFollowPopup();
+if(uid) toggleFollow(uid);
+}
+// ফলো/আনফলোর পর ফিডের সব কার্ডের ব্যাজ সিঙ্ক করা
+function syncFollowBadges(uid, forceState){
+if(!currentUserData) return;
+const isFollowing = (typeof forceState === 'boolean') ? forceState : currentUserData.following?.includes(uid);
+document.querySelectorAll('.tf-av-wrap[data-uid="' + uid + '"]').forEach(wrap => {
+const badge = wrap.querySelector('.tf-plus-badge');
+if(isFollowing && badge){
+badge.remove();
+}else if(!isFollowing && !badge){
+wrap.insertAdjacentHTML('beforeend', '<button class="tf-plus-badge" onclick="event.stopPropagation(); openFollowPopup(this)" aria-label="Follow"><i class="ph-bold ph-plus"></i></button>');
+}
+});
+}
+// বাইরে ক্লিক বা স্ক্রল করলে পপআপ বন্ধ
+document.addEventListener('click', function(e){
+const popup = document.getElementById('tf-popup');
+if(popup && popup.style.display === 'block' && !popup.contains(e.target) && !e.target.closest('.tf-plus-badge')){
+closeFollowPopup();
+}
+});
+window.addEventListener('scroll', closeFollowPopup, true);
 
 // ===== UPDATE SEARCH SYSTEM =====
 async function searchUsers() {
@@ -9344,15 +9455,14 @@ if(p.uid === currentUser?.uid){
 }
 postDropdownHtml += `</div></div>`;
 
-    // 🚀 কুইক ফলো বাটন লজিক
-    const isMePost = (p.uid === currentUser?.uid);
-    const isAlreadyFollowing = currentUserData?.following?.includes(p.uid);
-    let quickFollowBtn = '';
-    
-    // যদি নিজের পোস্ট না হয় এবং আগে থেকে ফলো করা না থাকে, তবেই ফলো বাটন দেখাবে
-    if (!isMePost && !isAlreadyFollowing) {
-        quickFollowBtn = `<span onclick="event.stopPropagation(); toggleFollow('${p.uid}'); this.style.display='none';" style="color: var(--accent); font-size: 12px; font-weight: 700; cursor: pointer; margin-left: 8px; padding: 2px 10px; background: var(--surface-2); border-radius: 12px; border: 1px solid var(--accent); transition: all 0.2s;">Follow</span>`;
-    }
+    // 🚀 NEW FEATURE · threads-style-follow · Update #1
+const isMePost = (p.uid === currentUser?.uid);
+const isAlreadyFollowing = currentUserData?.following?.includes(p.uid);
+let followBadge = '';
+// যদি নিজের পোস্ট না হয় এবং আগে থেকে ফলো করা না থাকে, তবেই প্লাস ব্যাজ দেখাবে
+if (!isMePost && !isAlreadyFollowing) {
+followBadge = `<button class="tf-plus-badge" onclick="event.stopPropagation(); openFollowPopup(this)" aria-label="Follow"><i class="ph-bold ph-plus"></i></button>`;
+}
 
     // 🌟 Check if the post author is verified to apply premium class
     const premiumPostClass = p.isVerified ? 'verified-premium-post' : '';
@@ -9360,14 +9470,15 @@ postDropdownHtml += `</div></div>`;
 // 🚀 মেইন কার্ডে onclick যুক্ত করা হলো
 return`<div class="post-card ${premiumPostClass}" style="cursor:pointer;" onclick="openSinglePostView('${pid}')">
 <div class="post-header">
+<div class="tf-av-wrap" data-uid="${p.uid}">
 <div class="avatar" style="width:44px;height:44px;cursor:pointer;" onclick="event.stopPropagation(); viewUserProfile('${p.uid}')">${av}</div>
+${followBadge}
+</div>
 <div style="flex:1;" onclick="event.stopPropagation(); viewUserProfile('${p.uid}')">
-
 <div class="post-name" style="display: block; line-height: 1.4; cursor:pointer;">
-    <span style="display: inline;">${safeName} <span style="display: inline-flex; vertical-align: middle; margin-top: -3px; margin-left: 2px;">${vBadge}</span></span>
-    ${quickFollowBtn}
-    ${activityHtml} 
-    ${withText}
+<span style="display: inline;">${safeName} <span style="display: inline-flex; vertical-align: middle; margin-top: -3px; margin-left: 2px;">${vBadge}</span></span>
+${activityHtml}
+${withText}
 </div>
 <div class="post-time">${getRelativeTime(p.createdAt)}</div>
 </div>
