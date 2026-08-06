@@ -570,6 +570,83 @@ transition:background .2s;
 .tf-popup-item:hover{background:var(--surface-2);}
 .tf-popup-item + .tf-popup-item{border-top:1px solid var(--border);}
 .tf-popup-item i{font-size:20px;}
+/* =========================================
+🚀 NEW FEATURE · search-clear-button · 2026-08-06 (Update #4)
+সার্চ ইনপুটে এক ট্যাপে সব লেখা মোছার ক্রস বাটন
+খুঁজতে: Ctrl+F → "search-clear-button"
+========================================= */
+.search-clear-btn{
+position:absolute;
+right:6px;
+top:50%;
+transform:translateY(-50%);
+width:28px;height:28px;
+border-radius:50%;
+border:none;
+background:var(--surface-2);
+color:var(--text-muted);
+display:none;
+align-items:center;
+justify-content:center;
+cursor:pointer;
+z-index:5;
+transition:transform .15s;
+}
+.search-clear-btn.show{display:flex;}
+.search-clear-btn:active{transform:translateY(-50%) scale(.85);}
+/* =========================================
+🚀 NEW DESIGN · threads-bottom-sheet · 2026-08-06 (Update #5)
+খুঁজতে: Ctrl+F → "threads-bottom-sheet"
+========================================= */
+.gc-sheet-overlay{
+position:fixed; inset:0;
+background:rgba(0,0,0,0.5);
+backdrop-filter:blur(4px);
+-webkit-backdrop-filter:blur(4px);
+z-index:100400;
+display:none;
+align-items:flex-end;
+justify-content:center;
+animation:fadeIn 0.2s ease;
+}
+.gc-sheet-overlay.open{display:flex;}
+.gc-sheet{
+width:100%; max-width:520px;
+max-height:80vh; overflow-y:auto;
+background:var(--bg);
+border-radius:24px 24px 0 0;
+padding:10px 14px calc(14px + env(safe-area-inset-bottom));
+animation:gcSheetUp 0.3s cubic-bezier(.22,1,.36,1);
+scrollbar-width:none;
+}
+.gc-sheet::-webkit-scrollbar{display:none;}
+@keyframes gcSheetUp{from{transform:translateY(100%);}to{transform:translateY(0);}}
+.gc-sheet-handle{
+width:44px;height:4px;border-radius:2px;
+background:var(--border);
+margin:6px auto 12px;
+}
+.gc-sheet-group{
+background:var(--surface);
+border-radius:16px;
+margin-bottom:10px;
+overflow:hidden;
+box-shadow:var(--shadow-sm);
+}
+.gc-sheet-item{
+display:flex;align-items:center;justify-content:space-between;
+gap:16px;
+padding:16px;
+font-size:16px;font-weight:700;
+color:var(--text);
+cursor:pointer;
+transition:background .15s;
+}
+.gc-sheet-item:active{background:var(--surface-2);}
+.gc-sheet-item + .gc-sheet-item{border-top:1px solid var(--border);}
+.gc-sheet-item i{font-size:22px;}
+.gc-sheet-item .material-symbols-outlined{font-size:22px;}
+.gc-sheet-item.danger{color:var(--danger);}
 .comment-panel{
 display:none;position:fixed;inset:0;
 background:var(--bg);z-index:999;
@@ -6721,6 +6798,51 @@ closeFollowPopup();
 }
 });
 window.addEventListener('scroll', closeFollowPopup, true);
+
+// ═══════════════════════════════════════════════════════
+// 🚀 NEW FEATURE · search-clear-button · 2026-08-06 (Update #4)
+// সার্চ ইনপুটে এক ট্যাপে সব লেখা মোছার ক্রস বাটন
+// খুঁজতে: Ctrl+F → "search-clear-button"
+// ═══════════════════════════════════════════════════════
+(function initSearchClearButton(){
+const input = document.getElementById('search-input');
+if(!input || document.getElementById('search-clear-btn')) return;
+
+// ১. ইনপুটটাকে একটা relative র‍্যাপারের ভেতরে নেওয়া (যাতে বাটন ঠিক ইনপুটের ডান পাশে বসে)
+const wrapper = document.createElement('div');
+wrapper.style.position = 'relative';
+wrapper.style.flex = '1';
+wrapper.style.minWidth = '0';
+input.parentNode.insertBefore(wrapper, input);
+wrapper.appendChild(input);
+input.style.width = '100%';
+input.style.paddingRight = '38px';
+
+// ২. ক্রস বাটন তৈরি
+const btn = document.createElement('button');
+btn.id = 'search-clear-btn';
+btn.className = 'search-clear-btn';
+btn.type = 'button';
+btn.innerHTML = '<span class="material-symbols-outlined" style="font-size:16px;">close</span>';
+wrapper.appendChild(btn);
+
+// ৩. ইনপুটে লেখা থাকলেই বাটন দেখাবে, না থাকলে লুকিয়ে থাকবে
+function refreshClearBtn(){
+if(input.value.length > 0) btn.classList.add('show');
+else btn.classList.remove('show');
+}
+input.addEventListener('input', refreshClearBtn);
+input.addEventListener('focus', refreshClearBtn);
+refreshClearBtn();
+
+// ৪. ক্রসে ক্লিক করলে পুরো লেখা একসাথে মুছে যাবে + সার্চ লজিক রিফ্রেশ হবে
+btn.addEventListener('click', function(){
+input.value = '';
+input.dispatchEvent(new Event('input')); // আগের সার্চ লিসেনার নিজে থেকেই চলবে → রিসেন্ট সার্চ ফিরে আসবে
+input.focus();
+refreshClearBtn();
+});
+})();
 
 // ===== UPDATE SEARCH SYSTEM =====
 async function searchUsers() {
@@ -15131,6 +15253,90 @@ function ptApply(i){
 document.addEventListener('keydown', (e) => {
   if(e.key === 'Escape'){ const ov = document.getElementById('pt-sheet'); if(ov) ov.classList.remove('open'); }
 });
+// ═══════════════════════════════════════════════════════
+// 🚀 NEW DESIGN · threads-bottom-sheet · 2026-08-06 (Update #5)
+// Threads স্টাইল বটম-শিট মেনু সিস্টেম (ফাইনাল প্যাকেজ)
+// খুঁজতে: Ctrl+F → "threads-bottom-sheet"
+// ═══════════════════════════════════════════════════════
+let gcSheetActions = [];
+function gcBuildSheet(groups){
+let ov = document.getElementById('gc-sheet-overlay');
+if(!ov){
+ov = document.createElement('div');
+ov.id = 'gc-sheet-overlay';
+ov.className = 'gc-sheet-overlay';
+ov.onclick = (e) => { if(e.target === ov) gcCloseSheet(); };
+document.body.appendChild(ov);
+}
+let html = '<div class="gc-sheet"><div class="gc-sheet-handle"></div>';
+groups.forEach(function(g){
+html += '<div class="gc-sheet-group">';
+g.forEach(function(it){
+html += '<div class="gc-sheet-item ' + (it.danger ? 'danger' : '') + '" onclick="gcSheetTap(' + it.idx + ')"><span>' + it.label + '</span>' + it.icon + '</div>';
+});
+html += '</div>';
+});
+html += '</div>';
+ov.innerHTML = html;
+ov.classList.add('open');
+}
+function gcCloseSheet(){
+const ov = document.getElementById('gc-sheet-overlay');
+if(ov) ov.classList.remove('open');
+}
+function gcSheetTap(idx){
+gcCloseSheet();
+const el = gcSheetActions[idx];
+if(!el) return;
+const menu = el.closest('.post-dropdown-menu, .chat-list-menu, .profile-menu') || el.parentElement;
+const stop = function(e){ e.stopPropagation(); };
+menu.addEventListener('click', stop);
+setTimeout(function(){
+el.click();
+menu.removeEventListener('click', stop);
+}, 60);
+}
+// পুরনো ড্রপডাউন মেনু পড়ে নিয়ে Threads শিট বানানো
+function gcOpenSheetFromMenu(menuEl){
+if(!menuEl) return;
+const rawItems = Array.from(menuEl.querySelectorAll('.chat-dropdown-item'));
+if(!rawItems.length) return;
+gcSheetActions = [];
+const groups = [];
+let normal = [];
+rawItems.forEach(function(it){
+const ic = it.querySelector('i') || it.querySelector('.material-symbols-outlined');
+const item = {
+label: it.textContent.trim(),
+icon: ic ? ic.outerHTML : '',
+danger: it.classList.contains('danger'),
+idx: gcSheetActions.length
+};
+gcSheetActions.push(it);
+if(item.danger){
+if(normal.length){ groups.push(normal); normal = []; }
+groups.push([item]);
+}else{
+normal.push(item);
+}
+});
+if(normal.length) groups.push(normal);
+gcBuildSheet(groups);
+}
+// ===== পুরনো মেনু ফাংশন ওভাররাইড (নিচের ডিক্লারেশন জিতবে) =====
+function togglePostDropdown(id){
+closeAllDropdowns();
+gcOpenSheetFromMenu(document.getElementById(id));
+}
+function toggleChatListMenu(chatId){
+closeAllDropdowns();
+gcOpenSheetFromMenu(document.getElementById('chat-menu-' + chatId));
+}
+function toggleProfileMenu(){
+closeAllDropdowns();
+gcOpenSheetFromMenu(document.getElementById('profile-menu'));
+}
+document.addEventListener('keydown', function(e){ if(e.key === 'Escape') gcCloseSheet(); });
 </script>
 </body>
 </html>
