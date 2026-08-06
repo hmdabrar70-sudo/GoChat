@@ -596,6 +596,24 @@ transition:transform .15s;
 .search-clear-btn:active{transform:translateY(-50%) scale(.85);}
 
 /* =========================================
+🚀 NEW FEATURE · chat-filter · 2026-08-06 (Update #11)
+Chats পেজে All/Unread ফিল্টার মেনু
+খুঁজতে: Ctrl+F → "chat-filter"
+========================================= */
+.gc-cf-item{
+display:flex;align-items:center;justify-content:space-between;
+gap:16px;
+padding:13px 16px;
+font-size:15px;font-weight:600;
+color:var(--text);
+cursor:pointer;
+transition:background .15s;
+}
+.gc-cf-item:active{background:var(--surface-2);}
+.gc-cf-item .gc-cf-check{visibility:hidden;color:var(--accent);font-weight:800;}
+.gc-cf-item.active .gc-cf-check{visibility:visible;}
+
+/* =========================================
 🚀 NEW FEATURE · first-post-badge · 2026-08-06 (Update #10)
 খুঁজতে: Ctrl+F → "first-post-badge"
 ========================================= */
@@ -15417,8 +15435,11 @@ const groups = [];
 let normal = [];
 rawItems.forEach(function(it){
 const ic = it.querySelector('i') || it.querySelector('.material-symbols-outlined');
+// 🚀 Update #12 · sheet-label-fix: আইকনের লিগেচার নাম বাদ দিয়ে শুধু আসল লেবেল নেওয়া
+const clone = it.cloneNode(true);
+clone.querySelectorAll('i, .material-symbols-outlined').forEach(function(x){ x.remove(); });
 const item = {
-label: it.textContent.trim(),
+label: clone.textContent.trim(),
 icon: ic ? ic.outerHTML : '',
 danger: it.classList.contains('danger'),
 idx: gcSheetActions.length
@@ -15547,6 +15568,95 @@ showToast('🎉 First Post marked!');
 }, 800);
 }
 gcStartFirstPostWatcher();
+// ═══════════════════════════════════════════════════════
+// 🚀 NEW FEATURE · chat-filter · 2026-08-06 (Update #11)
+// Chats পেজে Threads স্টাইল All/Unread ফিল্টার
+// খুঁজতে: Ctrl+F → "chat-filter"
+// ═══════════════════════════════════════════════════════
+let gcChatFilter = 'all';
+// 🚀 Update #13 · filter-btn-size-fix: গ্রুপ বাটনের হুবহু কপি → সাইজ ও গ্যাপ একদম সেম
+function gcInjectChatFilterBtn(){
+const groupBtn = document.getElementById('topbar-group-btn');
+if(!groupBtn || document.getElementById('gc-chat-filter-btn')) return;
+const btn = groupBtn.cloneNode(true);
+btn.id = 'gc-chat-filter-btn';
+btn.removeAttribute('onclick');
+btn.innerHTML = '<span class="material-symbols-outlined">filter_list</span>';
+btn.onclick = function(e){ e.stopPropagation(); gcToggleFilterMenu(); };
+groupBtn.parentNode.insertBefore(btn, groupBtn);
+}
+function gcSyncFilterBtn(){
+const g = document.getElementById('topbar-group-btn');
+const f = document.getElementById('gc-chat-filter-btn');
+if(g && f) f.style.display = g.style.display;
+}
+window.gcOrigShowPage = showPage;
+showPage = function(page){
+window.gcOrigShowPage(page);
+gcSyncFilterBtn();
+};
+function gcApplyChatFilter(){
+const scope = document.getElementById('page-messages');
+if(!scope) return;
+scope.querySelectorAll('.msg-item').forEach(function(it){
+if(gcChatFilter === 'unread'){
+it.style.display = it.classList.contains('unread-chat') ? '' : 'none';
+}else{
+it.style.display = '';
+}
+});
+}
+function gcSetChatFilter(f){
+gcChatFilter = f;
+const m = document.getElementById('gc-chat-filter-menu');
+if(m) m.style.display = 'none';
+gcApplyChatFilter();
+showToast(f === 'unread' ? 'Showing unread chats' : 'Showing all chats');
+}
+function gcUpdateFilterMenuUI(){
+const m = document.getElementById('gc-chat-filter-menu');
+if(!m) return;
+m.querySelectorAll('.gc-cf-item').forEach(function(it){
+it.classList.toggle('active', it.getAttribute('data-f') === gcChatFilter);
+});
+}
+function gcToggleFilterMenu(){
+let m = document.getElementById('gc-chat-filter-menu');
+if(!m){
+m = document.createElement('div');
+m.id = 'gc-chat-filter-menu';
+m.style.cssText = 'position:fixed;z-index:100500;background:var(--surface);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow-lg);min-width:170px;overflow:hidden;display:none;animation:menuSlide .2s ease;';
+m.innerHTML = '<div class="gc-cf-item" data-f="all" onclick="event.stopPropagation(); gcSetChatFilter(\'all\')"><span>All</span><span class="gc-cf-check">✓</span></div>' +
+'<div class="gc-cf-item" data-f="unread" onclick="event.stopPropagation(); gcSetChatFilter(\'unread\')"><span>Unread</span><span class="gc-cf-check">✓</span></div>';
+document.body.appendChild(m);
+m.addEventListener('click', function(e){ e.stopPropagation(); });
+}
+const btn = document.getElementById('gc-chat-filter-btn');
+const r = btn.getBoundingClientRect();
+m.style.display = 'block';
+const pw = m.offsetWidth, ph = m.offsetHeight;
+let left = Math.max(8, Math.min(r.left, window.innerWidth - pw - 8));
+let top = r.bottom + 8;
+if(top + ph > window.innerHeight - 8) top = r.top - ph - 8;
+m.style.left = left + 'px';
+m.style.top = top + 'px';
+gcUpdateFilterMenuUI();
+}
+document.addEventListener('click', function(e){
+const m = document.getElementById('gc-chat-filter-menu');
+if(m && m.style.display === 'block' && !m.contains(e.target) && !e.target.closest('#gc-chat-filter-btn')){
+m.style.display = 'none';
+}
+});
+function gcStartChatFilterObserver(){
+const scope = document.getElementById('page-messages') || document.body;
+if(window.gcCfObs) return;
+window.gcCfObs = new MutationObserver(function(){ gcApplyChatFilter(); });
+window.gcCfObs.observe(scope, {childList:true, subtree:true});
+}
+gcInjectChatFilterBtn();
+gcStartChatFilterObserver();
+gcSyncFilterBtn();
 </script>
 </body>
 </html>
