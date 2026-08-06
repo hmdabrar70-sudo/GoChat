@@ -4637,6 +4637,63 @@ body.notifications-mode #page-notifications > div:first-child {
 @keyframes ptPop{ from{ opacity:0; transform:scale(.4);} to{ opacity:1; transform:scale(1);} }
 @keyframes ptSheet{ from{ transform:translateY(60px); opacity:0;} to{ transform:translateY(0); opacity:1;} }
 @keyframes ptRise{ from{ opacity:0; transform:translateY(12px);} to{ opacity:1; transform:translateY(0);} }
+
+/* =========================================
+🚀 NEW FEATURE · unfollow-confirm · 2026-08-06 (Update #6)
+Threads স্টাইল আনফলো কনফার্মেশন পপআপ
+খুঁজতে: Ctrl+F → "unfollow-confirm"
+========================================= */
+.gc-unfollow-overlay{
+position:fixed; inset:0;
+background:rgba(10,10,20,0.55);
+backdrop-filter:blur(6px);
+-webkit-backdrop-filter:blur(6px);
+z-index:100500;
+display:none;
+align-items:center;justify-content:center;
+padding:24px;
+animation:fadeIn 0.2s ease;
+}
+.gc-unfollow-overlay.open{display:flex;}
+.gc-unfollow-card{
+width:100%;max-width:320px;
+border-radius:24px;
+overflow:hidden;
+background:
+radial-gradient(120% 90% at 10% 0%, rgba(124,92,255,0.18), transparent 55%),
+radial-gradient(120% 90% at 90% 100%, rgba(255,122,178,0.14), transparent 55%),
+var(--surface);
+box-shadow:0 24px 70px rgba(0,0,0,0.45);
+text-align:center;
+padding:26px 18px 14px;
+animation:gcUnfollowPop 0.25s cubic-bezier(.22,1,.36,1);
+}
+@keyframes gcUnfollowPop{from{transform:scale(.85);opacity:0;}to{transform:scale(1);opacity:1;}}
+.gc-unfollow-av{
+width:76px;height:76px;border-radius:50%;
+margin:0 auto 14px;
+overflow:hidden;
+background:var(--surface-2);
+border:3px solid var(--accent);
+display:flex;align-items:center;justify-content:center;
+font-size:30px;font-weight:800;color:var(--text);
+}
+.gc-unfollow-av img{width:100%;height:100%;object-fit:cover;}
+.gc-unfollow-title{
+font-size:16px;font-weight:600;color:var(--text);
+margin-bottom:18px;
+}
+.gc-unfollow-title b{font-weight:800;}
+.gc-unfollow-btn{
+padding:14px 10px;
+font-size:15px;font-weight:700;
+color:var(--text);
+cursor:pointer;
+border-top:1px solid var(--border);
+transition:background .15s;
+}
+.gc-unfollow-btn:active{background:var(--surface-2);}
+.gc-unfollow-btn.danger{color:var(--danger);}
 </style>
 
 <style>
@@ -15336,6 +15393,72 @@ closeAllDropdowns();
 gcOpenSheetFromMenu(document.getElementById('profile-menu'));
 }
 document.addEventListener('keydown', function(e){ if(e.key === 'Escape') gcCloseSheet(); });
+// ═══════════════════════════════════════════════════════
+// 🚀 NEW FEATURE · unfollow-confirm · 2026-08-06 (Update #6)
+// Threads স্টাইল আনফলো কনফার্মেশন পপআপ
+// খুঁজতে: Ctrl+F → "unfollow-confirm"
+// ═══════════════════════════════════════════════════════
+let gcUnfollowTarget = null;
+window.gcOriginalToggleFollow = toggleFollow;
+// পুরনো toggleFollow কে র‍্যাপ করা হলো: আনফলো হলে আগে কনফার্মেশন
+toggleFollow = function(targetUid){
+const isFollowing = currentUserData?.following?.includes(targetUid);
+if(isFollowing){
+gcShowUnfollowConfirm(targetUid);
+return;
+}
+window.gcOriginalToggleFollow(targetUid);
+};
+async function gcShowUnfollowConfirm(uid){
+gcUnfollowTarget = uid;
+let ov = document.getElementById('gc-unfollow-overlay');
+if(!ov){
+ov = document.createElement('div');
+ov.id = 'gc-unfollow-overlay';
+ov.className = 'gc-unfollow-overlay';
+ov.onclick = (e) => { if(e.target === ov) gcHideUnfollowConfirm(); };
+ov.innerHTML = '<div class="gc-unfollow-card">' +
+'<div class="gc-unfollow-av" id="gc-unfollow-av"></div>' +
+'<div class="gc-unfollow-title" id="gc-unfollow-title"></div>' +
+'<div class="gc-unfollow-btn danger" onclick="gcConfirmUnfollow()">Unfollow</div>' +
+'<div class="gc-unfollow-btn" onclick="gcHideUnfollowConfirm()">Cancel</div>' +
+'</div>';
+document.body.appendChild(ov);
+}
+ov.classList.add('open');
+// ১. আগে ক্যাশ থেকে দেখাও
+let name = 'User';
+let avatar = '';
+const cached = (window.allUsersCache || []).find(x => x.id === uid);
+if(cached){ name = cached.name || 'User'; avatar = cached.avatar || ''; }
+gcFillUnfollowInfo(name, avatar);
+// ২. ক্যাশে না থাকলে Firestore থেকে লাইভ নিয়ে আসো
+if(!avatar || name === 'User'){
+try{
+const doc = await db.collection('users').doc(uid).get();
+if(doc.exists){
+const d = doc.data();
+gcFillUnfollowInfo(d.name || 'User', d.avatar || '');
+}
+}catch(e){}
+}
+}
+function gcFillUnfollowInfo(name, avatar){
+const avEl = document.getElementById('gc-unfollow-av');
+const tEl = document.getElementById('gc-unfollow-title');
+if(avEl) avEl.innerHTML = avatar ? '<img src="' + avatar + '">' : name.charAt(0).toUpperCase();
+if(tEl) tEl.innerHTML = 'Unfollow <b>' + escapeHTML(name) + '</b>?';
+}
+function gcHideUnfollowConfirm(){
+const ov = document.getElementById('gc-unfollow-overlay');
+if(ov) ov.classList.remove('open');
+gcUnfollowTarget = null;
+}
+function gcConfirmUnfollow(){
+const uid = gcUnfollowTarget;
+gcHideUnfollowConfirm();
+if(uid && window.gcOriginalToggleFollow) window.gcOriginalToggleFollow(uid);
+}
 </script>
 </body>
 </html>
