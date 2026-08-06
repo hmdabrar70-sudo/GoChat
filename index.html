@@ -594,6 +594,25 @@ transition:transform .15s;
 }
 .search-clear-btn.show{display:flex;}
 .search-clear-btn:active{transform:translateY(-50%) scale(.85);}
+
+/* =========================================
+🚀 NEW FEATURE · first-post-badge · 2026-08-06 (Update #10)
+খুঁজতে: Ctrl+F → "first-post-badge"
+========================================= */
+.gc-first-post{
+display:flex;align-items:center;gap:6px;
+width:max-content;
+margin:0 0 10px;
+padding:6px 12px;
+border-radius:20px;
+background:linear-gradient(135deg, rgba(245,158,11,.15), rgba(124,92,255,.15));
+border:1px solid rgba(245,158,11,.35);
+color:#f59e0b;
+font-size:11px;font-weight:800;
+text-transform:uppercase;letter-spacing:.5px;
+}
+.gc-first-post i{font-size:14px;}
+
 /* =========================================
 🚀 NEW DESIGN · threads-bottom-sheet · 2026-08-06 (Update #5)
 খুঁজতে: Ctrl+F → "threads-bottom-sheet"
@@ -9674,11 +9693,15 @@ if (!isMePost && !isAlreadyFollowing) {
 followBadge = `<button class="tf-plus-badge" onclick="event.stopPropagation(); openFollowPopup(this)" aria-label="Follow"><i class="ph-bold ph-plus"></i></button>`;
 }
 
+// 🚀 Update #10 · first-post-badge: প্রথম পোস্টের বিশেষ ব্যাজ
+const firstPostBadge = p.isFirstPost ? `<div class="gc-first-post"><i class="ph-fill ph-sparkle"></i> First Post</div>` : '';
+
     // 🌟 Check if the post author is verified to apply premium class
     const premiumPostClass = p.isVerified ? 'verified-premium-post' : '';
 
 // 🚀 মেইন কার্ডে onclick যুক্ত করা হলো
 return`<div class="post-card ${premiumPostClass}" style="cursor:pointer;" onclick="openSinglePostView('${pid}')">
+${firstPostBadge}
 <div class="post-header">
 <div class="tf-av-wrap" data-uid="${p.uid}">
 <div class="avatar" style="width:44px;height:44px;cursor:pointer;" onclick="event.stopPropagation(); viewUserProfile('${p.uid}')">${av}</div>
@@ -15491,6 +15514,39 @@ const uid = gcUnfollowTarget;
 gcHideUnfollowConfirm();
 if(uid && window.gcOriginalToggleFollow) window.gcOriginalToggleFollow(uid);
 }
+// ═══════════════════════════════════════════════════════
+// 🚀 NEW FEATURE · first-post-badge · 2026-08-06 (Update #10)
+// প্রথম পোস্ট ডিটেক্ট করে ব্যাজ বসানোর স্মার্ট ওয়াচার
+// খুঁজতে: Ctrl+F → "first-post-badge"
+// ═══════════════════════════════════════════════════════
+function gcStartFirstPostWatcher(){
+if(window.gcFpStarted) return;
+window.gcFpStarted = true;
+let stopFn = null;
+const tryStart = setInterval(() => {
+if(typeof currentUser !== 'undefined' && currentUser && currentUserData){
+clearInterval(tryStart);
+if(currentUserData.firstPostId) return; // আগে থেকেই মার্ক করা
+stopFn = db.collection('posts').where('uid','==',currentUser.uid).onSnapshot(async (snap) => {
+if(currentUserData && currentUserData.firstPostId){ if(stopFn) stopFn(); return; }
+if(snap.empty) return;
+let firstDoc = null, firstTime = null;
+snap.forEach(d => {
+const t = (d.data().createdAt && d.data().createdAt.toMillis) ? d.data().createdAt.toMillis() : 0;
+if(firstTime === null || t < firstTime){ firstTime = t; firstDoc = d; }
+});
+if(firstDoc && !firstDoc.data().isFirstPost){
+try{
+await firstDoc.ref.update({ isFirstPost: true });
+await db.collection('users').doc(currentUser.uid).update({ firstPostId: firstDoc.id });
+showToast('🎉 First Post marked!');
+}catch(e){}
+}
+});
+}
+}, 800);
+}
+gcStartFirstPostWatcher();
 </script>
 </body>
 </html>
