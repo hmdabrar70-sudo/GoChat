@@ -2152,36 +2152,6 @@ body.light-mode #page-search {
     background-color: var(--surface) !important;
     min-height: 100vh;
 }
-
-/* =========================================
-🚀 NEW FEATURE · posted-snackbar · 2026-08-07 (Update #24)
-পোস্ট সফল হলে ✓ Posted + View স্ন্যাকবার
-খুঁজতে: Ctrl+F → "posted-snackbar"
-========================================= */
-.gc-posted-bar{
-position:fixed;
-left:16px;right:16px;
-bottom:110px;
-z-index:100600;
-display:flex;align-items:center;justify-content:space-between;
-gap:12px;
-background:rgba(20,20,30,0.92);
-color:#fff;
-border-radius:16px;
-padding:14px 16px;
-box-shadow:0 12px 32px rgba(0,0,0,0.35);
-backdrop-filter:blur(8px);
--webkit-backdrop-filter:blur(8px);
-transform:translateY(20px);
-opacity:0;
-pointer-events:none;
-transition:all .3s cubic-bezier(.22,1,.36,1);
-}
-.gc-posted-bar.show{transform:translateY(0);opacity:1;pointer-events:auto;}
-.gc-posted-left{display:flex;align-items:center;gap:10px;font-size:15px;font-weight:700;}
-.gc-posted-check{width:22px;height:22px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;flex-shrink:0;}
-.gc-posted-view{border:none;background:rgba(255,255,255,0.12);color:#fff;font-size:14px;font-weight:800;padding:8px 18px;border-radius:12px;cursor:pointer;transition:background .2s;}
-.gc-posted-view:active{background:rgba(255,255,255,0.25);}
 </style>
 </head>
 <body>
@@ -5645,6 +5615,49 @@ body:not(.light-mode) .post-card {
 .post-card .post-action-btn .material-symbols-outlined {
     font-size: 20px !important; /* আইকন সাইজ অপটিমাইজ */
 }
+
+/* =========================================
+🚀 NEW FEATURE · posted-snackbar · 2026-08-07 (Update #24)
+Threads স্টাইল Posted স্ন্যাকবার + View বাটন
+খুঁজতে: Ctrl+F → "posted-snackbar"
+========================================= */
+.gc-posted-bar{
+position:fixed;
+left:12px;right:12px;
+bottom:calc(96px + env(safe-area-inset-bottom));
+z-index:100600;
+display:flex;align-items:center;gap:12px;
+padding:14px 16px;
+border-radius:16px;
+background:linear-gradient(135deg, rgba(26,26,46,.96), rgba(26,26,46,.88));
+backdrop-filter:blur(10px);
+-webkit-backdrop-filter:blur(10px);
+box-shadow:0 12px 40px rgba(0,0,0,.35), inset 0 0 0 1px rgba(157,133,255,.25);
+color:#fff;
+transform:translateY(20px);
+opacity:0;
+pointer-events:none;
+transition:all .3s cubic-bezier(.22,1,.36,1);
+}
+.gc-posted-bar.show{transform:translateY(0);opacity:1;pointer-events:auto;}
+.gc-posted-check{
+width:26px;height:26px;border-radius:50%;
+background:var(--accent);
+display:flex;align-items:center;justify-content:center;
+flex-shrink:0;
+}
+.gc-posted-check i{font-size:14px;color:#fff;}
+.gc-posted-text{flex:1;font-size:15px;font-weight:700;}
+.gc-posted-view{
+padding:8px 18px;border-radius:12px;
+background:rgba(157,133,255,.18);
+border:1px solid rgba(157,133,255,.45);
+color:var(--accent-light);
+font-size:14px;font-weight:800;
+cursor:pointer;
+transition:background .2s;
+}
+.gc-posted-view:active{background:rgba(157,133,255,.32);}
 </style>
 
 <!-- 🚀 Share Post to Chat Modal -->
@@ -15929,51 +15942,45 @@ window.gcChatTopObs.observe(menu, {attributes:true, attributeFilter:['style']});
 })();
 // ═══════════════════════════════════════════════════════
 // 🚀 NEW FEATURE · posted-snackbar · 2026-08-07 (Update #24)
-// পোস্ট আপলোড সম্পন্ন হলে ✓ Posted + View স্ন্যাকবার
+// Threads স্টাইল Posted স্ন্যাকবার + View বাটন
 // খুঁজতে: Ctrl+F → "posted-snackbar"
 // ═══════════════════════════════════════════════════════
-function gcShowPostedSnackbar(pid){
-const oldToast = document.getElementById('toast');
-if(oldToast) oldToast.classList.remove('show'); // পুরনো টোস্ট যেন ওভারল্যাপ না করে
+let gcPostedTimer = null;
+function gcShowPostedBar(){
 let bar = document.getElementById('gc-posted-bar');
 if(!bar){
 bar = document.createElement('div');
 bar.id = 'gc-posted-bar';
 bar.className = 'gc-posted-bar';
+bar.innerHTML = '<div class="gc-posted-check"><i class="ph-bold ph-check"></i></div>' +
+'<div class="gc-posted-text">Posted</div>' +
+'<div class="gc-posted-view" onclick="gcViewPosted()">View</div>';
 document.body.appendChild(bar);
 }
-bar.innerHTML = '<div class="gc-posted-left"><span class="gc-posted-check">✓</span> Posted</div><button class="gc-posted-view" onclick="gcViewPosted()">View</button>';
-bar.dataset.pid = pid;
 bar.classList.add('show');
-clearTimeout(window.gcPostedTimer);
-window.gcPostedTimer = setTimeout(function(){ bar.classList.remove('show'); }, 4000);
+if(gcPostedTimer) clearTimeout(gcPostedTimer);
+gcPostedTimer = setTimeout(function(){ bar.classList.remove('show'); }, 4000);
 }
 function gcViewPosted(){
 const bar = document.getElementById('gc-posted-bar');
-const pid = bar ? bar.dataset.pid : null;
 if(bar) bar.classList.remove('show');
-if(pid && typeof openSinglePostView === 'function') openSinglePostView(pid);
+if(gcPostedTimer) clearTimeout(gcPostedTimer);
+if(typeof showPage === 'function') showPage('feed');
+setTimeout(function(){
+window.scrollTo({top:0, behavior:'smooth'});
+const first = document.querySelector('#feed-actual-container .post-card');
+if(first) first.click();
+}, 250);
 }
-(function gcStartPostedWatcher(){
-if(window.gcPostedObs) return;
-window.gcPostedObs = true;
-const waitReady = setInterval(function(){
-if(typeof currentUser !== 'undefined' && currentUser && typeof db !== 'undefined'){
-clearInterval(waitReady);
-db.collection('posts').where('uid','==',currentUser.uid).onSnapshot(function(snap){
-snap.docChanges().forEach(function(ch){
-if(ch.type === 'added'){
-const d = ch.doc.data();
-const t = (d.createdAt && d.createdAt.toMillis) ? d.createdAt.toMillis() : 0;
-if(t > Date.now() - 5000){ // মাত্র ৫ সেকেন্ডের মধ্যে তৈরি হওয়া পোস্ট
-gcShowPostedSnackbar(ch.doc.id);
+// পুরনো "Posted!" টোস্টকে নতুন স্ন্যাকবারে রূপান্তর (বাকি টোস্ট অক্ষত)
+window.gcOrigShowToast = showToast;
+showToast = function(msg){
+if(typeof msg === 'string' && msg.toLowerCase().indexOf('posted') !== -1){
+gcShowPostedBar();
+return;
 }
-}
-});
-});
-}
-}, 800);
-})();
+return window.gcOrigShowToast.apply(this, arguments);
+};
 </script>
 </body>
 </html>
