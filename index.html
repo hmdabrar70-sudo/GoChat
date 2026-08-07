@@ -2229,6 +2229,28 @@ Elite Access ফুল হার্ডেনিং UI
 .gc-status-chip{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;background:var(--accent-glow);border:1px solid var(--accent);color:var(--accent-light);font-size:12px;font-weight:800;margin:8px 16px;}
 .gc-success-card{text-align:center;}
 .gc-app-id{font-family:monospace;font-size:16px;font-weight:800;color:var(--accent);background:var(--accent-glow);border:1px solid var(--accent);border-radius:12px;padding:10px;margin:12px 0;}
+
+/* =========================================
+🚀 Update #37 · post-report-system · 2026-08-08
+Threads-স্টাইল (আরও সুন্দর) পোস্ট রিপোর্ট সিস্টেম
+খুঁজতে: Ctrl+F → "post-report-system"
+========================================= */
+.gc-report-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);z-index:100800;display:none;align-items:flex-end;justify-content:center;}
+.gc-report-overlay.open{display:flex;}
+.gc-report-sheet{width:100%;max-width:520px;max-height:88vh;overflow-y:auto;background:var(--bg);border-radius:24px 24px 0 0;padding:10px 16px calc(16px + env(safe-area-inset-bottom));animation:gcSheetUp .3s cubic-bezier(.22,1,.36,1);scrollbar-width:none;}
+.gc-report-sheet::-webkit-scrollbar{display:none;}
+.gc-report-handle{width:44px;height:4px;border-radius:2px;background:var(--border);margin:6px auto 12px;}
+.gc-report-title{font-size:17px;font-weight:800;color:var(--text);text-align:center;margin:4px 0 2px;}
+.gc-report-sub{font-size:12px;color:var(--text-muted);text-align:center;margin-bottom:14px;}
+.gc-report-item{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:15px 14px;background:var(--surface);border:1px solid var(--border);border-radius:14px;margin-bottom:8px;cursor:pointer;font-size:14.5px;font-weight:700;color:var(--text);transition:all .15s;}
+.gc-report-item:active{transform:scale(.98);background:var(--surface-2);}
+.gc-report-item i{font-size:19px;color:var(--text-muted);}
+.gc-report-item.danger{color:var(--danger);}
+.gc-report-item.danger i{color:var(--danger);}
+.gc-report-textarea{width:100%;min-height:110px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px;font-size:14px;color:var(--text);resize:vertical;margin:10px 0;}
+.gc-report-textarea:focus{outline:none;border-color:var(--accent);}
+.gc-report-btn{width:100%;padding:14px;border:none;border-radius:14px;font-size:15px;font-weight:800;cursor:pointer;margin-top:6px;}
+.gc-report-anon{display:flex;gap:8px;align-items:flex-start;background:var(--accent-glow);border:1px solid var(--accent);border-radius:12px;padding:10px 12px;font-size:12px;color:var(--text);margin-bottom:12px;}
 </style>
 </head>
 <body>
@@ -10122,10 +10144,9 @@ if(p.uid === currentUser?.uid){
         </div>`;
     }
     
-    postDropdownHtml += `
-    <div class="chat-dropdown-item" onclick="event.stopPropagation(); markNotInterested('${pid}', this)">
-        <i class="ph-bold ph-eye-slash" style="font-size:20px;"></i> Not Interested
-    </div>`;
+    postDropdownHtml += `<div class="chat-dropdown-item" onclick="event.stopPropagation(); markNotInterested('${pid}', this)"><i class="ph-bold ph-eye-slash" style="font-size:20px;"></i> Not Interested</div>`;
+// 🚀 Update #37 · post-report-system: রিপোর্ট অপশন (শুধু অন্যের পোস্টে)
+postDropdownHtml += `<div class="chat-dropdown-item danger" onclick="event.stopPropagation(); gcOpenReportSheet('${pid}')"><i class="ph-bold ph-flag" style="font-size:20px;"></i> Report</div>`;
 }
 postDropdownHtml += `</div></div>`;
 
@@ -16671,6 +16692,133 @@ const ov = document.getElementById('gc-review-overlay');
 ov.innerHTML = '<div class="gc-review-card gc-success-card"><div style="font-size:50px;">🎉</div><div class="gc-elig-title">Application Submitted!</div><div class="gc-app-id">' + id + '</div><div class="gc-elig-sub">আবেদন কপি হয়েছে — টেলিগ্রামে (t.me/gochatofc) পেস্ট করে পাঠাও। রিভিউ টাইম: ৭২ ঘণ্টা।</div><button class="gc-elig-btn" style="background:var(--surface-2);color:var(--text);" onclick="document.getElementById(\'gc-review-overlay\').classList.remove(\'open\')">Done</button></div>';
 ov.classList.add('open');
 }, 700);
+}
+// ═══════════════════════════════════════════════════════
+// 🚀 Update #37 · post-report-system · 2026-08-08
+// পোস্ট রিপোর্ট: কারণসমূহ + নিজের মতামত + সিকিউরিটি
+// খুঁজতে: Ctrl+F → "post-report-system"
+// ═══════════════════════════════════════════════════════
+const GC_REPORT_REASONS = [
+{t:"I just don't like it", d:"This content is not relevant to you or you simply dislike it.", i:'ph-bold ph-heart-break'},
+{t:'Bullying or unwanted contact', d:'Someone is harassing, threatening or contacting you unwillingly.', i:'ph-bold ph-user-minus'},
+{t:'Suicide, self-injury or eating disorders', d:'Content that encourages self-harm or dangerous behavior.', i:'ph-bold ph-heart-half'},
+{t:'Violence, hate or exploitation', d:'Violent, hateful or exploitative content toward any person or group.', i:'ph-bold ph-warning'},
+{t:'Selling or promoting restricted items', d:'Illegal or restricted goods/services are being promoted.', i:'ph-bold ph-shopping-bag'},
+{t:'Nudity or sexual activity', d:'Explicit or sexually suggestive content.', i:'ph-bold ph-eye-closed'},
+{t:'Scam, fraud or spam', d:'Misleading, fraudulent or repetitive spam content.', i:'ph-bold ph-bug'},
+{t:'False information', d:'Fake news or misleading claims.', i:'ph-bold ph-newspaper'},
+{t:'Intellectual property', d:'Copyright or trademark violation.', i:'ph-bold ph-copyright'},
+{t:'Report Account', d:'This account repeatedly breaks community rules.', i:'ph-bold ph-user-circle-minus'}
+];
+let gcReportState = null;
+function gcOpenReportSheet(pid){
+gcReportState = {pid: pid, uid: null, reason: null, reasonIdx: null};
+db.collection('posts').doc(pid).get().then(function(doc){
+if(doc.exists && gcReportState) gcReportState.uid = doc.data().uid;
+}).catch(function(){});
+let ov = document.getElementById('gc-report-overlay');
+if(!ov){
+ov = document.createElement('div'); ov.id = 'gc-report-overlay'; ov.className = 'gc-report-overlay';
+ov.onclick = function(e){ if(e.target === ov) gcCloseReport(); };
+document.body.appendChild(ov);
+}
+ov.innerHTML = '<div class="gc-report-sheet" id="gc-report-sheet"></div>';
+ov.classList.add('open');
+gcRenderReportReasons();
+}
+function gcCloseReport(){
+const ov = document.getElementById('gc-report-overlay');
+if(ov) ov.classList.remove('open');
+gcReportState = null;
+}
+function gcRenderReportReasons(){
+const sheet = document.getElementById('gc-report-sheet');
+if(!sheet) return;
+let html = '<div class="gc-report-handle"></div><div class="gc-report-title">Report</div><div class="gc-report-sub">Why are you reporting this? Your report is anonymous.</div>';
+GC_REPORT_REASONS.forEach(function(r, idx){
+html += '<div class="gc-report-item' + (idx === GC_REPORT_REASONS.length - 1 ? ' danger' : '') + '" onclick="gcSelectReportReason(' + idx + ')"><span>' + r.t + '</span><i class="' + r.i + '"></i></div>';
+});
+html += '<div class="gc-report-item" onclick="gcCloseReport()" style="justify-content:center;color:var(--text-muted);">Cancel</div>';
+sheet.innerHTML = html;
+}
+function gcSelectReportReason(idx){
+if(!gcReportState) return;
+gcReportState.reason = GC_REPORT_REASONS[idx].t;
+gcReportState.reasonIdx = idx;
+const sheet = document.getElementById('gc-report-sheet');
+if(!sheet) return;
+const r = GC_REPORT_REASONS[idx];
+sheet.innerHTML = '<div class="gc-report-handle"></div>' +
+'<div class="gc-report-title">' + r.t + '</div>' +
+'<div class="gc-report-sub">' + r.d + '</div>' +
+'<div class="gc-report-anon"><i class="ph-bold ph-shield-check" style="font-size:16px;color:var(--accent);"></i><span>Your report is fully anonymous. The reported person will never know who reported.</span></div>' +
+'<textarea id="gc-report-details" class="gc-report-textarea" maxlength="500" placeholder="Write your own opinion / details (optional)…"></textarea>' +
+'<button class="gc-report-btn" style="background:var(--danger);color:#fff;" onclick="gcSubmitReport()">Submit Report</button>' +
+'<button class="gc-report-btn" style="background:var(--surface-2);color:var(--text);" onclick="gcRenderReportReasons()">Back</button>';
+}
+async function gcSubmitReport(){
+if(!gcReportState) return;
+const pid = gcReportState.pid;
+const idx = gcReportState.reasonIdx;
+// ১) ডুপ্লিকেট রিপোর্ট ব্লক
+const dupKey = 'gc_reported_' + pid + '_' + idx;
+if(localStorage.getItem(dupKey)){ showToast('⚠️ You already reported this for the same reason!'); return; }
+// ২) দৈনিক লিমিট: ৫টি/দিন
+const today = new Date().toDateString();
+const rl = JSON.parse(localStorage.getItem('gc_report_rl') || '{}');
+if(rl.date !== today){ rl.date = today; rl.count = 0; }
+if(rl.count >= 5){ showToast('⚠️ Daily report limit reached (5). Try tomorrow.'); return; }
+const details = ((document.getElementById('gc-report-details') || {}).value || '').trim().slice(0, 500);
+const sheet = document.getElementById('gc-report-sheet');
+sheet.innerHTML = '<div class="gc-report-handle"></div><div style="text-align:center;padding:30px 10px;"><i class="ph-bold ph-spinner-gap" style="font-size:34px;color:var(--accent);animation:spin 1s linear infinite;"></i><div style="margin-top:10px;font-size:13px;color:var(--text-muted);">Sending report…</div></div>';
+try{
+await db.collection('reports').add({
+postId: pid,
+postOwnerUid: gcReportState.uid || '',
+reason: gcReportState.reason,
+details: details,
+reporterUid: currentUser.uid,
+reporterName: currentUserData.name || 'User',
+status: 'pending',
+createdAt: firebase.firestore.FieldValue.serverTimestamp()
+});
+rl.count++; localStorage.setItem('gc_report_rl', JSON.stringify(rl));
+localStorage.setItem(dupKey, '1');
+gcRenderReportSuccess();
+}catch(e){
+showToast('❌ Failed to send report. Try again.');
+gcRenderReportDetailsBack();
+}
+}
+function gcRenderReportDetailsBack(){ if(gcReportState){ gcSelectReportReason(gcReportState.reasonIdx); } }
+function gcRenderReportSuccess(){
+const sheet = document.getElementById('gc-report-sheet');
+if(!sheet) return;
+let uname = 'this user';
+if(gcReportState && gcReportState.uid && window.allUsersCache){
+const u = allUsersCache.find(function(x){ return x.id === gcReportState.uid; });
+if(u && u.name) uname = u.name;
+}
+sheet.innerHTML = '<div class="gc-report-handle"></div>' +
+'<div style="text-align:center;padding:26px 10px 10px;"><div style="width:70px;height:70px;margin:0 auto 14px;border-radius:50%;background:var(--accent-glow);border:2px solid var(--accent);display:flex;align-items:center;justify-content:center;"><i class="ph-bold ph-check" style="font-size:30px;color:var(--accent);"></i></div>' +
+'<div class="gc-report-title">Thanks for your feedback</div>' +
+'<div class="gc-report-sub">Our team will review this report within 24-72 hours.</div></div>' +
+'<div style="font-size:14px;font-weight:800;color:var(--text);margin:8px 4px;">Other steps you can take</div>' +
+'<div class="gc-report-item" onclick="gcReportBlock()"><span>Block ' + escapeHTML(uname) + '</span><i class="ph-bold ph-prohibit"></i></div>' +
+'<div class="gc-report-item" onclick="gcReportHide()"><span>Hide posts from ' + escapeHTML(uname) + '</span><i class="ph-bold ph-eye-slash"></i></div>' +
+'<button class="gc-report-btn" style="background:var(--text);color:var(--bg);" onclick="gcCloseReport()">Done</button>';
+}
+function gcReportBlock(){
+if(!gcReportState || !gcReportState.uid) return;
+const uid = gcReportState.uid;
+gcCloseReport();
+try{ currentOtherProfileUid = uid; blockCurrentUser(); }catch(e){ showToast('Open the profile to block this user.'); }
+}
+function gcReportHide(){
+if(!gcReportState || !gcReportState.uid) return;
+const uid = gcReportState.uid;
+gcCloseReport();
+try{ toggleMuteFeed(uid); }catch(e){}
 }
 </script>
 </body>
