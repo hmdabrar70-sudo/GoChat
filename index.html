@@ -2418,8 +2418,8 @@ display:block;
     <!-- Filter Icon Button -->
     <div id="my-filter-icon-btn" style="padding: 12px 20px; border-top: 2px solid transparent; margin-top: -1px; color: var(--text-muted); cursor: pointer; position: relative; transition: 0.2s;" onclick="event.stopPropagation(); closeAllDropdowns(); document.getElementById('my-profile-filter-menu').classList.toggle('open');">
         <i class="ph-bold ph-faders" style="font-size: 28px;"></i>
-        <!-- Filter Dropdown -->
-        <div id="my-profile-filter-menu" class="chat-list-menu" style="top: 50px; left: 50%; transform: translateX(-50%); right: auto; width: 160px; z-index: 1000;" onclick="event.stopPropagation();">
+        <!-- Filter Dropdown (Fixed Jumping Issue) -->
+        <div id="my-profile-filter-menu" class="post-dropdown-menu" style="top: 55px; right: 0; width: 160px; z-index: 1000;" onclick="event.stopPropagation();">
             <div class="gc-cf-item active" onclick="applyProfileFilter('all', 'my', this)">All <i class="ph-bold ph-check gc-cf-check"></i></div>
             <div class="gc-cf-item" onclick="applyProfileFilter('media', 'my', this)">Media <i class="ph-bold ph-check gc-cf-check"></i></div>
             <div class="gc-cf-item" onclick="applyProfileFilter('gallery', 'my', this)">Gallery <i class="ph-bold ph-check gc-cf-check"></i></div>
@@ -2481,8 +2481,8 @@ display:block;
     <!-- Filter Icon Button -->
     <div id="other-filter-icon-btn" style="padding: 12px 20px; border-top: 2px solid transparent; margin-top: -1px; color: var(--text-muted); cursor: pointer; position: relative; transition: 0.2s;" onclick="event.stopPropagation(); closeAllDropdowns(); document.getElementById('other-profile-filter-menu').classList.toggle('open');">
         <i class="ph-bold ph-faders" style="font-size: 28px;"></i>
-        <!-- Filter Dropdown -->
-        <div id="other-profile-filter-menu" class="chat-list-menu" style="top: 50px; left: 50%; transform: translateX(-50%); right: auto; width: 160px; z-index: 1000;" onclick="event.stopPropagation();">
+        <!-- Filter Dropdown (Fixed Jumping Issue) -->
+        <div id="other-profile-filter-menu" class="post-dropdown-menu" style="top: 55px; right: 0; width: 160px; z-index: 1000;" onclick="event.stopPropagation();">
             <div class="gc-cf-item active" onclick="applyProfileFilter('all', 'other', this)">All <i class="ph-bold ph-check gc-cf-check"></i></div>
             <div class="gc-cf-item" onclick="applyProfileFilter('media', 'other', this)">Media <i class="ph-bold ph-check gc-cf-check"></i></div>
             <div class="gc-cf-item" onclick="applyProfileFilter('gallery', 'other', this)">Gallery <i class="ph-bold ph-check gc-cf-check"></i></div>
@@ -8597,7 +8597,7 @@ function showReactionPicker(event, msgId) {
         <span class="reaction-emoji" onclick="toggleMessageReaction('${msgId}','😆')">😆</span>
         <span class="reaction-emoji" onclick="toggleMessageReaction('${msgId}','🥰')">🥰</span>
         <span class="reaction-emoji" onclick="toggleMessageReaction('${msgId}','😥')">😥</span>
-        <span class="reaction-emoji" onclick="toggleMessageReaction('${msgId}','😡')">??</span>
+        <span class="reaction-emoji" onclick="toggleMessageReaction('${msgId}','😡')">😡</span>
     `;
     
     
@@ -16257,7 +16257,7 @@ document.querySelectorAll('.gc-vplayer').forEach(function(w){
 if(!w.dataset.gcObs){ w.dataset.gcObs = '1'; window.gcVpObserver.observe(w); }
 });
 // ==========================================
-// 🚀 PROFILE POSTS FILTER LOGIC 
+// 🚀 PROFILE POSTS FILTER LOGIC (Fixed for both Grid & Feed styles)
 // ==========================================
 function applyProfileFilter(filterType, profileType, clickedElement) {
     const listId = profileType === 'my' ? 'my-posts-list' : 'other-user-posts-list';
@@ -16268,29 +16268,25 @@ function applyProfileFilter(filterType, profileType, clickedElement) {
     const menu = document.getElementById(profileType + '-profile-filter-menu');
     
     // মেনুর ভেতরের টিক চিহ্ন (active class) রিসেট করা
-    menu.querySelectorAll('.gc-cf-item').forEach(el => el.classList.remove('active'));
+    if(menu) menu.querySelectorAll('.gc-cf-item').forEach(el => el.classList.remove('active'));
     
     // টপ বর্ডারের কালার চেঞ্জ করার লজিক
     if (filterType === 'all') {
-        allBtn.style.borderTop = '2px solid var(--text)';
-        allBtn.style.color = 'var(--text)';
-        iconBtn.style.borderTop = '2px solid transparent';
-        iconBtn.style.color = 'var(--text-muted)';
-        menu.querySelector('.gc-cf-item:nth-child(1)').classList.add('active');
+        if(allBtn) { allBtn.style.borderTop = '2px solid var(--text)'; allBtn.style.color = 'var(--text)'; }
+        if(iconBtn) { iconBtn.style.borderTop = '2px solid transparent'; iconBtn.style.color = 'var(--text-muted)'; }
+        if(menu) { const firstItem = menu.querySelector('.gc-cf-item:nth-child(1)'); if(firstItem) firstItem.classList.add('active'); }
     } else {
-        allBtn.style.borderTop = '2px solid transparent';
-        allBtn.style.color = 'var(--text-muted)';
-        iconBtn.style.borderTop = '2px solid var(--text)';
-        iconBtn.style.color = 'var(--text)';
+        if(allBtn) { allBtn.style.borderTop = '2px solid transparent'; allBtn.style.color = 'var(--text-muted)'; }
+        if(iconBtn) { iconBtn.style.borderTop = '2px solid var(--text)'; iconBtn.style.color = 'var(--text)'; }
         if(clickedElement) clickedElement.classList.add('active');
     }
     
-    menu.classList.remove('open'); // ক্লিক করার পর মেনু বন্ধ করে দেবে
+    if(menu) menu.classList.remove('open');
 
     if (!listContainer) return;
 
-    // পোস্টগুলো ফিল্টার করা
-    const posts = listContainer.querySelectorAll('.grid-post-card, .grid-post-item');
+    // 🚀 ম্যাজিক ফিক্স: এখানে '.post-card' যোগ করা হয়েছে, যাতে নিজের প্রোফাইলের বড় পোস্টগুলোও ফিল্টার হয়
+    const posts = listContainer.querySelectorAll('.grid-post-card, .grid-post-item, .post-card');
     
     posts.forEach(post => {
         const hasVideo = post.querySelector('video') !== null;
@@ -16302,11 +16298,11 @@ function applyProfileFilter(filterType, profileType, clickedElement) {
         if (filterType === 'all') {
             shouldShow = true;
         } else if (filterType === 'media' && hasVideo) {
-            shouldShow = true; // শুধু ভিডিও পোস্টগুলো দেখাবে
+            shouldShow = true; // শুধু ভিডিও
         } else if (filterType === 'gallery' && hasImage && !hasVideo) {
-            shouldShow = true; // শুধু ইমেজ পোস্টগুলো দেখাবে
+            shouldShow = true; // শুধু ছবি
         } else if (filterType === 'status' && isTextOnly) {
-            shouldShow = true; // শুধু টেক্সট পোস্টগুলো দেখাবে
+            shouldShow = true; // শুধু স্ট্যাটাস
         }
 
         post.style.display = shouldShow ? '' : 'none';
