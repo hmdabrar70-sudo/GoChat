@@ -45,8 +45,12 @@
             </div>
             <nav class="flex-1 p-4 space-y-2 mt-4">
                 <button onclick="switchTab('users')" id="tab-users" class="w-full flex items-center gap-3 text-left py-3 px-4 rounded-xl bg-blue-600 text-white font-semibold transition">
-                    <i class="fas fa-users w-5"></i> User Management
-                </button>
+<i class="fas fa-users w-5"></i> User Management
+</button>
+<button onclick="switchTab('reports')" id="tab-reports" class="w-full flex items-center gap-3 text-left py-3 px-4 rounded-xl text-gray-400 hover:bg-gray-800 hover:text-white font-semibold transition">
+<i class="fas fa-flag w-5"></i> Reports
+<span id="reportsBadge" class="ml-auto bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full" style="display:none;">0</span>
+</button>
                 <button onclick="switchTab('settings')" id="tab-settings" class="w-full flex items-center gap-3 text-left py-3 px-4 rounded-xl text-gray-400 hover:bg-gray-800 hover:text-white font-semibold transition">
                     <i class="fas fa-cogs w-5"></i> System & Settings
                 </button>
@@ -89,6 +93,46 @@
                     <div class="text-center text-gray-500 py-10"><i class="fas fa-spinner fa-spin text-2xl"></i> Loading users...</div>
                 </div>
             </div>
+
+<!-- B. REPORT CENTER TAB · report-center · 2026-08-08 -->
+<div id="sec-reports" class="p-8 hidden">
+<div class="flex justify-between items-center mb-6">
+<h2 class="text-3xl font-bold text-gray-800">Report Center</h2>
+<button onclick="renderReports(); showToast('Reports refreshed', 'success');" class="bg-white border border-gray-200 shadow-sm text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50 font-semibold flex items-center gap-2">
+<i class="fas fa-sync-alt text-blue-500"></i> Refresh
+</button>
+</div>
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+<div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm"><div class="text-xs font-bold text-gray-500 uppercase">Pending</div><div id="statPending" class="text-2xl font-extrabold text-orange-500">0</div></div>
+<div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm"><div class="text-xs font-bold text-gray-500 uppercase">Urgent</div><div id="statUrgent" class="text-2xl font-extrabold text-red-500">0</div></div>
+<div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm"><div class="text-xs font-bold text-gray-500 uppercase">Resolved</div><div id="statResolved" class="text-2xl font-extrabold text-green-500">0</div></div>
+<div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm"><div class="text-xs font-bold text-gray-500 uppercase">Dismissed</div><div id="statDismissed" class="text-2xl font-extrabold text-gray-500">0</div></div>
+</div>
+<div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200 mb-6 flex flex-col md:flex-row gap-4">
+<div class="flex-1 relative">
+<i class="fas fa-search absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+<input type="text" id="reportSearch" placeholder="Search by reporter, reason or details..." class="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500" onkeyup="renderReports()">
+</div>
+<select id="reportStatusFilter" onchange="renderReports()" class="px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none font-semibold text-gray-700">
+<option value="pending">Pending</option>
+<option value="all">All</option>
+<option value="resolved">Action Taken</option>
+<option value="rejected">Dismissed</option>
+</select>
+<select id="reportCatFilter" onchange="renderReports()" class="px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none font-semibold text-gray-700">
+<option value="all">All Categories</option>
+<option value="urgent">🚨 Urgent Only</option>
+<option value="safety">Safety (Bullying/Violence/Self-harm)</option>
+<option value="sexual">Nudity / Sexual</option>
+<option value="spam">Scam / Spam</option>
+<option value="info">False Info / IP</option>
+<option value="other">Other</option>
+</select>
+</div>
+<div id="reportsList" class="grid grid-cols-1 gap-4">
+<div class="text-center text-gray-500 py-10"><i class="fas fa-spinner fa-spin text-2xl"></i> Loading reports...</div>
+</div>
+</div>
 
             <!-- B. SYSTEM & SETTINGS TAB -->
             <div id="sec-settings" class="p-8 hidden">
@@ -212,7 +256,8 @@ if (e && e.code) showToast("Redirect login failed: " + e.message, "error");
                     document.getElementById('adminEmail').innerText = user.email;
                     
                     loadUsers();
-                    initSystemSettings();
+initSystemSettings();
+startReportsListener();
                 } else {
                     showToast("Access Denied! Not an Admin.", "error");
                     auth.signOut();
@@ -252,19 +297,16 @@ showToast("Login failed: " + (e && e.message ? e.message : "Unknown error"), "er
             });
         }
 
-        // 🚀 TAB SWITCHER
-        function switchTab(tab) {
-            document.getElementById('sec-users').style.display = tab === 'users' ? 'block' : 'none';
-            document.getElementById('sec-settings').style.display = tab === 'settings' ? 'block' : 'none';
-            
-            document.getElementById('tab-users').className = tab === 'users' 
-                ? 'w-full flex items-center gap-3 text-left py-3 px-4 rounded-xl bg-blue-600 text-white font-semibold transition' 
-                : 'w-full flex items-center gap-3 text-left py-3 px-4 rounded-xl text-gray-400 hover:bg-gray-800 hover:text-white font-semibold transition';
-                
-            document.getElementById('tab-settings').className = tab === 'settings' 
-                ? 'w-full flex items-center gap-3 text-left py-3 px-4 rounded-xl bg-blue-600 text-white font-semibold transition' 
-                : 'w-full flex items-center gap-3 text-left py-3 px-4 rounded-xl text-gray-400 hover:bg-gray-800 hover:text-white font-semibold transition';
-        }
+        // 🚀 TAB SWITCHER (3 tabs)
+function switchTab(tab) {
+['users', 'reports', 'settings'].forEach(function (t) {
+document.getElementById('sec-' + t).style.display = (tab === t) ? 'block' : 'none';
+document.getElementById('tab-' + t).className = (tab === t)
+? 'w-full flex items-center gap-3 text-left py-3 px-4 rounded-xl bg-blue-600 text-white font-semibold transition'
+: 'w-full flex items-center gap-3 text-left py-3 px-4 rounded-xl text-gray-400 hover:bg-gray-800 hover:text-white font-semibold transition';
+});
+if (tab === 'reports') renderReports();
+}
 
         // 🚀 FEATURE 1 & 2: LOAD & FILTER USERS
         async function loadUsers() {
@@ -427,47 +469,53 @@ showToast("Login failed: " + (e && e.message ? e.message : "Unknown error"), "er
             } catch(e) { showToast("Failed to delete user", "error"); }
         }
 
-        // 🚀 FEATURE 6: POST PREVIEW & DELETE
-        async function previewPosts(uid, name) {
-            document.getElementById('postsModalTitle').innerText = `${name}'s Posts`;
-            const body = document.getElementById('postsModalBody');
-            body.innerHTML = '<div class="text-center py-10"><i class="fas fa-spinner fa-spin text-2xl text-gray-400"></i></div>';
-            document.getElementById('postsModal').classList.remove('hidden');
-
-            try {
-                const snap = await db.collection('posts').where('uid', '==', uid).orderBy('createdAt', 'desc').get();
-                if(snap.empty) {
-                    body.innerHTML = '<div class="text-center py-10 text-gray-500 font-bold bg-white rounded-xl">No posts found.</div>';
-                    return;
-                }
-                
-                let html = '';
-                snap.forEach(doc => {
-                    const p = doc.data();
-                    const imgUrl = p.imgUrls && p.imgUrls.length > 0 ? p.imgUrls[0] : (p.imgUrl || '');
-                    const imgHtml = imgUrl ? `<img src="${escapeHTML(imgUrl)}" class="w-full h-40 object-cover rounded-lg mb-3 border">` : '';
-                    const textHtml = p.title ? `<p class="text-gray-800 font-medium mb-3 whitespace-pre-wrap">${escapeHTML(p.title)}</p>` : '';
-                    
-                    html += `
-                    <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
-                        ${imgHtml}
-                        ${textHtml}
-                        <div class="flex justify-between items-center border-t pt-3 mt-2">
-                            <div class="text-xs text-gray-500 font-bold">
-                                <i class="fas fa-heart text-red-500"></i> ${p.likes || 0}  &nbsp;&nbsp; 
-                                <i class="fas fa-comment text-blue-500"></i> ${(p.comments || []).length}
-                            </div>
-                            <button onclick="deleteSinglePost('${doc.id}', this)" class="bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 px-3 py-1.5 rounded-lg text-xs font-bold transition">
-                                <i class="fas fa-trash"></i> Delete
-                            </button>
-                        </div>
-                    </div>`;
-                });
-                body.innerHTML = html;
-            } catch (e) {
-                body.innerHTML = '<div class="text-center text-red-500 font-bold py-10">Error loading posts.</div>';
-            }
-        }
+        // 🚀 FEATURE 6: POST PREVIEW & DELETE (FIXED · no composite index needed)
+async function previewPosts(uid, name) {
+document.getElementById('postsModalTitle').innerText = `${name}'s Posts`;
+const body = document.getElementById('postsModalBody');
+body.innerHTML = '<div class="text-center py-10"><i class="fas fa-spinner fa-spin text-2xl text-gray-400"></i></div>';
+document.getElementById('postsModal').classList.remove('hidden');
+try {
+// 🚀 FIX: orderBy বাদ দেওয়া হলো (composite index এরর এড়াতে) — নিচে নিজে সর্ট করছি
+const snap = await db.collection('posts').where('uid', '==', uid).get();
+if (snap.empty) {
+body.innerHTML = '<div class="text-center py-10 text-gray-500 font-bold bg-white rounded-xl">No posts found.</div>';
+return;
+}
+let posts = [];
+snap.forEach(doc => posts.push({ id: doc.id, ...doc.data() }));
+// নতুন পোস্ট আগে (client-side sort)
+posts.sort((a, b) => {
+const ta = a.createdAt && a.createdAt.toMillis ? a.createdAt.toMillis() : 0;
+const tb = b.createdAt && b.createdAt.toMillis ? b.createdAt.toMillis() : 0;
+return tb - ta;
+});
+let html = '';
+posts.forEach(p => {
+const imgUrl = p.imgUrls && p.imgUrls.length > 0 ? p.imgUrls[0] : (p.imgUrl || '');
+const imgHtml = imgUrl ? `<img src="${escapeHTML(imgUrl)}" class="w-full h-40 object-cover rounded-lg mb-3 border">` : '';
+const textHtml = p.title ? `<p class="text-gray-800 font-medium mb-3 whitespace-pre-wrap">${escapeHTML(p.title)}</p>` : '';
+html += `
+<div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+${imgHtml}
+${textHtml}
+<div class="flex justify-between items-center border-t pt-3 mt-2">
+<div class="text-xs text-gray-500 font-bold">
+<i class="fas fa-heart text-red-500"></i> ${p.likes || 0}  &nbsp;&nbsp;
+<i class="fas fa-comment text-blue-500"></i> ${(p.comments || []).length}
+</div>
+<button onclick="deleteSinglePost('${p.id}', this)" class="bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 px-3 py-1.5 rounded-lg text-xs font-bold transition">
+<i class="fas fa-trash"></i> Delete
+</button>
+</div>
+</div>`;
+});
+body.innerHTML = html;
+} catch (e) {
+console.error('Preview posts error:', e);
+body.innerHTML = '<div class="text-center text-red-500 font-bold py-10">Error loading posts.</div>';
+}
+}
 
         async function deleteSinglePost(pid, btnEl) {
             if(!confirm("Delete this post? It will be removed from the feed immediately.")) return;
@@ -522,6 +570,180 @@ showToast("Login failed: " + (e && e.message ? e.message : "Unknown error"), "er
                 showToast(isChecked ? "Maintenance Mode ON! App Locked." : "Maintenance Mode OFF! App Unlocked.", isChecked ? "error" : "success");
             } catch(e) { showToast("Failed to toggle mode", "error"); }
         }
+
+// ═══════════════════════════════════════════════════════
+// 🚀 FEATURE 9 · report-center · 2026-08-08
+// Live Report Center: badge + stats + filters + actions
+// ═══════════════════════════════════════════════════════
+let allReportsData = [];
+let reportsPostCache = {};
+let reportsStarted = false;
+const GC_URGENT_REASONS = ['Suicide, self-injury or eating disorders', 'Violence, hate or exploitation', 'Nudity or sexual activity'];
+
+function getRelativeTimeAdmin(ms) {
+const diff = Date.now() - ms;
+const m = Math.floor(diff / 60000);
+if (m < 1) return 'Just now';
+if (m < 60) return m + 'm ago';
+const h = Math.floor(m / 60);
+if (h < 24) return h + 'h ago';
+return Math.floor(h / 24) + 'd ago';
+}
+function gcReportCategory(reason) {
+if (!reason) return 'other';
+if (['Suicide, self-injury or eating disorders', 'Violence, hate or exploitation', 'Bullying or unwanted contact'].indexOf(reason) !== -1) return 'safety';
+if (reason === 'Nudity or sexual activity') return 'sexual';
+if (reason === 'Scam, fraud or spam') return 'spam';
+if (reason === 'False information' || reason === 'Intellectual property') return 'info';
+return 'other';
+}
+function startReportsListener() {
+if (reportsStarted) return;
+reportsStarted = true;
+db.collection('reports').onSnapshot(function (snap) {
+allReportsData = [];
+snap.forEach(function (d) { allReportsData.push({ id: d.id, ...d.data() }); });
+const pending = allReportsData.filter(r => (r.status || 'pending') === 'pending');
+const urgent = pending.filter(r => GC_URGENT_REASONS.indexOf(r.reason) !== -1);
+const badge = document.getElementById('reportsBadge');
+if (badge) {
+if (pending.length > 0) { badge.style.display = 'inline-block'; badge.textContent = pending.length; }
+else { badge.style.display = 'none'; }
+}
+const el = function (id) { return document.getElementById(id); };
+if (el('statPending')) el('statPending').textContent = pending.length;
+if (el('statUrgent')) el('statUrgent').textContent = urgent.length;
+if (el('statResolved')) el('statResolved').textContent = allReportsData.filter(r => r.status === 'resolved').length;
+if (el('statDismissed')) el('statDismissed').textContent = allReportsData.filter(r => r.status === 'rejected').length;
+if (el('sec-reports') && el('sec-reports').style.display !== 'none') renderReports();
+});
+}
+async function renderReports() {
+const list = document.getElementById('reportsList');
+if (!list) return;
+const q = (document.getElementById('reportSearch').value || '').toLowerCase();
+const st = document.getElementById('reportStatusFilter').value;
+const cat = document.getElementById('reportCatFilter').value;
+let rows = allReportsData.filter(r => st === 'all' ? true : (r.status || 'pending') === st);
+if (cat === 'urgent') rows = rows.filter(r => GC_URGENT_REASONS.indexOf(r.reason) !== -1);
+else if (cat !== 'all') rows = rows.filter(r => gcReportCategory(r.reason) === cat);
+if (q) rows = rows.filter(r => ((r.reporterName || '') + ' ' + (r.reason || '') + ' ' + (r.details || '')).toLowerCase().indexOf(q) !== -1);
+rows.sort(function (a, b) {
+const ua = (GC_URGENT_REASONS.indexOf(a.reason) !== -1 && (a.status || 'pending') === 'pending') ? 1 : 0;
+const ub = (GC_URGENT_REASONS.indexOf(b.reason) !== -1 && (b.status || 'pending') === 'pending') ? 1 : 0;
+if (ua !== ub) return ub - ua;
+const ta = a.createdAt && a.createdAt.toMillis ? a.createdAt.toMillis() : 0;
+const tb = b.createdAt && b.createdAt.toMillis ? b.createdAt.toMillis() : 0;
+return tb - ta;
+});
+if (rows.length === 0) {
+list.innerHTML = '<div class="text-center text-gray-500 py-10 bg-white rounded-xl border border-gray-200">No reports found.</div>';
+return;
+}
+list.innerHTML = rows.map(gcReportCardHTML).join('');
+rows.forEach(function (r) { gcLoadReportPostPreview(r); });
+}
+function gcReportCardHTML(r) {
+const st = r.status || 'pending';
+const urgent = GC_URGENT_REASONS.indexOf(r.reason) !== -1 && st === 'pending';
+const stChip = st === 'pending' ? '<span class="bg-orange-100 text-orange-600 px-2 py-0.5 rounded text-xs font-bold">PENDING</span>'
+: st === 'resolved' ? '<span class="bg-green-100 text-green-600 px-2 py-0.5 rounded text-xs font-bold">ACTION TAKEN</span>'
+: '<span class="bg-gray-200 text-gray-600 px-2 py-0.5 rounded text-xs font-bold">DISMISSED</span>';
+const urgentChip = urgent ? '<span class="bg-red-500 text-white px-2 py-0.5 rounded text-xs font-bold">🚨 URGENT</span>' : '';
+const time = r.createdAt && r.createdAt.toMillis ? getRelativeTimeAdmin(r.createdAt.toMillis()) : '';
+const actions = st === 'pending' ? `
+<div class="flex flex-wrap gap-2">
+<button onclick="gcViewReportPost('${r.id}')" class="px-3 py-2 rounded-lg font-bold text-xs bg-blue-50 text-blue-600 border border-blue-200 hover:bg-blue-100"><i class="fas fa-eye"></i> View Post</button>
+<button onclick="gcDeleteReportedPost('${r.id}')" class="px-3 py-2 rounded-lg font-bold text-xs bg-red-50 text-red-600 border border-red-200 hover:bg-red-100"><i class="fas fa-trash"></i> Delete Post</button>
+<button onclick="gcBanReportedOwner('${r.id}')" class="px-3 py-2 rounded-lg font-bold text-xs bg-orange-50 text-orange-600 border border-orange-200 hover:bg-orange-100"><i class="fas fa-ban"></i> Ban Owner</button>
+<button onclick="gcResolveReport('${r.id}')" class="px-3 py-2 rounded-lg font-bold text-xs bg-green-50 text-green-600 border border-green-200 hover:bg-green-100"><i class="fas fa-check"></i> Resolve</button>
+<button onclick="gcDismissReport('${r.id}')" class="px-3 py-2 rounded-lg font-bold text-xs bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200"><i class="fas fa-times"></i> Dismiss</button>
+</div>`
+: `<div class="text-xs text-gray-400">Handled by ${escapeHTML(r.resolvedBy || 'admin')} · ${r.resolvedAt ? getRelativeTimeAdmin(r.resolvedAt) : ''} · ${escapeHTML(r.actionTaken || '')}</div>`;
+return `
+<div class="bg-white p-5 rounded-xl border ${urgent ? 'border-red-300 ring-1 ring-red-200' : 'border-gray-200'} shadow-sm">
+<div class="flex flex-wrap items-center gap-2 mb-2">
+<span class="bg-purple-50 text-purple-700 border border-purple-200 px-2 py-0.5 rounded text-xs font-bold">${escapeHTML(r.reason || 'Unknown')}</span>
+${urgentChip} ${stChip}
+<span class="text-xs text-gray-400 ml-auto">${time}</span>
+</div>
+<div class="text-sm text-gray-600 mb-1"><b>Reported by:</b> ${escapeHTML(r.reporterName || 'User')}</div>
+${r.details ? `<div class="text-sm text-gray-500 italic bg-gray-50 border border-gray-100 rounded-lg p-2 mb-3">"${escapeHTML(r.details)}"</div>` : ''}
+<div id="report-post-${r.id}" class="bg-gray-50 border border-gray-200 rounded-lg p-3 mb-3 text-sm text-gray-500"><i class="fas fa-spinner fa-spin"></i> Loading post...</div>
+${actions}
+</div>`;
+}
+async function gcLoadReportPostPreview(r) {
+const box = document.getElementById('report-post-' + r.id);
+if (!box) return;
+if (!r.postId) { box.innerHTML = '<i class="fas fa-info-circle"></i> Account report (no post linked).'; return; }
+if (reportsPostCache[r.postId]) { box.innerHTML = reportsPostCache[r.postId]; return; }
+try {
+const doc = await db.collection('posts').doc(r.postId).get();
+let html;
+if (!doc.exists) {
+html = '<span class="text-gray-400"><i class="fas fa-unlink"></i> Post already deleted.</span>';
+} else {
+const p = doc.data();
+const img = (p.imgUrls && p.imgUrls[0]) || p.imgUrl || '';
+html = `<div class="flex items-center gap-3">
+${img ? `<img src="${escapeHTML(img)}" class="w-14 h-14 rounded-lg object-cover border">` : '<div class="w-14 h-14 rounded-lg bg-purple-100 text-purple-500 flex items-center justify-center"><i class="fas fa-font"></i></div>'}
+<div class="min-w-0"><div class="font-bold text-gray-800 text-sm truncate">${escapeHTML(p.name || 'User')}</div>
+<div class="text-gray-500 text-xs truncate">${escapeHTML(p.title || '(Photo post)')}</div></div>
+</div>`;
+}
+reportsPostCache[r.postId] = html;
+const b2 = document.getElementById('report-post-' + r.id);
+if (b2) b2.innerHTML = html;
+} catch (e) { box.innerHTML = '<span class="text-red-400">Could not load post.</span>'; }
+}
+async function gcViewReportPost(rid) {
+const r = allReportsData.find(x => x.id === rid);
+if (!r || !r.postId) { showToast('No post linked to this report', 'error'); return; }
+document.getElementById('postsModalTitle').innerText = 'Reported Post';
+const body = document.getElementById('postsModalBody');
+body.innerHTML = '<div class="text-center py-10"><i class="fas fa-spinner fa-spin text-2xl text-gray-400"></i></div>';
+document.getElementById('postsModal').classList.remove('hidden');
+try {
+const doc = await db.collection('posts').doc(r.postId).get();
+if (!doc.exists) { body.innerHTML = '<div class="text-center py-10 text-gray-500 font-bold bg-white rounded-xl">Post already deleted.</div>'; return; }
+const p = doc.data();
+const imgs = (p.imgUrls && p.imgUrls.length) ? p.imgUrls : (p.imgUrl ? [p.imgUrl] : []);
+body.innerHTML = `<div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+<div class="font-bold text-gray-800 mb-1">${escapeHTML(p.name || 'User')}</div>
+${p.title ? `<p class="text-gray-800 font-medium mb-3 whitespace-pre-wrap">${escapeHTML(p.title)}</p>` : ''}
+${imgs.map(u => `<img src="${escapeHTML(u)}" class="w-full h-64 object-cover rounded-lg mb-2 border">`).join('')}
+<div class="text-xs text-gray-500 font-bold"><i class="fas fa-heart text-red-500"></i> ${p.likes || 0} · <i class="fas fa-comment text-blue-500"></i> ${(p.comments || []).length}</div>
+</div>`;
+} catch (e) { body.innerHTML = '<div class="text-center text-red-500 font-bold py-10">Error loading post.</div>'; }
+}
+async function gcDeleteReportedPost(rid) {
+const r = allReportsData.find(x => x.id === rid);
+if (!r || !r.postId) { showToast('No post linked to this report', 'error'); return; }
+if (!confirm('Delete the reported post from the app? The report will be marked as Action Taken.')) return;
+try {
+await db.collection('posts').doc(r.postId).delete();
+await db.collection('reports').doc(rid).update({ status: 'resolved', actionTaken: 'post_deleted', resolvedBy: auth.currentUser ? auth.currentUser.email : 'admin', resolvedAt: Date.now() });
+delete reportsPostCache[r.postId];
+showToast('Post deleted & report closed', 'success');
+} catch (e) { showToast('Failed to delete post', 'error'); }
+}
+function gcBanReportedOwner(rid) {
+const r = allReportsData.find(x => x.id === rid);
+if (!r || !r.postOwnerUid) { showToast('No owner linked to this report', 'error'); return; }
+const u = allUsersData.find(x => x.id === r.postOwnerUid);
+openBanModal(r.postOwnerUid, u ? u.name : 'Post Owner');
+}
+async function gcResolveReport(rid) {
+if (!confirm('Mark this report as resolved (action taken)?')) return;
+await db.collection('reports').doc(rid).update({ status: 'resolved', actionTaken: 'reviewed', resolvedBy: auth.currentUser ? auth.currentUser.email : 'admin', resolvedAt: Date.now() });
+showToast('Report resolved', 'success');
+}
+async function gcDismissReport(rid) {
+if (!confirm('Dismiss this report as invalid?')) return;
+await db.collection('reports').doc(rid).update({ status: 'rejected', actionTaken: 'dismissed', resolvedBy: auth.currentUser ? auth.currentUser.email : 'admin', resolvedAt: Date.now() });
+showToast('Report dismissed', 'success');
+}
 
         // 🚀 UTILS
         function closeModal(id) { document.getElementById(id).classList.add('hidden'); }

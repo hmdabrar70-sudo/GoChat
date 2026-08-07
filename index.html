@@ -2267,6 +2267,21 @@ Threads-স্টাইল (আরও সুন্দর) পোস্ট রি
 .gc-blocked-btn{width:100%;padding:13px;border:none;border-radius:14px;font-size:15px;font-weight:800;cursor:pointer;margin-top:8px;background:var(--surface-2);color:var(--text);}
 .gc-blocked-btn.primary{background:var(--danger);color:#fff;margin-top:0;}
 .gc-chat-blocked{opacity:.35;filter:grayscale(1);}
+
+/* =========================================
+🚀 Update #39 · ban-enforcement · 2026-08-08
+ব্যানড অ্যাকাউন্টের জন্য কঠোর সাসপেনশন UI
+খুঁজতে: Ctrl+F → "ban-enforcement"
+========================================= */
+.gc-ban-overlay{position:fixed;inset:0;background:rgba(10,10,20,.7);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);z-index:101000;display:none;align-items:center;justify-content:center;padding:24px;}
+.gc-ban-overlay.open{display:flex;}
+.gc-ban-card{width:100%;max-width:340px;background:var(--surface);border-radius:24px;padding:30px 22px;text-align:center;box-shadow:0 24px 70px rgba(0,0,0,.5);animation:gcUnfollowPop .25s cubic-bezier(.22,1,.36,1);}
+.gc-ban-icon{width:84px;height:84px;margin:0 auto 16px;border-radius:50%;background:rgba(255,77,106,.12);border:2px solid var(--danger);display:flex;align-items:center;justify-content:center;}
+.gc-ban-icon i{font-size:40px;color:var(--danger);}
+.gc-ban-title{font-size:19px;font-weight:800;color:var(--text);margin-bottom:6px;}
+.gc-ban-text{font-size:13px;color:var(--text-muted);margin-bottom:18px;line-height:1.55;}
+.gc-ban-btn{width:100%;padding:13px;border:none;border-radius:14px;font-size:15px;font-weight:800;cursor:pointer;margin-top:8px;background:var(--surface-2);color:var(--text);}
+.gc-ban-btn.danger{background:var(--danger);color:#fff;margin-top:0;}
 </style>
 </head>
 <body>
@@ -16918,6 +16933,95 @@ if(el) obs.observe(el, {childList:true, subtree:true});
 });
 setInterval(gcApplyBlockFilter, 2000);
 gcApplyBlockFilter();
+})();
+// ═══════════════════════════════════════════════════════
+// 🚀 Update #39 · ban-enforcement · 2026-08-08
+// ব্যানড ইউজার: সার্চ/প্রোফাইল/ফিড/চ্যাট সবখানে কঠোর ব্লক
+// খুঁজতে: Ctrl+F → "ban-enforcement"
+// ═══════════════════════════════════════════════════════
+window.gcBannedSet = window.gcBannedSet || {};
+try{
+db.collection('bannedUsers').onSnapshot(function(snap){
+const fresh = {};
+snap.forEach(function(d){
+fresh[d.id] = true;
+const data = d.data();
+if(data && data.uid) fresh[data.uid] = true;
+});
+window.gcBannedSet = fresh;
+}, function(){});
+}catch(e){}
+function gcIsBanned(uid, u){
+if(window.gcBannedSet[uid]) return true;
+u = u || (window.allUsersCache || []).find(function(x){ return x.id === uid; });
+if(!u) return false;
+return u.isBanned === true || u.banned === true || u.ban === true || u.status === 'banned' || u.accountStatus === 'banned';
+}
+function gcShowBanScreen(uid, selfMode){
+let ov = document.getElementById('gc-ban-overlay');
+if(!ov){ ov = document.createElement('div'); ov.id = 'gc-ban-overlay'; ov.className = 'gc-ban-overlay'; document.body.appendChild(ov); }
+ov.innerHTML = '<div class="gc-ban-card">' +
+'<div class="gc-ban-icon"><i class="ph-bold ph-gavel"></i></div>' +
+'<div class="gc-ban-title">' + (selfMode ? 'Your account is suspended' : 'Account suspended') + '</div>' +
+'<div class="gc-ban-text">' + (selfMode ? 'This account has been banned for violating GoChat community guidelines. If you think this is a mistake, contact support.' : 'This account has been banned for violating community guidelines. Their content is no longer available.') + '</div>' +
+(selfMode ? '<button class="gc-ban-btn danger" onclick="gcBanLogout()">Log out</button>' : '') +
+'<button class="gc-ban-btn" onclick="gcCloseBanScreen()">' + (selfMode ? 'Close' : 'Go Back') + '</button></div>';
+ov.classList.add('open');
+}
+function gcCloseBanScreen(){
+const ov = document.getElementById('gc-ban-overlay');
+if(ov) ov.classList.remove('open');
+}
+function gcBanLogout(){
+gcCloseBanScreen();
+try{ firebase.auth().signOut(); }catch(e){}
+}
+// ১) প্রোফাইল গেট
+window.gcOrigViewUserProfile39 = viewUserProfile;
+viewUserProfile = async function(uid){
+if(currentUser && uid !== currentUser.uid){
+if(gcIsBanned(uid)){ gcShowBanScreen(uid, false); return; }
+try{
+const doc = await db.collection('users').doc(uid).get();
+if(doc.exists && gcIsBanned(uid, doc.data())){ gcShowBanScreen(uid, false); return; }
+}catch(e){}
+}
+return window.gcOrigViewUserProfile39(uid);
+};
+// ২) চ্যাট গেট
+window.gcOrigOpenChat39 = openChat;
+openChat = function(chatId, otherUid){
+if(otherUid && gcIsBanned(otherUid)){ gcShowBanScreen(otherUid, false); return; }
+return window.gcOrigOpenChat39.apply(this, arguments);
+};
+// ৩) ফিড + সার্চ + চ্যাট লিস্ট ফিল্টার (ব্লক + ব্যান একসাথে)
+function gcApplyBlockFilter(){
+if(!currentUser) return;
+document.querySelectorAll('#feed-actual-container .post-card').forEach(function(card){
+const w = card.querySelector('.tf-av-wrap');
+const uid = w ? w.getAttribute('data-uid') : null;
+if(uid && (gcBlockedEither(uid) || gcIsBanned(uid))) card.style.display = 'none';
+});
+document.querySelectorAll('#search-results-list [onclick*="viewUserProfile"]').forEach(function(it){
+const m = (it.getAttribute('onclick') || '').match(/viewUserProfile\('([^']+)'/);
+if(m && (gcBlockedEither(m[1]) || gcIsBanned(m[1]))) it.style.display = 'none';
+});
+document.querySelectorAll('#page-messages .msg-item').forEach(function(it){
+const m = (it.getAttribute('onclick') || '').match(/openChat\(\s*'[^']+'\s*,\s*'([^']+)'/);
+if(m && (gcBlockedEither(m[1]) || gcIsBanned(m[1]))) it.classList.add('gc-chat-blocked');
+});
+}
+// ৪) নিজের অ্যাকাউন্ট ব্যান হলে ফুল-স্ক্রিন লক
+(function gcSelfBanWatcher(){
+if(window.gcSelfBanStarted) return;
+window.gcSelfBanStarted = true;
+setInterval(function(){
+if(!currentUser || !currentUserData) return;
+if(gcIsBanned(currentUser.uid, currentUserData)){
+const ov = document.getElementById('gc-ban-overlay');
+if(!ov || !ov.classList.contains('open')) gcShowBanScreen(currentUser.uid, true);
+}
+}, 3000);
 })();
 </script>
 </body>
