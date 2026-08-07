@@ -190,6 +190,10 @@
 
         const auth = firebase.auth();
         const db = firebase.firestore();
+        // 🚀 FIX: Redirect ফলব্যাক থেকে ফিরলে রেজাল্ট প্রসেস + এরর হলে টোস্ট
+auth.getRedirectResult().catch(function (e) {
+if (e && e.code) showToast("Redirect login failed: " + e.message, "error");
+});
         let allUsersData = [];
 
         // 🚀 ADMIN AUTHENTICATION
@@ -221,11 +225,26 @@
             }
         });
 
-        function loginWithGoogle() {
-            const provider = new firebase.auth.GoogleAuthProvider();
-            // মোবাইলের জন্য Redirect মেথড ব্যবহার করা হলো
-            auth.signInWithRedirect(provider).catch(e => showToast(e.message, "error"));
-        }
+        // 🚀 FIX · google-login-popup · 2026-08-08
+// signInWithRedirect এখন storage-partitioned ব্রাউজারে ফেল করে ("missing initial state")
+// তাই Popup প্রাইমারি + Redirect শুধু ফলব্যাক হিসেবে
+function loginWithGoogle() {
+const provider = new firebase.auth.GoogleAuthProvider();
+provider.setCustomParameters({ prompt: 'select_account' });
+auth.signInWithPopup(provider).then(() => {
+// লগইন সাকসেস — onAuthStateChanged নিজেই এডমিন প্যানেল দেখাবে
+}).catch(function (e) {
+console.error("Popup login error:", e);
+// পপআপ ব্লক/সাপোর্ট না হলে তবেই redirect ফলব্যাক
+if (e && (e.code === 'auth/popup-blocked' || e.code === 'auth/operation-not-supported-in-this-environment')) {
+auth.signInWithRedirect(provider).catch(function (e2) { showToast(e2.message, "error"); });
+} else if (e && e.code === 'auth/cancelled-popup-request') {
+showToast("Popup cancelled. Please try again.", "error");
+} else {
+showToast("Login failed: " + (e && e.message ? e.message : "Unknown error"), "error");
+}
+});
+}
 
         function logoutAdmin() {
             auth.signOut().then(() => {
