@@ -2409,9 +2409,22 @@ display:block;
 </div>
 </div>
 
-<div style="display: flex; justify-content: center; border-top: 1px solid var(--border); margin-top: 20px; margin-bottom: 10px;">
-    <div style="padding: 12px 24px; border-top: 2px solid var(--text); margin-top: -1px; color: var(--text);">
+<!-- 🚀 Own Profile Filter Menu -->
+<div style="display: flex; justify-content: center; gap: 20px; border-top: 1px solid var(--border); margin-top: 20px; margin-bottom: 10px;">
+    <!-- Grid / All Button -->
+    <div id="my-filter-all-btn" style="padding: 12px 20px; border-top: 2px solid var(--text); margin-top: -1px; color: var(--text); cursor: pointer; transition: 0.2s;" onclick="applyProfileFilter('all', 'my', this)">
         <i class="ph-bold ph-squares-four" style="font-size: 28px;"></i>
+    </div>
+    <!-- Filter Icon Button -->
+    <div id="my-filter-icon-btn" style="padding: 12px 20px; border-top: 2px solid transparent; margin-top: -1px; color: var(--text-muted); cursor: pointer; position: relative; transition: 0.2s;" onclick="event.stopPropagation(); closeAllDropdowns(); document.getElementById('my-profile-filter-menu').classList.toggle('open');">
+        <i class="ph-bold ph-faders" style="font-size: 28px;"></i>
+        <!-- Filter Dropdown -->
+        <div id="my-profile-filter-menu" class="chat-list-menu" style="top: 50px; left: 50%; transform: translateX(-50%); right: auto; width: 160px; z-index: 1000;" onclick="event.stopPropagation();">
+            <div class="gc-cf-item active" onclick="applyProfileFilter('all', 'my', this)">All <i class="ph-bold ph-check gc-cf-check"></i></div>
+            <div class="gc-cf-item" onclick="applyProfileFilter('media', 'my', this)">Media <i class="ph-bold ph-check gc-cf-check"></i></div>
+            <div class="gc-cf-item" onclick="applyProfileFilter('gallery', 'my', this)">Gallery <i class="ph-bold ph-check gc-cf-check"></i></div>
+            <div class="gc-cf-item" onclick="applyProfileFilter('status', 'my', this)">Status <i class="ph-bold ph-check gc-cf-check"></i></div>
+        </div>
     </div>
 </div>
 <div id="my-posts-list"></div>
@@ -2459,12 +2472,25 @@ display:block;
         <div class="profile-personal-details" id="other-profile-details-display"></div>
         <div class="profile-btns" id="other-profile-btns" style="margin-top:16px;display:flex;gap:10px;width:100%;flex-wrap:wrap;"></div>
     </div>
-    <div style="display: flex; justify-content: center; border-top: 1px solid var(--border); margin-top: 20px; margin-bottom: 10px;">
-    <div style="padding: 12px 24px; border-top: 2px solid var(--text); margin-top: -1px; color: var(--text);">
+    <!-- 🚀 Other Profile Filter Menu -->
+<div style="display: flex; justify-content: center; gap: 20px; border-top: 1px solid var(--border); margin-top: 20px; margin-bottom: 10px;">
+    <!-- Grid / All Button -->
+    <div id="other-filter-all-btn" style="padding: 12px 20px; border-top: 2px solid var(--text); margin-top: -1px; color: var(--text); cursor: pointer; transition: 0.2s;" onclick="applyProfileFilter('all', 'other', this)">
         <i class="ph-bold ph-squares-four" style="font-size: 28px;"></i>
     </div>
+    <!-- Filter Icon Button -->
+    <div id="other-filter-icon-btn" style="padding: 12px 20px; border-top: 2px solid transparent; margin-top: -1px; color: var(--text-muted); cursor: pointer; position: relative; transition: 0.2s;" onclick="event.stopPropagation(); closeAllDropdowns(); document.getElementById('other-profile-filter-menu').classList.toggle('open');">
+        <i class="ph-bold ph-faders" style="font-size: 28px;"></i>
+        <!-- Filter Dropdown -->
+        <div id="other-profile-filter-menu" class="chat-list-menu" style="top: 50px; left: 50%; transform: translateX(-50%); right: auto; width: 160px; z-index: 1000;" onclick="event.stopPropagation();">
+            <div class="gc-cf-item active" onclick="applyProfileFilter('all', 'other', this)">All <i class="ph-bold ph-check gc-cf-check"></i></div>
+            <div class="gc-cf-item" onclick="applyProfileFilter('media', 'other', this)">Media <i class="ph-bold ph-check gc-cf-check"></i></div>
+            <div class="gc-cf-item" onclick="applyProfileFilter('gallery', 'other', this)">Gallery <i class="ph-bold ph-check gc-cf-check"></i></div>
+            <div class="gc-cf-item" onclick="applyProfileFilter('status', 'other', this)">Status <i class="ph-bold ph-check gc-cf-check"></i></div>
+        </div>
+    </div>
 </div>
-    <div id="other-user-posts-list"></div>
+<div id="other-user-posts-list"></div>
 </div>
 
 <div class="bottom-nav" id="main-bottom-nav">
@@ -8571,7 +8597,7 @@ function showReactionPicker(event, msgId) {
         <span class="reaction-emoji" onclick="toggleMessageReaction('${msgId}','😆')">😆</span>
         <span class="reaction-emoji" onclick="toggleMessageReaction('${msgId}','🥰')">🥰</span>
         <span class="reaction-emoji" onclick="toggleMessageReaction('${msgId}','😥')">😥</span>
-        <span class="reaction-emoji" onclick="toggleMessageReaction('${msgId}','😡')">😡</span>
+        <span class="reaction-emoji" onclick="toggleMessageReaction('${msgId}','😡')">??</span>
     `;
     
     
@@ -16230,6 +16256,62 @@ if(!w.dataset.gcObs){ w.dataset.gcObs = '1'; window.gcVpObserver.observe(w); }
 document.querySelectorAll('.gc-vplayer').forEach(function(w){
 if(!w.dataset.gcObs){ w.dataset.gcObs = '1'; window.gcVpObserver.observe(w); }
 });
+// ==========================================
+// 🚀 PROFILE POSTS FILTER LOGIC 
+// ==========================================
+function applyProfileFilter(filterType, profileType, clickedElement) {
+    const listId = profileType === 'my' ? 'my-posts-list' : 'other-user-posts-list';
+    const listContainer = document.getElementById(listId);
+    
+    const allBtn = document.getElementById(profileType + '-filter-all-btn');
+    const iconBtn = document.getElementById(profileType + '-filter-icon-btn');
+    const menu = document.getElementById(profileType + '-profile-filter-menu');
+    
+    // মেনুর ভেতরের টিক চিহ্ন (active class) রিসেট করা
+    menu.querySelectorAll('.gc-cf-item').forEach(el => el.classList.remove('active'));
+    
+    // টপ বর্ডারের কালার চেঞ্জ করার লজিক
+    if (filterType === 'all') {
+        allBtn.style.borderTop = '2px solid var(--text)';
+        allBtn.style.color = 'var(--text)';
+        iconBtn.style.borderTop = '2px solid transparent';
+        iconBtn.style.color = 'var(--text-muted)';
+        menu.querySelector('.gc-cf-item:nth-child(1)').classList.add('active');
+    } else {
+        allBtn.style.borderTop = '2px solid transparent';
+        allBtn.style.color = 'var(--text-muted)';
+        iconBtn.style.borderTop = '2px solid var(--text)';
+        iconBtn.style.color = 'var(--text)';
+        if(clickedElement) clickedElement.classList.add('active');
+    }
+    
+    menu.classList.remove('open'); // ক্লিক করার পর মেনু বন্ধ করে দেবে
+
+    if (!listContainer) return;
+
+    // পোস্টগুলো ফিল্টার করা
+    const posts = listContainer.querySelectorAll('.grid-post-card, .grid-post-item');
+    
+    posts.forEach(post => {
+        const hasVideo = post.querySelector('video') !== null;
+        const hasImage = post.querySelector('img') !== null;
+        const isTextOnly = !hasVideo && !hasImage;
+
+        let shouldShow = false;
+        
+        if (filterType === 'all') {
+            shouldShow = true;
+        } else if (filterType === 'media' && hasVideo) {
+            shouldShow = true; // শুধু ভিডিও পোস্টগুলো দেখাবে
+        } else if (filterType === 'gallery' && hasImage && !hasVideo) {
+            shouldShow = true; // শুধু ইমেজ পোস্টগুলো দেখাবে
+        } else if (filterType === 'status' && isTextOnly) {
+            shouldShow = true; // শুধু টেক্সট পোস্টগুলো দেখাবে
+        }
+
+        post.style.display = shouldShow ? '' : 'none';
+    });
+}
 </script>
 </body>
 </html>
