@@ -2182,13 +2182,27 @@ display:block;
 .gc-vplayer:fullscreen video{height:100% !important;object-fit:contain !important;}
 
 /* 🚀 Profile Grid Video Click Fix (Open in Single View) */
+.grid-post-item .gc-vplayer,
+.grid-post-card .gc-vplayer {
+    width: 100% !important;
+    height: 100% !important;
+    pointer-events: none !important; /* কাস্টম প্লেয়ারের ক্লিক ব্লক করবে */
+}
 .grid-post-item video,
-.grid-post-card video {
+.grid-post-card video,
+.grid-post-item .gc-vplayer video {
     width: 100% !important;
     height: 100% !important;
     object-fit: cover !important;
-    pointer-events: none !important; /* ম্যাজিক: ভিডিও প্লে/পজ বন্ধ করে সিঙ্গেল ভিউ ওপেন করবে */
+    pointer-events: none !important; /* ভিডিওর ক্লিক ব্লক করবে */
     border-radius: inherit;
+}
+.grid-post-item .gc-vp-center {
+    pointer-events: none !important; /* প্লে বাটনের ক্লিক ব্লক করবে */
+    transform: translate(-50%, -50%) scale(0.65) !important; /* গ্রিডের ভেতর প্লে বাটনটা একটু ছোট ও সুন্দর দেখাবে */
+}
+.grid-post-item .gc-vp-bar {
+    display: none !important; /* গ্রিডের ভেতর নিচের টাইম/কন্ট্রোল বার লুকানো থাকবে (ক্লিন লুকের জন্য) */
 }
 </style>
 </head>
@@ -12065,7 +12079,7 @@ async function loadSavedPosts() {
                     if (u) {
                         uName = u.name;
                         uAv = u.avatar ? `<img src="${u.avatar}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">` : uAv;
-                        uVer = u.verified;
+                        uVer = (u.isVerified === true || u.verified === true);
                     }
                 }
                 
@@ -16223,6 +16237,32 @@ if(!w.dataset.gcObs){ w.dataset.gcObs = '1'; window.gcVpObserver.observe(w); }
 document.querySelectorAll('.gc-vplayer').forEach(function(w){
 if(!w.dataset.gcObs){ w.dataset.gcObs = '1'; window.gcVpObserver.observe(w); }
 });
+// ═══════════════════════════════════════════════════════
+// 🚀 Update #30 · verified-fix · 2026-08-07
+// মালিক/নির্বাচিত ইমেইলগুলোকে একবারই ডাটাবেসে isVerified:true সেট করা
+// খুঁজতে: Ctrl+F → "verified-fix"
+// ═══════════════════════════════════════════════════════
+const GC_VERIFIED_EMAILS = ['hbmabrar@gmail.com']; // ← এখানে আরও ইমেইল যোগ করতে পারো
+(function gcAutoVerifyOwner(){
+if(window.gcAutoVerifyStarted) return;
+window.gcAutoVerifyStarted = true;
+let done = false;
+const t = setInterval(function(){
+if(done) return;
+if(typeof currentUser !== 'undefined' && currentUser && typeof currentUserData !== 'undefined' && currentUserData){
+done = true;
+clearInterval(t);
+const em = (currentUser.email || '').toLowerCase();
+if(GC_VERIFIED_EMAILS.includes(em) && currentUserData.isVerified !== true){
+db.collection('users').doc(currentUser.uid).update({ isVerified: true }).then(function(){
+currentUserData.isVerified = true;
+if(typeof loadUserUI === 'function') loadUserUI();
+showToast('✔ Verified badge activated!');
+}).catch(function(){});
+}
+}
+}, 1000);
+})();
 </script>
 </body>
 </html>
