@@ -16159,6 +16159,45 @@ gcVidRaf = true;
 requestAnimationFrame(function(){ gcVidRaf = false; gcVideoize(document); });
 }).observe(document.body, {childList: true, subtree: true});
 gcVideoize(document);
+// ═══════════════════════════════════════════════════════
+// 🚀 Update #29 · video-autoplay · 2026-08-07
+// স্ক্রলে ভিডিও অটো-প্লে + আগেরটা অটো-পজ (একসাথে একটাই চলে)
+// খুঁজতে: Ctrl+F → "video-autoplay"
+// ═══════════════════════════════════════════════════════
+window.gcVpObserver = new IntersectionObserver(function(entries){
+entries.forEach(function(en){
+const wrap = en.target;
+const v = wrap.querySelector('video');
+if(!v) return;
+if(en.isIntersecting && en.intersectionRatio >= 0.6){
+// নতুন ভিডিও চালু করার আগে আর সব ভিডিও পজ
+document.querySelectorAll('.gc-vplayer video').forEach(function(o){
+if(o !== v && !o.paused) o.pause();
+});
+if(v.paused){
+const pr = v.play();
+if(pr) pr.catch(function(){
+// ব্রাউজার সাউন্ডসহ অটোপ্লে ব্লক করলে মিউটেড ফলব্যাক
+v.muted = true;
+const p2 = v.play();
+if(p2) p2.catch(function(){});
+});
+}
+}else if(en.intersectionRatio < 0.4){
+if(!v.paused) v.pause();
+}
+});
+}, {threshold:[0, 0.4, 0.6, 1]});
+window.gcOrigVideoize = gcVideoize;
+gcVideoize = function(scope){
+window.gcOrigVideoize(scope);
+document.querySelectorAll('.gc-vplayer').forEach(function(w){
+if(!w.dataset.gcObs){ w.dataset.gcObs = '1'; window.gcVpObserver.observe(w); }
+});
+};
+document.querySelectorAll('.gc-vplayer').forEach(function(w){
+if(!w.dataset.gcObs){ w.dataset.gcObs = '1'; window.gcVpObserver.observe(w); }
+});
 </script>
 </body>
 </html>
