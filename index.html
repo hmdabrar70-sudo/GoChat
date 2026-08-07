@@ -6073,21 +6073,14 @@ if(h<24)return h+'h ago';
 return Math.floor(h/24)+'d ago';
 }
 
-// 🚀 একদম অরিজিনাল Google/Twitter স্টাইল (Perfect Golden Padding)
+// 🚀 অরিজিনাল Google/Twitter স্টাইল (No Font Loading Delay & Bug-Free)
 function getVerifiedBadge(email, isVerified) {
     if (isVerified === true) {
         return `
-        <svg class="verified-icon" viewBox="0 0 24 24" style="width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center; margin-left: 3px; transform: translateY(2px);">
-            <!-- গোল্ডেন গ্রেডিয়েন্ট কালার লজিক -->
-            <defs>
-                <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stop-color="#FFD700" />
-                    <stop offset="100%" stop-color="#F59E0B" />
-                </linearGradient>
-            </defs>
-            <!-- পেছনের গোল্ডেন খাঁজকাটা ডিজাইন (একটু বড় ফিল দেওয়ার জন্য) -->
-            <path d="M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.998-3.918-3.998-.47 0-.92.084-1.336.25C14.818 2.415 13.51 1.5 12 1.5s-2.816.917-3.337 2.25c-.416-.165-.866-.25-1.336-.25-2.21 0-3.918 1.792-3.918 4 0 .495.084.965.238 1.4-1.273.65-2.148 2.02-2.148 3.6 0 1.46.827 2.766 2.044 3.462-.014.116-.022.234-.022.35 0 2.21 1.71 3.998 3.918 3.998.47 0 .92-.084 1.336-.25C9.182 21.585 10.49 22.5 12 22.5s2.816-.917 3.337-2.25c.416.165.866.25 1.336.25 2.21 0 3.918-1.792 3.918-4 0-.116-.008-.234-.022-.35 1.217-.696 2.044-2.002 2.044-3.462z" fill="url(#goldGrad)"></path>
-            <!-- ভেতরের সাদা টিক চিহ্ন (সামান্য ছোট করে চারপাশে গোল্ডেন বর্ডার বড় করা হয়েছে) -->
+        <svg class="verified-icon" viewBox="0 0 24 24" style="width: 18px; height: 18px; display: inline-flex; vertical-align: middle; margin-top: -2px; margin-left: 3px; filter: drop-shadow(0px 2px 4px rgba(245, 158, 11, 0.4));">
+            <!-- পেছনের গোল্ডেন খাঁজকাটা ডিজাইন (সলিড কালার, তাই আর গায়েব হবে না) -->
+            <path d="M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.998-3.918-3.998-.47 0-.92.084-1.336.25C14.818 2.415 13.51 1.5 12 1.5s-2.816.917-3.337 2.25c-.416-.165-.866-.25-1.336-.25-2.21 0-3.918 1.792-3.918 4 0 .495.084.965.238 1.4-1.273.65-2.148 2.02-2.148 3.6 0 1.46.827 2.766 2.044 3.462-.014.116-.022.234-.022.35 0 2.21 1.71 3.998 3.918 3.998.47 0 .92-.084 1.336-.25C9.182 21.585 10.49 22.5 12 22.5s2.816-.917 3.337-2.25c.416.165.866.25 1.336.25 2.21 0 3.918-1.792 3.918-4 0-.116-.008-.234-.022-.35 1.217-.696 2.044-2.002 2.044-3.462z" fill="#F59E0B"></path>
+            <!-- ভেতরের সাদা টিক চিহ্ন (একদম পারফেক্ট সেন্টার এবং ছোট সাইজ) -->
             <g transform="translate(2.16, 2.16) scale(0.82)">
                 <path d="M9.5 17.5l-5-5 1.5-1.5 3.5 3.5 9-9 1.5 1.5-10.5 10.5z" fill="#ffffff"></path>
             </g>
@@ -12079,7 +12072,7 @@ async function loadSavedPosts() {
                     if (u) {
                         uName = u.name;
                         uAv = u.avatar ? `<img src="${u.avatar}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">` : uAv;
-                        uVer = (u.isVerified === true || u.verified === true);
+                        uVer = u.verified;
                     }
                 }
                 
@@ -16237,32 +16230,6 @@ if(!w.dataset.gcObs){ w.dataset.gcObs = '1'; window.gcVpObserver.observe(w); }
 document.querySelectorAll('.gc-vplayer').forEach(function(w){
 if(!w.dataset.gcObs){ w.dataset.gcObs = '1'; window.gcVpObserver.observe(w); }
 });
-// ═══════════════════════════════════════════════════════
-// 🚀 Update #30 · verified-fix · 2026-08-07
-// মালিক/নির্বাচিত ইমেইলগুলোকে একবারই ডাটাবেসে isVerified:true সেট করা
-// খুঁজতে: Ctrl+F → "verified-fix"
-// ═══════════════════════════════════════════════════════
-const GC_VERIFIED_EMAILS = ['hbmabrar@gmail.com']; // ← এখানে আরও ইমেইল যোগ করতে পারো
-(function gcAutoVerifyOwner(){
-if(window.gcAutoVerifyStarted) return;
-window.gcAutoVerifyStarted = true;
-let done = false;
-const t = setInterval(function(){
-if(done) return;
-if(typeof currentUser !== 'undefined' && currentUser && typeof currentUserData !== 'undefined' && currentUserData){
-done = true;
-clearInterval(t);
-const em = (currentUser.email || '').toLowerCase();
-if(GC_VERIFIED_EMAILS.includes(em) && currentUserData.isVerified !== true){
-db.collection('users').doc(currentUser.uid).update({ isVerified: true }).then(function(){
-currentUserData.isVerified = true;
-if(typeof loadUserUI === 'function') loadUserUI();
-showToast('✔ Verified badge activated!');
-}).catch(function(){});
-}
-}
-}, 1000);
-})();
 </script>
 </body>
 </html>
