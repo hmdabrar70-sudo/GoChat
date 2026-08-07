@@ -2283,6 +2283,9 @@ display:block;
 <div class="topbar">
 <div class="topbar-logo" onclick="refreshFeed()">✦ GoChat</div>
 <div class="topbar-actions">
+    <!-- 🚀 New Edit Button for Notifications -->
+    <button id="topbar-notif-edit-btn" class="btn-outline" style="display:none; padding:6px 16px; font-size:13px; border:none; background:var(--surface-2); color:var(--text); height:36px; margin:0;" onclick="toggleNotifEditMode()">Edit</button>
+
     <div class="topbar-btn" id="topbar-settings-btn" onclick="openMainMenu()" style="display:none;">
     <i class="ph-bold ph-list" style="font-size: 24px;"></i>
 </div>
@@ -2342,9 +2345,12 @@ display:block;
 </div>
 
 <div class="page" id="page-notifications">
-    <div style="padding:20px 20px 12px; display:flex; justify-content:space-between; align-items:center;">
-        <div class="section-title" style="padding:0; font-size:18px;">Notifications</div>
-        <button id="notif-edit-btn" class="btn-outline" style="padding:6px 16px; font-size:13px; border:none; background:var(--surface-2); color:var(--text);" onclick="toggleNotifEditMode()">Edit</button>
+    
+    <!-- 🚀 Threads Style Notification Filter Tabs -->
+    <div class="activity-tabs-wrapper" style="border-bottom: 1px solid var(--border); position: sticky; top: 58px; z-index: 90;">
+        <div class="act-tab active" onclick="applyNotifFilter('all', this)">All</div>
+        <div class="act-tab" onclick="applyNotifFilter('tag', this)">Mentions</div>
+        <div class="act-tab" onclick="applyNotifFilter('follow', this)">Follows</div>
     </div>
     
     <div id="notifications-list"><div class="empty-feed">No notifications yet</div></div>
@@ -3709,17 +3715,6 @@ body.notifications-mode .topbar-logo {
 body.messages-mode .topbar-btn[onclick*="notifications"],
 body.notifications-mode .topbar-btn[onclick*="notifications"] {
     display: none !important;
-}
-
-/* পেজের ভেতরের ডুপ্লিকেট টাইটেলটি হাইড করার জন্য */
-body.notifications-mode #page-notifications .section-title,
-body.notifications-mode #page-notifications > div:first-child > div:first-child {
-    display: none !important;
-}
-body.notifications-mode #page-notifications > div:first-child {
-    justify-content: flex-end !important;
-    padding-top: 4px !important;
-    padding-bottom: 0px !important;
 }
 
 /* =========================================
@@ -6795,7 +6790,7 @@ notifUnsub = db.collection('notifications').where('toUid', '==', user.uid).onSna
         }
 
         return `
-        <div class="notif-item ${!data.read ? 'unread' : ''}" onclick="if(typeof isNotifEditMode !== 'undefined' && isNotifEditMode){toggleNotifSelection('${data.id}');}else{${onClickAction}}">
+        <div class="notif-item ${!data.read ? 'unread' : ''}" data-type="${data.type}" onclick="if(typeof isNotifEditMode !== 'undefined' && isNotifEditMode){toggleNotifSelection('${data.id}');}else{${onClickAction}}">
             <div class="avatar sm">${userAvatarHtml}</div>
             <div class="fb-notif-content" style="flex:1;">
                 <strong>${safeName}</strong> ${textDesc}
@@ -6887,18 +6882,17 @@ function showPage(page) {
         if(topbarLogo) topbarLogo.textContent = '✦ GoChat'; // অন্য পেজে আবার লোগো ফিরে আসবে
     }
 
-    // সেটিংস আইকন হ্যান্ডেল করার লজিক
+        // সেটিংস আইকন হ্যান্ডেল করার লজিক
     const settingsIcon = document.getElementById('topbar-settings-btn');
-    if (page === 'profile') {
-        settingsIcon.style.display = 'flex'; 
-    } else {
-        settingsIcon.style.display = 'none'; 
-    }
+    if (settingsIcon) settingsIcon.style.display = (page === 'profile') ? 'flex' : 'none'; 
+    
     // গ্রুপ আইকন হ্যান্ডেল করার লজিক
     const groupBtn = document.getElementById('topbar-group-btn');
-    if (groupBtn) {
-        groupBtn.style.display = (page === 'messages') ? 'flex' : 'none';
-    }
+    if (groupBtn) groupBtn.style.display = (page === 'messages') ? 'flex' : 'none';
+
+    // 🚀 নোটিফিকেশন এডিট বাটন হ্যান্ডেল করার লজিক
+    const notifEditBtn = document.getElementById('topbar-notif-edit-btn');
+    if (notifEditBtn) notifEditBtn.style.display = (page === 'notifications') ? 'block' : 'none';
 
     if(page === 'messages') loadMessages();
     if(page === 'profile') { loadUserUI(); loadMyPosts(); }
@@ -16307,6 +16301,51 @@ function applyProfileFilter(filterType, profileType, clickedElement) {
 
         post.style.display = shouldShow ? '' : 'none';
     });
+}
+// ==========================================
+// 🚀 NOTIFICATIONS FILTER LOGIC 
+// ==========================================
+function applyNotifFilter(filterType, btn) {
+    // ট্যাবের ডিজাইন আপডেট করা
+    const tabs = btn.parentElement.querySelectorAll('.act-tab');
+    tabs.forEach(t => t.classList.remove('active'));
+    btn.classList.add('active');
+
+    // আইটেমগুলো ফিল্টার করা
+    const items = document.querySelectorAll('#notifications-list .notif-item');
+    let visibleCount = 0;
+    
+    items.forEach(item => {
+        const itemType = item.getAttribute('data-type');
+        let shouldShow = false;
+        
+        if (filterType === 'all') {
+            shouldShow = true;
+        } else if (filterType === 'follow' && (itemType === 'follow' || itemType === 'friend_request' || itemType === 'request_accepted')) {
+            shouldShow = true; // ফলো ব্যাক, রিকোয়েস্ট সব এখানে দেখাবে
+        } else if (filterType === 'tag' && itemType === 'tag') {
+            shouldShow = true; // শুধু মেনশনগুলো দেখাবে
+        }
+
+        if (shouldShow) {
+            item.style.display = 'flex';
+            visibleCount++;
+        } else {
+            item.style.display = 'none';
+        }
+    });
+    
+    // যদি ফিল্টার করার পর লিস্ট ফাঁকা হয়ে যায়
+    const listContainer = document.getElementById('notifications-list');
+    const existingEmptyMsg = listContainer.querySelector('.empty-feed.filter-msg');
+    
+    if (visibleCount === 0 && items.length > 0) {
+        if (!existingEmptyMsg) {
+            listContainer.insertAdjacentHTML('beforeend', `<div class="empty-feed filter-msg" style="margin-top:20px;">No ${filterType} notifications found.</div>`);
+        }
+    } else {
+        if (existingEmptyMsg) existingEmptyMsg.remove();
+    }
 }
 </script>
 </body>
