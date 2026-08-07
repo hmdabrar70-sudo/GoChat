@@ -2153,6 +2153,14 @@ body.light-mode #page-messages {
 body.light-mode{
 --bg:#ffffff;
 }
+
+/* 🚀 Update #27 · video-post: সিঙ্গেল ভিউ/গ্রিডে ভিডিও স্টাইল */
+.post-media-wrap video{
+width:100%;
+border-radius:18px;
+background:#000;
+display:block;
+}
 </style>
 </head>
 <body>
@@ -15993,6 +16001,104 @@ return;
 }
 return window.gcOrigShowToast.apply(this, arguments);
 };
+// ═══════════════════════════════════════════════════════
+// 🚀 NEW FEATURE · video-post · 2026-08-07 (Update #27)
+// ১৫ সেকেন্ডের ভিডিও পোস্ট সাপোর্ট (পুরনো সিস্টেমেই)
+// খুঁজতে: Ctrl+F → "video-post"
+// ═══════════════════════════════════════════════════════
+// ১) আপলোড ফাংশনে অটো-ভিডিও ডিটেকশন (স্টোরি/অ্যাভাটার অক্ষত)
+window.gcOrigUploadToCloudinary = uploadToCloudinary;
+uploadToCloudinary = async function(file, isVideo){
+const real = (file && file.type && file.type.startsWith('video/')) ? true : !!isVideo;
+return window.gcOrigUploadToCloudinary(file, real);
+};
+// ২) প্রিভিউ গ্রিড ভিডিও-সাপোর্টেড (পুরনো ফাংশন ওভাররাইড)
+function renderComposeImageGrid(){
+const grid = document.getElementById('compose-img-grid');
+const preview = document.getElementById('compose-img-preview');
+if(!grid || !preview) return;
+if(composeImages.length === 0){ preview.style.display = 'none'; grid.innerHTML = ''; return; }
+preview.style.display = 'block';
+grid.innerHTML = composeImages.map(function(it, i){
+const media = it.isVideo
+? ('<video src="' + it.preview + '" muted playsinline style="width:100%;height:100%;object-fit:cover;border-radius:10px;background:#000;"></video>')
+: ('<img src="' + it.preview + '" style="width:100%;height:100%;object-fit:cover;border-radius:10px;">');
+return '<div style="position:relative;width:72px;height:72px;flex-shrink:0;">' + media +
+'<button onclick="gcRemoveCompose(' + i + ')" style="position:absolute;top:4px;right:4px;width:20px;height:20px;border-radius:50%;border:none;background:rgba(0,0,0,.65);color:#fff;font-size:12px;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:2;">✕</button></div>';
+}).join('');
+}
+function gcRemoveCompose(i){
+composeImages.splice(i, 1);
+renderComposeImageGrid();
+checkPostInputs();
+}
+// ৩) ফাইল ইনপুট টেকওভার: accept video + ১ সেকেন্ড ভ্যালিডেশন
+(function gcInitVideoPost(){
+const tryInit = setInterval(function(){
+let input = document.querySelector('#create-post-screen input[type="file"]');
+if(!input){
+document.querySelectorAll('input[type="file"]').forEach(function(el){
+const oc = el.getAttribute('onchange') || '';
+if(/compose|postimage|post-image/i.test(oc)) input = el;
+});
+}
+if(!input) return;
+clearInterval(tryInit);
+input.setAttribute('accept', 'image/*,video/*');
+input.removeAttribute('onchange');
+input.addEventListener('change', function(){
+const files = Array.from(input.files || []);
+if(!files.length) return;
+const max = (typeof MAX_IMAGES_PER_POST !== 'undefined') ? MAX_IMAGES_PER_POST : 10;
+const remaining = max - composeImages.length;
+files.slice(0, remaining).forEach(function(file){
+if(file.type.startsWith('video/')){
+const tmp = URL.createObjectURL(file);
+const probe = document.createElement('video');
+probe.preload = 'metadata';
+probe.onloadedmetadata = function(){
+const dur = probe.duration || 0;
+URL.revokeObjectURL(tmp);
+if(dur > 15){ showToast('Video must be under 15 seconds!'); return; }
+composeImages.push({file: file, preview: URL.createObjectURL(file), isVideo: true});
+renderComposeImageGrid(); checkPostInputs();
+};
+probe.onerror = function(){ URL.revokeObjectURL(tmp); showToast('Invalid video file'); };
+probe.src = tmp;
+}else{
+const reader = new FileReader();
+reader.onload = function(e){ composeImages.push({file: file, preview: e.target.result, isVideo: false}); renderComposeImageGrid(); checkPostInputs(); };
+reader.readAsDataURL(file);
+}
+});
+if(files.length > remaining) showToast('Maximum ' + max + ' files allowed');
+input.value = '';
+});
+}, 1000);
+})();
+// ৪) ফিড/প্রোফাইলে ভিডিও URL পেলে <img> → আসল <video> প্লেয়ার
+function gcVideoize(scope){
+(scope || document).querySelectorAll('img[src*="/video/upload/"],img[src$=".mp4"],img[src$=".webm"]').forEach(function(img){
+if(img.dataset.gcVid) return;
+img.dataset.gcVid = '1';
+const v = document.createElement('video');
+v.src = img.src;
+v.controls = true;
+v.playsInline = true;
+v.setAttribute('playsinline', '');
+v.preload = 'metadata';
+v.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;border-radius:inherit;background:#000;';
+v.addEventListener('click', function(e){ e.stopPropagation(); });
+img.replaceWith(v);
+});
+}
+let gcVidRaf = false;
+new MutationObserver(function(){
+if(gcVidRaf) return;
+gcVidRaf = true;
+requestAnimationFrame(function(){ gcVidRaf = false; gcVideoize(document); });
+}).observe(document.body, {childList: true, subtree: true});
+gcVideoize(document);
 </script>
 </body>
 </html>
