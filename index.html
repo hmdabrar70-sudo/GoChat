@@ -6789,6 +6789,17 @@ notifUnsub = db.collection('notifications').where('toUid', '==', user.uid).onSna
             }
         }
 
+                // 🚀 ডাইনামিক ফলো ব্যাক বাটন (ক্লিক করলে সাথে সাথে 'Following' হয়ে যাবে)
+        let actionBtnHtml = '';
+        if (data.type === 'follow' && currentUserData) {
+            const isAlreadyFollowing = currentUserData.following && currentUserData.following.includes(data.fromUid);
+            if (isAlreadyFollowing) {
+                actionBtnHtml = `<button class="btn-outline" style="padding:6px 14px; font-size:12px; height:32px; border-radius:20px; pointer-events:none; opacity:0.7;" onclick="event.stopPropagation();">Following</button>`;
+            } else {
+                actionBtnHtml = `<button class="btn-primary" id="notif-follow-btn-${data.fromUid}" style="padding:6px 16px; font-size:12px; height:32px; border-radius:20px; margin:0; width:auto; box-shadow:none;" onclick="event.stopPropagation(); toggleFollow('${data.fromUid}'); this.textContent='Following'; this.className='btn-outline'; this.style.borderColor='var(--border)'; this.style.color='var(--text)'; this.style.pointerEvents='none';">Follow back</button>`;
+            }
+        }
+
         return `
         <div class="notif-item ${!data.read ? 'unread' : ''}" data-type="${data.type}" onclick="if(typeof isNotifEditMode !== 'undefined' && isNotifEditMode){toggleNotifSelection('${data.id}');}else{${onClickAction}}">
             <div class="avatar sm">${userAvatarHtml}</div>
@@ -6796,8 +6807,9 @@ notifUnsub = db.collection('notifications').where('toUid', '==', user.uid).onSna
                 <strong>${safeName}</strong> ${textDesc}
                 <div class="fb-notif-time">${getRelativeTime(data.createdAt)}</div>
             </div>
+            ${actionBtnHtml}
             <input type="checkbox" class="notif-checkbox" id="notif-cb-${data.id}" ${isChecked ? 'checked' : ''} style="display:${displayCb}; pointer-events:none; width:22px; height:22px; accent-color:var(--danger);">
-        </div>`;
+        </div>`;        
     }).join('');
 });
 }else{
@@ -13748,8 +13760,8 @@ let selectedNotifs = [];
 
 function toggleNotifEditMode() {
     isNotifEditMode = !isNotifEditMode;
-    const btn = document.getElementById('notif-edit-btn');
-    const bar = document.getElementById('notif-selection-bar');
+    const btn = document.getElementById('topbar-notif-edit-btn');
+const bar = document.getElementById('notif-selection-bar');
     
     if (isNotifEditMode) {
         btn.textContent = 'Cancel';
