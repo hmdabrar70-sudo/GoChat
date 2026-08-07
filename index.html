@@ -2180,6 +2180,16 @@ display:block;
 .gc-vp-btn i{font-size:18px;}
 .gc-vplayer:fullscreen{border-radius:0;}
 .gc-vplayer:fullscreen video{height:100% !important;object-fit:contain !important;}
+
+/* 🚀 Profile Grid Video Click Fix (Open in Single View) */
+.grid-post-item video,
+.grid-post-card video {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+    pointer-events: none !important; /* ম্যাজিক: ভিডিও প্লে/পজ বন্ধ করে সিঙ্গেল ভিউ ওপেন করবে */
+    border-radius: inherit;
+}
 </style>
 </head>
 <body>
@@ -6049,10 +6059,25 @@ if(h<24)return h+'h ago';
 return Math.floor(h/24)+'d ago';
 }
 
+// 🚀 একদম অরিজিনাল Google/Twitter স্টাইল (Perfect Golden Padding)
 function getVerifiedBadge(email, isVerified) {
-    // এখন শুধু ডাটাবেস থেকে isVerified: true হলেই ব্যাজ পাবে
     if (isVerified === true) {
-        return '<span class="material-symbols-outlined verified-icon" title="Verified">verified</span>';
+        return `
+        <svg class="verified-icon" viewBox="0 0 24 24" style="width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center; margin-left: 3px; transform: translateY(2px);">
+            <!-- গোল্ডেন গ্রেডিয়েন্ট কালার লজিক -->
+            <defs>
+                <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#FFD700" />
+                    <stop offset="100%" stop-color="#F59E0B" />
+                </linearGradient>
+            </defs>
+            <!-- পেছনের গোল্ডেন খাঁজকাটা ডিজাইন (একটু বড় ফিল দেওয়ার জন্য) -->
+            <path d="M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.998-3.918-3.998-.47 0-.92.084-1.336.25C14.818 2.415 13.51 1.5 12 1.5s-2.816.917-3.337 2.25c-.416-.165-.866-.25-1.336-.25-2.21 0-3.918 1.792-3.918 4 0 .495.084.965.238 1.4-1.273.65-2.148 2.02-2.148 3.6 0 1.46.827 2.766 2.044 3.462-.014.116-.022.234-.022.35 0 2.21 1.71 3.998 3.918 3.998.47 0 .92-.084 1.336-.25C9.182 21.585 10.49 22.5 12 22.5s2.816-.917 3.337-2.25c.416.165.866.25 1.336.25 2.21 0 3.918-1.792 3.918-4 0-.116-.008-.234-.022-.35 1.217-.696 2.044-2.002 2.044-3.462z" fill="url(#goldGrad)"></path>
+            <!-- ভেতরের সাদা টিক চিহ্ন (সামান্য ছোট করে চারপাশে গোল্ডেন বর্ডার বড় করা হয়েছে) -->
+            <g transform="translate(2.16, 2.16) scale(0.82)">
+                <path d="M9.5 17.5l-5-5 1.5-1.5 3.5 3.5 9-9 1.5 1.5-10.5 10.5z" fill="#ffffff"></path>
+            </g>
+        </svg>`;
     }
     return '';
 }
