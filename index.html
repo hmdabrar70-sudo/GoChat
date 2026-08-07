@@ -3798,38 +3798,46 @@ body.light-mode #page-notifications {
   line-height:.95 !important; color:var(--text) !important; padding:0 !important;
 }
 
-/* ---------- 🚀 মডার্ন ও প্রিমিয়াম নোটিফিকেশন লিস্ট আইটেম ডিজাইন ---------- */
+/* ---------- 🚀 মডার্ন থ্রেডস (Threads) স্টাইল নোটিফিকেশন লিস্ট ---------- */
+#notifications-list {
+    display: flex;
+    flex-direction: column;
+    padding-bottom: 20px;
+}
+
 #notifications-list .notif-item {
     display: flex;
-    align-items: center;
-    gap: 15px;
-    padding: 14px 18px;
-    background: var(--surface);
-    /* খুব হালকা বর্ডার এবং সফট রাউন্ডেড শেপ */
-    border: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
-    border-radius: 18px;
-    margin: 8px 16px;
-    /* প্রিমিয়াম সফট শ্যাডো */
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+    align-items: flex-start; /* আইটেমগুলো ওপরের দিকে অ্যালাইন থাকবে */
+    gap: 14px;
+    padding: 16px 20px;
+    background: transparent; /* ব্যাকগ্রাউন্ড ফ্ল্যাট করা হলো */
+    border: none;
+    border-bottom: 1px solid var(--border); /* শুধু নিচে বর্ডার থাকবে */
+    border-radius: 0; /* গোলাকার বর্ডার বাতিল */
+    margin: 0; /* চারপাশের মার্জিন বাতিল */
+    box-shadow: none; /* শ্যাডো বাতিল */
     cursor: pointer;
     position: relative;
-    transition: all 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+    transition: background 0.2s ease;
 }
 
-/* চমৎকার হোভার ও ক্লিক ইফেক্ট */
+/* লিস্টের শেষ আইটেমে কোনো বর্ডার থাকবে না */
+#notifications-list .notif-item:last-child {
+    border-bottom: none;
+}
+
+/* হোভার ও ক্লিক ইফেক্ট */
 #notifications-list .notif-item:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.06);
-    border-color: color-mix(in srgb, var(--accent) 40%, var(--border));
+    background: var(--surface-2);
+    transform: none; /* লাফানো বন্ধ করা হলো */
 }
 #notifications-list .notif-item:active { 
-    transform: scale(0.97); 
+    background: color-mix(in srgb, var(--surface-2) 60%, transparent); 
 }
 
-/* আনরিড (Unread) স্টেট - মডার্ন লুক (লেফট বর্ডার বাদ দিয়ে সফট কালার) */
+/* আনরিড (Unread) স্টেট - মডার্ন লুক (খুব হালকা ব্যাকগ্রাউন্ড) */
 #notifications-list .notif-item.unread {
-    background: linear-gradient(to right, color-mix(in srgb, var(--accent) 8%, var(--surface)), var(--surface));
-    border-color: color-mix(in srgb, var(--accent) 30%, transparent);
+    background: color-mix(in srgb, var(--accent) 4%, transparent);
 }
 
 /* আনরিড নোটিফিকেশনের জন্য বাম পাশে প্রিমিয়াম লাইন (ডটের বদলে) */
@@ -3849,16 +3857,9 @@ body.light-mode #page-notifications {
 #notifications-list .notif-text {
     flex: 1;
     font-size: 14.5px;
-    line-height: 1.45;
-    color: var(--text);
-}
-
-#notifications-list .notif-time {
-    font-size: 12px;
-    color: var(--text-muted);
-    margin-top: 5px;
-    font-weight: 600;
-    letter-spacing: 0.2px;
+    line-height: 1.4;
+    color: var(--text-secondary);
+    margin-top: 2px;
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -6830,7 +6831,7 @@ notifUnsub = db.collection('notifications').where('toUid', '==', user.uid).onSna
             }
         }
 
-                // 🚀 ডাইনামিক ফলো ব্যাক বাটন (ক্লিক করলে সাথে সাথে 'Following' হয়ে যাবে)
+                        // 🚀 ডাইনামিক ফলো ব্যাক বাটন (ক্লিক করলে সাথে সাথে 'Following' হয়ে যাবে)
         let actionBtnHtml = '';
         if (data.type === 'follow' && currentUserData) {
             const isAlreadyFollowing = currentUserData.following && currentUserData.following.includes(data.fromUid);
@@ -6843,14 +6844,19 @@ notifUnsub = db.collection('notifications').where('toUid', '==', user.uid).onSna
 
         return `
         <div class="notif-item ${!data.read ? 'unread' : ''}" data-type="${data.type}" onclick="if(typeof isNotifEditMode !== 'undefined' && isNotifEditMode){toggleNotifSelection('${data.id}');}else{${onClickAction}}">
-            <div class="avatar sm">${userAvatarHtml}</div>
-            <div class="fb-notif-content" style="flex:1;">
-                <strong>${safeName}</strong> ${textDesc}
-                <div class="fb-notif-time">${getRelativeTime(data.createdAt)}</div>
+            <div class="avatar sm" style="width: 44px; height: 44px; flex-shrink: 0;">${userAvatarHtml}</div>
+            
+            <div class="notif-text">
+                <span style="font-weight: 800; color: var(--text);">${safeName}</span> 
+                <span>${textDesc}</span>
+                <div style="font-size: 13px; color: var(--text-muted); margin-top: 4px; font-weight: 500;">${getRelativeTime(data.createdAt)}</div>
             </div>
-            ${actionBtnHtml}
-            <input type="checkbox" class="notif-checkbox" id="notif-cb-${data.id}" ${isChecked ? 'checked' : ''} style="display:${displayCb}; pointer-events:none; width:22px; height:22px; accent-color:var(--danger);">
-        </div>`;        
+            
+            <div style="display:flex; align-items:center; gap:12px; flex-shrink:0;">
+                ${actionBtnHtml}
+                <input type="checkbox" class="notif-checkbox" id="notif-cb-${data.id}" ${isChecked ? 'checked' : ''} style="display:${displayCb}; pointer-events:none; width:22px; height:22px; accent-color:var(--danger);">
+            </div>
+        </div>`;       
     }).join('');
 });
 }else{
