@@ -2251,6 +2251,22 @@ Threads-স্টাইল (আরও সুন্দর) পোস্ট রি
 .gc-report-textarea:focus{outline:none;border-color:var(--accent);}
 .gc-report-btn{width:100%;padding:14px;border:none;border-radius:14px;font-size:15px;font-weight:800;cursor:pointer;margin-top:6px;}
 .gc-report-anon{display:flex;gap:8px;align-items:flex-start;background:var(--accent-glow);border:1px solid var(--accent);border-radius:12px;padding:10px 12px;font-size:12px;color:var(--text);margin-bottom:12px;}
+
+/* =========================================
+🚀 Update #38 · full-block-system · 2026-08-08
+কমপ্লিট ব্লক: প্রোফাইল এরর + ফিড/সার্চ/চ্যাট ফিল্টার
+খুঁজতে: Ctrl+F → "full-block-system"
+========================================= */
+.gc-blocked-overlay{position:fixed;inset:0;background:rgba(10,10,20,.6);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);z-index:100900;display:none;align-items:center;justify-content:center;padding:24px;}
+.gc-blocked-overlay.open{display:flex;}
+.gc-blocked-card{width:100%;max-width:320px;background:var(--surface);border-radius:24px;padding:28px 22px;text-align:center;box-shadow:0 24px 70px rgba(0,0,0,.5);animation:gcUnfollowPop .25s cubic-bezier(.22,1,.36,1);}
+.gc-blocked-icon{width:76px;height:76px;margin:0 auto 16px;border-radius:50%;background:rgba(255,77,106,.12);border:2px solid var(--danger);display:flex;align-items:center;justify-content:center;}
+.gc-blocked-icon i{font-size:34px;color:var(--danger);}
+.gc-blocked-title{font-size:18px;font-weight:800;color:var(--text);margin-bottom:6px;}
+.gc-blocked-text{font-size:13px;color:var(--text-muted);margin-bottom:18px;line-height:1.5;}
+.gc-blocked-btn{width:100%;padding:13px;border:none;border-radius:14px;font-size:15px;font-weight:800;cursor:pointer;margin-top:8px;background:var(--surface-2);color:var(--text);}
+.gc-blocked-btn.primary{background:var(--danger);color:#fff;margin-top:0;}
+.gc-chat-blocked{opacity:.35;filter:grayscale(1);}
 </style>
 </head>
 <body>
@@ -16820,6 +16836,89 @@ const uid = gcReportState.uid;
 gcCloseReport();
 try{ toggleMuteFeed(uid); }catch(e){}
 }
+// ═══════════════════════════════════════════════════════
+// 🚀 Update #38 · full-block-system · 2026-08-08
+// ব্লক = সত্যিকারের ব্লক (প্রোফাইল/ফিড/সার্চ/চ্যাট)
+// খুঁজতে: Ctrl+F → "full-block-system"
+// ═══════════════════════════════════════════════════════
+function gcIsBlockedByMe(uid){
+return !!(currentUserData && (currentUserData.blockedUsers || []).includes(uid));
+}
+function gcDidBlockMe(uid){
+const u = (window.allUsersCache || []).find(function(x){ return x.id === uid; });
+return !!(u && u.blockedUsers && u.blockedUsers.includes(currentUser.uid));
+}
+function gcBlockedEither(uid){
+return gcIsBlockedByMe(uid) || gcDidBlockMe(uid);
+}
+function gcShowBlockedError(uid){
+let ov = document.getElementById('gc-blocked-overlay');
+if(!ov){ ov = document.createElement('div'); ov.id = 'gc-blocked-overlay'; ov.className = 'gc-blocked-overlay'; document.body.appendChild(ov); }
+const iBlocked = gcIsBlockedByMe(uid);
+ov.innerHTML = '<div class="gc-blocked-card">' +
+'<div class="gc-blocked-icon"><i class="ph-bold ' + (iBlocked ? 'ph-prohibit' : 'ph-user-circle-minus') + '"></i></div>' +
+'<div class="gc-blocked-title">' + (iBlocked ? 'You blocked this user' : 'Account unavailable') + '</div>' +
+'<div class="gc-blocked-text">' + (iBlocked ? 'You can\'t see their profile, posts or messages until you unblock them.' : 'This account has restricted you from viewing their content.') + '</div>' +
+(iBlocked ? '<button class="gc-blocked-btn primary" onclick="gcUnblockFromError(\'' + uid + '\')">Unblock</button>' : '') +
+'<button class="gc-blocked-btn" onclick="gcCloseBlockedError()">Go Back</button></div>';
+ov.classList.add('open');
+}
+function gcCloseBlockedError(){
+const ov = document.getElementById('gc-blocked-overlay');
+if(ov) ov.classList.remove('open');
+}
+function gcUnblockFromError(uid){
+gcCloseBlockedError();
+if(typeof unblockUser === 'function') unblockUser(uid);
+}
+// ১) প্রোফাইল গেট
+window.gcOrigViewUserProfile = viewUserProfile;
+viewUserProfile = async function(uid){
+if(!currentUser || uid === currentUser.uid) return window.gcOrigViewUserProfile(uid);
+if(gcIsBlockedByMe(uid)){ gcShowBlockedError(uid); return; }
+try{
+const doc = await db.collection('users').doc(uid).get();
+if(doc.exists && (doc.data().blockedUsers || []).includes(currentUser.uid)){ gcShowBlockedError(uid); return; }
+}catch(e){}
+return window.gcOrigViewUserProfile(uid);
+};
+// ২) চ্যাট গেট
+window.gcOrigOpenChat = openChat;
+openChat = function(chatId, otherUid){
+if(otherUid && gcBlockedEither(otherUid)){ gcShowBlockedError(otherUid); return; }
+return window.gcOrigOpenChat.apply(this, arguments);
+};
+// ৩) ফিড + সার্চ + চ্যাট লিস্ট ফিল্টার
+function gcApplyBlockFilter(){
+if(!currentUser) return;
+// ফিডের পোস্ট কার্ড
+document.querySelectorAll('#feed-actual-container .post-card').forEach(function(card){
+const w = card.querySelector('.tf-av-wrap');
+const uid = w ? w.getAttribute('data-uid') : null;
+if(uid && gcBlockedEither(uid)) card.style.display = 'none';
+});
+// সার্চ রেজাল্ট
+document.querySelectorAll('#search-results-list [onclick*="viewUserProfile"]').forEach(function(it){
+const m = (it.getAttribute('onclick') || '').match(/viewUserProfile\('([^']+)'/);
+if(m && gcBlockedEither(m[1])) it.style.display = 'none';
+});
+// চ্যাট লিস্ট (ঝাপসা + গ্রেস্কেল)
+document.querySelectorAll('#page-messages .msg-item').forEach(function(it){
+const m = (it.getAttribute('onclick') || '').match(/openChat\(\s*'[^']+'\s*,\s*'([^']+)'/);
+if(m && gcBlockedEither(m[1])) it.classList.add('gc-chat-blocked');
+});
+}
+(function gcInitBlockFilter(){
+if(window.gcBlockObsStarted) return;
+window.gcBlockObsStarted = true;
+const obs = new MutationObserver(function(){ gcApplyBlockFilter(); });
+['feed-actual-container','search-results-list','page-messages'].forEach(function(id){
+const el = document.getElementById(id);
+if(el) obs.observe(el, {childList:true, subtree:true});
+});
+setInterval(gcApplyBlockFilter, 2000);
+gcApplyBlockFilter();
+})();
 </script>
 </body>
 </html>
