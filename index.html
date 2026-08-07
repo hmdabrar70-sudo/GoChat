@@ -2204,6 +2204,31 @@ display:block;
 .grid-post-item .gc-vp-bar {
     display: none !important; /* গ্রিডের ভেতর নিচের টাইম/কন্ট্রোল বার লুকানো থাকবে (ক্লিন লুকের জন্য) */
 }
+
+/* =========================================
+🚀 Update #36 · elite-hardening · 2026-08-08
+Elite Access ফুল হার্ডেনিং UI
+খুঁজতে: Ctrl+F → "elite-hardening"
+========================================= */
+.gc-elig-overlay,.gc-review-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);z-index:100700;display:none;align-items:center;justify-content:center;padding:20px;}
+.gc-elig-overlay.open,.gc-review-overlay.open{display:flex;}
+.gc-elig-card,.gc-review-card{width:100%;max-width:360px;max-height:85vh;overflow-y:auto;background:var(--surface);border-radius:20px;padding:20px;box-shadow:0 24px 70px rgba(0,0,0,.5);}
+.gc-elig-title{font-size:18px;font-weight:800;color:var(--text);margin-bottom:4px;}
+.gc-elig-sub{font-size:13px;color:var(--text-muted);margin-bottom:14px;}
+.gc-elig-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--border);border-radius:12px;margin-bottom:8px;font-size:14px;font-weight:600;color:var(--text);}
+.gc-elig-item i{font-size:18px;}
+.gc-elig-item.pass i{color:var(--success);}
+.gc-elig-item.fail i{color:var(--danger);}
+.gc-elig-btn{width:100%;padding:13px;border:none;border-radius:14px;font-weight:800;font-size:15px;cursor:pointer;margin-top:6px;}
+.gc-warn-box{background:rgba(255,77,106,.08);border:1px solid rgba(255,77,106,.4);color:var(--danger);border-radius:12px;padding:10px 12px;font-size:12px;font-weight:700;margin:10px 0;}
+.gc-terms-wrap{display:flex;gap:8px;align-items:flex-start;font-size:13px;font-weight:600;color:var(--text);margin:10px 0;}
+.gc-terms-wrap input{width:18px;height:18px;accent-color:var(--accent);margin-top:2px;}
+.gc-guide-card{border:1px dashed var(--border);border-radius:12px;padding:10px 12px;font-size:12px;color:var(--text-muted);margin:10px 0;}
+.gc-guide-card b{color:var(--text);}
+.gc-step-labels{display:flex;justify-content:space-between;padding:6px 18px;font-size:10px;font-weight:800;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;}
+.gc-status-chip{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;background:var(--accent-glow);border:1px solid var(--accent);color:var(--accent-light);font-size:12px;font-weight:800;margin:8px 16px;}
+.gc-success-card{text-align:center;}
+.gc-app-id{font-family:monospace;font-size:16px;font-weight:800;color:var(--accent);background:var(--accent-glow);border:1px solid var(--accent);border-radius:12px;padding:10px;margin:12px 0;}
 </style>
 </head>
 <body>
@@ -13237,11 +13262,21 @@ async function submitEliteApplication() {
     msg += `📅 *Date:* ${new Date().toLocaleString()}\n\n`;
     msg += `_Please verify within 72 hours._`;
 
-    const targetPhone = "8801948303440"; // আপনার নাম্বার
-    const waLink = `https://wa.me/${targetPhone}?text=${encodeURIComponent(msg)}`;
-
-    window.open(waLink, '_blank');
-    showToast("✅ Application sent to WhatsApp!");
+    // 🚀 Update #35 · telegram-application · 2026-08-08
+// আবেদন এখন WhatsApp-এ নয়, সরাসরি টেলিগ্রামে যাবে
+const TG_LINK = "https://t.me/gochatofc";
+if (navigator.clipboard && navigator.clipboard.writeText) {
+navigator.clipboard.writeText(msg).catch(function(){});
+} else {
+const ta = document.createElement('textarea');
+ta.value = msg;
+document.body.appendChild(ta);
+ta.select();
+try { document.execCommand('copy'); } catch(e2) {}
+ta.remove();
+}
+window.open(TG_LINK, '_blank');
+showToast("✅ Application copied! Paste & send in our Telegram.");
 }
 // ==========================================
 // 🚀 FIXED & MODERN USERNAME SETTINGS V3.0
@@ -16504,6 +16539,138 @@ function toggleSuggestFollow(uid, btn) {
     
     // ব্যাকগ্রাউন্ডে অরিজিনাল ফলো ফাংশনটি কল করা হলো
     toggleFollow(uid);
+}
+// ═══════════════════════════════════════════════════════
+// 🚀 Update #36 · elite-hardening · 2026-08-08
+// Elite Access: এলিজিবিলিটি গেট + টার্মস + গাইডলাইন + সিগনেচার
+// + রিভিউ + সাকসেস আইডি + স্ট্যাটাস চিপ + ৭ দিন কুলডাউন
+// খুঁজতে: Ctrl+F → "elite-hardening"
+// ═══════════════════════════════════════════════════════
+window.gcEliteEligible = false;
+async function gcCheckEliteEligibility(){
+const res = [];
+let ageDays = 0;
+try{
+const created = currentUserData.createdAt;
+if(created && created.toMillis) ageDays = (Date.now() - created.toMillis()) / 86400000;
+}catch(e){}
+res.push({label:'Account age 30+ days', pass: ageDays >= 30});
+let posts = 0;
+try{ posts = (await db.collection('posts').where('uid','==',currentUser.uid).get()).size; }catch(e){}
+res.push({label:'At least 5 posts', pass: posts >= 5});
+res.push({label:'At least 10 followers', pass: (currentUserData.followers || []).length >= 10});
+res.push({label:'Clean record (no warnings)', pass: !currentUserData.hasWarning});
+return res;
+}
+async function gcShowEligibilityModal(){
+let ov = document.getElementById('gc-elig-overlay');
+if(!ov){ ov = document.createElement('div'); ov.id = 'gc-elig-overlay'; ov.className = 'gc-elig-overlay'; document.body.appendChild(ov); }
+ov.innerHTML = '<div class="gc-elig-card"><div class="gc-elig-title">👑 Eligibility Check</div><div class="gc-elig-sub">To apply for Elite GoChat, your ID must meet the following conditions.</div><div id="gc-elig-list"><div style="text-align:center;padding:20px;color:var(--text-muted);">Checking…</div></div><div id="gc-elig-actions"></div></div>';
+ov.classList.add('open');
+const items = await gcCheckEliteEligibility();
+const allPass = items.every(function(i){ return i.pass; });
+document.getElementById('gc-elig-list').innerHTML = items.map(function(i){ return '<div class="gc-elig-item ' + (i.pass ? 'pass' : 'fail') + '"><i class="ph-bold ' + (i.pass ? 'ph-check-circle' : 'ph-x-circle') + '"></i>' + i.label + '</div>'; }).join('');
+document.getElementById('gc-elig-actions').innerHTML = allPass
+? '<button class="gc-elig-btn" style="background:var(--accent);color:#fff;" onclick="gcPassEligibility()">Continue ✔</button>'
+: '<button class="gc-elig-btn" style="background:var(--surface-2);color:var(--text);" onclick="gcCloseEligibility()">OK — I\'ll try later</button>';
+}
+function gcPassEligibility(){ window.gcEliteEligible = true; document.getElementById('gc-elig-overlay').classList.remove('open'); window.gcOrigNextAppStep(2); }
+function gcCloseEligibility(){ document.getElementById('gc-elig-overlay').classList.remove('open'); }
+window.gcOrigNextAppStep = nextAppStep;
+nextAppStep = function(step){
+if(step === 2 && !window.gcEliteEligible){ gcShowEligibilityModal(); return; }
+window.gcOrigNextAppStep(step);
+};
+// Elite স্ক্রিন খোলা থাকলে অটো-ইনজেকশন
+function gcEliteInject(){
+const s1 = document.getElementById('app-step-1');
+if(!s1) return;
+if(!document.getElementById('gc-step-labels')){
+const bar = document.getElementById('app-progress-bar');
+if(bar && bar.parentElement){
+const lbl = document.createElement('div'); lbl.id = 'gc-step-labels'; lbl.className = 'gc-step-labels';
+lbl.innerHTML = '<span>Intro</span><span>Perks</span><span>Info</span><span>Verify</span>';
+bar.parentElement.insertAdjacentElement('afterend', lbl);
+}
+}
+const un = document.getElementById('app-username');
+if(un && !un.dataset.gcLocked && currentUserData){
+un.value = currentUserData.username || '';
+un.disabled = true;
+un.dataset.gcLocked = '1';
+}
+const s3 = document.getElementById('app-step-3');
+if(s3 && !document.getElementById('gc-id-guide')){
+const g = document.createElement('div'); g.id = 'gc-id-guide'; g.className = 'gc-guide-card';
+g.innerHTML = '<b>📋 ID Guidelines:</b> পরিষ্কার ছবি, চার কোণা দেখা যেতে হবে, এডিট/ক্রপ নিষিদ্ধ। <b>Selfie:</b> মুখ + ID একই ফ্রেমে।';
+s3.insertBefore(g, s3.querySelector('button') || s3.firstChild);
+}
+const s4 = document.getElementById('app-step-4');
+if(s4 && !document.getElementById('gc-elite-terms')){
+const w = document.createElement('div');
+w.innerHTML = '<div class="gc-warn-box">⚠️ ভুয়া তথ্য/পরিচয় দিলে Elite ব্যাজ বাতিল + অ্যাকাউন্ট স্থায়ী ব্যান।</div>' +
+'<label class="gc-terms-wrap"><input type="checkbox" id="gc-elite-terms"> আমি Elite কন্ডাক্ট কোডে সম্মত ও আমার সব তথ্য সত্য।</label>' +
+'<input type="text" id="gc-elite-signature" placeholder="Type your full name as signature" style="width:100%;padding:12px;border:1px solid var(--border);border-radius:12px;background:var(--surface-2);color:var(--text);font-size:14px;margin-top:6px;">';
+s4.insertBefore(w, s4.querySelector('button') || s4.firstChild);
+}
+const last = JSON.parse(localStorage.getItem('gc_elite_app') || 'null');
+if(last && !document.getElementById('gc-status-chip')){
+const chip = document.createElement('div'); chip.id = 'gc-status-chip'; chip.className = 'gc-status-chip';
+chip.innerHTML = '⏳ Application ' + last.id + ' — Pending review';
+s1.parentElement.insertBefore(chip, s1);
+}
+}
+setInterval(function(){
+const s1 = document.getElementById('app-step-1');
+if(s1 && s1.offsetParent) gcEliteInject();
+const s2 = document.getElementById('app-step-2');
+if(s2 && s2.offsetParent && !window.gcEliteEligible) gcShowEligibilityModal();
+}, 1200);
+// সাবমিট হার্ডেনিং + রিভিউ + সাকসেস
+window.gcOrigSubmitElite = submitEliteApplication;
+submitEliteApplication = async function(){
+const last = JSON.parse(localStorage.getItem('gc_elite_app') || 'null');
+if(last && (Date.now() - last.time) < 7 * 86400000){ showToast('⚠️ Already applied! Wait 7 days to re-apply.'); return; }
+const terms = document.getElementById('gc-elite-terms');
+if(terms && !terms.checked){ showToast('⚠️ Please accept the Elite terms first!'); return; }
+const sig = document.getElementById('gc-elite-signature');
+if(sig && sig.value.trim().toLowerCase() !== (currentUserData.name || '').trim().toLowerCase()){ showToast('⚠️ Signature must exactly match your profile name!'); return; }
+const val = function(id){ const el = document.getElementById(id); return el ? el.value.trim() : ''; };
+if(!val('app-name') || !val('app-email') || !val('app-wp')){ showToast('⚠️ Please fill all required fields!'); return; }
+const inputs = [document.getElementById('app-id-photo'), document.getElementById('app-face-photo')];
+for(let i = 0; i < inputs.length; i++){
+const inp = inputs[i];
+if(inp && inp.files && inp.files[0]){
+const f = inp.files[0];
+if(!/^image\/(jpeg|png|webp)$/.test(f.type)){ showToast('⚠️ Only JPG/PNG images allowed!'); return; }
+if(f.size > 5 * 1024 * 1024){ showToast('⚠️ Image must be under 5MB!'); return; }
+}
+}
+gcShowReviewModal();
+};
+function gcShowReviewModal(){
+let ov = document.getElementById('gc-review-overlay');
+if(!ov){ ov = document.createElement('div'); ov.id = 'gc-review-overlay'; ov.className = 'gc-review-overlay'; document.body.appendChild(ov); }
+const g = function(id){ const el = document.getElementById(id); return el ? el.value.trim() : ''; };
+ov.innerHTML = '<div class="gc-review-card"><div class="gc-elig-title">🔎 Review Your Application</div><div class="gc-elig-sub">মিলিয়ে দেখো — সাবমিটের পর বদলানো যাবে না</div>' +
+'<div class="gc-elig-item pass"><i class="ph-bold ph-user"></i>' + escapeHTML(g('app-name')) + '</div>' +
+'<div class="gc-elig-item pass"><i class="ph-bold ph-at"></i>@' + escapeHTML(g('app-username') || currentUserData.username || '') + '</div>' +
+'<div class="gc-elig-item pass"><i class="ph-bold ph-envelope"></i>' + escapeHTML(g('app-email')) + '</div>' +
+'<div class="gc-elig-item pass"><i class="ph-bold ph-whatsapp-logo"></i>' + escapeHTML(g('app-wp')) + '</div>' +
+'<button class="gc-elig-btn" style="background:var(--accent);color:#fff;" onclick="gcConfirmEliteSubmit()">Confirm & Send ✔</button>' +
+'<button class="gc-elig-btn" style="background:var(--surface-2);color:var(--text);" onclick="document.getElementById(\'gc-review-overlay\').classList.remove(\'open\')">Edit</button></div>';
+ov.classList.add('open');
+}
+function gcConfirmEliteSubmit(){
+document.getElementById('gc-review-overlay').classList.remove('open');
+const id = '#ELT-' + new Date().getFullYear() + '-' + Math.floor(1000 + Math.random() * 9000);
+localStorage.setItem('gc_elite_app', JSON.stringify({id: id, time: Date.now()}));
+window.gcOrigSubmitElite();
+setTimeout(function(){
+const ov = document.getElementById('gc-review-overlay');
+ov.innerHTML = '<div class="gc-review-card gc-success-card"><div style="font-size:50px;">🎉</div><div class="gc-elig-title">Application Submitted!</div><div class="gc-app-id">' + id + '</div><div class="gc-elig-sub">আবেদন কপি হয়েছে — টেলিগ্রামে (t.me/gochatofc) পেস্ট করে পাঠাও। রিভিউ টাইম: ৭২ ঘণ্টা।</div><button class="gc-elig-btn" style="background:var(--surface-2);color:var(--text);" onclick="document.getElementById(\'gc-review-overlay\').classList.remove(\'open\')">Done</button></div>';
+ov.classList.add('open');
+}, 700);
 }
 </script>
 </body>
