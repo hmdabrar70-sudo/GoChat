@@ -2338,7 +2338,24 @@ display:block;
 </div>
 
 <div class="page" id="page-friends">
-    <div style="padding: 16px; font-weight: 800; font-size: 18px;">Following List</div>
+    <!-- 🚀 Following & Suggestions Header with Circle Background -->
+    <div style="margin: 16px; padding: 6px 8px; background: var(--surface-2); border-radius: 30px; display: flex; align-items: center; justify-content: space-between; border: 1px solid var(--border); box-shadow: var(--shadow-sm);">
+        
+        <!-- Following Text -->
+        <div style="flex: 1; text-align: center; font-weight: 800; font-size: 15px; color: var(--text); padding: 8px 0; cursor: default;">
+            Following List
+        </div>
+        
+        <!-- ছোট্ট একটি ডিভাইডার (দাগ) -->
+        <div style="width: 1px; height: 18px; background: var(--border);"></div>
+        
+        <!-- Suggestions Button -->
+        <div onclick="openSuggestionsSheet()" style="flex: 1; text-align: center; font-weight: 800; font-size: 15px; color: var(--text); padding: 8px 0; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: 0.2s;" onmouseover="this.style.opacity='0.7'" onmouseout="this.style.opacity='1'">
+            Suggestions <i class="ph-bold ph-sparkle" style="color: var(--accent); font-size: 16px;"></i>
+        </div>
+
+    </div>
+    
     <div id="my-friends-section">
         <div id="all-friends-list"></div>
     </div>
@@ -3815,18 +3832,18 @@ body.light-mode #page-notifications {
     border-color: color-mix(in srgb, var(--accent) 30%, transparent);
 }
 
-/* আনরিড গ্লোয়িং ডট (ডানদিকে) */
+/* আনরিড নোটিফিকেশনের জন্য বাম পাশে প্রিমিয়াম লাইন (ডটের বদলে) */
 #notifications-list .notif-item.unread::after {
     content: '';
     position: absolute;
-    right: 18px;
+    left: 0;
     top: 50%;
     transform: translateY(-50%);
-    width: 10px;
-    height: 10px;
+    width: 3px;
+    height: 40px; /* পুরোটা না দিয়ে একটু ছোট রাখলে প্রিমিয়াম লাগে */
     background: var(--accent);
-    border-radius: 50%;
-    box-shadow: 0 0 10px var(--accent-glow);
+    border-radius: 0 4px 4px 0; /* ডান দিকটা একটু রাউন্ডেড হবে */
+    box-shadow: 1px 0 6px var(--accent-glow); /* খুব হালকা একটা গ্লো */
 }
 
 #notifications-list .notif-text {
@@ -5801,6 +5818,30 @@ transition:background .2s;
     </div>
 </div>
 
+<!-- 🚀 Suggestions Bottom Sheet Modal -->
+<div class="gc-sheet-overlay" id="suggestions-sheet-overlay" onclick="if(event.target===this) closeSuggestionsSheet()" style="z-index: 100500;">
+    <div class="gc-sheet" style="max-height: 85vh; padding: 0; display: flex; flex-direction: column; background: var(--surface);">
+        
+        <!-- Header Section -->
+        <div style="padding: 16px 20px; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: var(--surface); z-index: 10; border-radius: 24px 24px 0 0;">
+            <div class="gc-sheet-handle" style="margin-top: 0; margin-bottom: 16px;"></div>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div style="font-weight: 800; font-size: 18px; color: var(--text); display: flex; align-items: center; gap: 8px;">
+                    Suggested for you <i class="ph-bold ph-sparkle" style="color: var(--accent);"></i>
+                </div>
+                <div onclick="closeSuggestionsSheet()" style="width: 32px; height: 32px; border-radius: 50%; background: var(--surface-2); display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--text-muted); transition: 0.2s;" onmouseover="this.style.background='var(--border)'" onmouseout="this.style.background='var(--surface-2)'">
+                    <i class="ph-bold ph-x" style="font-size: 16px;"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Suggestions List Container -->
+        <div id="suggestions-list-container" style="flex: 1; overflow-y: auto; padding: 16px 20px;">
+            <!-- লিস্ট এখানে জাভাস্ক্রিপ্ট দিয়ে লোড হবে -->
+        </div>
+        
+    </div>
+</div>
 <script>
 // Blocked Accounts পেজ ওপেন এবং ক্লোজ করার জাভাস্ক্রিপ্ট
 function openBlockedAccountsPage() {
@@ -16358,6 +16399,105 @@ function applyNotifFilter(filterType, btn) {
     } else {
         if (existingEmptyMsg) existingEmptyMsg.remove();
     }
+}
+// ==========================================
+// 🚀 SMART SUGGESTIONS SYSTEM LOGIC
+// ==========================================
+
+// পপআপ ওপেন করার ফাংশন
+function openSuggestionsSheet() {
+    const sheet = document.getElementById('suggestions-sheet-overlay');
+    if (sheet) sheet.classList.add('open');
+    loadSuggestions(); // খোলার সাথে সাথে ডাটা লোড করবে
+}
+
+// পপআপ ক্লোজ করার ফাংশন
+function closeSuggestionsSheet() {
+    const sheet = document.getElementById('suggestions-sheet-overlay');
+    if (sheet) sheet.classList.remove('open');
+}
+
+// ডাটাবেস থেকে স্মার্ট সাজেশন লোড করার অ্যালগরিদম
+async function loadSuggestions() {
+    const container = document.getElementById('suggestions-list-container');
+    if (!container) return;
+    
+    // লোডিং অ্যানিমেশন
+    container.innerHTML = `
+        <div style="text-align:center; padding:40px; color:var(--text-muted);">
+            <span class="material-symbols-outlined" style="font-size: 32px; animation: qrncSpin 1s linear infinite;">progress_activity</span>
+            <div style="font-size: 13px; font-weight: 700; margin-top: 10px;">Finding best profiles...</div>
+        </div>`;
+    
+    if (!currentUser || !currentUserData) return;
+    
+    try {
+        const allUsers = await fetchAllUsers();
+        const following = currentUserData.following || [];
+        
+        // 🚀 ফিল্টার ১: নিজেকে এবং যাদেরকে আগে থেকেই ফলো করি, তাদের বাদ দেওয়া
+        let suggestedUsers = allUsers.filter(u => 
+            u.id !== currentUser.uid && 
+            !following.includes(u.id)
+        );
+        
+        // 🚀 ফিল্টার ২: পয়েন্টের ওপর ভিত্তি করে সাজানো (যার পয়েন্ট বেশি সে আগে আসবে)
+        suggestedUsers.sort((a, b) => (b.points || 0) - (a.points || 0));
+        
+        // 🚀 ফিল্টার ৩: শুধুমাত্র সেরা ২০ জনকে দেখাবে (অ্যাপ যেন ফাস্ট থাকে)
+        suggestedUsers = suggestedUsers.slice(0, 20);
+        
+        // যদি কাউকে না পাওয়া যায়
+        if (suggestedUsers.length === 0) {
+            container.innerHTML = `
+            <div style="text-align:center; padding: 40px 20px; color: var(--text-muted);">
+                <i class="ph-duotone ph-users-three" style="font-size: 54px; margin-bottom: 12px; opacity: 0.5;"></i>
+                <div style="font-size: 16px; font-weight: 800; color: var(--text);">You're all caught up!</div>
+                <div style="font-size: 13px; margin-top: 6px; font-weight: 500;">You are already following all the top users.</div>
+            </div>`;
+            return;
+        }
+        
+        let html = '';
+        suggestedUsers.forEach(u => {
+            const safeName = escapeHTML(u.name);
+            const avHtml = u.avatar ? `<img src="${escapeHTML(u.avatar)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">` : avatarInitial(u.name);
+            const verifiedBadge = getVerifiedBadge(u.email, u.isVerified);
+            
+            // মডার্ন কার্ড ডিজাইন
+            html += `
+            <div class="msg-item" style="margin: 0 0 12px 0; padding: 14px; border-radius: 18px; background: var(--surface-2); border: 1px solid var(--border); transition: 0.2s; box-shadow: 0 4px 10px rgba(0,0,0,0.05);" onclick="closeSuggestionsSheet(); viewUserProfile('${u.id}')">
+                <div class="avatar" style="width: 46px; height: 46px; flex-shrink: 0; border: 2px solid var(--surface); box-shadow: 0 2px 8px rgba(0,0,0,0.2);">${avHtml}</div>
+                <div class="msg-info" style="margin-left: 12px;">
+                    <div class="msg-name" style="font-size: 15px; font-weight: 800; color: var(--text); display: flex; align-items: center; gap: 4px;">${safeName} ${verifiedBadge}</div>
+                    <div style="font-size: 12px; color: var(--text-muted); font-weight: 600; margin-top: 3px; display: flex; align-items: center; gap: 4px;">
+                        <i class="ph-fill ph-star" style="color: #f59e0b; font-size: 14px;"></i> ${u.points || 0} Points
+                    </div>
+                </div>
+                <button class="btn-primary" style="margin: 0; padding: 8px 18px; font-size: 13px; height: auto; border-radius: 20px; width: auto; box-shadow: none;" onclick="event.stopPropagation(); toggleSuggestFollow('${u.id}', this)">Follow</button>
+            </div>`;
+        });
+        
+        container.innerHTML = html;
+        
+    } catch (error) {
+        console.error(error);
+        container.innerHTML = '<div class="empty-feed">Failed to load suggestions.</div>';
+    }
+}
+
+// 🚀 লাইভ ফলো বাটন আপডেট ফাংশন
+function toggleSuggestFollow(uid, btn) {
+    // ডাটাবেস আপডেট হওয়ার আগেই চোখের পলকে বাটনটি 'Following' হয়ে যাবে (Smooth UX)
+    btn.textContent = 'Following';
+    btn.className = 'btn-outline';
+    btn.style.borderColor = 'var(--border)';
+    btn.style.color = 'var(--text)';
+    btn.style.background = 'transparent';
+    btn.style.pointerEvents = 'none'; // একবার ফলো করলে ওই বাটনে আর ক্লিক করা যাবে না
+    
+    // ব্যাকগ্রাউন্ডে অরিজিনাল ফলো ফাংশনটি কল করা হলো
+    toggleFollow(uid);
 }
 </script>
 </body>
