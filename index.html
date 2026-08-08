@@ -17138,23 +17138,35 @@ return '<div class="gc-ins-bar-row"><div class="nm">' + nm + '</div><div class="
 function gcSvgLine(pts, w, h){
 if(pts.length < 2) return '<div style="font-size:12px;color:var(--text-muted);text-align:center;padding:20px 0;">Not enough data yet — check back tomorrow!</div>';
 const vals = pts.map(function(p){ return p.v; });
-const min = Math.min.apply(null, vals), max = Math.max.apply(null, vals), span = (max - min) || 1;
+const min = Math.min.apply(null, vals), max = Math.max.apply(null, vals);
+const flat = (max === min);
+const span = flat ? 1 : (max - min);
 const step = w / (pts.length - 1);
-const co = pts.map(function(p, i){ return [i * step, h - ((p.v - min) / span) * (h - 24) - 12]; });
+const co = pts.map(function(p, i){
+const y = flat ? (h / 2) : (h - ((p.v - min) / span) * (h - 44) - 26);
+return [i * step, y];
+});
 const path = co.map(function(c, i){ return (i ? 'L' : 'M') + c[0].toFixed(1) + ',' + c[1].toFixed(1); }).join(' ');
 const lastC = co[co.length - 1];
-return '<svg viewBox="0 0 ' + w + ' ' + h + '" style="width:100%;height:120px;"><defs><linearGradient id="gcInsG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7c5cff" stop-opacity=".35"/><stop offset="1" stop-color="#7c5cff" stop-opacity="0"/></linearGradient></defs><path d="' + path + ' L' + w + ',' + h + ' L0,' + h + ' Z" fill="url(#gcInsG)"/><path d="' + path + '" fill="none" stroke="#7c5cff" stroke-width="2.5" stroke-linecap="round"/><circle cx="' + lastC[0] + '" cy="' + lastC[1] + '" r="4" fill="#7c5cff"/></svg>';
+let dots = '';
+co.forEach(function(c){ dots += '<circle cx="' + c[0].toFixed(1) + '" cy="' + c[1].toFixed(1) + '" r="2.5" fill="#7c5cff" opacity=".55"/>'; });
+const lbl = '<text x="2" y="' + (co[0][1] - 10).toFixed(1) + '" font-size="10" font-weight="800" fill="#8a8a9a">' + vals[0] + '</text>' +
+'<text x="' + (w - 2) + '" y="' + (lastC[1] - 10).toFixed(1) + '" font-size="11" font-weight="800" fill="#7c5cff" text-anchor="end">' + vals[vals.length - 1] + '</text>';
+return '<svg viewBox="0 0 ' + w + ' ' + h + '" style="width:100%;height:130px;"><defs><linearGradient id="gcInsG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7c5cff" stop-opacity=".35"/><stop offset="1" stop-color="#7c5cff" stop-opacity="0"/></linearGradient></defs><path d="' + path + ' L' + w + ',' + h + ' L0,' + h + ' Z" fill="url(#gcInsG)"/><path d="' + path + '" fill="none" stroke="#7c5cff" stroke-width="2.5" stroke-linecap="round"/>' + dots + '<circle cx="' + lastC[0] + '" cy="' + lastC[1] + '" r="4.5" fill="#7c5cff" stroke="#fff" stroke-width="1.5"/>' + lbl + '</svg>';
 }
 function gcSvgBars(vals, w, h){
 if(!vals.length) return '';
+const total = vals.reduce(function(a, b){ return a + b; }, 0);
+if(total === 0) return '<div style="font-size:12px;color:var(--text-muted);text-align:center;padding:18px 0;">No engagement in this period yet — share some posts!</div>';
 const max = Math.max.apply(null, vals.concat([1]));
 const bw = w / vals.length;
 let r = '';
 vals.forEach(function(v, i){
-const bh = Math.max(2, (v / max) * (h - 10));
-r += '<rect x="' + (i * bw + bw * 0.2).toFixed(1) + '" y="' + (h - bh).toFixed(1) + '" width="' + (bw * 0.6).toFixed(1) + '" height="' + bh.toFixed(1) + '" rx="3" fill="' + (v ? '#7c5cff' : 'rgba(140,140,160,.25)') + '"/>';
+const bh = Math.max(4, (v / max) * (h - 24));
+r += '<rect x="' + (i * bw + bw * 0.22).toFixed(1) + '" y="' + (h - bh).toFixed(1) + '" width="' + (bw * 0.56).toFixed(1) + '" height="' + bh.toFixed(1) + '" rx="4" fill="' + (v ? '#7c5cff' : 'rgba(140,140,160,.22)') + '"/>';
+if(v) r += '<text x="' + (i * bw + bw / 2).toFixed(1) + '" y="' + (h - bh - 6).toFixed(1) + '" font-size="9" font-weight="800" fill="#7c5cff" text-anchor="middle">' + v + '</text>';
 });
-return '<svg viewBox="0 0 ' + w + ' ' + h + '" style="width:100%;height:110px;">' + r + '</svg>';
+return '<svg viewBox="0 0 ' + w + ' ' + h + '" style="width:100%;height:120px;">' + r + '</svg>';
 }
 async function gcLoadInsights(){
 const body = document.getElementById('gc-ins-body');
@@ -17173,7 +17185,8 @@ for(let i = 0; i < gcInsRange; i++){ perDay[new Date(now - i * 86400000).toDateS
 const hourEng = new Array(24).fill(0);
 posts.forEach(function(p){
 const e = peng(p);
-totLikes += (p.likes || []).length; totComments += (p.comments || []).length; totShares += (p.shares || 0);
+function gcCount(x){ if(Array.isArray(x)) return x.length; if(typeof x === 'number' && isFinite(x)) return x; if(x && typeof x === 'object') return Object.keys(x).length; return 0; }
+totLikes += gcCount(p.likes); totComments += gcCount(p.comments); totShares += gcCount(p.shares);
 const isVid = p.videoUrl || (p.imgUrls || []).some(function(u){ return (u || '').indexOf('/video/') !== -1; });
 if(isVid) vid++; else if((p.imgUrls || []).length) pho++; else txt++;
 const t = p.createdAt && p.createdAt.toMillis ? p.createdAt.toMillis() : 0;
@@ -17188,7 +17201,8 @@ const views = currentUserData.profileViews || 0;
 const hist = currentUserData.statsHistory || [];
 const past = hist[Math.max(0, hist.length - 1 - gcInsRange)];
 const deltaF = past ? followers - past.f : 0;
-const eng = followers > 0 && posts.length > 0 ? (Math.round(((totLikes + totComments + totShares) / posts.length) / followers * 1000) / 10) : 0;
+const totEng = totLikes + totComments + totShares;
+const eng = (followers > 0 && posts.length > 0 && isFinite(totEng)) ? (Math.round((totEng / posts.length) / followers * 1000) / 10) : 0;
 // লাইন চার্ট পয়েন্ট
 const dayMap = {};
 hist.forEach(function(hh){ dayMap[new Date(hh.d).toDateString()] = hh; });
@@ -17239,8 +17253,8 @@ html += gcInsCard('ph-chat-circle', 'Comments', totComments, '', 0);
 html += gcInsCard('ph-share-network', 'Shares', totShares, '', 0);
 html += gcInsCard('ph-chart-line-up', 'Engagement', eng + '%', '', 0);
 html += '</div>';
-html += '<div class="gc-ins-sec"><h4><i class="ph-bold ph-trend-up"></i>Follower Growth</h4>' + gcSvgLine(linePts, 300, 120) + '</div>';
-html += '<div class="gc-ins-sec"><h4><i class="ph-bold ph-lightning"></i>Engagement (' + gcInsRange + ' days)</h4>' + gcSvgBars(barPts, 300, 110) + '</div>';
+html += '<div class="gc-ins-sec"><h4><i class="ph-bold ph-trend-up"></i>Follower Growth<span style="margin-left:auto;font-size:12px;color:var(--text-muted);">' + followers + ' now</span></h4>' + gcSvgLine(linePts, 300, 130) + '</div>';
+html += '<div class="gc-ins-sec"><h4><i class="ph-bold ph-lightning"></i>Engagement (' + gcInsRange + ' days)<span style="margin-left:auto;font-size:12px;color:var(--text-muted);">' + (totLikes + totComments + totShares) + ' total</span></h4>' + gcSvgBars(barPts, 300, 120) + '</div>';
 const top = posts.slice().sort(function(a, b){ return peng(b) - peng(a); }).slice(0, 5);
 html += '<div class="gc-ins-sec"><h4><i class="ph-bold ph-trophy"></i>Top Posts</h4>';
 if(!top.length) html += '<div style="font-size:12px;color:var(--text-muted);">No posts yet — publish something!</div>';
@@ -17253,7 +17267,7 @@ html += '<div class="gc-ins-sec"><h4><i class="ph-bold ph-chart-pie"></i>Content
 html += '<div class="gc-ins-sec"><h4><i class="ph-bold ph-users-three"></i>Audience</h4>' + gcBarRow('Male', gM, gM + gF + gO) + gcBarRow('Female', gF, gM + gF + gO) + gcBarRow('Other', gO, gM + gF + gO);
 if(topLocs.length){ html += '<div style="margin-top:8px;font-size:12px;font-weight:800;color:var(--text-muted);">TOP LOCATIONS</div>'; topLocs.forEach(function(l){ html += '<div class="gc-ins-bar-row" style="margin-top:6px;"><div class="nm" style="width:auto;flex:1;">📍 ' + escapeHTML(l) + '</div><div class="pc" style="width:auto;">' + locs[l] + '</div></div>'; }); }
 html += '</div>';
-html += '<div class="gc-ins-sec"><h4><i class="ph-bold ph-clock-afternoon"></i>Best Time to Post</h4><div style="font-size:16px;font-weight:800;color:var(--accent);">' + bestTxt + '</div><div style="font-size:12px;color:var(--text-muted);margin-top:4px;">তোমার অডিয়েন্স এই সময়ে সবচেয়ে বেশি এনগেজ করে</div></div>';
+html += '<div class="gc-ins-sec"><h4><i class="ph-bold ph-clock-afternoon"></i>Best Time to Post</h4><div style="font-size:16px;font-weight:800;color:var(--accent);">' + bestTxt + '</div><div style="font-size:12px;color:var(--text-muted);margin-top:4px;">The more active, the more familiar.</div></div>';
 html += '<div class="gc-ins-sec"><h4><i class="ph-bold ph-calendar-check"></i>Weekly Report</h4><div class="gc-ins-bar-row"><div class="nm" style="width:auto;">Engagement this week</div><div class="pc" style="width:auto;font-size:14px;font-weight:800;color:var(--text);">' + w1 + '</div></div><div class="delta ' + (wPct >= 0 ? 'up' : 'down') + '" style="font-size:13px;font-weight:800;">' + (wPct >= 0 ? '↑' : '↓') + ' ' + Math.abs(wPct) + '% vs last week</div></div>';
 body.innerHTML = html;
 }
