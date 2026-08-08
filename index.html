@@ -2319,6 +2319,37 @@ Threads-স্টাইল (আরও সুন্দর) পোস্ট রি
 .gc-ins-bar-row .tr{flex:1;height:8px;background:var(--surface-2);border-radius:6px;overflow:hidden;}
 .gc-ins-bar-row .fl{height:100%;border-radius:6px;background:var(--gradient);}
 .gc-ins-bar-row .pc{width:38px;text-align:right;color:var(--text-muted);}
+
+/* =========================================
+🚀 Update #43 · switch-account · 2026-08-08
+প্রিমিয়াম মাল্টি-অ্যাকাউন্ট সুইচার (নিজস্ব স্টাইল)
+খুঁজতে: Ctrl+F → "switch-account"
+========================================= */
+.gc-sw-overlay{position:fixed;inset:0;background:rgba(10,10,20,.55);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);z-index:101100;display:none;align-items:flex-end;justify-content:center;}
+.gc-sw-overlay.open{display:flex;}
+.gc-sw-sheet{width:100%;max-width:520px;max-height:82vh;overflow-y:auto;background:var(--bg);border-radius:26px 26px 0 0;padding:10px 16px calc(16px + env(safe-area-inset-bottom));animation:gcSheetUp .3s cubic-bezier(.22,1,.36,1);scrollbar-width:none;}
+.gc-sw-sheet::-webkit-scrollbar{display:none;}
+.gc-sw-handle{width:44px;height:4px;border-radius:2px;background:var(--border);margin:6px auto 12px;}
+.gc-sw-title{font-size:17px;font-weight:800;color:var(--text);text-align:center;margin-bottom:4px;}
+.gc-sw-sub{font-size:12px;color:var(--text-muted);text-align:center;margin-bottom:14px;}
+.gc-sw-row{display:flex;align-items:center;gap:12px;padding:12px;border-radius:16px;background:var(--surface);border:1px solid var(--border);margin-bottom:8px;cursor:pointer;transition:all .15s;}
+.gc-sw-row:active{transform:scale(.98);}
+.gc-sw-row.active{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent), 0 6px 18px var(--accent-glow);}
+.gc-sw-av{width:46px;height:46px;border-radius:50%;object-fit:cover;background:var(--surface-2);flex-shrink:0;}
+.gc-sw-av-init{width:46px;height:46px;border-radius:50%;background:var(--gradient);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:18px;flex-shrink:0;}
+.gc-sw-info{flex:1;min-width:0;}
+.gc-sw-name{font-size:14px;font-weight:800;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.gc-sw-mail{font-size:11px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:monospace;}
+.gc-sw-check{width:22px;height:22px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.gc-sw-check i{font-size:12px;}
+.gc-sw-x{border:none;background:var(--surface-2);color:var(--danger);width:28px;height:28px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.gc-sw-x i{font-size:14px;}
+.gc-sw-add{display:flex;align-items:center;justify-content:center;gap:8px;padding:14px;border-radius:16px;border:1.5px dashed var(--accent);color:var(--accent);font-size:14px;font-weight:800;cursor:pointer;margin-top:4px;background:var(--accent-glow);}
+.gc-sw-note{font-size:10.5px;color:var(--text-muted);text-align:center;margin-top:12px;}
+.gc-sw-form input{width:100%;padding:13px 14px;border-radius:14px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:14px;margin-bottom:10px;}
+.gc-sw-form input:focus{outline:none;border-color:var(--accent);}
+.gc-sw-btn{width:100%;padding:14px;border:none;border-radius:14px;background:var(--gradient);color:#fff;font-size:15px;font-weight:800;cursor:pointer;box-shadow:0 8px 20px var(--accent-glow);}
+.gc-sw-btn.ghost{background:var(--surface-2);color:var(--text);box-shadow:none;margin-top:8px;}
 </style>
 </head>
 <body>
@@ -17271,6 +17302,162 @@ html += '<div class="gc-ins-sec"><h4><i class="ph-bold ph-clock-afternoon"></i>B
 html += '<div class="gc-ins-sec"><h4><i class="ph-bold ph-calendar-check"></i>Weekly Report</h4><div class="gc-ins-bar-row"><div class="nm" style="width:auto;">Engagement this week</div><div class="pc" style="width:auto;font-size:14px;font-weight:800;color:var(--text);">' + w1 + '</div></div><div class="delta ' + (wPct >= 0 ? 'up' : 'down') + '" style="font-size:13px;font-weight:800;">' + (wPct >= 0 ? '↑' : '↓') + ' ' + Math.abs(wPct) + '% vs last week</div></div>';
 body.innerHTML = html;
 }
+// ═══════════════════════════════════════════════════════
+// 🚀 Update #43 · switch-account · 2026-08-08
+// মাল্টি-অ্যাকাউন্ট ইনস্ট্যান্ট সুইচার (পাসওয়ার্ড সেভ নয়)
+// খুঁজতে: Ctrl+F → "switch-account"
+// ═══════════════════════════════════════════════════════
+const GC_MAX_ACCOUNTS = 3;
+function gcGetAccounts(){ try{ return JSON.parse(localStorage.getItem('gc_accounts') || '[]'); }catch(e){ return []; } }
+function gcSaveAccounts(l){ localStorage.setItem('gc_accounts', JSON.stringify(l)); }
+function gcSlotApp(slot){
+const nm = 'gcslot' + slot;
+try{ return firebase.app(nm); }catch(e){ return firebase.initializeApp(firebase.app().options, nm); }
+}
+// বর্তমান অ্যাকাউন্ট রেজিস্ট্রি + সেশন মিরর
+(function gcAccountWatcher(){
+if(window.gcAccWatch) return;
+window.gcAccWatch = true;
+setInterval(function(){
+if(typeof currentUser === 'undefined' || !currentUser || !currentUserData) return;
+let list = gcGetAccounts();
+let acc = list.find(function(a){ return a.uid === currentUser.uid; });
+if(!acc){
+if(list.length >= GC_MAX_ACCOUNTS) return;
+let used = list.map(function(a){ return a.slot; });
+let slot = 0; while(used.indexOf(slot) !== -1) slot++;
+acc = { uid: currentUser.uid, email: currentUser.email || '', name: currentUserData.name || 'User', avatar: currentUserData.avatar || '', slot: slot };
+list.push(acc); gcSaveAccounts(list);
+} else {
+if(acc.name !== currentUserData.name || acc.avatar !== currentUserData.avatar){
+acc.name = currentUserData.name || acc.name; acc.avatar = currentUserData.avatar || acc.avatar;
+gcSaveAccounts(list);
+}
+}
+try{ gcSlotApp(acc.slot).auth().updateCurrentUser(firebase.auth().currentUser); }catch(e){}
+}, 2500);
+})();
+function gcOpenSwitchSheet(){
+let ov = document.getElementById('gc-sw-overlay');
+if(!ov){
+ov = document.createElement('div'); ov.id = 'gc-sw-overlay'; ov.className = 'gc-sw-overlay';
+ov.onclick = function(e){ if(e.target === ov) ov.classList.remove('open'); };
+document.body.appendChild(ov);
+}
+const list = gcGetAccounts();
+let html = '<div class="gc-sw-sheet"><div class="gc-sw-handle"></div><div class="gc-sw-title">Switch Account</div><div class="gc-sw-sub">To quickly switch accounts</div>';
+list.forEach(function(a){
+const active = currentUser && a.uid === currentUser.uid;
+const av = a.avatar ? '<img class="gc-sw-av" src="' + a.avatar + '">' : '<div class="gc-sw-av-init">' + (a.name || 'U').charAt(0).toUpperCase() + '</div>';
+html += '<div class="gc-sw-row' + (active ? ' active' : '') + '" onclick="' + (active ? '' : ('gcSwitchTo(' + a.slot + ')')) + '">' + av +
+'<div class="gc-sw-info"><div class="gc-sw-name">' + escapeHTML(a.name) + '</div><div class="gc-sw-mail">' + escapeHTML(a.email) + '</div></div>' +
+(active ? '<div class="gc-sw-check"><i class="ph-bold ph-check"></i></div>' : '<button class="gc-sw-x" onclick="event.stopPropagation(); gcRemoveAccount(' + a.slot + ')" title="Remove from this device"><i class="ph-bold ph-x"></i></button>') + '</div>';
+});
+if(list.length < GC_MAX_ACCOUNTS){
+html += '<div class="gc-sw-add" onclick="gcOpenAddAccount()"><i class="ph-bold ph-plus"></i> Add Account</div>';
+}
+html += '<div class="gc-sw-note">🔒 Accounts are stored securely on this device only.</div></div>';
+ov.innerHTML = html;
+ov.classList.add('open');
+}
+async function gcSwitchTo(slot){
+showToast('Switching account…');
+try{
+const a2 = gcSlotApp(slot).auth();
+const u = await new Promise(function(res){ const un = a2.onAuthStateChanged(function(u){ un(); res(u); }, function(){ res(null); }); });
+if(u){
+await firebase.auth().updateCurrentUser(u);
+window.location.reload();
+}else{
+const acc = gcGetAccounts().find(function(a){ return a.slot === slot; });
+gcPromptPassword(acc);
+}
+}catch(e){ showToast('❌ Switch failed. Try again.'); }
+}
+function gcPromptPassword(acc){
+const ov = document.getElementById('gc-sw-overlay');
+ov.innerHTML = '<div class="gc-sw-sheet"><div class="gc-sw-handle"></div><div class="gc-sw-title">Session expired</div><div class="gc-sw-sub">' + escapeHTML(acc ? acc.email : '') + ' — একবার পাসওয়ার্ড দিন, পরে আর লাগবে না</div><div class="gc-sw-form"><input type="password" id="gc-sw-pass" placeholder="Password"><button class="gc-sw-btn" onclick="gcReLogin(' + (acc ? acc.slot : 0) + ')">Continue</button><button class="gc-sw-btn ghost" onclick="gcOpenSwitchSheet()">Back</button></div></div>';
+}
+async function gcReLogin(slot){
+const pw = document.getElementById('gc-sw-pass').value;
+if(!pw){ showToast('⚠️ Enter password'); return; }
+const acc = gcGetAccounts().find(function(a){ return a.slot === slot; });
+try{
+const a2 = gcSlotApp(slot).auth();
+await a2.signInWithEmailAndPassword(acc.email, pw);
+await firebase.auth().updateCurrentUser(a2.currentUser);
+window.location.reload();
+}catch(e){ showToast('❌ Wrong password.'); }
+}
+function gcRemoveAccount(slot){
+if(!confirm('Remove this account from this device?')) return;
+try{ gcSlotApp(slot).auth().signOut(); }catch(e){}
+gcSaveAccounts(gcGetAccounts().filter(function(a){ return a.slot !== slot; }));
+gcOpenSwitchSheet();
+showToast('Account removed from device');
+}
+function gcOpenAddAccount(){
+const ov = document.getElementById('gc-sw-overlay');
+ov.innerHTML = '<div class="gc-sw-sheet"><div class="gc-sw-handle"></div><div class="gc-sw-title">Add Account</div><div class="gc-sw-sub">Your old account will be saved, you can change accounts at any time if you want.</div><div class="gc-sw-form"><input type="email" id="gc-sw-email" placeholder="Email Address"><input type="password" id="gc-sw-pass" placeholder="Password"><button class="gc-sw-btn" onclick="gcAddAccount()">Log In & Switch</button><button class="gc-sw-btn ghost" onclick="gcOpenSwitchSheet()">Back</button></div></div>';
+}
+async function gcAddAccount(){
+const em = document.getElementById('gc-sw-email').value.trim();
+const pw = document.getElementById('gc-sw-pass').value;
+if(!em || !pw){ showToast('⚠️ Fill email & password'); return; }
+const list = gcGetAccounts();
+let used = list.map(function(a){ return a.slot; });
+let slot = 0; while(used.indexOf(slot) !== -1) slot++;
+try{
+const a2 = gcSlotApp(slot).auth();
+const cred = await a2.signInWithEmailAndPassword(em, pw);
+let name = em.split('@')[0], avatar = '';
+try{ const d = await db.collection('users').doc(cred.user.uid).get(); if(d.exists){ name = d.data().name || name; avatar = d.data().avatar || ''; } }catch(e){}
+list.push({ uid: cred.user.uid, email: em, name: name, avatar: avatar, slot: slot });
+gcSaveAccounts(list);
+await firebase.auth().updateCurrentUser(cred.user);
+window.location.reload();
+}catch(e){ showToast('❌ Login failed: ' + (e.code || 'error')); }
+}
+// মেনুতে "Switch Account" (Log out-এর উপরে) + নেভবার লং-প্রেস
+(function gcInjectSwitchEntry(){
+if(window.gcSwInject) return;
+window.gcSwInject = true;
+setInterval(function(){
+if(!document.getElementById('gc-switch-item')){
+document.querySelectorAll('.settings-list-item').forEach(function(it){
+if(document.getElementById('gc-switch-item')) return;
+if(/Log out/i.test(it.textContent || '')){
+const div = document.createElement('div');
+div.className = 'settings-list-item';
+div.id = 'gc-switch-item';
+div.innerHTML = '<div style="display:flex;align-items:center;gap:14px;"><span class="material-symbols-outlined" style="color:var(--accent);">switch_account</span> Switch Account</div><span class="material-symbols-outlined" style="color:var(--text-muted);">chevron_right</span>';
+div.onclick = function(){ gcOpenSwitchSheet(); };
+it.parentNode.insertBefore(div, it);
+}
+});
+}
+const nav = document.getElementById('nav-profile');
+if(nav && !nav.dataset.gcLong){
+nav.dataset.gcLong = '1';
+let t = null;
+nav.addEventListener('touchstart', function(){ t = setTimeout(function(){ gcOpenSwitchSheet(); }, 550); }, {passive:true});
+nav.addEventListener('touchend', function(){ clearTimeout(t); });
+nav.addEventListener('touchmove', function(){ clearTimeout(t); });
+}
+}, 1500);
+})();
+// Log out = রেজিস্ট্রি থেকেও সরে যাবে
+window.gcOrigConfirmLogout = confirmLogoutAction;
+confirmLogoutAction = function(){
+try{
+const acc = gcGetAccounts().find(function(a){ return a.uid === (currentUser && currentUser.uid); });
+if(acc){
+try{ gcSlotApp(acc.slot).auth().signOut(); }catch(e){}
+gcSaveAccounts(gcGetAccounts().filter(function(a){ return a.uid !== currentUser.uid; }));
+}
+}catch(e){}
+return window.gcOrigConfirmLogout();
+};
 </script>
 </body>
 </html>
