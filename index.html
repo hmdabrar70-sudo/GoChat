@@ -2667,21 +2667,21 @@ Threads-স্টাইল (আরও সুন্দর) পোস্ট রি
 <div class="bottom-nav" id="main-bottom-nav">
     <div class="nav-capsule" style="width: 100%; padding: 6px 16px;">
         <div class="nav-item active" id="nav-feed" onclick="showPage('feed')">
-            <i class="ph ph-house" style="font-size: 28px;"></i>
+            <i class="ph-fill ph-house-simple" style="font-size: 28px;"></i>
         </div>
         
         <div class="nav-item" id="nav-friends" onclick="showPage('friends')">
-            <i class="ph ph-users" style="font-size: 28px;"></i>
+            <i class="ph-fill ph-users" style="font-size: 28px;"></i>
             <div class="nav-badge" id="friends-badge">0</div>
         </div>
         
-                <!-- 🚀 Center Camera Plus Icon (Matching Others) -->
+        <!-- 🚀 Center Camera Plus Icon -->
         <div class="nav-item" onclick="event.stopPropagation();toggleFabMenu()">
-            <i class="ph ph-camera-plus" style="font-size: 28px;"></i>
+            <i class="ph-fill ph-camera-plus" style="font-size: 28px;"></i>
         </div>
         
         <div class="nav-item" id="nav-messages" onclick="showPage('messages')">
-            <i class="ph ph-chat-circle-dots" style="font-size: 28px;"></i>
+            <i class="ph-fill ph-paper-plane-right" style="font-size: 28px;"></i>
             <div class="nav-badge" id="msg-badge">0</div>
         </div>
         
@@ -3464,6 +3464,15 @@ Threads-স্টাইল (আরও সুন্দর) পোস্ট রি
             <div style="display:flex; align-items:center; gap:16px;">
                 <i class="ph-bold ph-headset" style="font-size: 24px; color: #3b82f6;"></i>
                 <span style="font-weight:600; font-size:15px;">Support</span>
+            </div>
+            <i class="ph-bold ph-caret-right" style="color:var(--text-muted); font-size:16px;"></i>
+        </div>
+
+        <!-- 🚀 NEW: Switch Account Menu Item -->
+        <div class="settings-list-item" onclick="showToast('Switch Account feature coming soon!')">
+            <div style="display:flex; align-items:center; gap:16px;">
+                <i class="ph-bold ph-arrows-left-right" style="font-size: 24px; color: #8b5cf6;"></i>
+                <span style="font-weight:600; font-size:15px;">Switch Account</span>
             </div>
             <i class="ph-bold ph-caret-right" style="color:var(--text-muted); font-size:16px;"></i>
         </div>
@@ -10323,7 +10332,7 @@ ${mediaHtml}
 </button>
 <!-- 🚀 নতুন শেয়ার বাটন (শেয়ার কাউন্ট সহ) -->
 <button class="post-action-btn" onclick="event.stopPropagation(); openShareModal('${pid}', '${safeTitleForAttr}', '${imgUrls[0] || ''}')">
-<i class="ph-bold ph-share-network" style="font-size:24px;"></i>
+<i class="ph-bold ph-paper-plane-tilt" style="font-size:24px;"></i>
 <span style="font-size:14px;">${p.shares || 0}</span>
 </button>
 </div>
@@ -17304,7 +17313,7 @@ body.innerHTML = html;
 }
 // ═══════════════════════════════════════════════════════
 // 🚀 Update #43 · switch-account · 2026-08-08
-// মাল্টি-অ্যাকাউন্ট ইনস্ট্যান্ট সুইচার (পাসওয়ার্ড সেভ নয়)
+// মাল্টি-অ্যাকাউন্ট ইনস্ট্যান্ট সুইচার (বাটন তোমার নিজের, লজিক এখানে)
 // খুঁজতে: Ctrl+F → "switch-account"
 // ═══════════════════════════════════════════════════════
 const GC_MAX_ACCOUNTS = 3;
@@ -17337,6 +17346,39 @@ gcSaveAccounts(list);
 try{ gcSlotApp(acc.slot).auth().updateCurrentUser(firebase.auth().currentUser); }catch(e){}
 }, 2500);
 })();
+// তোমার বসানো বাটনটা খুঁজে নিয়ে হুক করা (নতুন বাটন বানানো হবে না)
+function gcFindSwitchBtn(){
+let el = document.getElementById('gc-switch-item');
+if(el) return el;
+const rows = document.querySelectorAll('.settings-list-item, .setting-item, .menu-item, [onclick]');
+for(let i = 0; i < rows.length; i++){
+const t = rows[i].textContent || '';
+const oc = ((rows[i].getAttribute && rows[i].getAttribute('onclick')) || '').replace(/\s/g, '').toLowerCase();
+if(/Switch Account/i.test(t) || /switchaccount/.test(oc)) return rows[i];
+}
+return null;
+}
+(function gcHookSwitchBtn(){
+if(window.gcSwHookStarted) return;
+window.gcSwHookStarted = true;
+setInterval(function(){
+const btn = gcFindSwitchBtn();
+if(btn && !btn.dataset.gcSwHook){
+btn.dataset.gcSwHook = '1';
+btn.removeAttribute('onclick');
+btn.style.cursor = 'pointer';
+btn.addEventListener('click', function(e){ e.stopPropagation(); gcOpenSwitchSheet(); });
+}
+const nav = document.getElementById('nav-profile');
+if(nav && !nav.dataset.gcLong){
+nav.dataset.gcLong = '1';
+let t = null;
+nav.addEventListener('touchstart', function(){ t = setTimeout(function(){ gcOpenSwitchSheet(); }, 550); }, {passive:true});
+nav.addEventListener('touchend', function(){ clearTimeout(t); });
+nav.addEventListener('touchmove', function(){ clearTimeout(t); });
+}
+}, 1500);
+})();
 function gcOpenSwitchSheet(){
 let ov = document.getElementById('gc-sw-overlay');
 if(!ov){
@@ -17345,7 +17387,7 @@ ov.onclick = function(e){ if(e.target === ov) ov.classList.remove('open'); };
 document.body.appendChild(ov);
 }
 const list = gcGetAccounts();
-let html = '<div class="gc-sw-sheet"><div class="gc-sw-handle"></div><div class="gc-sw-title">Switch Account</div><div class="gc-sw-sub">To quickly switch accounts</div>';
+let html = '<div class="gc-sw-sheet"><div class="gc-sw-handle"></div><div class="gc-sw-title">Switch Account</div><div class="gc-sw-sub">এক ট্যাপে অ্যাকাউন্ট বদল — পাসওয়ার্ড লাগবে না</div>';
 list.forEach(function(a){
 const active = currentUser && a.uid === currentUser.uid;
 const av = a.avatar ? '<img class="gc-sw-av" src="' + a.avatar + '">' : '<div class="gc-sw-av-init">' + (a.name || 'U').charAt(0).toUpperCase() + '</div>';
@@ -17398,7 +17440,7 @@ showToast('Account removed from device');
 }
 function gcOpenAddAccount(){
 const ov = document.getElementById('gc-sw-overlay');
-ov.innerHTML = '<div class="gc-sw-sheet"><div class="gc-sw-handle"></div><div class="gc-sw-title">Add Account</div><div class="gc-sw-sub">Your old account will be saved, you can change accounts at any time if you want.</div><div class="gc-sw-form"><input type="email" id="gc-sw-email" placeholder="Email Address"><input type="password" id="gc-sw-pass" placeholder="Password"><button class="gc-sw-btn" onclick="gcAddAccount()">Log In & Switch</button><button class="gc-sw-btn ghost" onclick="gcOpenSwitchSheet()">Back</button></div></div>';
+ov.innerHTML = '<div class="gc-sw-sheet"><div class="gc-sw-handle"></div><div class="gc-sw-title">Add Account</div><div class="gc-sw-sub">নতুন অ্যাকাউন্টে লগইন — বর্তমানটা সেভ থাকবে</div><div class="gc-sw-form"><input type="email" id="gc-sw-email" placeholder="Email Address"><input type="password" id="gc-sw-pass" placeholder="Password"><button class="gc-sw-btn" onclick="gcAddAccount()">Log In & Switch</button><button class="gc-sw-btn ghost" onclick="gcOpenSwitchSheet()">Back</button></div></div>';
 }
 async function gcAddAccount(){
 const em = document.getElementById('gc-sw-email').value.trim();
@@ -17418,34 +17460,6 @@ await firebase.auth().updateCurrentUser(cred.user);
 window.location.reload();
 }catch(e){ showToast('❌ Login failed: ' + (e.code || 'error')); }
 }
-// মেনুতে "Switch Account" (Log out-এর উপরে) + নেভবার লং-প্রেস
-(function gcInjectSwitchEntry(){
-if(window.gcSwInject) return;
-window.gcSwInject = true;
-setInterval(function(){
-if(!document.getElementById('gc-switch-item')){
-document.querySelectorAll('.settings-list-item').forEach(function(it){
-if(document.getElementById('gc-switch-item')) return;
-if(/Log out/i.test(it.textContent || '')){
-const div = document.createElement('div');
-div.className = 'settings-list-item';
-div.id = 'gc-switch-item';
-div.innerHTML = '<div style="display:flex;align-items:center;gap:14px;"><span class="material-symbols-outlined" style="color:var(--accent);">switch_account</span> Switch Account</div><span class="material-symbols-outlined" style="color:var(--text-muted);">chevron_right</span>';
-div.onclick = function(){ gcOpenSwitchSheet(); };
-it.parentNode.insertBefore(div, it);
-}
-});
-}
-const nav = document.getElementById('nav-profile');
-if(nav && !nav.dataset.gcLong){
-nav.dataset.gcLong = '1';
-let t = null;
-nav.addEventListener('touchstart', function(){ t = setTimeout(function(){ gcOpenSwitchSheet(); }, 550); }, {passive:true});
-nav.addEventListener('touchend', function(){ clearTimeout(t); });
-nav.addEventListener('touchmove', function(){ clearTimeout(t); });
-}
-}, 1500);
-})();
 // Log out = রেজিস্ট্রি থেকেও সরে যাবে
 window.gcOrigConfirmLogout = confirmLogoutAction;
 confirmLogoutAction = function(){
