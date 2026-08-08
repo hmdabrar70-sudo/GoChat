@@ -17218,7 +17218,8 @@ try{
 const snap = await db.collection('posts').where('uid', '==', currentUser.uid).get();
 snap.forEach(function(d){ posts.push({ id: d.id, ...d.data() }); });
 }catch(e){}
-function peng(p){ return (p.likes || []).length + (p.comments || []).length + (p.shares || 0); }
+function gcCount(x){ if(Array.isArray(x)) return x.length; if(typeof x === 'number' && isFinite(x)) return x; if(x && typeof x === 'object') return Object.keys(x).length; return 0; }
+function peng(p){ return gcCount(p.likes) + gcCount(p.comments) + gcCount(p.shares); }
 let totLikes = 0, totComments = 0, totShares = 0, vid = 0, pho = 0, txt = 0;
 const perDay = {};
 for(let i = 0; i < gcInsRange; i++){ perDay[new Date(now - i * 86400000).toDateString()] = 0; }
@@ -17300,7 +17301,7 @@ html += '<div class="gc-ins-sec"><h4><i class="ph-bold ph-trophy"></i>Top Posts<
 if(!top.length) html += '<div style="font-size:12px;color:var(--text-muted);">No posts yet — publish something!</div>';
 top.forEach(function(p, i){
 const img = (p.imgUrls && p.imgUrls[0]) || p.videoUrl || '';
-html += '<div class="gc-ins-top-post" onclick="gcCloseInsights(); openSinglePostView(\'' + p.id + '\')"><div class="gc-ins-rank">' + (i + 1) + '</div>' + (img ? '<img class="gc-ins-tp-img" src="' + img + '">' : '<div class="gc-ins-tp-img" style="display:flex;align-items:center;justify-content:center;"><i class="ph-bold ph-text-aa" style="color:var(--text-muted);"></i></div>') + '<div class="gc-ins-tp-txt">' + escapeHTML(p.title || '(no caption)') + '</div><div class="gc-ins-tp-num"><i class="ph-fill ph-heart" style="color:var(--danger);font-size:12px;"></i>' + (p.likes || []).length + '</div></div>';
+html += '<div class="gc-ins-top-post" onclick="gcCloseInsights(); openSinglePostView(\'' + p.id + '\')"><div class="gc-ins-rank">' + (i + 1) + '</div>' + (img ? '<img class="gc-ins-tp-img" src="' + img + '">' : '<div class="gc-ins-tp-img" style="display:flex;align-items:center;justify-content:center;"><i class="ph-bold ph-text-aa" style="color:var(--text-muted);"></i></div>') + '<div class="gc-ins-tp-txt">' + escapeHTML(p.title || '(no caption)') + '</div><div class="gc-ins-tp-num"><i class="ph-fill ph-heart" style="color:var(--danger);font-size:12px;"></i>' + gcCount(p.likes) + '</div></div>';
 });
 html += '</div>';
 html += '<div class="gc-ins-sec"><h4><i class="ph-bold ph-chart-pie"></i>Content Mix</h4>' + gcBarRow('Photos', pho, posts.length) + gcBarRow('Videos', vid, posts.length) + gcBarRow('Status', txt, posts.length) + '</div>';
