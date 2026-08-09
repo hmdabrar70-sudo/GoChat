@@ -7901,17 +7901,19 @@ async function toggleLike(pid) {
         currentLikes = parseInt(countSpan.innerText) || 0;
         isCurrentlyLiked = btn.classList.contains('liked');
 
-        if (isCurrentlyLiked) {
-            // আনলাইক করা
-            btn.classList.remove('liked');
-            if (icon) icon.className = 'ph-bold ph-heart';
-            if (countSpan) countSpan.innerText = Math.max(0, currentLikes - 1);
-        } else {
-            // লাইক করা
-            btn.classList.add('liked');
-            if (icon) icon.className = 'ph-fill ph-heart';
-            if (countSpan) countSpan.innerText = currentLikes + 1;
-        }
+                    if (isCurrentlyLiked) {
+                // আনলাইক করা
+                btn.classList.remove('liked');
+                // 🚀 ফিক্স: আনলাইক করলে অর্ধেক হার্টের আউটলাইন (bold) থাকবে
+                if (icon) icon.className = 'ph-bold ph-heart-half'; 
+                if (countSpan) countSpan.innerText = Math.max(0, currentLikes - 1);
+            } else {
+                // লাইক করা
+                btn.classList.add('liked');
+                // 🚀 ফিক্স: লাইক করলে অর্ধেক হার্টটাই লাল রঙে ভরে (fill) যাবে
+                if (icon) icon.className = 'ph-fill ph-heart-half'; 
+                if (countSpan) countSpan.innerText = currentLikes + 1;
+            }
     });
 
     // ২. এরপর ব্যাকগ্রাউন্ডে ডাটাবেস আপডেট হবে
@@ -10484,7 +10486,19 @@ const doc=await ref.get();
 if(doc.exists){
 let comments=doc.data().comments||[];
 comments.push({uid:currentUser.uid,name:currentUserData.name,text:txt,time:Date.now()});
-await ref.update({comments});
+
+// 🚀 ১. ম্যাজিক: ডাটাবেসে কমেন্ট সেভ করার সাথে সাথে মোট কমেন্টের সংখ্যাও (commentCount) সেভ করা হলো
+await ref.update({
+    comments: comments,
+    commentCount: comments.length
+});
+
+// 🚀 ২. ম্যাজিক: পেজ রিফ্রেশ না করেই স্ক্রিনে কমেন্টের সংখ্যা সাথে সাথে আপডেট করা হলো
+const commentSpans = document.querySelectorAll(`button[onclick*="openCommentPanel('${activeCommentPostId}')"] span`);
+commentSpans.forEach(span => {
+    span.innerText = comments.length;
+});
+
 if(doc.data().uid!==currentUser.uid){
 db.collection('notifications').add({
 toUid:doc.data().uid,fromUid:currentUser.uid,
