@@ -2355,6 +2355,28 @@ Threads-স্টাইল (আরও সুন্দর) পোস্ট রি
 .gc-sk-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;padding:4px;}
 .gc-sk-tile{aspect-ratio:1;border-radius:8px;background:linear-gradient(90deg,var(--surface-2) 25%,var(--surface) 50%,var(--surface-2) 75%);background-size:200% 100%;animation:gcSkShimmer 1.2s ease-in-out infinite;}
 @keyframes gcSkShimmer{0%{background-position:200% 0;}100%{background-position:-200% 0;}}
+
+/* =========================================
+🚀 Update #52 · reply-privacy · 2026-08-09
+"Who can reply?" প্রাইভেসি শিট
+খুঁজতে: Ctrl+F → "reply-privacy"
+========================================= */
+.gc-rp-overlay{position:fixed;inset:0;background:rgba(10,10,20,.55);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);z-index:101300;display:none;align-items:flex-end;justify-content:center;}
+.gc-rp-overlay.open{display:flex;}
+.gc-rp-sheet{width:100%;max-width:520px;max-height:80vh;overflow-y:auto;background:var(--bg);border-radius:24px 24px 0 0;padding:12px 18px calc(18px + env(safe-area-inset-bottom));animation:gcSheetUp .3s cubic-bezier(.22,1,.36,1);scrollbar-width:none;}
+.gc-rp-sheet::-webkit-scrollbar{display:none;}
+.gc-rp-handle{width:44px;height:4px;border-radius:2px;background:var(--border);margin:6px auto 14px;}
+.gc-rp-title{font-size:19px;font-weight:800;color:var(--text);margin-bottom:4px;}
+.gc-rp-sub{font-size:12.5px;color:var(--text-muted);margin-bottom:16px;line-height:1.5;}
+.gc-rp-opt{display:flex;align-items:center;gap:12px;padding:14px 12px;border-radius:14px;cursor:pointer;transition:background .15s;margin-bottom:6px;border:1px solid transparent;}
+.gc-rp-opt:active{background:var(--surface-2);}
+.gc-rp-opt.active{background:var(--accent-glow);border-color:var(--accent);}
+.gc-rp-opt i{font-size:22px;color:var(--text);}
+.gc-rp-opt.active i{color:var(--accent);}
+.gc-rp-opt .t{flex:1;font-size:14.5px;font-weight:700;color:var(--text);}
+.gc-rp-radio{width:20px;height:20px;border-radius:50%;border:2px solid var(--border);position:relative;flex-shrink:0;}
+.gc-rp-opt.active .gc-rp-radio{border-color:var(--accent);}
+.gc-rp-opt.active .gc-rp-radio::after{content:'';position:absolute;inset:3px;border-radius:50%;background:var(--accent);}
 </style>
 </head>
 <body>
@@ -5817,50 +5839,6 @@ transition:background .2s;
         </div>
         <div id="share-chat-list" style="flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:8px; padding-bottom:20px;">
             <!-- চ্যাট লিস্ট এখানে জাভাস্ক্রিপ্ট দিয়ে লোড হবে -->
-        </div>
-    </div>
-</div>
-
-<!-- 🚀 Post Reply Privacy Modal -->
-<div class="modal-overlay" id="reply-privacy-modal" style="z-index: 100015; align-items: flex-end;" onclick="if(event.target===this) closeReplyPrivacyModal()">
-    <div class="modal-box" style="margin-top:auto; border-radius: 24px 24px 0 0; padding:24px 20px; width: 100%; background: var(--surface);">
-        <div style="width: 40px; height: 5px; background: var(--border); border-radius: 10px; margin: 0 auto 16px;"></div>
-        
-        <h3 style="margin:0 0 6px; font-size:22px; font-weight:900; color:var(--text);">Who can reply?</h3>
-        <p style="font-size:14px; color:var(--text-secondary); margin-bottom:24px; line-height: 1.5;">Choose who can comment on your posts. Keep in mind that anyone mentioned can always reply.</p>
-
-        <div style="display:flex; flex-direction:column; gap:12px;">
-            <!-- Everyone -->
-            <label style="display:flex; align-items:center; justify-content:space-between; padding:16px; cursor:pointer; border-radius:16px; background:var(--surface-2); border:1px solid var(--border);">
-                <div style="display:flex; align-items:center; gap:14px; font-weight:700; font-size:16px; color:var(--text);">
-                    <i class="ph-bold ph-globe-hemisphere-west" style="font-size:24px; color:var(--text);"></i> Everyone
-                </div>
-                <input type="radio" name="reply-privacy" value="everyone" checked style="width:22px; height:22px; accent-color:var(--accent);" onchange="setReplyPrivacy('everyone', 'ph-globe-hemisphere-west')">
-            </label>
-
-            <!-- Verified accounts -->
-            <label style="display:flex; align-items:center; justify-content:space-between; padding:16px; cursor:pointer; border-radius:16px; background:var(--surface-2); border:1px solid var(--border);">
-                <div style="display:flex; align-items:center; gap:14px; font-weight:700; font-size:16px; color:var(--text);">
-                    <i class="ph-bold ph-seal-check" style="font-size:24px; color:var(--warning);"></i> Verified accounts
-                </div>
-                <input type="radio" name="reply-privacy" value="verified" style="width:22px; height:22px; accent-color:var(--accent);" onchange="setReplyPrivacy('verified', 'ph-seal-check')">
-            </label>
-
-            <!-- Accounts you follow -->
-            <label style="display:flex; align-items:center; justify-content:space-between; padding:16px; cursor:pointer; border-radius:16px; background:var(--surface-2); border:1px solid var(--border);">
-                <div style="display:flex; align-items:center; gap:14px; font-weight:700; font-size:16px; color:var(--text);">
-                    <i class="ph-bold ph-user-check" style="font-size:24px; color:var(--text);"></i> Accounts you follow
-                </div>
-                <input type="radio" name="reply-privacy" value="following" style="width:22px; height:22px; accent-color:var(--accent);" onchange="setReplyPrivacy('following', 'ph-user-check')">
-            </label>
-
-            <!-- Only accounts you mention -->
-            <label style="display:flex; align-items:center; justify-content:space-between; padding:16px; cursor:pointer; border-radius:16px; background:var(--surface-2); border:1px solid var(--border);">
-                <div style="display:flex; align-items:center; gap:14px; font-weight:700; font-size:16px; color:var(--text);">
-                    <i class="ph-bold ph-at" style="font-size:24px; color:var(--text);"></i> Only accounts you mention
-                </div>
-                <input type="radio" name="reply-privacy" value="mentioned" style="width:22px; height:22px; accent-color:var(--accent);" onchange="setReplyPrivacy('mentioned', 'ph-at')">
-            </label>
         </div>
     </div>
 </div>
@@ -9835,7 +9813,7 @@ imgUrls.push(url);
 }
     try{
         const expireAt=new Date(Date.now()+ONE_YEAR_MS);
-                const newPostRef = await db.collection('posts').add({
+                const newPostRef = await db.collection('posts').add({ replyPrivacy: (window.currentPostReplyPrivacy || 'everyone'),
             uid:currentUser.uid,
             bgColor: currentPostBgColor,
             name:currentUserData.name||currentUser.email.split('@')[0],
@@ -17204,30 +17182,103 @@ gcSaveAccounts(gcGetAccounts().filter(function(a){ return a.uid !== currentUser.
 }catch(e){}
 return window.gcOrigConfirmLogout();
 };
-// 🚀 Reply Privacy State
-let currentReplyPrivacy = 'everyone';
-
-function openReplyPrivacyModal() {
-    document.getElementById('reply-privacy-modal').classList.add('open');
+// ═══════════════════════════════════════════════════════
+// 🚀 Update #52 · reply-privacy · 2026-08-09
+// "Who can reply?" — পোস্টের কমেন্ট প্রাইভেসি কন্ট্রোল
+// খুঁজতে: Ctrl+F → "reply-privacy"
+// ═══════════════════════════════════════════════════════
+window.currentPostReplyPrivacy = window.currentPostReplyPrivacy || 'everyone';
+const GC_RP_OPTIONS = [
+{key:'everyone', label:'Everyone', icon:'ph-globe-hemisphere-west'},
+{key:'verified', label:'Verified accounts', icon:'ph-seal-check'},
+{key:'following', label:'Accounts you follow', icon:'ph-user-check'},
+{key:'mention', label:'Only accounts you mention', icon:'ph-at'}
+];
+function openReplyPrivacyModal(){
+let ov = document.getElementById('gc-rp-overlay');
+if(!ov){
+ov = document.createElement('div'); ov.id = 'gc-rp-overlay'; ov.className = 'gc-rp-overlay';
+ov.onclick = function(e){ if(e.target === ov) ov.classList.remove('open'); };
+document.body.appendChild(ov);
 }
-
-function closeReplyPrivacyModal() {
-    document.getElementById('reply-privacy-modal').classList.remove('open');
+let html = '<div class="gc-rp-sheet"><div class="gc-rp-handle"></div><div class="gc-rp-title">Who can reply?</div><div class="gc-rp-sub">Pick who can reply to this post. Anyone you mention can always reply.</div>';
+GC_RP_OPTIONS.forEach(function(o){
+html += '<div class="gc-rp-opt' + (window.currentPostReplyPrivacy === o.key ? ' active' : '') + '" onclick="gcSetReplyPrivacy(\'' + o.key + '\')"><i class="ph-bold ' + o.icon + '"></i><div class="t">' + o.label + '</div><div class="gc-rp-radio"></div></div>';
+});
+html += '</div>';
+ov.innerHTML = html;
+ov.classList.add('open');
 }
-
-function setReplyPrivacy(value, iconClass) {
-    currentReplyPrivacy = value;
-    
-    // একশন বারের আইকন আপডেট করা
-    const btnIcon = document.getElementById('post-privacy-icon');
-    if (btnIcon) {
-        btnIcon.className = `ph-bold ${iconClass}`;
-    }
-    
-    // মডাল অটো ক্লোজ করা
-    setTimeout(() => {
-        closeReplyPrivacyModal();
-    }, 200);
+function gcSetReplyPrivacy(key){
+window.currentPostReplyPrivacy = key;
+const ov = document.getElementById('gc-rp-overlay');
+if(ov) ov.classList.remove('open');
+gcSyncPrivacyIcon();
+const o = GC_RP_OPTIONS.find(function(x){ return x.key === key; });
+showToast('🔒 Replies limited to: ' + o.label);
+}
+function gcSyncPrivacyIcon(){
+const ic = document.getElementById('post-privacy-icon');
+if(!ic) return;
+const o = GC_RP_OPTIONS.find(function(x){ return x.key === window.currentPostReplyPrivacy; }) || GC_RP_OPTIONS[0];
+ic.className = 'ph-bold ' + o.icon;
+}
+// পোস্ট হয়ে গেলে ডিফল্ট (Everyone) এ ফেরত
+window.gcOrigSubmitPost52 = submitPost;
+submitPost = async function(){
+const r = await window.gcOrigSubmitPost52.apply(this, arguments);
+window.currentPostReplyPrivacy = 'everyone';
+gcSyncPrivacyIcon();
+return r;
+};
+// কমেন্ট বার আনলক (প্রতিবার প্যানেল খোলার শুরুতে)
+function gcUnlockCommentBar(){
+const input = document.getElementById('comment-input') || document.querySelector('input[placeholder*="comment" i]');
+if(input){
+input.disabled = false;
+if(!input.value) input.placeholder = 'Write a comment...';
+const bar = input.parentElement;
+if(bar) bar.querySelectorAll('button').forEach(function(b){ b.style.opacity = ''; b.style.pointerEvents = ''; });
+}
+}
+// কমেন্ট প্যানেলে নিয়ম প্রয়োগ
+window.gcOrigOpenCommentPanel52 = openCommentPanel;
+openCommentPanel = function(pid){
+gcUnlockCommentBar();
+window.gcOrigOpenCommentPanel52(pid);
+setTimeout(function(){ gcApplyReplyRestriction(pid); }, 350);
+};
+async function gcApplyReplyRestriction(pid){
+if(!currentUser) return;
+let rule = 'everyone', pd = null;
+try{
+const d = await db.collection('posts').doc(pid).get();
+if(!d.exists) return;
+pd = d.data();
+rule = pd.replyPrivacy || 'everyone';
+}catch(e){ return; }
+if(rule === 'everyone') return;
+let allowed = false;
+if(rule === 'verified'){
+allowed = (currentUserData && currentUserData.isVerified === true);
+}else if(rule === 'following'){
+try{
+const pu = await db.collection('users').doc(pd.uid).get();
+allowed = pu.exists && (pu.data().following || []).includes(currentUser.uid);
+}catch(e){}
+}else if(rule === 'mention'){
+const tagged = (pd.taggedFriends || pd.mentioned || []);
+allowed = tagged.includes(currentUser.uid) || (currentUserData.username && (pd.title || '').indexOf('@' + currentUserData.username) !== -1);
+}
+if(allowed) return;
+const input = document.getElementById('comment-input') || document.querySelector('input[placeholder*="comment" i]');
+if(input){
+input.disabled = true;
+input.placeholder = '🔒 The author limited who can reply';
+const bar = input.parentElement;
+if(bar) bar.querySelectorAll('button').forEach(function(b){ b.style.opacity = '.4'; b.style.pointerEvents = 'none'; });
+}
+showToast('🔒 The author limited who can reply');
 }
 </script>
 </body>
