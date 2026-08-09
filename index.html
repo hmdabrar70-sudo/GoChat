@@ -8036,9 +8036,13 @@ async function openCommentPanel(pid) {
 
                         // 🚀 NEW: কমেন্ট করা ইউজারের প্রোফাইল পিকচার বের করা
             let commentAvHtml = avatarInitial(c.name);
-            if (allUsersCache) {
-                const commentUser = allUsersCache.find(u => u.id === c.uid);
-                if (commentUser && commentUser.avatar) {
+// 🚀 Update #49 · comment-verified-badge: কমেন্টে নামের পাশে ভেরিফাইড ব্যাজ
+let commentBadge = '';
+const gcBadgeUser = (allUsersCache ? allUsersCache.find(u => u.id === c.uid) : null) || (currentUser && c.uid === currentUser.uid ? currentUserData : null);
+if (gcBadgeUser) commentBadge = getVerifiedBadge(gcBadgeUser.email || '', gcBadgeUser.isVerified === true);
+if (allUsersCache) {
+const commentUser = allUsersCache.find(u => u.id === c.uid);
+if (commentUser && commentUser.avatar) {
                     commentAvHtml = `<img src="${escapeHTML(commentUser.avatar)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
                 }
             }
@@ -8052,7 +8056,7 @@ async function openCommentPanel(pid) {
                     
                     <!-- 🚀 নেম এবং কমেন্ট টেক্সট-এর সুন্দর বাবল -->
                     <div style="background:var(--surface-2); padding:10px 14px; border-radius:4px 18px 18px 18px; display:inline-block; border:1px solid var(--border);">
-                        <div class="comment-author" style="cursor:pointer; font-size:13px; margin-bottom:4px;" onclick="closeCommentPanel(); viewUserProfile('${c.uid}')">${safeCName}</div>
+                        <div class="comment-author" style="cursor:pointer; font-size:13px; margin-bottom:4px;" onclick="closeCommentPanel(); viewUserProfile('${c.uid}')">${safeCName}${commentBadge}</div>
                         ${safeCText ? `<div style="font-size:14px; color:var(--text); line-height:1.4;">${safeCText}</div>` : ''}
                     </div>
                     ${commentImageHtml}
