@@ -2884,6 +2884,14 @@ Threads-স্টাইল (আরও সুন্দর) পোস্ট রি
         <span id="tag-count" class="tag-badge" style="display:none; position:absolute; top:2px; right:6px;">0</span>
     </div>
 
+    <!-- 🚀 Privacy Button -->
+    <div onclick="openReplyPrivacyModal()" style="display:flex; flex-direction:column; align-items:center; gap:4px; cursor:pointer; padding:6px 10px; border-radius:12px; transition:0.2s;" onmouseover="this.style.background='var(--surface-2)'" onmouseout="this.style.background='transparent'">
+        <div style="width:38px; height:38px; border-radius:50%; background:rgba(59,130,246,0.1); display:flex; align-items:center; justify-content:center; color:#3b82f6;">
+            <i class="ph-bold ph-globe-hemisphere-west" id="post-privacy-icon" style="font-size:20px;"></i>
+        </div>
+        <span style="font-size:10px; font-weight:700; color:var(--text-muted); text-transform:uppercase;">Privacy</span>
+    </div>
+
     <!-- Photo / Image -->
     <label for="post-img-input" style="display:flex; flex-direction:column; align-items:center; gap:4px; cursor:pointer; padding:6px 10px; border-radius:12px; transition:0.2s;" onmouseover="this.style.background='var(--surface-2)'" onmouseout="this.style.background='transparent'">
         <div style="width:38px; height:38px; border-radius:50%; background:rgba(34,197,94,0.1); display:flex; align-items:center; justify-content:center; color:#22c55e;">
@@ -5809,6 +5817,50 @@ transition:background .2s;
         </div>
         <div id="share-chat-list" style="flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:8px; padding-bottom:20px;">
             <!-- চ্যাট লিস্ট এখানে জাভাস্ক্রিপ্ট দিয়ে লোড হবে -->
+        </div>
+    </div>
+</div>
+
+<!-- 🚀 Post Reply Privacy Modal -->
+<div class="modal-overlay" id="reply-privacy-modal" style="z-index: 100015; align-items: flex-end;" onclick="if(event.target===this) closeReplyPrivacyModal()">
+    <div class="modal-box" style="margin-top:auto; border-radius: 24px 24px 0 0; padding:24px 20px; width: 100%; background: var(--surface);">
+        <div style="width: 40px; height: 5px; background: var(--border); border-radius: 10px; margin: 0 auto 16px;"></div>
+        
+        <h3 style="margin:0 0 6px; font-size:22px; font-weight:900; color:var(--text);">Who can reply?</h3>
+        <p style="font-size:14px; color:var(--text-secondary); margin-bottom:24px; line-height: 1.5;">Choose who can comment on your posts. Keep in mind that anyone mentioned can always reply.</p>
+
+        <div style="display:flex; flex-direction:column; gap:12px;">
+            <!-- Everyone -->
+            <label style="display:flex; align-items:center; justify-content:space-between; padding:16px; cursor:pointer; border-radius:16px; background:var(--surface-2); border:1px solid var(--border);">
+                <div style="display:flex; align-items:center; gap:14px; font-weight:700; font-size:16px; color:var(--text);">
+                    <i class="ph-bold ph-globe-hemisphere-west" style="font-size:24px; color:var(--text);"></i> Everyone
+                </div>
+                <input type="radio" name="reply-privacy" value="everyone" checked style="width:22px; height:22px; accent-color:var(--accent);" onchange="setReplyPrivacy('everyone', 'ph-globe-hemisphere-west')">
+            </label>
+
+            <!-- Verified accounts -->
+            <label style="display:flex; align-items:center; justify-content:space-between; padding:16px; cursor:pointer; border-radius:16px; background:var(--surface-2); border:1px solid var(--border);">
+                <div style="display:flex; align-items:center; gap:14px; font-weight:700; font-size:16px; color:var(--text);">
+                    <i class="ph-bold ph-seal-check" style="font-size:24px; color:var(--warning);"></i> Verified accounts
+                </div>
+                <input type="radio" name="reply-privacy" value="verified" style="width:22px; height:22px; accent-color:var(--accent);" onchange="setReplyPrivacy('verified', 'ph-seal-check')">
+            </label>
+
+            <!-- Accounts you follow -->
+            <label style="display:flex; align-items:center; justify-content:space-between; padding:16px; cursor:pointer; border-radius:16px; background:var(--surface-2); border:1px solid var(--border);">
+                <div style="display:flex; align-items:center; gap:14px; font-weight:700; font-size:16px; color:var(--text);">
+                    <i class="ph-bold ph-user-check" style="font-size:24px; color:var(--text);"></i> Accounts you follow
+                </div>
+                <input type="radio" name="reply-privacy" value="following" style="width:22px; height:22px; accent-color:var(--accent);" onchange="setReplyPrivacy('following', 'ph-user-check')">
+            </label>
+
+            <!-- Only accounts you mention -->
+            <label style="display:flex; align-items:center; justify-content:space-between; padding:16px; cursor:pointer; border-radius:16px; background:var(--surface-2); border:1px solid var(--border);">
+                <div style="display:flex; align-items:center; gap:14px; font-weight:700; font-size:16px; color:var(--text);">
+                    <i class="ph-bold ph-at" style="font-size:24px; color:var(--text);"></i> Only accounts you mention
+                </div>
+                <input type="radio" name="reply-privacy" value="mentioned" style="width:22px; height:22px; accent-color:var(--accent);" onchange="setReplyPrivacy('mentioned', 'ph-at')">
+            </label>
         </div>
     </div>
 </div>
@@ -17152,6 +17204,31 @@ gcSaveAccounts(gcGetAccounts().filter(function(a){ return a.uid !== currentUser.
 }catch(e){}
 return window.gcOrigConfirmLogout();
 };
+// 🚀 Reply Privacy State
+let currentReplyPrivacy = 'everyone';
+
+function openReplyPrivacyModal() {
+    document.getElementById('reply-privacy-modal').classList.add('open');
+}
+
+function closeReplyPrivacyModal() {
+    document.getElementById('reply-privacy-modal').classList.remove('open');
+}
+
+function setReplyPrivacy(value, iconClass) {
+    currentReplyPrivacy = value;
+    
+    // একশন বারের আইকন আপডেট করা
+    const btnIcon = document.getElementById('post-privacy-icon');
+    if (btnIcon) {
+        btnIcon.className = `ph-bold ${iconClass}`;
+    }
+    
+    // মডাল অটো ক্লোজ করা
+    setTimeout(() => {
+        closeReplyPrivacyModal();
+    }, 200);
+}
 </script>
 </body>
 </html>
