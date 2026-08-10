@@ -134,6 +134,19 @@
 </div>
 </div>
 
+<!-- C. ELITE APPLICATIONS TAB -->
+<div id="sec-elite" class="p-8 hidden">
+<div class="flex justify-between items-center mb-8">
+<h2 class="text-3xl font-bold text-gray-800">Elite Applications</h2>
+<button onclick="loadEliteApplications()" class="bg-white border border-gray-200 shadow-sm text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50 font-semibold flex items-center gap-2">
+<i class="fas fa-sync-alt text-blue-500"></i> Refresh
+</button>
+</div>
+<div id="eliteGrid" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<div class="text-center text-gray-500 py-10 col-span-full"><i class="fas fa-spinner fa-spin text-2xl"></i> Loading applications...</div>
+</div>
+</div>
+
             <!-- B. SYSTEM & SETTINGS TAB -->
             <div id="sec-settings" class="p-8 hidden">
                 <h2 class="text-3xl font-bold text-gray-800 mb-8">System & Settings</h2>
@@ -297,15 +310,23 @@ showToast("Login failed: " + (e && e.message ? e.message : "Unknown error"), "er
             });
         }
 
-        // 🚀 TAB SWITCHER (3 tabs)
+        // 🚀 TAB SWITCHER
 function switchTab(tab) {
-['users', 'reports', 'settings'].forEach(function (t) {
-document.getElementById('sec-' + t).style.display = (tab === t) ? 'block' : 'none';
-document.getElementById('tab-' + t).className = (tab === t)
-? 'w-full flex items-center gap-3 text-left py-3 px-4 rounded-xl bg-blue-600 text-white font-semibold transition'
-: 'w-full flex items-center gap-3 text-left py-3 px-4 rounded-xl text-gray-400 hover:bg-gray-800 hover:text-white font-semibold transition';
-});
-if (tab === 'reports') renderReports();
+    document.getElementById('sec-users').style.display = tab === 'users' ? 'block' : 'none';
+    document.getElementById('sec-settings').style.display = tab === 'settings' ? 'block' : 'none';
+    document.getElementById('sec-elite').style.display = tab === 'elite' ? 'block' : 'none';
+    
+    const tabs = ['users', 'settings', 'elite'];
+    tabs.forEach(t => {
+        const btn = document.getElementById('tab-' + t);
+        if(btn) {
+            btn.className = tab === t 
+                ? 'w-full flex items-center gap-3 text-left py-3 px-4 rounded-xl bg-blue-600 text-white font-semibold transition'
+                : 'w-full flex items-center gap-3 text-left py-3 px-4 rounded-xl text-gray-400 hover:bg-gray-800 hover:text-white font-semibold transition';
+        }
+    });
+    
+    if (tab === 'elite') loadEliteApplications();
 }
 
         // 🚀 FEATURE 1 & 2: LOAD & FILTER USERS
@@ -743,6 +764,86 @@ async function gcDismissReport(rid) {
 if (!confirm('Dismiss this report as invalid?')) return;
 await db.collection('reports').doc(rid).update({ status: 'rejected', actionTaken: 'dismissed', resolvedBy: auth.currentUser ? auth.currentUser.email : 'admin', resolvedAt: Date.now() });
 showToast('Report dismissed', 'success');
+}
+
+// 🚀 FEATURE 9: ELITE APPLICATIONS MANAGEMENT
+async function loadEliteApplications() {
+    const grid = document.getElementById('eliteGrid');
+    grid.innerHTML = '<div class="text-center text-gray-500 py-10 col-span-full"><i class="fas fa-spinner fa-spin text-2xl"></i> Loading applications...</div>';
+    try {
+        const snap = await db.collection('eliteApplications').orderBy('createdAt', 'desc').get();
+        if (snap.empty) {
+            grid.innerHTML = '<div class="text-center text-gray-500 py-10 col-span-full bg-white rounded-xl border border-gray-200">No applications found.</div>';
+            return;
+        }
+        let html = '';
+        snap.forEach(doc => {
+            const app = doc.data();
+            const statusBadge = app.status === 'pending' ? '<span class="bg-yellow-100 text-yellow-600 px-2 py-1 rounded text-xs font-bold">PENDING</span>' : 
+                                app.status === 'approved' ? '<span class="bg-green-100 text-green-600 px-2 py-1 rounded text-xs font-bold">APPROVED</span>' : 
+                                '<span class="bg-red-100 text-red-600 px-2 py-1 rounded text-xs font-bold">REJECTED</span>';
+            
+            html += `
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 flex flex-col gap-4">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <h3 class="text-xl font-bold text-gray-800">${escapeHTML(app.name || 'Unknown')}</h3>
+                        <p class="text-sm text-gray-500">@${escapeHTML(app.username || 'no-username')}</p>
+                    </div>
+                    ${statusBadge}
+                </div>
+                <div class="text-sm text-gray-600 space-y-1">
+                    <p><i class="fas fa-envelope w-4 text-gray-400 mr-2"></i> ${escapeHTML(app.email || '')}</p>
+                    <p><i class="fab fa-whatsapp w-4 text-green-500 mr-2"></i> ${escapeHTML(app.whatsapp || '')}</p>
+                    <p><i class="fas fa-id-card w-4 text-blue-500 mr-2"></i> UID: ${app.uid}</p>
+                </div>
+                <div class="grid grid-cols-2 gap-4 mt-2">
+                    <div>
+                        <p class="text-xs font-bold text-gray-500 mb-2 uppercase">ID Photo (Document)</p>
+                        <img src="${app.idPhotoUrl}" class="w-full h-40 object-cover rounded-lg border cursor-pointer" onclick="window.open('${app.idPhotoUrl}', '_blank')">
+                    </div>
+                    <div>
+                        <p class="text-xs font-bold text-gray-500 mb-2 uppercase">Face Selfie</p>
+                        <img src="${app.facePhotoUrl}" class="w-full h-40 object-cover rounded-lg border cursor-pointer" onclick="window.open('${app.facePhotoUrl}', '_blank')">
+                    </div>
+                </div>
+                ${app.status === 'pending' ? `
+                <div class="flex gap-3 mt-4">
+                    <button onclick="approveElite('${doc.id}', '${app.uid}')" class="flex-1 py-3 bg-green-600 text-white font-bold rounded-xl hover:bg-green-700 transition">Approve & Give Badge</button>
+                    <button onclick="rejectElite('${doc.id}')" class="flex-1 py-3 bg-red-500 text-white font-bold rounded-xl hover:bg-red-600 transition">Reject</button>
+                </div>` : ''}
+            </div>`;
+        });
+        grid.innerHTML = html;
+    } catch (e) {
+        console.error(e);
+        grid.innerHTML = '<div class="text-red-500 text-center font-bold col-span-full">Failed to load applications.</div>';
+    }
+}
+
+async function approveElite(appId, uid) {
+    if(!confirm("Approve this application and grant Elite Badge?")) return;
+    try {
+        // অ্যাপ্লিকেশন স্ট্যাটাস আপডেট
+        await db.collection('eliteApplications').doc(appId).update({ status: 'approved', reviewedAt: firebase.firestore.FieldValue.serverTimestamp() });
+        // ইউজারকে গোল্ডেন ব্যাজ (isElite + isVerified) দেওয়া
+        await db.collection('users').doc(uid).update({ isElite: true, isVerified: true });
+        showToast("Application Approved & Badge Granted!", "success");
+        loadEliteApplications();
+    } catch(e) {
+        showToast("Failed to approve", "error");
+    }
+}
+
+async function rejectElite(appId) {
+    if(!confirm("Reject this application?")) return;
+    try {
+        await db.collection('eliteApplications').doc(appId).update({ status: 'rejected', reviewedAt: firebase.firestore.FieldValue.serverTimestamp() });
+        showToast("Application Rejected", "success");
+        loadEliteApplications();
+    } catch(e) {
+        showToast("Failed to reject", "error");
+    }
 }
 
         // 🚀 UTILS

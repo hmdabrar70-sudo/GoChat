@@ -13276,45 +13276,55 @@ function resetAppForm() {
 }
 
 async function submitEliteApplication() {
-    const facePhoto = document.getElementById('app-face-photo').files[0];
-    if(!facePhoto) {
-        showToast("⚠️ Please upload your selfie to finish!");
+    const facePhotoFile = document.getElementById('app-face-photo').files[0];
+    const idPhotoFile = document.getElementById('app-id-photo').files[0];
+    
+    if(!facePhotoFile || !idPhotoFile) {
+        showToast("⚠️ Please upload both ID and Selfie!");
         return;
     }
-
-    showToast("🚀 Preparing application...");
-    closeEliteAppModal();
-
-    const name = document.getElementById('app-name').value.trim();
-    const username = document.getElementById('app-username').value.trim();
-    const email = document.getElementById('app-email').value.trim();
-    const wpNumber = document.getElementById('app-wp').value.trim();
     
-    // Formatted Message for WhatsApp
-    let msg = `* NEW ELITE APPLICATION 🔥*\n\n`;
-    msg += `👤 *Name:* ${name}\n`;
-    msg += ` *Username:* @${username}\n`;
-    msg += `📧 *Email:* ${email}\n`;
-    msg += `📱 *WhatsApp:* ${wpNumber}\n`;
-    msg += `📅 *Date:* ${new Date().toLocaleString()}\n\n`;
-    msg += `_Please verify within 72 hours._`;
+    showToast("🚀 Uploading documents & submitting...");
+    
+    try {
+        // ১. ছবিগুলো Cloudinary-তে আপলোড করা
+        const idPhotoUrl = await uploadToCloudinary(idPhotoFile, false);
+        const facePhotoUrl = await uploadToCloudinary(facePhotoFile, false);
+        
+        const name = document.getElementById('app-name').value.trim();
+        const username = document.getElementById('app-username').value.trim();
+        const email = document.getElementById('app-email').value.trim();
+        const wpNumber = document.getElementById('app-wp').value.trim();
+        
+        // ২. Firebase Firestore-এ অ্যাপ্লিকেশন সেভ করা
+        await db.collection('eliteApplications').add({
+            uid: currentUser.uid,
+            name: name,
+            username: username || currentUserData.username || '',
+            email: email,
+            whatsapp: wpNumber,
+            idPhotoUrl: idPhotoUrl,
+            facePhotoUrl: facePhotoUrl,
+            status: 'pending',
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        
+        // ৩. স্প্যামিং রোধে লোকাল স্টোরেজে সেভ করা
+        const id = '#ELT-' + new Date().getFullYear() + '-' + Math.floor(1000 + Math.random() * 9000);
+        localStorage.setItem('gc_elite_app', JSON.stringify({id: id, time: Date.now()}));
+        
+        // ৪. সাকসেস পপআপ দেখানো
+        let ov = document.getElementById('gc-review-overlay');
+        if(!ov){ ov = document.createElement('div'); ov.id = 'gc-review-overlay'; ov.className = 'gc-review-overlay'; document.body.appendChild(ov); }
+        ov.innerHTML = '<div class="gc-review-card gc-success-card"><div style="font-size:50px;">🎉</div><div class="gc-elig-title">Application Submitted!</div><div class="gc-app-id">' + id + '</div><div class="gc-elig-sub">আপনার আবেদন সফলভাবে জমা হয়েছে। অ্যাডমিনরা এটি ৭২ ঘণ্টার মধ্যে রিভিউ করবেন।</div><button class="gc-elig-btn" style="background:var(--surface-2);color:var(--text);" onclick="document.getElementById(\'gc-review-overlay\').classList.remove(\'open\'); closeEliteAppModal();">Done</button></div>';
+        ov.classList.add('open');
+        
+    } catch(e) {
+        console.error(e);
+        showToast("❌ Failed to submit application. Try again.");
+    }
+}
 
-    // 🚀 Update #35 · telegram-application · 2026-08-08
-// আবেদন এখন WhatsApp-এ নয়, সরাসরি টেলিগ্রামে যাবে
-const TG_LINK = "https://t.me/gochatofc";
-if (navigator.clipboard && navigator.clipboard.writeText) {
-navigator.clipboard.writeText(msg).catch(function(){});
-} else {
-const ta = document.createElement('textarea');
-ta.value = msg;
-document.body.appendChild(ta);
-ta.select();
-try { document.execCommand('copy'); } catch(e2) {}
-ta.remove();
-}
-window.open(TG_LINK, '_blank');
-showToast("✅ Application copied! Paste & send in our Telegram.");
-}
 // ==========================================
 // 🚀 FIXED & MODERN USERNAME SETTINGS V3.0
 // ==========================================
@@ -16572,15 +16582,8 @@ ov.innerHTML = '<div class="gc-review-card"><div class="gc-elig-title">🔎 Revi
 ov.classList.add('open');
 }
 function gcConfirmEliteSubmit(){
-document.getElementById('gc-review-overlay').classList.remove('open');
-const id = '#ELT-' + new Date().getFullYear() + '-' + Math.floor(1000 + Math.random() * 9000);
-localStorage.setItem('gc_elite_app', JSON.stringify({id: id, time: Date.now()}));
-window.gcOrigSubmitElite();
-setTimeout(function(){
-const ov = document.getElementById('gc-review-overlay');
-ov.innerHTML = '<div class="gc-review-card gc-success-card"><div style="font-size:50px;">🎉</div><div class="gc-elig-title">Application Submitted!</div><div class="gc-app-id">' + id + '</div><div class="gc-elig-sub">আবেদন কপি হয়েছে — টেলিগ্রামে (t.me/gochatofc) পেস্ট করে পাঠাও। রিভিউ টাইম: ৭২ ঘণ্টা।</div><button class="gc-elig-btn" style="background:var(--surface-2);color:var(--text);" onclick="document.getElementById(\'gc-review-overlay\').classList.remove(\'open\')">Done</button></div>';
-ov.classList.add('open');
-}, 700);
+    document.getElementById('gc-review-overlay').classList.remove('open');
+    window.gcOrigSubmitElite(); // এটি এখন নতুন submitEliteApplication কে কল করবে
 }
 // ═══════════════════════════════════════════════════════
 // 🚀 Update #37 · post-report-system · 2026-08-08
@@ -17578,36 +17581,6 @@ if(feedActive && !busy && sx < 60 && dx > 70 && Math.abs(dy) < 70){
 gcOpenFollowRequests();
 }
 }, {passive:true});
-})();
-// ═══════════════════════════════════════════════════════
-// 🚀 Update #56 · activity-icon-fix · 2026-08-10
-// Feeling আইকন টেক্সট হিসেবে দেখা যাওয়া — ফিক্স
-// খুঁজতে: Ctrl+F → "activity-icon-fix"
-// ═══════════════════════════════════════════════════════
-function gcFixActivityIcons(scope){
-(scope || document).querySelectorAll('span.material-symbols-outlined').forEach(function(sp){
-if(sp.dataset.gcAct) return;
-const t = (sp.textContent || '').trim().toLowerCase();
-if(/(^|\s)ph-/.test(t)){
-sp.dataset.gcAct = '1';
-const cs = getComputedStyle(sp);
-const i = document.createElement('i');
-i.className = t;
-i.style.cssText = 'font-size:' + cs.fontSize + ';color:' + cs.color + ';vertical-align:middle;';
-sp.replaceWith(i);
-}
-});
-}
-(function gcInitActivityFix(){
-if(window.gcActFixObs) return;
-window.gcActFixObs = true;
-let raf = false;
-new MutationObserver(function(){
-if(raf) return;
-raf = true;
-requestAnimationFrame(function(){ raf = false; gcFixActivityIcons(document); });
-}).observe(document.body, {childList:true, subtree:true});
-gcFixActivityIcons(document);
 })();
 </script>
 </body>
