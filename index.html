@@ -1647,10 +1647,6 @@ background: rgba(0, 0, 0, 0.05) !important;
     0% { opacity: 0.3; transform: scale(0.95); }
     100% { opacity: 1; transform: scale(1.05); }
 }
-@keyframes logoPulse {
-    0% { opacity: 0.3; transform: scale(0.95); }
-    100% { opacity: 1; transform: scale(1.05); }
-}
 
 /* ঠিক এখানে ১ নম্বর ধাপের কোডটি পেস্ট করবেন */
 @keyframes floatIcon {
@@ -6999,59 +6995,6 @@ refreshClearBtn();
 })();
 
 // ===== UPDATE SEARCH SYSTEM =====
-async function searchUsers() {
-    const input = document.getElementById('search-input');
-    const q = input.value.trim().toLowerCase();
-    const res = document.getElementById('search-results-list');
-
-    // ১. কন্ডিশন: ৩ অক্ষরের কম হলে সার্চ হবে না (অ্যাপের চাপ কমানোর জন্য)
-    if (q.length < 3) {
-        if (q.length === 0) renderRecentSearches(); // ফাঁকা হলে রিসেন্ট দেখাবে
-        else res.innerHTML = '<div class="empty-feed">Type at least 3 characters...</div>';
-        return;
-    }
-
-    // ২. ডিবাউন্সিং (Debouncing): ইউজার টাইপ করা থামানোর পর ৫০০ মিলি-সেকেন্ড অপেক্ষা করবে
-    clearTimeout(searchTimeout);
-    res.innerHTML = '<div class="loading"><span class="material-symbols-outlined">autorenew</span> Searching...</div>';
-
-    searchTimeout = setTimeout(async () => {
-        const users = await fetchAllUsers();
-        let html = '';
-        
-        // রেজাল্ট ফিল্টার করা
-        const filteredUsers = users.filter(u => 
-            u.id !== currentUser.uid && 
-            u.name && 
-            u.name.toLowerCase().includes(q)
-        );
-
-        if (filteredUsers.length === 0) {
-            res.innerHTML = '<div class="empty-feed">No users found</div>';
-            return;
-        }
-
-        filteredUsers.forEach(u => {
-            const isFollowing = currentUserData.following?.includes(u.id);
-            const btnHtml = isFollowing ? 
-                `<button class="btn-outline" style="padding:6px 14px;font-size:11px;" onclick="event.stopPropagation(); toggleFollow('${u.id}')">Following</button>` : 
-                `<button class="btn-primary" style="padding:6px 14px;font-size:11px;margin:0;" onclick="event.stopPropagation(); toggleFollow('${u.id}')">Follow</button>`;
-            
-            const avHtml = u.avatar ? `<img src="${u.avatar}">` : avatarInitial(u.name);
-            
-            html += `
-            <div class="msg-item" onclick="addToRecentSearches('${u.id}'); viewUserProfile('${u.id}')">
-                <div class="avatar">${avHtml}</div>
-                <div class="msg-info" style="margin-left:10px;">
-                    <div class="msg-name">${escapeHTML(u.name)} ${getVerifiedBadge(u.email, u.isVerified)}</div>
-                </div>
-                <div>${btnHtml}</div>
-            </div>`;
-        });
-        res.innerHTML = html;
-    }, 500); // ৫০০ মিলি-সেকেন্ড অপেক্ষা করবে
-}
-
 // ===== RECENT SEARCH LOGIC =====
 async function renderRecentSearches() {
     const res = document.getElementById('search-results-list');
