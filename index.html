@@ -17579,6 +17579,36 @@ gcOpenFollowRequests();
 }
 }, {passive:true});
 })();
+// ═══════════════════════════════════════════════════════
+// 🚀 Update #56 · activity-icon-fix · 2026-08-10
+// Feeling আইকন টেক্সট হিসেবে দেখা যাওয়া — ফিক্স
+// খুঁজতে: Ctrl+F → "activity-icon-fix"
+// ═══════════════════════════════════════════════════════
+function gcFixActivityIcons(scope){
+(scope || document).querySelectorAll('span.material-symbols-outlined').forEach(function(sp){
+if(sp.dataset.gcAct) return;
+const t = (sp.textContent || '').trim().toLowerCase();
+if(/(^|\s)ph-/.test(t)){
+sp.dataset.gcAct = '1';
+const cs = getComputedStyle(sp);
+const i = document.createElement('i');
+i.className = t;
+i.style.cssText = 'font-size:' + cs.fontSize + ';color:' + cs.color + ';vertical-align:middle;';
+sp.replaceWith(i);
+}
+});
+}
+(function gcInitActivityFix(){
+if(window.gcActFixObs) return;
+window.gcActFixObs = true;
+let raf = false;
+new MutationObserver(function(){
+if(raf) return;
+raf = true;
+requestAnimationFrame(function(){ raf = false; gcFixActivityIcons(document); });
+}).observe(document.body, {childList:true, subtree:true});
+gcFixActivityIcons(document);
+})();
 </script>
 </body>
 </html>
