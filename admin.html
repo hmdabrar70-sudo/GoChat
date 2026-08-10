@@ -819,6 +819,24 @@ console.error(e);
 grid.innerHTML = '<div class="text-red-500 text-center font-bold col-span-full">Failed to load payment requests.</div>';
 }
 }
+async function approveElite(appId, uid, days, planName) {
+if (!confirm('First verify the TrxID in your bKash app & check the face in the profile screenshot!\nApprove & activate Elite now?')) return;
+try {
+await db.collection('elitePayments').doc(appId).update({ status: 'approved', reviewedAt: Date.now(), reviewedBy: 'admin' });
+await db.collection('users').doc(uid).update({ isElite: true, isVerified: true, elitePlan: planName, eliteExpiresAt: Date.now() + (days * 86400000) });
+showToast('Elite activated!', 'success');
+loadEliteApplications();
+} catch (e) { showToast('Failed to approve', 'error'); }
+}
+async function rejectElite(appId) {
+const reason = prompt('Reason for rejection (user will see this):', 'Payment verification failed. Please check TrxID & amount.');
+if (reason === null) return;
+try {
+await db.collection('elitePayments').doc(appId).update({ status: 'rejected', rejectReason: reason, reviewedAt: Date.now(), reviewedBy: 'admin' });
+showToast('Request rejected', 'success');
+loadEliteApplications();
+} catch (e) { showToast('Failed to reject', 'error'); }
+}
 
         // 🚀 UTILS
         function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
