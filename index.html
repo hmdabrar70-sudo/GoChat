@@ -2438,6 +2438,22 @@ Liked Posts পেজ (মেনুর ওভারলে)
 .gc-fr-btn:active{transform:scale(.96);}
 .gc-fr-btn.back{background:var(--accent);color:#fff;box-shadow:0 4px 12px var(--accent-glow);}
 .gc-fr-btn.rm{background:transparent;border:1px solid var(--danger);color:var(--danger);}
+
+/* =========================================
+🚀 Update #58 · network-resilience · 2026-08-10
+অফলাইন ব্যানার + এরর কার্ড + রিট্রাই
+খুঁজতে: Ctrl+F → "network-resilience"
+========================================= */
+.gc-net-banner{position:fixed;top:10px;left:50%;transform:translateX(-50%) translateY(-90px);z-index:101500;padding:10px 18px;border-radius:20px;font-size:13px;font-weight:800;display:flex;align-items:center;gap:8px;transition:transform .3s cubic-bezier(.22,1,.36,1);box-shadow:0 10px 30px rgba(0,0,0,.3);}
+.gc-net-banner.show{transform:translateX(-50%) translateY(0);}
+.gc-net-banner.off{background:#ff4d6a;color:#fff;}
+.gc-net-banner.on{background:#22c55e;color:#fff;}
+.gc-net-card{text-align:center;padding:50px 20px;color:var(--text-muted);}
+.gc-net-card i{font-size:44px;color:var(--danger);}
+.gc-net-card .t{font-size:16px;font-weight:800;color:var(--text);margin-top:10px;}
+.gc-net-card .s{font-size:12px;margin-top:4px;}
+.gc-net-retry{margin-top:14px;padding:10px 22px;border:none;border-radius:14px;background:var(--accent);color:#fff;font-weight:800;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;box-shadow:0 6px 16px var(--accent-glow);}
+.gc-net-retry:active{transform:scale(.96);}
 </style>
 </head>
 <body>
@@ -16787,12 +16803,18 @@ if(m && gcBlockedEither(m[1])) it.classList.add('gc-chat-blocked');
 (function gcInitBlockFilter(){
 if(window.gcBlockObsStarted) return;
 window.gcBlockObsStarted = true;
-const obs = new MutationObserver(function(){ gcApplyBlockFilter(); });
+let gcBfRaf = false;
+const obs = new MutationObserver(function(){
+if(gcBfRaf) return;
+gcBfRaf = true;
+requestAnimationFrame(function(){ gcBfRaf = false; gcApplyBlockFilter(); });
+});
 ['feed-actual-container','search-results-list','page-messages'].forEach(function(id){
 const el = document.getElementById(id);
 if(el) obs.observe(el, {childList:true, subtree:true});
 });
-setInterval(gcApplyBlockFilter, 2000);
+setTimeout(gcApplyBlockFilter, 2000);
+setTimeout(gcApplyBlockFilter, 8000);
 gcApplyBlockFilter();
 })();
 // ═══════════════════════════════════════════════════════
@@ -17582,6 +17604,61 @@ gcOpenFollowRequests();
 }
 }, {passive:true});
 })();
+// ═══════════════════════════════════════════════════════
+// 🚀 Update #57 · perf-stability-pass · 2026-08-10
+// দুর্বল নেটওয়ার্কে unhandled promise error চেপে রাখা (ক্র্যাশ-প্রুফ)
+// খুঁজতে: Ctrl+F → "perf-stability-pass"
+// ═══════════════════════════════════════════════════════
+window.addEventListener('unhandledrejection', function(e){
+try{ console.warn('GoChat guarded:', e.reason); e.preventDefault(); }catch(err){}
+});
+// ═══════════════════════════════════════════════════════
+// 🚀 Update #58 · network-resilience · 2026-08-10
+// নেট চলে গেলে অনন্ত স্কেলেটন নয় — এরর কার্ড + রিট্রাই + অটো-রিফ্রেশ
+// খুঁজতে: Ctrl+F → "network-resilience"
+// ═══════════════════════════════════════════════════════
+function gcShowNetBanner(online){
+let b = document.getElementById('gc-net-banner');
+if(!b){
+b = document.createElement('div'); b.id = 'gc-net-banner';
+document.body.appendChild(b);
+}
+b.className = 'gc-net-banner show ' + (online ? 'on' : 'off');
+b.innerHTML = online ? '<i class="ph-bold ph-wifi-high"></i> Back online' : '<i class="ph-bold ph-wifi-slash"></i> No internet connection';
+clearTimeout(b._t);
+if(online){ b._t = setTimeout(function(){ b.classList.remove('show'); }, 2500); }
+}
+function gcOfflineCard(){
+return '<div class="gc-net-card"><i class="ph-bold ph-wifi-slash"></i><div class="t">No internet connection</div><div class="s">Your network dropped while loading. Please try again.</div><button class="gc-net-retry" onclick="gcRetryLoad()"><i class="ph-bold ph-arrow-clockwise"></i> Retry</button></div>';
+}
+function gcHasSkeleton(el){
+if(!el || el.querySelector('.post-card') || el.querySelector('.grid-post-item') || el.querySelector('.gc-net-card') || el.querySelector('.empty-feed')) return false;
+return !!el.querySelector('[class*="skel"], [class*="gc-sk-"]');
+}
+function gcNetWatchScan(){
+if(navigator.onLine) return;
+const fc = document.getElementById('feed-actual-container');
+if(gcHasSkeleton(fc)) fc.innerHTML = gcOfflineCard();
+['my-posts-list','other-user-posts-list'].forEach(function(id){
+const el = document.getElementById(id);
+if(gcHasSkeleton(el)) el.innerHTML = gcOfflineCard();
+});
+}
+function gcRetryLoad(){
+if(!navigator.onLine){ showToast('⚠️ Still offline…'); return; }
+showToast('🔄 Refreshing…');
+try{
+const fp = document.getElementById('page-feed');
+if(fp && fp.classList.contains('active') && typeof loadFeed === 'function') loadFeed();
+const pp = document.getElementById('page-profile');
+if(pp && pp.classList.contains('active') && typeof loadMyPosts === 'function') loadMyPosts();
+const op = document.getElementById('page-other-profile');
+if(op && typeof currentOtherProfileUid !== 'undefined' && currentOtherProfileUid && typeof loadOtherUserPosts === 'function') loadOtherUserPosts(currentOtherProfileUid);
+}catch(e){}
+}
+window.addEventListener('offline', function(){ gcShowNetBanner(false); gcNetWatchScan(); });
+window.addEventListener('online', function(){ gcShowNetBanner(true); setTimeout(gcRetryLoad, 800); });
+setInterval(gcNetWatchScan, 3000);
 </script>
 </body>
 </html>
