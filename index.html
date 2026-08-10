@@ -2396,6 +2396,24 @@ Liked Posts পেজ (মেনুর ওভারলে)
 .gc-lk-name{font-size:13px;font-weight:800;color:var(--text);}
 .gc-lk-cap{font-size:12px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px;}
 .gc-lk-meta{font-size:11px;color:var(--text-muted);margin-top:4px;display:flex;align-items:center;gap:4px;}
+
+/* =========================================
+🚀 Update #54 · custom-confirm · 2026-08-10
+ব্রাউজার confirm-এর বদলে নিজস্ব কনফার্মেশন মোডাল
+খুঁজতে: Ctrl+F → "custom-confirm"
+========================================= */
+.gc-cf-overlay{position:fixed;inset:0;background:rgba(10,10,20,.6);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);z-index:101400;display:none;align-items:center;justify-content:center;padding:24px;}
+.gc-cf-overlay.open{display:flex;}
+.gc-cf-card{width:100%;max-width:320px;background:var(--surface);border-radius:24px;padding:26px 20px 20px;text-align:center;box-shadow:0 24px 70px rgba(0,0,0,.5);animation:gcUnfollowPop .25s cubic-bezier(.22,1,.36,1);}
+.gc-cf-icon{width:70px;height:70px;margin:0 auto 14px;border-radius:50%;background:rgba(255,77,106,.12);border:2px solid var(--danger);display:flex;align-items:center;justify-content:center;}
+.gc-cf-icon i{font-size:30px;color:var(--danger);}
+.gc-cf-title{font-size:17px;font-weight:800;color:var(--text);margin-bottom:6px;}
+.gc-cf-text{font-size:12.5px;color:var(--text-muted);line-height:1.5;margin-bottom:18px;}
+.gc-cf-btns{display:flex;gap:10px;}
+.gc-cf-btn{flex:1;padding:12px;border:none;border-radius:14px;font-size:14px;font-weight:800;cursor:pointer;transition:transform .15s;}
+.gc-cf-btn:active{transform:scale(.97);}
+.gc-cf-btn.cancel{background:var(--surface-2);color:var(--text);}
+.gc-cf-btn.yes{background:var(--danger);color:#fff;box-shadow:0 8px 20px rgba(255,77,106,.35);}
 </style>
 </head>
 <body>
@@ -17368,6 +17386,71 @@ it.onclick = function(){ gcOpenLikedScreen(); };
 });
 }, 1500);
 })();
+// ═══════════════════════════════════════════════════════
+// 🚀 Update #54 · custom-confirm · 2026-08-10
+// পোস্ট/কমেন্ট ডিলিটে ব্রাউজার confirm-এর বদলে নিজস্ব মোডাল
+// খুঁজতে: Ctrl+F → "custom-confirm"
+// ═══════════════════════════════════════════════════════
+function gcOpenConfirm(opts){
+let ov = document.getElementById('gc-confirm-overlay');
+if(!ov){
+ov = document.createElement('div');
+ov.id = 'gc-confirm-overlay';
+ov.className = 'gc-cf-overlay';
+ov.innerHTML = '<div class="gc-cf-card"><div class="gc-cf-icon"><i class="ph-bold ph-trash"></i></div><div class="gc-cf-title"></div><div class="gc-cf-text"></div><div class="gc-cf-btns"><button class="gc-cf-btn cancel" id="gc-cf-cancel">Cancel</button><button class="gc-cf-btn yes" id="gc-cf-yes">Delete</button></div></div>';
+document.body.appendChild(ov);
+ov.addEventListener('click', function(e){ if(e.target === ov) gcCloseConfirm(); });
+document.getElementById('gc-cf-cancel').onclick = function(){ gcCloseConfirm(); };
+}
+ov.querySelector('.gc-cf-icon i').className = 'ph-bold ' + (opts.icon || 'ph-trash');
+ov.querySelector('.gc-cf-title').textContent = opts.title || 'Are you sure?';
+ov.querySelector('.gc-cf-text').textContent = opts.text || '';
+const yes = document.getElementById('gc-cf-yes');
+yes.textContent = opts.yesLabel || 'Delete';
+yes.onclick = function(){ gcCloseConfirm(); if(opts.onYes) opts.onYes(); };
+ov.classList.add('open');
+}
+function gcCloseConfirm(){
+const ov = document.getElementById('gc-confirm-overlay');
+if(ov) ov.classList.remove('open');
+}
+function gcAutoConfirmRun(fn){
+const orig = window.confirm;
+window.confirm = function(){ return true; };
+try{ fn(); }catch(e){ console.error(e); }
+setTimeout(function(){ window.confirm = orig; }, 250);
+}
+// পোস্ট ডিলিট → কাস্টম মোডাল
+if(typeof window.deletePost === 'function' && !window.gcDelPostWrapped){
+window.gcDelPostWrapped = true;
+window.gcOrigDeletePost = window.deletePost;
+window.deletePost = function(pid){
+gcOpenConfirm({
+title:'Delete Post?',
+text:'This post will be permanently removed for everyone. This action cannot be undone.',
+icon:'ph-trash',
+yesLabel:'Delete',
+onYes:function(){ gcAutoConfirmRun(function(){ window.gcOrigDeletePost(pid); }); }
+});
+};
+}
+// কমেন্ট ডিলিট → কাস্টম মোডাল
+['deleteComment','removeComment','deleteCommentAction'].forEach(function(fnName){
+if(typeof window[fnName] === 'function' && !window['gcWrapped_' + fnName]){
+window['gcWrapped_' + fnName] = true;
+const origFn = window[fnName];
+window[fnName] = function(){
+const args = arguments;
+gcOpenConfirm({
+title:'Delete Comment?',
+text:'This comment will be permanently removed.',
+icon:'ph-chat-centered-text',
+yesLabel:'Delete',
+onYes:function(){ gcAutoConfirmRun(function(){ origFn.apply(null, args); }); }
+});
+};
+}
+});
 </script>
 </body>
 </html>
