@@ -2414,6 +2414,30 @@ Liked Posts পেজ (মেনুর ওভারলে)
 .gc-cf-btn:active{transform:scale(.97);}
 .gc-cf-btn.cancel{background:var(--surface-2);color:var(--text);}
 .gc-cf-btn.yes{background:var(--danger);color:#fff;box-shadow:0 8px 20px rgba(255,77,106,.35);}
+
+/* =========================================
+🚀 Update #55 · follow-request-page · 2026-08-10
+বাঁ সোয়াইপে Request Profile পেজ
+খুঁজতে: Ctrl+F → "follow-request-page"
+========================================= */
+.gc-fr-screen{position:fixed;inset:0;background:var(--bg);z-index:100670;transform:translateX(-100%);transition:transform .3s cubic-bezier(.22,1,.36,1);display:flex;flex-direction:column;}
+.gc-fr-screen.open{transform:translateX(0);}
+.gc-fr-head{display:flex;align-items:center;gap:12px;padding:14px 16px;background:var(--surface);border-bottom:1px solid var(--border);}
+.gc-fr-title{font-size:18px;font-weight:800;color:var(--text);flex:1;display:flex;align-items:center;gap:8px;}
+.gc-fr-count{background:var(--accent);color:#fff;font-size:11px;font-weight:800;padding:3px 10px;border-radius:12px;}
+.gc-fr-body{flex:1;overflow-y:auto;padding:12px 14px;scrollbar-width:none;}
+.gc-fr-body::-webkit-scrollbar{display:none;}
+.gc-fr-item{display:flex;align-items:center;gap:12px;padding:12px;border-radius:16px;background:var(--surface);border:1px solid var(--border);margin-bottom:10px;}
+.gc-fr-av{width:48px;height:48px;border-radius:50%;object-fit:cover;background:var(--surface-2);flex-shrink:0;}
+.gc-fr-av-init{width:48px;height:48px;border-radius:50%;background:var(--gradient);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:18px;flex-shrink:0;}
+.gc-fr-info{flex:1;min-width:0;cursor:pointer;}
+.gc-fr-name{font-size:14px;font-weight:800;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.gc-fr-time{font-size:11px;color:var(--text-muted);margin-top:2px;display:flex;align-items:center;gap:4px;}
+.gc-fr-btns{display:flex;flex-direction:column;gap:6px;flex-shrink:0;}
+.gc-fr-btn{padding:7px 14px;border-radius:12px;font-size:12px;font-weight:800;cursor:pointer;border:none;transition:transform .15s;}
+.gc-fr-btn:active{transform:scale(.96);}
+.gc-fr-btn.back{background:var(--accent);color:#fff;box-shadow:0 4px 12px var(--accent-glow);}
+.gc-fr-btn.rm{background:transparent;border:1px solid var(--danger);color:var(--danger);}
 </style>
 </head>
 <body>
@@ -12337,7 +12361,7 @@ async function unsavePost(postId) {
     }
 }
 // ==========================================
-// 🚀 CHAT WALLPAPER SYSTEM LOGIC
+// ?? CHAT WALLPAPER SYSTEM LOGIC
 // ==========================================
 function openWallpaperPicker() {
     closeQuickProfile(); // আগের পপআপটা বন্ধ করবে
@@ -17452,6 +17476,109 @@ onYes:function(){ gcAutoConfirmRun(function(){ origFn.apply(null, args); }); }
 };
 }
 });
+// ═══════════════════════════════════════════════════════
+// 🚀 Update #55 · follow-request-page · 2026-08-10
+// হোম ফিডে বাঁ সোয়াইপ → Request Profile (নতুন ফলোয়ার লিস্ট)
+// খুঁজতে: Ctrl+F → "follow-request-page"
+// ═══════════════════════════════════════════════════════
+function gcOpenFollowRequests(){
+let scr = document.getElementById('gc-fr-screen');
+if(!scr){
+scr = document.createElement('div');
+scr.id = 'gc-fr-screen';
+scr.className = 'gc-fr-screen';
+scr.innerHTML = '<div class="gc-fr-head"><div class="chat-back" onclick="gcCloseFollowRequests()"><i class="ph-bold ph-arrow-left" style="font-size:20px;"></i></div><div class="gc-fr-title"><i class="ph-bold ph-user-plus" style="color:var(--accent);"></i> Request Profile <span class="gc-fr-count" id="gc-fr-count">0</span></div></div><div class="gc-fr-body" id="gc-fr-list"></div>';
+document.body.appendChild(scr);
+}
+scr.classList.add('open');
+gcLoadFollowRequests();
+}
+function gcCloseFollowRequests(){
+const s = document.getElementById('gc-fr-screen');
+if(s) s.classList.remove('open');
+}
+async function gcLoadFollowRequests(){
+const list = document.getElementById('gc-fr-list');
+const countEl = document.getElementById('gc-fr-count');
+if(!list || !currentUser || !currentUserData) return;
+list.innerHTML = '<div class="gc-sk-grid"><div class="gc-sk-tile"></div><div class="gc-sk-tile" style="animation-delay:.08s"></div><div class="gc-sk-tile" style="animation-delay:.16s"></div><div class="gc-sk-tile" style="animation-delay:.24s"></div></div>';
+const followers = currentUserData.followers || [];
+const following = currentUserData.following || [];
+const pending = followers.filter(function(uid){ return !following.includes(uid); });
+if(countEl) countEl.textContent = pending.length;
+if(!pending.length){
+list.innerHTML = '<div style="text-align:center;padding:70px 20px;color:var(--text-muted);"><i class="ph-bold ph-users-three" style="font-size:44px;"></i><div style="margin-top:12px;font-weight:800;color:var(--text);">No pending requests</div><div style="font-size:12px;margin-top:4px;">New followers you haven\'t followed back will appear here.</div></div>';
+return;
+}
+// কবে ফলো করেছে (ফলো নোটিফিকেশন থেকে)
+let timeMap = {};
+try{
+const snap = await db.collection('notifications').where('toUid', '==', currentUser.uid).where('type', '==', 'follow').limit(200).get();
+snap.forEach(function(d){ const n = d.data(); timeMap[n.fromUid] = n.createdAt; });
+}catch(e){}
+// ইউজার ডেটা (ক্যাশ + বাকিরা ফেচ)
+const users = {};
+(window.allUsersCache || []).forEach(function(u){ users[u.id] = u; });
+const missing = pending.filter(function(uid){ return !users[uid]; });
+try{
+const docs = await Promise.all(missing.map(function(id){ return db.collection('users').doc(id).get().catch(function(){ return null; }); }));
+docs.forEach(function(d, i){ if(d && d.exists) users[missing[i]] = Object.assign({ id: missing[i] }, d.data()); });
+}catch(e){}
+// নতুন ফলোয়ার আগে
+pending.sort(function(a, b){
+const ta = timeMap[a] ? (timeMap[a].toMillis ? timeMap[a].toMillis() : 0) : 0;
+const tb = timeMap[b] ? (timeMap[b].toMillis ? timeMap[b].toMillis() : 0) : 0;
+return tb - ta;
+});
+list.innerHTML = pending.map(function(uid){
+const u = users[uid] || { name: 'User', avatar: '' };
+const t = timeMap[uid];
+const timeTxt = t ? (typeof getRelativeTime === 'function' ? getRelativeTime(t) : '') : 'recently';
+const av = u.avatar ? '<img class="gc-fr-av" src="' + escapeHTML(u.avatar) + '">' : '<div class="gc-fr-av-init">' + (u.name || 'U').charAt(0).toUpperCase() + '</div>';
+return '<div class="gc-fr-item">' + av +
+'<div class="gc-fr-info" onclick="gcCloseFollowRequests(); viewUserProfile(\'' + uid + '\')"><div class="gc-fr-name">' + escapeHTML(u.name || 'User') + '</div><div class="gc-fr-time"><i class="ph-bold ph-clock" style="font-size:12px;"></i>Followed ' + escapeHTML(timeTxt || 'recently') + '</div></div>' +
+'<div class="gc-fr-btns"><button class="gc-fr-btn back" onclick="gcFollowBack(\'' + uid + '\')">Follow Back</button><button class="gc-fr-btn rm" onclick="gcRemoveFollower(\'' + uid + '\')">Remove</button></div></div>';
+}).join('');
+}
+function gcFollowBack(uid){
+if(typeof toggleFollow === 'function') toggleFollow(uid);
+setTimeout(function(){ gcLoadFollowRequests(); }, 900);
+}
+function gcRemoveFollower(uid){
+gcOpenConfirm({
+title:'Remove Follower?',
+text:'This person will be removed from your followers list.',
+icon:'ph-user-minus',
+yesLabel:'Remove',
+onYes:async function(){
+try{
+await db.collection('users').doc(currentUser.uid).update({ followers: firebase.firestore.FieldValue.arrayRemove(uid) });
+await db.collection('users').doc(uid).update({ following: firebase.firestore.FieldValue.arrayRemove(currentUser.uid) });
+showToast('Removed from followers');
+gcLoadFollowRequests();
+}catch(e){ showToast('❌ Failed to remove'); }
+}
+});
+}
+// বাঁ কিনারা থেকে ডানে সোয়াইপ → পেজ ওপেন (শুধু হোম ফিডে)
+(function gcSwipeOpenRequests(){
+if(window.gcFrSwipe) return;
+window.gcFrSwipe = true;
+let sx = 0, sy = 0;
+document.addEventListener('touchstart', function(e){
+const t = e.touches[0]; sx = t.clientX; sy = t.clientY;
+}, {passive:true});
+document.addEventListener('touchend', function(e){
+const t = e.changedTouches[0];
+const dx = t.clientX - sx, dy = t.clientY - sy;
+const feed = document.getElementById('page-feed');
+const feedActive = feed && (feed.classList.contains('active') || feed.classList.contains('open'));
+const busy = document.querySelector('.gc-fr-screen.open, .gc-sw-overlay.open, .gc-rp-overlay.open, .gc-cf-overlay.open');
+if(feedActive && !busy && sx < 60 && dx > 70 && Math.abs(dy) < 70){
+gcOpenFollowRequests();
+}
+}, {passive:true});
+})();
 </script>
 </body>
 </html>
