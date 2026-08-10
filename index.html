@@ -2377,6 +2377,25 @@ Threads-স্টাইল (আরও সুন্দর) পোস্ট রি
 .gc-rp-radio{width:20px;height:20px;border-radius:50%;border:2px solid var(--border);position:relative;flex-shrink:0;}
 .gc-rp-opt.active .gc-rp-radio{border-color:var(--accent);}
 .gc-rp-opt.active .gc-rp-radio::after{content:'';position:absolute;inset:3px;border-radius:50%;background:var(--accent);}
+
+/* =========================================
+🚀 Update #53 · liked-posts-page · 2026-08-10
+Liked Posts পেজ (মেনুর ওভারলে)
+খুঁজতে: Ctrl+F → "liked-posts-page"
+========================================= */
+.gc-liked-screen{position:fixed;inset:0;background:var(--bg);z-index:100660;display:none;flex-direction:column;}
+.gc-liked-screen.open{display:flex;}
+.gc-lk-head{display:flex;align-items:center;gap:12px;padding:14px 16px;background:var(--surface);border-bottom:1px solid var(--border);}
+.gc-lk-title{font-size:18px;font-weight:800;color:var(--text);display:flex;align-items:center;gap:8px;}
+.gc-lk-body{flex:1;overflow-y:auto;padding:12px 14px;scrollbar-width:none;}
+.gc-lk-body::-webkit-scrollbar{display:none;}
+.gc-lk-item{display:flex;gap:12px;padding:10px;border-radius:16px;background:var(--surface);border:1px solid var(--border);margin-bottom:10px;cursor:pointer;align-items:center;transition:transform .15s;}
+.gc-lk-item:active{transform:scale(.98);}
+.gc-lk-img{width:64px;height:64px;border-radius:12px;object-fit:cover;background:var(--surface-2);flex-shrink:0;}
+.gc-lk-info{flex:1;min-width:0;}
+.gc-lk-name{font-size:13px;font-weight:800;color:var(--text);}
+.gc-lk-cap{font-size:12px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px;}
+.gc-lk-meta{font-size:11px;color:var(--text-muted);margin-top:4px;display:flex;align-items:center;gap:4px;}
 </style>
 </head>
 <body>
@@ -3457,10 +3476,11 @@ Threads-স্টাইল (আরও সুন্দর) পোস্ট রি
             <i class="ph-bold ph-caret-right" style="color:var(--text-muted); font-size:16px;"></i>
         </div>
 
-        <div class="settings-list-item" onclick="showToast('Memories feature coming soon!')">
+        <!-- 🚀 NEW: Liked Menu Item -->
+        <div class="settings-list-item" onclick="showToast('Liked posts coming soon!')">
             <div style="display:flex; align-items:center; gap:16px;">
-                <i class="ph-bold ph-clock-counter-clockwise" style="font-size: 24px; color: #a78bfa;"></i>
-                <span style="font-weight:600; font-size:15px;">Memories</span>
+                <i class="ph-bold ph-heart" style="font-size: 24px; color: #ff4d6a;"></i>
+                <span style="font-weight:600; font-size:15px;">Liked</span>
             </div>
             <i class="ph-bold ph-caret-right" style="color:var(--text-muted); font-size:16px;"></i>
         </div>
@@ -17280,6 +17300,74 @@ if(bar) bar.querySelectorAll('button').forEach(function(b){ b.style.opacity = '.
 }
 showToast('🔒 The author limited who can reply');
 }
+// ═══════════════════════════════════════════════════════
+// 🚀 Update #53 · liked-posts-page · 2026-08-10
+// মেনুর "Liked" → নিজের লাইক করা পোস্টের লিস্ট
+// খুঁজতে: Ctrl+F → "liked-posts-page"
+// ═══════════════════════════════════════════════════════
+function gcOpenLikedScreen(){
+let scr = document.getElementById('gc-liked-screen');
+if(!scr){
+scr = document.createElement('div');
+scr.id = 'gc-liked-screen';
+scr.className = 'gc-liked-screen';
+scr.innerHTML = '<div class="gc-lk-head"><div class="chat-back" onclick="gcCloseLikedScreen()"><i class="ph-bold ph-arrow-left" style="font-size:20px;"></i></div><div class="gc-lk-title"><i class="ph-fill ph-heart" style="color:var(--danger);"></i> Liked Posts</div></div><div class="gc-lk-body" id="gc-liked-list"></div>';
+document.body.appendChild(scr);
+}
+scr.classList.add('open');
+gcLoadLikedPosts();
+}
+function gcCloseLikedScreen(){
+const s = document.getElementById('gc-liked-screen');
+if(s) s.classList.remove('open');
+}
+async function gcLoadLikedPosts(){
+const list = document.getElementById('gc-liked-list');
+if(!list || !currentUser) return;
+list.innerHTML = '<div class="gc-sk-grid"><div class="gc-sk-tile"></div><div class="gc-sk-tile" style="animation-delay:.08s"></div><div class="gc-sk-tile" style="animation-delay:.16s"></div><div class="gc-sk-tile" style="animation-delay:.24s"></div><div class="gc-sk-tile" style="animation-delay:.32s"></div><div class="gc-sk-tile" style="animation-delay:.4s"></div></div>';
+try{
+const snap = await db.collection('posts').where('likedBy', 'array-contains', currentUser.uid).get();
+let items = [];
+snap.forEach(function(d){ items.push({ id: d.id, ...d.data() }); });
+items.sort(function(a, b){
+const ta = a.createdAt && a.createdAt.toMillis ? a.createdAt.toMillis() : 0;
+const tb = b.createdAt && b.createdAt.toMillis ? b.createdAt.toMillis() : 0;
+return tb - ta;
+});
+if(!items.length){
+list.innerHTML = '<div style="text-align:center;padding:70px 20px;color:var(--text-muted);"><i class="ph-bold ph-heart-break" style="font-size:44px;"></i><div style="margin-top:12px;font-weight:800;color:var(--text);">No liked posts yet</div><div style="font-size:12px;margin-top:4px;">Posts you like will appear here.</div></div>';
+return;
+}
+list.innerHTML = items.map(function(p){
+const img = (p.imgUrls && p.imgUrls[0]) || p.videoUrl || '';
+const u = (window.allUsersCache || []).find(function(x){ return x.id === p.uid; }) || {};
+const t = (p.createdAt && typeof getRelativeTime === 'function') ? getRelativeTime(p.createdAt) : '';
+const lc = Array.isArray(p.likes) ? p.likes.length : (p.likes || 0);
+return '<div class="gc-lk-item" onclick="gcCloseLikedScreen(); openSinglePostView(\'' + p.id + '\')">' +
+(img ? '<img class="gc-lk-img" src="' + img + '">' : '<div class="gc-lk-img" style="display:flex;align-items:center;justify-content:center;"><i class="ph-bold ph-text-aa" style="color:var(--text-muted);"></i></div>') +
+'<div class="gc-lk-info"><div class="gc-lk-name">' + escapeHTML(u.name || 'User') + '</div>' +
+'<div class="gc-lk-cap">' + escapeHTML(p.title || '(no caption)') + '</div>' +
+'<div class="gc-lk-meta"><i class="ph-fill ph-heart" style="color:var(--danger);font-size:12px;"></i>' + lc + ' · ' + t + '</div></div></div>';
+}).join('');
+}catch(e){
+list.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted);font-size:13px;">Failed to load liked posts.</div>';
+}
+}
+// মেনুর "Liked" আইটেমে ক্লিক হুক
+(function gcHookLikedItem(){
+if(window.gcLikedHook) return;
+window.gcLikedHook = true;
+setInterval(function(){
+document.querySelectorAll('.settings-list-item').forEach(function(it){
+if(it.dataset.gcLiked) return;
+if(/Liked/.test(it.textContent || '')){
+it.dataset.gcLiked = '1';
+it.removeAttribute('onclick');
+it.onclick = function(){ gcOpenLikedScreen(); };
+}
+});
+}, 1500);
+})();
 </script>
 </body>
 </html>
