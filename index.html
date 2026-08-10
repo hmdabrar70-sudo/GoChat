@@ -1919,58 +1919,100 @@ body:not(.light-mode) #splash-screen {
 }
 
 /* =========================================
-   IN-APP NOTIFICATION POPUP STYLES
-   ========================================= */
+✨ PREMIUM IN-APP NOTIFICATION STYLES · Update #59 ✨
+সোয়াইপ ফিক্স + প্রিমিয়াম রিডিজাইন
+খুঁজতে: Ctrl+F → "notif-swipe-fix"
+========================================= */
 #in-app-notif-container {
-    position: fixed;
-    top: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 90%;
-    max-width: 400px;
-    z-index: 9999999;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    pointer-events: none; /* ফাঁকা জায়গায় ক্লিক যেন অ্যাপে লাগে */
+position: fixed;
+top: 24px;
+left: 50%;
+transform: translateX(-50%);
+width: 92%;
+max-width: 420px;
+z-index: 9999999;
+display: flex;
+flex-direction: column;
+gap: 12px;
+pointer-events: none;
 }
 .msg-popup {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 12px 16px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    pointer-events: auto; /* পপআপে ক্লিক যেন কাজ করে */
-    cursor: pointer;
-    animation: slideDownPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-    transition: all 0.3s;
+position: relative;
+overflow: hidden;
+background: linear-gradient(145deg, var(--surface), var(--surface-2));
+border: 1px solid rgba(124, 92, 255, 0.22);
+border-radius: 22px;
+padding: 14px 18px;
+box-shadow: 0 16px 40px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+backdrop-filter: blur(14px);
+-webkit-backdrop-filter: blur(14px);
+display: flex;
+align-items: center;
+gap: 14px;
+pointer-events: auto;
+cursor: grab;
+animation: slideDownPop 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
 }
-.msg-popup.hide {
-    animation: slideUpFade 0.4s ease forwards;
+/* বাঁ পাশে গ্লোয়িং অ্যাকসেন্ট বার */
+.msg-popup::before {
+content: '';
+position: absolute;
+left: 0; top: 18%; bottom: 18%;
+width: 3.5px;
+border-radius: 0 4px 4px 0;
+background: linear-gradient(180deg, var(--accent-light), var(--accent-dark));
+box-shadow: 0 0 12px var(--accent-glow);
 }
-@keyframes slideDownPop {
-    0% { transform: translateY(-100px); opacity: 0; }
-    100% { transform: translateY(0); opacity: 1; }
+/* হালকা শাইন-সুইপ ইফেক্ট */
+.msg-popup::after {
+content: '';
+position: absolute;
+top: 0; left: -60%;
+width: 40%; height: 100%;
+background: linear-gradient(100deg, transparent, rgba(255,255,255,.09), transparent);
+animation: gcPopShine 3s ease-in-out 1.2s infinite;
+pointer-events: none;
 }
-/* কুইক রিপ্লাই ইনপুট ডিজাইন */
+@keyframes gcPopShine {
+0% { left: -60%; }
+55% { left: 130%; }
+100% { left: 130%; }
+}
+.msg-popup:hover {
+transform: translateY(-3px);
+box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+border-color: rgba(124, 92, 255, 0.45);
+}
+.msg-popup:active { cursor: grabbing; transform: scale(0.97); }
+/* ডান সোয়াইপ → ডানে, বাঁ সোয়াইপ → বাঁয়ে */
+.msg-popup.hide { animation: slideRightFade 0.4s ease forwards; }
+.msg-popup.hide-left { animation: slideLeftFade 0.4s ease forwards; }
+@keyframes slideRightFade {
+0% { transform: translateX(0); opacity: 1; }
+100% { transform: translateX(120%); opacity: 0; }
+}
+@keyframes slideLeftFade {
+0% { transform: translateX(0); opacity: 1; }
+100% { transform: translateX(-120%); opacity: 0; }
+}
+/* কুইক রিপ্লাই বার (আরও প্রিমিয়াম) */
 .msg-popup-reply-bar {
-    display: flex; gap: 8px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); width: 100%;
+display: flex; gap: 8px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); width: 100%;
 }
 .msg-popup-reply-bar input {
-    flex: 1; background: var(--surface-2); border: 1px solid var(--border);
-    border-radius: 20px; padding: 8px 14px; color: var(--text); font-size: 13px; outline: none; transition: 0.2s;
+flex: 1; background: var(--surface-2); border: 1px solid var(--border);
+border-radius: 20px; padding: 8px 14px; color: var(--text); font-size: 13px; outline: none; transition: 0.2s;
 }
-.msg-popup-reply-bar input:focus { border-color: var(--accent); }
+.msg-popup-reply-bar input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
 .msg-popup-reply-bar button {
-    background: var(--accent); color: white; border: none; border-radius: 50%;
-    width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer;
+background: var(--gradient); color: #fff; border: none; border-radius: 50%;
+width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer;
+box-shadow: 0 4px 12px var(--accent-glow);
 }
 @keyframes slideUpFade {
-    0% { transform: translateY(0); opacity: 1; }
-    100% { transform: translateY(-100px); opacity: 0; }
+0% { transform: translateY(0); opacity: 1; }
+100% { transform: translateY(-100px); opacity: 0; }
 }
 
 /* ৫. লাইক করার পর স্পার্ক (বাবল) ইফেক্ট ট্রিগার করা */
@@ -17659,6 +17701,33 @@ if(op && typeof currentOtherProfileUid !== 'undefined' && currentOtherProfileUid
 window.addEventListener('offline', function(){ gcShowNetBanner(false); gcNetWatchScan(); });
 window.addEventListener('online', function(){ gcShowNetBanner(true); setTimeout(gcRetryLoad, 800); });
 setInterval(gcNetWatchScan, 3000);
+// ═══════════════════════════════════════════════════════
+// 🚀 Update #59 · notif-swipe-fix · 2026-08-11
+// নোটিফিকেশন পপআপ: ডান/বাঁ সোয়াইপে ডিসমিস
+// খুঁজতে: Ctrl+F → "notif-swipe-fix"
+// ═══════════════════════════════════════════════════════
+(function gcNotifSwipe(){
+if(window.gcNotifSwipeOn) return;
+window.gcNotifSwipeOn = true;
+let sx = 0, sy = 0, target = null;
+document.addEventListener('touchstart', function(e){
+const p = (e.target && e.target.closest) ? e.target.closest('.msg-popup') : null;
+if(!p) return;
+target = p;
+sx = e.touches[0].clientX;
+sy = e.touches[0].clientY;
+}, {passive:true});
+document.addEventListener('touchend', function(e){
+if(!target) return;
+const dx = e.changedTouches[0].clientX - sx;
+const dy = e.changedTouches[0].clientY - sy;
+const p = target; target = null;
+if(Math.abs(dx) > 60 && Math.abs(dy) < 50){
+p.classList.add(dx > 0 ? 'hide' : 'hide-left');
+setTimeout(function(){ p.remove(); }, 380);
+}
+}, {passive:true});
+})();
 </script>
 </body>
 </html>
