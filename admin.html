@@ -771,84 +771,53 @@ await db.collection('reports').doc(rid).update({ status: 'rejected', actionTaken
 showToast('Report dismissed', 'success');
 }
 
-// 🚀 FEATURE 9: ELITE APPLICATIONS MANAGEMENT
+// 🚀 FEATURE 9 · elite-payment-system v2 · 2026-08-11
 async function loadEliteApplications() {
-    const grid = document.getElementById('eliteGrid');
-    grid.innerHTML = '<div class="text-center text-gray-500 py-10 col-span-full"><i class="fas fa-spinner fa-spin text-2xl"></i> Loading applications...</div>';
-    try {
-        const snap = await db.collection('eliteApplications').orderBy('createdAt', 'desc').get();
-        if (snap.empty) {
-            grid.innerHTML = '<div class="text-center text-gray-500 py-10 col-span-full bg-white rounded-xl border border-gray-200">No applications found.</div>';
-            return;
-        }
-        let html = '';
-        snap.forEach(doc => {
-            const app = doc.data();
-            const statusBadge = app.status === 'pending' ? '<span class="bg-yellow-100 text-yellow-600 px-2 py-1 rounded text-xs font-bold">PENDING</span>' : 
-                                app.status === 'approved' ? '<span class="bg-green-100 text-green-600 px-2 py-1 rounded text-xs font-bold">APPROVED</span>' : 
-                                '<span class="bg-red-100 text-red-600 px-2 py-1 rounded text-xs font-bold">REJECTED</span>';
-            
-            html += `
-            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 flex flex-col gap-4">
-                <div class="flex justify-between items-start">
-                    <div>
-                        <h3 class="text-xl font-bold text-gray-800">${escapeHTML(app.name || 'Unknown')}</h3>
-                        <p class="text-sm text-gray-500">@${escapeHTML(app.username || 'no-username')}</p>
-                    </div>
-                    ${statusBadge}
-                </div>
-                <div class="text-sm text-gray-600 space-y-1">
-                    <p><i class="fas fa-envelope w-4 text-gray-400 mr-2"></i> ${escapeHTML(app.email || '')}</p>
-                    <p><i class="fab fa-whatsapp w-4 text-green-500 mr-2"></i> ${escapeHTML(app.whatsapp || '')}</p>
-                    <p><i class="fas fa-id-card w-4 text-blue-500 mr-2"></i> UID: ${app.uid}</p>
-                </div>
-                <div class="grid grid-cols-2 gap-4 mt-2">
-                    <div>
-                        <p class="text-xs font-bold text-gray-500 mb-2 uppercase">ID Photo (Document)</p>
-                        <img src="${app.idPhotoUrl}" class="w-full h-40 object-cover rounded-lg border cursor-pointer" onclick="window.open('${app.idPhotoUrl}', '_blank')">
-                    </div>
-                    <div>
-                        <p class="text-xs font-bold text-gray-500 mb-2 uppercase">Face Selfie</p>
-                        <img src="${app.facePhotoUrl}" class="w-full h-40 object-cover rounded-lg border cursor-pointer" onclick="window.open('${app.facePhotoUrl}', '_blank')">
-                    </div>
-                </div>
-                ${app.status === 'pending' ? `
-                <div class="flex gap-3 mt-4">
-                    <button onclick="approveElite('${doc.id}', '${app.uid}')" class="flex-1 py-3 bg-green-600 text-white font-bold rounded-xl hover:bg-green-700 transition">Approve & Give Badge</button>
-                    <button onclick="rejectElite('${doc.id}')" class="flex-1 py-3 bg-red-500 text-white font-bold rounded-xl hover:bg-red-600 transition">Reject</button>
-                </div>` : ''}
-            </div>`;
-        });
-        grid.innerHTML = html;
-    } catch (e) {
-        console.error(e);
-        grid.innerHTML = '<div class="text-red-500 text-center font-bold col-span-full">Failed to load applications.</div>';
-    }
+const grid = document.getElementById('eliteGrid');
+grid.innerHTML = '<div class="text-center text-gray-500 py-10 col-span-full"><i class="fas fa-spinner fa-spin text-2xl"></i> Loading payment requests...</div>';
+try {
+const snap = await db.collection('elitePayments').get();
+let rows = [];
+snap.forEach(d => rows.push({ id: d.id, ...d.data() }));
+rows.sort((a,b) => (b.createdAt && b.createdAt.toMillis ? b.createdAt.toMillis() : 0) - (a.createdAt && a.createdAt.toMillis ? a.createdAt.toMillis() : 0));
+const trxCount = {};
+rows.forEach(r => { if (r.trxId) trxCount[r.trxId] = (trxCount[r.trxId] || 0) + 1; });
+if (!rows.length) { grid.innerHTML = '<div class="text-center text-gray-500 py-10 col-span-full bg-white rounded-xl border border-gray-200">No payment requests yet.</div>'; return; }
+grid.innerHTML = rows.map(r => {
+const st = r.status || 'pending';
+const badge = st === 'pending' ? '<span class="bg-yellow-100 text-yellow-600 px-2 py-1 rounded text-xs font-bold">PENDING</span>' : st === 'approved' ? '<span class="bg-green-100 text-green-600 px-2 py-1 rounded text-xs font-bold">APPROVED</span>' : '<span class="bg-red-100 text-red-600 px-2 py-1 rounded text-xs font-bold">REJECTED</span>';
+const dup = (trxCount[r.trxId] || 0) > 1 ? '<div class="bg-red-50 border border-red-200 text-red-600 text-xs font-bold rounded-lg p-2">⚠️ DUPLICATE TrxID — another request also uses this TrxID!</div>' : '';
+return `
+<div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 flex flex-col gap-3">
+<div class="flex justify-between items-start">
+<div><h3 class="text-xl font-bold text-gray-800">${escapeHTML(r.name || 'User')}</h3>
+<p class="text-sm text-gray-500">@${escapeHTML(r.username || 'no-username')} <button onclick="navigator.clipboard.writeText('${escapeHTML(r.username || '')}');showToast('Username copied','success')" class="text-blue-600 text-xs font-bold ml-1"><i class="fas fa-copy"></i> Copy</button></p></div>
+${badge}
+</div>
+<div class="text-sm text-gray-600 space-y-1">
+<p><i class="fas fa-crown w-4 text-yellow-500 mr-2"></i> ${escapeHTML(r.planName || '—')} · ৳${r.amount || 0}</p>
+<p><i class="fas fa-receipt w-4 text-blue-500 mr-2"></i> TrxID: <b class="font-mono">${escapeHTML(r.trxId || '—')}</b></p>
+<p><i class="fas fa-mobile-alt w-4 text-green-500 mr-2"></i> Sender: ${escapeHTML(r.senderNumber || '—')}</p>
+<p><i class="fas fa-id-card w-4 text-gray-400 mr-2"></i> UID: ${escapeHTML(r.uid || '')}</p>
+</div>
+${dup}
+<div class="grid grid-cols-2 gap-3">
+<div><p class="text-xs font-bold text-gray-500 uppercase mb-2">👤 Profile Screenshot (ID Proof)</p>
+${r.profileShotUrl ? `<img src="${escapeHTML(r.profileShotUrl)}" class="w-full h-44 object-cover rounded-lg border cursor-pointer" onclick="window.open('${escapeHTML(r.profileShotUrl)}','_blank')">` : '<p class="text-xs text-red-400 font-bold">Not provided!</p>'}</div>
+<div><p class="text-xs font-bold text-gray-500 uppercase mb-2">💳 Payment Screenshot</p>
+${r.screenshotUrl ? `<img src="${escapeHTML(r.screenshotUrl)}" class="w-full h-44 object-cover rounded-lg border cursor-pointer" onclick="window.open('${escapeHTML(r.screenshotUrl)}','_blank')">` : '<p class="text-xs text-gray-400">Optional — not provided</p>'}</div>
+</div>
+${st === 'pending' ? `
+<div class="flex gap-3 mt-2">
+<button onclick="approveElite('${r.id}','${r.uid}',${r.days || 30},'${escapeHTML(r.planName || '')}')" class="flex-1 py-3 bg-green-600 text-white font-bold rounded-xl hover:bg-green-700 transition">Approve & Activate</button>
+<button onclick="rejectElite('${r.id}')" class="flex-1 py-3 bg-red-500 text-white font-bold rounded-xl hover:bg-red-600 transition">Reject</button>
+</div>` : ''}
+</div>`;
+}).join('');
+} catch (e) {
+console.error(e);
+grid.innerHTML = '<div class="text-red-500 text-center font-bold col-span-full">Failed to load payment requests.</div>';
 }
-
-async function approveElite(appId, uid) {
-    if(!confirm("Approve this application and grant Elite Badge?")) return;
-    try {
-        // অ্যাপ্লিকেশন স্ট্যাটাস আপডেট
-        await db.collection('eliteApplications').doc(appId).update({ status: 'approved', reviewedAt: firebase.firestore.FieldValue.serverTimestamp() });
-        // ইউজারকে গোল্ডেন ব্যাজ (isElite + isVerified) দেওয়া
-        await db.collection('users').doc(uid).update({ isElite: true, isVerified: true });
-        showToast("Application Approved & Badge Granted!", "success");
-        loadEliteApplications();
-    } catch(e) {
-        showToast("Failed to approve", "error");
-    }
-}
-
-async function rejectElite(appId) {
-    if(!confirm("Reject this application?")) return;
-    try {
-        await db.collection('eliteApplications').doc(appId).update({ status: 'rejected', reviewedAt: firebase.firestore.FieldValue.serverTimestamp() });
-        showToast("Application Rejected", "success");
-        loadEliteApplications();
-    } catch(e) {
-        showToast("Failed to reject", "error");
-    }
 }
 
         // 🚀 UTILS
