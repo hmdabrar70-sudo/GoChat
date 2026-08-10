@@ -254,18 +254,30 @@
 
         const auth = firebase.auth();
         const db = firebase.firestore();
-        // 🚀 FIX: Redirect ফলব্যাক থেকে ফিরলে রেজাল্ট প্রসেস + এরর হলে টোস্ট
-// 🚀 ADMIN AUTHENTICATION · secret-code-login · 2026-08-10
-// Gmail login removed — এখন শুধু সিক্রেট কোড দিয়েই ঢোকা যাবে
+// 🚀 ADMIN AUTHENTICATION · secret-code-login v2 · 2026-08-10
+// সিক্রেট কোড = UI গেট, Firebase Anonymous session = ডাটা পড়ার পারমিশন
 const ADMIN_SECRET_CODE = "sabbirbh@iy@";
 const ADMIN_SESSION_KEY = "gc_admin_unlocked";
 let allUsersData = [];
-function unlockAdminPanel() {
+async function ensureFirebaseSession() {
+try {
+if (!auth.currentUser) {
+await auth.signInAnonymously();
+}
+return true;
+} catch (e) {
+console.error("Firebase session error:", e);
+showToast("⚠️ Firebase Console → Authentication → Sign-in method → Anonymous → Enable করো", "error");
+return false;
+}
+}
+async function unlockAdminPanel() {
 const input = document.getElementById('adminSecretInput');
 const errEl = document.getElementById('adminLoginError');
 const entered = input ? input.value : '';
 if (entered === ADMIN_SECRET_CODE) {
 sessionStorage.setItem(ADMIN_SESSION_KEY, '1');
+await ensureFirebaseSession();
 enterAdminPanel();
 } else {
 if (errEl) errEl.style.display = 'block';
@@ -284,7 +296,7 @@ startReportsListener();
 // পেজ লোড হলে সেশন চেক (রিফ্রেশ করলে আবার কোড চাইবে না)
 (function checkAdminSession() {
 if (sessionStorage.getItem(ADMIN_SESSION_KEY) === '1') {
-enterAdminPanel();
+ensureFirebaseSession().then(function () { enterAdminPanel(); });
 } else {
 document.getElementById('loginScreen').style.display = 'flex';
 document.getElementById('adminPanel').style.display = 'none';
