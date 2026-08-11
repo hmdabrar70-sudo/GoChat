@@ -11177,3 +11177,68 @@ db.collection('users').doc(u.uid).update({ isElite: false, isVerified: false });
 }
 });
 });
+// ═══════════════════════════════════════════════════════
+// 🚀 Update #60 · profile-posts-count · 2026-08-11
+// Followers/Following-এর পাশে লাইভ Posts কাউন্ট (নিজের + অন্যদের)
+// খুঁজতে: Ctrl+F → "profile-posts-count"
+// ═══════════════════════════════════════════════════════
+function gcFmtCount(n){
+if(n >= 1000000) return (n/1000000).toFixed(1).replace('.0','') + 'M';
+if(n >= 1000) return (n/1000).toFixed(1).replace('.0','') + 'K';
+return String(n);
+}
+function gcInjectPostsCount(){
+// নিজের প্রোফাইল
+const myFc = document.getElementById('my-following-count');
+if(myFc && !document.getElementById('my-posts-count-wrap')){
+const anchor = myFc.closest('span') || myFc.parentElement;
+const span = document.createElement('span');
+span.id = 'my-posts-count-wrap';
+span.innerHTML = '<b id="my-posts-count" style="color:var(--text); font-size:16px;">0</b> Posts';
+anchor.insertAdjacentElement('afterend', span);
+}
+// অন্যদের প্রোফাইল
+const otFc = document.getElementById('other-following-count');
+const otStats = document.getElementById('other-profile-follow-stats');
+const anchorO = otFc ? (otFc.closest('span') || otFc.parentElement) : (otStats ? otStats.lastElementChild : null);
+if(anchorO && !document.getElementById('other-posts-count-wrap')){
+const span = document.createElement('span');
+span.id = 'other-posts-count-wrap';
+span.innerHTML = '<b id="other-posts-count" style="color:var(--text); font-size:16px;">0</b> Posts';
+anchorO.insertAdjacentElement('afterend', span);
+}
+}
+let gcMyPostsUnsub = null, gcOtherPostsUnsub = null, gcOtherCountUid = null;
+function gcStartMyPostsCount(){
+if(gcMyPostsUnsub || !currentUser) return;
+gcMyPostsUnsub = db.collection('posts').where('uid','==',currentUser.uid).onSnapshot(function(snap){
+const el = document.getElementById('my-posts-count');
+if(el) el.textContent = gcFmtCount(snap.size);
+}, function(){});
+}
+function gcStartOtherPostsCount(uid){
+if(!uid) return;
+if(gcOtherCountUid === uid && gcOtherPostsUnsub) return;
+if(gcOtherPostsUnsub){ try{ gcOtherPostsUnsub(); }catch(e){} gcOtherPostsUnsub = null; }
+gcOtherCountUid = uid;
+gcOtherPostsUnsub = db.collection('posts').where('uid','==',uid).onSnapshot(function(snap){
+const el = document.getElementById('other-posts-count');
+if(el) el.textContent = gcFmtCount(snap.size);
+}, function(){});
+}
+(function gcPostsCountInit(){
+if(window.gcPostsCountOn) return;
+window.gcPostsCountOn = true;
+setInterval(function(){
+gcInjectPostsCount();
+const pp = document.getElementById('page-profile');
+if(pp && pp.classList.contains('active')) gcStartMyPostsCount();
+const op = document.getElementById('page-other-profile');
+if(op && (op.classList.contains('active') || op.classList.contains('open')) && typeof currentOtherProfileUid !== 'undefined' && currentOtherProfileUid){
+gcStartOtherPostsCount(currentOtherProfileUid);
+}else if(gcOtherPostsUnsub){
+try{ gcOtherPostsUnsub(); }catch(e){}
+gcOtherPostsUnsub = null; gcOtherCountUid = null;
+}
+}, 2000);
+})();
