@@ -3962,27 +3962,32 @@ transition:background .2s;
 
 /* =========================================
 🚀 Update #61 · message-requests · 2026-08-11
-অচেনা ইউজারের মেসেজ → আলাদা রিকোয়েস্ট ইনবক্স
+অপরিচিতদের মেসেজ → আলাদা রিকোয়েস্ট ইনবক্স
 খুঁজতে: Ctrl+F → "message-requests"
 ========================================= */
-.gc-mr-badge{position:absolute;top:-4px;right:-4px;min-width:18px;height:18px;padding:0 5px;border-radius:10px;background:var(--danger);color:#fff;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(255,77,106,.5);}
-.gc-mr-screen{position:fixed;inset:0;background:var(--bg);z-index:100680;transform:translateX(100%);transition:transform .3s cubic-bezier(.22,1,.36,1);display:flex;flex-direction:column;}
-.gc-mr-screen.open{transform:translateX(0);}
+.gc-mr-badge{position:absolute;top:-4px;right:-4px;min-width:18px;height:18px;border-radius:9px;background:var(--danger);color:#fff;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;padding:0 4px;}
+.gc-mr-screen{position:fixed;inset:0;background:var(--bg);z-index:100680;display:none;flex-direction:column;}
+.gc-mr-screen.open{display:flex;}
 .gc-mr-head{display:flex;align-items:center;gap:12px;padding:14px 16px;background:var(--surface);border-bottom:1px solid var(--border);}
-.gc-mr-title{font-size:18px;font-weight:800;color:var(--text);display:flex;align-items:center;gap:8px;}
-.gc-mr-body{flex:1;overflow-y:auto;padding:12px 14px;scrollbar-width:none;}
+.gc-mr-title{font-size:18px;font-weight:800;color:var(--text);flex:1;display:flex;align-items:center;gap:8px;}
+.gc-mr-body{flex:1;overflow-y:auto;padding:12px 14px 90px;scrollbar-width:none;}
 .gc-mr-body::-webkit-scrollbar{display:none;}
-.gc-mr-item{display:flex;align-items:center;gap:12px;padding:12px;border-radius:16px;background:var(--surface);border:1px solid var(--border);margin-bottom:10px;}
+.gc-mr-item{display:flex;align-items:center;gap:12px;padding:12px;border-radius:16px;background:var(--surface);border:1px solid var(--border);margin-bottom:10px;cursor:pointer;transition:transform .15s;}
+.gc-mr-item:active{transform:scale(.98);}
 .gc-mr-av{width:48px;height:48px;border-radius:50%;object-fit:cover;background:var(--surface-2);flex-shrink:0;}
-.gc-mr-av-init{width:48px;height:48px;border-radius:50%;background:var(--gradient);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:18px;flex-shrink:0;}
-.gc-mr-info{flex:1;min-width:0;cursor:pointer;}
+.gc-mr-av-init{width:48px;height:48px;border-radius:50%;background:var(--gradient);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;flex-shrink:0;}
+.gc-mr-info{flex:1;min-width:0;}
 .gc-mr-name{font-size:14px;font-weight:800;color:var(--text);}
-.gc-mr-last{font-size:12px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px;}
-.gc-mr-actions{display:flex;gap:6px;flex-shrink:0;}
-.gc-mr-btn{width:34px;height:34px;border-radius:50%;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .15s;}
-.gc-mr-btn:active{transform:scale(.92);}
-.gc-mr-btn.ok{background:var(--success);color:#fff;}
-.gc-mr-btn.no{background:var(--surface-2);color:var(--danger);border:1px solid var(--danger);}
+.gc-mr-prev{font-size:12px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px;}
+.gc-mr-msg{display:flex;margin:6px 0;}
+.gc-mr-msg.mine{justify-content:flex-end;}
+.gc-mr-msg .b{max-width:75%;padding:10px 14px;border-radius:16px;font-size:13px;line-height:1.4;}
+.gc-mr-msg.theirs .b{background:var(--surface-2);color:var(--text);border-bottom-left-radius:4px;}
+.gc-mr-msg.mine .b{background:var(--gradient);color:#fff;border-bottom-right-radius:4px;}
+.gc-mr-actions{position:absolute;left:0;right:0;bottom:0;display:flex;gap:10px;padding:12px 16px calc(12px + env(safe-area-inset-bottom));background:var(--surface);border-top:1px solid var(--border);}
+.gc-mr-actions button{flex:1;padding:13px;border:none;border-radius:14px;font-size:14px;font-weight:800;cursor:pointer;}
+.gc-mr-accept{background:var(--success);color:#fff;}
+.gc-mr-delete{background:var(--surface-2);color:var(--danger);border:1px solid var(--danger) !important;}
 </style>
 </head>
 <body>
@@ -4073,11 +4078,6 @@ transition:background .2s;
         <div class="nav-badge" id="notif-badge">0</div>
     </div>
     
-        <!-- 🚀 NEW: Chats Circle Button -->
-    <div class="topbar-btn" id="topbar-chats-circle-btn" style="display:none;" onclick="showToast('Feature coming soon!')">
-        <i class="ph-fill ph-chats-circle" style="font-size: 24px;"></i>
-    </div>
-
     <div class="topbar-btn" id="topbar-group-btn" onclick="openCreateGroupModal()" style="display:none;">
         <i class="ph-bold ph-users-three" style="font-size: 22px; color: #8a2be2;"></i>
     </div>
@@ -6585,10 +6585,6 @@ function showPage(page) {
     // গ্রুপ আইকন হ্যান্ডেল করার লজিক
     const groupBtn = document.getElementById('topbar-group-btn');
     if (groupBtn) groupBtn.style.display = (page === 'messages') ? 'flex' : 'none';
-    
-    // 🚀 নতুন চ্যাটস সার্কেল আইকন হ্যান্ডেল করার লজিক (এটি যোগ করুন)
-    const chatsCircleBtn = document.getElementById('topbar-chats-circle-btn');
-    if (chatsCircleBtn) chatsCircleBtn.style.display = (page === 'messages') ? 'flex' : 'none';
 
     // 🚀 নোটিফিকেশন এডিট বাটন হ্যান্ডেল করার লজিক
     const notifEditBtn = document.getElementById('topbar-notif-edit-btn');
@@ -16779,142 +16775,208 @@ db.collection('users').doc(u.uid).update({ isElite: false, isVerified: false });
 });
 // ═══════════════════════════════════════════════════════
 // 🚀 Update #61 · message-requests · 2026-08-11
-// অচেনা (non-follow) ইউজারের মেসেজ → Message Requests
+// অসংযুক্ত ইউজারের মেসেজ → Message Requests ইনবক্স
 // খুঁজতে: Ctrl+F → "message-requests"
 // ═══════════════════════════════════════════════════════
-const gcChatMeta = {};
-function gcChatIdFor(a, b){ return a < b ? a + '_' + b : b + '_' + a; }
-function gcNoFollowRelation(other){
+let gcMrCurrentChat = null;
+function gcOtherUserData61(uid){ return (window.allUsersCache || []).find(function(u){ return u.id === uid; }) || (window.gcUserExtra || {})[uid] || null; }
+function gcIsRequestChat(otherUid, chatId){
 if(!currentUser || !currentUserData) return false;
-const iFollow = (currentUserData.following || []).includes(other);
-const theyFollow = (currentUserData.followers || []).includes(other);
-return !iFollow && !theyFollow;
+if(!otherUid || otherUid === 'group') return false;
+if((currentUserData.acceptedChats || []).indexOf(chatId) !== -1) return false;
+const meFollow = (currentUserData.following || []).indexOf(otherUid) !== -1;
+const other = gcOtherUserData61(otherUid);
+const otherFollow = other ? (other.following || []).indexOf(currentUser.uid) !== -1 : false;
+return !meFollow && !otherFollow;
 }
-function gcGetChatMeta(other){
-const id = gcChatIdFor(currentUser.uid, other);
-const c = gcChatMeta[id];
-if(c && (Date.now() - c._t) < 10000) return Promise.resolve(c.data);
-return db.collection('chats').doc(id).get().then(function(d){
-const data = d.exists ? d.data() : null;
-gcChatMeta[id] = { data: data, _t: Date.now() };
-return data;
-}).catch(function(){ return null; });
-}
-function gcIsRequestForMe(other, meta){
-if(!meta || !meta.lastSender) return false;
-if(meta.lastSender === currentUser.uid) return false;
-if((meta.acceptedBy || []).includes(currentUser.uid)) return false;
-if((meta.hiddenFor || []).includes(currentUser.uid)) return false;
-return gcNoFollowRelation(other);
-}
-let gcMrList = [];
-async function gcScanMessageRequests(forceRender){
-if(!currentUser || !currentUserData) return;
-const firstItem = document.querySelector('#page-messages .msg-item');
-if(!firstItem) return;
-const listEl = firstItem.parentElement;
-const items = listEl.querySelectorAll('.msg-item');
-const reqs = [];
-for(let i = 0; i < items.length; i++){
-const oc = items[i].getAttribute('onclick') || '';
-const m = oc.match(/openChat\(\s*'([^']+)'\s*,\s*'([^']+)'/);
-if(!m || m[2] === 'group') continue;
-const other = m[2];
-const meta = await gcGetChatMeta(other);
-if(gcIsRequestForMe(other, meta)){
-items[i].style.display = 'none';
-reqs.push({ other: other, meta: meta });
-}
-}
-gcMrList = reqs;
-gcUpdateMrBadge(reqs.length);
-const scr = document.getElementById('gc-mr-screen');
-if(forceRender || (scr && scr.classList.contains('open'))) gcRenderRequests();
-}
-function gcUpdateMrBadge(n){
-const b = document.getElementById('gc-mr-badge');
-if(!b) return;
-b.style.display = n > 0 ? 'flex' : 'none';
-b.textContent = n > 9 ? '9+' : n;
-}
-function gcOpenRequests(){
+function gcEnsureMrScreen(){
 let scr = document.getElementById('gc-mr-screen');
 if(!scr){
-scr = document.createElement('div');
-scr.id = 'gc-mr-screen';
-scr.className = 'gc-mr-screen';
-scr.innerHTML = '<div class="gc-mr-head"><div class="chat-back" onclick="gcCloseRequests()"><i class="ph-bold ph-arrow-left" style="font-size:20px;"></i></div><div class="gc-mr-title"><i class="ph-bold ph-chats-circle" style="color:var(--accent);"></i> Message Requests</div></div><div class="gc-mr-body" id="gc-mr-body"></div>';
+scr = document.createElement('div'); scr.id = 'gc-mr-screen'; scr.className = 'gc-mr-screen';
+scr.innerHTML = '<div class="gc-mr-head"><div class="chat-back" onclick="gcCloseMsgRequests()"><i class="ph-bold ph-arrow-left" style="font-size:20px;"></i></div><div class="gc-mr-title"><i class="ph-fill ph-chats-circle" style="color:var(--accent);"></i> Message Requests <span class="gc-fr-count" id="gc-mr-count">0</span></div></div><div class="gc-mr-body" id="gc-mr-list"></div><div class="gc-mr-actions" id="gc-mr-actions" style="display:none;"><button class="gc-mr-accept" onclick="gcAcceptRequest()">Accept</button><button class="gc-mr-delete" onclick="gcDeleteRequest()">Delete</button></div>';
 document.body.appendChild(scr);
 }
+return scr;
+}
+function gcOpenMsgRequests(){
+const scr = gcEnsureMrScreen();
 scr.classList.add('open');
-gcScanMessageRequests(true);
+gcMrCurrentChat = null;
+document.getElementById('gc-mr-actions').style.display = 'none';
+gcLoadMessageRequests();
 }
-function gcCloseRequests(){
-const s = document.getElementById('gc-mr-screen');
-if(s) s.classList.remove('open');
-}
-function gcRenderRequests(){
-const body = document.getElementById('gc-mr-body');
-if(!body) return;
-if(!gcMrList.length){
-body.innerHTML = '<div style="text-align:center;padding:70px 20px;color:var(--text-muted);"><i class="ph-bold ph-envelope-open" style="font-size:44px;"></i><div style="margin-top:12px;font-weight:800;color:var(--text);">No message requests</div><div style="font-size:12px;margin-top:4px;">Messages from people you don\'t follow will appear here.</div></div>';
-return;
-}
-body.innerHTML = gcMrList.map(function(r){
-const u = (window.allUsersCache || []).find(function(x){ return x.id === r.other; }) || {};
-const av = u.avatar ? '<img class="gc-mr-av" src="' + escapeHTML(u.avatar) + '">' : '<div class="gc-mr-av-init">' + (u.name || 'U').charAt(0).toUpperCase() + '</div>';
-return '<div class="gc-mr-item">' + av +
-'<div class="gc-mr-info" onclick="gcAcceptRequest(\'' + r.other + '\'); gcOpenChatFromMr(\'' + r.other + '\')"><div class="gc-mr-name">' + escapeHTML(u.name || 'User') + '</div><div class="gc-mr-last">' + escapeHTML(r.meta.lastMsg || '') + '</div></div>' +
-'<div class="gc-mr-actions"><button class="gc-mr-btn ok" onclick="gcAcceptRequest(\'' + r.other + '\')"><i class="ph-bold ph-check"></i></button><button class="gc-mr-btn no" onclick="gcDeleteRequest(\'' + r.other + '\')"><i class="ph-bold ph-x"></i></button></div></div>';
-}).join('');
-}
-async function gcAcceptRequest(other){
-const id = gcChatIdFor(currentUser.uid, other);
+function gcCloseMsgRequests(){ const s = document.getElementById('gc-mr-screen'); if(s) s.classList.remove('open'); }
+async function gcLoadMessageRequests(){
+const scr = gcEnsureMrScreen();
+const list = document.getElementById('gc-mr-list');
+if(!list || !currentUser) return;
+if(scr.classList.contains('open')) list.innerHTML = '<div class="gc-sk-grid"><div class="gc-sk-tile"></div><div class="gc-sk-tile" style="animation-delay:.08s"></div><div class="gc-sk-tile" style="animation-delay:.16s"></div><div class="gc-sk-tile" style="animation-delay:.24s"></div></div>';
 try{
-await db.collection('chats').doc(id).update({ acceptedBy: firebase.firestore.FieldValue.arrayUnion(currentUser.uid) });
-if(gcChatMeta[id]){ gcChatMeta[id].data.acceptedBy = (gcChatMeta[id].data.acceptedBy || []).concat([currentUser.uid]); gcChatMeta[id]._t = Date.now(); }
-showToast('✅ Request accepted');
-gcScanMessageRequests(true);
-}catch(e){ showToast('❌ Failed'); }
-}
-async function gcDeleteRequest(other){
-const id = gcChatIdFor(currentUser.uid, other);
+const snap = await db.collection('chats').get();
+const reqs = [];
+snap.forEach(function(d){
+const data = d.data(); const chatId = d.id;
+if(data.isGroup) return;
+if(chatId.indexOf(currentUser.uid) === -1) return;
+const parts = chatId.split('_');
+const otherUid = parts[0] === currentUser.uid ? parts[1] : parts[0];
+if(!gcIsRequestChat(otherUid, chatId)) return;
+reqs.push({ chatId: chatId, otherUid: otherUid, data: data });
+});
+window.gcRequestChats = reqs;
+// 🚀 Update #62: ক্যাশে নেই এমন ইউজারের নাম/ছবি সরাসরি ফেচ
+const missingUids = reqs.map(function(r){ return r.otherUid; }).filter(function(uid){ return !gcOtherUserData61(uid); });
+if(missingUids.length){
 try{
-await db.collection('chats').doc(id).update({ hiddenFor: firebase.firestore.FieldValue.arrayUnion(currentUser.uid) });
-if(gcChatMeta[id]){ gcChatMeta[id].data.hiddenFor = (gcChatMeta[id].data.hiddenFor || []).concat([currentUser.uid]); gcChatMeta[id]._t = Date.now(); }
-showToast('Request deleted');
-gcScanMessageRequests(true);
-}catch(e){ showToast('❌ Failed'); }
-}
-function gcOpenChatFromMr(other){
-if(typeof openChat !== 'function') return;
-const u = (window.allUsersCache || []).find(function(x){ return x.id === other; }) || {};
-gcCloseRequests();
-openChat(gcChatIdFor(currentUser.uid, other), other, u.name || 'User', u.avatar || '');
-}
-// বাটন হুক + ব্যাজ + স্ক্যান লুপ
-(function gcHookMrBtn(){
-if(window.gcMrBtnOn) return;
-window.gcMrBtnOn = true;
-setInterval(function(){
-document.querySelectorAll('#page-messages button, #page-messages [onclick]').forEach(function(b){
-if(b.dataset.gcMr) return;
-if((b.innerHTML || '').indexOf('ph-chats-circle') !== -1){
-b.dataset.gcMr = '1';
-b.removeAttribute('onclick');
-b.style.position = 'relative';
-b.onclick = function(e){ e.stopPropagation(); gcOpenRequests(); };
-const badge = document.createElement('span');
-badge.id = 'gc-mr-badge';
-badge.className = 'gc-mr-badge';
-badge.style.display = 'none';
-b.appendChild(badge);
+const docs = await Promise.all(missingUids.map(function(id){ return db.collection('users').doc(id).get().catch(function(){ return null; }); }));
+docs.forEach(function(d, i){
+if(d && d.exists){
+window.gcUserExtra = window.gcUserExtra || {};
+window.gcUserExtra[missingUids[i]] = Object.assign({ id: missingUids[i] }, d.data());
 }
 });
-const mp = document.getElementById('page-messages');
-if(mp && (mp.classList.contains('active') || mp.classList.contains('open'))) gcScanMessageRequests(false);
-}, 2500);
+}catch(e){}
+}
+const cEl = document.getElementById('gc-mr-count'); if(cEl) cEl.textContent = reqs.length;
+const bEl = document.getElementById('gc-mr-badge'); if(bEl){ bEl.textContent = reqs.length; bEl.style.display = reqs.length ? 'flex' : 'none'; }
+if(!scr.classList.contains('open')) return;
+if(!reqs.length){
+list.innerHTML = '<div style="text-align:center;padding:70px 20px;color:var(--text-muted);"><i class="ph-bold ph-chats-circle" style="font-size:44px;"></i><div style="margin-top:12px;font-weight:800;color:var(--text);">No message requests</div><div style="font-size:12px;margin-top:4px;">Messages from people you don\'t follow will appear here.</div></div>';
+return;
+}
+let html = '';
+for(let i = 0; i < reqs.length; i++){
+const r = reqs[i];
+const u = gcOtherUserData61(r.otherUid) || {};
+let prev = r.data.lastMessage || r.data.lastMsg || r.data.preview || '';
+if(!prev){
+try{
+const m = await db.collection('chats').doc(r.chatId).collection('messages').orderBy('timestamp', 'desc').limit(1).get();
+if(!m.empty) prev = m.docs[0].data().text || '📷 Attachment';
+}catch(e){ prev = 'New message'; }
+}
+const av = u.avatar ? '<img class="gc-mr-av" src="' + escapeHTML(u.avatar) + '">' : '<div class="gc-mr-av-init">' + (u.name || 'U').charAt(0).toUpperCase() + '</div>';
+html += '<div class="gc-mr-item" onclick="gcOpenMrDetail(\'' + r.chatId + '\')">' + av + '<div class="gc-mr-info"><div class="gc-mr-name">' + escapeHTML(u.name || 'User') + '</div><div class="gc-mr-prev">' + escapeHTML(String(prev)) + '</div></div></div>';
+}
+list.innerHTML = html;
+}catch(e){
+if(scr.classList.contains('open')) list.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted);font-size:13px;">Failed to load requests.</div>';
+}
+}
+async function gcOpenMrDetail(chatId){
+gcMrCurrentChat = chatId;
+const list = document.getElementById('gc-mr-list');
+list.innerHTML = '<div style="text-align:center;padding:30px;color:var(--text-muted);"><i class="ph-bold ph-spinner-gap" style="font-size:26px;animation:spin 1s linear infinite;"></i></div>';
+try{
+const ms = await db.collection('chats').doc(chatId).collection('messages').get();
+const arr = []; ms.forEach(function(d){ arr.push(d.data()); });
+arr.sort(function(a, b){
+const ta = (a.createdAt && a.createdAt.toMillis) ? a.createdAt.toMillis() : (a.timestamp || 0);
+const tb = (b.createdAt && b.createdAt.toMillis) ? b.createdAt.toMillis() : (b.timestamp || 0);
+return ta - tb;
+});
+list.innerHTML = arr.map(function(m){
+const mine = m.uid === currentUser.uid;
+return '<div class="gc-mr-msg ' + (mine ? 'mine' : 'theirs') + '"><div class="b">' + escapeHTML(m.text || '📷 Attachment') + '</div></div>';
+}).join('') || '<div style="text-align:center;color:var(--text-muted);font-size:12px;padding:20px;">No messages</div>';
+document.getElementById('gc-mr-actions').style.display = 'flex';
+}catch(e){ list.innerHTML = '<div style="text-align:center;color:var(--text-muted);font-size:13px;padding:20px;">Failed to load conversation.</div>'; }
+}
+function gcCloseMrDetail(){ gcMrCurrentChat = null; document.getElementById('gc-mr-actions').style.display = 'none'; gcLoadMessageRequests(); }
+function gcAcceptRequest(){
+const chatId = gcMrCurrentChat; if(!chatId) return;
+db.collection('users').doc(currentUser.uid).update({ acceptedChats: firebase.firestore.FieldValue.arrayUnion(chatId) }).then(function(){
+currentUserData.acceptedChats = (currentUserData.acceptedChats || []).concat([chatId]);
+showToast('✅ Chat accepted — moved to Messages');
+gcCloseMrDetail();
+if(typeof loadMessages === 'function') loadMessages();
+}).catch(function(){ showToast('❌ Failed to accept'); });
+}
+function gcDeleteRequest(){
+const chatId = gcMrCurrentChat; if(!chatId) return;
+gcOpenConfirm({
+title:'Delete Request?',
+text:'This conversation will be deleted for both sides.',
+icon:'ph-trash',
+yesLabel:'Delete',
+onYes:async function(){
+try{
+const batch = db.batch();
+const ms = await db.collection('chats').doc(chatId).collection('messages').get();
+ms.forEach(function(doc){ batch.delete(doc.ref); });
+batch.delete(db.collection('chats').doc(chatId));
+await batch.commit();
+showToast('Request deleted');
+gcCloseMrDetail();
+if(typeof loadMessages === 'function') loadMessages();
+}catch(e){ showToast('❌ Failed to delete'); }
+}
+});
+}
+// মেইন চ্যাট লিস্ট থেকে রিকোয়েস্ট চ্যাট লুকানো
+function gcHideRequestChats(){
+if(!currentUser || !currentUserData) return;
+const scope = document.getElementById('page-messages'); if(!scope) return;
+scope.querySelectorAll('.msg-item').forEach(function(it){
+const m = (it.getAttribute('onclick') || '').match(/openChat\(\s*'([^']+)'\s*,\s*'([^']+)'/);
+if(!m) return;
+if(gcIsRequestChat(m[2], m[1])) it.style.display = 'none';
+});
+}
+if(typeof gcApplyChatFilter === 'function' && !window.gcAcfWrapped61){
+window.gcAcfWrapped61 = true;
+window.gcOrigApplyChatFilter61 = gcApplyChatFilter;
+gcApplyChatFilter = function(){ window.gcOrigApplyChatFilter61(); gcHideRequestChats(); };
+}
+(function gcMrHideObs(){
+if(window.gcMrHideOn) return; window.gcMrHideOn = true;
+let raf = false;
+new MutationObserver(function(){
+if(raf) return; raf = true;
+requestAnimationFrame(function(){ raf = false; gcHideRequestChats(); });
+}).observe(document.body, {childList:true, subtree:true});
 })();
+// ফিল্টার বাটনের ডান পাশে নতুন বাটন + ব্যাজ + সেশন কাউন্ট
+(function gcInjectMsgReqBtn(){
+if(window.gcMrBtnOn) return; window.gcMrBtnOn = true;
+setInterval(function(){
+if(!document.getElementById('gc-mr-btn')){
+const filt = document.getElementById('gc-chat-filter-btn') || document.querySelector('#page-messages [onclick*="ChatFilter"]');
+const grp = document.getElementById('topbar-group-btn');
+const anchor = filt || grp;
+if(anchor && anchor.parentNode){
+const btn = document.createElement('button');
+btn.id = 'gc-mr-btn';
+btn.style.cssText = 'border:none;background:var(--surface-2);width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;';
+btn.innerHTML = '<i class="ph-fill ph-chats-circle" style="font-size:20px;color:var(--accent);"></i><span class="gc-mr-badge" id="gc-mr-badge" style="display:none;"></span>';
+btn.onclick = function(e){ e.stopPropagation(); gcOpenMsgRequests(); };
+anchor.parentNode.insertBefore(btn, anchor.nextSibling);
+gcSyncMrBtn();
+}
+}
+const mp = document.getElementById('page-messages');
+if(mp && (mp.classList.contains('active') || mp.classList.contains('open')) && !window.gcMrSessionCount){
+window.gcMrSessionCount = true;
+gcLoadMessageRequests();
+}
+}, 1500);
+})();
+// ═══════════════════════════════════════════════════════
+// 🚀 Update #62 · mr-btn-page-lock · 2026-08-11
+// Message Requests বাটন শুধুমাত্র মেসেজ পেজে দেখাবে
+// খুঁজতে: Ctrl+F → "mr-btn-page-lock"
+// ═══════════════════════════════════════════════════════
+function gcSyncMrBtn(){
+const b = document.getElementById('gc-mr-btn');
+if(!b) return;
+const mp = document.getElementById('page-messages');
+b.style.display = (mp && (mp.classList.contains('active') || mp.classList.contains('open'))) ? 'flex' : 'none';
+}
+window.gcOrigShowPage62 = showPage;
+showPage = function(page){
+window.gcOrigShowPage62(page);
+setTimeout(gcSyncMrBtn, 60);
+};
 </script>
 </body>
 </html>
