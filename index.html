@@ -3960,11 +3960,7 @@ transition:background .2s;
 }
 .gc-posted-view:active{background:rgba(157,133,255,.32);}
 
-/* =========================================
-🚀 Update #61 · message-requests · 2026-08-11
-অপরিচিতদের মেসেজ → আলাদা রিকোয়েস্ট ইনবক্স
-খুঁজতে: Ctrl+F → "message-requests"
-========================================= */
+/* 🚀 Update #63 · message-requests-v2 CSS */
 .gc-mr-badge{position:absolute;top:-4px;right:-4px;min-width:18px;height:18px;border-radius:9px;background:var(--danger);color:#fff;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;padding:0 4px;}
 .gc-mr-screen{position:fixed;inset:0;background:var(--bg);z-index:100680;display:none;flex-direction:column;}
 .gc-mr-screen.open{display:flex;}
@@ -16774,43 +16770,93 @@ db.collection('users').doc(u.uid).update({ isElite: false, isVerified: false });
 });
 });
 // ═══════════════════════════════════════════════════════
-// 🚀 Update #61 · message-requests · 2026-08-11
-// অসংযুক্ত ইউজারের মেসেজ → Message Requests ইনবক্স
-// খুঁজতে: Ctrl+F → "message-requests"
+// 🚀 Update #63 · message-requests-v2 · 2026-08-11
+// সম্পূর্ণ রি-বিল্ড: Message Requests (এক ক্লিন ব্লক)
+// খুঁজতে: Ctrl+F → "message-requests-v2"
 // ═══════════════════════════════════════════════════════
-let gcMrCurrentChat = null;
-function gcOtherUserData61(uid){ return (window.allUsersCache || []).find(function(u){ return u.id === uid; }) || (window.gcUserExtra || {})[uid] || null; }
-function gcIsRequestChat(otherUid, chatId){
+window.gcMrUserCache = window.gcMrUserCache || {};
+let gcMrChat = null;
+let gcMrLastLoad = 0;
+function gcMrUser(uid){
+return (window.allUsersCache || []).find(function(u){ return u.id === uid; }) || window.gcMrUserCache[uid] || null;
+}
+async function gcMrFetchUsers(uids){
+const missing = uids.filter(function(id){ return !gcMrUser(id); });
+if(!missing.length) return;
+try{
+const docs = await Promise.all(missing.map(function(id){ return db.collection('users').doc(id).get().catch(function(){ return null; }); }));
+docs.forEach(function(d, i){
+if(d && d.exists){ window.gcMrUserCache[missing[i]] = Object.assign({ id: missing[i] }, d.data()); }
+});
+}catch(e){}
+}
+function gcMrIsRequest(otherUid, chatId){
 if(!currentUser || !currentUserData) return false;
 if(!otherUid || otherUid === 'group') return false;
 if((currentUserData.acceptedChats || []).indexOf(chatId) !== -1) return false;
+if((currentUserData.blockedUsers || []).indexOf(otherUid) !== -1) return false;
 const meFollow = (currentUserData.following || []).indexOf(otherUid) !== -1;
-const other = gcOtherUserData61(otherUid);
+const other = gcMrUser(otherUid);
 const otherFollow = other ? (other.following || []).indexOf(currentUser.uid) !== -1 : false;
 return !meFollow && !otherFollow;
 }
-function gcEnsureMrScreen(){
-let scr = document.getElementById('gc-mr-screen');
-if(!scr){
-scr = document.createElement('div'); scr.id = 'gc-mr-screen'; scr.className = 'gc-mr-screen';
-scr.innerHTML = '<div class="gc-mr-head"><div class="chat-back" onclick="gcCloseMsgRequests()"><i class="ph-bold ph-arrow-left" style="font-size:20px;"></i></div><div class="gc-mr-title"><i class="ph-fill ph-chats-circle" style="color:var(--accent);"></i> Message Requests <span class="gc-fr-count" id="gc-mr-count">0</span></div></div><div class="gc-mr-body" id="gc-mr-list"></div><div class="gc-mr-actions" id="gc-mr-actions" style="display:none;"><button class="gc-mr-accept" onclick="gcAcceptRequest()">Accept</button><button class="gc-mr-delete" onclick="gcDeleteRequest()">Delete</button></div>';
-document.body.appendChild(scr);
+// ----- বাটন (শুধু মেসেজ পেজে) -----
+function gcMrSyncBtn(){
+const b = document.getElementById('gc-mr-btn');
+if(!b) return;
+const mp = document.getElementById('page-messages');
+b.style.display = (mp && (mp.classList.contains('active') || mp.classList.contains('open'))) ? 'flex' : 'none';
 }
+function gcMrInjectBtn(){
+if(document.getElementById('gc-mr-btn')){ gcMrSyncBtn(); return; }
+const filt = document.getElementById('gc-chat-filter-btn') || document.querySelector('#page-messages [onclick*="ChatFilter"]');
+const grp = document.getElementById('topbar-group-btn');
+const anchor = filt || grp;
+if(!anchor || !anchor.parentNode) return;
+const btn = document.createElement('button');
+btn.id = 'gc-mr-btn';
+btn.type = 'button';
+btn.style.cssText = 'border:none;background:var(--surface-2);width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;';
+btn.innerHTML = '<i class="ph-fill ph-chats-circle" style="font-size:20px;color:var(--accent);"></i><span class="gc-mr-badge" id="gc-mr-badge" style="display:none;"></span>';
+btn.onclick = function(e){ e.stopPropagation(); gcMrOpen(); };
+anchor.parentNode.insertBefore(btn, anchor.nextSibling);
+gcMrSyncBtn();
+}
+window.gcOrigShowPage63 = showPage;
+showPage = function(page){
+window.gcOrigShowPage63(page);
+setTimeout(function(){ gcMrInjectBtn(); gcMrSyncBtn(); if(page === 'messages') gcMrMaybeRefresh(); }, 80);
+};
+setInterval(function(){ gcMrInjectBtn(); }, 2000);
+function gcMrMaybeRefresh(){
+if(Date.now() - gcMrLastLoad > 300000) gcMrLoad();
+}
+// ----- স্ক্রিন -----
+function gcMrEnsure(){
+let scr = document.getElementById('gc-mr-screen');
+if(scr) return scr;
+scr = document.createElement('div');
+scr.id = 'gc-mr-screen';
+scr.className = 'gc-mr-screen';
+scr.innerHTML = '<div class="gc-mr-head"><div class="chat-back" onclick="gcMrClose()"><i class="ph-bold ph-arrow-left" style="font-size:20px;"></i></div><div class="gc-mr-title"><i class="ph-fill ph-chats-circle" style="color:var(--accent);"></i> Message Requests <span class="gc-fr-count" id="gc-mr-count">0</span></div></div><div class="gc-mr-body" id="gc-mr-list"></div><div class="gc-mr-actions" id="gc-mr-actions" style="display:none;"><button class="gc-mr-accept" onclick="gcMrAccept()">Accept</button><button class="gc-mr-delete" onclick="gcMrDelete()">Delete</button></div>';
+document.body.appendChild(scr);
 return scr;
 }
-function gcOpenMsgRequests(){
-const scr = gcEnsureMrScreen();
-scr.classList.add('open');
-gcMrCurrentChat = null;
+function gcMrOpen(){
+gcMrEnsure().classList.add('open');
+gcMrChat = null;
 document.getElementById('gc-mr-actions').style.display = 'none';
-gcLoadMessageRequests();
+gcMrLoad();
 }
-function gcCloseMsgRequests(){ const s = document.getElementById('gc-mr-screen'); if(s) s.classList.remove('open'); }
-async function gcLoadMessageRequests(){
-const scr = gcEnsureMrScreen();
+function gcMrClose(){ const s = document.getElementById('gc-mr-screen'); if(s) s.classList.remove('open'); }
+// ----- লিস্ট লোড (নাম+ছবি+প্রিভিউ গ্যারান্টি) -----
+async function gcMrLoad(){
+gcMrLastLoad = Date.now();
+const scr = gcMrEnsure();
 const list = document.getElementById('gc-mr-list');
-if(!list || !currentUser) return;
-if(scr.classList.contains('open')) list.innerHTML = '<div class="gc-sk-grid"><div class="gc-sk-tile"></div><div class="gc-sk-tile" style="animation-delay:.08s"></div><div class="gc-sk-tile" style="animation-delay:.16s"></div><div class="gc-sk-tile" style="animation-delay:.24s"></div></div>';
+if(!currentUser) return;
+const open = scr.classList.contains('open');
+if(open) list.innerHTML = '<div class="gc-sk-grid"><div class="gc-sk-tile"></div><div class="gc-sk-tile" style="animation-delay:.08s"></div><div class="gc-sk-tile" style="animation-delay:.16s"></div><div class="gc-sk-tile" style="animation-delay:.24s"></div></div>';
 try{
 const snap = await db.collection('chats').get();
 const reqs = [];
@@ -16820,86 +16866,70 @@ if(data.isGroup) return;
 if(chatId.indexOf(currentUser.uid) === -1) return;
 const parts = chatId.split('_');
 const otherUid = parts[0] === currentUser.uid ? parts[1] : parts[0];
-if(!gcIsRequestChat(otherUid, chatId)) return;
-reqs.push({ chatId: chatId, otherUid: otherUid, data: data });
+if(gcMrIsRequest(otherUid, chatId)) reqs.push({ chatId: chatId, otherUid: otherUid, data: data });
 });
-window.gcRequestChats = reqs;
-// 🚀 Update #62: ক্যাশে নেই এমন ইউজারের নাম/ছবি সরাসরি ফেচ
-const missingUids = reqs.map(function(r){ return r.otherUid; }).filter(function(uid){ return !gcOtherUserData61(uid); });
-if(missingUids.length){
-try{
-const docs = await Promise.all(missingUids.map(function(id){ return db.collection('users').doc(id).get().catch(function(){ return null; }); }));
-docs.forEach(function(d, i){
-if(d && d.exists){
-window.gcUserExtra = window.gcUserExtra || {};
-window.gcUserExtra[missingUids[i]] = Object.assign({ id: missingUids[i] }, d.data());
-}
-});
-}catch(e){}
-}
-const cEl = document.getElementById('gc-mr-count'); if(cEl) cEl.textContent = reqs.length;
-const bEl = document.getElementById('gc-mr-badge'); if(bEl){ bEl.textContent = reqs.length; bEl.style.display = reqs.length ? 'flex' : 'none'; }
-if(!scr.classList.contains('open')) return;
+await gcMrFetchUsers(reqs.map(function(r){ return r.otherUid; }));
+const badge = document.getElementById('gc-mr-badge');
+if(badge){ badge.textContent = reqs.length; badge.style.display = reqs.length ? 'flex' : 'none'; }
+const cnt = document.getElementById('gc-mr-count'); if(cnt) cnt.textContent = reqs.length;
+if(!open){ gcMrHideMain(); return; }
 if(!reqs.length){
 list.innerHTML = '<div style="text-align:center;padding:70px 20px;color:var(--text-muted);"><i class="ph-bold ph-chats-circle" style="font-size:44px;"></i><div style="margin-top:12px;font-weight:800;color:var(--text);">No message requests</div><div style="font-size:12px;margin-top:4px;">Messages from people you don\'t follow will appear here.</div></div>';
 return;
 }
-let html = '';
 for(let i = 0; i < reqs.length; i++){
-const r = reqs[i];
-const u = gcOtherUserData61(r.otherUid) || {};
-let prev = r.data.lastMessage || r.data.lastMsg || r.data.preview || '';
-if(!prev){
 try{
-const m = await db.collection('chats').doc(r.chatId).collection('messages').orderBy('timestamp', 'desc').limit(1).get();
-if(!m.empty) prev = m.docs[0].data().text || '📷 Attachment';
-}catch(e){ prev = 'New message'; }
+const m = await db.collection('chats').doc(reqs[i].chatId).collection('messages').orderBy('createdAt', 'desc').limit(1).get();
+reqs[i].last = m.empty ? '' : (m.docs[0].data().text || (m.docs[0].data().imageUrl ? '📷 Photo' : '🎤 Voice Message'));
+}catch(e){ reqs[i].last = ''; }
 }
-const av = u.avatar ? '<img class="gc-mr-av" src="' + escapeHTML(u.avatar) + '">' : '<div class="gc-mr-av-init">' + (u.name || 'U').charAt(0).toUpperCase() + '</div>';
-html += '<div class="gc-mr-item" onclick="gcOpenMrDetail(\'' + r.chatId + '\')">' + av + '<div class="gc-mr-info"><div class="gc-mr-name">' + escapeHTML(u.name || 'User') + '</div><div class="gc-mr-prev">' + escapeHTML(String(prev)) + '</div></div></div>';
-}
-list.innerHTML = html;
+list.innerHTML = reqs.map(function(r){
+const u = gcMrUser(r.otherUid) || {};
+const av = u.avatar ? '<img class="gc-mr-av" src="' + escapeHTML(u.avatar) + '">' : '<div class="gc-mr-av-init">' + escapeHTML((u.name || 'U').charAt(0).toUpperCase()) + '</div>';
+return '<div class="gc-mr-item" onclick="gcMrDetail(\'' + r.chatId + '\')">' + av + '<div class="gc-mr-info"><div class="gc-mr-name">' + escapeHTML(u.name || 'User') + '</div><div class="gc-mr-prev">' + escapeHTML(String(r.last || 'New message')) + '</div></div></div>';
+}).join('');
+gcMrHideMain();
 }catch(e){
-if(scr.classList.contains('open')) list.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted);font-size:13px;">Failed to load requests.</div>';
+if(open) list.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted);font-size:13px;">Failed to load requests.</div>';
 }
 }
-async function gcOpenMrDetail(chatId){
-gcMrCurrentChat = chatId;
+// ----- ডিটেইল + Accept/Delete -----
+async function gcMrDetail(chatId){
+gcMrChat = chatId;
 const list = document.getElementById('gc-mr-list');
 list.innerHTML = '<div style="text-align:center;padding:30px;color:var(--text-muted);"><i class="ph-bold ph-spinner-gap" style="font-size:26px;animation:spin 1s linear infinite;"></i></div>';
 try{
 const ms = await db.collection('chats').doc(chatId).collection('messages').get();
 const arr = []; ms.forEach(function(d){ arr.push(d.data()); });
 arr.sort(function(a, b){
-const ta = (a.createdAt && a.createdAt.toMillis) ? a.createdAt.toMillis() : (a.timestamp || 0);
-const tb = (b.createdAt && b.createdAt.toMillis) ? b.createdAt.toMillis() : (b.timestamp || 0);
+const ta = (a.createdAt && a.createdAt.toMillis) ? a.createdAt.toMillis() : 0;
+const tb = (b.createdAt && b.createdAt.toMillis) ? b.createdAt.toMillis() : 0;
 return ta - tb;
 });
 list.innerHTML = arr.map(function(m){
 const mine = m.uid === currentUser.uid;
-return '<div class="gc-mr-msg ' + (mine ? 'mine' : 'theirs') + '"><div class="b">' + escapeHTML(m.text || '📷 Attachment') + '</div></div>';
+const body = m.text ? escapeHTML(m.text) : (m.imageUrl ? '📷 Photo' : (m.audioUrl ? '🎤 Voice Message' : 'Attachment'));
+return '<div class="gc-mr-msg ' + (mine ? 'mine' : 'theirs') + '"><div class="b">' + body + '</div></div>';
 }).join('') || '<div style="text-align:center;color:var(--text-muted);font-size:12px;padding:20px;">No messages</div>';
 document.getElementById('gc-mr-actions').style.display = 'flex';
-}catch(e){ list.innerHTML = '<div style="text-align:center;color:var(--text-muted);font-size:13px;padding:20px;">Failed to load conversation.</div>'; }
+}catch(e){
+list.innerHTML = '<div style="text-align:center;color:var(--text-muted);font-size:13px;padding:20px;">Failed to load conversation.</div>';
 }
-function gcCloseMrDetail(){ gcMrCurrentChat = null; document.getElementById('gc-mr-actions').style.display = 'none'; gcLoadMessageRequests(); }
-function gcAcceptRequest(){
-const chatId = gcMrCurrentChat; if(!chatId) return;
+}
+function gcMrAccept(){
+const chatId = gcMrChat; if(!chatId) return;
 db.collection('users').doc(currentUser.uid).update({ acceptedChats: firebase.firestore.FieldValue.arrayUnion(chatId) }).then(function(){
 currentUserData.acceptedChats = (currentUserData.acceptedChats || []).concat([chatId]);
 showToast('✅ Chat accepted — moved to Messages');
-gcCloseMrDetail();
+gcMrChat = null;
+document.getElementById('gc-mr-actions').style.display = 'none';
+gcMrLoad();
 if(typeof loadMessages === 'function') loadMessages();
 }).catch(function(){ showToast('❌ Failed to accept'); });
 }
-function gcDeleteRequest(){
-const chatId = gcMrCurrentChat; if(!chatId) return;
-gcOpenConfirm({
-title:'Delete Request?',
-text:'This conversation will be deleted for both sides.',
-icon:'ph-trash',
-yesLabel:'Delete',
-onYes:async function(){
+function gcMrDelete(){
+const chatId = gcMrChat; if(!chatId) return;
+const doDelete = async function(){
 try{
 const batch = db.batch();
 const ms = await db.collection('chats').doc(chatId).collection('messages').get();
@@ -16907,76 +16937,39 @@ ms.forEach(function(doc){ batch.delete(doc.ref); });
 batch.delete(db.collection('chats').doc(chatId));
 await batch.commit();
 showToast('Request deleted');
-gcCloseMrDetail();
+gcMrChat = null;
+document.getElementById('gc-mr-actions').style.display = 'none';
+gcMrLoad();
 if(typeof loadMessages === 'function') loadMessages();
 }catch(e){ showToast('❌ Failed to delete'); }
+};
+if(typeof gcOpenConfirm === 'function'){
+gcOpenConfirm({ title:'Delete Request?', text:'This conversation will be deleted for both sides.', icon:'ph-trash', yesLabel:'Delete', onYes: doDelete });
+}else if(confirm('Delete this request?')){ doDelete(); }
 }
-});
-}
-// মেইন চ্যাট লিস্ট থেকে রিকোয়েস্ট চ্যাট লুকানো
-function gcHideRequestChats(){
+// ----- মেইন লিস্ট থেকে হাইড -----
+function gcMrHideMain(){
 if(!currentUser || !currentUserData) return;
 const scope = document.getElementById('page-messages'); if(!scope) return;
 scope.querySelectorAll('.msg-item').forEach(function(it){
 const m = (it.getAttribute('onclick') || '').match(/openChat\(\s*'([^']+)'\s*,\s*'([^']+)'/);
 if(!m) return;
-if(gcIsRequestChat(m[2], m[1])) it.style.display = 'none';
+if(gcMrIsRequest(m[2], m[1])) it.style.display = 'none';
 });
 }
-if(typeof gcApplyChatFilter === 'function' && !window.gcAcfWrapped61){
-window.gcAcfWrapped61 = true;
-window.gcOrigApplyChatFilter61 = gcApplyChatFilter;
-gcApplyChatFilter = function(){ window.gcOrigApplyChatFilter61(); gcHideRequestChats(); };
-}
 (function gcMrHideObs(){
-if(window.gcMrHideOn) return; window.gcMrHideOn = true;
+if(window.gcMrHideOn63) return; window.gcMrHideOn63 = true;
 let raf = false;
 new MutationObserver(function(){
 if(raf) return; raf = true;
-requestAnimationFrame(function(){ raf = false; gcHideRequestChats(); });
-}).observe(document.body, {childList:true, subtree:true});
+requestAnimationFrame(function(){ raf = false; gcMrHideMain(); });
+}).observe(document.body, { childList:true, subtree:true });
 })();
-// ফিল্টার বাটনের ডান পাশে নতুন বাটন + ব্যাজ + সেশন কাউন্ট
-(function gcInjectMsgReqBtn(){
-if(window.gcMrBtnOn) return; window.gcMrBtnOn = true;
-setInterval(function(){
-if(!document.getElementById('gc-mr-btn')){
-const filt = document.getElementById('gc-chat-filter-btn') || document.querySelector('#page-messages [onclick*="ChatFilter"]');
-const grp = document.getElementById('topbar-group-btn');
-const anchor = filt || grp;
-if(anchor && anchor.parentNode){
-const btn = document.createElement('button');
-btn.id = 'gc-mr-btn';
-btn.style.cssText = 'border:none;background:var(--surface-2);width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;';
-btn.innerHTML = '<i class="ph-fill ph-chats-circle" style="font-size:20px;color:var(--accent);"></i><span class="gc-mr-badge" id="gc-mr-badge" style="display:none;"></span>';
-btn.onclick = function(e){ e.stopPropagation(); gcOpenMsgRequests(); };
-anchor.parentNode.insertBefore(btn, anchor.nextSibling);
-gcSyncMrBtn();
+if(typeof gcApplyChatFilter === 'function' && !window.gcAcfWrapped63){
+window.gcAcfWrapped63 = true;
+window.gcOrigApplyChatFilter63 = gcApplyChatFilter;
+gcApplyChatFilter = function(){ window.gcOrigApplyChatFilter63(); gcMrHideMain(); };
 }
-}
-const mp = document.getElementById('page-messages');
-if(mp && (mp.classList.contains('active') || mp.classList.contains('open')) && !window.gcMrSessionCount){
-window.gcMrSessionCount = true;
-gcLoadMessageRequests();
-}
-}, 1500);
-})();
-// ═══════════════════════════════════════════════════════
-// 🚀 Update #62 · mr-btn-page-lock · 2026-08-11
-// Message Requests বাটন শুধুমাত্র মেসেজ পেজে দেখাবে
-// খুঁজতে: Ctrl+F → "mr-btn-page-lock"
-// ═══════════════════════════════════════════════════════
-function gcSyncMrBtn(){
-const b = document.getElementById('gc-mr-btn');
-if(!b) return;
-const mp = document.getElementById('page-messages');
-b.style.display = (mp && (mp.classList.contains('active') || mp.classList.contains('open'))) ? 'flex' : 'none';
-}
-window.gcOrigShowPage62 = showPage;
-showPage = function(page){
-window.gcOrigShowPage62(page);
-setTimeout(gcSyncMrBtn, 60);
-};
 </script>
 </body>
 </html>
