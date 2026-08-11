@@ -5584,6 +5584,67 @@ const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 const MAX_IMAGES_PER_POST = 10;
 const RATE_LIMIT_MS = 1000;
+
+// 🚀 WELCOME MESSAGE SYSTEM — নতুন ইউজারকে অটো মেসেজ
+const GC_SYSTEM_UID = 'gachat_official';
+const GC_SYSTEM_NAME = 'GoChat Official';
+
+async function sendWelcomeMessage(newUid, userName) {
+    if (!newUid) return false;
+    try {
+        try {
+            const uDoc = await db.collection('users').doc(newUid).get();
+            if (uDoc.exists && uDoc.data().welcomeSent === true) return true;
+        } catch (e) {}
+
+        const chatId = [GC_SYSTEM_UID, newUid].sort().join('_');
+        const name = ((userName || 'friend') + '').trim() || 'friend';
+        const welcomeText = '👋 Welcome to GoChat, ' + name + '!\n\nWe\'re so happy to have you here. Share moments, connect with friends, and explore everything GoChat has to offer.\n\n✨ Tips to get started:\n• Complete your profile & add a photo\n• Post your first story or status\n• Find and follow interesting people\n\nNeed help? Just reply to this message — we\'re always here for you.\n\nEnjoy your journey! 💜\n— Team GoChat';
+
+        await db.collection('chats').doc(chatId).collection('messages').add({
+            uid: newUid,
+            isSystem: true,
+            systemUid: GC_SYSTEM_UID,
+            senderName: GC_SYSTEM_NAME,
+            text: welcomeText,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        var namesObj = {};
+        namesObj[GC_SYSTEM_UID] = GC_SYSTEM_NAME;
+        namesObj[newUid] = name;
+        var avatarsObj = {};
+        avatarsObj[GC_SYSTEM_UID] = '';
+        avatarsObj[newUid] = '';
+
+        await db.collection('chats').doc(chatId).set({
+            lastMsg: '👋 Welcome to GoChat! We\'re so happy to have you here…',
+            lastAt: firebase.firestore.FieldValue.serverTimestamp(),
+            names: namesObj,
+            avatars: avatarsObj,
+            lastSender: GC_SYSTEM_UID,
+            isRead: false,
+            isSystemChat: true
+        }, { merge: true });
+
+        try {
+            await db.collection('users').doc(newUid).set({ welcomeSent: true }, { merge: true });
+        } catch (e) {}
+
+        return true;
+    } catch (e) {
+        console.log('Welcome message error:', e);
+        return false;
+    }
+}
+
+async function ensureWelcomeMessage() {
+    if (!currentUser || !currentUserData) return;
+    if (currentUserData.welcomeSent === true) return;
+    var name = currentUserData.name || ((currentUser.email || '').split('@')[0]) || 'friend';
+    await sendWelcomeMessage(currentUser.uid, name);
+}
+
 const SKELETON_HTML = `
 <div class="skeleton-card">
     <div class="skeleton-header">
@@ -5998,8 +6059,9 @@ function loginWithGoogle() {
             // Create user doc if not exists
             const doc = await db.collection('users').doc(user.uid).get();
             if (!doc.exists) {
+                const gName = user.email.split('@')[0];
                 await db.collection('users').doc(user.uid).set({
-                    name: user.email.split('@')[0],
+                    name: gName,
                     email: user.email,
                     avatar: '',
                     bio: '', location: '', hometown: '', relationship: '', gender: '',
@@ -6009,8 +6071,10 @@ function loginWithGoogle() {
                     points: 20,
                     loginStreak: 1,
                     lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    welcomeSent: false
                 });
+                sendWelcomeMessage(user.uid, gName);
             }
             
             showToast("Logged in successfully!");
@@ -6054,8 +6118,10 @@ blockedUsers:[],mutedChats:[],pinnedChats:[],archivedChats:[],
 online:true,
 points: 0,
 lastSeen:firebase.firestore.FieldValue.serverTimestamp(),
-createdAt:firebase.firestore.FieldValue.serverTimestamp()
+createdAt:firebase.firestore.FieldValue.serverTimestamp(),
+welcomeSent: false
 });
+sendWelcomeMessage(user.uid, defaultName);
 }catch(e){msg.textContent='Registration failed: '+e.message;msg.className='auth-msg error';}
 }
 
@@ -6360,6 +6426,8 @@ loadUserUI(); loadFeed(); loadMessages(); loadStories(); cleanupExpiredPosts(); 
 db.collection('users').doc(user.uid).onSnapshot(doc=>{
 if(doc.exists){
 currentUserData=doc.data();
+// 🚀 নতুন ইউজারের জন্য ওয়েলকাম মেসেজ (fallback)
+try { ensureWelcomeMessage(); } catch(e) {}
 // --- LOCKDOWN CHECK ---
 if (currentUserData.isBanned) {
     document.body.innerHTML = `
@@ -7981,7 +8049,8 @@ function openChat(chatId, otherUid, otherName, otherAvatar){
         
         list.innerHTML = snap.docs.map(d=>{
             const m=d.data();
-            const isMine=m.uid===currentUser.uid;
+            // System/welcome messages always show as incoming (left)
+            const isMine = (m.uid === currentUser.uid) && !m.isSystem;
             let content='';
                         let rawText = m.text || '';
 let safeText = escapeHTML(rawText);
@@ -11365,8 +11434,10 @@ async function completeRegistration() {
             name: fullName,
             email: user.email,
             avatar: '', bio: '', friends: [], followers: [], following: [],
-            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            welcomeSent: false
         });
+        sendWelcomeMessage(user.uid, fullName);
         showToast("Account created successfully!");
     } catch (e) {
         showToast("Error: " + e.message);
