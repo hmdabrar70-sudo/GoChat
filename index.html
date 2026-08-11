@@ -7605,19 +7605,7 @@ async function openCommentPanel(pid) {
                 }).join('');
             }
             
-                        // 🚀 লাইক/ডিসলাইকের কালার এবং আইকন চেক
-            const uid = currentUser ? currentUser.uid : null;
-            const hasLiked = c.likedBy && c.likedBy.includes(uid);
-            const hasDisliked = c.dislikedBy && c.dislikedBy.includes(uid);
-            
-            // মেইন ফিডের মতো হার্ট আইকন এবং সুন্দর ডিজাইন
-            const likeIcon = hasLiked ? 'ph-fill ph-heart' : 'ph-bold ph-heart';
-            const likeColor = hasLiked ? 'color:var(--danger);' : 'color:var(--text-muted);';
-            
-            const dislikeIcon = hasDisliked ? 'ph-fill ph-thumbs-down' : 'ph-bold ph-thumbs-down';
-            const dislikeColor = hasDisliked ? 'color:var(--accent);' : 'color:var(--text-muted);';
-
-                        // 🚀 NEW: কমেন্ট করা ইউজারের প্রোফাইল পিকচার বের করা
+                                    // 🚀 NEW: কমেন্ট করা ইউজারের প্রোফাইল পিকচার বের করা
             let commentAvHtml = avatarInitial(c.name);
 // 🚀 Update #49 · comment-verified-badge: কমেন্টে নামের পাশে ভেরিফাইড ব্যাজ
 let commentBadge = '';
@@ -7644,16 +7632,8 @@ if (commentUser && commentUser.avatar) {
                     </div>
                     ${commentImageHtml}
                     
-                    <!-- 🚀 লাইক, ডিসলাইক ও রিপ্লাই বাটন (বাবলের নিচে) -->
+                    <!-- রিপ্লাই বাটন -->
                     <div style="display:flex; gap:16px; margin-top:6px; margin-left:12px; align-items:center;">
-                        <div style="display:flex; align-items:center; gap:6px; cursor:pointer; transition:0.2s; ${likeColor}" onclick="toggleCommentReaction('${pid}', ${idx}, 'like')">
-                            <i class="${likeIcon}" style="font-size:16px;"></i> 
-                            <span style="font-size:12px; font-weight:800;">${c.likes || 0}</span>
-                        </div>
-                        <div style="display:flex; align-items:center; gap:6px; cursor:pointer; transition:0.2s; ${dislikeColor}" onclick="toggleCommentReaction('${pid}', ${idx}, 'dislike')">
-                            <i class="${dislikeIcon}" style="font-size:16px;"></i> 
-                            <span style="font-size:12px; font-weight:800;">${c.dislikes || 0}</span>
-                        </div>
                         <div style="font-size:12px; color:var(--text-muted); cursor:pointer; font-weight:700;" onclick="showReplyInput('${pid}',${idx},'${safeCName}')">Reply</div>
                     </div>
                     
@@ -7665,71 +7645,6 @@ if (commentUser && commentUser.avatar) {
     });
 }
 
-
-async function toggleCommentReaction(pid, commentIdx, type) {
-    if (!currentUser || !checkRateLimit()) return;
-    const ref = db.collection('posts').doc(pid);
-    const doc = await ref.get();
-    if (!doc.exists) return;
-    
-    let comments = doc.data().comments || [];
-    let comment = comments[commentIdx];
-    if (!comment) return;
-    
-    // লাইক এবং ডিসলাইকের জন্য আলাদা ট্র্যাকিং লিস্ট তৈরি করা (যদি না থাকে)
-    if (!comment.likedBy) comment.likedBy = [];
-    if (!comment.dislikedBy) comment.dislikedBy = [];
-    
-    const uid = currentUser.uid;
-    const hasLiked = comment.likedBy.includes(uid);
-    const hasDisliked = comment.dislikedBy.includes(uid);
-    
-    let toastMsg = '';
-
-    if (type === 'like') {
-        if (hasLiked) {
-            // আগে লাইক করা থাকলে রিমুভ করবে
-            comment.likedBy = comment.likedBy.filter(id => id !== uid);
-            comment.likes = Math.max(0, (comment.likes || 0) - 1);
-            toastMsg = 'Like removed';
-        } else {
-            // নতুন লাইক অ্যাড করবে এবং ডিসলাইক থাকলে সেটা রিমুভ করবে
-            comment.likedBy.push(uid);
-            comment.likes = (comment.likes || 0) + 1;
-            
-            if (hasDisliked) {
-                comment.dislikedBy = comment.dislikedBy.filter(id => id !== uid);
-                comment.dislikes = Math.max(0, (comment.dislikes || 0) - 1);
-            }
-            toastMsg = 'Liked!';
-        }
-    } else if (type === 'dislike') {
-        if (hasDisliked) {
-            // আগে ডিসলাইক করা থাকলে রিমুভ করবে
-            comment.dislikedBy = comment.dislikedBy.filter(id => id !== uid);
-            comment.dislikes = Math.max(0, (comment.dislikes || 0) - 1);
-            toastMsg = 'Dislike removed';
-        } else {
-            // নতুন ডিসলাইক অ্যাড করবে এবং লাইক থাকলে সেটা রিমুভ করবে
-            comment.dislikedBy.push(uid);
-            comment.dislikes = (comment.dislikes || 0) + 1;
-            
-            if (hasLiked) {
-                comment.likedBy = comment.likedBy.filter(id => id !== uid);
-                comment.likes = Math.max(0, (comment.likes || 0) - 1);
-            }
-            toastMsg = 'Disliked!';
-        }
-    }
-    
-    // পুরনো reactedBy অ্যারে থাকলে তা মুছে ফেলা (ডাটাবেস ক্লিন রাখার জন্য)
-    if (comment.reactedBy && comment.reactedBy.includes(uid)) {
-        comment.reactedBy = comment.reactedBy.filter(id => id !== uid);
-    }
-    
-    await ref.update({ comments });
-    showToast(toastMsg);
-}
 
 // 🚀 রিপ্লাইয়ের বক্স ওপেন করার ফাংশন (Fixed)
 function showReplyInput(pid, idx, name) {
@@ -14449,10 +14364,6 @@ async function sendCommentWithImage() {
         text: text,
         imageUrl: imageUrl, // 🚀 ডাটাবেসে ছবির লিংক সেভ হবে
         time: Date.now(),
-        likes: 0,
-        dislikes: 0,
-        likedBy: [],
-        dislikedBy: [],
         replies: []
     };
 
