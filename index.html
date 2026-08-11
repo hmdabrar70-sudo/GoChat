@@ -3959,31 +3959,6 @@ cursor:pointer;
 transition:background .2s;
 }
 .gc-posted-view:active{background:rgba(157,133,255,.32);}
-
-/* 🚀 Update #63 · message-requests-v2 CSS */
-.gc-mr-badge{position:absolute;top:-4px;right:-4px;min-width:18px;height:18px;border-radius:9px;background:var(--danger);color:#fff;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;padding:0 4px;}
-.gc-mr-screen{position:fixed;inset:0;background:var(--bg);z-index:100680;display:none;flex-direction:column;}
-.gc-mr-screen.open{display:flex;}
-.gc-mr-head{display:flex;align-items:center;gap:12px;padding:14px 16px;background:var(--surface);border-bottom:1px solid var(--border);}
-.gc-mr-title{font-size:18px;font-weight:800;color:var(--text);flex:1;display:flex;align-items:center;gap:8px;}
-.gc-mr-body{flex:1;overflow-y:auto;padding:12px 14px 90px;scrollbar-width:none;}
-.gc-mr-body::-webkit-scrollbar{display:none;}
-.gc-mr-item{display:flex;align-items:center;gap:12px;padding:12px;border-radius:16px;background:var(--surface);border:1px solid var(--border);margin-bottom:10px;cursor:pointer;transition:transform .15s;}
-.gc-mr-item:active{transform:scale(.98);}
-.gc-mr-av{width:48px;height:48px;border-radius:50%;object-fit:cover;background:var(--surface-2);flex-shrink:0;}
-.gc-mr-av-init{width:48px;height:48px;border-radius:50%;background:var(--gradient);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;flex-shrink:0;}
-.gc-mr-info{flex:1;min-width:0;}
-.gc-mr-name{font-size:14px;font-weight:800;color:var(--text);}
-.gc-mr-prev{font-size:12px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px;}
-.gc-mr-msg{display:flex;margin:6px 0;}
-.gc-mr-msg.mine{justify-content:flex-end;}
-.gc-mr-msg .b{max-width:75%;padding:10px 14px;border-radius:16px;font-size:13px;line-height:1.4;}
-.gc-mr-msg.theirs .b{background:var(--surface-2);color:var(--text);border-bottom-left-radius:4px;}
-.gc-mr-msg.mine .b{background:var(--gradient);color:#fff;border-bottom-right-radius:4px;}
-.gc-mr-actions{position:absolute;left:0;right:0;bottom:0;display:flex;gap:10px;padding:12px 16px calc(12px + env(safe-area-inset-bottom));background:var(--surface);border-top:1px solid var(--border);}
-.gc-mr-actions button{flex:1;padding:13px;border:none;border-radius:14px;font-size:14px;font-weight:800;cursor:pointer;}
-.gc-mr-accept{background:var(--success);color:#fff;}
-.gc-mr-delete{background:var(--surface-2);color:var(--danger);border:1px solid var(--danger) !important;}
 </style>
 </head>
 <body>
@@ -8762,21 +8737,21 @@ function loadMessages(){
             
             ${unreadDot}
 
-            <div class="msg-menu-btn" onclick="event.stopPropagation();toggleChatListMenu('${chat.id}',this)">
-            <span class="material-symbols-outlined">more_vert</span>
+                        <div class="msg-menu-btn" onclick="event.stopPropagation();toggleChatListMenu('${chat.id}',this)">
+            <i class="ph-fill ph-dots-three-outline" style="font-size: 24px;"></i>
             </div>
-            <div id="chat-menu-${chat.id}" class="chat-list-menu" onclick="event.stopPropagation();">
+                        <div id="chat-menu-${chat.id}" class="chat-list-menu" onclick="event.stopPropagation();">
             <div class="chat-dropdown-item" onclick="pinChat('${chat.id}')">
-            <span class="material-symbols-outlined">push_pin</span> ${chat.isPinned?'Unpin':'Pin'}
+            <i class="ph-fill ${chat.isPinned ? 'ph-push-pin-slash' : 'ph-push-pin'}" style="font-size: 22px;"></i> ${chat.isPinned ? 'Unpin' : 'Pin'}
             </div>
             <div class="chat-dropdown-item" onclick="muteChat('${chat.id}')">
-            <span class="material-symbols-outlined">${chat.isMuted?'notifications_on':'notifications_off'}</span> ${chat.isMuted?'Unmute':'Mute'}
+            <i class="ph-fill ${chat.isMuted ? 'ph-ear' : 'ph-ear-slash'}" style="font-size: 22px;"></i> ${chat.isMuted ? 'Unmute' : 'Mute'}
             </div>
             <div class="chat-dropdown-item" onclick="archiveChat('${chat.id}')">
-            <span class="material-symbols-outlined">archive</span> Archive
+            <i class="ph-fill ph-tray-arrow-down" style="font-size: 22px;"></i> Archive
             </div>
             <div class="chat-dropdown-item danger" onclick="deleteChat('${chat.id}')">
-            <span class="material-symbols-outlined">delete</span> Delete Chat
+            <i class="ph-fill ph-trash-simple" style="font-size: 22px;"></i> Delete Chat
             </div>
             </div>
             </div>`;
@@ -9607,7 +9582,7 @@ mediaHtml=`<div class="post-media-wrap" ondblclick="event.stopPropagation(); han
 }
 
 let postDropdownHtml = `<div style="position:relative;margin-left:auto;">
-<i class="ph-bold ph-dots-three-vertical more-btn" onclick="event.stopPropagation();togglePostDropdown('post-drop-${uniqueDropId}')" style="cursor:pointer;padding:6px;border-radius:50%;color:var(--text-secondary);font-size:24px;"></i>
+<i class="ph-fill ph-dots-three-outline more-btn" onclick="event.stopPropagation();togglePostDropdown('post-drop-${uniqueDropId}')" style="cursor:pointer;padding:6px;border-radius:50%;color:var(--text-secondary);font-size:24px;"></i>
 <div id="post-drop-${uniqueDropId}" class="post-dropdown-menu" onclick="event.stopPropagation();">`;
 
 if(p.uid === currentUser?.uid){
@@ -10595,17 +10570,33 @@ function copyComment(btnElement) {
     }
 }
 
+// 🚀 কমেন্ট ডিলিট এবং কাউন্টার ফিক্স করার ফাংশন
 async function deleteComment(pid, idx) {
     if (!confirm("Delete this comment?")) return;
+    
     const ref = db.collection('posts').doc(pid);
     const doc = await ref.get();
     if (!doc.exists) return;
     
     let comments = doc.data().comments;
+    // নির্দিষ্ট কমেন্টটি রিমুভ করা হলো
     comments.splice(idx, 1);
-    await ref.update({ comments });
+    
+    // ১. 🚀 ম্যাজিক: ডাটাবেসে কমেন্ট এবং মোট কমেন্টের সংখ্যা (commentCount) আপডেট করা হলো
+    await ref.update({ 
+        comments: comments,
+        commentCount: comments.length 
+    });
+    
+    // ২. 🚀 ম্যাজিক: পেজ রিফ্রেশ না করেই স্ক্রিনে পোস্টের বাইরের কমেন্ট সংখ্যা সাথে সাথে কমিয়ে দেওয়া হলো
+    const commentSpans = document.querySelectorAll(`button[onclick*="openCommentPanel('${pid}')"] span`);
+    commentSpans.forEach(span => {
+        span.innerText = comments.length;
+    });
+
     showToast("Comment deleted!");
 }
+
 async function fixMissingNamesInChats() {
     // শুধুমাত্র যারা বর্তমানে লগইন করা তাদের চ্যাটগুলো চেক করবে
     if (!currentUser) return;
@@ -16773,207 +16764,7 @@ db.collection('users').doc(u.uid).update({ isElite: false, isVerified: false });
 }
 });
 });
-// ═══════════════════════════════════════════════════════
-// 🚀 Update #63 · message-requests-v2 · 2026-08-11
-// সম্পূর্ণ রি-বিল্ড: Message Requests (এক ক্লিন ব্লক)
-// খুঁজতে: Ctrl+F → "message-requests-v2"
-// ═══════════════════════════════════════════════════════
-window.gcMrUserCache = window.gcMrUserCache || {};
-let gcMrChat = null;
-let gcMrLastLoad = 0;
-function gcMrUser(uid){
-return (window.allUsersCache || []).find(function(u){ return u.id === uid; }) || window.gcMrUserCache[uid] || null;
-}
-async function gcMrFetchUsers(uids){
-const missing = uids.filter(function(id){ return !gcMrUser(id); });
-if(!missing.length) return;
-try{
-const docs = await Promise.all(missing.map(function(id){ return db.collection('users').doc(id).get().catch(function(){ return null; }); }));
-docs.forEach(function(d, i){
-if(d && d.exists){ window.gcMrUserCache[missing[i]] = Object.assign({ id: missing[i] }, d.data()); }
-});
-}catch(e){}
-}
-function gcMrIsRequest(otherUid, chatId){
-if(!currentUser || !currentUserData) return false;
-if(!otherUid || otherUid === 'group') return false;
-if((currentUserData.acceptedChats || []).indexOf(chatId) !== -1) return false;
-if((currentUserData.blockedUsers || []).indexOf(otherUid) !== -1) return false;
-const meFollow = (currentUserData.following || []).indexOf(otherUid) !== -1;
-const other = gcMrUser(otherUid);
-const otherFollow = other ? (other.following || []).indexOf(currentUser.uid) !== -1 : false;
-return !meFollow && !otherFollow;
-}
-// ----- বাটন (শুধু মেসেজ পেজে) -----
-function gcMrSyncBtn(){
-const b = document.getElementById('gc-mr-btn');
-if(!b) return;
-const mp = document.getElementById('page-messages');
-b.style.display = (mp && (mp.classList.contains('active') || mp.classList.contains('open'))) ? 'flex' : 'none';
-}
-function gcMrInjectBtn(){
-if(document.getElementById('gc-mr-btn')){ gcMrSyncBtn(); return; }
-const filt = document.getElementById('gc-chat-filter-btn') || document.querySelector('#page-messages [onclick*="ChatFilter"]');
-const grp = document.getElementById('topbar-group-btn');
-const anchor = filt || grp;
-if(!anchor || !anchor.parentNode) return;
-const btn = document.createElement('button');
-btn.id = 'gc-mr-btn';
-btn.type = 'button';
-btn.style.cssText = 'border:none;background:var(--surface-2);width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;';
-btn.innerHTML = '<i class="ph-fill ph-chats-circle" style="font-size:20px;color:var(--accent);"></i><span class="gc-mr-badge" id="gc-mr-badge" style="display:none;"></span>';
-btn.onclick = function(e){ e.stopPropagation(); gcMrOpen(); };
-anchor.parentNode.insertBefore(btn, anchor.nextSibling);
-gcMrSyncBtn();
-}
-window.gcOrigShowPage63 = showPage;
-showPage = function(page){
-window.gcOrigShowPage63(page);
-setTimeout(function(){ gcMrInjectBtn(); gcMrSyncBtn(); if(page === 'messages') gcMrMaybeRefresh(); }, 80);
-};
-setInterval(function(){ gcMrInjectBtn(); }, 2000);
-function gcMrMaybeRefresh(){
-if(Date.now() - gcMrLastLoad > 300000) gcMrLoad();
-}
-// ----- স্ক্রিন -----
-function gcMrEnsure(){
-let scr = document.getElementById('gc-mr-screen');
-if(scr) return scr;
-scr = document.createElement('div');
-scr.id = 'gc-mr-screen';
-scr.className = 'gc-mr-screen';
-scr.innerHTML = '<div class="gc-mr-head"><div class="chat-back" onclick="gcMrClose()"><i class="ph-bold ph-arrow-left" style="font-size:20px;"></i></div><div class="gc-mr-title"><i class="ph-fill ph-chats-circle" style="color:var(--accent);"></i> Message Requests <span class="gc-fr-count" id="gc-mr-count">0</span></div></div><div class="gc-mr-body" id="gc-mr-list"></div><div class="gc-mr-actions" id="gc-mr-actions" style="display:none;"><button class="gc-mr-accept" onclick="gcMrAccept()">Accept</button><button class="gc-mr-delete" onclick="gcMrDelete()">Delete</button></div>';
-document.body.appendChild(scr);
-return scr;
-}
-function gcMrOpen(){
-gcMrEnsure().classList.add('open');
-gcMrChat = null;
-document.getElementById('gc-mr-actions').style.display = 'none';
-gcMrLoad();
-}
-function gcMrClose(){ const s = document.getElementById('gc-mr-screen'); if(s) s.classList.remove('open'); }
-// ----- লিস্ট লোড (নাম+ছবি+প্রিভিউ গ্যারান্টি) -----
-async function gcMrLoad(){
-gcMrLastLoad = Date.now();
-const scr = gcMrEnsure();
-const list = document.getElementById('gc-mr-list');
-if(!currentUser) return;
-const open = scr.classList.contains('open');
-if(open) list.innerHTML = '<div class="gc-sk-grid"><div class="gc-sk-tile"></div><div class="gc-sk-tile" style="animation-delay:.08s"></div><div class="gc-sk-tile" style="animation-delay:.16s"></div><div class="gc-sk-tile" style="animation-delay:.24s"></div></div>';
-try{
-const snap = await db.collection('chats').get();
-const reqs = [];
-snap.forEach(function(d){
-const data = d.data(); const chatId = d.id;
-if(data.isGroup) return;
-if(chatId.indexOf(currentUser.uid) === -1) return;
-const parts = chatId.split('_');
-const otherUid = parts[0] === currentUser.uid ? parts[1] : parts[0];
-if(gcMrIsRequest(otherUid, chatId)) reqs.push({ chatId: chatId, otherUid: otherUid, data: data });
-});
-await gcMrFetchUsers(reqs.map(function(r){ return r.otherUid; }));
-const badge = document.getElementById('gc-mr-badge');
-if(badge){ badge.textContent = reqs.length; badge.style.display = reqs.length ? 'flex' : 'none'; }
-const cnt = document.getElementById('gc-mr-count'); if(cnt) cnt.textContent = reqs.length;
-if(!open){ gcMrHideMain(); return; }
-if(!reqs.length){
-list.innerHTML = '<div style="text-align:center;padding:70px 20px;color:var(--text-muted);"><i class="ph-bold ph-chats-circle" style="font-size:44px;"></i><div style="margin-top:12px;font-weight:800;color:var(--text);">No message requests</div><div style="font-size:12px;margin-top:4px;">Messages from people you don\'t follow will appear here.</div></div>';
-return;
-}
-for(let i = 0; i < reqs.length; i++){
-try{
-const m = await db.collection('chats').doc(reqs[i].chatId).collection('messages').orderBy('createdAt', 'desc').limit(1).get();
-reqs[i].last = m.empty ? '' : (m.docs[0].data().text || (m.docs[0].data().imageUrl ? '📷 Photo' : '🎤 Voice Message'));
-}catch(e){ reqs[i].last = ''; }
-}
-list.innerHTML = reqs.map(function(r){
-const u = gcMrUser(r.otherUid) || {};
-const av = u.avatar ? '<img class="gc-mr-av" src="' + escapeHTML(u.avatar) + '">' : '<div class="gc-mr-av-init">' + escapeHTML((u.name || 'U').charAt(0).toUpperCase()) + '</div>';
-return '<div class="gc-mr-item" onclick="gcMrDetail(\'' + r.chatId + '\')">' + av + '<div class="gc-mr-info"><div class="gc-mr-name">' + escapeHTML(u.name || 'User') + '</div><div class="gc-mr-prev">' + escapeHTML(String(r.last || 'New message')) + '</div></div></div>';
-}).join('');
-gcMrHideMain();
-}catch(e){
-if(open) list.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted);font-size:13px;">Failed to load requests.</div>';
-}
-}
-// ----- ডিটেইল + Accept/Delete -----
-async function gcMrDetail(chatId){
-gcMrChat = chatId;
-const list = document.getElementById('gc-mr-list');
-list.innerHTML = '<div style="text-align:center;padding:30px;color:var(--text-muted);"><i class="ph-bold ph-spinner-gap" style="font-size:26px;animation:spin 1s linear infinite;"></i></div>';
-try{
-const ms = await db.collection('chats').doc(chatId).collection('messages').get();
-const arr = []; ms.forEach(function(d){ arr.push(d.data()); });
-arr.sort(function(a, b){
-const ta = (a.createdAt && a.createdAt.toMillis) ? a.createdAt.toMillis() : 0;
-const tb = (b.createdAt && b.createdAt.toMillis) ? b.createdAt.toMillis() : 0;
-return ta - tb;
-});
-list.innerHTML = arr.map(function(m){
-const mine = m.uid === currentUser.uid;
-const body = m.text ? escapeHTML(m.text) : (m.imageUrl ? '📷 Photo' : (m.audioUrl ? '🎤 Voice Message' : 'Attachment'));
-return '<div class="gc-mr-msg ' + (mine ? 'mine' : 'theirs') + '"><div class="b">' + body + '</div></div>';
-}).join('') || '<div style="text-align:center;color:var(--text-muted);font-size:12px;padding:20px;">No messages</div>';
-document.getElementById('gc-mr-actions').style.display = 'flex';
-}catch(e){
-list.innerHTML = '<div style="text-align:center;color:var(--text-muted);font-size:13px;padding:20px;">Failed to load conversation.</div>';
-}
-}
-function gcMrAccept(){
-const chatId = gcMrChat; if(!chatId) return;
-db.collection('users').doc(currentUser.uid).update({ acceptedChats: firebase.firestore.FieldValue.arrayUnion(chatId) }).then(function(){
-currentUserData.acceptedChats = (currentUserData.acceptedChats || []).concat([chatId]);
-showToast('✅ Chat accepted — moved to Messages');
-gcMrChat = null;
-document.getElementById('gc-mr-actions').style.display = 'none';
-gcMrLoad();
-if(typeof loadMessages === 'function') loadMessages();
-}).catch(function(){ showToast('❌ Failed to accept'); });
-}
-function gcMrDelete(){
-const chatId = gcMrChat; if(!chatId) return;
-const doDelete = async function(){
-try{
-const batch = db.batch();
-const ms = await db.collection('chats').doc(chatId).collection('messages').get();
-ms.forEach(function(doc){ batch.delete(doc.ref); });
-batch.delete(db.collection('chats').doc(chatId));
-await batch.commit();
-showToast('Request deleted');
-gcMrChat = null;
-document.getElementById('gc-mr-actions').style.display = 'none';
-gcMrLoad();
-if(typeof loadMessages === 'function') loadMessages();
-}catch(e){ showToast('❌ Failed to delete'); }
-};
-if(typeof gcOpenConfirm === 'function'){
-gcOpenConfirm({ title:'Delete Request?', text:'This conversation will be deleted for both sides.', icon:'ph-trash', yesLabel:'Delete', onYes: doDelete });
-}else if(confirm('Delete this request?')){ doDelete(); }
-}
-// ----- মেইন লিস্ট থেকে হাইড -----
-function gcMrHideMain(){
-if(!currentUser || !currentUserData) return;
-const scope = document.getElementById('page-messages'); if(!scope) return;
-scope.querySelectorAll('.msg-item').forEach(function(it){
-const m = (it.getAttribute('onclick') || '').match(/openChat\(\s*'([^']+)'\s*,\s*'([^']+)'/);
-if(!m) return;
-if(gcMrIsRequest(m[2], m[1])) it.style.display = 'none';
-});
-}
-(function gcMrHideObs(){
-if(window.gcMrHideOn63) return; window.gcMrHideOn63 = true;
-let raf = false;
-new MutationObserver(function(){
-if(raf) return; raf = true;
-requestAnimationFrame(function(){ raf = false; gcMrHideMain(); });
-}).observe(document.body, { childList:true, subtree:true });
-})();
-if(typeof gcApplyChatFilter === 'function' && !window.gcAcfWrapped63){
-window.gcAcfWrapped63 = true;
-window.gcOrigApplyChatFilter63 = gcApplyChatFilter;
-gcApplyChatFilter = function(){ window.gcOrigApplyChatFilter63(); gcMrHideMain(); };
-}
+
 // ═══════════════════════════════════════════════════════
 // 🚀 Update #60 · profile-posts-count · 2026-08-11
 // Followers/Following-এর পাশে লাইভ Posts কাউন্ট (নিজের + অন্যদের)
