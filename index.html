@@ -2158,57 +2158,6 @@ body.light-mode{
 --bg:#ffffff;
 }
 
-/* 🚀 Update #27 · video-post: সিঙ্গেল ভিউ/গ্রিডে ভিডিও স্টাইল */
-.post-media-wrap video{
-width:100%;
-border-radius:18px;
-background:#000;
-display:block;
-}
-
-/* =========================================
-🚀 Update #28 · custom-vplayer · 2026-08-07
-নিজস্ব Phosphor আইকনের ভিডিও প্লেয়ার কন্ট্রোল
-খুঁজতে: Ctrl+F → "custom-vplayer"
-========================================= */
-.gc-vplayer{position:relative;width:100%;border-radius:18px;overflow:hidden;background:#000;}
-.gc-vplayer video{width:100%;display:block;}
-.gc-vp-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:64px;height:64px;border-radius:50%;background:rgba(255,255,255,.92);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .25s;box-shadow:0 8px 30px rgba(0,0,0,.35);z-index:2;}
-.gc-vp-center i{font-size:28px;color:#1a1a2e;margin-left:3px;}
-.gc-vp-center.hide{opacity:0;pointer-events:none;transform:translate(-50%,-50%) scale(.8);}
-.gc-vp-bar{position:absolute;left:0;right:0;bottom:0;display:flex;align-items:center;gap:8px;padding:10px 12px;background:linear-gradient(transparent, rgba(0,0,0,.78));z-index:2;}
-.gc-vp-time{font-size:11px;font-weight:700;color:#fff;min-width:30px;text-align:center;}
-.gc-vp-track{flex:1;height:4px;border-radius:2px;background:rgba(255,255,255,.25);cursor:pointer;}
-.gc-vp-fill{height:100%;width:0;border-radius:2px;background:var(--accent);}
-.gc-vp-btn{border:none;background:transparent;color:#fff;cursor:pointer;padding:4px;display:flex;align-items:center;}
-.gc-vp-btn i{font-size:18px;}
-.gc-vplayer:fullscreen{border-radius:0;}
-.gc-vplayer:fullscreen video{height:100% !important;object-fit:contain !important;}
-
-/* 🚀 Profile Grid Video Click Fix (Open in Single View) */
-.grid-post-item .gc-vplayer,
-.grid-post-card .gc-vplayer {
-    width: 100% !important;
-    height: 100% !important;
-    pointer-events: none !important; /* কাস্টম প্লেয়ারের ক্লিক ব্লক করবে */
-}
-.grid-post-item video,
-.grid-post-card video,
-.grid-post-item .gc-vplayer video {
-    width: 100% !important;
-    height: 100% !important;
-    object-fit: cover !important;
-    pointer-events: none !important; /* ভিডিওর ক্লিক ব্লক করবে */
-    border-radius: inherit;
-}
-.grid-post-item .gc-vp-center {
-    pointer-events: none !important; /* প্লে বাটনের ক্লিক ব্লক করবে */
-    transform: translate(-50%, -50%) scale(0.65) !important; /* গ্রিডের ভেতর প্লে বাটনটা একটু ছোট ও সুন্দর দেখাবে */
-}
-.grid-post-item .gc-vp-bar {
-    display: none !important; /* গ্রিডের ভেতর নিচের টাইম/কন্ট্রোল বার লুকানো থাকবে (ক্লিন লুকের জন্য) */
-}
-
 /* =========================================
 🚀 Update #37 · post-report-system · 2026-08-08
 Threads-স্টাইল (আরও সুন্দর) পোস্ট রিপোর্ট সিস্টেম
@@ -3959,6 +3908,18 @@ cursor:pointer;
 transition:background .2s;
 }
 .gc-posted-view:active{background:rgba(157,133,255,.32);}
+
+/* =========================================
+🚀 Update #65 · vplayer-rebuild · 2026-08-12
+কন্ট্রোল বার ডিফল্ট হাইড + ফুলস্ক্রিন ফিক্স
+খুঁজতে: Ctrl+F → "vplayer-rebuild"
+========================================= */
+.gc-vp-bar{opacity:0;pointer-events:none;transition:opacity .25s ease;}
+.gc-vp-bar.show{opacity:1;pointer-events:auto;}
+.gc-vplayer:fullscreen{background:#000;display:flex;align-items:center;justify-content:center;}
+.gc-vplayer:fullscreen video{width:100%;height:100%;object-fit:contain !important;}
+.gc-vplayer:fullscreen .gc-vp-bar{position:absolute;left:0;right:0;bottom:0;}
+.gc-vplayer:fullscreen .gc-vp-bar.show{opacity:1;}
 </style>
 </head>
 <body>
@@ -7605,7 +7566,7 @@ async function openCommentPanel(pid) {
                 }).join('');
             }
             
-                                    // 🚀 NEW: কমেন্ট করা ইউজারের প্রোফাইল পিকচার বের করা
+                        // 🚀 NEW: কমেন্ট করা ইউজারের প্রোফাইল পিকচার বের করা
             let commentAvHtml = avatarInitial(c.name);
 // 🚀 Update #49 · comment-verified-badge: কমেন্টে নামের পাশে ভেরিফাইড ব্যাজ
 let commentBadge = '';
@@ -9302,6 +9263,9 @@ function loadFeed() {
 
         const mutedList = currentUserData?.mutedFeedUsers || [];
         postsData = postsData.filter(p => !mutedList.includes(p.uid));
+
+        // Home Feed: video posts are intentionally excluded; Create Post video upload remains unchanged.
+        postsData = postsData.filter(p => !(p.videoUrl || (p.imgUrls || []).some(u => /\/(?:video|raw)\//i.test(u || ''))));
 
         if (currentFeedTab === 'following') { 
             postsData = postsData.filter(p => currentUserData?.following?.includes(p.uid) || p.uid === currentUser?.uid);
@@ -15158,109 +15122,8 @@ input.value = '';
 });
 }, 1000);
 })();
-// ৪) ফিড/প্রোফাইলে ভিডিও URL পেলে <img> → আসল <video> প্লেয়ার
-// 🚀 Update #28 · custom-vplayer: নিজস্ব Phosphor কন্ট্রোল বাইন্ডিং
-function gcBindVPlayer(wrap){
-const v = wrap.querySelector('video');
-if(!v || wrap.dataset.gcBound) return;
-wrap.dataset.gcBound = '1';
-const center = wrap.querySelector('.gc-vp-center');
-const cur = wrap.querySelector('.gc-vp-cur');
-const durEl = wrap.querySelector('.gc-vp-dur');
-const track = wrap.querySelector('.gc-vp-track');
-const fill = wrap.querySelector('.gc-vp-fill');
-const muteBtn = wrap.querySelector('.gc-vp-mute');
-const fullBtn = wrap.querySelector('.gc-vp-full');
-const dlBtn = wrap.querySelector('.gc-vp-dl');
-function fmt(s){ s = Math.max(0, Math.round(s || 0)); return Math.floor(s/60) + ':' + ('0' + (s%60)).slice(-2); }
-function toggle(){ if(v.paused){ v.play(); } else { v.pause(); } }
-v.addEventListener('click', function(e){ e.stopPropagation(); toggle(); });
-center.addEventListener('click', function(e){ e.stopPropagation(); toggle(); });
-v.addEventListener('play', function(){ center.classList.add('hide'); });
-v.addEventListener('pause', function(){ center.classList.remove('hide'); });
-v.addEventListener('ended', function(){ center.classList.remove('hide'); });
-v.addEventListener('loadedmetadata', function(){ durEl.textContent = fmt(v.duration); });
-v.addEventListener('timeupdate', function(){ cur.textContent = fmt(v.currentTime); if(v.duration){ fill.style.width = (v.currentTime / v.duration * 100) + '%'; } });
-track.addEventListener('click', function(e){ e.stopPropagation(); const r = track.getBoundingClientRect(); const p = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)); if(v.duration){ v.currentTime = p * v.duration; } });
-muteBtn.addEventListener('click', function(e){ e.stopPropagation(); v.muted = !v.muted; muteBtn.innerHTML = v.muted ? '<i class="ph-fill ph-speaker-slash"></i>' : '<i class="ph-fill ph-speaker-high"></i>'; });
-function syncFull(){ fullBtn.innerHTML = document.fullscreenElement ? '<i class="ph-bold ph-corners-in"></i>' : '<i class="ph-bold ph-corners-out"></i>'; }
-fullBtn.addEventListener('click', function(e){ e.stopPropagation(); if(document.fullscreenElement){ document.exitFullscreen(); } else if(wrap.requestFullscreen){ wrap.requestFullscreen(); } syncFull(); });
-document.addEventListener('fullscreenchange', syncFull);
-dlBtn.addEventListener('click', function(e){ e.stopPropagation(); const a = document.createElement('a'); a.href = v.src; a.download = 'GoChat_Video.mp4'; a.target = '_blank'; document.body.appendChild(a); a.click(); a.remove(); showToast('Downloading video...'); });
-wrap.addEventListener('click', function(e){ e.stopPropagation(); });
-}
-function gcVideoize(scope){
-(scope || document).querySelectorAll('img[src*="/video/upload/"],img[src$=".mp4"],img[src$=".webm"]').forEach(function(img){
-if(img.dataset.gcVid) return;
-img.dataset.gcVid = '1';
-const wrap = document.createElement('div');
-wrap.className = 'gc-vplayer';
-const v = document.createElement('video');
-v.src = img.src;
-v.playsInline = true;
-v.setAttribute('playsinline', '');
-v.preload = 'metadata';
-wrap.appendChild(v);
-wrap.insertAdjacentHTML('beforeend',
-'<div class="gc-vp-center"><i class="ph-fill ph-play"></i></div>' +
-'<div class="gc-vp-bar">' +
-'<div class="gc-vp-time gc-vp-cur">0:00</div>' +
-'<div class="gc-vp-track"><div class="gc-vp-fill"></div></div>' +
-'<div class="gc-vp-time gc-vp-dur">0:00</div>' +
-'<button class="gc-vp-btn gc-vp-mute"><i class="ph-fill ph-speaker-high"></i></button>' +
-'<button class="gc-vp-btn gc-vp-full"><i class="ph-bold ph-corners-out"></i></button>' +
-'<button class="gc-vp-btn gc-vp-dl"><i class="ph-bold ph-download-simple"></i></button>' +
-'</div>');
-img.replaceWith(wrap);
-gcBindVPlayer(wrap);
-});
-}
-let gcVidRaf = false;
-new MutationObserver(function(){
-if(gcVidRaf) return;
-gcVidRaf = true;
-requestAnimationFrame(function(){ gcVidRaf = false; gcVideoize(document); });
-}).observe(document.body, {childList: true, subtree: true});
-gcVideoize(document);
-// ═══════════════════════════════════════════════════════
-// 🚀 Update #29 · video-autoplay · 2026-08-07
-// স্ক্রলে ভিডিও অটো-প্লে + আগেরটা অটো-পজ (একসাথে একটাই চলে)
-// খুঁজতে: Ctrl+F → "video-autoplay"
-// ═══════════════════════════════════════════════════════
-window.gcVpObserver = new IntersectionObserver(function(entries){
-entries.forEach(function(en){
-const wrap = en.target;
-const v = wrap.querySelector('video');
-if(!v) return;
-if(en.isIntersecting && en.intersectionRatio >= 0.6){
-// নতুন ভিডিও চালু করার আগে আর সব ভিডিও পজ
-document.querySelectorAll('.gc-vplayer video').forEach(function(o){
-if(o !== v && !o.paused) o.pause();
-});
-if(v.paused){
-const pr = v.play();
-if(pr) pr.catch(function(){
-// ব্রাউজার সাউন্ডসহ অটোপ্লে ব্লক করলে মিউটেড ফলব্যাক
-v.muted = true;
-const p2 = v.play();
-if(p2) p2.catch(function(){});
-});
-}
-}else if(en.intersectionRatio < 0.4){
-if(!v.paused) v.pause();
-}
-});
-}, {threshold:[0, 0.4, 0.6, 1]});
-window.gcOrigVideoize = gcVideoize;
-gcVideoize = function(scope){
-window.gcOrigVideoize(scope);
-document.querySelectorAll('.gc-vplayer').forEach(function(w){
-if(!w.dataset.gcObs){ w.dataset.gcObs = '1'; window.gcVpObserver.observe(w); }
-});
-};
-document.querySelectorAll('.gc-vplayer').forEach(function(w){
-if(!w.dataset.gcObs){ w.dataset.gcObs = '1'; window.gcVpObserver.observe(w); }
-});
+// ৪) Home Feed video player/autoplay system removed.
+// Create Post video upload/preview and Story video system remain intact.
 // ==========================================
 // 🚀 PROFILE POSTS FILTER LOGIC (Fixed for both Grid & Feed styles)
 // ==========================================
@@ -16812,6 +16675,115 @@ gcOtherPostsUnsub = null; gcOtherCountUid = null;
 }
 }, 2000);
 })();
+
+// ═══════════════════════════════════════════════════════
+// 🚀 Update #65 · vplayer-rebuild · 2026-08-12
+// ভিডিও প্লেয়ার সম্পূর্ণ রি-বিল্ড: মিউটেড ডিফল্ট, ট্যাপে সাউন্ড,
+// ৩ সেকেন্ডে কন্ট্রোল হাইড, ফুলস্ক্রিন+ডাউনলোড ফিক্স
+// খুঁজতে: Ctrl+F → "vplayer-rebuild"
+// ═══════════════════════════════════════════════════════
+function gcBindVPlayer(wrap){
+const v = wrap.querySelector('video');
+if(!v || wrap.dataset.gcBound65) return;
+wrap.dataset.gcBound65 = '1';
+v.muted = true;
+v.setAttribute('playsinline', '');
+const center = wrap.querySelector('.gc-vp-center');
+const bar = wrap.querySelector('.gc-vp-bar');
+const cur = wrap.querySelector('.gc-vp-cur');
+const durEl = wrap.querySelector('.gc-vp-dur');
+const track = wrap.querySelector('.gc-vp-track');
+const fill = wrap.querySelector('.gc-vp-fill');
+const muteBtn = wrap.querySelector('.gc-vp-mute');
+const fullBtn = wrap.querySelector('.gc-vp-full');
+const dlBtn = wrap.querySelector('.gc-vp-dl');
+let hideT = null;
+function fmt(s){ s = Math.max(0, Math.round(s || 0)); return Math.floor(s / 60) + ':' + ('0' + (s % 60)).slice(-2); }
+function muteIcon(){ if(muteBtn) muteBtn.innerHTML = v.muted ? '<i class="ph-fill ph-speaker-slash"></i>' : '<i class="ph-fill ph-speaker-high"></i>'; }
+function showControls(){
+if(bar) bar.classList.add('show');
+clearTimeout(hideT);
+hideT = setTimeout(function(){ if(!v.paused && bar) bar.classList.remove('show'); }, 3000);
+}
+function doPlay(){ v.gcUserPaused = false; v.play().catch(function(){ v.muted = true; muteIcon(); v.play().catch(function(){}); }); }
+function doPause(){ v.gcUserPaused = true; v.pause(); }
+function onTap(){
+showControls();
+if(v.muted){ v.muted = false; muteIcon(); if(v.paused) doPlay(); return; }
+if(v.paused) doPlay(); else doPause();
+}
+muteIcon();
+v.addEventListener('play', function(){ if(center) center.classList.add('hide'); showControls(); });
+v.addEventListener('pause', function(){ if(center) center.classList.remove('hide'); if(bar) bar.classList.add('show'); clearTimeout(hideT); });
+v.addEventListener('ended', function(){ if(center) center.classList.remove('hide'); if(bar) bar.classList.add('show'); });
+v.addEventListener('loadedmetadata', function(){ if(durEl) durEl.textContent = fmt(v.duration); });
+v.addEventListener('timeupdate', function(){ if(cur) cur.textContent = fmt(v.currentTime); if(fill && v.duration) fill.style.width = (v.currentTime / v.duration * 100) + '%'; });
+v.addEventListener('click', function(e){ e.stopPropagation(); onTap(); });
+if(center) center.addEventListener('click', function(e){ e.stopPropagation(); onTap(); });
+if(muteBtn) muteBtn.addEventListener('click', function(e){ e.stopPropagation(); v.muted = !v.muted; muteIcon(); showControls(); });
+// সিক বার: ক্লিক + ড্র্যাগ
+if(track){
+let dragging = false;
+function seekTo(x){ const r = track.getBoundingClientRect(); const p = Math.min(1, Math.max(0, (x - r.left) / r.width)); if(v.duration) v.currentTime = p * v.duration; }
+track.addEventListener('pointerdown', function(e){ e.stopPropagation(); dragging = true; if(track.setPointerCapture) track.setPointerCapture(e.pointerId); seekTo(e.clientX); });
+track.addEventListener('pointermove', function(e){ if(dragging){ e.stopPropagation(); seekTo(e.clientX); } });
+track.addEventListener('pointerup', function(e){ e.stopPropagation(); dragging = false; showControls(); });
+track.addEventListener('click', function(e){ e.stopPropagation(); });
+}
+// ফুলস্ক্রিন: ঢোকা/বের হওয়া ফিক্স (iOS ফলব্যাক)
+function isFS(){ return !!(document.fullscreenElement || document.webkitFullscreenElement); }
+function videoFS(){ try{ if(v.webkitEnterFullscreen) v.webkitEnterFullscreen(); else showToast('Fullscreen not supported'); }catch(e){ showToast('Fullscreen not supported'); } }
+function enterFS(){
+try{
+if(wrap.requestFullscreen){ wrap.requestFullscreen().catch(function(){ videoFS(); }); }
+else if(wrap.webkitRequestFullscreen){ wrap.webkitRequestFullscreen(); }
+else{ videoFS(); }
+}catch(e){ videoFS(); }
+}
+function exitFS(){ try{ if(document.exitFullscreen) document.exitFullscreen(); else if(document.webkitExitFullscreen) document.webkitExitFullscreen(); }catch(e){} }
+if(fullBtn) fullBtn.addEventListener('click', function(e){ e.stopPropagation(); isFS() ? exitFS() : enterFS(); showControls(); });
+document.addEventListener('fullscreenchange', function(){ if(fullBtn) fullBtn.innerHTML = isFS() ? '<i class="ph-bold ph-corners-in"></i>' : '<i class="ph-bold ph-corners-out"></i>'; });
+// ডাউনলোড: blob → আসল ফাইল সেভ
+if(dlBtn) dlBtn.addEventListener('click', function(e){
+e.stopPropagation();
+showToast('⬇️ Downloading video…');
+fetch(v.src).then(function(r){ if(!r.ok) throw 0; return r.blob(); }).then(function(b){
+const u = URL.createObjectURL(b);
+const a = document.createElement('a');
+a.href = u; a.download = 'GoChat_Video_' + Date.now() + '.mp4';
+document.body.appendChild(a); a.click(); a.remove();
+setTimeout(function(){ URL.revokeObjectURL(u); }, 4000);
+showToast('✅ Video saved');
+}).catch(function(){
+const a = document.createElement('a');
+a.href = v.src; a.target = '_blank'; a.rel = 'noopener';
+document.body.appendChild(a); a.click(); a.remove();
+});
+});
+wrap.addEventListener('click', function(e){ e.stopPropagation(); });
+}
+// নতুন অটো-প্লে অবজারভার (পুরনোটা বন্ধ করে)
+if(window.gcVpObserver){ try{ window.gcVpObserver.disconnect(); }catch(e){} }
+window.gcVpObserver = new IntersectionObserver(function(entries){
+entries.forEach(function(en){
+const wrap = en.target;
+const v = wrap.querySelector('video');
+if(!v) return;
+if(en.isIntersecting && en.intersectionRatio >= 0.6){
+document.querySelectorAll('.gc-vplayer video').forEach(function(o){ if(o !== v && !o.paused){ o.pause(); o.gcUserPaused = false; } });
+if(v.paused && !v.gcUserPaused){ v.muted = true; v.play().catch(function(){}); }
+}else if(en.intersectionRatio < 0.4){
+v.gcUserPaused = false;
+v.muted = true;
+if(!v.paused) v.pause();
+const bar = wrap.querySelector('.gc-vp-bar');
+if(bar) bar.classList.remove('show');
+}
+});
+}, {threshold:[0, 0.4, 0.6, 1]});
+document.querySelectorAll('.gc-vplayer').forEach(function(w){
+if(!w.dataset.gcObs){ w.dataset.gcObs = '1'; window.gcVpObserver.observe(w); }
+});
 </script>
 </body>
 </html>
