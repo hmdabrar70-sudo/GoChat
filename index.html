@@ -4041,6 +4041,35 @@ transition:background .2s;
 .gc-fp-btn.ghost{background:var(--surface-2);color:var(--text);box-shadow:none;}
 .gc-fp-note{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:18px;font-size:11.5px;color:var(--text-muted);}
 .gc-fp-note i{font-size:14px;color:#22c55e;}
+
+/* =========================================
+🚀 Update #71 · audio-calling · 2026-08-13
+১-১ অডিও কল UI (প্রিমিয়াম ডার্ক স্ক্রিন)
+খুঁজতে: Ctrl+F → "audio-calling"
+========================================= */
+.gc-call-btn{border:none;background:var(--surface-2);width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;margin-right:8px;flex-shrink:0;}
+.gc-call-btn i{font-size:19px;color:var(--accent);}
+.gc-call-btn:active{transform:scale(.92);}
+.gc-call-screen{position:fixed;inset:0;z-index:101700;display:none;flex-direction:column;align-items:center;justify-content:space-between;background:radial-gradient(120% 90% at 50% -10%, #241d3a 0%, #14101f 50%, #0a0810 100%);padding:60px 24px calc(40px + env(safe-area-inset-bottom));}
+.gc-call-screen.open{display:flex;}
+.gc-call-top{width:100%;text-align:center;}
+.gc-call-status{display:inline-block;font-size:12px;font-weight:800;letter-spacing:1px;color:#b4a3ff;background:rgba(124,92,255,.15);border:1px solid rgba(124,92,255,.35);padding:6px 16px;border-radius:20px;text-transform:uppercase;}
+.gc-call-mid{display:flex;flex-direction:column;align-items:center;gap:18px;}
+.gc-call-avwrap{position:relative;width:132px;height:132px;display:flex;align-items:center;justify-content:center;}
+.gc-call-ring{position:absolute;inset:0;border-radius:50%;border:2px solid rgba(124,92,255,.5);animation:gcCallPulse 1.8s ease-out infinite;}
+.gc-call-ring.r2{animation-delay:.6s;}
+@keyframes gcCallPulse{0%{transform:scale(.8);opacity:1;}100%{transform:scale(1.5);opacity:0;}}
+.gc-call-avatar{width:116px;height:116px;border-radius:50%;background:var(--gradient);color:#fff;font-size:44px;font-weight:800;display:flex;align-items:center;justify-content:center;background-size:cover;background-position:center;border:3px solid rgba(255,255,255,.15);box-shadow:0 20px 50px rgba(0,0,0,.5);}
+.gc-call-name{font-size:24px;font-weight:800;color:#fff;letter-spacing:.3px;}
+.gc-call-timer{font-size:15px;font-weight:700;color:#8f87b8;font-variant-numeric:tabular-nums;min-height:20px;}
+.gc-call-actions{display:flex;gap:26px;align-items:center;}
+.gc-call-actions button{width:64px;height:64px;border-radius:50%;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform .15s;}
+.gc-call-actions button:active{transform:scale(.92);}
+.gc-call-actions button i{font-size:26px;color:#fff;}
+.gc-call-btn-end{background:linear-gradient(135deg,#ff4d6a,#e11d48);box-shadow:0 12px 30px rgba(255,77,106,.4);}
+.gc-call-btn-accept{background:linear-gradient(135deg,#22c55e,#16a34a);box-shadow:0 12px 30px rgba(34,197,94,.4);}
+.gc-call-btn-mute{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2) !important;}
+.gc-call-btn-mute.muted{background:rgba(255,77,106,.25);border-color:rgba(255,77,106,.5) !important;}
 </style>
 </head>
 <body>
@@ -16971,6 +17000,302 @@ const s = document.getElementById('gc-fp-screen');
 if(s && s.classList.contains('open') && document.activeElement && document.activeElement.id === 'gc-fp-email'){ gcSendResetLink(); }
 }
 });
+})();
+
+// ═══════════════════════════════════════════════════════
+// 🚀 Update #71 · audio-calling · 2026-08-13
+// ১-১ অডিও কল: WebRTC + Firestore সিগন্যালিং + TURN (ক্রস-নেটওয়ার্ক)
+// খুঁজতে: Ctrl+F → "audio-calling"
+// ═══════════════════════════════════════════════════════
+const GC_RTC_CONFIG = {
+iceServers: [
+{ urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] },
+{ urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
+{ urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' },
+{ urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' }
+]
+};
+let gcCallState = null, gcPC = null, gcLocalStream = null;
+let gcIceUnsub = null, gcDocUnsub = null, gcPendingIncoming = null;
+let gcRingTimer = null, gcVibTimer = null, gcCallAudioCtx = null;
+// ---------- সাউন্ড + ভাইব্রেশন ----------
+function gcBeep(freq, dur){
+try{
+gcCallAudioCtx = gcCallAudioCtx || new (window.AudioContext || window.webkitAudioContext)();
+const ctx = gcCallAudioCtx;
+if(ctx.state === 'suspended') ctx.resume();
+const o = ctx.createOscillator(), g = ctx.createGain();
+o.frequency.value = freq; o.type = 'sine';
+g.gain.setValueAtTime(0.0001, ctx.currentTime);
+g.gain.exponentialRampToValueAtTime(0.2, ctx.currentTime + 0.03);
+g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + dur);
+o.connect(g); g.connect(ctx.destination);
+o.start(); o.stop(ctx.currentTime + dur + 0.05);
+}catch(e){}
+}
+function gcStartRinging(mode){
+gcStopRinging();
+if(mode === 'incoming'){
+gcRingTimer = setInterval(function(){ gcBeep(880, .35); setTimeout(function(){ gcBeep(880, .35); }, 450); }, 1500);
+if(navigator.vibrate) gcVibTimer = setInterval(function(){ navigator.vibrate([400, 200, 400]); }, 1500);
+}else{
+gcRingTimer = setInterval(function(){ gcBeep(425, .9); }, 3000);
+}
+}
+function gcStopRinging(){
+if(gcRingTimer){ clearInterval(gcRingTimer); gcRingTimer = null; }
+if(gcVibTimer){ clearInterval(gcVibTimer); gcVibTimer = null; }
+if(navigator.vibrate) navigator.vibrate(0);
+}
+// ---------- UI ----------
+function gcEnsureCallScreen(){
+let s = document.getElementById('gc-call-screen');
+if(s) return s;
+s = document.createElement('div');
+s.id = 'gc-call-screen'; s.className = 'gc-call-screen';
+s.innerHTML = '<div class="gc-call-top"><div class="gc-call-status" id="gc-call-status">Calling…</div></div>' +
+'<div class="gc-call-mid"><div class="gc-call-avwrap"><div class="gc-call-ring"></div><div class="gc-call-ring r2"></div><div id="gc-call-avatar" class="gc-call-avatar">U</div></div>' +
+'<div class="gc-call-name" id="gc-call-name">User</div><div class="gc-call-timer" id="gc-call-timer"></div></div>' +
+'<div class="gc-call-actions" id="gc-call-actions"></div>';
+document.body.appendChild(s);
+const a = document.createElement('audio');
+a.id = 'gc-remote-audio'; a.autoplay = true; a.playsInline = true;
+document.body.appendChild(a);
+return s;
+}
+function gcShowCallUI(data){
+const s = gcEnsureCallScreen();
+document.getElementById('gc-call-name').textContent = data.otherName || 'User';
+const av = document.getElementById('gc-call-avatar');
+if(data.otherAvatar){ av.style.backgroundImage = 'url(' + data.otherAvatar + ')'; av.textContent = ''; }
+else { av.style.backgroundImage = ''; av.textContent = (data.otherName || 'U').charAt(0).toUpperCase(); }
+s.classList.add('open');
+}
+function gcSetCallActions(mode){
+const box = document.getElementById('gc-call-actions');
+if(mode === 'incoming'){
+box.innerHTML = '<button class="gc-call-btn-end" onclick="gcDeclineCall()"><i class="ph-fill ph-phone-slash"></i></button><button class="gc-call-btn-accept" onclick="gcAcceptCall()"><i class="ph-fill ph-phone"></i></button>';
+}else{
+box.innerHTML = '<button class="gc-call-btn-mute" id="gc-mute-btn" onclick="gcToggleMute()"><i class="ph-bold ph-microphone"></i></button><button class="gc-call-btn-end" onclick="gcEndCall()"><i class="ph-fill ph-phone-slash"></i></button>';
+}
+}
+function gcStartTimer(){
+gcCallState.connectTime = Date.now();
+const tEl = document.getElementById('gc-call-timer');
+gcCallState.timerInt = setInterval(function(){
+if(!gcCallState) return;
+const s = Math.floor((Date.now() - gcCallState.connectTime) / 1000);
+tEl.textContent = Math.floor(s / 60) + ':' + ('0' + (s % 60)).slice(-2);
+}, 1000);
+document.getElementById('gc-call-status').textContent = 'GoChat Audio Call';
+}
+// ---------- WebRTC কোর ----------
+function gcSetupPC(callId){
+gcPC = new RTCPeerConnection(GC_RTC_CONFIG);
+gcPC.addTrack(gcLocalStream.getAudioTracks()[0], gcLocalStream);
+gcPC.onicecandidate = function(e){
+if(e.candidate){
+db.collection('calls').doc(callId).collection('ice').add({ from: currentUser.uid, candidate: JSON.stringify(e.candidate) }).catch(function(){});
+}
+};
+gcPC.ontrack = function(e){
+const a = document.getElementById('gc-remote-audio');
+if(a){ a.srcObject = e.streams[0]; a.play().catch(function(){}); }
+};
+gcPC.onconnectionstatechange = function(){
+if(gcPC && gcPC.connectionState === 'failed' && gcCallState){ gcEndCall(); }
+};
+}
+function gcWatchIce(callId){
+gcIceUnsub = db.collection('calls').doc(callId).collection('ice').onSnapshot(function(snap){
+snap.docChanges().forEach(function(ch){
+if(ch.type === 'added'){
+const c = ch.doc.data();
+if(c.from !== currentUser.uid && gcPC){
+try{ gcPC.addIceCandidate(JSON.parse(c.candidate)); }catch(e){}
+}
+}
+});
+});
+}
+function gcWatchCallDoc(callId, role){
+if(gcDocUnsub){ try{ gcDocUnsub(); }catch(e){} }
+gcDocUnsub = db.collection('calls').doc(callId).onSnapshot(function(doc){
+if(!doc.exists) return;
+const d = doc.data();
+if(role === 'caller'){
+if(d.status === 'accepted' && d.answer && gcCallState && !gcCallState.connected){
+gcCallState.connected = true;
+gcStopRinging();
+gcPC.setRemoteDescription(new RTCSessionDescription(d.answer)).catch(function(){});
+gcStartTimer();
+}
+if(d.status === 'declined' && gcCallState){ gcCallCleanup(); showToast('Call declined'); }
+if(d.status === 'busy' && gcCallState){ gcCallCleanup(); showToast('User is busy'); }
+if(d.status === 'missed' && gcCallState){ gcCallCleanup(); showToast('No answer'); }
+if(d.status === 'ended' && gcCallState){ gcCallCleanup(); }
+}else{
+if(d.status === 'ended' && gcCallState){ gcCallCleanup(); }
+}
+}, function(){});
+}
+// ---------- কল শুরু (কলার) ----------
+async function gcStartCall(){
+if(gcCallState){ showToast('Already in a call'); return; }
+const other = currentChatOtherUid;
+if(!other || other === 'group'){ showToast('Calls are available in private chats'); return; }
+if((currentUserData.blockedUsers || []).indexOf(other) !== -1){ showToast("You can't call this person"); return; }
+const ou = (window.allUsersCache || []).find(function(u){ return u.id === other; }) || {};
+try{
+gcLocalStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
+}catch(e){ showToast('⚠️ Microphone permission denied'); return; }
+const callId = 'gc_' + Date.now() + '_' + Math.floor(Math.random() * 9999);
+gcCallState = { callId: callId, role: 'caller', otherUid: other, otherName: ou.name || 'User', otherAvatar: ou.avatar || '' };
+gcShowCallUI(gcCallState);
+gcSetCallActions('outgoing');
+document.getElementById('gc-call-status').textContent = 'Calling…';
+gcStartRinging('outgoing');
+try{
+await db.collection('calls').doc(callId).set({
+from: currentUser.uid, fromName: currentUserData.name || 'User', fromAvatar: currentUserData.avatar || '',
+to: other, type: 'audio', status: 'ringing',
+createdAt: firebase.firestore.FieldValue.serverTimestamp()
+});
+gcSetupPC(callId);
+const offer = await gcPC.createOffer();
+await gcPC.setLocalDescription(offer);
+await db.collection('calls').doc(callId).update({ offer: { type: offer.type, sdp: offer.sdp } });
+gcWatchCallDoc(callId, 'caller');
+gcWatchIce(callId);
+gcCallState.timeout = setTimeout(function(){
+if(gcCallState && gcCallState.callId === callId && !gcCallState.connected){
+db.collection('calls').doc(callId).update({ status: 'missed' }).catch(function(){});
+db.collection('notifications').add({ toUid: other, fromUid: currentUser.uid, fromName: currentUserData.name || 'User', type: 'missed_call', text: 'Missed audio call', createdAt: firebase.firestore.FieldValue.serverTimestamp(), read: false }).catch(function(){});
+}
+}, 45000);
+}catch(e){ gcCallCleanup(); showToast('❌ Could not start call'); }
+}
+// ---------- ইনকামিং কল লিসেনার (গ্লোবাল) ----------
+function gcInitCallListener(){
+if(window.gcCallListenerOn || !currentUser) return;
+window.gcCallListenerOn = true;
+db.collection('calls').where('to', '==', currentUser.uid).where('status', '==', 'ringing').onSnapshot(function(snap){
+if(gcCallState){
+snap.docChanges().forEach(function(ch){
+if(ch.type === 'added'){ db.collection('calls').doc(ch.doc.id).update({ status: 'busy' }).catch(function(){}); }
+});
+return;
+}
+if(!snap.empty){
+const doc = snap.docs[0], d = doc.data();
+gcPendingIncoming = { callId: doc.id, data: d };
+gcShowCallUI({ otherName: d.fromName, otherAvatar: d.fromAvatar });
+gcSetCallActions('incoming');
+document.getElementById('gc-call-status').textContent = 'Incoming audio call…';
+gcStartRinging('incoming');
+if(gcDocUnsub){ try{ gcDocUnsub(); }catch(e){} }
+gcDocUnsub = db.collection('calls').doc(doc.id).onSnapshot(function(dc){
+if(!gcCallState && (!dc.exists || dc.data().status !== 'ringing')) gcHideIncoming();
+}, function(){});
+}else{
+if(gcPendingIncoming && !gcCallState) gcHideIncoming();
+}
+});
+}
+function gcHideIncoming(){
+gcPendingIncoming = null;
+gcStopRinging();
+if(gcDocUnsub){ try{ gcDocUnsub(); }catch(e){} gcDocUnsub = null; }
+const s = document.getElementById('gc-call-screen'); if(s) s.classList.remove('open');
+}
+// ---------- Accept / Decline ----------
+async function gcAcceptCall(){
+if(!gcPendingIncoming || gcCallState) return;
+const p = gcPendingIncoming; gcPendingIncoming = null;
+if(gcDocUnsub){ try{ gcDocUnsub(); }catch(e){} gcDocUnsub = null; }
+try{
+gcLocalStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
+}catch(e){ showToast('⚠️ Microphone permission denied'); gcHideIncoming(); return; }
+gcCallState = { callId: p.callId, role: 'callee', otherUid: p.data.from, otherName: p.data.fromName || 'User', otherAvatar: p.data.fromAvatar || '' };
+gcStopRinging();
+gcSetCallActions('outgoing');
+document.getElementById('gc-call-status').textContent = 'Connecting…';
+gcSetupPC(p.callId);
+try{
+await gcPC.setRemoteDescription(new RTCSessionDescription(p.data.offer));
+const answer = await gcPC.createAnswer();
+await gcPC.setLocalDescription(answer);
+await db.collection('calls').doc(p.callId).update({ status: 'accepted', answer: { type: answer.type, sdp: answer.sdp } });
+gcCallState.connected = true;
+gcStartTimer();
+gcWatchCallDoc(p.callId, 'callee');
+gcWatchIce(p.callId);
+}catch(e){ gcCallCleanup(); showToast('❌ Call failed'); }
+}
+function gcDeclineCall(){
+if(!gcPendingIncoming) return;
+db.collection('calls').doc(gcPendingIncoming.callId).update({ status: 'declined' }).catch(function(){});
+gcHideIncoming();
+}
+// ---------- কন্ট্রোল + ক্লিনআপ ----------
+function gcToggleMute(){
+if(!gcLocalStream) return;
+const t = gcLocalStream.getAudioTracks()[0];
+if(t){
+t.enabled = !t.enabled;
+const b = document.getElementById('gc-mute-btn');
+if(b){ b.innerHTML = t.enabled ? '<i class="ph-bold ph-microphone"></i>' : '<i class="ph-bold ph-microphone-slash"></i>'; b.classList.toggle('muted', !t.enabled); }
+}
+}
+function gcEndCall(){
+if(!gcCallState) return;
+const st = gcCallState;
+let dur = '';
+if(st.connectTime){ const s = Math.floor((Date.now() - st.connectTime) / 1000); dur = Math.floor(s / 60) + ':' + ('0' + (s % 60)).slice(-2); }
+db.collection('calls').doc(st.callId).update({ status: 'ended', duration: dur || '0:00', endedAt: firebase.firestore.FieldValue.serverTimestamp() }).catch(function(){});
+gcCallCleanup();
+showToast(dur ? ('📞 Call ended · ' + dur) : '📞 Call ended');
+}
+function gcCallCleanup(){
+gcStopRinging();
+if(gcCallState && gcCallState.timeout) clearTimeout(gcCallState.timeout);
+if(gcCallState && gcCallState.timerInt) clearInterval(gcCallState.timerInt);
+if(gcPC){ try{ gcPC.ontrack = null; gcPC.onicecandidate = null; gcPC.onconnectionstatechange = null; gcPC.close(); }catch(e){} gcPC = null; }
+if(gcLocalStream){ gcLocalStream.getTracks().forEach(function(t){ t.stop(); }); gcLocalStream = null; }
+if(gcIceUnsub){ try{ gcIceUnsub(); }catch(e){} gcIceUnsub = null; }
+if(gcDocUnsub){ try{ gcDocUnsub(); }catch(e){} gcDocUnsub = null; }
+const a = document.getElementById('gc-remote-audio'); if(a) a.srcObject = null;
+const s = document.getElementById('gc-call-screen'); if(s) s.classList.remove('open');
+const tEl = document.getElementById('gc-call-timer'); if(tEl) tEl.textContent = '';
+gcCallState = null;
+}
+window.addEventListener('beforeunload', function(){ if(gcCallState) gcEndCall(); });
+// ---------- কল বাটন ইনজেকশন (থ্রি-ডটের পাশে) + বুটস্ট্র্যাপ ----------
+(function gcCallBootstrap(){
+if(window.gcCallBootOn) return; window.gcCallBootOn = true;
+setInterval(function(){
+if(currentUser && !window.gcCallListenerOn) gcInitCallListener();
+const nameEl = document.getElementById('chat-name-display');
+if(!nameEl) return;
+const header = nameEl.closest('.chat-topbar') || nameEl.parentElement.parentElement || nameEl.parentElement;
+if(!header) return;
+let btn = document.getElementById('gc-call-btn');
+if(!btn){
+btn = document.createElement('button');
+btn.id = 'gc-call-btn'; btn.type = 'button'; btn.className = 'gc-call-btn';
+btn.innerHTML = '<i class="ph ph-phone"></i>';
+btn.onclick = function(e){ e.stopPropagation(); gcStartCall(); };
+let dots = null;
+header.querySelectorAll('span, i, button').forEach(function(el){
+if(dots) return;
+const h = el.outerHTML || '';
+if(h.indexOf('dots-three-vertical') !== -1 || h.indexOf('more_vert') !== -1){ dots = el.closest('button') || el.closest('[onclick]') || el; }
+});
+if(dots && dots.parentNode) dots.parentNode.insertBefore(btn, dots);
+else header.appendChild(btn);
+}
+btn.style.display = (currentChatOtherUid && currentChatOtherUid !== 'group') ? 'flex' : 'none';
+}, 1200);
 })();
 </script>
 </body>
