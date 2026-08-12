@@ -1609,13 +1609,86 @@ background: rgba(0, 0, 0, 0.05) !important;
     opacity: 1;
     background: var(--surface-2);
 }
-@keyframes floatIcon {
-    0% { transform: translateY(0px); }
-    50% { transform: translateY(-15px); }
-    100% { transform: translateY(0px); }
-}
-/* নতুন কোড বসানো শেষ */
 
+/* =========================================
+🚀 Update #70 · golden-splash · 2026-08-12
+গোল্ডেন প্রিমিয়াম Splash Screen (মিনিমাল)
+খুঁজতে: Ctrl+F → "golden-splash"
+========================================= */
+#splash-screen {
+position: fixed;
+inset: 0;
+background: radial-gradient(ellipse at center, #0f0d08 0%, #050402 70%, #000000 100%);
+display: flex;
+justify-content: center;
+align-items: center;
+z-index: 999999;
+transition: opacity 0.6s ease;
+overflow: hidden;
+}
+/* পেছনের হালকা গোল্ডেন অরা গ্লো */
+#splash-screen::before {
+content: '';
+position: absolute;
+width: 400px;
+height: 400px;
+border-radius: 50%;
+background: radial-gradient(circle, rgba(255, 215, 0, 0.15) 0%, transparent 70%);
+filter: blur(60px);
+animation: splashAura 4s ease-in-out infinite;
+}
+@keyframes splashAura {
+0%, 100% { transform: scale(1); opacity: 0.6; }
+50% { transform: scale(1.15); opacity: 0.9; }
+}
+.splash-logo {
+position: relative;
+font-family: 'Cinzel Decorative', cursive;
+font-size: 52px;
+font-weight: 700;
+letter-spacing: 2px;
+padding: 20px 8px;
+/* মেটালিক গোল্ড গ্রেডিয়েন্ট — প্রিমিয়াম ফিল */
+background: linear-gradient(
+135deg,
+#b8862f 0%,
+#FFD700 25%,
+#fff4d8 50%,
+#FFD700 75%,
+#b8862f 100%
+);
+background-size: 200% 200%;
+-webkit-background-clip: text;
+-webkit-text-fill-color: transparent;
+background-clip: text;
+animation: splashShine 3s ease-in-out infinite, splashPulse 2s ease-in-out infinite;
+text-shadow: 0 0 40px rgba(255, 215, 0, 0.3);
+}
+/* লোগোর পাশে হালকা গোল্ড শ্যাডো */
+.splash-logo::after {
+content: '';
+position: absolute;
+bottom: 10px;
+left: 50%;
+transform: translateX(-50%);
+width: 60%;
+height: 2px;
+background: linear-gradient(to right, transparent, #FFD700, transparent);
+opacity: 0.5;
+}
+@keyframes splashShine {
+0%, 100% { background-position: 0% 50%; }
+50% { background-position: 100% 50%; }
+}
+@keyframes splashPulse {
+0%, 100% { transform: scale(1); filter: drop-shadow(0 0 20px rgba(255, 215, 0, 0.25)); }
+50% { transform: scale(1.02); filter: drop-shadow(0 0 35px rgba(255, 215, 0, 0.45)); }
+}
+/* ডার্ক মোডেও একই লুক (স্প্ল্যাশ সবসময় ডার্ক) */
+[data-theme="dark"] #splash-screen,
+.dark #splash-screen {
+background: radial-gradient(ellipse at center, #0f0d08 0%, #050402 70%, #000000 100%);
+}
 /* =========================================
    ACTIVITY / FEELING MODAL STYLES
    ========================================= */
@@ -3971,6 +4044,11 @@ transition:background .2s;
 </style>
 </head>
 <body>
+<!-- Splash Screen HTML -->
+<div id="splash-screen">
+    <div class="splash-logo">✦ GoChat</div>
+</div>
+
 <div id="auth-screen">
     <div class="auth-box">
         
@@ -6203,6 +6281,20 @@ function updateOnlineStatus(){
     }
 }
 
+// ===== AUTH STATE LISTENER =====
+auth.onAuthStateChanged(async(user)=>{
+
+// 🚀 স্প্ল্যাশ স্ক্রিন সরানোর স্মার্ট ম্যাজিক
+const removeSplash = () => {
+    const splash = document.getElementById('splash-screen');
+    if (splash && splash.style.display !== 'none') { 
+        splash.style.opacity = '0'; 
+        setTimeout(() => splash.style.display = 'none', 500); 
+    }
+};
+
+if(user){
+currentUser=user;
 // ===== ADMIN REMOTE CONTROL RECEIVERS =====
 db.collection('system').doc('settings').onSnapshot(doc => {
     if (doc.exists && doc.data().maintenanceMode === true) {
@@ -6225,13 +6317,6 @@ db.collection('system').doc('announcement').onSnapshot(doc => {
     }
 });
 // ==========================================
-
-
-// ===== AUTH STATE LISTENER =====
-auth.onAuthStateChanged(async(user)=>{
-
-if(user){
-currentUser=user;
 // Median OneSignal-এর সাথে ফায়ারবেস ইউজার লিংক করা
 if (navigator.userAgent.toLowerCase().includes('median')) {
     if (window.median && window.median.onesignal) {
@@ -6243,10 +6328,17 @@ if (navigator.userAgent.toLowerCase().includes('median')) {
 document.getElementById('auth-screen').style.display='none';
 document.getElementById('app-screen').style.display='block';
 
+// 🚀 ম্যাক্সিমাম ১.৫ সেকেন্ডের একটা টাইমার, যাতে ডাটাবেস স্লো থাকলেও অ্যাপ আটকে না থাকে
+const splashFallbackTimer = setTimeout(removeSplash, 1500);
+
 try{
 const snap=await db.collection('users').doc(user.uid).get();
 currentUserData=snap.exists?snap.data():{name:user.email.split('@')[0],email:user.email};
 }catch(e){currentUserData={name:user.email.split('@')[0],email:user.email};}
+
+// 🚀 ডাটাবেস লোড হয়ে গেলে টাইমার ক্যানসেল করে সাথে সাথেই স্প্ল্যাশ সরিয়ে দেবে
+clearTimeout(splashFallbackTimer);
+removeSplash();
 cleanupPrivateChatsOnLoad(); 
 
 
@@ -6516,6 +6608,9 @@ notifUnsub = db.collection('notifications').where('toUid', '==', user.uid).onSna
 currentUser=null;currentUserData=null;
 document.getElementById('auth-screen').style.display='flex';
 document.getElementById('app-screen').style.display='none';
+// লগআউট থাকলে লগইন পেজ রেডি হওয়ার পর স্প্ল্যাশ সরবে
+removeSplash();
+
 if(feedUnsub)feedUnsub();
 if(notifUnsub)notifUnsub();
 if(storyUnsub)storyUnsub();
