@@ -759,17 +759,26 @@ font-weight:500;
 font-size:48px;margin-bottom:12px;
 opacity:0.3;
 }
-.profile-header{
-background:var(--surface);
-padding:24px 20px;
-text-align:left;
-position:relative;
-display:flex;flex-direction:column;gap:14px;
-border-bottom-left-radius:var(--radius-xl);
-border-bottom-right-radius:var(--radius-xl);
-border-bottom:1px solid var(--border);
-margin-bottom:16px;
-box-shadow:var(--shadow-sm);
+/* প্রোফাইলের উপরের অংশ */
+.profile-header {
+    background: var(--surface);
+    padding: 24px 20px 0 20px; /* নিচের প্যাডিং জিরো করা হলো যাতে নিচের অংশের সাথে মিশে যায় */
+    text-align: left;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    /* বর্ডার এবং শ্যাডো মুছে ফেলা হলো */
+}
+
+/* প্রোফাইল ফিল্টার মেনুকে হেডারের সাথে জুড়ে দেওয়ার ম্যাজিক কোড */
+.profile-header + div {
+    margin-top: 0 !important; /* মাঝখানের কালো গ্যাপ মুছে ফেলা হলো */
+    border-top: none !important; /* মাঝখানের দাগ মুছে ফেলা হলো */
+    background: var(--surface) !important; /* ব্যাকগ্রাউন্ড কালার সেম করা হলো */
+    padding: 16px 0 12px 0 !important;
+    border-bottom: 1px solid var(--border) !important; /* বর্ডারটা একদম নিচে দেওয়া হলো */
+    box-shadow: var(--shadow-sm) !important; /* শ্যাডোটাও নিচে দেওয়া হলো */
 }
 .profile-main-row{display:flex;align-items:center;gap:16px;width:100%;}
 .profile-avatar-wrap{position:relative;display:inline-block;flex-shrink:0;}
@@ -7511,12 +7520,13 @@ async function reactToCurrentStory(){
         }
     }
 }
+
 // ===== POSTS AND LIKE LOGIC =====
-// 🚀 সুপার ফাস্ট লাইক সিস্টেম (Optimistic UI Update)
+// 🚀 সুপার ফাস্ট লাইক সিস্টেম (Optimistic UI Update) + Spam Notification Fix
 async function toggleLike(pid) {
     if (!currentUser || !checkRateLimit()) return;
 
-    // ১. ডাটাবেসে যাওয়ার আগেই স্ক্রিনে সাথে সাথে লাইক আপডেট করে দেবে (ম্যাজিক!)
+    // ১. ডাটাবেসে যাওয়ার আগেই স্ক্রিনে সাথে সাথে লাইক আপডেট করে দেবে
     const likeButtons = document.querySelectorAll(`button[onclick*="toggleLike('${pid}')"]`);
     
     let isCurrentlyLiked = false;
@@ -7528,19 +7538,17 @@ async function toggleLike(pid) {
         currentLikes = parseInt(countSpan.innerText) || 0;
         isCurrentlyLiked = btn.classList.contains('liked');
 
-                    if (isCurrentlyLiked) {
-                // আনলাইক করা
-                btn.classList.remove('liked');
-                // 🚀 ফিক্স: আনলাইক করলে অর্ধেক হার্টের আউটলাইন (bold) থাকবে
-                if (icon) icon.className = 'ph-bold ph-thumbs-up'; 
-                if (countSpan) countSpan.innerText = Math.max(0, currentLikes - 1);
-            } else {
-                // লাইক করা
-                btn.classList.add('liked');
-                // 🚀 ফিক্স: লাইক করলে অর্ধেক হার্টটাই লাল রঙে ভরে (fill) যাবে
-                if (icon) icon.className = 'ph-fill ph-thumbs-up'; 
-                if (countSpan) countSpan.innerText = currentLikes + 1;
-            }
+        if (isCurrentlyLiked) {
+            // আনলাইক করা
+            btn.classList.remove('liked');
+            if (icon) icon.className = 'ph-bold ph-thumbs-up'; 
+            if (countSpan) countSpan.innerText = Math.max(0, currentLikes - 1);
+        } else {
+            // লাইক করা
+            btn.classList.add('liked');
+            if (icon) icon.className = 'ph-fill ph-thumbs-up'; 
+            if (countSpan) countSpan.innerText = currentLikes + 1;
+        }
     });
 
     // ২. এরপর ব্যাকগ্রাউন্ডে ডাটাবেস আপডেট হবে
@@ -7559,18 +7567,29 @@ async function toggleLike(pid) {
             likedBy.push(currentUser.uid);
             likes++;
             
-            // নিজের পোস্টে লাইক দিলে খামোখা নোটিফিকেশন বা পয়েন্ট যাবে না
+            // নিজের পোস্টে লাইক দিলে নোটিফিকেশন বা পয়েন্ট যাবে না
             if (p.uid !== currentUser.uid) {
-                db.collection('notifications').add({
-                    toUid: p.uid, 
-                    fromUid: currentUser.uid,
-                    fromName: currentUserData.name,
-                    type: 'like', 
-                    postId: pid, 
-                    read: false,
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                
+                // 🚀 স্প্যাম ফিক্স: নোটিফিকেশন এবং পয়েন্ট জীবনে একবারই যাবে
+                const notifId = currentUser.uid + '_like_' + pid;
+                const notifRef = db.collection('notifications').doc(notifId);
+                
+                notifRef.get().then(docSnap => {
+                    // যদি আগে কখনো এই নোটিফিকেশন না গিয়ে থাকে, তবেই পাঠাবে
+                    if (!docSnap.exists) {
+                        notifRef.set({
+                            toUid: p.uid, 
+                            fromUid: currentUser.uid,
+                            fromName: currentUserData.name,
+                            type: 'like', 
+                            postId: pid, 
+                            read: false,
+                            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                        });
+                        // পয়েন্টও শুধু একবারই যোগ হবে
+                        awardPoints(p.uid, 5);
+                    }
                 });
-                awardPoints(p.uid, 5);
             }
         }
         await ref.update({ likes, likedBy });
