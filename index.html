@@ -4491,7 +4491,13 @@ transition:background .2s;
 <div style="padding:20px;flex:1;display:flex;flex-direction:column;overflow-y:auto;">
 <div style="display:flex;gap:12px;margin-bottom:20px;align-items:center;">
 <div class="avatar" id="modal-composer-avatar">?</div>
-<div style="font-weight:700;font-size:15px;display:flex;align-items:center;gap:4px;" id="modal-composer-name">Name</div>
+<div style="font-weight:700;font-size:15px;display:flex;align-items:center;gap:4px;flex-wrap:wrap;" id="modal-composer-name">
+    <span id="mc-name-text">Name</span>
+    <span id="modal-selected-location" style="display:none; font-weight:normal; color:var(--text-secondary); font-size:14px;"> 
+        is at <strong id="msl-text" style="color:var(--text);">Location</strong> 
+        <i class="ph-bold ph-x" style="cursor:pointer; color:var(--danger); margin-left:4px;" onclick="removeSelectedLocation()"></i>
+    </span>
+</div>
 </div>
 <textarea id="post-title" placeholder="What's on your mind?" style="width:100%;border:none;background:transparent;color:var(--text);font-size:20px;outline:none;resize:none;font-family:inherit;min-height:160px;font-weight:500; transition: all 0.3s;" oninput="checkPostInputs()"></textarea>
 <div class="mention-dropdown" id="post-mention-dropdown"></div>
@@ -4561,6 +4567,14 @@ transition:background .2s;
         </div>
         <span style="font-size:10px; font-weight:700; color:var(--text-muted); text-transform:uppercase;">Privacy</span>
     </div>
+
+<!-- 🚀 Location Button -->
+<div onclick="openLocationModal()" style="display:flex; flex-direction:column; align-items:center; gap:4px; cursor:pointer; padding:6px 10px; border-radius:12px; transition:0.2s;" onmouseover="this.style.background='var(--surface-2)'" onmouseout="this.style.background='transparent'">
+    <div style="width:38px; height:38px; border-radius:50%; background:rgba(14, 165, 233, 0.1); display:flex; align-items:center; justify-content:center; color:#0ea5e9;">
+        <i class="ph-bold ph-map-pin" style="font-size:20px;"></i>
+    </div>
+    <span style="font-size:10px; font-weight:700; color:var(--text-muted); text-transform:uppercase;">Location</span>
+</div>
 
     <!-- Photo / Image -->
     <label for="post-img-input" style="display:flex; flex-direction:column; align-items:center; gap:4px; cursor:pointer; padding:6px 10px; border-radius:12px; transition:0.2s;" onmouseover="this.style.background='var(--surface-2)'" onmouseout="this.style.background='transparent'">
@@ -5435,6 +5449,54 @@ transition:background .2s;
     
     <!-- পোস্টগুলো এখানে লোড হবে -->
     <div id="category-posts-list" style="flex:1; padding-bottom:80px; overflow-y:auto; background:transparent;"></div>
+</div>
+
+<!-- 🚀 Location Search Modal -->
+<div class="modal-overlay" id="location-modal" style="z-index: 100015; align-items: flex-end;" onclick="if(event.target===this) closeLocationModal()">
+    <div class="modal-box" style="margin-top:auto; border-radius: 24px 24px 0 0; padding:20px; max-height:85vh; display:flex; flex-direction:column; background:var(--surface); height: 85vh;">
+        
+        <!-- Header -->
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+            <div style="display:flex; align-items:center; gap: 12px;">
+                <button class="modal-close" onclick="closeLocationModal()" style="position:static; background:var(--surface-2); border:none; width:36px; height:36px;"><span class="material-symbols-outlined">arrow_back</span></button>
+                <div style="font-weight:800; font-size:18px; color:var(--text);">Add location</div>
+            </div>
+            <button class="modal-close" onclick="loadRecentLocations()" style="position:static; background:transparent; border:none; color:var(--text);"><i class="ph-bold ph-arrows-clockwise" style="font-size: 22px;"></i></button>
+        </div>
+
+        <!-- Search Bar -->
+        <div class="search-input-wrap" style="margin-bottom:12px; background:var(--surface-2); border:1px solid var(--border);">
+            <i class="ph-bold ph-magnifying-glass" style="font-size:20px; color:var(--text-muted);"></i>
+            <input type="text" id="location-search-input" placeholder="Search places..." oninput="debounceSearchLocation(this.value)" style="background:transparent; border:none; color:var(--text); width:100%; outline:none;">
+        </div>
+
+        <!-- Content Area -->
+        <div id="location-content-area" style="flex:1; overflow-y:auto; padding-bottom:20px; scrollbar-width:none;">
+            
+            <!-- Search Results (লুকানো থাকবে প্রথমে) -->
+            <div id="location-search-results" style="display:none; flex-direction:column; gap:8px;"></div>
+
+            <!-- Default View (Find places near you + Recent) -->
+            <div id="location-default-view">
+                <!-- Find Places Near You Banner -->
+                <div style="background: var(--surface-2); border: 1px solid var(--border); border-radius: 16px; padding: 20px; text-align: center; margin-bottom: 20px;">
+                    <div style="width: 60px; height: 60px; margin: 0 auto 12px; background: rgba(59, 130, 246, 0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #3b82f6;">
+                        <i class="ph-fill ph-globe-hemisphere-west" style="font-size: 32px;"></i>
+                    </div>
+                    <div style="font-weight: 800; font-size: 16px; color: var(--text); margin-bottom: 8px;">Find places near you</div>
+                    <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 16px; line-height: 1.5;">To see places near you, or to check in to a specific location, turn on Location Services.</div>
+                    <button class="btn-primary" style="margin: 0 auto; width: auto; padding: 10px 24px; font-size: 14px; border-radius: 20px;" onclick="showToast('Device location tracking coming soon!')">Turn on</button>
+                </div>
+
+                <!-- Recent Places -->
+                <div style="font-weight: 800; font-size: 16px; color: var(--text); margin-bottom: 12px;">Recent places</div>
+                <div id="recent-locations-list" style="display: flex; flex-direction: column; gap: 8px;">
+                    <div class="empty-feed" style="padding: 20px;">No recent locations</div>
+                </div>
+            </div>
+
+        </div>
+    </div>
 </div>
 
 <!-- 🚀 Share Post to Chat Modal -->
@@ -8998,8 +9060,14 @@ showToast('Profile updated!');
 
 // ===== CREATE POST FUNCTIONS =====
 function openCreatePost(){
-document.getElementById('create-post-screen').classList.add('open');
-checkPostInputs();
+    document.getElementById('create-post-screen').classList.add('open');
+    checkPostInputs();
+    
+    // 🚀 ক্রিয়েট পোস্ট ওপেন হলে আগের লোকেশন মুছে ফ্রেশ করে দেবে
+    currentPostLocation = null;
+    if (typeof removeSelectedLocation === "function") {
+        removeSelectedLocation();
+    }
 }
 
 function closeCreatePost(){
@@ -9611,6 +9679,11 @@ if (p.activity) {
     activityHtml = `<span style="font-weight:500; color:var(--text-secondary); font-size:14px; margin-left:4px;">is ${escapeHTML(p.activity.text)}</span> <i class="${escapeHTML(p.activity.icon)}" style="font-size:16px; margin-left:4px; vertical-align:middle; color:var(--accent);"></i>`;
 }
 // ---------------------------------------------
+    // 🚀 Location Render
+    let locHtml = '';
+    if (p.location && p.location.name) {
+        locHtml = ` <span style="font-weight:500; color:var(--text-secondary);">is at <strong style="color:var(--text);">${escapeHTML(p.location.name)}</strong></span>`;
+    }
 
 const imgUrls=p.imgUrls&&p.imgUrls.length>0?p.imgUrls:(p.imgUrl?[p.imgUrl]:[]);
 let mediaHtml='';
@@ -9695,7 +9768,7 @@ ${followBadge}
 <div style="flex:1;" onclick="event.stopPropagation(); viewUserProfile('${p.uid}')">
 <div class="post-name" style="display: block; line-height: 1.4; cursor:pointer;">
 <span style="display: inline;">${safeName} <span style="display: inline-flex; vertical-align: middle; margin-top: -3px; margin-left: 2px;">${vBadge}</span></span>
-${activityHtml}
+${activityHtml} ${locHtml}
 ${withText}
 </div>
 <div class="post-time">${getRelativeTime(p.createdAt)}</div>
@@ -16975,6 +17048,143 @@ if(s && s.classList.contains('open') && document.activeElement && document.activ
 }
 });
 })();
+
+// =========================================
+// 🚀 LOCATION SEARCH & RECENT SYSTEM
+// =========================================
+let currentPostLocation = null;
+let locationSearchTimeout = null;
+
+function openLocationModal() {
+    document.getElementById('location-modal').classList.add('open');
+    document.getElementById('location-search-input').value = '';
+    document.getElementById('location-search-results').style.display = 'none';
+    document.getElementById('location-default-view').style.display = 'block';
+    loadRecentLocations();
+}
+
+function closeLocationModal() {
+    document.getElementById('location-modal').classList.remove('open');
+}
+
+function debounceSearchLocation(query) {
+    clearTimeout(locationSearchTimeout);
+    if (!query.trim()) {
+        document.getElementById('location-search-results').style.display = 'none';
+        document.getElementById('location-default-view').style.display = 'block';
+        return;
+    }
+    // ইউজার টাইপ করা থামালে ৫০০ মিলি-সেকেন্ড পর সার্চ শুরু হবে
+    locationSearchTimeout = setTimeout(() => {
+        fetchLocationSuggestions(query.trim());
+    }, 500); 
+}
+
+async function fetchLocationSuggestions(query) {
+    const resultsContainer = document.getElementById('location-search-results');
+    const defaultView = document.getElementById('location-default-view');
+    
+    resultsContainer.style.display = 'flex';
+    defaultView.style.display = 'none';
+    resultsContainer.innerHTML = '<div class="loading" style="padding:20px;text-align:center;color:var(--text-muted);"><span class="material-symbols-outlined">autorenew</span> Searching places...</div>';
+
+    try {
+        // 🚀 OpenStreetMap API (বিনা খরচে আসল লোকেশন)
+        const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&addressdetails=1&limit=6`);
+        const data = await response.json();
+
+        if (data.length === 0) {
+            resultsContainer.innerHTML = '<div class="empty-feed" style="padding:20px;">No places found</div>';
+            return;
+        }
+
+        let html = '';
+        data.forEach(place => {
+            const placeName = place.name || place.display_name.split(',')[0];
+            const address = place.display_name;
+            const safeName = escapeHTML(placeName).replace(/'/g, "\\'");
+            const safeAddress = escapeHTML(address).replace(/'/g, "\\'");
+            
+            html += `
+            <div class="msg-item" style="margin: 0; border-radius: 16px; padding: 12px 14px;" onclick="selectLocation('${safeName}', '${safeAddress}')">
+                <div style="width: 44px; height: 44px; background: var(--surface-2); border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                    <i class="ph-fill ph-map-pin" style="font-size: 22px; color: var(--text-muted);"></i>
+                </div>
+                <div class="msg-info">
+                    <div class="msg-name" style="font-size: 15px;">${escapeHTML(placeName)}</div>
+                    <div class="msg-preview" style="font-size: 12.5px;">${escapeHTML(address)}</div>
+                </div>
+            </div>`;
+        });
+        resultsContainer.innerHTML = html;
+    } catch (e) {
+        resultsContainer.innerHTML = '<div class="empty-feed">Error fetching locations</div>';
+    }
+}
+
+function selectLocation(name, address) {
+    currentPostLocation = { name, address };
+    
+    // ক্রিয়েট পোস্ট পেজে লোকেশনের নাম দেখানো
+    const locSpan = document.getElementById('modal-selected-location');
+    const locText = document.getElementById('msl-text');
+    if (locSpan && locText) {
+        locText.innerText = name;
+        locSpan.style.display = 'inline-flex';
+    }
+    
+    // ফায়ারবেসে রিসেন্ট হিসেবে সেভ করা
+    addToRecentLocations(name, address);
+    closeLocationModal();
+}
+
+function removeSelectedLocation() {
+    currentPostLocation = null;
+    const locSpan = document.getElementById('modal-selected-location');
+    if (locSpan) locSpan.style.display = 'none';
+}
+
+// 🚀 Firebase Recent Locations Logic
+async function addToRecentLocations(name, address) {
+    if(!currentUser) return;
+    let recents = currentUserData.recentLocations || [];
+    recents = recents.filter(loc => loc.name !== name); 
+    recents.unshift({ name, address, time: Date.now() }); 
+    if(recents.length > 5) recents = recents.slice(0, 5); 
+    
+    currentUserData.recentLocations = recents;
+    db.collection('users').doc(currentUser.uid).update({
+        recentLocations: recents
+    }).catch(e => console.log(e));
+}
+
+function loadRecentLocations() {
+    const list = document.getElementById('recent-locations-list');
+    if (!currentUserData) return;
+    const recents = currentUserData.recentLocations || [];
+    
+    if (recents.length === 0) {
+        list.innerHTML = '<div class="empty-feed" style="padding: 10px;">No recent locations</div>';
+        return;
+    }
+    
+    let html = '';
+    recents.forEach(loc => {
+        const safeName = escapeHTML(loc.name).replace(/'/g, "\\'");
+        const safeAddress = escapeHTML(loc.address).replace(/'/g, "\\'");
+        html += `
+        <div class="msg-item" style="margin: 0; border-radius: 16px; padding: 12px 14px;" onclick="selectLocation('${safeName}', '${safeAddress}')">
+            <div style="width: 44px; height: 44px; background: var(--surface-2); border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                <i class="ph-bold ph-clock-counter-clockwise" style="font-size: 22px; color: var(--text-muted);"></i>
+            </div>
+            <div class="msg-info">
+                <div class="msg-name" style="font-size: 15px;">${escapeHTML(loc.name)}</div>
+                <div class="msg-preview" style="font-size: 12.5px;">${escapeHTML(loc.address)}</div>
+            </div>
+        </div>`;
+    });
+    list.innerHTML = html;
+}
 </script>
 </body>
 </html>
