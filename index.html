@@ -4060,6 +4060,13 @@ transition:background .2s;
 .gc-loc-chip b{cursor:pointer;font-size:13px;margin-left:2px;color:var(--danger);}
 .gc-post-loc{display:inline-flex;align-items:center;gap:4px;color:var(--text-muted);font-size:12px;font-weight:700;margin-left:6px;}
 .gc-post-loc i{font-size:13px;color:var(--accent);}
+
+/* =========================================
+🚀 Update #77 · story-timestamp · 2026-08-13
+স্টোরি ভিউয়ারে নামের পাশে টাইম স্ট্যাম্প
+খুঁজতে: Ctrl+F → "story-timestamp"
+========================================= */
+.sv-time{font-size:12px;font-weight:600;color:rgba(255,255,255,.65);margin-left:8px;letter-spacing:.2px;white-space:nowrap;}
 </style>
 </head>
 <body>
@@ -7378,7 +7385,7 @@ function renderCurrentStory(){
     const safeName=escapeHTML(s.name);
     // আমরা এখন ব্যাজসহ নাম রেন্ডার করব
 const sVerified = s.isVerified || false; 
-document.getElementById('sv-name').innerHTML = safeName + getVerifiedBadge(s.email, sVerified);
+document.getElementById('sv-name').innerHTML = safeName + getVerifiedBadge(s.email, sVerified) + gcStoryTimeHTML(s);
     
     // ১. থ্রি-ডট মেনুটি সবার স্টোরিতেই দেখাবে
     const svMenuBtn = document.getElementById('sv-menu-btn');
@@ -17328,6 +17335,29 @@ async function openConversationMedia() {
 function closeConversationMedia() {
     document.getElementById('conversation-media-screen').style.display = 'none';
 }
+
+// ═══════════════════════════════════════════════════════
+// 🚀 Update #77 · story-timestamp · 2026-08-13
+// স্টোরির বয়স + অবশিষ্ট সময় (লাইভ আপডেট)
+// খুঁজতে: Ctrl+F → "story-timestamp"
+// ═══════════════════════════════════════════════════════
+function gcStoryTimeHTML(s){
+if(!s || !s.createdAt) return '';
+const created = s.createdAt.toMillis ? s.createdAt.toMillis() : (s.createdAt.seconds ? s.createdAt.seconds * 1000 : 0);
+if(!created) return '';
+return '<span class="sv-time">' + getRelativeTime(s.createdAt) + '</span>';
+}
+(function gcStoryTimeLive(){
+if(window.gcStoryTimeOn) return; window.gcStoryTimeOn = true;
+setInterval(function(){
+const viewer = document.getElementById('story-viewer');
+if(!viewer || !viewer.classList.contains('open')) return;
+if(typeof activeStoryGroup === 'undefined' || !activeStoryGroup) return;
+const s = activeStoryGroup[currentStoryIndex];
+const el = document.querySelector('#sv-name .sv-time');
+if(s && el){ el.outerHTML = gcStoryTimeHTML(s); }
+}, 15000);
+})();
 </script>
 </body>
 </html>
