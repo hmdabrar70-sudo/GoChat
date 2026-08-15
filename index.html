@@ -4132,6 +4132,41 @@ body:not(.light-mode) .fb-create-story-card {
     from { opacity: 0.4; transform: translateX(-100px) scale(0.95); }
     to { opacity: 1; transform: translateX(0) scale(1); }
 }
+
+/* =========================================
+🚀 Update #79 · premium-page-transitions · 2026-08-14
+সব পেজ/স্ক্রিন/শিটে GPU-স্মুথ প্রিমিয়াম ট্রানজিশন
+(শুধু transform+opacity → কোনো ল্যাগ নেই)
+খুঁজতে: Ctrl+F → "premium-page-transitions"
+========================================= */
+@keyframes gcPageIn{
+0%{opacity:0;transform:translateY(14px) scale(.985);}
+100%{opacity:1;transform:translateY(0) scale(1);}
+}
+@keyframes gcScreenIn{
+0%{opacity:0;transform:translateY(5%);}
+100%{opacity:1;transform:translateY(0);}
+}
+@keyframes gcFadeIn{
+0%{opacity:0;}
+100%{opacity:1;}
+}
+/* ১) মেইন ট্যাব পেজ (ফিড/ফ্রেন্ডস/মেসেজ/প্রোফাইল) */
+.page.active{animation:gcPageIn .38s cubic-bezier(.22,1,.36,1) both;}
+/* ২) ফুল-স্ক্রিন ওভারলে স্ক্রিন */
+#chat-screen.open,#create-post-screen.open,#settings-privacy-screen.open,#page-other-profile.open,#single-post-screen.open,#gc-trending-screen.open,#gc-hashtag-screen.open,#gc-mr-screen.open,#gc-fr-screen.open,#gc-liked-screen.open,#gc-ins-screen.open,#gc-fp-screen.open,#gc-call-screen.open,#gc-loc-screen.open,#story-viewer.open{
+animation:gcScreenIn .4s cubic-bezier(.22,1,.36,1) both;
+}
+/* ৩) মেইন মেনু (inline style দিয়ে খোলে) */
+#main-menu-screen[style*="flex"]{animation:gcScreenIn .35s cubic-bezier(.22,1,.36,1) both;}
+/* ৪) কমেন্ট প্যানেল + বটম শিট + মডাল */
+.comment-panel.open,.modal-overlay[style*="flex"],.modal-overlay.open,.modal-overlay.show,.gc-sw-overlay.open,.gc-rp-overlay.open,.gc-cf-overlay.open{
+animation:gcFadeIn .25s ease both;
+}
+/* ৫) সিস্টেমে "reduce motion" চালু থাকলে অ্যানিমেশন বন্ধ */
+@media (prefers-reduced-motion: reduce){
+.page.active,#chat-screen.open,#create-post-screen.open,#settings-privacy-screen.open,#page-other-profile.open,#single-post-screen.open,#main-menu-screen[style*="flex"]{animation:none !important;}
+}
 </style>
 </head>
 <body>
@@ -16281,7 +16316,7 @@ body.innerHTML = html;
 
 
 // ═══════════════════════════════════════════════════════
-// 🚀 Update #43 · switch-account · 2026-08-08
+// ?? Update #43 · switch-account · 2026-08-08
 // মাল্টি-অ্যাকাউন্ট ইনস্ট্যান্ট সুইচার (বাটন তোমার নিজের, লজিক এখানে)
 // খুঁজতে: Ctrl+F → "switch-account"
 // ═══════════════════════════════════════════════════════
