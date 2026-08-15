@@ -10867,7 +10867,7 @@ async function executeDelete(type) {
                 batch.set(ref, { deletedFor: firebase.firestore.FieldValue.arrayUnion(currentUser.uid) }, { merge: true });
             }
         });
-        await batch.commit();
+        await batch.commit();        
         showToast("Messages deleted!");
     } catch(e) {
         showToast("Failed to delete messages");
@@ -17716,6 +17716,68 @@ async function openConversationMedia() {
 
 function closeConversationMedia() {
     document.getElementById('conversation-media-screen').style.display = 'none';
+}
+
+// ═══════════════════════════════════════════════════════
+// 🚀 Update #85 · chat-preview-sync · 2026-08-16
+// ডিলিট/ক্লিয়ারের পর চ্যাট লিস্টের পুরনো প্রিভিউ ফিক্স
+// খুঁজতে: Ctrl+F → "chat-preview-sync"
+// ═══════════════════════════════════════════════════════
+let gcPrevSyncCache = {};
+async function gcSyncChatPreview(chatId){
+if(!chatId || !currentUser) return;
+const now = Date.now();
+if(gcPrevSyncCache[chatId] && now - gcPrevSyncCache[chatId] < 3000) return;
+gcPrevSyncCache[chatId] = now;
+try{
+const chatDoc = await db.collection('chats').doc(chatId).get();
+if(!chatDoc.exists) return;
+const snap = await db.collection('chats').doc(chatId).collection('messages').get();
+let latest = null, latestTs = -1;
+snap.forEach(function(d){
+const m = d.data();
+if((m.deletedFor || []).indexOf(currentUser.uid) !== -1) return;
+const ts = (m.createdAt && m.createdAt.toMillis) ? m.createdAt.toMillis() : (m.timestamp || 0);
+if(ts >= latestTs){ latestTs = ts; latest = m; }
+});
+let preview = '';
+if(latest){
+preview = latest.text || (latest.imageUrl ? '📷 Photo' : (latest.audioUrl ? '🎤 Voice Message' : 'Message'));
+}
+if(chatDoc.data().lastMsg !== preview){
+await db.collection('chats').doc(chatId).update({ lastMsg: preview });
+}
+}catch(e){}
+}
+// Clear Chat (for me) এর পরে সিঙ্ক
+if(typeof clearChatForMe === 'function' && !window.gcCfmWrapped85){
+window.gcCfmWrapped85 = true;
+window.gcOrigClearChatForMe85 = clearChatForMe;
+clearChatForMe = async function(){
+const r = await window.gcOrigClearChatForMe85.apply(this, arguments);
+if(currentChatId) gcSyncChatPreview(currentChatId);
+return r;
+};
+}
+// সিলেকশন ডিলিট শেষে (closeSelectionMode কল হয়) সিঙ্ক
+if(typeof closeSelectionMode === 'function' && !window.gcCsmWrapped85){
+window.gcCsmWrapped85 = true;
+window.gcOrigCSM85 = closeSelectionMode;
+closeSelectionMode = function(){
+const r = window.gcOrigCSM85.apply(this, arguments);
+if(currentChatId) gcSyncChatPreview(currentChatId);
+return r;
+};
+}
+// চ্যাট খোলার সময়ও সিঙ্ক (পুরনো পড়লে অটো-ফিক্স)
+if(typeof openChat === 'function' && !window.gcOcWrapped85){
+window.gcOcWrapped85 = true;
+window.gcOrigOpenChat85 = openChat;
+openChat = function(chatId){
+const r = window.gcOrigOpenChat85.apply(this, arguments);
+gcSyncChatPreview(chatId);
+return r;
+};
 }
 </script>
 </body>
