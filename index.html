@@ -4118,6 +4118,20 @@ body:not(.light-mode) .fb-create-story-card {
     font-weight: 700;
     color: var(--text);
 }
+.img-swipe-next {
+    animation: swipeNextAnim 0.35s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+.img-swipe-prev {
+    animation: swipePrevAnim 0.35s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+@keyframes swipeNextAnim {
+    from { opacity: 0.4; transform: translateX(100px) scale(0.95); }
+    to { opacity: 1; transform: translateX(0) scale(1); }
+}
+@keyframes swipePrevAnim {
+    from { opacity: 0.4; transform: translateX(-100px) scale(0.95); }
+    to { opacity: 1; transform: translateX(0) scale(1); }
+}
 </style>
 </head>
 <body>
@@ -4960,19 +4974,48 @@ body:not(.light-mode) .fb-create-story-card {
 </div>
 </div>
 
+<!-- 🚀 NEW: Fullscreen Immersive Gallery Modal (Swipeable + Actions) -->
 <div class="image-zoom-modal" id="image-zoom-modal" onclick="closeImageZoom()">
-    <div style="position:absolute; top:20px; right:20px; display:flex; gap:12px; z-index:10005;">
-        
+    
+    <!-- Top Left Counter -->
+    <div style="position:absolute; top:20px; left:20px; color:#fff; font-size:13px; font-weight:800; background:rgba(0,0,0,0.5); padding:6px 14px; border-radius:20px; z-index:10005; display:none; backdrop-filter:blur(4px);" id="zoom-counter">1 / 1</div>
+    
+    <!-- 🚀 Top Right Actions (Smaller Size) -->
+    <div style="position:absolute; top:20px; right:20px; display:flex; gap:10px; z-index:10005;">
         <div style="position:relative;">
-            <button class="image-zoom-close" style="position:static; width:40px; height:40px;" onclick="event.stopPropagation(); document.getElementById('zoom-menu').classList.toggle('open')">
-                <span class="material-symbols-outlined">more_vert</span>
+            <button class="image-zoom-close" style="position:static; width:34px; height:34px; background:rgba(0,0,0,0.5);" onclick="event.stopPropagation(); document.getElementById('zoom-menu').classList.toggle('open')">
+                <span class="material-symbols-outlined" style="font-size:20px;">more_vert</span>
             </button>
-            <div id="zoom-menu" class="post-dropdown-menu" style="top:50px; right:0; width:170px; position:absolute;" onclick="event.stopPropagation();">
+            <div id="zoom-menu" class="post-dropdown-menu" style="top:44px; right:0; width:170px; position:absolute;" onclick="event.stopPropagation();">
                 <div class="chat-dropdown-item" onclick="downloadZoomedImage(event)" style="padding: 12px 14px;">
                     <span class="material-symbols-outlined" style="color:var(--text);">download</span> Save to device
                 </div>
             </div>
         </div>
+        <button class="image-zoom-close" style="position:static; width:34px; height:34px; background:rgba(0,0,0,0.5);" onclick="closeImageZoom()">
+            <i class="ph-bold ph-x" style="font-size:18px;"></i>
+        </button>
+    </div>
+
+    <img id="zoom-image" src="" onclick="event.stopPropagation()" style="transition: transform 0.2s ease;">
+    
+    <!-- 🚀 Floating Bottom Action Bar (Smaller Size) -->
+    <div id="zoom-bottom-bar" style="position:absolute; bottom:0; left:0; right:0; padding:30px 24px calc(20px + env(safe-area-inset-bottom)); background:linear-gradient(transparent, rgba(0,0,0,0.85)); display:none; justify-content:space-around; align-items:center; z-index:10005;" onclick="event.stopPropagation()">
+        
+        <div style="display:flex; align-items:center; gap:6px; cursor:pointer;" onclick="if(zoomActivePostId) toggleLike(zoomActivePostId);">
+            <span id="zoom-like-btn" style="display:flex; align-items:center; gap:6px; color:#fff;"><i class="ph-bold ph-thumbs-up" style="font-size:24px; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));"></i> <span style="font-size:14px; font-weight:800; text-shadow:0 1px 3px rgba(0,0,0,0.6);">0</span></span>
+        </div>
+        
+        <div style="display:flex; align-items:center; gap:6px; cursor:pointer;" onclick="closeImageZoom(); if(zoomActivePostId) openCommentPanel(zoomActivePostId);">
+            <span id="zoom-comment-btn" style="display:flex; align-items:center; gap:6px; color:#fff;"><i class="ph-bold ph-chat-circle" style="font-size:24px; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));"></i> <span style="font-size:14px; font-weight:800; text-shadow:0 1px 3px rgba(0,0,0,0.6);">0</span></span>
+        </div>
+        
+        <div style="display:flex; align-items:center; gap:6px; cursor:pointer;" onclick="showToast('Share feature coming soon!');">
+            <span style="display:flex; align-items:center; gap:6px; color:#fff;"><i class="ph-bold ph-share-network" style="font-size:24px; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));"></i></span>
+        </div>
+        
+    </div>
+</div>
         
         <button class="image-zoom-close" style="position:static; width:40px; height:40px;" onclick="closeImageZoom()">
             <i class="ph-bold ph-x"></i>
@@ -7657,9 +7700,8 @@ async function reactToCurrentStory(){
 async function toggleLike(pid) {
     if (!currentUser || !checkRateLimit()) return;
 
-    // ১. ডাটাবেসে যাওয়ার আগেই স্ক্রিনে সাথে সাথে লাইক আপডেট করে দেবে
+    // ১. হোম ফিডে লাইক আপডেট
     const likeButtons = document.querySelectorAll(`button[onclick*="toggleLike('${pid}')"]`);
-    
     let isCurrentlyLiked = false;
     let currentLikes = 0;
 
@@ -7670,19 +7712,35 @@ async function toggleLike(pid) {
         isCurrentlyLiked = btn.classList.contains('liked');
 
         if (isCurrentlyLiked) {
-            // আনলাইক করা
             btn.classList.remove('liked');
             if (icon) icon.className = 'ph-bold ph-thumbs-up'; 
             if (countSpan) countSpan.innerText = Math.max(0, currentLikes - 1);
         } else {
-            // লাইক করা
             btn.classList.add('liked');
             if (icon) icon.className = 'ph-fill ph-thumbs-up'; 
             if (countSpan) countSpan.innerText = currentLikes + 1;
         }
     });
+    
+    // 🚀 ২. ম্যাজিক: ফুল-স্ক্রিন জুম মডাল ওপেন থাকলেও সেখানে সাথে সাথে লাইক লাল হয়ে যাবে!
+    if (typeof zoomActivePostId !== 'undefined' && zoomActivePostId === pid) {
+        const zBtn = document.getElementById('zoom-like-btn');
+        if (zBtn) {
+            const zIcon = zBtn.querySelector('i');
+            const zSpan = zBtn.querySelector('span');
+            let zLikes = parseInt(zSpan.innerText) || 0;
+            
+            if (zIcon && zIcon.classList.contains('ph-fill')) {
+                // আনলাইক করা
+                zBtn.innerHTML = `<i class="ph-bold ph-thumbs-up" style="color:#fff; font-size:24px; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));"></i> <span style="font-size:14px; font-weight:800; color:#fff; text-shadow:0 1px 3px rgba(0,0,0,0.6);">${Math.max(0, zLikes - 1)}</span>`;
+            } else {
+                // লাইক করা
+                zBtn.innerHTML = `<i class="ph-fill ph-thumbs-up" style="color:var(--danger); font-size:24px; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));"></i> <span style="font-size:14px; font-weight:800; color:#fff; text-shadow:0 1px 3px rgba(0,0,0,0.6);">${zLikes + 1}</span>`;
+            }
+        }
+    }
 
-    // ২. এরপর ব্যাকগ্রাউন্ডে ডাটাবেস আপডেট হবে
+    // ৩. ব্যাকগ্রাউন্ডে ডাটাবেস আপডেট হবে
     const ref = db.collection('posts').doc(pid);
     const doc = await ref.get();
     
@@ -7698,15 +7756,11 @@ async function toggleLike(pid) {
             likedBy.push(currentUser.uid);
             likes++;
             
-            // নিজের পোস্টে লাইক দিলে নোটিফিকেশন বা পয়েন্ট যাবে না
             if (p.uid !== currentUser.uid) {
-                
-                // 🚀 স্প্যাম ফিক্স: নোটিফিকেশন এবং পয়েন্ট জীবনে একবারই যাবে
                 const notifId = currentUser.uid + '_like_' + pid;
                 const notifRef = db.collection('notifications').doc(notifId);
                 
                 notifRef.get().then(docSnap => {
-                    // যদি আগে কখনো এই নোটিফিকেশন না গিয়ে থাকে, তবেই পাঠাবে
                     if (!docSnap.exists) {
                         notifRef.set({
                             toUid: p.uid, 
@@ -7717,7 +7771,6 @@ async function toggleLike(pid) {
                             read: false,
                             createdAt: firebase.firestore.FieldValue.serverTimestamp()
                         });
-                        // পয়েন্টও শুধু একবারই যোগ হবে
                         awardPoints(p.uid, 5);
                     }
                 });
@@ -9669,17 +9722,175 @@ if(tabEl)tabEl.classList.add('active');
 loadFeed();
 }
 
-function openImageZoom(src){
-document.getElementById('zoom-image').src=src;
-document.getElementById('image-zoom-modal').classList.add('open');
+// =========================================
+// 🚀 NEW: SWIPEABLE FULLSCREEN GALLERY + ACTIONS
+// =========================================
+let zoomImagesList = [];
+let zoomCurrentIdx = 0;
+let zoomActivePostId = null;
+let zoomUnsub = null;
+
+function openImageZoom(url, postId = null) {
+    zoomImagesList = [];
+    zoomCurrentIdx = 0;
+    zoomActivePostId = postId;
+    
+    const e = window.event;
+    if (e && e.target && e.target.tagName === 'IMG') {
+        const postCard = e.target.closest('.post-card');
+        if (postCard) {
+            const imgs = Array.from(postCard.querySelectorAll('.compose-img-grid-item img, .post-img'));
+            if (imgs.length > 0) {
+                zoomImagesList = imgs.map(img => img.src);
+                zoomCurrentIdx = zoomImagesList.indexOf(e.target.src);
+                if (zoomCurrentIdx === -1) zoomCurrentIdx = 0;
+                
+                // 🚀 গ্যারান্টিড পোস্ট আইডি বের করার ম্যাজিক
+                if (!zoomActivePostId) {
+                    const likeBtn = postCard.querySelector('[onclick*="toggleLike"]');
+                    if (likeBtn) {
+                        const match = likeBtn.getAttribute('onclick').match(/toggleLike\(['"]([^'"]+)['"]\)/);
+                        if (match) zoomActivePostId = match[1];
+                    } else if (postCard.getAttribute('data-id')) {
+                        zoomActivePostId = postCard.getAttribute('data-id');
+                    }
+                }
+            }
+        }
+    }
+
+    if (zoomImagesList.length === 0) zoomImagesList = [url];
+
+    document.getElementById('image-zoom-modal').classList.add('open');
+    renderZoomImage();
 }
 
-function closeImageZoom(){
+function zoomNext() {
+    if (zoomCurrentIdx < zoomImagesList.length - 1) {
+        window.zoomSwipeDir = 'next';
+        zoomCurrentIdx++;
+        renderZoomImage();
+    }
+}
+
+function zoomPrev() {
+    if (zoomCurrentIdx > 0) {
+        window.zoomSwipeDir = 'prev';
+        zoomCurrentIdx--;
+        renderZoomImage();
+    }
+}
+
+function renderZoomImage() {
+    const imgEl = document.getElementById('zoom-image');
+    const counterEl = document.getElementById('zoom-counter');
+    const bottomBar = document.getElementById('zoom-bottom-bar');
+    
+    // 🚀 প্রিমিয়াম স্মুথ অ্যানিমেশনের ম্যাজিক
+    imgEl.style.transition = 'none'; 
+    imgEl.classList.remove('img-swipe-next', 'img-swipe-prev');
+    void imgEl.offsetWidth; // Force CSS Reflow
+    
+    imgEl.src = zoomImagesList[zoomCurrentIdx];
+    
+    if (window.zoomSwipeDir === 'next') {
+        imgEl.classList.add('img-swipe-next');
+    } else if (window.zoomSwipeDir === 'prev') {
+        imgEl.classList.add('img-swipe-prev');
+    } else {
+        imgEl.style.transform = 'translateX(0) scale(1)';
+        imgEl.style.opacity = 1;
+    }
+    window.zoomSwipeDir = null; // রিসেট
+    
+    if (zoomImagesList.length > 1) {
+        counterEl.style.display = 'block';
+        counterEl.innerText = (zoomCurrentIdx + 1) + ' / ' + zoomImagesList.length;
+    } else {
+        counterEl.style.display = 'none';
+    }
+
+    if (zoomActivePostId) {
+        bottomBar.style.display = 'flex';
+        listenToZoomPostData(zoomActivePostId); // এই যে সেই ফাংশন!
+    } else {
+        bottomBar.style.display = 'none';
+        if (zoomUnsub) { zoomUnsub(); zoomUnsub = null; }
+    }
+}
+
+// 🚀 ডাটাবেস থেকে রিয়েল-টাইম লাইক ও কমেন্ট সিঙ্ক করা
+function listenToZoomPostData(pid) {
+    if (zoomUnsub) zoomUnsub();
+    zoomUnsub = db.collection('posts').doc(pid).onSnapshot(doc => {
+        if (doc.exists) {
+            const data = doc.data();
+            const isLiked = data.likedBy && currentUser && data.likedBy.includes(currentUser.uid);
+            const likeCount = data.likes || 0;
+            const commentCount = data.comments ? data.comments.length : 0;
+            
+            const likeBtn = document.getElementById('zoom-like-btn');
+            const commentBtn = document.getElementById('zoom-comment-btn');
+            
+            const formattedLikes = typeof formatLBNum === 'function' ? formatLBNum(likeCount) : likeCount;
+            const formattedComments = typeof formatLBNum === 'function' ? formatLBNum(commentCount) : commentCount;
+            
+            if(likeBtn) {
+                likeBtn.innerHTML = isLiked 
+                    ? `<i class="ph-fill ph-thumbs-up" style="color:var(--danger); font-size:24px; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));"></i> <span style="font-size:14px; font-weight:800; color:#fff; text-shadow:0 1px 3px rgba(0,0,0,0.6);">${formattedLikes}</span>` 
+                    : `<i class="ph-bold ph-thumbs-up" style="color:#fff; font-size:24px; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));"></i> <span style="font-size:14px; font-weight:800; color:#fff; text-shadow:0 1px 3px rgba(0,0,0,0.6);">${formattedLikes}</span>`;
+            }
+            if(commentBtn) {
+                commentBtn.innerHTML = `<i class="ph-bold ph-chat-circle" style="color:#fff; font-size:24px; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));"></i> <span style="font-size:14px; font-weight:800; color:#fff; text-shadow:0 1px 3px rgba(0,0,0,0.6);">${formattedComments}</span>`;
+            }
+        }
+    });
+}
+
+// 🚀 রিয়েল-টাইম প্রো-লেভেল সোয়াইপ লজিক (Instagram Style)
+let zTouchStartX = 0;
+const zModal = document.getElementById('image-zoom-modal');
+const zImg = document.getElementById('zoom-image');
+
+zModal.addEventListener('touchstart', e => { 
+    zTouchStartX = e.changedTouches[0].screenX; 
+    zImg.style.transition = 'none'; 
+}, {passive: true});
+
+zModal.addEventListener('touchmove', e => { 
+    if(zoomImagesList.length <= 1) return;
+    let diff = e.changedTouches[0].screenX - zTouchStartX;
+    
+    if ((zoomCurrentIdx === 0 && diff > 0) || (zoomCurrentIdx === zoomImagesList.length - 1 && diff < 0)) {
+        diff = diff * 0.25; 
+    }
+    
+    zImg.style.transform = `translateX(${diff}px) scale(0.98)`;
+    zImg.style.opacity = 1 - Math.abs(diff) / 1000;
+}, {passive: true});
+
+zModal.addEventListener('touchend', e => { 
+    if(zoomImagesList.length <= 1) return;
+    let diff = e.changedTouches[0].screenX - zTouchStartX;
+    
+    zImg.style.transition = 'all 0.35s cubic-bezier(0.22, 1, 0.36, 1)'; 
+    
+    if (diff < -50 && zoomCurrentIdx < zoomImagesList.length - 1) {
+        zoomNext();
+    } else if (diff > 50 && zoomCurrentIdx > 0) {
+        zoomPrev();
+    } else {
+        zImg.style.transform = 'translateX(0) scale(1)';
+        zImg.style.opacity = 1;
+    }
+}, {passive: true});
+
+function closeImageZoom() {
     document.getElementById('image-zoom-modal').classList.remove('open');
-    document.getElementById('zoom-image').src='';
-    // থ্রি-ডট মেনু ওপেন থাকলে সেটা বন্ধ করে দেবে
-    const menu = document.getElementById('zoom-menu');
-    if(menu) menu.classList.remove('open');
+    if (zoomUnsub) { zoomUnsub(); zoomUnsub = null; }
+    const zImg = document.getElementById('zoom-image');
+    zImg.src = '';
+    zImg.style.transform = 'translateX(0) scale(1)'; 
 }
 
 // নতুন ফাংশন: ছবি ডাউনলোড করার জন্য (APK এবং Web উভয়ের জন্য ফিক্সড)
