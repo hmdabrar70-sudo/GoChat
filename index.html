@@ -7379,6 +7379,11 @@ function loadStories(){
         let seenUsers = [];
         
         for(let uid in grouped){
+        // 🚀 ম্যাজিক আপডেট: যাদেরকে ফলো করা নেই তাদের স্টোরি হাইড করা
+            if (uid !== currentUser.uid) {
+                const isFollowing = currentUserData.following && currentUserData.following.includes(uid);
+                if (!isFollowing) continue; // ফলো করা না থাকলে স্টোরি স্কিপ করে যাবে
+            }
             // চেক করা হচ্ছে এই ইউজারের সব স্টোরি দেখা হয়ে গেছে কিনা
             const allSeen = grouped[uid].every(s => s.views && s.views.includes(currentUser.uid));
             
@@ -7757,7 +7762,21 @@ async function openCommentPanel(pid) {
         
         const comments = doc.data().comments || [];
         
-        list.innerHTML = comments.map((c, idx) => {
+        // 🚀 Premium Comment Priority Algorithm (অরিজিনাল ইনডেক্স সহ)
+        let mappedComments = comments.map((c, i) => ({ ...c, originalIndex: i }));
+        
+        if (allUsersCache) {
+            mappedComments.sort((a, b) => {
+                const userA = allUsersCache.find(u => u.id === a.uid);
+                const userB = allUsersCache.find(u => u.id === b.uid);
+                const isPremiumA = (userA && userA.isVerified === true) ? 1 : 0;
+                const isPremiumB = (userB && userB.isVerified === true) ? 1 : 0;
+                return isPremiumB - isPremiumA; // গোল্ডেন ব্যাজওয়ালা কমেন্টগুলো সবার উপরে চলে আসবে
+            });
+        }
+        
+        list.innerHTML = mappedComments.map((c) => {
+            const idx = c.originalIndex; // 🚀 ডাটাবেসে সঠিক জায়গায় রিপ্লাই যাওয়ার জন্য অরিজিনাল ইনডেক্স
             const safeCName = escapeHTML(c.name);
             let safeCText = escapeHTML(c.text);
             
@@ -11384,11 +11403,24 @@ async function loadGalleryImages() {
             });
         });
         
-        // নতুন ছবিগুলো আগে দেখানোর জন্য সর্টিং
-        allImages.sort((a,b) => {
+                // 🚀 Premium Reach Algorithm (গোল্ডেন ব্যাজ ইউজারদের পোস্ট বুস্ট করা)
+        posts.sort((a, b) => {
             const ta = a.createdAt?.toMillis ? a.createdAt.toMillis() : 0;
             const tb = b.createdAt?.toMillis ? b.createdAt.toMillis() : 0;
-            return tb - ta; 
+            
+            let boostA = 0;
+            let boostB = 0;
+            
+            if (typeof allUsersCache !== 'undefined' && allUsersCache) {
+                const userA = allUsersCache.find(u => u.id === a.uid);
+                const userB = allUsersCache.find(u => u.id === b.uid);
+                // 🚀 যদি গোল্ডেন ব্যাজ থাকে, তবে তাদের পোস্টে ৩ ঘণ্টার (3 hours) এক্সট্রা 'রিচ বুস্ট' দেওয়া হবে
+                if (userA && userA.isVerified === true) boostA = 3 * 60 * 60 * 1000; 
+                if (userB && userB.isVerified === true) boostB = 3 * 60 * 60 * 1000;
+            }
+            
+            // বুস্ট পাওয়ার কারণে প্রিমিয়াম ইউজারদের পোস্ট ফিডের ওপরের দিকে থাকবে
+            return (tb + boostB) - (ta + boostA); 
         });
         
         if(allImages.length === 0) {
