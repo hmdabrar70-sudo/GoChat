@@ -1532,41 +1532,54 @@ background: rgba(0, 0, 0, 0.05) !important;
 }
 
 /* =========================================
-   INSTAGRAM STYLE PHOTO GRID (ALL POST)
+   ✨ PREMIUM PINTEREST STYLE MASONRY GRID ✨
    ========================================= */
 .profile-photo-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 2px;
+    column-count: 2; /* 🚀 ২ কলামের ম্যাজিক */
+    column-gap: 12px;
+    padding: 12px 16px;
 }
 .grid-post-item {
-    aspect-ratio: 1;
+    break-inside: avoid;
+    margin-bottom: 12px;
     position: relative;
     cursor: pointer;
     overflow: hidden;
     background: var(--surface-2);
+    border-radius: 16px; /* 🚀 প্রিমিয়াম রাউন্ডেড কর্নার */
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04);
+    transform: translateZ(0);
+}
+body:not(.light-mode) .grid-post-item {
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
 }
 .grid-post-item img {
-    width: 100%; height: 100%;
+    width: 100%; 
+    height: auto; /* 🚀 ছবির আসল সাইজ অনুযায়ী অটোমেটিক হাইট ঠিক হবে */
+    display: block;
     object-fit: cover;
-    transition: transform 0.2s;
+    transition: transform 0.3s ease;
 }
-.grid-post-item:active img { transform: scale(0.95); }
+.grid-post-item:active img { transform: scale(0.96); }
 .grid-post-text {
-    padding: 8px; font-size: 11px; font-weight: 600; color: var(--text-muted);
+    padding: 12px; font-size: 13px; font-weight: 600; color: var(--text);
     word-break: break-word; overflow: hidden;
     display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical;
 }
 .grid-multi-icon {
-    position: absolute; top: 6px; right: 6px; 
-    color: #fff; font-size: 16px;
-    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.6));
+    position: absolute; top: 10px; right: 10px; 
+    color: #fff; font-size: 18px;
+    background: rgba(0, 0, 0, 0.4); border-radius: 50%; padding: 4px;
+    backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
 }
 .grid-pin-icon {
-    position: absolute; bottom: 6px; left: 6px; 
-    color: var(--accent); font-size: 16px;
-    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.6));
+    position: absolute; bottom: 10px; left: 10px; 
+    color: #fff; font-size: 18px;
+    background: var(--accent); border-radius: 50%; padding: 4px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
 }
+
 /* --- Auto-hide Scroll Animation CSS --- */
 .topbar {
     transition: transform 0.3s ease-in-out !important;
@@ -4396,7 +4409,19 @@ animation:gcFadeIn .25s ease both;
 </div>
 <div id="profile-display-section" style="width:100%;">
 <div class="profile-bio" id="profile-bio-display"></div>
-<div class="profile-personal-details" id="profile-details-display"></div>
+        <!-- 🚀 Accordion for Personal Info (My Profile) -->
+    <div class="personal-info-accordion" style="margin-top: 16px; background: transparent; border: 1px solid var(--border); border-radius: 16px; overflow: hidden;">
+        <div onclick="togglePersonalInfo('my')" style="display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; cursor: pointer;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <i class="ph-bold ph-identification-card" style="font-size: 20px; color: var(--accent);"></i>
+                <span style="font-size: 14px; font-weight: 700; color: var(--text);">Personal Information</span>
+            </div>
+            <i class="ph-bold ph-caret-down" id="my-pi-chevron" style="font-size: 16px; color: var(--text-muted); transition: transform 0.3s ease;"></i>
+        </div>
+        <div id="profile-details-wrapper" style="display: none; padding: 0 16px 16px; border-top: 1px solid var(--border);">
+            <div class="profile-personal-details" id="profile-details-display" style="margin-top: 14px; padding: 0;"></div>
+        </div>
+    </div>
 <div style="display:flex; justify-content:center; gap:12px; width:100%; margin-top:16px; flex-wrap:wrap;">
     <button class="icon-btn" style="border-radius:30px; padding:10px 24px; background:var(--gradient); color:#fff; border:none; box-shadow:var(--shadow-glow); display:flex; align-items:center; gap:8px; font-size:14px; font-weight:700;" onclick="openProfileEdit()">
         <i class="ph-bold ph-pencil-simple" style="font-size:20px;"></i> Edit Profile
@@ -4471,7 +4496,19 @@ animation:gcFadeIn .25s ease both;
             </div>
         </div>
         <div class="profile-bio" id="other-profile-bio"></div>
-        <div class="profile-personal-details" id="other-profile-details-display"></div>
+            <!-- 🚀 Accordion for Personal Info (Other Profile) -->
+    <div class="personal-info-accordion" style="margin-top: 16px; background: transparent; border: 1px solid var(--border); border-radius: 16px; overflow: hidden;">
+        <div onclick="togglePersonalInfo('other')" style="display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; cursor: pointer;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <i class="ph-bold ph-identification-card" style="font-size: 20px; color: var(--accent);"></i>
+                <span style="font-size: 14px; font-weight: 700; color: var(--text);">Personal Information</span>
+            </div>
+            <i class="ph-bold ph-caret-down" id="other-pi-chevron" style="font-size: 16px; color: var(--text-muted); transition: transform 0.3s ease;"></i>
+        </div>
+        <div id="other-profile-details-wrapper" style="display: none; padding: 0 16px 16px; border-top: 1px solid var(--border);">
+            <div class="profile-personal-details" id="other-profile-details-display" style="margin-top: 14px; padding: 0;"></div>
+        </div>
+    </div>
         <div class="profile-btns" id="other-profile-btns" style="margin-top:16px;display:flex;gap:10px;width:100%;flex-wrap:wrap;"></div>
     </div>
     <!-- 🚀 Other Profile Filter Menu -->
@@ -17778,6 +17815,23 @@ const r = window.gcOrigOpenChat85.apply(this, arguments);
 gcSyncChatPreview(chatId);
 return r;
 };
+}
+
+// 🚀 Personal Information Accordion Toggle Logic
+function togglePersonalInfo(type) {
+    const wrapperId = type === 'my' ? 'profile-details-wrapper' : 'other-profile-details-wrapper';
+    const chevronId = type === 'my' ? 'my-pi-chevron' : 'other-pi-chevron';
+    
+    const wrapper = document.getElementById(wrapperId);
+    const chevron = document.getElementById(chevronId);
+    
+    if (wrapper.style.display === 'none' || wrapper.style.display === '') {
+        wrapper.style.display = 'block';
+        chevron.style.transform = 'rotate(180deg)'; // অ্যারো আইকন উল্টে যাবে
+    } else {
+        wrapper.style.display = 'none';
+        chevron.style.transform = 'rotate(0deg)'; // অ্যারো আইকন আগের মতো হয়ে যাবে
+    }
 }
 </script>
 </body>
