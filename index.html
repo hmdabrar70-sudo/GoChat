@@ -3992,6 +3992,10 @@ body:not(.light-mode) .post-card {
     justify-content: flex-start !important;
     gap: 8px !important;
     padding: 0 !important;
+    pointer-events: none; /* empty space next to share won't capture taps */
+}
+.post-card .post-actions .post-action-btn {
+    pointer-events: auto; /* only real buttons remain tappable */
 }
 
 .post-card .post-action-btn {
@@ -4251,6 +4255,11 @@ animation:gcFadeIn .25s ease both;
 @media (prefers-reduced-motion: reduce){
 .page.active,#chat-screen.open,#create-post-screen.open,#settings-privacy-screen.open,#page-other-profile.open,#single-post-screen.open,#main-menu-screen[style*="flex"]{animation:none !important;}
 }
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
 </style>
 </head>
 <body>
@@ -4464,8 +4473,8 @@ animation:gcFadeIn .25s ease both;
         <i class="ph-bold ph-pencil-simple" style="font-size:20px;"></i> Edit Profile
     </button>
     
-    <!-- 🚀 NEW: Insights Button Placeholder -->
-    <button class="icon-btn" style="border-radius:30px; padding:10px 24px; border:1px solid var(--accent); color:var(--accent); background:transparent; display:flex; align-items:center; gap:8px; font-size:14px; font-weight:700;" onclick="showToast('Insights feature coming soon!')">
+    <!-- 🚀 Insights Button (fixed) -->
+    <button id="gc-profile-insights-btn" class="icon-btn" style="border-radius:30px; padding:10px 24px; border:1px solid var(--accent); color:var(--accent); background:transparent; display:flex; align-items:center; gap:8px; font-size:14px; font-weight:700;" onclick="event.stopPropagation(); gcOpenInsights();">
         <i class="ph-bold ph-chart-bar" style="font-size:20px;"></i> Insights
     </button>    
 </div>
@@ -13743,10 +13752,11 @@ function closePostInsights(){
 
 // ২. ইনসাইট রেন্ডার
 function renderPostInsights(p){
-  const views    = p.views || 0;
-  const likes    = (p.likedBy && p.likedBy.length) || 0;
-  const comments = (p.comments && p.comments.length) || 0;
-  const shares   = p.shareCount || 0;
+  function _cnt(x){ if(Array.isArray(x)) return x.length; if(typeof x === 'number' && isFinite(x)) return x; if(x && typeof x === 'object') return Object.keys(x).length; return 0; }
+  const views    = _cnt(p.views) || p.viewCount || 0;
+  const likes    = _cnt(p.likedBy) || _cnt(p.likes) || 0;
+  const comments = _cnt(p.comments) || p.commentCount || 0;
+  const shares   = _cnt(p.shares) || p.shareCount || 0;
   const total    = likes + comments + shares;
   const engRate  = views > 0 ? ((total / views) * 100) : 0;
 
@@ -16213,14 +16223,13 @@ let gcInsRange = 7;
 // Insights বাটন হুক (পুরনো "coming soon" টোস্ট সরিয়ে)
 (function gcHookInsightsBtn(){
 setInterval(function(){
-document.querySelectorAll('#page-profile button, #page-profile [onclick]').forEach(function(b){
-if((b.textContent || '').indexOf('Insights') !== -1 && !b.dataset.gcIns){
-b.dataset.gcIns = '1';
-b.removeAttribute('onclick');
-b.onclick = function(e){ e.stopPropagation(); gcOpenInsights(); };
+// Only the dedicated profile Insights button — never post-action / share area
+const btn = document.getElementById('gc-profile-insights-btn');
+if(btn && !btn.dataset.gcIns){
+btn.dataset.gcIns = '1';
+btn.onclick = function(e){ e.preventDefault(); e.stopPropagation(); gcOpenInsights(); };
 }
-});
-}, 1500);
+}, 2000);
 })();
 // Profile Views কাউন্টার (কেউ প্রোফাইল খুললে +1)
 if(!window.gcInsProfileWrapped){
@@ -16248,6 +16257,7 @@ currentUserData.statsHistory = hist;
 }catch(e){}
 }
 function gcOpenInsights(){
+if(!currentUser){ showToast('Login first!'); return; }
 let scr = document.getElementById('gc-insights-screen');
 if(!scr){
 scr = document.createElement('div');
@@ -16257,7 +16267,7 @@ scr.innerHTML = '<div class="gc-ins-head"><div class="chat-back" onclick="gcClos
 document.body.appendChild(scr);
 }
 scr.classList.add('open');
-gcLoadInsights();
+gcLoadInsights().catch(function(e){ console.error(e); const b=document.getElementById('gc-ins-body'); if(b) b.innerHTML='<div style="text-align:center;padding:40px;color:var(--danger);">Failed to load insights. Pull to retry.</div>'; });
 }
 function gcCloseInsights(){ const s = document.getElementById('gc-insights-screen'); if(s) s.classList.remove('open'); }
 function gcInsSetRange(r){
@@ -16316,6 +16326,7 @@ try{
 const snap = await db.collection('posts').where('uid', '==', currentUser.uid).get();
 snap.forEach(function(d){ posts.push({ id: d.id, ...d.data() }); });
 }catch(e){}
+function gcCount(x){ if(Array.isArray(x)) return x.length; if(typeof x === 'number' && isFinite(x)) return x; if(x && typeof x === 'object') return Object.keys(x).length; return 0; }
 function peng(p){ return gcCount(p.likes) + gcCount(p.comments) + gcCount(p.shares); }
 let totLikes = 0, totComments = 0, totShares = 0, vid = 0, pho = 0, txt = 0;
 const perDay = {};
@@ -16323,7 +16334,6 @@ for(let i = 0; i < gcInsRange; i++){ perDay[new Date(now - i * 86400000).toDateS
 const hourEng = new Array(24).fill(0);
 posts.forEach(function(p){
 const e = peng(p);
-function gcCount(x){ if(Array.isArray(x)) return x.length; if(typeof x === 'number' && isFinite(x)) return x; if(x && typeof x === 'object') return Object.keys(x).length; return 0; }
 totLikes += gcCount(p.likes); totComments += gcCount(p.comments); totShares += gcCount(p.shares);
 const isVid = p.videoUrl || (p.imgUrls || []).some(function(u){ return (u || '').indexOf('/video/') !== -1; });
 if(isVid) vid++; else if((p.imgUrls || []).length) pho++; else txt++;
