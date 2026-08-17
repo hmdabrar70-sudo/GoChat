@@ -217,14 +217,15 @@ color:var(--text);
 
 .nav-item{
 flex:1;display:flex;align-items:center;justify-content:center;
-cursor:pointer;color:var(--text-muted);
+cursor:pointer;color:var(--text);
 transition:all 0.3s;position:relative;
 padding:8px 0;
 }
 .nav-item .material-symbols-outlined{font-size:26px;transition:all 0.3s;}
-.nav-item.active{color:var(--accent-dark);}
+.nav-item.active{color:var(--text);}
 .nav-item.active .material-symbols-outlined{font-variation-settings:'FILL' 1;}
 .nav-item:active{transform:scale(0.9);}
+#main-bottom-nav .nav-item #nav-profile-pic-container i{color:var(--text) !important;}
 .nav-badge{
 position:absolute;top:0px;right:calc(50% - 18px);
 background:var(--danger);color:white;
@@ -806,6 +807,36 @@ flex-wrap:nowrap;
 gap:4px;
 color:var(--text);
 letter-spacing:-0.3px;
+}
+.profile-name-row{
+display:flex;
+align-items:center;
+gap:6px;
+width:100%;
+}
+.profile-personal-toggle{
+width:28px;
+height:28px;
+padding:0;
+margin:0;
+border:none;
+background:transparent;
+color:var(--text-secondary);
+display:inline-flex;
+align-items:center;
+justify-content:center;
+cursor:pointer;
+border-radius:50%;
+transition:transform .2s ease, background .2s ease, color .2s ease;
+flex-shrink:0;
+}
+.profile-personal-toggle:active{
+transform:scale(.9);
+background:var(--surface-2);
+}
+.profile-personal-toggle .material-symbols-outlined,
+.profile-personal-toggle i{
+font-size:20px;
 }
 .profile-friend-count{font-size:13px;color:var(--text-secondary);font-weight:600;cursor:pointer;}
 .profile-friend-count:hover{color:var(--accent);}
@@ -3970,7 +4001,7 @@ body:not(.light-mode) .post-card {
     box-shadow: none !important;
     font-size: 13px !important;
     font-weight: 700 !important;
-    color: #000 !important;
+    color: var(--text) !important;
     border-radius: 12px !important;
     transition: all 0.2s ease !important;
 }
@@ -4406,7 +4437,12 @@ animation:gcFadeIn .25s ease both;
 <input type="file" id="avatar-input" accept="image/*" style="display:none" onchange="uploadAvatar(this)">
 </div>
 <div class="profile-info-col">
-<div class="profile-name" id="profile-name-display">Loading...</div>
+<div class="profile-name-row">
+    <div class="profile-name" id="profile-name-display">Loading...</div>
+    <button type="button" class="profile-personal-toggle" onclick="event.stopPropagation(); togglePersonalInfo('my')" aria-label="Toggle Personal Information">
+        <i class="ph-bold ph-caret-down" id="my-pi-chevron"></i>
+    </button>
+</div>
 <div id="profile-username-badge" style="display:none; margin-top:-2px; margin-bottom:6px;">
     <span style="font-size:13.5px; font-weight:600; color:var(--text-muted);" id="profile-username-text">@username</span>
 </div>
@@ -4419,18 +4455,9 @@ animation:gcFadeIn .25s ease both;
 </div>
 <div id="profile-display-section" style="width:100%;">
 <div class="profile-bio" id="profile-bio-display"></div>
-        <!-- 🚀 Accordion for Personal Info (My Profile) -->
-    <div class="personal-info-accordion" style="margin-top: 16px; background: transparent; border: 1px solid var(--border); border-radius: 16px; overflow: hidden;">
-        <div onclick="togglePersonalInfo('my')" style="display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; cursor: pointer;">
-            <div style="display: flex; align-items: center; gap: 8px;">
-                <i class="ph-bold ph-identification-card" style="font-size: 20px; color: var(--accent);"></i>
-                <span style="font-size: 14px; font-weight: 700; color: var(--text);">Personal Information</span>
-            </div>
-            <i class="ph-bold ph-caret-down" id="my-pi-chevron" style="font-size: 16px; color: var(--text-muted); transition: transform 0.3s ease;"></i>
-        </div>
-        <div id="profile-details-wrapper" style="display: none; padding: 0 16px 16px; border-top: 1px solid var(--border);">
-            <div class="profile-personal-details" id="profile-details-display" style="margin-top: 14px; padding: 0;"></div>
-        </div>
+        <!-- 🚀 Personal Information: dropdown control moved beside profile name -->
+    <div id="profile-details-wrapper" style="display: none; padding: 8px 0 4px; border-top: none;">
+        <div class="profile-personal-details" id="profile-details-display" style="margin-top: 0; padding: 0;"></div>
     </div>
 <div style="display:flex; justify-content:center; gap:12px; width:100%; margin-top:16px; flex-wrap:wrap;">
     <button class="icon-btn" style="border-radius:30px; padding:10px 24px; background:var(--gradient); color:#fff; border:none; box-shadow:var(--shadow-glow); display:flex; align-items:center; gap:8px; font-size:14px; font-weight:700;" onclick="openProfileEdit()">
@@ -4495,7 +4522,12 @@ animation:gcFadeIn .25s ease both;
                 <div class="profile-avatar" id="other-profile-avatar">?</div>
             </div>
             <div class="profile-info-col">
-<div class="profile-name" id="other-profile-name">Loading...</div>
+<div class="profile-name-row">
+    <div class="profile-name" id="other-profile-name">Loading...</div>
+    <button type="button" class="profile-personal-toggle" onclick="event.stopPropagation(); togglePersonalInfo('other')" aria-label="Toggle Personal Information">
+        <i class="ph-bold ph-caret-down" id="other-pi-chevron"></i>
+    </button>
+</div>
 <!-- 🚀 নতুন: ইউজারনেম ডিসপ্লে -->
 <div id="other-profile-username-display" style="font-size:13px; color:var(--text-muted); font-weight:600; margin-bottom:6px; margin-top:-2px; display:none;"></div>
 
@@ -4506,18 +4538,9 @@ animation:gcFadeIn .25s ease both;
             </div>
         </div>
         <div class="profile-bio" id="other-profile-bio"></div>
-            <!-- 🚀 Accordion for Personal Info (Other Profile) -->
-    <div class="personal-info-accordion" style="margin-top: 16px; background: transparent; border: 1px solid var(--border); border-radius: 16px; overflow: hidden;">
-        <div onclick="togglePersonalInfo('other')" style="display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; cursor: pointer;">
-            <div style="display: flex; align-items: center; gap: 8px;">
-                <i class="ph-bold ph-identification-card" style="font-size: 20px; color: var(--accent);"></i>
-                <span style="font-size: 14px; font-weight: 700; color: var(--text);">Personal Information</span>
-            </div>
-            <i class="ph-bold ph-caret-down" id="other-pi-chevron" style="font-size: 16px; color: var(--text-muted); transition: transform 0.3s ease;"></i>
-        </div>
-        <div id="other-profile-details-wrapper" style="display: none; padding: 0 16px 16px; border-top: 1px solid var(--border);">
-            <div class="profile-personal-details" id="other-profile-details-display" style="margin-top: 14px; padding: 0;"></div>
-        </div>
+            <!-- 🚀 Personal Information: dropdown control moved beside other user's profile name -->
+    <div id="other-profile-details-wrapper" style="display: none; padding: 8px 0 4px; border-top: none;">
+        <div class="profile-personal-details" id="other-profile-details-display" style="margin-top: 0; padding: 0;"></div>
     </div>
         <div class="profile-btns" id="other-profile-btns" style="margin-top:16px;display:flex;gap:10px;width:100%;flex-wrap:wrap;"></div>
     </div>
@@ -5094,19 +5117,30 @@ animation:gcFadeIn .25s ease both;
 
     <img id="zoom-image" src="" onclick="event.stopPropagation()" style="transition: transform 0.2s ease;">
     
-    <!-- 🚀 Floating Bottom Action Bar (Smaller Size) -->
+        <!-- 🚀 Floating Bottom Action Bar (Smaller Size) -->
     <div id="zoom-bottom-bar" style="position:absolute; bottom:0; left:0; right:0; padding:30px 24px calc(20px + env(safe-area-inset-bottom)); background:linear-gradient(transparent, rgba(0,0,0,0.85)); display:none; justify-content:space-around; align-items:center; z-index:10005;" onclick="event.stopPropagation()">
         
+        <!-- 🚀 Custom Hand Like Button -->
         <div style="display:flex; align-items:center; gap:6px; cursor:pointer;" onclick="if(zoomActivePostId) toggleLike(zoomActivePostId);">
-            <span id="zoom-like-btn" style="display:flex; align-items:center; gap:6px; color:#fff;"><i class="ph-bold ph-thumbs-up" style="font-size:24px; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));"></i> <span style="font-size:14px; font-weight:800; text-shadow:0 1px 3px rgba(0,0,0,0.6);">0</span></span>
+            <span id="zoom-like-btn" style="display:flex; align-items:center; gap:6px; color:#fff;">
+                <svg viewBox="0 0 24 24" style="width:24px; height:24px; fill:currentColor; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5)); margin-top:-2px;"><path d="M19.406 9.558c-1.21-.051-2.87-.278-3.977-.744.809-3.283 1.253-8.814-2.196-8.814-1.861 0-2.35 1.668-2.833 3.329-.373 1.283-.794 2.341-1.254 3.22-.038-.643-.475-1.611-.928-2.08l-.796.625c.39.328.835 1.352.816 1.906-.561.138-1.404-.067-1.91-.344l-.256.967c.557.266 1.557.491 2.164.377-1.842 2.44-4.1 2.794-6.236 3.072v9.928c3.503 0 5.584.729 8.169 1.842 1.257.541 3.053 1.158 5.336 1.158 2.538 0 4.295-.997 5.009-3.686.5-1.877 1.486-7.25 1.486-8.25 0-1.648-1.168-2.446-2.594-2.506zm-6.07-.597l-2.601-1.05c.198-.37.389-.772.575-1.201l2.359.778c-.1.5-.213.989-.333 1.473zm.505-2.518l-2.138-.705c.148-.396.292-.816.432-1.259l1.833.548c-.021.487-.062.961-.127 1.416zm.144-2.527l-1.529-.457c.773-2.332 1.429-1.537 1.529.457zm3.911 10.501s.201.01 1.069-.027c1.082-.046 1.051 1.469.004 1.563l-1.761.099c-.734.094-.656 1.203.141 1.172 0 0 .686-.017 1.143-.041 1.068-.056 1.016 1.429.04 1.551-.424.053-1.745.115-1.745.115-.811.072-.706 1.235.109 1.141l.771-.031c.822-.074 1.003.825-.292 1.661-1.567.881-4.685.131-6.416-.614-2.239-.965-4.438-1.934-6.959-2.006v-6c2.257-.518 4.419-1.401 6.197-4.164 1.365.705 5.609 2.524 9.002 2.714 1.055.059 1.024 1.455-.051 1.584l-1.394.167s-.608 1.111.142 1.116z"/></svg> 
+                <span style="font-size:14px; font-weight:800; text-shadow:0 1px 3px rgba(0,0,0,0.6);">0</span>
+            </span>
         </div>
         
+        <!-- 🚀 Solid Comment Button -->
         <div style="display:flex; align-items:center; gap:6px; cursor:pointer;" onclick="closeImageZoom(); if(zoomActivePostId) openCommentPanel(zoomActivePostId);">
-            <span id="zoom-comment-btn" style="display:flex; align-items:center; gap:6px; color:#fff;"><i class="ph-bold ph-chat-circle" style="font-size:24px; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));"></i> <span style="font-size:14px; font-weight:800; text-shadow:0 1px 3px rgba(0,0,0,0.6);">0</span></span>
+            <span id="zoom-comment-btn" style="display:flex; align-items:center; gap:6px; color:#fff;">
+                <i class="ph-fill ph-chat-circle" style="font-size:24px; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));"></i> 
+                <span style="font-size:14px; font-weight:800; text-shadow:0 1px 3px rgba(0,0,0,0.6);">0</span>
+            </span>
         </div>
         
+        <!-- 🚀 Solid Share Button -->
         <div style="display:flex; align-items:center; gap:6px; cursor:pointer;" onclick="showToast('Share feature coming soon!');">
-            <span style="display:flex; align-items:center; gap:6px; color:#fff;"><i class="ph-bold ph-share-network" style="font-size:24px; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));"></i></span>
+            <span style="display:flex; align-items:center; gap:6px; color:#fff;">
+                <i class="ph-fill ph-paper-plane-tilt" style="font-size:24px; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));"></i>
+            </span>
         </div>
         
     </div>
