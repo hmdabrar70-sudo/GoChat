@@ -765,23 +765,24 @@ opacity:0.3;
 }
 /* প্রোফাইলের উপরের অংশ */
 .profile-header {
-    background: var(--bg); /* unified with page — no two-tone in dark mode */
-    padding: 24px 20px 0 20px;
+    background: var(--surface);
+    padding: 24px 20px 0 20px; /* নিচের প্যাডিং জিরো করা হলো যাতে নিচের অংশের সাথে মিশে যায় */
     text-align: left;
     position: relative;
     display: flex;
     flex-direction: column;
     gap: 14px;
+    /* বর্ডার এবং শ্যাডো মুছে ফেলা হলো */
 }
 
 /* প্রোফাইল ফিল্টার মেনুকে হেডারের সাথে জুড়ে দেওয়ার ম্যাজিক কোড */
 .profile-header + div {
-    margin-top: 0 !important;
-    border-top: none !important;
-    background: var(--bg) !important; /* same as header & page */
+    margin-top: 0 !important; /* মাঝখানের কালো গ্যাপ মুছে ফেলা হলো */
+    border-top: none !important; /* মাঝখানের দাগ মুছে ফেলা হলো */
+    background: var(--surface) !important; /* ব্যাকগ্রাউন্ড কালার সেম করা হলো */
     padding: 16px 0 12px 0 !important;
-    border-bottom: 1px solid var(--border) !important;
-    box-shadow: none !important; /* no elevation — flat unified look */
+    border-bottom: 1px solid var(--border) !important; /* বর্ডারটা একদম নিচে দেওয়া হলো */
+    box-shadow: var(--shadow-sm) !important; /* শ্যাডোটাও নিচে দেওয়া হলো */
 }
 .profile-main-row{display:flex;align-items:center;gap:16px;width:100%;}
 .profile-avatar-wrap{position:relative;display:inline-block;flex-shrink:0;}
@@ -806,36 +807,6 @@ flex-wrap:nowrap;
 gap:4px;
 color:var(--text);
 letter-spacing:-0.3px;
-}
-.profile-name-row{
-display:flex;
-align-items:center;
-gap:6px;
-width:100%;
-}
-.profile-personal-toggle{
-width:28px;
-height:28px;
-padding:0;
-margin:0;
-border:none;
-background:transparent;
-color:var(--text-secondary);
-display:inline-flex;
-align-items:center;
-justify-content:center;
-cursor:pointer;
-border-radius:50%;
-transition:transform .2s ease, background .2s ease, color .2s ease;
-flex-shrink:0;
-}
-.profile-personal-toggle:active{
-transform:scale(.9);
-background:var(--surface-2);
-}
-.profile-personal-toggle .material-symbols-outlined,
-.profile-personal-toggle i{
-font-size:20px;
 }
 .profile-friend-count{font-size:13px;color:var(--text-secondary);font-weight:600;cursor:pointer;}
 .profile-friend-count:hover{color:var(--accent);}
@@ -3991,10 +3962,6 @@ body:not(.light-mode) .post-card {
     justify-content: flex-start !important;
     gap: 8px !important;
     padding: 0 !important;
-    pointer-events: none; /* empty space next to share won't capture taps */
-}
-.post-card .post-actions .post-action-btn {
-    pointer-events: auto; /* only real buttons remain tappable */
 }
 
 .post-card .post-action-btn {
@@ -4255,10 +4222,45 @@ animation:gcFadeIn .25s ease both;
 .page.active,#chat-screen.open,#create-post-screen.open,#settings-privacy-screen.open,#page-other-profile.open,#single-post-screen.open,#main-menu-screen[style*="flex"]{animation:none !important;}
 }
 
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+/* =========================================
+   🚀 PREMIUM POLL (VOTING) SYSTEM STYLES
+   ========================================= */
+.poll-composer-container {
+    display: none; margin-top: 16px; padding: 16px;
+    background: var(--surface-2); border-radius: 16px; border: 1px solid var(--border);
+    animation: fadeIn 0.3s ease;
 }
+.poll-option-input { display: flex; gap: 8px; margin-bottom: 10px; align-items: center; }
+.poll-option-input input {
+    flex: 1; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 12px 14px; color: var(--text); font-size: 14px; outline: none; transition: 0.2s;
+}
+.poll-option-input input:focus { border-color: var(--accent); }
+.poll-composer-container .poll-option-input button { flex-shrink: 0; }
+
+/* Feed Poll Display Styles */
+.poll-container { display: flex; flex-direction: column; gap: 8px; margin: 12px 0; }
+.poll-option {
+    position: relative; overflow: hidden; border: 1px solid var(--border);
+    border-radius: 12px; background: var(--surface-2); cursor: pointer;
+    padding: 12px 16px; transition: all 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.poll-option:active { transform: scale(0.98); }
+.poll-option:hover { border-color: color-mix(in srgb, var(--accent) 50%, var(--border)); }
+.poll-fill {
+    position: absolute; top: 0; left: 0; bottom: 0;
+    background: var(--accent-glow); z-index: 1; transition: width 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.poll-text {
+    position: relative; z-index: 2; display: flex; justify-content: space-between;
+    font-weight: 700; font-size: 14px; color: var(--text); align-items: center;
+}
+.poll-option.voted {
+    border-color: var(--accent); background: rgba(124, 92, 255, 0.05); cursor: default; pointer-events: none;
+}
+.poll-option.voted .poll-fill { background: var(--accent); opacity: 0.2; }
+.poll-total-votes { font-size: 12px; font-weight: 700; color: var(--text-muted); margin-top: 4px; }
+
 </style>
 </head>
 <body>
@@ -4445,12 +4447,7 @@ animation:gcFadeIn .25s ease both;
 <input type="file" id="avatar-input" accept="image/*" style="display:none" onchange="uploadAvatar(this)">
 </div>
 <div class="profile-info-col">
-<div class="profile-name-row">
-    <div class="profile-name" id="profile-name-display">Loading...</div>
-    <button type="button" class="profile-personal-toggle" onclick="event.stopPropagation(); togglePersonalInfo('my')" aria-label="Toggle Personal Information">
-        <i class="ph-bold ph-caret-down" id="my-pi-chevron"></i>
-    </button>
-</div>
+<div class="profile-name" id="profile-name-display">Loading...</div>
 <div id="profile-username-badge" style="display:none; margin-top:-2px; margin-bottom:6px;">
     <span style="font-size:13.5px; font-weight:600; color:var(--text-muted);" id="profile-username-text">@username</span>
 </div>
@@ -4463,17 +4460,26 @@ animation:gcFadeIn .25s ease both;
 </div>
 <div id="profile-display-section" style="width:100%;">
 <div class="profile-bio" id="profile-bio-display"></div>
-        <!-- 🚀 Personal Information: dropdown control moved beside profile name -->
-    <div id="profile-details-wrapper" style="display: none; padding: 8px 0 4px; border-top: none;">
-        <div class="profile-personal-details" id="profile-details-display" style="margin-top: 0; padding: 0;"></div>
+        <!-- 🚀 Accordion for Personal Info (My Profile) -->
+    <div class="personal-info-accordion" style="margin-top: 16px; background: transparent; border: 1px solid var(--border); border-radius: 16px; overflow: hidden;">
+        <div onclick="togglePersonalInfo('my')" style="display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; cursor: pointer;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <i class="ph-bold ph-identification-card" style="font-size: 20px; color: var(--accent);"></i>
+                <span style="font-size: 14px; font-weight: 700; color: var(--text);">Personal Information</span>
+            </div>
+            <i class="ph-bold ph-caret-down" id="my-pi-chevron" style="font-size: 16px; color: var(--text-muted); transition: transform 0.3s ease;"></i>
+        </div>
+        <div id="profile-details-wrapper" style="display: none; padding: 0 16px 16px; border-top: 1px solid var(--border);">
+            <div class="profile-personal-details" id="profile-details-display" style="margin-top: 14px; padding: 0;"></div>
+        </div>
     </div>
 <div style="display:flex; justify-content:center; gap:12px; width:100%; margin-top:16px; flex-wrap:wrap;">
     <button class="icon-btn" style="border-radius:30px; padding:10px 24px; background:var(--gradient); color:#fff; border:none; box-shadow:var(--shadow-glow); display:flex; align-items:center; gap:8px; font-size:14px; font-weight:700;" onclick="openProfileEdit()">
         <i class="ph-bold ph-pencil-simple" style="font-size:20px;"></i> Edit Profile
     </button>
     
-    <!-- 🚀 Insights Button (fixed) -->
-    <button id="gc-profile-insights-btn" class="icon-btn" style="border-radius:30px; padding:10px 24px; border:1px solid var(--accent); color:var(--accent); background:transparent; display:flex; align-items:center; gap:8px; font-size:14px; font-weight:700;" onclick="event.stopPropagation(); gcOpenInsights();">
+    <!-- 🚀 NEW: Insights Button Placeholder -->
+    <button class="icon-btn" style="border-radius:30px; padding:10px 24px; border:1px solid var(--accent); color:var(--accent); background:transparent; display:flex; align-items:center; gap:8px; font-size:14px; font-weight:700;" onclick="showToast('Insights feature coming soon!')">
         <i class="ph-bold ph-chart-bar" style="font-size:20px;"></i> Insights
     </button>    
 </div>
@@ -4530,12 +4536,7 @@ animation:gcFadeIn .25s ease both;
                 <div class="profile-avatar" id="other-profile-avatar">?</div>
             </div>
             <div class="profile-info-col">
-<div class="profile-name-row">
-    <div class="profile-name" id="other-profile-name">Loading...</div>
-    <button type="button" class="profile-personal-toggle" onclick="event.stopPropagation(); togglePersonalInfo('other')" aria-label="Toggle Personal Information">
-        <i class="ph-bold ph-caret-down" id="other-pi-chevron"></i>
-    </button>
-</div>
+<div class="profile-name" id="other-profile-name">Loading...</div>
 <!-- 🚀 নতুন: ইউজারনেম ডিসপ্লে -->
 <div id="other-profile-username-display" style="font-size:13px; color:var(--text-muted); font-weight:600; margin-bottom:6px; margin-top:-2px; display:none;"></div>
 
@@ -4546,9 +4547,18 @@ animation:gcFadeIn .25s ease both;
             </div>
         </div>
         <div class="profile-bio" id="other-profile-bio"></div>
-            <!-- 🚀 Personal Information: dropdown control moved beside other user's profile name -->
-    <div id="other-profile-details-wrapper" style="display: none; padding: 8px 0 4px; border-top: none;">
-        <div class="profile-personal-details" id="other-profile-details-display" style="margin-top: 0; padding: 0;"></div>
+            <!-- 🚀 Accordion for Personal Info (Other Profile) -->
+    <div class="personal-info-accordion" style="margin-top: 16px; background: transparent; border: 1px solid var(--border); border-radius: 16px; overflow: hidden;">
+        <div onclick="togglePersonalInfo('other')" style="display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; cursor: pointer;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <i class="ph-bold ph-identification-card" style="font-size: 20px; color: var(--accent);"></i>
+                <span style="font-size: 14px; font-weight: 700; color: var(--text);">Personal Information</span>
+            </div>
+            <i class="ph-bold ph-caret-down" id="other-pi-chevron" style="font-size: 16px; color: var(--text-muted); transition: transform 0.3s ease;"></i>
+        </div>
+        <div id="other-profile-details-wrapper" style="display: none; padding: 0 16px 16px; border-top: 1px solid var(--border);">
+            <div class="profile-personal-details" id="other-profile-details-display" style="margin-top: 14px; padding: 0;"></div>
+        </div>
     </div>
         <div class="profile-btns" id="other-profile-btns" style="margin-top:16px;display:flex;gap:10px;width:100%;flex-wrap:wrap;"></div>
     </div>
@@ -4755,6 +4765,18 @@ animation:gcFadeIn .25s ease both;
     <div class="color-circle" style="background: #ff5722;" onclick="selectPostBg('#ff5722', this)"></div>
 </div>
 
+<!-- 🚀 Premium Poll Composer -->
+<div id="poll-composer-container" class="poll-composer-container">
+    <div style="font-size:12px; font-weight:800; color:var(--text-muted); margin-bottom:12px; text-transform:uppercase; letter-spacing:0.5px;">Create a Poll</div>
+    <div id="poll-options-list">
+        <div class="poll-option-input"><input type="text" placeholder="Option 1" class="poll-opt-val" oninput="checkPostInputs()"></div>
+        <div class="poll-option-input"><input type="text" placeholder="Option 2" class="poll-opt-val" oninput="checkPostInputs()"></div>
+    </div>
+    <button class="btn-outline" onclick="addPollOption()" style="width:100%; padding:10px; font-size:13px; margin-top:4px; border:1.5px dashed var(--border); background:transparent; color:var(--text);">
+        <i class="ph-bold ph-plus"></i> Add Option
+    </button>
+</div>
+
 <!-- 🚀 Modern Post Creator Action Bar (Icon + Label, No "Add to your post") -->
 <div style="padding:12px 16px; border-top:1px solid var(--border); background:var(--surface); display:flex; align-items:center; justify-content:space-around;">
 
@@ -4799,8 +4821,16 @@ animation:gcFadeIn .25s ease both;
     <span style="font-size:10px; font-weight:700; color:var(--text-muted); text-transform:uppercase;">Location</span>
 </div>
 
+    <!-- 🚀 Create Poll Button -->
+    <div id="poll-create-btn" onclick="togglePollMode()" style="display:flex; flex-direction:column; align-items:center; gap:4px; cursor:pointer; padding:6px 10px; border-radius:12px; transition:0.2s;" onmouseover="this.style.background='var(--surface-2)'" onmouseout="this.style.background='transparent'">
+        <div style="width:38px; height:38px; border-radius:50%; background:rgba(34, 197, 94, 0.1); display:flex; align-items:center; justify-content:center; color:#22c55e;">
+            <i class="ph-bold ph-chart-bar" style="font-size:20px;"></i>
+        </div>
+        <span style="font-size:10px; font-weight:700; color:var(--text-muted); text-transform:uppercase;">Poll</span>
+    </div>
+
     <!-- Photo / Image -->
-    <label for="post-img-input" style="display:flex; flex-direction:column; align-items:center; gap:4px; cursor:pointer; padding:6px 10px; border-radius:12px; transition:0.2s;" onmouseover="this.style.background='var(--surface-2)'" onmouseout="this.style.background='transparent'">
+    <label id="post-gallery-action" for="post-img-input" style="display:flex; flex-direction:column; align-items:center; gap:4px; cursor:pointer; padding:6px 10px; border-radius:12px; transition:0.2s;" onmouseover="this.style.background='var(--surface-2)'" onmouseout="this.style.background='transparent'">
         <div style="width:38px; height:38px; border-radius:50%; background:rgba(34,197,94,0.1); display:flex; align-items:center; justify-content:center; color:#22c55e;">
             <i class="ph-bold ph-image" style="font-size:20px;"></i>
         </div>
@@ -5125,30 +5155,19 @@ animation:gcFadeIn .25s ease both;
 
     <img id="zoom-image" src="" onclick="event.stopPropagation()" style="transition: transform 0.2s ease;">
     
-        <!-- 🚀 Floating Bottom Action Bar (Smaller Size) -->
+    <!-- 🚀 Floating Bottom Action Bar (Smaller Size) -->
     <div id="zoom-bottom-bar" style="position:absolute; bottom:0; left:0; right:0; padding:30px 24px calc(20px + env(safe-area-inset-bottom)); background:linear-gradient(transparent, rgba(0,0,0,0.85)); display:none; justify-content:space-around; align-items:center; z-index:10005;" onclick="event.stopPropagation()">
         
-        <!-- 🚀 Custom Hand Like Button -->
         <div style="display:flex; align-items:center; gap:6px; cursor:pointer;" onclick="if(zoomActivePostId) toggleLike(zoomActivePostId);">
-            <span id="zoom-like-btn" style="display:flex; align-items:center; gap:6px; color:#fff;">
-                <svg viewBox="0 0 24 24" style="width:24px; height:24px; fill:currentColor; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5)); margin-top:-2px;"><path d="M19.406 9.558c-1.21-.051-2.87-.278-3.977-.744.809-3.283 1.253-8.814-2.196-8.814-1.861 0-2.35 1.668-2.833 3.329-.373 1.283-.794 2.341-1.254 3.22-.038-.643-.475-1.611-.928-2.08l-.796.625c.39.328.835 1.352.816 1.906-.561.138-1.404-.067-1.91-.344l-.256.967c.557.266 1.557.491 2.164.377-1.842 2.44-4.1 2.794-6.236 3.072v9.928c3.503 0 5.584.729 8.169 1.842 1.257.541 3.053 1.158 5.336 1.158 2.538 0 4.295-.997 5.009-3.686.5-1.877 1.486-7.25 1.486-8.25 0-1.648-1.168-2.446-2.594-2.506zm-6.07-.597l-2.601-1.05c.198-.37.389-.772.575-1.201l2.359.778c-.1.5-.213.989-.333 1.473zm.505-2.518l-2.138-.705c.148-.396.292-.816.432-1.259l1.833.548c-.021.487-.062.961-.127 1.416zm.144-2.527l-1.529-.457c.773-2.332 1.429-1.537 1.529.457zm3.911 10.501s.201.01 1.069-.027c1.082-.046 1.051 1.469.004 1.563l-1.761.099c-.734.094-.656 1.203.141 1.172 0 0 .686-.017 1.143-.041 1.068-.056 1.016 1.429.04 1.551-.424.053-1.745.115-1.745.115-.811.072-.706 1.235.109 1.141l.771-.031c.822-.074 1.003.825-.292 1.661-1.567.881-4.685.131-6.416-.614-2.239-.965-4.438-1.934-6.959-2.006v-6c2.257-.518 4.419-1.401 6.197-4.164 1.365.705 5.609 2.524 9.002 2.714 1.055.059 1.024 1.455-.051 1.584l-1.394.167s-.608 1.111.142 1.116z"/></svg> 
-                <span style="font-size:14px; font-weight:800; text-shadow:0 1px 3px rgba(0,0,0,0.6);">0</span>
-            </span>
+            <span id="zoom-like-btn" style="display:flex; align-items:center; gap:6px; color:#fff;"><i class="ph-bold ph-thumbs-up" style="font-size:24px; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));"></i> <span style="font-size:14px; font-weight:800; text-shadow:0 1px 3px rgba(0,0,0,0.6);">0</span></span>
         </div>
         
-        <!-- 🚀 Solid Comment Button -->
         <div style="display:flex; align-items:center; gap:6px; cursor:pointer;" onclick="closeImageZoom(); if(zoomActivePostId) openCommentPanel(zoomActivePostId);">
-            <span id="zoom-comment-btn" style="display:flex; align-items:center; gap:6px; color:#fff;">
-                <i class="ph-fill ph-chat-circle" style="font-size:24px; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));"></i> 
-                <span style="font-size:14px; font-weight:800; text-shadow:0 1px 3px rgba(0,0,0,0.6);">0</span>
-            </span>
+            <span id="zoom-comment-btn" style="display:flex; align-items:center; gap:6px; color:#fff;"><i class="ph-bold ph-chat-circle" style="font-size:24px; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));"></i> <span style="font-size:14px; font-weight:800; text-shadow:0 1px 3px rgba(0,0,0,0.6);">0</span></span>
         </div>
         
-        <!-- 🚀 Solid Share Button -->
         <div style="display:flex; align-items:center; gap:6px; cursor:pointer;" onclick="showToast('Share feature coming soon!');">
-            <span style="display:flex; align-items:center; gap:6px; color:#fff;">
-                <i class="ph-fill ph-paper-plane-tilt" style="font-size:24px; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));"></i>
-            </span>
+            <span style="display:flex; align-items:center; gap:6px; color:#fff;"><i class="ph-bold ph-share-network" style="font-size:24px; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));"></i></span>
         </div>
         
     </div>
@@ -6031,6 +6050,7 @@ let activeStoryGroup=[];
 let currentStoryIndex=0;
 let storyTimer=null;
 let composeImages=[];
+let isPollMode=false;
 let currentReplyMsgId=null;
 let replyToMsgData=null; // 🚀 Reply Preview Data Store
 let currentOtherProfileUid=null;
@@ -9353,15 +9373,100 @@ function closeCreatePost(){
     currentPostActivity = null; // নতুন যোগ করা হলো
     document.getElementById('tag-count').style.display='none';
     updateTagPreview(); // ফিল্ড ক্লিয়ার করার জন্য
+    resetPollComposer();
 }
-
 
 function checkPostInputs(){
 const text=document.getElementById('post-title').value.trim();
 const hasImg=composeImages.length>0;
+const hasPoll=typeof isPollMode !== 'undefined' && isPollMode;
+let hasPollOption=false;
+if(hasPoll){
+    hasPollOption=Array.from(document.querySelectorAll('.poll-opt-val')).some(inp => inp.value.trim() !== '');
+}
 const btn=document.getElementById('modal-post-btn');
-if(text||hasImg){btn.disabled=false;btn.style.opacity='1';}
+if(text||hasImg||hasPollOption){btn.disabled=false;btn.style.opacity='1';}
 else{btn.disabled=true;btn.style.opacity='0.5';}
+}
+
+function resetPollComposer(){
+    isPollMode=false;
+    const box=document.getElementById('poll-composer-container');
+    if(box) box.style.display='none';
+    const list=document.getElementById('poll-options-list');
+    if(list){
+        list.innerHTML = `
+            <div class="poll-option-input"><input type="text" placeholder="Option 1" class="poll-opt-val" oninput="checkPostInputs()"></div>
+            <div class="poll-option-input"><input type="text" placeholder="Option 2" class="poll-opt-val" oninput="checkPostInputs()"></div>`;
+    }
+    const gallery=document.getElementById('post-gallery-action');
+    if(gallery){ gallery.style.opacity='1'; gallery.style.pointerEvents='auto'; }
+    const input=document.getElementById('post-img-input');
+    if(input) input.disabled=false;
+}
+
+function togglePollMode(){
+    isPollMode = !isPollMode;
+    const box=document.getElementById('poll-composer-container');
+    if(box) box.style.display = isPollMode ? 'block' : 'none';
+
+    const gallery=document.getElementById('post-gallery-action');
+    const input=document.getElementById('post-img-input');
+    if(isPollMode){
+        // পোল ও ছবি একসাথে রাখা যাবে না
+        if(composeImages.length){
+            composeImages=[];
+            renderComposeImageGrid();
+        }
+        if(gallery){ gallery.style.opacity='0.45'; gallery.style.pointerEvents='none'; }
+        if(input) input.disabled=true;
+    }else{
+        if(gallery){ gallery.style.opacity='1'; gallery.style.pointerEvents='auto'; }
+        if(input) input.disabled=false;
+    }
+    checkPostInputs();
+}
+
+function addPollOption(){
+    const list=document.getElementById('poll-options-list');
+    if(!list) return;
+    if(list.children.length>=4){ showToast('Maximum 4 options allowed'); return; }
+    const div=document.createElement('div');
+    div.className='poll-option-input';
+    div.innerHTML=`
+        <input type="text" placeholder="Option ${list.children.length+1}" class="poll-opt-val" oninput="checkPostInputs()">
+        <button type="button" onclick="this.parentElement.remove();checkPostInputs()" style="background:transparent;border:none;color:var(--danger);cursor:pointer;padding:8px;">
+            <i class="ph-bold ph-x" style="font-size:18px;"></i>
+        </button>`;
+    list.appendChild(div);
+    checkPostInputs();
+}
+
+async function castPollVote(postId, optionId){
+    if(!currentUser) return;
+    const postContainer=document.querySelector(`[data-post-id="${postId}"] .poll-container`);
+    if(postContainer) postContainer.style.opacity='0.7';
+    try{
+        const postRef=db.collection('posts').doc(postId);
+        await db.runTransaction(async transaction=>{
+            const doc=await transaction.get(postRef);
+            if(!doc.exists) throw new Error('Post not found');
+            const pData=doc.data();
+            let opts=Array.isArray(pData.pollOptions) ? pData.pollOptions.map(o=>({ ...o, votes:Array.isArray(o.votes)?o.votes.slice():[] })) : [];
+            if(opts.some(o=>(o.votes||[]).includes(currentUser.uid))){
+                throw new Error('ALREADY_VOTED');
+            }
+            const target=opts.find(o=>String(o.id)===String(optionId));
+            if(!target) throw new Error('Option not found');
+            target.votes.push(currentUser.uid);
+            transaction.update(postRef,{pollOptions:opts});
+        });
+        showToast('Vote recorded!');
+    }catch(e){
+        if(e && e.message==='ALREADY_VOTED') showToast('You have already voted!');
+        else { console.error('Vote failed:',e); showToast('Failed to record vote.'); }
+        if(postContainer) postContainer.style.opacity='1';
+    }
 }
 
 function previewImages(input){
@@ -9632,7 +9737,18 @@ loadMyPosts();
 
 async function submitPost(){
 const title=document.getElementById('post-title').value.trim();
-if(!title&&composeImages.length===0)return;
+let pollData=null;
+if(isPollMode){
+    const inputs=document.querySelectorAll('.poll-opt-val');
+    let opts=[];
+    inputs.forEach((inp)=>{
+        const value=inp.value.trim();
+        if(value) opts.push({id:opts.length,text:value,votes:[]});
+    });
+    if(opts.length<2){ showToast('Please add at least 2 poll options.'); return; }
+    pollData=opts;
+}
+if(!title&&composeImages.length===0&&!pollData)return;
 if(!checkRateLimit()) return;
 
 let imgUrls=[];
@@ -9663,6 +9779,7 @@ imgUrls.push(url);
             tagged:currentTaggedFriends,
             taggedNames: currentTaggedNames,
             activity: currentPostActivity, /* <-- এই নতুন লাইনটি এখানে যোগ হবে */
+            ...(pollData ? { pollOptions: pollData } : {}),
             isPinned:false,
             createdAt:firebase.firestore.FieldValue.serverTimestamp(),
             expiresAt:expireAt
@@ -9686,6 +9803,7 @@ imgUrls.push(url);
         }
 
         currentPostBgColor = 'default';
+        resetPollComposer();
         closeCreatePost();
         showToast('Posted!');
         awardPoints(currentUser.uid, 20);
@@ -10133,6 +10251,44 @@ mediaHtml=`<div class="post-media-wrap" ondblclick="event.stopPropagation(); han
 </div>`;
 }
 
+// 🚀 Premium Poll Render
+let pollHtml='';
+if(Array.isArray(p.pollOptions) && p.pollOptions.length>0){
+    let totalVotes=0;
+    let userVotedId=null;
+    p.pollOptions.forEach(opt=>{
+        const votes=Array.isArray(opt.votes)?opt.votes:[];
+        totalVotes += votes.length;
+        if(currentUser && votes.includes(currentUser.uid)) userVotedId=opt.id;
+    });
+    pollHtml += '<div class="poll-container">';
+    p.pollOptions.forEach(opt=>{
+        const votesForOpt=Array.isArray(opt.votes)?opt.votes.length:0;
+        const percent=totalVotes>0 ? Math.round((votesForOpt/totalVotes)*100) : 0;
+        const isMyVote=(userVotedId!==null && String(userVotedId)===String(opt.id));
+        const safePollText=escapeHTML(opt.text||'');
+        if(userVotedId!==null){
+            pollHtml += `
+            <div class="poll-option ${isMyVote?'voted':''}">
+                <div class="poll-fill" style="width:${percent}%;"></div>
+                <div class="poll-text">
+                    <span>${safePollText} ${isMyVote?'<i class="ph-fill ph-check-circle" style="color:var(--accent);font-size:16px;margin-left:6px;vertical-align:-3px;"></i>':''}</span>
+                    <span>${percent}%</span>
+                </div>
+            </div>`;
+        }else{
+            pollHtml += `
+            <div class="poll-option" onclick="event.stopPropagation();castPollVote('${pid}',${Number(opt.id)})">
+                <div class="poll-text">
+                    <span>${safePollText}</span>
+                    <i class="ph-regular ph-circle" style="color:var(--text-muted);font-size:18px;"></i>
+                </div>
+            </div>`;
+        }
+    });
+    pollHtml += `<div class="poll-total-votes">${totalVotes} votes • Final results</div></div>`;
+}
+
 let postDropdownHtml = `<div style="position:relative;margin-left:auto;">
 <i class="ph-bold ph-dots-three more-btn" onclick="event.stopPropagation();togglePostDropdown('post-drop-${uniqueDropId}')" style="cursor:pointer;padding:6px;border-radius:50%;color:var(--text-secondary);font-size:24px;"></i>
 <div id="post-drop-${uniqueDropId}" class="post-dropdown-menu" onclick="event.stopPropagation();">`;
@@ -10186,7 +10342,7 @@ followBadge = `<button class="tf-plus-badge" onclick="event.stopPropagation(); o
     const premiumPostClass = p.isVerified ? 'verified-premium-post' : '';
 
 // 🚀 মেইন কার্ডে onclick যুক্ত করা হলো
-return`<div class="post-card ${premiumPostClass}" style="cursor:pointer;" onclick="openSinglePostView('${pid}')">
+return`<div class="post-card ${premiumPostClass}" data-post-id="${pid}" style="cursor:pointer;" onclick="openSinglePostView('${pid}')">
 <div class="post-header">
 <div class="tf-av-wrap" data-uid="${p.uid}">
 <div class="avatar" style="width:44px;height:44px;cursor:pointer;" onclick="event.stopPropagation(); viewUserProfile('${p.uid}')">${av}</div>
@@ -10221,6 +10377,7 @@ ${p.title ? (() => {
     }
 })() : ''}
 ${mediaHtml}
+${pollHtml}
 <div class="post-actions">
 <!-- 🚀 বাটনগুলোতে event.stopPropagation() দেওয়া হলো -->
 <button class="post-action-btn ${isLiked ? 'liked' : ''}" onclick="event.stopPropagation(); toggleLike('${pid}')">
@@ -13751,11 +13908,10 @@ function closePostInsights(){
 
 // ২. ইনসাইট রেন্ডার
 function renderPostInsights(p){
-  function _cnt(x){ if(Array.isArray(x)) return x.length; if(typeof x === 'number' && isFinite(x)) return x; if(x && typeof x === 'object') return Object.keys(x).length; return 0; }
-  const views    = _cnt(p.views) || p.viewCount || 0;
-  const likes    = _cnt(p.likedBy) || _cnt(p.likes) || 0;
-  const comments = _cnt(p.comments) || p.commentCount || 0;
-  const shares   = _cnt(p.shares) || p.shareCount || 0;
+  const views    = p.views || 0;
+  const likes    = (p.likedBy && p.likedBy.length) || 0;
+  const comments = (p.comments && p.comments.length) || 0;
+  const shares   = p.shareCount || 0;
   const total    = likes + comments + shares;
   const engRate  = views > 0 ? ((total / views) * 100) : 0;
 
@@ -15637,16 +15793,80 @@ input.value = '';
 }, 1000);
 })();
 
-// gcVideoize + autoplay: real implementation is Update #65 (video-system-rebuild)
-// Keep a live MutationObserver so feed posts still get converted after #65 loads.
-function gcVideoize(scope){ /* stub — overridden by Update #65 */ }
+function gcVideoize(scope){
+(scope || document).querySelectorAll('img[src*="/video/upload/"],img[src$=".mp4"],img[src$=".webm"]').forEach(function(img){
+if(img.dataset.gcVid) return;
+img.dataset.gcVid = '1';
+const wrap = document.createElement('div');
+wrap.className = 'gc-vplayer';
+const v = document.createElement('video');
+v.src = img.src;
+v.playsInline = true;
+v.setAttribute('playsinline', '');
+v.preload = 'metadata';
+wrap.appendChild(v);
+wrap.insertAdjacentHTML('beforeend',
+'<div class="gc-vp-center"><i class="ph-fill ph-play"></i></div>' +
+'<div class="gc-vp-bar">' +
+'<div class="gc-vp-time gc-vp-cur">0:00</div>' +
+'<div class="gc-vp-track"><div class="gc-vp-fill"></div></div>' +
+'<div class="gc-vp-time gc-vp-dur">0:00</div>' +
+'<button class="gc-vp-btn gc-vp-mute"><i class="ph-fill ph-speaker-high"></i></button>' +
+'<button class="gc-vp-btn gc-vp-full"><i class="ph-bold ph-corners-out"></i></button>' +
+'<button class="gc-vp-btn gc-vp-dl"><i class="ph-bold ph-download-simple"></i></button>' +
+'</div>');
+img.replaceWith(wrap);
+gcBindVPlayer(wrap);
+});
+}
 let gcVidRaf = false;
 new MutationObserver(function(){
 if(gcVidRaf) return;
 gcVidRaf = true;
-requestAnimationFrame(function(){ gcVidRaf = false; if(typeof gcVideoize === 'function') gcVideoize(document); });
+requestAnimationFrame(function(){ gcVidRaf = false; gcVideoize(document); });
 }).observe(document.body, {childList: true, subtree: true});
+gcVideoize(document);
 
+
+// ═══════════════════════════════════════════════════════
+// 🚀 Update #29 · video-autoplay · 2026-08-07
+// স্ক্রলে ভিডিও অটো-প্লে + আগেরটা অটো-পজ (একসাথে একটাই চলে)
+// খুঁজতে: Ctrl+F → "video-autoplay"
+// ═══════════════════════════════════════════════════════
+window.gcVpObserver = new IntersectionObserver(function(entries){
+entries.forEach(function(en){
+const wrap = en.target;
+const v = wrap.querySelector('video');
+if(!v) return;
+if(en.isIntersecting && en.intersectionRatio >= 0.6){
+// নতুন ভিডিও চালু করার আগে আর সব ভিডিও পজ
+document.querySelectorAll('.gc-vplayer video').forEach(function(o){
+if(o !== v && !o.paused) o.pause();
+});
+if(v.paused){
+const pr = v.play();
+if(pr) pr.catch(function(){
+// ব্রাউজার সাউন্ডসহ অটোপ্লে ব্লক করলে মিউটেড ফলব্যাক
+v.muted = true;
+const p2 = v.play();
+if(p2) p2.catch(function(){});
+});
+}
+}else if(en.intersectionRatio < 0.4){
+if(!v.paused) v.pause();
+}
+});
+}, {threshold:[0, 0.4, 0.6, 1]});
+window.gcOrigVideoize = gcVideoize;
+gcVideoize = function(scope){
+window.gcOrigVideoize(scope);
+document.querySelectorAll('.gc-vplayer').forEach(function(w){
+if(!w.dataset.gcObs){ w.dataset.gcObs = '1'; window.gcVpObserver.observe(w); }
+});
+};
+document.querySelectorAll('.gc-vplayer').forEach(function(w){
+if(!w.dataset.gcObs){ w.dataset.gcObs = '1'; window.gcVpObserver.observe(w); }
+});
 // ==========================================
 // 🚀 PROFILE POSTS FILTER LOGIC (Fixed for both Grid & Feed styles)
 // ==========================================
@@ -16158,13 +16378,14 @@ let gcInsRange = 7;
 // Insights বাটন হুক (পুরনো "coming soon" টোস্ট সরিয়ে)
 (function gcHookInsightsBtn(){
 setInterval(function(){
-// Only the dedicated profile Insights button — never post-action / share area
-const btn = document.getElementById('gc-profile-insights-btn');
-if(btn && !btn.dataset.gcIns){
-btn.dataset.gcIns = '1';
-btn.onclick = function(e){ e.preventDefault(); e.stopPropagation(); gcOpenInsights(); };
+document.querySelectorAll('#page-profile button, #page-profile [onclick]').forEach(function(b){
+if((b.textContent || '').indexOf('Insights') !== -1 && !b.dataset.gcIns){
+b.dataset.gcIns = '1';
+b.removeAttribute('onclick');
+b.onclick = function(e){ e.stopPropagation(); gcOpenInsights(); };
 }
-}, 2000);
+});
+}, 1500);
 })();
 // Profile Views কাউন্টার (কেউ প্রোফাইল খুললে +1)
 if(!window.gcInsProfileWrapped){
@@ -16192,7 +16413,6 @@ currentUserData.statsHistory = hist;
 }catch(e){}
 }
 function gcOpenInsights(){
-if(!currentUser){ showToast('Login first!'); return; }
 let scr = document.getElementById('gc-insights-screen');
 if(!scr){
 scr = document.createElement('div');
@@ -16202,7 +16422,7 @@ scr.innerHTML = '<div class="gc-ins-head"><div class="chat-back" onclick="gcClos
 document.body.appendChild(scr);
 }
 scr.classList.add('open');
-gcLoadInsights().catch(function(e){ console.error(e); const b=document.getElementById('gc-ins-body'); if(b) b.innerHTML='<div style="text-align:center;padding:40px;color:var(--danger);">Failed to load insights. Pull to retry.</div>'; });
+gcLoadInsights();
 }
 function gcCloseInsights(){ const s = document.getElementById('gc-insights-screen'); if(s) s.classList.remove('open'); }
 function gcInsSetRange(r){
@@ -16261,7 +16481,6 @@ try{
 const snap = await db.collection('posts').where('uid', '==', currentUser.uid).get();
 snap.forEach(function(d){ posts.push({ id: d.id, ...d.data() }); });
 }catch(e){}
-function gcCount(x){ if(Array.isArray(x)) return x.length; if(typeof x === 'number' && isFinite(x)) return x; if(x && typeof x === 'object') return Object.keys(x).length; return 0; }
 function peng(p){ return gcCount(p.likes) + gcCount(p.comments) + gcCount(p.shares); }
 let totLikes = 0, totComments = 0, totShares = 0, vid = 0, pho = 0, txt = 0;
 const perDay = {};
@@ -16269,6 +16488,7 @@ for(let i = 0; i < gcInsRange; i++){ perDay[new Date(now - i * 86400000).toDateS
 const hourEng = new Array(24).fill(0);
 posts.forEach(function(p){
 const e = peng(p);
+function gcCount(x){ if(Array.isArray(x)) return x.length; if(typeof x === 'number' && isFinite(x)) return x; if(x && typeof x === 'object') return Object.keys(x).length; return 0; }
 totLikes += gcCount(p.likes); totComments += gcCount(p.comments); totShares += gcCount(p.shares);
 const isVid = p.videoUrl || (p.imgUrls || []).some(function(u){ return (u || '').indexOf('/video/') !== -1; });
 if(isVid) vid++; else if((p.imgUrls || []).length) pho++; else txt++;
@@ -17211,35 +17431,10 @@ gcOtherPostsUnsub = null; gcOtherCountUid = null;
 
 
 // ═══════════════════════════════════════════════════════
-// 🚀 Update #65 · video-system-rebuild · 2026-08-12 (patched 2026-08-18)
-// ভিডিও প্লেয়ার — mute-by-default, click=pause, play-btn=play, page-leave stop
+// 🚀 Update #65 · video-system-rebuild · 2026-08-12
+// ভিডিও প্লেয়ার সম্পূর্ণ রি-বিল্ড
 // খুঁজতে: Ctrl+F → "video-system-rebuild"
 // ═══════════════════════════════════════════════════════
-// Global sound preference for feed videos (default OFF)
-if(typeof window.gcGlobalMuted === 'undefined') window.gcGlobalMuted = true;
-function gcApplyGlobalMuteToAll(){
-document.querySelectorAll('.gc-vplayer video').forEach(function(v){
-try{
-v.muted = !!window.gcGlobalMuted;
-const btn = v.closest('.gc-vplayer') && v.closest('.gc-vplayer').querySelector('.gc-vp-mute');
-if(btn) btn.innerHTML = v.muted ? '<i class="ph-fill ph-speaker-slash"></i>' : '<i class="ph-fill ph-speaker-high"></i>';
-}catch(e){}
-});
-}
-function gcPauseAllVideos(muteToo){
-document.querySelectorAll('.gc-vplayer video').forEach(function(v){
-try{
-if(!v.paused) v.pause();
-v.gcUserPaused = false;
-if(muteToo){
-// Pause for navigation — keep element muted for autoplay policy, but do NOT reset global preference
-v.muted = true;
-const btn = v.closest('.gc-vplayer') && v.closest('.gc-vplayer').querySelector('.gc-vp-mute');
-if(btn) btn.innerHTML = '<i class="ph-fill ph-speaker-slash"></i>';
-}
-}catch(e){}
-});
-}
 if(window.gcVpObserver){ try{ window.gcVpObserver.disconnect(); }catch(e){} }
 gcVideoize = function(scope){
 (scope || document).querySelectorAll('img').forEach(function(img){
@@ -17251,12 +17446,9 @@ const wrap = document.createElement('div');
 wrap.className = 'gc-vplayer';
 const v = document.createElement('video');
 v.src = s; v.preload = 'metadata';
-v.muted = !!window.gcGlobalMuted; // follow global sound preference
-if(v.muted) v.setAttribute('muted', ''); else v.removeAttribute('muted');
 v.setAttribute('playsinline', ''); v.setAttribute('webkit-playsinline', '');
 wrap.appendChild(v);
-var muteIcon = v.muted ? 'ph-speaker-slash' : 'ph-speaker-high';
-wrap.insertAdjacentHTML('beforeend', '<div class="gc-vp-center"><i class="ph-fill ph-play"></i></div><div class="gc-vp-bar"><span class="gc-vp-cur">0:00</span><div class="gc-vp-track"><div class="gc-vp-fill"></div></div><span class="gc-vp-dur">0:00</span><button class="gc-vp-btn gc-vp-mute" type="button"><i class="ph-fill ' + muteIcon + '"></i></button><button class="gc-vp-btn gc-vp-full" type="button"><i class="ph-bold ph-corners-out"></i></button><button class="gc-vp-btn gc-vp-dl" type="button"><i class="ph-bold ph-download-simple"></i></button></div>');
+wrap.insertAdjacentHTML('beforeend', '<div class="gc-vp-center"><i class="ph-fill ph-play"></i></div><div class="gc-vp-bar"><span class="gc-vp-cur">0:00</span><div class="gc-vp-track"><div class="gc-vp-fill"></div></div><span class="gc-vp-dur">0:00</span><button class="gc-vp-btn gc-vp-mute" type="button"><i class="ph-fill ph-speaker-high"></i></button><button class="gc-vp-btn gc-vp-full" type="button"><i class="ph-bold ph-corners-out"></i></button><button class="gc-vp-btn gc-vp-dl" type="button"><i class="ph-bold ph-download-simple"></i></button></div>');
 img.replaceWith(wrap);
 gcBindVPlayer(wrap);
 if(window.gcVpObserver) window.gcVpObserver.observe(wrap);
@@ -17266,8 +17458,6 @@ function gcBindVPlayer(wrap){
 const v = wrap.querySelector('video');
 if(!v || wrap.dataset.gcBound) return;
 wrap.dataset.gcBound = '1';
-// apply global sound preference
-v.muted = !!window.gcGlobalMuted;
 const center = wrap.querySelector('.gc-vp-center');
 const cur = wrap.querySelector('.gc-vp-cur');
 const dur = wrap.querySelector('.gc-vp-dur');
@@ -17278,7 +17468,6 @@ const fullBtn = wrap.querySelector('.gc-vp-full');
 const dlBtn = wrap.querySelector('.gc-vp-dl');
 function fmt(s){ s = Math.max(0, Math.round(s || 0)); return Math.floor(s / 60) + ':' + ('0' + (s % 60)).slice(-2); }
 function syncMute(){ muteBtn.innerHTML = v.muted ? '<i class="ph-fill ph-speaker-slash"></i>' : '<i class="ph-fill ph-speaker-high"></i>'; }
-syncMute();
 let gcControlsTimer = null;
 function showControls(){
 wrap.classList.remove('gc-controls-hidden');
@@ -17291,111 +17480,20 @@ function hideControls(){
 if(gcControlsTimer) clearTimeout(gcControlsTimer);
 wrap.classList.add('gc-controls-hidden');
 }
-// Play only via center play button
-function playVideo(){
+function toggle(){
 showControls();
-v.gcUserPaused = false;
-// keep current mute state (default muted)
-const p = v.play();
-if(p) p.catch(function(){ v.muted = true; syncMute(); v.play().catch(function(){}); });
+if(v.paused){ v.gcUserPaused = false; v.play().catch(function(){ v.muted = true; syncMute(); v.play().catch(function(){}); }); }
+else { v.gcUserPaused = true; v.pause(); }
 }
-// Pause only (one click on video body)
-function pauseVideo(){
-v.gcUserPaused = true;
-v.pause();
-showControls();
-}
-// One-tap pause is delayed so double-tap can like without stopping the video
-let gcTapTimer = null;
-function gcCancelTapPause(){
-if(gcTapTimer){ clearTimeout(gcTapTimer); gcTapTimer = null; }
-}
-function gcScheduleTapPause(){
-gcCancelTapPause();
-gcTapTimer = setTimeout(function(){
-gcTapTimer = null;
-if(!v.paused) pauseVideo();
-}, 280);
-}
-function gcLikeFromVideo(){
-// Find post id from surrounding card / media wrap
-let pid = null;
-const mediaWrap = wrap.closest('.post-media-wrap');
-if(mediaWrap){
-const oc = mediaWrap.getAttribute('ondblclick') || '';
-const m = oc.match(/handleDoubleTap\(\s*'([^']+)'/);
-if(m) pid = m[1];
-}
-if(!pid){
-const card = wrap.closest('.post-card') || wrap.closest('[onclick*="openSinglePostView"]');
-if(card){
-const oc = card.getAttribute('onclick') || '';
-const m = oc.match(/openSinglePostView\(\s*'([^']+)'/);
-if(m) pid = m[1];
-}
-}
-if(!pid) return;
-// Heart animation if present
-const host = mediaWrap || wrap;
-let heart = host.querySelector('.double-tap-heart');
-if(heart){
-heart.classList.remove('show');
-void heart.offsetWidth;
-heart.classList.add('show');
-}
-if(typeof toggleLike === 'function' && currentUser){
-const ref = db.collection('posts').doc(pid);
-ref.get().then(function(doc){
-if(doc.exists){
-const likedBy = doc.data().likedBy || [];
-if(!likedBy.includes(currentUser.uid)) toggleLike(pid);
-}
-}).catch(function(){});
-}
-}
-// Video surface: single tap → pause (delayed); double tap → like only, keep playing
-v.addEventListener('click', function(e){
-e.stopPropagation();
-if(v.paused){ showControls(); return; }
-gcScheduleTapPause();
-});
-v.addEventListener('dblclick', function(e){
-e.preventDefault();
-e.stopPropagation();
-gcCancelTapPause(); // do NOT pause
-// ensure still playing
-if(v.paused){ /* user had paused earlier — leave as is */ }
-else { /* keep playing */ }
-gcLikeFromVideo();
-});
-// Also catch dblclick on the player chrome (not controls buttons)
-wrap.addEventListener('dblclick', function(e){
-if(e.target.closest('.gc-vp-btn, .gc-vp-track, .gc-vp-center')) return;
-e.preventDefault();
-e.stopPropagation();
-gcCancelTapPause();
-gcLikeFromVideo();
-});
-// Center play/pause button (immediate, not delayed)
-center.addEventListener('click', function(e){
-e.stopPropagation();
-gcCancelTapPause();
-if(v.paused){ playVideo(); }
-else { pauseVideo(); }
-});
+v.addEventListener('click', function(e){ e.stopPropagation(); showControls(); toggle(); });
+center.addEventListener('click', function(e){ e.stopPropagation(); showControls(); toggle(); });
 v.addEventListener('play', function(){ center.classList.add('hide'); hideControls(); });
 v.addEventListener('pause', function(){ center.classList.remove('hide'); showControls(); });
 v.addEventListener('ended', function(){ center.classList.remove('hide'); v.gcUserPaused = false; showControls(); });
 v.addEventListener('loadedmetadata', function(){ dur.textContent = fmt(v.duration); });
 v.addEventListener('timeupdate', function(){ cur.textContent = fmt(v.currentTime); if(v.duration) fill.style.width = (v.currentTime / v.duration * 100) + '%'; });
 track.addEventListener('click', function(e){ e.stopPropagation(); showControls(); const r = track.getBoundingClientRect(); const p = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)); if(v.duration) v.currentTime = p * v.duration; });
-muteBtn.addEventListener('click', function(e){
-e.stopPropagation();
-showControls();
-// Toggle GLOBAL mute — one unmute turns sound on for all feed videos
-window.gcGlobalMuted = !window.gcGlobalMuted;
-gcApplyGlobalMuteToAll();
-});
+muteBtn.addEventListener('click', function(e){ e.stopPropagation(); showControls(); v.muted = !v.muted; syncMute(); });
 function syncFull(){ fullBtn.innerHTML = document.fullscreenElement ? '<i class="ph-bold ph-corners-in"></i>' : '<i class="ph-bold ph-corners-out"></i>'; }
 fullBtn.addEventListener('click', function(e){
 e.stopPropagation();
@@ -17420,29 +17518,13 @@ showToast('⬇️ Download started…');
 });
 wrap.addEventListener('click', function(e){ e.stopPropagation(); });
 }
-// অটো-প্লে: একসাথে একটাই চলে; নতুন ইন-ভিউ → পুরনো পজ, নতুন প্লে (muted)
+// অটো-প্লে অবজারভার (পজ-ফ্ল্যাগ সম্মানকারী)
 window.gcVpObserver = new IntersectionObserver(function(entries){
 entries.forEach(function(en){
 const wrap = en.target; const v = wrap.querySelector('video'); if(!v) return;
 if(en.isIntersecting && en.intersectionRatio >= 0.6){
-// stop every other video
-document.querySelectorAll('.gc-vplayer video').forEach(function(o){
-if(o !== v && !o.paused){ o.pause(); o.gcUserPaused = false; }
-});
-// autoplay new one only if user didn't manually pause it
-if(v.paused && !v.gcUserPaused){
-// Follow global sound preference (unmute once → next videos keep sound)
-v.muted = !!window.gcGlobalMuted;
-const muteBtn = wrap.querySelector('.gc-vp-mute');
-if(muteBtn) muteBtn.innerHTML = v.muted ? '<i class="ph-fill ph-speaker-slash"></i>' : '<i class="ph-fill ph-speaker-high"></i>';
-var pr = v.play();
-if(pr) pr.catch(function(){
-// Browser blocked unmuted autoplay → fall back muted for this play only
-v.muted = true;
-if(muteBtn) muteBtn.innerHTML = '<i class="ph-fill ph-speaker-slash"></i>';
-v.play().catch(function(){});
-});
-}
+document.querySelectorAll('.gc-vplayer video').forEach(function(o){ if(o !== v && !o.paused){ o.pause(); o.gcUserPaused = false; } });
+if(v.paused && !v.gcUserPaused){ v.play().catch(function(){ v.muted = true; v.play().catch(function(){}); }); }
 }else if(en.intersectionRatio < 0.4){
 if(!v.paused) v.pause();
 v.gcUserPaused = false;
@@ -17450,35 +17532,20 @@ v.gcUserPaused = false;
 });
 }, {threshold:[0, 0.4, 0.6, 1]});
 document.querySelectorAll('.gc-vplayer').forEach(function(w){ window.gcVpObserver.observe(w); });
-// পেজ বদলালে (feed ছাড়া) সব ভিডিও পজ + মিউট
+// পেজ বদলালে সব ভিডিও পজ (সাউন্ড লিক বন্ধ)
 window.gcOrigShowPage65 = showPage;
 showPage = function(page){
-// home feed ছেড়ে অন্য পেজে গেলেই সব ভিডিও পজ + মিউট
-if(page !== 'feed'){
-gcPauseAllVideos(true);
-}
+document.querySelectorAll('video').forEach(function(v){ if(!v.paused) v.pause(); });
 return window.gcOrigShowPage65(page);
 };
 if(typeof openSinglePostView === 'function' && !window.gcSpWrapped65){
 window.gcSpWrapped65 = true;
 window.gcOrigSPV65 = openSinglePostView;
 openSinglePostView = function(pid){
-gcPauseAllVideos(true);
+document.querySelectorAll('video').forEach(function(v){ if(!v.paused) v.pause(); });
 return window.gcOrigSPV65(pid);
 };
 }
-// other overlays that leave the feed
-['openChat','closeUserProfile','openProfileEdit','gcOpenInsights'].forEach(function(fn){
-if(typeof window[fn] === 'function' && !window['gcVidWrap_'+fn]){
-window['gcVidWrap_'+fn] = true;
-const orig = window[fn];
-window[fn] = function(){
-gcPauseAllVideos(true);
-return orig.apply(this, arguments);
-};
-}
-});
-
 
 // ═══════════════════════════════════════════════════════
 // 🚀 Update #67 · forgot-password-v2 · 2026-08-12
