@@ -17293,15 +17293,81 @@ v.gcUserPaused = true;
 v.pause();
 showControls();
 }
-// Video surface: if playing → pause; if paused → just show controls (play only via button)
+// One-tap pause is delayed so double-tap can like without stopping the video
+let gcTapTimer = null;
+function gcCancelTapPause(){
+if(gcTapTimer){ clearTimeout(gcTapTimer); gcTapTimer = null; }
+}
+function gcScheduleTapPause(){
+gcCancelTapPause();
+gcTapTimer = setTimeout(function(){
+gcTapTimer = null;
+if(!v.paused) pauseVideo();
+}, 280);
+}
+function gcLikeFromVideo(){
+// Find post id from surrounding card / media wrap
+let pid = null;
+const mediaWrap = wrap.closest('.post-media-wrap');
+if(mediaWrap){
+const oc = mediaWrap.getAttribute('ondblclick') || '';
+const m = oc.match(/handleDoubleTap\(\s*'([^']+)'/);
+if(m) pid = m[1];
+}
+if(!pid){
+const card = wrap.closest('.post-card') || wrap.closest('[onclick*="openSinglePostView"]');
+if(card){
+const oc = card.getAttribute('onclick') || '';
+const m = oc.match(/openSinglePostView\(\s*'([^']+)'/);
+if(m) pid = m[1];
+}
+}
+if(!pid) return;
+// Heart animation if present
+const host = mediaWrap || wrap;
+let heart = host.querySelector('.double-tap-heart');
+if(heart){
+heart.classList.remove('show');
+void heart.offsetWidth;
+heart.classList.add('show');
+}
+if(typeof toggleLike === 'function' && currentUser){
+const ref = db.collection('posts').doc(pid);
+ref.get().then(function(doc){
+if(doc.exists){
+const likedBy = doc.data().likedBy || [];
+if(!likedBy.includes(currentUser.uid)) toggleLike(pid);
+}
+}).catch(function(){});
+}
+}
+// Video surface: single tap → pause (delayed); double tap → like only, keep playing
 v.addEventListener('click', function(e){
 e.stopPropagation();
-if(!v.paused){ pauseVideo(); }
-else { showControls(); }
+if(v.paused){ showControls(); return; }
+gcScheduleTapPause();
 });
-// Center play/pause button
+v.addEventListener('dblclick', function(e){
+e.preventDefault();
+e.stopPropagation();
+gcCancelTapPause(); // do NOT pause
+// ensure still playing
+if(v.paused){ /* user had paused earlier — leave as is */ }
+else { /* keep playing */ }
+gcLikeFromVideo();
+});
+// Also catch dblclick on the player chrome (not controls buttons)
+wrap.addEventListener('dblclick', function(e){
+if(e.target.closest('.gc-vp-btn, .gc-vp-track, .gc-vp-center')) return;
+e.preventDefault();
+e.stopPropagation();
+gcCancelTapPause();
+gcLikeFromVideo();
+});
+// Center play/pause button (immediate, not delayed)
 center.addEventListener('click', function(e){
 e.stopPropagation();
+gcCancelTapPause();
 if(v.paused){ playVideo(); }
 else { pauseVideo(); }
 });
