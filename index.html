@@ -9731,83 +9731,114 @@ function addPollInput() {
     checkPostInputs();
 }
 
-// 🚀 Database Transaction for Safe Voting
+// 🚀 Super Fast & Bug-Free Voting Logic
 async function submitPollVote(postId, optionId) {
     if (!currentUser) return;
 
+    // ক্লিক করার সাথে সাথে ইউজারকে বোঝানোর জন্য পোলটা হালকা ঘোলা হবে
     const pollContainer = document.getElementById(`poll-${postId}`);
-    if (pollContainer) pollContainer.style.opacity = '0.6';
+    if(pollContainer) pollContainer.style.opacity = '0.5'; 
 
     try {
         const postRef = db.collection('posts').doc(postId);
+        const postDoc = await postRef.get();
 
-        await db.runTransaction(async (transaction) => {
-            const postDoc = await transaction.get(postRef);
-            if (!postDoc.exists) throw 'Post deleted!';
+        if (!postDoc.exists) {
+            showToast("Post has been deleted.");
+            if(pollContainer) pollContainer.style.opacity = '1';
+            return;
+        }
 
-            let pollData = postDoc.data().pollOptions || [];
-            const voterUid = currentUser.uid;
-            const alreadyVoted = pollData.some(opt => (opt.votes || []).includes(voterUid));
-            if (alreadyVoted) throw 'Already voted!';
+        let pData = postDoc.data();
+        let pollData = pData.pollOptions || [];
 
-            let optionFound = false;
-            pollData.forEach(opt => {
-                if (String(opt.id) === String(optionId)) {
-                    if (!Array.isArray(opt.votes)) opt.votes = [];
-                    if (!opt.votes.includes(voterUid)) opt.votes.push(voterUid);
-                    optionFound = true;
-                }
-            });
-            if (!optionFound) throw 'Option not found!';
+        // চেক করা ইউজার আগে ভোট দিয়েছে কিনা
+        let alreadyVoted = pollData.some(opt => (opt.votes || []).includes(currentUser.uid));
+        
+        if (alreadyVoted) {
+            showToast("You have already voted!");
+            if(pollContainer) pollContainer.style.opacity = '1';
+            return;
+        }
 
-            transaction.update(postRef, { pollOptions: pollData });
+        // নতুন ভোট যুক্ত করা (== ব্যবহার করা হয়েছে টাইপ ফিক্স করতে)
+        pollData = pollData.map(opt => {
+            if (opt.id == optionId) { // == is important here
+                if (!opt.votes) opt.votes = [];
+                opt.votes.push(currentUser.uid);
+            }
+            return opt;
         });
 
-        showToast('Vote recorded!');
+        // ফায়ারবেসে ডিরেক্ট এবং ফাস্ট সেভ করা
+        await postRef.update({ pollOptions: pollData });
+        
+        // 🌟 ম্যাজিক: পেজ রিলোড ছাড়াই সাথে সাথে পোল আপডেট হয়ে যাবে!
+        const updatedDoc = await postRef.get();
+        const newPollHtml = generatePollHTML({ id: updatedDoc.id, ...updatedDoc.data() });
+        
+        if (pollContainer) {
+            pollContainer.outerHTML = newPollHtml;
+        }
+        
+        showToast("Vote recorded!");
+
     } catch (error) {
-        console.error('Voting failed:', error);
-        showToast(error === 'Already voted!' ? 'You have already voted!' : 'Failed to vote.');
-        if (pollContainer) pollContainer.style.opacity = '1';
+        console.error("Voting failed:", error);
+        showToast("Error: " + error.message); // এরর থাকলে এখন স্ক্রিনে লেখা উঠবে
+        if(pollContainer) pollContainer.style.opacity = '1';
     }
 }
 
 // 🚀 Helper Function to Render Polls in Feed
 function generatePollHTML(post) {
     if (!post.pollOptions || post.pollOptions.length === 0) return '';
-
-    const voterUid = currentUser ? currentUser.uid : null;
+    
     let totalVotes = 0;
     let userVotedId = null;
-
+    
     post.pollOptions.forEach(opt => {
-        const votes = Array.isArray(opt.votes) ? opt.votes : [];
-        totalVotes += votes.length;
-        if (voterUid && votes.includes(voterUid)) userVotedId = opt.id;
+        totalVotes += (opt.votes || []).length;
+        if ((opt.votes || []).includes(currentUser.uid)) {
+            userVotedId = opt.id;
+        }
     });
 
     let html = `<div class="feed-poll-container ${userVotedId !== null ? 'has-voted' : ''}" id="poll-${post.id}">`;
-
+    
     post.pollOptions.forEach(opt => {
-        const votesForOpt = Array.isArray(opt.votes) ? opt.votes.length : 0;
-        const percent = totalVotes > 0 ? Math.round((votesForOpt / totalVotes) * 100) : 0;
-        const isVoted = userVotedId !== null && String(userVotedId) === String(opt.id);
-        const fillStyle = userVotedId !== null ? `width: ${percent}%;` : 'width: 0%;';
-
-        html += `
-        <div class="feed-poll-option ${isVoted ? 'voted-opt' : ''}" onclick="event.stopPropagation(); submitPollVote('${post.id}', ${Number(opt.id)})">
-            <div class="feed-poll-fill" style="${fillStyle}"></div>
-            <div class="feed-poll-text">
-                ${escapeHTML(opt.text || '')}
-                ${isVoted ? '<i class="ph-fill ph-check-circle" style="color:var(--accent); font-size:18px; vertical-align:middle; margin-left:6px;"></i>' : ''}
-            </div>
-            <div class="feed-poll-percent">${percent}%</div>
-        </div>`;
+        let votesForOpt = (opt.votes || []).length;
+        let percent = totalVotes > 0 ? Math.round((votesForOpt / totalVotes) * 100) : 0;
+        let isVoted = userVotedId === opt.id;
+        
+        let fillStyle = userVotedId !== null ? `width: ${percent}%;` : `width: 0%;`;
+        
+        if (userVotedId !== null) {
+            // ইউজার ভোট দিয়ে থাকলে বাটন ডিজেবল থাকবে এবং রেজাল্ট দেখাবে
+            html += `
+            <div class="feed-poll-option ${isVoted ? 'voted-opt' : ''}">
+                <div class="feed-poll-fill" style="${fillStyle}"></div>
+                <div class="feed-poll-text">
+                    <span>${escapeHTML(opt.text)} ${isVoted ? '<i class="ph-fill ph-check-circle" style="color:var(--accent); font-size:16px; margin-left:6px; vertical-align:-3px;"></i>' : ''}</span>
+                </div>
+                <div class="feed-poll-percent" style="display:block;">${percent}%</div>
+            </div>`;
+        } else {
+            // ভোট না দিয়ে থাকলে ক্লিক করার অপশন থাকবে (stopPropagation সহ)
+            html += `
+            <div class="feed-poll-option" onclick="event.stopPropagation(); submitPollVote('${post.id}', ${opt.id})">
+                <div class="feed-poll-fill" style="${fillStyle}"></div>
+                <div class="feed-poll-text">
+                    <span>${escapeHTML(opt.text)}</span>
+                    <i class="ph-regular ph-circle" style="color:var(--text-muted); font-size:18px;"></i>
+                </div>
+            </div>`;
+        }
     });
-
+    
     html += `<div class="feed-poll-total">${totalVotes} votes</div></div>`;
     return html;
 }
-
 
 async function submitPost(){
 const title=document.getElementById('post-title').value.trim();
