@@ -17215,12 +17215,24 @@ gcOtherPostsUnsub = null; gcOtherCountUid = null;
 // ভিডিও প্লেয়ার — mute-by-default, click=pause, play-btn=play, page-leave stop
 // খুঁজতে: Ctrl+F → "video-system-rebuild"
 // ═══════════════════════════════════════════════════════
+// Global sound preference for feed videos (default OFF)
+if(typeof window.gcGlobalMuted === 'undefined') window.gcGlobalMuted = true;
+function gcApplyGlobalMuteToAll(){
+document.querySelectorAll('.gc-vplayer video').forEach(function(v){
+try{
+v.muted = !!window.gcGlobalMuted;
+const btn = v.closest('.gc-vplayer') && v.closest('.gc-vplayer').querySelector('.gc-vp-mute');
+if(btn) btn.innerHTML = v.muted ? '<i class="ph-fill ph-speaker-slash"></i>' : '<i class="ph-fill ph-speaker-high"></i>';
+}catch(e){}
+});
+}
 function gcPauseAllVideos(muteToo){
 document.querySelectorAll('.gc-vplayer video').forEach(function(v){
 try{
 if(!v.paused) v.pause();
 v.gcUserPaused = false;
 if(muteToo){
+// Pause for navigation — keep element muted for autoplay policy, but do NOT reset global preference
 v.muted = true;
 const btn = v.closest('.gc-vplayer') && v.closest('.gc-vplayer').querySelector('.gc-vp-mute');
 if(btn) btn.innerHTML = '<i class="ph-fill ph-speaker-slash"></i>';
@@ -17239,12 +17251,12 @@ const wrap = document.createElement('div');
 wrap.className = 'gc-vplayer';
 const v = document.createElement('video');
 v.src = s; v.preload = 'metadata';
-v.muted = true; // always start muted
-v.setAttribute('muted', '');
+v.muted = !!window.gcGlobalMuted; // follow global sound preference
+if(v.muted) v.setAttribute('muted', ''); else v.removeAttribute('muted');
 v.setAttribute('playsinline', ''); v.setAttribute('webkit-playsinline', '');
 wrap.appendChild(v);
-// default mute icon = speaker-slash (sound OFF)
-wrap.insertAdjacentHTML('beforeend', '<div class="gc-vp-center"><i class="ph-fill ph-play"></i></div><div class="gc-vp-bar"><span class="gc-vp-cur">0:00</span><div class="gc-vp-track"><div class="gc-vp-fill"></div></div><span class="gc-vp-dur">0:00</span><button class="gc-vp-btn gc-vp-mute" type="button"><i class="ph-fill ph-speaker-slash"></i></button><button class="gc-vp-btn gc-vp-full" type="button"><i class="ph-bold ph-corners-out"></i></button><button class="gc-vp-btn gc-vp-dl" type="button"><i class="ph-bold ph-download-simple"></i></button></div>');
+var muteIcon = v.muted ? 'ph-speaker-slash' : 'ph-speaker-high';
+wrap.insertAdjacentHTML('beforeend', '<div class="gc-vp-center"><i class="ph-fill ph-play"></i></div><div class="gc-vp-bar"><span class="gc-vp-cur">0:00</span><div class="gc-vp-track"><div class="gc-vp-fill"></div></div><span class="gc-vp-dur">0:00</span><button class="gc-vp-btn gc-vp-mute" type="button"><i class="ph-fill ' + muteIcon + '"></i></button><button class="gc-vp-btn gc-vp-full" type="button"><i class="ph-bold ph-corners-out"></i></button><button class="gc-vp-btn gc-vp-dl" type="button"><i class="ph-bold ph-download-simple"></i></button></div>');
 img.replaceWith(wrap);
 gcBindVPlayer(wrap);
 if(window.gcVpObserver) window.gcVpObserver.observe(wrap);
@@ -17254,8 +17266,8 @@ function gcBindVPlayer(wrap){
 const v = wrap.querySelector('video');
 if(!v || wrap.dataset.gcBound) return;
 wrap.dataset.gcBound = '1';
-// force muted default every bind
-v.muted = true;
+// apply global sound preference
+v.muted = !!window.gcGlobalMuted;
 const center = wrap.querySelector('.gc-vp-center');
 const cur = wrap.querySelector('.gc-vp-cur');
 const dur = wrap.querySelector('.gc-vp-dur');
@@ -17380,8 +17392,9 @@ track.addEventListener('click', function(e){ e.stopPropagation(); showControls()
 muteBtn.addEventListener('click', function(e){
 e.stopPropagation();
 showControls();
-v.muted = !v.muted;
-syncMute();
+// Toggle GLOBAL mute — one unmute turns sound on for all feed videos
+window.gcGlobalMuted = !window.gcGlobalMuted;
+gcApplyGlobalMuteToAll();
 });
 function syncFull(){ fullBtn.innerHTML = document.fullscreenElement ? '<i class="ph-bold ph-corners-in"></i>' : '<i class="ph-bold ph-corners-out"></i>'; }
 fullBtn.addEventListener('click', function(e){
@@ -17418,11 +17431,17 @@ if(o !== v && !o.paused){ o.pause(); o.gcUserPaused = false; }
 });
 // autoplay new one only if user didn't manually pause it
 if(v.paused && !v.gcUserPaused){
-// always autoplay muted
-if(!v.muted){ v.muted = true; }
+// Follow global sound preference (unmute once → next videos keep sound)
+v.muted = !!window.gcGlobalMuted;
 const muteBtn = wrap.querySelector('.gc-vp-mute');
+if(muteBtn) muteBtn.innerHTML = v.muted ? '<i class="ph-fill ph-speaker-slash"></i>' : '<i class="ph-fill ph-speaker-high"></i>';
+var pr = v.play();
+if(pr) pr.catch(function(){
+// Browser blocked unmuted autoplay → fall back muted for this play only
+v.muted = true;
 if(muteBtn) muteBtn.innerHTML = '<i class="ph-fill ph-speaker-slash"></i>';
-v.play().catch(function(){ v.muted = true; v.play().catch(function(){}); });
+v.play().catch(function(){});
+});
 }
 }else if(en.intersectionRatio < 0.4){
 if(!v.paused) v.pause();
