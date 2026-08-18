@@ -15637,80 +15637,16 @@ input.value = '';
 }, 1000);
 })();
 
-function gcVideoize(scope){
-(scope || document).querySelectorAll('img[src*="/video/upload/"],img[src$=".mp4"],img[src$=".webm"]').forEach(function(img){
-if(img.dataset.gcVid) return;
-img.dataset.gcVid = '1';
-const wrap = document.createElement('div');
-wrap.className = 'gc-vplayer';
-const v = document.createElement('video');
-v.src = img.src;
-v.playsInline = true;
-v.setAttribute('playsinline', '');
-v.preload = 'metadata';
-wrap.appendChild(v);
-wrap.insertAdjacentHTML('beforeend',
-'<div class="gc-vp-center"><i class="ph-fill ph-play"></i></div>' +
-'<div class="gc-vp-bar">' +
-'<div class="gc-vp-time gc-vp-cur">0:00</div>' +
-'<div class="gc-vp-track"><div class="gc-vp-fill"></div></div>' +
-'<div class="gc-vp-time gc-vp-dur">0:00</div>' +
-'<button class="gc-vp-btn gc-vp-mute"><i class="ph-fill ph-speaker-high"></i></button>' +
-'<button class="gc-vp-btn gc-vp-full"><i class="ph-bold ph-corners-out"></i></button>' +
-'<button class="gc-vp-btn gc-vp-dl"><i class="ph-bold ph-download-simple"></i></button>' +
-'</div>');
-img.replaceWith(wrap);
-gcBindVPlayer(wrap);
-});
-}
+// gcVideoize + autoplay: real implementation is Update #65 (video-system-rebuild)
+// Keep a live MutationObserver so feed posts still get converted after #65 loads.
+function gcVideoize(scope){ /* stub — overridden by Update #65 */ }
 let gcVidRaf = false;
 new MutationObserver(function(){
 if(gcVidRaf) return;
 gcVidRaf = true;
-requestAnimationFrame(function(){ gcVidRaf = false; gcVideoize(document); });
+requestAnimationFrame(function(){ gcVidRaf = false; if(typeof gcVideoize === 'function') gcVideoize(document); });
 }).observe(document.body, {childList: true, subtree: true});
-gcVideoize(document);
 
-
-// ═══════════════════════════════════════════════════════
-// 🚀 Update #29 · video-autoplay · 2026-08-07
-// স্ক্রলে ভিডিও অটো-প্লে + আগেরটা অটো-পজ (একসাথে একটাই চলে)
-// খুঁজতে: Ctrl+F → "video-autoplay"
-// ═══════════════════════════════════════════════════════
-window.gcVpObserver = new IntersectionObserver(function(entries){
-entries.forEach(function(en){
-const wrap = en.target;
-const v = wrap.querySelector('video');
-if(!v) return;
-if(en.isIntersecting && en.intersectionRatio >= 0.6){
-// নতুন ভিডিও চালু করার আগে আর সব ভিডিও পজ
-document.querySelectorAll('.gc-vplayer video').forEach(function(o){
-if(o !== v && !o.paused) o.pause();
-});
-if(v.paused){
-const pr = v.play();
-if(pr) pr.catch(function(){
-// ব্রাউজার সাউন্ডসহ অটোপ্লে ব্লক করলে মিউটেড ফলব্যাক
-v.muted = true;
-const p2 = v.play();
-if(p2) p2.catch(function(){});
-});
-}
-}else if(en.intersectionRatio < 0.4){
-if(!v.paused) v.pause();
-}
-});
-}, {threshold:[0, 0.4, 0.6, 1]});
-window.gcOrigVideoize = gcVideoize;
-gcVideoize = function(scope){
-window.gcOrigVideoize(scope);
-document.querySelectorAll('.gc-vplayer').forEach(function(w){
-if(!w.dataset.gcObs){ w.dataset.gcObs = '1'; window.gcVpObserver.observe(w); }
-});
-};
-document.querySelectorAll('.gc-vplayer').forEach(function(w){
-if(!w.dataset.gcObs){ w.dataset.gcObs = '1'; window.gcVpObserver.observe(w); }
-});
 // ==========================================
 // 🚀 PROFILE POSTS FILTER LOGIC (Fixed for both Grid & Feed styles)
 // ==========================================
@@ -17275,10 +17211,23 @@ gcOtherPostsUnsub = null; gcOtherCountUid = null;
 
 
 // ═══════════════════════════════════════════════════════
-// 🚀 Update #65 · video-system-rebuild · 2026-08-12
-// ভিডিও প্লেয়ার সম্পূর্ণ রি-বিল্ড
+// 🚀 Update #65 · video-system-rebuild · 2026-08-12 (patched 2026-08-18)
+// ভিডিও প্লেয়ার — mute-by-default, click=pause, play-btn=play, page-leave stop
 // খুঁজতে: Ctrl+F → "video-system-rebuild"
 // ═══════════════════════════════════════════════════════
+function gcPauseAllVideos(muteToo){
+document.querySelectorAll('.gc-vplayer video').forEach(function(v){
+try{
+if(!v.paused) v.pause();
+v.gcUserPaused = false;
+if(muteToo){
+v.muted = true;
+const btn = v.closest('.gc-vplayer') && v.closest('.gc-vplayer').querySelector('.gc-vp-mute');
+if(btn) btn.innerHTML = '<i class="ph-fill ph-speaker-slash"></i>';
+}
+}catch(e){}
+});
+}
 if(window.gcVpObserver){ try{ window.gcVpObserver.disconnect(); }catch(e){} }
 gcVideoize = function(scope){
 (scope || document).querySelectorAll('img').forEach(function(img){
@@ -17290,9 +17239,12 @@ const wrap = document.createElement('div');
 wrap.className = 'gc-vplayer';
 const v = document.createElement('video');
 v.src = s; v.preload = 'metadata';
+v.muted = true; // always start muted
+v.setAttribute('muted', '');
 v.setAttribute('playsinline', ''); v.setAttribute('webkit-playsinline', '');
 wrap.appendChild(v);
-wrap.insertAdjacentHTML('beforeend', '<div class="gc-vp-center"><i class="ph-fill ph-play"></i></div><div class="gc-vp-bar"><span class="gc-vp-cur">0:00</span><div class="gc-vp-track"><div class="gc-vp-fill"></div></div><span class="gc-vp-dur">0:00</span><button class="gc-vp-btn gc-vp-mute" type="button"><i class="ph-fill ph-speaker-high"></i></button><button class="gc-vp-btn gc-vp-full" type="button"><i class="ph-bold ph-corners-out"></i></button><button class="gc-vp-btn gc-vp-dl" type="button"><i class="ph-bold ph-download-simple"></i></button></div>');
+// default mute icon = speaker-slash (sound OFF)
+wrap.insertAdjacentHTML('beforeend', '<div class="gc-vp-center"><i class="ph-fill ph-play"></i></div><div class="gc-vp-bar"><span class="gc-vp-cur">0:00</span><div class="gc-vp-track"><div class="gc-vp-fill"></div></div><span class="gc-vp-dur">0:00</span><button class="gc-vp-btn gc-vp-mute" type="button"><i class="ph-fill ph-speaker-slash"></i></button><button class="gc-vp-btn gc-vp-full" type="button"><i class="ph-bold ph-corners-out"></i></button><button class="gc-vp-btn gc-vp-dl" type="button"><i class="ph-bold ph-download-simple"></i></button></div>');
 img.replaceWith(wrap);
 gcBindVPlayer(wrap);
 if(window.gcVpObserver) window.gcVpObserver.observe(wrap);
@@ -17302,6 +17254,8 @@ function gcBindVPlayer(wrap){
 const v = wrap.querySelector('video');
 if(!v || wrap.dataset.gcBound) return;
 wrap.dataset.gcBound = '1';
+// force muted default every bind
+v.muted = true;
 const center = wrap.querySelector('.gc-vp-center');
 const cur = wrap.querySelector('.gc-vp-cur');
 const dur = wrap.querySelector('.gc-vp-dur');
@@ -17312,6 +17266,7 @@ const fullBtn = wrap.querySelector('.gc-vp-full');
 const dlBtn = wrap.querySelector('.gc-vp-dl');
 function fmt(s){ s = Math.max(0, Math.round(s || 0)); return Math.floor(s / 60) + ':' + ('0' + (s % 60)).slice(-2); }
 function syncMute(){ muteBtn.innerHTML = v.muted ? '<i class="ph-fill ph-speaker-slash"></i>' : '<i class="ph-fill ph-speaker-high"></i>'; }
+syncMute();
 let gcControlsTimer = null;
 function showControls(){
 wrap.classList.remove('gc-controls-hidden');
@@ -17324,20 +17279,44 @@ function hideControls(){
 if(gcControlsTimer) clearTimeout(gcControlsTimer);
 wrap.classList.add('gc-controls-hidden');
 }
-function toggle(){
+// Play only via center play button
+function playVideo(){
 showControls();
-if(v.paused){ v.gcUserPaused = false; v.play().catch(function(){ v.muted = true; syncMute(); v.play().catch(function(){}); }); }
-else { v.gcUserPaused = true; v.pause(); }
+v.gcUserPaused = false;
+// keep current mute state (default muted)
+const p = v.play();
+if(p) p.catch(function(){ v.muted = true; syncMute(); v.play().catch(function(){}); });
 }
-v.addEventListener('click', function(e){ e.stopPropagation(); showControls(); toggle(); });
-center.addEventListener('click', function(e){ e.stopPropagation(); showControls(); toggle(); });
+// Pause only (one click on video body)
+function pauseVideo(){
+v.gcUserPaused = true;
+v.pause();
+showControls();
+}
+// Video surface: if playing → pause; if paused → just show controls (play only via button)
+v.addEventListener('click', function(e){
+e.stopPropagation();
+if(!v.paused){ pauseVideo(); }
+else { showControls(); }
+});
+// Center play/pause button
+center.addEventListener('click', function(e){
+e.stopPropagation();
+if(v.paused){ playVideo(); }
+else { pauseVideo(); }
+});
 v.addEventListener('play', function(){ center.classList.add('hide'); hideControls(); });
 v.addEventListener('pause', function(){ center.classList.remove('hide'); showControls(); });
 v.addEventListener('ended', function(){ center.classList.remove('hide'); v.gcUserPaused = false; showControls(); });
 v.addEventListener('loadedmetadata', function(){ dur.textContent = fmt(v.duration); });
 v.addEventListener('timeupdate', function(){ cur.textContent = fmt(v.currentTime); if(v.duration) fill.style.width = (v.currentTime / v.duration * 100) + '%'; });
 track.addEventListener('click', function(e){ e.stopPropagation(); showControls(); const r = track.getBoundingClientRect(); const p = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)); if(v.duration) v.currentTime = p * v.duration; });
-muteBtn.addEventListener('click', function(e){ e.stopPropagation(); showControls(); v.muted = !v.muted; syncMute(); });
+muteBtn.addEventListener('click', function(e){
+e.stopPropagation();
+showControls();
+v.muted = !v.muted;
+syncMute();
+});
 function syncFull(){ fullBtn.innerHTML = document.fullscreenElement ? '<i class="ph-bold ph-corners-in"></i>' : '<i class="ph-bold ph-corners-out"></i>'; }
 fullBtn.addEventListener('click', function(e){
 e.stopPropagation();
@@ -17362,13 +17341,23 @@ showToast('⬇️ Download started…');
 });
 wrap.addEventListener('click', function(e){ e.stopPropagation(); });
 }
-// অটো-প্লে অবজারভার (পজ-ফ্ল্যাগ সম্মানকারী)
+// অটো-প্লে: একসাথে একটাই চলে; নতুন ইন-ভিউ → পুরনো পজ, নতুন প্লে (muted)
 window.gcVpObserver = new IntersectionObserver(function(entries){
 entries.forEach(function(en){
 const wrap = en.target; const v = wrap.querySelector('video'); if(!v) return;
 if(en.isIntersecting && en.intersectionRatio >= 0.6){
-document.querySelectorAll('.gc-vplayer video').forEach(function(o){ if(o !== v && !o.paused){ o.pause(); o.gcUserPaused = false; } });
-if(v.paused && !v.gcUserPaused){ v.play().catch(function(){ v.muted = true; v.play().catch(function(){}); }); }
+// stop every other video
+document.querySelectorAll('.gc-vplayer video').forEach(function(o){
+if(o !== v && !o.paused){ o.pause(); o.gcUserPaused = false; }
+});
+// autoplay new one only if user didn't manually pause it
+if(v.paused && !v.gcUserPaused){
+// always autoplay muted
+if(!v.muted){ v.muted = true; }
+const muteBtn = wrap.querySelector('.gc-vp-mute');
+if(muteBtn) muteBtn.innerHTML = '<i class="ph-fill ph-speaker-slash"></i>';
+v.play().catch(function(){ v.muted = true; v.play().catch(function(){}); });
+}
 }else if(en.intersectionRatio < 0.4){
 if(!v.paused) v.pause();
 v.gcUserPaused = false;
@@ -17376,20 +17365,35 @@ v.gcUserPaused = false;
 });
 }, {threshold:[0, 0.4, 0.6, 1]});
 document.querySelectorAll('.gc-vplayer').forEach(function(w){ window.gcVpObserver.observe(w); });
-// পেজ বদলালে সব ভিডিও পজ (সাউন্ড লিক বন্ধ)
+// পেজ বদলালে (feed ছাড়া) সব ভিডিও পজ + মিউট
 window.gcOrigShowPage65 = showPage;
 showPage = function(page){
-document.querySelectorAll('video').forEach(function(v){ if(!v.paused) v.pause(); });
+// home feed ছেড়ে অন্য পেজে গেলেই সব ভিডিও পজ + মিউট
+if(page !== 'feed'){
+gcPauseAllVideos(true);
+}
 return window.gcOrigShowPage65(page);
 };
 if(typeof openSinglePostView === 'function' && !window.gcSpWrapped65){
 window.gcSpWrapped65 = true;
 window.gcOrigSPV65 = openSinglePostView;
 openSinglePostView = function(pid){
-document.querySelectorAll('video').forEach(function(v){ if(!v.paused) v.pause(); });
+gcPauseAllVideos(true);
 return window.gcOrigSPV65(pid);
 };
 }
+// other overlays that leave the feed
+['openChat','closeUserProfile','openProfileEdit','gcOpenInsights'].forEach(function(fn){
+if(typeof window[fn] === 'function' && !window['gcVidWrap_'+fn]){
+window['gcVidWrap_'+fn] = true;
+const orig = window[fn];
+window[fn] = function(){
+gcPauseAllVideos(true);
+return orig.apply(this, arguments);
+};
+}
+});
+
 
 // ═══════════════════════════════════════════════════════
 // 🚀 Update #67 · forgot-password-v2 · 2026-08-12
