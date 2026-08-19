@@ -922,6 +922,40 @@ padding:12px 16px;
 display:flex;align-items:center;
 gap:12px;
 }
+/* Chat wallpaper: full page including top + bottom bars */
+#chat-screen.gc-has-wallpaper{
+background-size:cover !important;
+background-position:center !important;
+background-repeat:no-repeat !important;
+}
+#chat-screen.gc-has-wallpaper > .chat-topbar{
+background:rgba(22,22,31,0.42) !important;
+backdrop-filter:blur(14px);
+-webkit-backdrop-filter:blur(14px);
+border-bottom:1px solid rgba(255,255,255,0.08);
+}
+body.light-mode #chat-screen.gc-has-wallpaper > .chat-topbar{
+background:rgba(255,255,255,0.55) !important;
+border-bottom:1px solid rgba(0,0,0,0.06);
+}
+#chat-screen.gc-has-wallpaper > .chat-messages{
+background:transparent !important;
+}
+#chat-screen.gc-has-wallpaper > .chat-input-bar,
+#chat-screen.gc-has-wallpaper > #chat-input-area{
+background:rgba(22,22,31,0.42) !important;
+backdrop-filter:blur(14px);
+-webkit-backdrop-filter:blur(14px);
+border-top:1px solid rgba(255,255,255,0.08);
+}
+body.light-mode #chat-screen.gc-has-wallpaper > .chat-input-bar,
+body.light-mode #chat-screen.gc-has-wallpaper > #chat-input-area{
+background:rgba(255,255,255,0.55) !important;
+border-top:1px solid rgba(0,0,0,0.06);
+}
+#chat-screen.gc-has-wallpaper #chat-wallpaper-bg{
+display:none !important;
+}
 .chat-back{
 width:36px;height:36px;
 border-radius:50%;
@@ -8823,24 +8857,11 @@ function openChat(chatId, otherUid, otherName, otherAvatar){
         }
     });
     
-        // 🚀 Chat Wallpaper Set Logic (100% Working Full Screen)
-    const chatScreenEl = document.getElementById('chat-screen');
-    const chatMessagesEl = document.getElementById('chat-messages');
-    const wallpaperBg = document.getElementById('chat-wallpaper-bg');
-    
-    if (currentUserData.chatWallpapers && currentUserData.chatWallpapers[chatId]) {
-        const bg = currentUserData.chatWallpapers[chatId];
-        if(wallpaperBg) {
-            wallpaperBg.style.display = 'block';
-            wallpaperBg.style.background = bg;
-        }
-        chatScreenEl.style.background = 'transparent';
-        chatMessagesEl.style.background = 'transparent';
-    } else {
-        if(wallpaperBg) wallpaperBg.style.display = 'none';
-        chatScreenEl.style.background = ''; 
-        chatMessagesEl.style.background = ''; 
-    }
+    // Chat wallpaper — full page (topbar + messages + input)
+    const savedWp = currentUserData && currentUserData.chatWallpapers
+        ? currentUserData.chatWallpapers[chatId]
+        : null;
+    gcApplyChatWallpaper(savedWp || 'default');
 
     if(chatUnsub)chatUnsub();
     chatUnsub=db.collection('chats').doc(chatId).collection('messages').orderBy('createdAt').onSnapshot(snap=>{
@@ -9198,10 +9219,7 @@ showToast('Message deleted');
 
 function closeChat(){
 document.getElementById('chat-screen').classList.remove('open');
-
-// 🚀 চ্যাট বন্ধ করলে ফুল-স্ক্রিন ওয়ালপেপার হাইড করে দেবে
-const wallpaperBg = document.getElementById('chat-wallpaper-bg');
-if(wallpaperBg) wallpaperBg.style.display = 'none';
+gcApplyChatWallpaper('default');
 
 if(chatUnsub)chatUnsub();
 if(onlineUnsub)onlineUnsub();
@@ -12884,32 +12902,46 @@ function closeWallpaperPicker() {
     document.getElementById('wallpaper-modal').classList.remove('open');
 }
 
-async function setChatWallpaper(color) {
-    if (!currentUser || !currentChatId) return;
-
-    // ১. লোকাল ডাটা আপডেট
-    if (!currentUserData.chatWallpapers) currentUserData.chatWallpapers = {};
-    currentUserData.chatWallpapers[currentChatId] = color;
-
-    // ২. UI তে সাথে সাথেই কালার পাল্টে যাবে (পেজ রিফ্রেশ ছাড়াই)
+/** Apply chat wallpaper to full screen (topbar + messages + input bar) */
+function gcApplyChatWallpaper(color) {
     const chatScreenEl = document.getElementById('chat-screen');
     const chatMessagesEl = document.getElementById('chat-messages');
     const wallpaperBg = document.getElementById('chat-wallpaper-bg');
-    
-    if (color === 'default') {
-        if(wallpaperBg) wallpaperBg.style.display = 'none';
+    if (!chatScreenEl) return;
+
+    if (!color || color === 'default') {
+        chatScreenEl.classList.remove('gc-has-wallpaper');
         chatScreenEl.style.background = '';
-        chatMessagesEl.style.background = '';
-    } else {
-        if(wallpaperBg) {
-            wallpaperBg.style.display = 'block';
-            wallpaperBg.style.background = color;
+        chatScreenEl.style.backgroundImage = '';
+        if (chatMessagesEl) chatMessagesEl.style.background = '';
+        if (wallpaperBg) {
+            wallpaperBg.style.display = 'none';
+            wallpaperBg.style.background = '';
         }
-        chatScreenEl.style.background = 'transparent';
-        chatMessagesEl.style.background = 'transparent';
+        return;
     }
 
-    // ৩. ফায়ারবেস ডাটাবেসে সেভ করা (যাতে শুধু এই ইউজারের কাছেই থাকে)
+    chatScreenEl.classList.add('gc-has-wallpaper');
+    // Put wallpaper on the whole chat screen so top + bottom bars sit on top of it
+    chatScreenEl.style.background = color;
+    chatScreenEl.style.backgroundSize = 'cover';
+    chatScreenEl.style.backgroundPosition = 'center';
+    if (chatMessagesEl) chatMessagesEl.style.background = 'transparent';
+    if (wallpaperBg) {
+        wallpaperBg.style.display = 'none';
+        wallpaperBg.style.background = color;
+    }
+}
+
+async function setChatWallpaper(color) {
+    if (!currentUser || !currentChatId) return;
+
+    if (!currentUserData.chatWallpapers) currentUserData.chatWallpapers = {};
+    currentUserData.chatWallpapers[currentChatId] = color;
+
+    gcApplyChatWallpaper(color);
+    closeWallpaperPicker();
+
     try {
         await db.collection('users').doc(currentUser.uid).set({
             chatWallpapers: {
