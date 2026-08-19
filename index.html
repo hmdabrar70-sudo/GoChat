@@ -4586,6 +4586,36 @@ animation:gcFadeIn .25s ease both;
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
+
+/* =========================================
+🚀 Update #94 · hashtag-system-v2 · 2026-08-19
+খুঁজতে: Ctrl+F → "hashtag-system-v2"
+========================================= */
+.gc-hash{color:var(--accent);font-weight:700;cursor:pointer;}
+.gc-hash:active{opacity:.7;}
+.gc-ht-screen{position:fixed;inset:0;background:var(--bg);z-index:100690;display:none;flex-direction:column;}
+.gc-ht-screen.open{display:flex;}
+.gc-ht-head{display:flex;align-items:center;gap:12px;padding:14px 16px;background:var(--surface);border-bottom:1px solid var(--border);}
+.gc-ht-title{font-size:18px;font-weight:800;color:var(--text);flex:1;display:flex;align-items:center;gap:8px;}
+.gc-ht-upd{font-size:10px;font-weight:700;color:var(--text-muted);}
+.gc-ht-body{flex:1;overflow-y:auto;padding:12px 14px;scrollbar-width:none;}
+.gc-ht-body::-webkit-scrollbar{display:none;}
+.gc-ht-tag-item{display:flex;align-items:center;gap:12px;padding:12px;border-radius:16px;background:var(--surface);border:1px solid var(--border);margin-bottom:10px;cursor:pointer;transition:transform .15s;}
+.gc-ht-tag-item:active{transform:scale(.98);}
+.gc-ht-rank{width:30px;height:30px;border-radius:10px;background:var(--accent-glow);color:var(--accent);font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.gc-ht-rank.hot{background:rgba(255,77,106,.12);color:var(--danger);}
+.gc-ht-info{flex:1;min-width:0;}
+.gc-ht-name{font-size:14px;font-weight:800;color:var(--text);}
+.gc-ht-count{font-size:11px;color:var(--text-muted);margin-top:2px;display:flex;align-items:center;gap:4px;}
+.gc-ht-post{display:flex;gap:12px;padding:10px;border-radius:16px;background:var(--surface);border:1px solid var(--border);margin-bottom:10px;cursor:pointer;align-items:center;transition:transform .15s;}
+.gc-ht-post:active{transform:scale(.98);}
+.gc-ht-img{width:56px;height:56px;border-radius:12px;object-fit:cover;background:var(--surface-2);flex-shrink:0;}
+.gc-ht-more{width:100%;padding:12px;border:none;border-radius:14px;background:var(--surface-2);color:var(--accent);font-weight:800;font-size:13px;cursor:pointer;font-family:inherit;}
+.gc-tag-sug{margin:8px 16px 0;background:var(--surface);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow-lg);overflow:hidden;display:none;}
+.gc-tag-sug.show{display:block;}
+.gc-tag-sug-item{padding:10px 14px;font-size:13px;font-weight:700;color:var(--text);cursor:pointer;display:flex;gap:8px;align-items:center;}
+.gc-tag-sug-item i{color:var(--accent);}
+.gc-tag-sug-item:active{background:var(--surface-2);}
 </style>
 </head>
 <body>
@@ -5680,6 +5710,15 @@ animation:gcFadeIn .25s ease both;
             <div style="display:flex; align-items:center; gap:16px;">
                 <i class="ph-bold ph-trophy" style="font-size: 24px; color: var(--text);"></i>
                 <span style="font-weight:600; font-size:15px;">Leaderboard</span>
+            </div>
+            <i class="ph-bold ph-caret-right" style="color:var(--text-muted); font-size:16px;"></i>
+        </div>
+
+        <!-- 🚀 Trending (moved from topbar) -->
+        <div class="settings-list-item" onclick="closeMainMenu(); gcOpenTrending();">
+            <div style="display:flex; align-items:center; gap:16px;">
+                <i class="ph-bold ph-trend-up" style="font-size: 24px; color: var(--accent);"></i>
+                <span style="font-weight:600; font-size:15px;">Trending</span>
             </div>
             <i class="ph-bold ph-caret-right" style="color:var(--text-muted); font-size:16px;"></i>
         </div>
@@ -10219,7 +10258,7 @@ imgUrls.push(url);
 }
     try{
         const expireAt=new Date(Date.now()+ONE_YEAR_MS);
-                const newPostRef = await db.collection('posts').add({
+                const newPostRef = await db.collection('posts').add({ hashtags: gcExtractHashtags((document.getElementById('post-title') || {}).value || ''),
             replyPrivacy: (window.currentPostReplyPrivacy || 'everyone'),
             location: (window.currentPostLocation ? window.currentPostLocation.name : ''),
             uid: currentUser.uid,
@@ -18408,6 +18447,234 @@ function togglePersonalInfo(type) {
         chevron.style.transform = 'rotate(0deg)'; // অ্যারো আইকন আগের মতো হয়ে যাবে
     }
 }
+
+// ═══════════════════════════════════════════════════════
+// 🚀 Update #94 · hashtag-system-v2 · 2026-08-19
+// কস্ট-অপটিমাইজড হ্যাশট্যাগ সিস্টেম (ক্যাশ+পেজিনেশন+ক্যাপ)
+// খুঁজতে: Ctrl+F → "hashtag-system-v2"
+// ═══════════════════════════════════════════════════════
+const GC_HASH_SRC94 = '#[\\p{L}\\p{N}_]{1,30}';
+let GC_RE_G94, GC_RE_S94, GC_RE_SPLIT94, GC_RE_TAIL94;
+try{
+GC_RE_G94 = new RegExp(GC_HASH_SRC94, 'gu');
+GC_RE_S94 = new RegExp('^' + GC_HASH_SRC94 + '$', 'u');
+GC_RE_SPLIT94 = new RegExp('(' + GC_HASH_SRC94 + ')', 'gu');
+GC_RE_TAIL94 = /#[\p{L}\p{N}_]{0,30}$/u;
+}catch(e){
+GC_RE_G94 = /#[a-zA-Z0-9_]{1,30}/g;
+GC_RE_S94 = /^#[a-zA-Z0-9_]{1,30}$/;
+GC_RE_SPLIT94 = /(#[a-zA-Z0-9_]{1,30})/g;
+GC_RE_TAIL94 = /#[a-zA-Z0-9_]{0,30}$/;
+}
+function gcExtractHashtags(text){
+const m = (text || '').match(GC_RE_G94) || [];
+const seen = {}; const out = [];
+m.forEach(function(t){ const tag = t.slice(1).toLowerCase(); if(!seen[tag]){ seen[tag] = 1; out.push(tag); } });
+return out.slice(0, 10);
+}
+// ---------- ট্যাগ ক্যাশ (১০ মিনিট — ট্রেন্ডিং+সার্চ+সাজেশন শেয়ার্ড) ----------
+let gcTagCacheMem = null;
+function gcGetTagCache(){
+const now = Date.now();
+if(gcTagCacheMem && window.gcTagCacheUntil > now) return Promise.resolve(gcTagCacheMem);
+try{
+const raw = localStorage.getItem('gc_tag_cache');
+if(raw){ const o = JSON.parse(raw); if(o.until > now){ gcTagCacheMem = o.list; window.gcTagCacheUntil = o.until; return Promise.resolve(o.list); } }
+}catch(e){}
+return db.collection('hashtagStats').orderBy('weekCount', 'desc').limit(50).get().then(function(snap){
+const weekMs = 604800000; const list = [];
+snap.forEach(function(d){ const t = d.data(); const ws = (t.weekStart && t.weekStart.toMillis) ? t.weekStart.toMillis() : 0; list.push({ tag: t.tag, total: t.total || 0, weekCount: ((now - ws) > weekMs) ? 0 : (t.weekCount || 0), wsMs: ws }); });
+list.sort(function(a, b){ return b.weekCount - a.weekCount; });
+const until = now + 600000;
+gcTagCacheMem = list; window.gcTagCacheUntil = until;
+try{ localStorage.setItem('gc_tag_cache', JSON.stringify({ until: until, list: list })); }catch(e){}
+return list;
+}).catch(function(){ return []; });
+}
+function gcInvalidateTagCache(){ gcTagCacheMem = null; window.gcTagCacheUntil = 0; try{ localStorage.removeItem('gc_tag_cache'); }catch(e){} }
+// ---------- স্ট্যাটস (ক্যাপ ৫ + রাইট-ছাড়া সাপ্তাহিক রিসেট) ----------
+window.gcOrigSubmitPost94 = submitPost;
+submitPost = async function(){
+const ta = document.getElementById('post-title');
+window.gcPendingTags94 = gcExtractHashtags(ta ? ta.value : '').slice(0, 5);
+const r = await window.gcOrigSubmitPost94.apply(this, arguments);
+gcBumpTagStats(window.gcPendingTags94 || []);
+return r;
+};
+function gcBumpTagStats(tags){
+if(!tags.length) return;
+gcGetTagCache().then(function(cache){
+const now = Date.now(); const weekMs = 604800000;
+tags.forEach(function(tag){
+const ref = db.collection('hashtagStats').doc(tag);
+const c = (cache || []).find(function(t){ return t.tag === tag; });
+if(!c){
+ref.set({ tag: tag, total: 1, weekCount: 1, weekStart: firebase.firestore.FieldValue.serverTimestamp(), lastUsed: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true }).catch(function(){});
+}else if((now - (c.wsMs || 0)) > weekMs){
+ref.update({ weekCount: 1, weekStart: firebase.firestore.FieldValue.serverTimestamp(), total: firebase.firestore.FieldValue.increment(1), lastUsed: firebase.firestore.FieldValue.serverTimestamp() }).catch(function(){});
+}else{
+ref.update({ weekCount: firebase.firestore.FieldValue.increment(1), total: firebase.firestore.FieldValue.increment(1), lastUsed: firebase.firestore.FieldValue.serverTimestamp() }).catch(function(){});
+}
+});
+gcInvalidateTagCache();
+}).catch(function(){});
+}
+// ---------- ক্লিকেবল হ্যাশট্যাগ (XSS-সেফ টেক্সট-নোড ওয়াকার) ----------
+function gcLinkifyHashtags(scope){
+if(!scope) return;
+const walker = document.createTreeWalker(scope, NodeFilter.SHOW_TEXT, {
+acceptNode: function(n){
+if(!n.nodeValue || n.nodeValue.indexOf('#') === -1) return NodeFilter.FILTER_SKIP;
+if(n.parentNode && n.parentNode.classList && n.parentNode.classList.contains('gc-hash')) return NodeFilter.FILTER_SKIP;
+if(n.parentNode && n.parentNode.closest && n.parentNode.closest('textarea, input, .gc-ht-screen, .gc-tag-sug')) return NodeFilter.FILTER_SKIP;
+return NodeFilter.FILTER_ACCEPT;
+}
+});
+const nodes = [];
+while(walker.nextNode()) nodes.push(walker.currentNode);
+nodes.forEach(function(n){
+const parts = n.nodeValue.split(GC_RE_SPLIT94);
+if(parts.length < 3) return;
+const frag = document.createDocumentFragment();
+parts.forEach(function(part){
+if(part && GC_RE_S94.test(part)){
+const s = document.createElement('span');
+s.className = 'gc-hash';
+s.textContent = part;
+s.setAttribute('onclick', "event.stopPropagation(); gcOpenHashtag('" + part.slice(1).toLowerCase().replace(/'/g, '') + "')");
+frag.appendChild(s);
+}else if(part){
+frag.appendChild(document.createTextNode(part));
+}
+});
+n.parentNode.replaceChild(frag, n);
+});
+}
+let gcHashRaf94 = false;
+(function gcHashObs94(){
+if(window.gcHashObsOn94) return; window.gcHashObsOn94 = true;
+new MutationObserver(function(){
+if(gcHashRaf94) return; gcHashRaf94 = true;
+requestAnimationFrame(function(){
+gcHashRaf94 = false;
+['feed-actual-container','my-posts-list','other-user-posts-list','single-post-screen','category-posts-list'].forEach(function(id){
+const el = document.getElementById(id);
+if(el) gcLinkifyHashtags(el);
+});
+});
+}).observe(document.body, { childList: true, subtree: true });
+})();
+// ---------- ট্রেন্ডিং + হ্যাশট্যাগ স্ক্রিন ----------
+function gcEnsureHtScreens(){
+if(document.getElementById('gc-trending-screen')) return;
+const t = document.createElement('div');
+t.id = 'gc-trending-screen'; t.className = 'gc-ht-screen';
+t.innerHTML = '<div class="gc-ht-head"><div class="chat-back" onclick="gcCloseTrending()"><i class="ph-bold ph-arrow-left" style="font-size:20px;"></i></div><div class="gc-ht-title"><i class="ph-bold ph-trend-up" style="color:var(--accent);"></i> Trending <span class="gc-ht-upd" id="gc-trend-upd"></span></div></div><div class="gc-ht-body" id="gc-trending-list"></div>';
+document.body.appendChild(t);
+const h = document.createElement('div');
+h.id = 'gc-hashtag-screen'; h.className = 'gc-ht-screen';
+h.innerHTML = '<div class="gc-ht-head"><div class="chat-back" onclick="gcCloseHashtag()"><i class="ph-bold ph-arrow-left" style="font-size:20px;"></i></div><div class="gc-ht-title" id="gc-hashtag-title"><i class="ph-bold ph-hash" style="color:var(--accent);"></i> tag</div></div><div class="gc-ht-body" id="gc-hashtag-list"></div>';
+document.body.appendChild(h);
+}
+function gcOpenTrending(){ gcEnsureHtScreens(); document.getElementById('gc-trending-screen').classList.add('open'); gcLoadTrending(); }
+function gcCloseTrending(){ const s = document.getElementById('gc-trending-screen'); if(s) s.classList.remove('open'); }
+async function gcLoadTrending(){
+const list = document.getElementById('gc-trending-list');
+list.innerHTML = '<div class="gc-sk-grid"><div class="gc-sk-tile"></div><div class="gc-sk-tile" style="animation-delay:.08s"></div><div class="gc-sk-tile" style="animation-delay:.16s"></div><div class="gc-sk-tile" style="animation-delay:.24s"></div></div>';
+const tags = await gcGetTagCache();
+const upd = document.getElementById('gc-trend-upd');
+if(upd && window.gcTagCacheUntil){ upd.textContent = '· updated ' + Math.max(0, Math.round((Date.now() - (window.gcTagCacheUntil - 600000)) / 60000)) + 'm ago'; }
+const top = tags.filter(function(t){ return t.weekCount > 0; }).slice(0, 20);
+if(!top.length){ list.innerHTML = '<div style="text-align:center;padding:60px 20px;color:var(--text-muted);"><i class="ph-bold ph-trend-up" style="font-size:44px;"></i><div style="margin-top:12px;font-weight:800;color:var(--text);">No trending tags yet</div><div style="font-size:12px;margin-top:4px;">Use #hashtags in your posts to start a trend!</div></div>'; return; }
+list.innerHTML = top.map(function(t, i){
+return '<div class="gc-ht-tag-item" onclick="gcOpenHashtag(\'' + String(t.tag).replace(/'/g, '') + '\')"><div class="gc-ht-rank' + (i < 3 ? ' hot' : '') + '">' + (i + 1) + '</div><div class="gc-ht-info"><div class="gc-ht-name">#' + escapeHTML(t.tag) + '</div><div class="gc-ht-count"><i class="ph-fill ph-fire" style="color:var(--danger);font-size:12px;"></i>' + t.weekCount + ' this week · ' + t.total + ' total</div></div><i class="ph-bold ph-chevron-right" style="color:var(--text-muted);"></i></div>';
+}).join('');
+}
+let gcHashPageLast = null;
+async function gcOpenHashtag(tag, more){
+gcEnsureHtScreens();
+document.getElementById('gc-hashtag-screen').classList.add('open');
+document.getElementById('gc-hashtag-title').innerHTML = '<i class="ph-bold ph-hash" style="color:var(--accent);"></i> ' + escapeHTML(tag);
+const list = document.getElementById('gc-hashtag-list');
+if(!more){
+list.innerHTML = '<div class="gc-sk-grid"><div class="gc-sk-tile"></div><div class="gc-sk-tile" style="animation-delay:.08s"></div><div class="gc-sk-tile" style="animation-delay:.16s"></div><div class="gc-sk-tile" style="animation-delay:.24s"></div></div>';
+gcHashPageLast = null;
+}
+try{
+let q = db.collection('posts').where('hashtags', 'array-contains', tag).limit(20);
+if(more && gcHashPageLast) q = q.startAfter(gcHashPageLast);
+const snap = await q.get();
+if(snap.docs.length) gcHashPageLast = snap.docs[snap.docs.length - 1];
+const posts = []; snap.forEach(function(d){ posts.push({ id: d.id, ...d.data() }); });
+posts.sort(function(a, b){ const ta = (a.createdAt && a.createdAt.toMillis) ? a.createdAt.toMillis() : 0; const tb = (b.createdAt && b.createdAt.toMillis) ? b.createdAt.toMillis() : 0; return tb - ta; });
+if(!more && !posts.length){ list.innerHTML = '<div style="text-align:center;padding:60px 20px;color:var(--text-muted);"><i class="ph-bold ph-hash" style="font-size:44px;"></i><div style="margin-top:12px;font-weight:800;color:var(--text);">No posts for #' + escapeHTML(tag) + '</div><div style="font-size:12px;margin-top:4px;">Be the first to post with this tag!</div></div>'; return; }
+const html = posts.map(function(p){
+const u = (window.allUsersCache || []).find(function(x){ return x.id === p.uid; }) || {};
+const img = (p.imgUrls && p.imgUrls[0]) || p.videoUrl || '';
+return '<div class="gc-ht-post" onclick="gcCloseHashtag(); openSinglePostView(\'' + p.id + '\')">' + (img ? '<img class="gc-ht-img" src="' + escapeHTML(img) + '">' : '<div class="gc-ht-img" style="display:flex;align-items:center;justify-content:center;"><i class="ph-bold ph-text-aa" style="color:var(--text-muted);"></i></div>') + '<div class="gc-ht-info"><div class="gc-ht-name">' + escapeHTML(u.name || 'User') + '</div><div class="gc-ht-count" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + escapeHTML(p.title || '(no caption)') + '</div></div></div>';
+}).join('');
+if(more){ const om = list.querySelector('.gc-ht-more'); if(om) om.remove(); list.insertAdjacentHTML('beforeend', html); }
+else list.innerHTML = html;
+if(snap.size === 20) list.insertAdjacentHTML('beforeend', '<button class="gc-ht-more" onclick="gcOpenHashtag(\'' + String(tag).replace(/'/g, '') + '\', true)">Load more</button>');
+}catch(e){ if(!more) list.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted);font-size:13px;">Failed to load posts.</div>'; }
+}
+function gcCloseHashtag(){ const s = document.getElementById('gc-hashtag-screen'); if(s) s.classList.remove('open'); }
+// ---------- টপবার ট্রেন্ডিং বাটন সরানো — এখন মেনুতে Category-এর উপরে ----------
+// ---------- সার্চে হ্যাশট্যাগ (ক্যাশ-ফিল্টার, রিড শূন্য) ----------
+(function gcHashSearch94(){
+if(window.gcHashSearchOn94) return; window.gcHashSearchOn94 = true;
+setInterval(function(){
+const inp = document.querySelector('#page-search input') || document.querySelector('input[placeholder*="Search"]');
+if(!inp || inp.dataset.gcHash2) return;
+inp.dataset.gcHash2 = '1';
+inp.addEventListener('input', function(){
+const q = inp.value.trim();
+if(q.charAt(0) !== '#') return;
+const prefix = q.slice(1).toLowerCase();
+setTimeout(async function(){
+if((inp.value || '').trim() !== q) return;
+const list = await gcGetTagCache();
+const matches = list.filter(function(t){ return !prefix || (t.tag || '').indexOf(prefix) === 0; }).slice(0, 10);
+const cont = document.getElementById('search-results-list');
+if(cont && matches.length){
+cont.innerHTML = matches.map(function(t){
+return '<div class="gc-ht-tag-item" onclick="gcOpenHashtag(\'' + String(t.tag).replace(/'/g, '') + '\')"><div class="gc-ht-rank"><i class="ph-bold ph-hash"></i></div><div class="gc-ht-info"><div class="gc-ht-name">#' + escapeHTML(t.tag) + '</div><div class="gc-ht-count">' + t.total + ' posts</div></div></div>';
+}).join('');
+}
+}, 300);
+});
+}, 1500);
+})();
+// ---------- কম্পোজারে লাইভ সাজেশন (ক্যাশ থেকে) ----------
+(function gcComposerTagSug94(){
+if(window.gcTagSugOn94) return; window.gcTagSugOn94 = true;
+let box = null;
+document.addEventListener('input', function(e){
+if(!e.target || e.target.id !== 'post-title') return;
+const v = e.target.value || '';
+const tail = v.split(/\s/).pop();
+if(tail && tail.charAt(0) === '#' && GC_RE_TAIL94.test(tail)){
+const pre = tail.slice(1).toLowerCase();
+gcGetTagCache().then(function(list){
+const matches = list.filter(function(t){ return (t.tag || '').indexOf(pre) === 0; }).slice(0, 5);
+if(!box){ box = document.createElement('div'); box.className = 'gc-tag-sug'; e.target.insertAdjacentElement('afterend', box); }
+if(!matches.length){ box.classList.remove('show'); return; }
+box.innerHTML = matches.map(function(t){
+return '<div class="gc-tag-sug-item" data-tag="' + escapeHTML(t.tag) + '"><i class="ph-bold ph-hash"></i>#' + escapeHTML(t.tag) + '</div>';
+}).join('');
+box.classList.add('show');
+box.querySelectorAll('.gc-tag-sug-item').forEach(function(el){
+el.onclick = function(){
+const tag = el.getAttribute('data-tag');
+e.target.value = v.replace(GC_RE_TAIL94, '#' + tag + ' ');
+box.classList.remove('show');
+e.target.focus();
+};
+});
+});
+}else if(box){ box.classList.remove('show'); }
+});
+})();
 </script>
 </body>
 </html>
