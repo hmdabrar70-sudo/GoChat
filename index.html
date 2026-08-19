@@ -8335,15 +8335,51 @@ async function submitReply(pid, idx) {
 
 // ===== OTHER PROFILE LOGIC =====
 async function viewUserProfile(uid){
-    if(uid===currentUser.uid){
+    if(!uid) return;
+    if(currentUser && uid === currentUser.uid){
         showPage('profile');
         return;
     }
-    currentOtherProfileUid=uid;
+
+    // Early ban / block gates (before opening UI)
+    if(typeof gcIsBanned === 'function' && gcIsBanned(uid)){
+        if(typeof gcShowBanScreen === 'function') gcShowBanScreen(uid, false);
+        return;
+    }
+    if(typeof gcIsBlockedByMe === 'function' && gcIsBlockedByMe(uid)){
+        if(typeof gcShowBlockedError === 'function') gcShowBlockedError(uid);
+        return;
+    }
+
+    let doc;
+    try {
+        doc = await db.collection('users').doc(uid).get();
+    } catch(e) {
+        return;
+    }
+    if(!doc.exists) return;
+    const u = doc.data();
+
+    if(typeof gcIsBanned === 'function' && gcIsBanned(uid, u)){
+        if(typeof gcShowBanScreen === 'function') gcShowBanScreen(uid, false);
+        return;
+    }
+    if(currentUser && (u.blockedUsers || []).includes(currentUser.uid)){
+        if(typeof gcShowBlockedError === 'function') gcShowBlockedError(uid);
+        return;
+    }
+
+    // Profile views (merged from insights wrapper)
+    if(currentUser && uid !== currentUser.uid){
+        try {
+            db.collection('users').doc(uid).update({
+                profileViews: firebase.firestore.FieldValue.increment(1)
+            });
+        } catch(e) {}
+    }
+
+    currentOtherProfileUid = uid;
     document.getElementById('page-other-profile').classList.add('open');
-    const doc=await db.collection('users').doc(uid).get();
-    if(!doc.exists)return;
-    const u=doc.data();
     
     const safeName=escapeHTML(u.name);
     const verifiedBadge = getVerifiedBadge(u.email, u.isVerified);
@@ -10736,10 +10772,9 @@ ${gcDisplayName}
 </div>
 `;
     
-        // 🚀 প্রোফাইলে ইউজারনেম দেখানোর কোড
+    // Username badge
     const myUsernameBadge = document.getElementById('profile-username-badge');
     const myUsernameText = document.getElementById('profile-username-text');
-
     if (myUsernameBadge && myUsernameText) {
         if (currentUserData.username && currentUserData.username.trim() !== '') {
             myUsernameBadge.style.display = 'block';
@@ -10749,21 +10784,11 @@ ${gcDisplayName}
         }
     }
 
-    const setSafeHTML=(id,html)=>{const el=document.getElementById(id);if(el)el.innerHTML=html;};
+    const setSafeHTML = (id, html) => { const el = document.getElementById(id); if (el) el.innerHTML = html; };
     setSafeHTML('modal-composer-avatar', avHtml);
-    setSafeHTML('modal-composer-name', safeName + verifiedBadge); // পোস্ট করার স্ক্রিনের জন্য
-    setSafeHTML('profile-name-display', nameHtml); // মেইন প্রোফাইল নাম ও ব্যাজ
+    setSafeHTML('modal-composer-name', safeName + verifiedBadge);
+    setSafeHTML('profile-name-display', nameHtml);
     setSafeHTML('profile-avatar-big', avHtml);
-        // 🚀 নিজের প্রোফাইলে ইউজারনেম শো করা
-    const usernameDisplay = document.getElementById('profile-username-display');
-    if (usernameDisplay) {
-        if (currentUserData.username) {
-            usernameDisplay.style.display = 'block';
-            usernameDisplay.textContent = '@' + currentUserData.username;
-        } else {
-            usernameDisplay.style.display = 'none';
-        }
-    }
 
     
        // 🚀 নেভিগেশন বারে ইউজারের ছবি আপডেট করার লজিক
@@ -12170,70 +12195,87 @@ function updateGalleryUI() {
 
 async function loadGalleryImages() {
     const grid = document.getElementById('gallery-grid');
+    if (!grid) return;
+
     grid.innerHTML = '<div class="loading" style="grid-column: span 3; text-align:center; padding: 40px;"><span class="material-symbols-outlined">autorenew</span> Loading...</div>';
-    
+
+    if (!currentUser || !currentUser.uid) {
+        grid.innerHTML = '<div class="empty-feed" style="grid-column: span 3;">Please log in to view your gallery.</div>';
+        return;
+    }
+
     try {
         const snap = await db.collection('posts').where('uid', '==', currentUser.uid).get();
         let allImages = [];
-        
+
         snap.forEach(doc => {
-            const data = doc.data();
+            const data = doc.data() || {};
             let urls = [];
-            // ডাটাবেস থেকে ছবিগুলো নেওয়া হচ্ছে
-            if(data.imgUrls && data.imgUrls.length > 0) urls = data.imgUrls;
-            else if(data.imgUrl) urls = [data.imgUrl];
-            
-            // সিরিয়াল নম্বর (imgIndex) সহ সেভ করা হচ্ছে
+            if (Array.isArray(data.imgUrls) && data.imgUrls.length > 0) {
+                urls = data.imgUrls;
+            } else if (data.imgUrl) {
+                urls = [data.imgUrl];
+            }
+
             urls.forEach((url, index) => {
-                allImages.push({ 
-                    postId: doc.id, 
-                    imgUrl: url, 
-                    imgIndex: index, 
-                    createdAt: data.createdAt 
+                if (!url || typeof url !== 'string') return;
+                // Skip video URLs (images only)
+                if (url.indexOf('/video/') !== -1 || /\.mp4(\?|$)/i.test(url) || /\.webm(\?|$)/i.test(url)) return;
+                allImages.push({
+                    postId: doc.id,
+                    imgUrl: url,
+                    imgIndex: index,
+                    createdAt: data.createdAt
                 });
             });
         });
-        
-                // 🚀 Premium Reach Algorithm (গোল্ডেন ব্যাজ ইউজারদের পোস্ট বুস্ট করা)
-        posts.sort((a, b) => {
-            const ta = a.createdAt?.toMillis ? a.createdAt.toMillis() : 0;
-            const tb = b.createdAt?.toMillis ? b.createdAt.toMillis() : 0;
-            
-            let boostA = 0;
-            let boostB = 0;
-            
-            if (typeof allUsersCache !== 'undefined' && allUsersCache) {
-                const userA = allUsersCache.find(u => u.id === a.uid);
-                const userB = allUsersCache.find(u => u.id === b.uid);
-                // 🚀 যদি গোল্ডেন ব্যাজ থাকে, তবে তাদের পোস্টে ৩ ঘণ্টার (3 hours) এক্সট্রা 'রিচ বুস্ট' দেওয়া হবে
-                if (userA && userA.isVerified === true) boostA = 3 * 60 * 60 * 1000; 
-                if (userB && userB.isVerified === true) boostB = 3 * 60 * 60 * 1000;
-            }
-            
-            // বুস্ট পাওয়ার কারণে প্রিমিয়াম ইউজারদের পোস্ট ফিডের ওপরের দিকে থাকবে
-            return (tb + boostB) - (ta + boostA); 
+
+        // Newest first
+        allImages.sort((a, b) => {
+            const ta = a.createdAt && a.createdAt.toMillis ? a.createdAt.toMillis() : 0;
+            const tb = b.createdAt && b.createdAt.toMillis ? b.createdAt.toMillis() : 0;
+            return tb - ta;
         });
-        
-        if(allImages.length === 0) {
+
+        if (allImages.length === 0) {
             grid.innerHTML = '<div class="empty-feed" style="grid-column: span 3;">No images found in your gallery.</div>';
             return;
         }
-        
-        let html = '';
+
+        const frag = document.createDocumentFragment();
         allImages.forEach(img => {
-            const safeUrl = escapeHTML(img.imgUrl);
-            // এখানে শুধু postId এবং imgIndex (number হিসেবে) পাস করা হলো
-            html += `
-            <div class="gallery-item ${isGalleryEditMode ? 'edit-mode' : ''}" onclick="handleGalleryItemClick('${img.postId}', ${img.imgIndex}, '${safeUrl}', this)">
-                <img src="${safeUrl}">
-                <div class="select-overlay">
-                    <span class="material-symbols-outlined select-icon">check_circle</span>
-                </div>
-            </div>`;
+            const item = document.createElement('div');
+            item.className = 'gallery-item' + (isGalleryEditMode ? ' edit-mode' : '');
+            item.dataset.postId = img.postId;
+            item.dataset.imgIndex = String(img.imgIndex);
+            item.dataset.imgUrl = img.imgUrl;
+
+            const imgEl = document.createElement('img');
+            imgEl.src = img.imgUrl;
+            imgEl.alt = 'Gallery';
+            imgEl.loading = 'lazy';
+            item.appendChild(imgEl);
+
+            const overlay = document.createElement('div');
+            overlay.className = 'select-overlay';
+            overlay.innerHTML = '<span class="material-symbols-outlined select-icon">check_circle</span>';
+            item.appendChild(overlay);
+
+            item.addEventListener('click', function () {
+                handleGalleryItemClick(img.postId, img.imgIndex, img.imgUrl, item);
+            });
+
+            frag.appendChild(item);
         });
-        grid.innerHTML = html;
-    } catch(e) {
-        grid.innerHTML = '<div class="empty-feed" style="grid-column: span 3;">Failed to load gallery</div>';
+
+        grid.innerHTML = '';
+        grid.appendChild(frag);
+    } catch (e) {
+        console.error('Gallery load error:', e);
+        const msg = (e && e.code === 'permission-denied')
+            ? 'Permission denied. Check Firestore rules.'
+            : (e && e.message ? e.message : 'Failed to load gallery');
+        grid.innerHTML = '<div class="empty-feed" style="grid-column: span 3;">' + escapeHTML(msg) + '</div>';
     }
 }
 
@@ -16437,19 +16479,7 @@ gcCloseBlockedError();
 if(typeof unblockUser === 'function') unblockUser(uid);
 }
 // ১) প্রোফাইল গেট
-if(!window.gcBlockProfileWrapped){
-window.gcBlockProfileWrapped = true;
-window.gcOrigViewUserProfile = viewUserProfile;
-viewUserProfile = async function(uid){
-if(!currentUser || uid === currentUser.uid) return window.gcOrigViewUserProfile(uid);
-if(gcIsBlockedByMe(uid)){ gcShowBlockedError(uid); return; }
-try{
-const doc = await db.collection('users').doc(uid).get();
-if(doc.exists && (doc.data().blockedUsers || []).includes(currentUser.uid)){ gcShowBlockedError(uid); return; }
-}catch(e){}
-return window.gcOrigViewUserProfile(uid);
-};
-}
+// Profile block gate merged into viewUserProfile — wrapper removed
 // ২) চ্যাট গেট
 if(!window.gcBlockChatWrapped){
 window.gcBlockChatWrapped = true;
@@ -16521,21 +16551,7 @@ function gcBanLogout(){
 gcCloseBanScreen();
 try{ firebase.auth().signOut(); }catch(e){}
 }
-// ১) প্রোফাইল গেট
-if(!window.gcBanProfileWrapped){
-window.gcBanProfileWrapped = true;
-window.gcOrigViewUserProfile39 = viewUserProfile;
-viewUserProfile = async function(uid){
-if(currentUser && uid !== currentUser.uid){
-if(gcIsBanned(uid)){ gcShowBanScreen(uid, false); return; }
-try{
-const doc = await db.collection('users').doc(uid).get();
-if(doc.exists && gcIsBanned(uid, doc.data())){ gcShowBanScreen(uid, false); return; }
-}catch(e){}
-}
-return window.gcOrigViewUserProfile39(uid);
-};
-}
+// Profile ban gate merged into viewUserProfile — wrapper removed
 // ২) চ্যাট গেট
 if(!window.gcBanChatWrapped){
 window.gcBanChatWrapped = true;
@@ -16593,17 +16609,7 @@ btn.onclick = function(e){ e.preventDefault(); e.stopPropagation(); gcOpenInsigh
 }
 }, 2000);
 })();
-// Profile Views কাউন্টার (কেউ প্রোফাইল খুললে +1)
-if(!window.gcInsProfileWrapped){
-window.gcInsProfileWrapped = true;
-window.gcOrigViewUserProfile41 = viewUserProfile;
-viewUserProfile = async function(uid){
-if(currentUser && uid && uid !== currentUser.uid){
-try{ db.collection('users').doc(uid).update({ profileViews: firebase.firestore.FieldValue.increment(1) }); }catch(e){}
-}
-return window.gcOrigViewUserProfile41(uid);
-};
-}
+// Profile views increment merged into viewUserProfile — wrapper removed
 // দৈনিক স্ন্যাপশট (ফলোয়ার গ্রোথের ইতিহাস)
 async function gcEnsureStatsHistory(){
 try{
