@@ -4616,6 +4616,35 @@ animation:gcFadeIn .25s ease both;
 .gc-tag-sug-item{padding:10px 14px;font-size:13px;font-weight:700;color:var(--text);cursor:pointer;display:flex;gap:8px;align-items:center;}
 .gc-tag-sug-item i{color:var(--accent);}
 .gc-tag-sug-item:active{background:var(--surface-2);}
+
+/* =========================================
+🚀 Update #95 · login-activity · 2026-08-19
+ডিভাইস লগইন মনিটর (রিয়েল-টাইম)
+খুঁজতে: Ctrl+F → "login-activity"
+========================================= */
+.gc-sess-screen{position:fixed;inset:0;background:var(--bg);z-index:100710;display:none;flex-direction:column;}
+.gc-sess-screen.open{display:flex;}
+.gc-sess-head{display:flex;align-items:center;gap:12px;padding:14px 16px;background:var(--surface);border-bottom:1px solid var(--border);}
+.gc-sess-title{font-size:16px;font-weight:800;color:var(--text);flex:1;line-height:1.3;}
+.gc-sess-body{flex:1;overflow-y:auto;padding:14px 16px;scrollbar-width:none;}
+.gc-sess-body::-webkit-scrollbar{display:none;}
+.gc-sess-allbtn{width:100%;padding:12px;border:none;border-radius:14px;background:rgba(255,77,106,.12);color:var(--danger);font-weight:800;font-size:13px;cursor:pointer;font-family:inherit;margin-bottom:14px;display:flex;align-items:center;justify-content:center;gap:8px;}
+.gc-sess-item{display:flex;gap:12px;align-items:flex-start;padding:14px;border-radius:18px;background:var(--surface);border:1px solid var(--border);margin-bottom:10px;}
+.gc-sess-item.me{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow);}
+.gc-sess-ico{width:44px;height:44px;border-radius:14px;background:var(--surface-2);color:var(--text-muted);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;position:relative;}
+.gc-sess-ico.on{color:#22c55e;}
+.gc-sess-ico.on::after{content:'';position:absolute;top:-2px;right:-2px;width:10px;height:10px;border-radius:50%;background:#22c55e;box-shadow:0 0 0 3px var(--surface);animation:gcSessPulse 1.6s ease-in-out infinite;}
+@keyframes gcSessPulse{0%,100%{transform:scale(1);opacity:1;}50%{transform:scale(1.25);opacity:.7;}}
+.gc-sess-info{flex:1;min-width:0;}
+.gc-sess-dev{font-size:14px;font-weight:800;color:var(--text);display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.gc-sess-cur{font-size:10px;font-weight:800;color:var(--accent);background:var(--accent-glow);padding:2px 8px;border-radius:8px;text-transform:uppercase;letter-spacing:.4px;}
+.gc-sess-meta{font-size:11.5px;color:var(--text-muted);margin-top:3px;display:flex;align-items:center;gap:5px;}
+.gc-sess-meta i{font-size:12px;}
+.gc-sess-status{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:800;padding:3px 9px;border-radius:8px;margin-top:6px;}
+.gc-sess-status.on{background:rgba(34,197,94,.12);color:#16a34a;}
+.gc-sess-status.off{background:var(--surface-2);color:var(--text-muted);}
+.gc-sess-out{border:none;background:var(--surface-2);color:var(--danger);width:34px;height:34px;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
+.gc-sess-empty{text-align:center;color:var(--text-muted);padding:50px 10px;font-size:13px;}
 </style>
 </head>
 <body>
@@ -5583,6 +5612,15 @@ animation:gcFadeIn .25s ease both;
                     <div style="display:flex; align-items:center; gap:16px;">
                         <i class="ph-bold ph-user-circle" style="font-size: 24px; color: var(--text);"></i>
                         <span style="font-weight:600; font-size:15px;">Account info</span>
+                    </div>
+                    <i class="ph-bold ph-caret-right" style="color:var(--text-muted); font-size:16px;"></i>
+                </div>
+
+                <!-- 🚀 NEW: See where the login is Menu Item -->
+                <div class="settings-list-item" onclick="openLoginDevicesScreen()">
+                    <div style="display:flex; align-items:center; gap:16px;">
+                        <i class="ph-bold ph-laptop" style="font-size: 24px; color: var(--text);"></i>
+                        <span style="font-weight:600; font-size:15px;">See where the login is</span>
                     </div>
                     <i class="ph-bold ph-caret-right" style="color:var(--text-muted); font-size:16px;"></i>
                 </div>
@@ -18674,6 +18712,193 @@ e.target.focus();
 });
 }else if(box){ box.classList.remove('show'); }
 });
+})();
+
+// ═══════════════════════════════════════════════════════
+// 🚀 Update #95 · login-activity · 2026-08-19
+// ডিভাইস লগইন মনিটর + রিমোট লগআউট (রিয়েল-টাইম)
+// খুঁজতে: Ctrl+F → "login-activity"
+// ═══════════════════════════════════════════════════════
+let gcSessionsData = [];
+function gcGetDeviceId(){
+let id = null;
+try{ id = localStorage.getItem('gc_device_id'); }catch(e){}
+if(!id){ id = 'dev_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8); try{ localStorage.setItem('gc_device_id', id); }catch(e){} }
+return id;
+}
+function gcParseDevice(){
+const ua = navigator.userAgent;
+let browser = 'Browser';
+if(/Edg\//.test(ua)) browser = 'Edge';
+else if(/Chrome\//.test(ua)) browser = 'Chrome';
+else if(/Firefox\//.test(ua)) browser = 'Firefox';
+else if(/Safari\//.test(ua)) browser = 'Safari';
+let os = 'Unknown';
+if(/Android/.test(ua)) os = 'Android';
+else if(/iPhone|iPad|iPod/.test(ua)) os = 'iOS';
+else if(/Windows/.test(ua)) os = 'Windows';
+else if(/Mac OS/.test(ua)) os = 'macOS';
+else if(/Linux/.test(ua)) os = 'Linux';
+return { name: browser + ' · ' + os, mobile: /Mobi|Android|iPhone/.test(ua) };
+}
+async function gcGetLoc(){
+try{
+const c = new AbortController(); const t = setTimeout(function(){ c.abort(); }, 4000);
+const r = await fetch('https://ipwho.is/', { signal: c.signal });
+clearTimeout(t);
+const d = await r.json();
+if(d && d.city) return d.city + (d.country ? ', ' + d.country : '');
+}catch(e){}
+return 'Unknown location';
+}
+function gcAgo(ms){
+const s = Math.floor((Date.now() - ms) / 1000);
+if(s < 60) return 'Just now';
+const m = Math.floor(s / 60); if(m < 60) return m + 'm ago';
+const h = Math.floor(m / 60); if(h < 24) return h + 'h ago';
+return Math.floor(h / 24) + 'd ago';
+}
+function gcSessCol(){ return db.collection('users').doc(currentUser.uid).collection('loginSessions'); }
+async function gcStartSessionTracking(){
+const devId = gcGetDeviceId();
+const dev = gcParseDevice();
+let sid = null;
+try{ sid = localStorage.getItem('gc_cur_session_' + currentUser.uid); }catch(e){}
+let needNew = false;
+try{ needNew = localStorage.getItem('gc_need_new_session_' + currentUser.uid) === '1'; }catch(e){}
+try{
+if(needNew || !sid){
+try{ localStorage.removeItem('gc_need_new_session_' + currentUser.uid); }catch(e){}
+const loc = await gcGetLoc();
+const ref = await gcSessCol().add({ deviceId: devId, device: dev.name, mobile: dev.mobile, location: loc, loginAt: firebase.firestore.FieldValue.serverTimestamp(), lastActiveAt: firebase.firestore.FieldValue.serverTimestamp(), active: true, forceLogout: false });
+sid = ref.id;
+try{ localStorage.setItem('gc_cur_session_' + currentUser.uid, sid); }catch(e){}
+}else{
+await gcSessCol().doc(sid).update({ active: true, lastActiveAt: firebase.firestore.FieldValue.serverTimestamp() }).catch(function(){});
+}
+}catch(e){}
+window.gcMySessionId = sid;
+gcListenSessions();
+if(window.gcHbInt) clearInterval(window.gcHbInt);
+window.gcHbInt = setInterval(function(){
+if(currentUser && window.gcMySessionId){
+gcSessCol().doc(window.gcMySessionId).update({ active: true, lastActiveAt: firebase.firestore.FieldValue.serverTimestamp() }).catch(function(){});
+}
+}, 90000);
+}
+function gcMarkInactive(){
+if(currentUser && window.gcMySessionId){
+gcSessCol().doc(window.gcMySessionId).update({ active: false, lastActiveAt: firebase.firestore.FieldValue.serverTimestamp() }).catch(function(){});
+}
+}
+document.addEventListener('visibilitychange', function(){
+if(!currentUser || !window.gcMySessionId) return;
+if(document.visibilityState === 'hidden') gcMarkInactive();
+else gcSessCol().doc(window.gcMySessionId).update({ active: true, lastActiveAt: firebase.firestore.FieldValue.serverTimestamp() }).catch(function(){});
+});
+function gcListenSessions(){
+if(window.gcSessUnsub){ try{ window.gcSessUnsub(); }catch(e){} }
+window.gcSessUnsub = gcSessCol().orderBy('loginAt', 'desc').limit(10).onSnapshot(function(snap){
+gcSessionsData = [];
+snap.forEach(function(d){ gcSessionsData.push({ id: d.id, ...d.data() }); });
+const mine = gcSessionsData.find(function(s){ return s.id === window.gcMySessionId; });
+if(mine && mine.forceLogout){
+showToast('🔒 Logged out from another device');
+auth.signOut();
+return;
+}
+snap.docChanges().forEach(function(ch){
+if(ch.type === 'added' && ch.doc.id !== window.gcMySessionId){
+const d = ch.doc.data();
+const lm = d.loginAt && d.loginAt.toMillis ? d.loginAt.toMillis() : 0;
+if(lm && Date.now() - lm < 15000) showToast('🔐 New login: ' + (d.device || 'Unknown device'));
+}
+});
+const scr = document.getElementById('gc-sess-screen');
+if(scr && scr.classList.contains('open')) gcRenderSessions();
+}, function(){});
+}
+// ---------- UI ----------
+function gcEnsureSessionsScreen(){
+let s = document.getElementById('gc-sess-screen');
+if(s) return s;
+s = document.createElement('div');
+s.id = 'gc-sess-screen'; s.className = 'gc-sess-screen';
+s.innerHTML = '<div class="gc-sess-head"><div class="chat-back" onclick="gcCloseSessions()"><i class="ph-bold ph-arrow-left" style="font-size:20px;"></i></div><div class="gc-sess-title">See when and where you logged in</div></div><div class="gc-sess-body" id="gc-sess-list"></div>';
+document.body.appendChild(s);
+return s;
+}
+function gcOpenSessions(){
+gcEnsureSessionsScreen();
+document.getElementById('gc-sess-screen').classList.add('open');
+gcRenderSessions();
+}
+function gcCloseSessions(){ const s = document.getElementById('gc-sess-screen'); if(s) s.classList.remove('open'); }
+window.openLoginDevicesScreen = gcOpenSessions;
+function gcRenderSessions(){
+const list = document.getElementById('gc-sess-list');
+if(!list) return;
+if(!gcSessionsData.length){ list.innerHTML = '<div class="gc-sess-empty">No login activity yet.</div>'; return; }
+const now = Date.now();
+let html = '';
+if(gcSessionsData.length > 1){
+html += '<button class="gc-sess-allbtn" onclick="gcLogoutAllOthers()"><i class="ph-bold ph-sign-out"></i> Log out all other devices</button>';
+}
+html += gcSessionsData.map(function(s){
+const isMe = s.id === window.gcMySessionId;
+const lastMs = s.lastActiveAt && s.lastActiveAt.toMillis ? s.lastActiveAt.toMillis() : 0;
+const activeNow = isMe ? true : (s.active === true && (now - lastMs) < 240000);
+const loginMs = s.loginAt && s.loginAt.toMillis ? s.loginAt.toMillis() : now;
+const dateStr = new Date(loginMs).toLocaleString(undefined, { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+return '<div class="gc-sess-item' + (isMe ? ' me' : '') + '">' +
+'<div class="gc-sess-ico' + (activeNow ? ' on' : '') + '"><i class="' + (s.mobile ? 'ph-fill ph-device-mobile' : 'ph-fill ph-laptop') + '"></i></div>' +
+'<div class="gc-sess-info"><div class="gc-sess-dev">' + escapeHTML(s.device || 'Unknown device') + (isMe ? ' <span class="gc-sess-cur">This device</span>' : '') + '</div>' +
+'<div class="gc-sess-meta"><i class="ph-bold ph-map-pin"></i>' + escapeHTML(s.location || 'Unknown location') + '</div>' +
+'<div class="gc-sess-meta"><i class="ph-bold ph-clock"></i>' + dateStr + ' · ' + gcAgo(loginMs) + '</div>' +
+'<span class="gc-sess-status ' + (activeNow ? 'on' : 'off') + '"><i class="ph-fill ' + (activeNow ? 'ph-circle' : 'ph-circle') + '" style="font-size:7px;"></i>' + (activeNow ? 'Active now' : 'Inactive') + '</span></div>' +
+(isMe ? '' : '<button class="gc-sess-out" onclick="gcLogoutSession(\'' + s.id + '\')"><i class="ph-bold ph-sign-out"></i></button>') +
+'</div>';
+}).join('');
+list.innerHTML = html;
+}
+function gcLogoutSession(sid){
+gcSessCol().doc(sid).update({ forceLogout: true, active: false }).then(function(){ showToast('Device logged out'); }).catch(function(){ showToast('Failed to log out device'); });
+}
+function gcLogoutAllOthers(){
+gcSessionsData.forEach(function(s){
+if(s.id !== window.gcMySessionId){
+gcSessCol().doc(s.id).update({ forceLogout: true, active: false }).catch(function(){});
+}
+});
+showToast('All other devices logged out');
+}
+// ---------- লগআউটে নতুন সেশন ফ্ল্যাগ ----------
+if(typeof window.confirmLogoutAction === 'function' && !window.gcLogoutWrapped95){
+window.gcLogoutWrapped95 = true;
+window.gcOrigConfirmLogout95 = window.confirmLogoutAction;
+window.confirmLogoutAction = function(){
+if(currentUser){
+try{ localStorage.setItem('gc_need_new_session_' + currentUser.uid, '1'); }catch(e){}
+gcMarkInactive();
+}
+return window.gcOrigConfirmLogout95.apply(this, arguments);
+};
+}
+// ---------- বুটস্ট্র্যাপ ----------
+(function gcSessBoot(){
+if(window.gcSessBootOn) return; window.gcSessBootOn = true;
+setInterval(function(){
+if(currentUser){
+if(window.gcSessionUid !== currentUser.uid){
+window.gcSessionUid = currentUser.uid;
+gcStartSessionTracking();
+}
+}else{
+window.gcSessionUid = null;
+window.gcMySessionId = null;
+if(window.gcSessUnsub){ try{ window.gcSessUnsub(); }catch(e){} window.gcSessUnsub = null; }
+}
+}, 2000);
 })();
 </script>
 </body>
