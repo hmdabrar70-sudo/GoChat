@@ -18770,9 +18770,10 @@ try{
 if(needNew || !sid){
 try{ localStorage.removeItem('gc_need_new_session_' + currentUser.uid); }catch(e){}
 const loc = await gcGetLoc();
+try{ localStorage.setItem('gc_loc_cache', loc); }catch(e){}
 const ref = await gcSessCol().add({ deviceId: devId, device: dev.name, mobile: dev.mobile, location: loc, loginAt: firebase.firestore.FieldValue.serverTimestamp(), lastActiveAt: firebase.firestore.FieldValue.serverTimestamp(), active: true, forceLogout: false });
 sid = ref.id;
-try{ localStorage.setItem('gc_cur_session_' + currentUser.uid, sid); }catch(e){}
+try{ localStorage.setItem('gc_cur_session_' + currentUser.uid, sid); localStorage.setItem('gc_sess_start_' + currentUser.uid, String(Date.now())); }catch(e){}
 }else{
 await gcSessCol().doc(sid).update({ active: true, lastActiveAt: firebase.firestore.FieldValue.serverTimestamp() }).catch(function(){});
 }
@@ -18838,8 +18839,18 @@ window.openLoginDevicesScreen = gcOpenSessions;
 function gcRenderSessions(){
 const list = document.getElementById('gc-sess-list');
 if(!list) return;
-if(!gcSessionsData.length){ list.innerHTML = '<div class="gc-sess-empty">No login activity yet.</div>'; return; }
 const now = Date.now();
+const hasMe = gcSessionsData.some(function(s){ return s.id === window.gcMySessionId; });
+if(currentUser && !hasMe){
+const dev = gcParseDevice();
+let startMs = 0;
+try{ startMs = parseInt(localStorage.getItem('gc_sess_start_' + currentUser.uid) || '0', 10); }catch(e){}
+if(!startMs) startMs = now;
+let locTxt = 'Unknown location';
+try{ locTxt = localStorage.getItem('gc_loc_cache') || locTxt; }catch(e){}
+gcSessionsData.unshift({ id: (window.gcMySessionId || 'local-me'), device: dev.name, mobile: dev.mobile, location: locTxt, loginAtMs: startMs, localMe: true });
+}
+if(!gcSessionsData.length){ list.innerHTML = '<div class="gc-sess-empty">No login activity yet.</div>'; return; }
 let html = '';
 if(gcSessionsData.length > 1){
 html += '<button class="gc-sess-allbtn" onclick="gcLogoutAllOthers()"><i class="ph-bold ph-sign-out"></i> Log out all other devices</button>';
@@ -18848,14 +18859,14 @@ html += gcSessionsData.map(function(s){
 const isMe = s.id === window.gcMySessionId;
 const lastMs = s.lastActiveAt && s.lastActiveAt.toMillis ? s.lastActiveAt.toMillis() : 0;
 const activeNow = isMe ? true : (s.active === true && (now - lastMs) < 240000);
-const loginMs = s.loginAt && s.loginAt.toMillis ? s.loginAt.toMillis() : now;
+const loginMs = s.loginAtMs || (s.loginAt && s.loginAt.toMillis ? s.loginAt.toMillis() : now);
 const dateStr = new Date(loginMs).toLocaleString(undefined, { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 return '<div class="gc-sess-item' + (isMe ? ' me' : '') + '">' +
 '<div class="gc-sess-ico' + (activeNow ? ' on' : '') + '"><i class="' + (s.mobile ? 'ph-fill ph-device-mobile' : 'ph-fill ph-laptop') + '"></i></div>' +
 '<div class="gc-sess-info"><div class="gc-sess-dev">' + escapeHTML(s.device || 'Unknown device') + (isMe ? ' <span class="gc-sess-cur">This device</span>' : '') + '</div>' +
 '<div class="gc-sess-meta"><i class="ph-bold ph-map-pin"></i>' + escapeHTML(s.location || 'Unknown location') + '</div>' +
 '<div class="gc-sess-meta"><i class="ph-bold ph-clock"></i>' + dateStr + ' · ' + gcAgo(loginMs) + '</div>' +
-'<span class="gc-sess-status ' + (activeNow ? 'on' : 'off') + '"><i class="ph-fill ' + (activeNow ? 'ph-circle' : 'ph-circle') + '" style="font-size:7px;"></i>' + (activeNow ? 'Active now' : 'Inactive') + '</span></div>' +
+'<span class="gc-sess-status ' + (activeNow ? 'on' : 'off') + '"><i class="ph-fill ph-circle" style="font-size:7px;"></i>' + (activeNow ? 'Active now' : 'Inactive') + '</span></div>' +
 (isMe ? '' : '<button class="gc-sess-out" onclick="gcLogoutSession(\'' + s.id + '\')"><i class="ph-bold ph-sign-out"></i></button>') +
 '</div>';
 }).join('');
