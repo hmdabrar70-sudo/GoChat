@@ -4702,6 +4702,28 @@ animation:gcFadeIn .25s ease both;
 .gc-sess-status.off{background:var(--surface-2);color:var(--text-muted);}
 .gc-sess-out{border:none;background:var(--surface-2);color:var(--danger);width:34px;height:34px;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
 .gc-sess-empty{text-align:center;color:var(--text-muted);padding:50px 10px;font-size:13px;}
+
+/* =========================================
+🚀 Update #99 · login-approval · 2026-08-20
+ডিভাইস অ্যাপ্রুভাল পপআপ + ওয়েটিং স্ক্রিন
+খুঁজতে: Ctrl+F → "login-approval"
+========================================= */
+.gc-appr-mask{position:fixed;inset:0;background:rgba(5,5,10,.7);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);z-index:101800;display:flex;align-items:center;justify-content:center;padding:24px;}
+.gc-appr-card{width:100%;max-width:340px;background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:26px 22px;text-align:center;box-shadow:0 30px 80px rgba(0,0,0,.4);animation:gcApprIn .35s cubic-bezier(.22,1,.36,1);}
+@keyframes gcApprIn{from{opacity:0;transform:scale(.9) translateY(14px);}to{opacity:1;transform:scale(1) translateY(0);}}
+.gc-appr-ico{width:64px;height:64px;border-radius:20px;margin:0 auto 14px;display:flex;align-items:center;justify-content:center;font-size:28px;color:#fff;}
+.gc-appr-ico.wait{background:linear-gradient(135deg,var(--accent),var(--accent-dark));}
+.gc-appr-ico.ask{background:linear-gradient(135deg,#f59e0b,#ef4444);animation:gcApprPulse 1.6s ease-in-out infinite;}
+@keyframes gcApprPulse{0%,100%{transform:scale(1);}50%{transform:scale(1.08);}}
+.gc-appr-t{font-size:17px;font-weight:800;color:var(--text);}
+.gc-appr-s{font-size:12.5px;color:var(--text-muted);line-height:1.6;margin:8px 0 18px;}
+.gc-appr-s b{color:var(--text);}
+.gc-appr-spin{width:26px;height:26px;border-radius:50%;border:3px solid var(--border);border-top-color:var(--accent);margin:0 auto 18px;animation:spin 1s linear infinite;}
+.gc-appr-row{display:flex;gap:10px;}
+.gc-appr-btn{flex:1;padding:13px;border:none;border-radius:14px;font-weight:800;font-size:14px;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:7px;transition:transform .15s;}
+.gc-appr-btn:active{transform:scale(.96);}
+.gc-appr-btn.allow{background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;}
+.gc-appr-btn.reject{background:rgba(255,77,106,.12);color:var(--danger);}
 </style>
 </head>
 <body>
@@ -18828,12 +18850,20 @@ if(needNew){
 try{ localStorage.removeItem('gc_need_new_session_' + currentUser.uid); }catch(e){}
 sid = null;
 }
-// ১) সেভ করা সেশন থাকলে রিজিউম (নতুন এন্ট্রি নয়)
+// ১) সেভ করা সেশন রিজিউম (forceLogout লুপ ফিক্সসহ)
+if(sid){
+let docData = null;
+try{ const d0 = await gcSessCol().doc(sid).get(); if(d0.exists) docData = d0.data(); else sid = null; }catch(e){}
+if(sid && docData && docData.forceLogout){
+sid = null;
+try{ localStorage.removeItem('gc_cur_session_' + currentUser.uid); }catch(e){}
+}
 if(sid){
 const ok = await gcSessCol().doc(sid).update({ active: true, lastActiveAt: firebase.firestore.FieldValue.serverTimestamp() }).then(function(){ return true; }).catch(function(){ return false; });
 if(!ok) sid = null;
 }
-// ২) সেশন আইডি নেই? একই ডিভাইসের সাম্প্রতিক সেশন খুঁজে রিজিউম করো (রি-লোড স্প্যাম বন্ধ)
+}
+// ২) একই ডিভাইসের সাম্প্রতিক সেশন রিজিউম
 if(!sid && !needNew){
 try{
 const q = await gcSessCol().where('deviceId', '==', devId).limit(10).get();
@@ -18849,15 +18879,24 @@ await gcSessCol().doc(sid).update({ active: true, lastActiveAt: firebase.firesto
 }
 }catch(e){}
 }
-// ৩) সত্যিকারের নতুন লগইন হলেই নতুন এন্ট্রি
+// ৩) নতুন লগইন: অন্য ডিভাইস এক্টিভ থাকলে অনুমতি লাগবে
 if(!sid){
+const others = await gcActiveOtherSessions(devId);
+if(others.length){
+const approved = await gcRequestLoginApproval(devId, dev, others[0]);
+if(!approved){
+showToast('🔒 Login not approved on your other device');
+try{ await auth.signOut(); }catch(e){}
+return;
+}
+}
 const loc = await gcGetLoc();
 try{ localStorage.setItem('gc_loc_cache', loc); }catch(e){}
 const ref = await gcSessCol().add({ deviceId: devId, device: dev.name, mobile: dev.mobile, location: loc, loginAt: firebase.firestore.FieldValue.serverTimestamp(), lastActiveAt: firebase.firestore.FieldValue.serverTimestamp(), active: true, forceLogout: false });
 sid = ref.id;
 try{ localStorage.setItem('gc_cur_session_' + currentUser.uid, sid); localStorage.setItem('gc_sess_start_' + currentUser.uid, String(now)); }catch(e){}
 }
-// ৪) একই ডিভাইসের পুরনো ইনঅ্যাকটিভ ডুপ্লিকেট কার্ড অটো-ক্লিন
+// ৪) ডুপ্লিকেট ক্লিন
 try{
 const q2 = await gcSessCol().where('deviceId', '==', devId).limit(15).get();
 q2.forEach(function(d){
@@ -18869,6 +18908,7 @@ d.ref.delete().catch(function(){});
 }catch(e){}
 window.gcMySessionId = sid;
 gcListenSessions();
+gcListenLoginRequests();
 if(window.gcHbInt) clearInterval(window.gcHbInt);
 window.gcHbInt = setInterval(function(){
 if(currentUser && window.gcMySessionId){
@@ -19000,6 +19040,97 @@ if(window.gcSessUnsub){ try{ window.gcSessUnsub(); }catch(e){} window.gcSessUnsu
 }
 }, 2000);
 })();
+
+// ═══════════════════════════════════════════════════════
+// 🚀 Update #99 · login-approval · 2026-08-20
+// নতুন ডিভাইস লগইনে পুরনো ডিভাইসের অনুমতি
+// খুঁজতে: Ctrl+F → "login-approval-engine"
+// ═══════════════════════════════════════════════════════
+async function gcActiveOtherSessions(devId){
+const out = [];
+try{
+const snap = await gcSessCol().limit(20).get();
+const now = Date.now();
+snap.forEach(function(d){
+const s = d.data();
+if(s.deviceId === devId) return;
+if(s.forceLogout) return;
+const lm = s.lastActiveAt && s.lastActiveAt.toMillis ? s.lastActiveAt.toMillis() : 0;
+if(s.active === true && (now - lm) < 300000) out.push({ id: d.id, ...s });
+});
+}catch(e){}
+return out;
+}
+function gcRequestLoginApproval(devId, dev, other){
+return new Promise(function(resolve){
+let done = false, un = null, to = null;
+const finish = function(val){
+if(done) return; done = true;
+if(un){ try{ un(); }catch(e){} }
+if(to) clearTimeout(to);
+gcHideApprovalWait();
+resolve(val);
+};
+window.gcApprovalCancel = function(){ finish(false); };
+(async function(){
+try{
+const loc = await gcGetLoc();
+const ref = await db.collection('users').doc(currentUser.uid).collection('loginRequests').add({ deviceId: devId, device: dev.name, mobile: dev.mobile, location: loc, status: 'pending', createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+gcShowApprovalWait(other);
+un = db.collection('users').doc(currentUser.uid).collection('loginRequests').doc(ref.id).onSnapshot(function(d){
+if(!d.exists){ finish(true); return; }
+const st = d.data().status;
+if(st === 'approved'){ finish(true); showToast('✅ Login approved'); }
+else if(st === 'rejected'){ finish(false); }
+}, function(){ finish(true); });
+to = setTimeout(function(){
+ref.update({ status: 'timeout' }).catch(function(){});
+showToast('⏳ No response — try again');
+finish(false);
+}, 90000);
+}catch(e){ finish(true); }
+})();
+});
+}
+function gcShowApprovalWait(other){
+gcHideApprovalWait();
+const ov = document.createElement('div');
+ov.id = 'gc-appr-wait'; ov.className = 'gc-appr-mask';
+ov.innerHTML = '<div class="gc-appr-card"><div class="gc-appr-ico wait"><i class="ph-bold ph-device-mobile"></i></div><div class="gc-appr-t">Login request sent</div><div class="gc-appr-s">Check your other device<br><b>' + escapeHTML(other.device || 'Unknown device') + '</b> — approve to continue</div><div class="gc-appr-spin"></div><button class="gc-appr-btn reject" onclick="gcCancelApproval()">Cancel</button></div>';
+document.body.appendChild(ov);
+}
+function gcHideApprovalWait(){ const o = document.getElementById('gc-appr-wait'); if(o) o.remove(); }
+function gcCancelApproval(){ if(window.gcApprovalCancel) window.gcApprovalCancel(); }
+function gcListenLoginRequests(){
+if(!currentUser || !window.gcMySessionId || window.gcReqUnsub) return;
+window.gcReqUnsub = db.collection('users').doc(currentUser.uid).collection('loginRequests').where('status', '==', 'pending').onSnapshot(function(snap){
+snap.docChanges().forEach(function(ch){
+if(ch.type !== 'added') return;
+const r = ch.doc.data();
+const cm = r.createdAt && r.createdAt.toMillis ? r.createdAt.toMillis() : 0;
+if(Date.now() - cm > 120000) return;
+if(r.deviceId === gcGetDeviceId()) return;
+gcShowApprovePopup(ch.doc.id, r);
+});
+}, function(){});
+}
+function gcShowApprovePopup(id, r){
+if(document.getElementById('gc-appr-popup')) return;
+const ov = document.createElement('div');
+ov.id = 'gc-appr-popup'; ov.className = 'gc-appr-mask';
+ov.innerHTML = '<div class="gc-appr-card"><div class="gc-appr-ico ask"><i class="ph-bold ph-shield-warning"></i></div><div class="gc-appr-t">New login attempt</div><div class="gc-appr-s"><b>' + escapeHTML(r.device || 'Unknown device') + '</b><br><i class="ph-bold ph-map-pin"></i> ' + escapeHTML(r.location || 'Unknown location') + ' · Just now</div><div class="gc-appr-row"><button class="gc-appr-btn reject" onclick="gcRejectLogin(\'' + id + '\')"><i class="ph-bold ph-x"></i> Reject</button><button class="gc-appr-btn allow" onclick="gcApproveLogin(\'' + id + '\')"><i class="ph-bold ph-check"></i> Allow</button></div></div>';
+document.body.appendChild(ov);
+}
+function gcApproveLogin(id){
+db.collection('users').doc(currentUser.uid).collection('loginRequests').doc(id).update({ status: 'approved' }).catch(function(){});
+const o = document.getElementById('gc-appr-popup'); if(o) o.remove();
+showToast('✅ Device approved');
+}
+function gcRejectLogin(id){
+db.collection('users').doc(currentUser.uid).collection('loginRequests').doc(id).update({ status: 'rejected' }).catch(function(){});
+const o = document.getElementById('gc-appr-popup'); if(o) o.remove();
+showToast('🔒 Login rejected');
+}
 </script>
 </body>
 </html>
