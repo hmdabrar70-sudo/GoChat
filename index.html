@@ -18821,17 +18821,51 @@ let sid = null;
 try{ sid = localStorage.getItem('gc_cur_session_' + currentUser.uid); }catch(e){}
 let needNew = false;
 try{ needNew = localStorage.getItem('gc_need_new_session_' + currentUser.uid) === '1'; }catch(e){}
+const now = Date.now();
+const RESUME_WINDOW = 6 * 60 * 60 * 1000;
 try{
-if(needNew || !sid){
+if(needNew){
 try{ localStorage.removeItem('gc_need_new_session_' + currentUser.uid); }catch(e){}
+sid = null;
+}
+// ১) সেভ করা সেশন থাকলে রিজিউম (নতুন এন্ট্রি নয়)
+if(sid){
+const ok = await gcSessCol().doc(sid).update({ active: true, lastActiveAt: firebase.firestore.FieldValue.serverTimestamp() }).then(function(){ return true; }).catch(function(){ return false; });
+if(!ok) sid = null;
+}
+// ২) সেশন আইডি নেই? একই ডিভাইসের সাম্প্রতিক সেশন খুঁজে রিজিউম করো (রি-লোড স্প্যাম বন্ধ)
+if(!sid && !needNew){
+try{
+const q = await gcSessCol().where('deviceId', '==', devId).limit(10).get();
+let bestId = null, bestTs = 0, bestForce = false;
+q.forEach(function(d){
+const dd = d.data();
+const lm = dd.loginAt && dd.loginAt.toMillis ? dd.loginAt.toMillis() : 0;
+if(lm > bestTs){ bestTs = lm; bestId = d.id; bestForce = !!dd.forceLogout; }
+});
+if(bestId && !bestForce && (now - bestTs) < RESUME_WINDOW){
+sid = bestId;
+await gcSessCol().doc(sid).update({ active: true, lastActiveAt: firebase.firestore.FieldValue.serverTimestamp() }).catch(function(){});
+}
+}catch(e){}
+}
+// ৩) সত্যিকারের নতুন লগইন হলেই নতুন এন্ট্রি
+if(!sid){
 const loc = await gcGetLoc();
 try{ localStorage.setItem('gc_loc_cache', loc); }catch(e){}
 const ref = await gcSessCol().add({ deviceId: devId, device: dev.name, mobile: dev.mobile, location: loc, loginAt: firebase.firestore.FieldValue.serverTimestamp(), lastActiveAt: firebase.firestore.FieldValue.serverTimestamp(), active: true, forceLogout: false });
 sid = ref.id;
-try{ localStorage.setItem('gc_cur_session_' + currentUser.uid, sid); localStorage.setItem('gc_sess_start_' + currentUser.uid, String(Date.now())); }catch(e){}
-}else{
-await gcSessCol().doc(sid).update({ active: true, lastActiveAt: firebase.firestore.FieldValue.serverTimestamp() }).catch(function(){});
+try{ localStorage.setItem('gc_cur_session_' + currentUser.uid, sid); localStorage.setItem('gc_sess_start_' + currentUser.uid, String(now)); }catch(e){}
 }
+// ৪) একই ডিভাইসের পুরনো ইনঅ্যাকটিভ ডুপ্লিকেট কার্ড অটো-ক্লিন
+try{
+const q2 = await gcSessCol().where('deviceId', '==', devId).limit(15).get();
+q2.forEach(function(d){
+if(d.id !== sid && d.data().active !== true){
+d.ref.delete().catch(function(){});
+}
+});
+}catch(e){}
 }catch(e){}
 window.gcMySessionId = sid;
 gcListenSessions();
