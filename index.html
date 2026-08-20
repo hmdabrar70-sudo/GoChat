@@ -6657,6 +6657,33 @@ t.classList.add('show');
 setTimeout(()=>t.classList.remove('show'),2500);
 }
 
+/** Read-only official notice (admin announcement notification) */
+function openOfficialNotice(message) {
+    let ov = document.getElementById('gc-official-notice');
+    if (!ov) {
+        ov = document.createElement('div');
+        ov.id = 'gc-official-notice';
+        ov.style.cssText = 'display:none;position:fixed;inset:0;z-index:100500;background:rgba(0,0,0,0.55);align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(6px);';
+        ov.innerHTML = '<div style="width:100%;max-width:400px;background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:28px 24px 22px;box-shadow:var(--shadow-lg);animation:fadeIn .25s ease;">' +
+            '<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">' +
+            '<div style="width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#7c5cff,#fdb931);display:flex;align-items:center;justify-content:center;color:#fff;font-size:22px;flex-shrink:0;"><i class="ph-fill ph-megaphone"></i></div>' +
+            '<div><div style="font-weight:800;font-size:17px;color:var(--text);">GoChat Official</div>' +
+            '<div style="font-size:12px;color:var(--text-muted);font-weight:600;">Official notice · read only</div></div></div>' +
+            '<div id="gc-official-notice-body" style="font-size:15px;line-height:1.65;color:var(--text);white-space:pre-wrap;word-break:break-word;max-height:50vh;overflow-y:auto;margin-bottom:20px;"></div>' +
+            '<button onclick="closeOfficialNotice()" style="width:100%;padding:14px;border:none;border-radius:16px;background:var(--gradient);color:#fff;font-weight:800;font-size:15px;cursor:pointer;">Got it</button>' +
+            '</div>';
+        ov.onclick = function(e) { if (e.target === ov) closeOfficialNotice(); };
+        document.body.appendChild(ov);
+    }
+    const body = document.getElementById('gc-official-notice-body');
+    if (body) body.textContent = message || '';
+    ov.style.display = 'flex';
+}
+function closeOfficialNotice() {
+    const ov = document.getElementById('gc-official-notice');
+    if (ov) ov.style.display = 'none';
+}
+
 function avatarInitial(name){return name?name[0].toUpperCase():'?';}
 
 function getRelativeTime(ts){
@@ -7097,11 +7124,7 @@ db.collection('system').doc('settings').onSnapshot(doc => {
     }
 });
 
-db.collection('system').doc('announcement').onSnapshot(doc => {
-    if (doc.exists && doc.data().message) {
-        alert("📢 GoChat Notice:\n\n" + doc.data().message);
-    }
-});
+// Official announcements arrive as type:'announcement' notifications (no feed alert)
 // ==========================================
 // Median OneSignal-এর সাথে ফায়ারবেস ইউজার লিংক করা
 if (navigator.userAgent.toLowerCase().includes('median')) {
@@ -7341,12 +7364,18 @@ notifUnsub = db.collection('notifications').where('toUid', '==', user.uid).onSna
         else if (data.type === 'comment') textDesc = 'commented on your post';
         else if (data.type === 'follow') textDesc = 'started following you';
         else if (data.type === 'tag') textDesc = 'tagged you in a post';
+        else if (data.type === 'announcement') textDesc = 'sent an official notice';
+        else if (data.type === 'friend_request') textDesc = 'sent you a friend request';
+        else if (data.type === 'request_accepted') textDesc = 'accepted your friend request';
         
         const safeName = escapeHTML(data.fromName || 'Someone');
+        const isAnn = data.type === 'announcement';
         
-        // ক্লিক করলে কী হবে
         let onClickAction = `db.collection('notifications').doc('${data.id}').update({read:true});`;
-        if (data.postId) {
+        if (isAnn) {
+            const safeMsg = String(data.message || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\n/g, '\\n').replace(/\r/g, '');
+            onClickAction += ` openOfficialNotice('${safeMsg}');`;
+        } else if (data.postId) {
             onClickAction += ` openSinglePostView('${data.postId}');`;
         } else if (data.type === 'friend_request' || data.type === 'request_accepted') {
             onClickAction += ` showPage('friends');`;
@@ -7356,14 +7385,15 @@ notifUnsub = db.collection('notifications').where('toUid', '==', user.uid).onSna
         const displayCb = typeof isNotifEditMode !== 'undefined' && isNotifEditMode ? 'block' : 'none';
 
         let userAvatarHtml = avatarInitial(data.fromName || 'U');
-        if (allUsersCache) {
+        if (isAnn) {
+            userAvatarHtml = `<div style="width:100%;height:100%;border-radius:50%;background:linear-gradient(135deg,#7c5cff,#fdb931);display:flex;align-items:center;justify-content:center;color:#fff;font-size:18px;"><i class="ph-fill ph-megaphone"></i></div>`;
+        } else if (allUsersCache) {
             const senderData = allUsersCache.find(u => u.id === data.fromUid);
             if (senderData && senderData.avatar) {
                 userAvatarHtml = `<img src="${escapeHTML(senderData.avatar)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
             }
         }
 
-                        // 🚀 ডাইনামিক ফলো ব্যাক বাটন (ক্লিক করলে সাথে সাথে 'Following' হয়ে যাবে)
         let actionBtnHtml = '';
         if (data.type === 'follow' && currentUserData) {
             const isAlreadyFollowing = currentUserData.following && currentUserData.following.includes(data.fromUid);
@@ -7372,7 +7402,13 @@ notifUnsub = db.collection('notifications').where('toUid', '==', user.uid).onSna
             } else {
                 actionBtnHtml = `<button class="btn-primary" id="notif-follow-btn-${data.fromUid}" style="padding:6px 16px; font-size:12px; height:32px; border-radius:20px; margin:0; width:auto; box-shadow:none;" onclick="event.stopPropagation(); toggleFollow('${data.fromUid}'); this.textContent='Following'; this.className='btn-outline'; this.style.borderColor='var(--border)'; this.style.color='var(--text)'; this.style.pointerEvents='none';">Follow back</button>`;
             }
+        } else if (isAnn) {
+            actionBtnHtml = `<span style="font-size:11px;font-weight:800;color:var(--accent);background:rgba(124,92,255,0.12);padding:4px 10px;border-radius:20px;">Official</span>`;
         }
+
+        const preview = isAnn && data.message
+            ? `<div style="font-size:13px;color:var(--text-secondary);margin-top:4px;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${escapeHTML(data.message)}</div>`
+            : '';
 
         return `
         <div class="notif-item ${!data.read ? 'unread' : ''}" data-type="${data.type}" onclick="if(typeof isNotifEditMode !== 'undefined' && isNotifEditMode){toggleNotifSelection('${data.id}');}else{${onClickAction}}">
@@ -7381,6 +7417,7 @@ notifUnsub = db.collection('notifications').where('toUid', '==', user.uid).onSna
             <div class="notif-text">
                 <span style="font-weight: 800; color: var(--text);">${safeName}</span> 
                 <span>${textDesc}</span>
+                ${preview}
                 <div style="font-size: 13px; color: var(--text-muted); margin-top: 4px; font-weight: 500;">${getRelativeTime(data.createdAt)}</div>
             </div>
             
