@@ -2450,14 +2450,15 @@ NESTED ACTIVITY CATEGORIES STYLES
     font-weight: 700;
     color: var(--text-muted);
     cursor: pointer;
-    transition: all 0.3s;
+    transition: background 0.25s ease, color 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease, transform 0.2s ease;
     white-space: nowrap;
 }
+.cat-tab:active { transform: scale(0.97); }
 .cat-tab.active {
-    background: var(--gradient);
-    color: #fff;
-    border-color: transparent;
-    box-shadow: var(--shadow-sm);
+    background: var(--gradient) !important;
+    color: #fff !important;
+    border-color: transparent !important;
+    box-shadow: 0 4px 14px rgba(124, 92, 255, 0.35);
 }
 /* 🚀 Message Page Solid White Background */
 body.light-mode #page-messages {
@@ -6310,10 +6311,10 @@ animation:gcFadeIn .25s ease both;
         <div style="font-weight:800; font-size:18px;">Categories</div>
     </div>
     
-    <div class="category-tabs">
-        <div class="cat-tab active" onclick="switchCategoryTab('all')">All</div>
-        <div class="cat-tab" onclick="switchCategoryTab('ridiculous')">Ridiculous</div>
-        <div class="cat-tab" onclick="switchCategoryTab('painful')">Painful</div>
+    <div class="category-tabs" id="category-tabs-bar">
+        <div class="cat-tab active" data-cat="all" onclick="switchCategoryTab('all', this)">All</div>
+        <div class="cat-tab" data-cat="ridiculous" onclick="switchCategoryTab('ridiculous', this)">Ridiculous</div>
+        <div class="cat-tab" data-cat="painful" onclick="switchCategoryTab('painful', this)">Painful</div>
     </div>
     
     <!-- পোস্টগুলো এখানে লোড হবে -->
@@ -14535,10 +14536,11 @@ async function deleteSelectedNotifs() {
 let categoryUnsub = null;
 
 function openCategoryScreen() {
-    closeMainMenu();
+    if (typeof closeMainMenu === 'function') closeMainMenu();
+    if (typeof gcCloseHomeDrawer === 'function') gcCloseHomeDrawer();
     document.getElementById('category-screen').style.display = 'flex';
-    // ডিফল্টভাবে 'All' ট্যাব লোড হবে
-    switchCategoryTab('all', document.querySelector('.cat-tab'));
+    const allTab = document.querySelector('#category-tabs-bar .cat-tab[data-cat="all"]') || document.querySelector('#category-screen .cat-tab');
+    switchCategoryTab('all', allTab);
 }
 
 function closeCategoryScreen() {
@@ -14550,14 +14552,17 @@ function closeCategoryScreen() {
 }
 
 function switchCategoryTab(catName, tabElement) {
-    // ট্যাবের ডিজাইন (Active Color) আপডেট করা
-    if(tabElement) {
-        document.querySelectorAll('.cat-tab').forEach(t => t.classList.remove('active'));
-        tabElement.classList.add('active');
+    // Active purple background moves to the selected tab only
+    const tabs = document.querySelectorAll('#category-tabs-bar .cat-tab, #category-screen .cat-tab');
+    tabs.forEach(t => t.classList.remove('active'));
+    let target = tabElement;
+    if (!target && catName) {
+        target = document.querySelector('#category-tabs-bar .cat-tab[data-cat="' + catName + '"]');
     }
+    if (target) target.classList.add('active');
 
     const list = document.getElementById('category-posts-list');
-    list.innerHTML = gcModernLoader('Loading posts');
+    list.innerHTML = (typeof gcModernLoader === 'function') ? gcModernLoader('Loading posts') : 'Loading...';
 
     // আগের কোনো লিসেনার চললে সেটা বন্ধ করা (যাতে ডাবল লোড না হয়)
     if (categoryUnsub) categoryUnsub();
