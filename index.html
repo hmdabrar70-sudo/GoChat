@@ -264,6 +264,62 @@ body.light-mode .stories-wrapper {
     background: var(--surface) !important;
 }
 .stories-wrapper::-webkit-scrollbar{display:none;}
+
+/* ═══ Home feed sky + soft (only when body.home-sky-mode) ═══ */
+#app-screen{position:relative;}
+body.home-sky-mode #app-screen::before{
+    content:'';
+    position:absolute;
+    top:0; left:0; right:0;
+    height:260px;
+    pointer-events:none;
+    z-index:0;
+    border-radius:0 0 28px 28px;
+    /* Soft day sky → fades to transparent so it blends into the feed */
+    background:
+        radial-gradient(ellipse 90px 36px at 12% 38%, rgba(255,255,255,0.85) 0%, rgba(255,255,255,0) 70%),
+        radial-gradient(ellipse 120px 40px at 18% 42%, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0) 72%),
+        radial-gradient(ellipse 100px 34px at 72% 28%, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0) 70%),
+        radial-gradient(ellipse 70px 28px at 88% 48%, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0) 70%),
+        radial-gradient(ellipse 110px 38px at 48% 55%, rgba(255,255,255,0.45) 0%, rgba(255,255,255,0) 75%),
+        linear-gradient(180deg,
+            #8ec8ea 0%,
+            #a8d7f0 28%,
+            #cfe9f8 55%,
+            #e8f5fc 78%,
+            rgba(232,245,252,0) 100%);
+}
+body.home-sky-mode:not(.light-mode) #app-screen::before{
+    background:
+        radial-gradient(ellipse 90px 36px at 12% 38%, rgba(180,200,230,0.22) 0%, transparent 70%),
+        radial-gradient(ellipse 120px 40px at 18% 42%, rgba(160,185,220,0.14) 0%, transparent 72%),
+        radial-gradient(ellipse 100px 34px at 72% 28%, rgba(190,210,240,0.18) 0%, transparent 70%),
+        radial-gradient(ellipse 70px 28px at 88% 48%, rgba(150,175,210,0.12) 0%, transparent 70%),
+        linear-gradient(180deg,
+            #1a2740 0%,
+            #1e2f4a 30%,
+            #243656 55%,
+            rgba(36,54,86,0.35) 78%,
+            rgba(10,10,15,0) 100%);
+}
+body.home-sky-mode .topbar,
+body.home-sky-mode #page-feed .stories-wrapper{
+    background: transparent !important;
+    position:relative;
+    z-index:1;
+}
+body.light-mode.home-sky-mode .topbar,
+body.light-mode.home-sky-mode #page-feed .stories-wrapper{
+    background: transparent !important;
+}
+body.home-sky-mode #page-feed{
+    position:relative;
+    z-index:1;
+}
+body.home-sky-mode #page-feed .feed-tabs{
+    position:relative;
+    z-index:1;
+}
 .story-circle{
 width:68px;height:68px;
 border-radius:50%;
@@ -7137,6 +7193,7 @@ if (navigator.userAgent.toLowerCase().includes('median')) {
 // 🚀 ইউজার লগইন থাকলে সাথে সাথেই মেইন স্ক্রিন অন করে দেবো, যাতে ফিডের স্কেলেটন লোডিং দেখা যায়
 document.getElementById('auth-screen').style.display='none';
 document.getElementById('app-screen').style.display='block';
+document.body.classList.add('home-sky-mode'); // default page is feed
 
 // 🚀 ম্যাক্সিমাম ১.৫ সেকেন্ডের একটা টাইমার, যাতে ডাটাবেস স্লো থাকলেও অ্যাপ আটকে না থাকে
 const splashFallbackTimer = setTimeout(removeSplash, 1500);
@@ -7492,16 +7549,20 @@ function showPage(page) {
 
     // 🚀 Topbar Dynamic Logic (লোগো ও নোটিফিকেশন হাইড/শো করার ম্যাজিক)
     const topbarLogo = document.querySelector('.topbar-logo');
-    document.body.classList.remove('messages-mode', 'notifications-mode'); // আগের মোডগুলো রিসেট
+    document.body.classList.remove('messages-mode', 'notifications-mode', 'home-sky-mode');
+
+    if (page === 'feed') {
+        document.body.classList.add('home-sky-mode');
+    }
 
     if (page === 'messages') {
         document.body.classList.add('messages-mode');
         if(topbarLogo) topbarLogo.textContent = 'Chats';
     } else if (page === 'notifications') {
-        document.body.classList.add('notifications-mode'); // নতুন নোটিফিকেশন মোড
-        if(topbarLogo) topbarLogo.textContent = 'Notifications'; // লোগোর জায়গায় নোটিফিকেশন
+        document.body.classList.add('notifications-mode');
+        if(topbarLogo) topbarLogo.textContent = 'Notifications';
     } else {
-        if(topbarLogo) topbarLogo.textContent = '✦ GoChat'; // অন্য পেজে আবার লোগো ফিরে আসবে
+        if(topbarLogo) topbarLogo.textContent = '✦ GoChat';
     }
 
         // সেটিংস আইকন হ্যান্ডেল করার লজিক
