@@ -6654,6 +6654,15 @@ return map[match];
 });
 }
 
+// 🔎 Search normalization: case-insensitive + collapses repeated spaces.
+function normalizeUserSearchText(value){
+    return String(value || '')
+        .normalize('NFKC')
+        .trim()
+        .replace(/\s+/g, ' ')
+        .toLowerCase();
+}
+
 function checkRateLimit() {
 const now = Date.now();
 if (now - lastActionTime < RATE_LIMIT_MS) {
@@ -6710,6 +6719,32 @@ allUsersCache=snap.docs.map(d=>({id:d.id,...d.data()}));
 usersCacheLoaded=true;
 usersCacheTimestamp = now;
 return allUsersCache;
+}
+
+// 🔎 Keep the signed-in user's search index fields up to date.
+// This touches only the current user's document; it never downloads the users collection.
+async function ensureCurrentUserSearchIndex(userData){
+    if(!currentUser || !userData) return;
+
+    const patch = {};
+    const normalizedName = normalizeUserSearchText(userData.name);
+    const normalizedUsername = normalizeUserSearchText(userData.username);
+
+    if(normalizedName && userData.nameLower !== normalizedName){
+        patch.nameLower = normalizedName;
+    }
+    if(normalizedUsername && userData.usernameLower !== normalizedUsername){
+        patch.usernameLower = normalizedUsername;
+    }
+
+    if(Object.keys(patch).length){
+        try{
+            await db.collection('users').doc(currentUser.uid).set(patch, { merge:true });
+            currentUserData = {...currentUserData, ...patch};
+        }catch(e){
+            console.warn('Search index update skipped:', e);
+        }
+    }
 }
 
 // === 🚀 Dark Mode Toggle Logic ===
@@ -7047,6 +7082,7 @@ function loginWithGoogle() {
                 const gName = user.email.split('@')[0];
                 await db.collection('users').doc(user.uid).set({
                     name: gName,
+                    nameLower: normalizeUserSearchText(gName),
                     email: user.email,
                     avatar: '',
                     bio: '', location: '', hometown: '', relationship: '', gender: '',
@@ -7096,7 +7132,9 @@ const result=await auth.createUserWithEmailAndPassword(email,pass);
 const user=result.user;
 const defaultName=email.split('@')[0];
 await db.collection('users').doc(user.uid).set({
-name:defaultName,email:user.email,avatar:'',bio:'',
+name:defaultName,
+nameLower:normalizeUserSearchText(defaultName),
+email:user.email,avatar:'',bio:'',
 location:'',hometown:'',relationship:'',gender:'',
 friends:[],sentRequests:[],receivedRequests:[],
 blockedUsers:[],mutedChats:[],pinnedChats:[],archivedChats:[],
@@ -7253,6 +7291,9 @@ try{
 const snap=await db.collection('users').doc(user.uid).get();
 currentUserData=snap.exists?snap.data():{name:user.email.split('@')[0],email:user.email};
 }catch(e){currentUserData={name:user.email.split('@')[0],email:user.email};}
+
+// 🔎 Legacy accounts get their own search index repaired on login only.
+await ensureCurrentUserSearchIndex(currentUserData);
 
 // 🚀 ডাটাবেস লোড হয়ে গেলে টাইমার ক্যানসেল করে সাথে সাথেই স্প্ল্যাশ সরিয়ে দেবে
 clearTimeout(splashFallbackTimer);
@@ -8059,37 +8100,48 @@ refreshClearBtn();
 // ===== RECENT SEARCH LOGIC =====
 async function renderRecentSearches() {
     const res = document.getElementById('search-results-list');
-    const recents = currentUserData.recentSearches || [];
-    
+    const recents = (currentUserData.recentSearches || []).slice(0, 3);
+
     if(recents.length === 0) {
-        res.innerHTML = '<div class="empty-feed">Type a name to search users</div>';
+        res.innerHTML = '<div class="empty-feed">Type a full name to search users</div>';
         return;
     }
-    
-    res.innerHTML = gcModernLoader('Searching');
-    
+
+    res.innerHTML = gcModernLoader('Loading recent searches');
+
     try {
-        const users = await fetchAllUsers(); 
+        // Recent search-এও আর পুরো users collection পড়া হবে না।
+        const snapshots = await Promise.all(
+            recents.map(function(uid){
+                return db.collection('users').doc(uid).get();
+            })
+        );
+
         let html = '<div style="padding: 12px 16px; font-size: 13px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Recent Searches</div>';
-        
-        recents.forEach(uid => {
-            const u = users.find(user => user.id === uid);
-            if(u) {
-                const safeName = escapeHTML(u.name);
-                const avHtml = u.avatar ? `<img src="${u.avatar}">` : avatarInitial(u.name);
-                // রিসেন্ট ইউজার লিস্টের ডিজাইন (সাথে ক্রস বাটন)
-                html += `<div class="msg-item" onclick="viewUserProfile('${uid}')">
-                    <div class="avatar">${avHtml}</div>
-                    <div class="msg-info" style="margin-left:10px;">
-                        <div class="msg-name">${safeName} ${getVerifiedBadge(u.email, u.isVerified)}</div>
-                    </div>
-                    <i class="ph-bold ph-x" style="color:var(--text-muted); font-size: 20px; padding: 4px; cursor:pointer;" onclick="event.stopPropagation(); removeRecentSearch('${uid}')"></i>
-                </div>`;
-            }
+
+        snapshots.forEach(function(doc, index){
+            if(!doc.exists) return;
+
+            const u = doc.data();
+            const uid = recents[index];
+            const safeName = escapeHTML(u.name || 'User');
+            const avHtml = u.avatar
+                ? `<img src="${escapeHTML(u.avatar)}">`
+                : avatarInitial(u.name || 'User');
+
+            html += `<div class="msg-item" onclick="viewUserProfile('${uid}')">
+                <div class="avatar">${avHtml}</div>
+                <div class="msg-info" style="margin-left:10px;">
+                    <div class="msg-name">${safeName} ${getVerifiedBadge(u.email, u.isVerified)}</div>
+                </div>
+                <i class="ph-bold ph-x" style="color:var(--text-muted); font-size: 20px; padding: 4px; cursor:pointer;" onclick="event.stopPropagation(); removeRecentSearch('${uid}')"></i>
+            </div>`;
         });
+
         res.innerHTML = html;
     } catch(e) {
-        res.innerHTML = '<div class="empty-feed">Type a name to search users</div>';
+        console.error('Recent searches failed:', e);
+        res.innerHTML = '<div class="empty-feed">Type a full name to search users</div>';
     }
 }
 
@@ -10004,7 +10056,9 @@ async function saveProfileChanges(){
     // ৩. আপডেটের ডাটাগুলো রেডি করা
     const updates = {
         username: newUsername, // 🚀 নতুন: ইউজারনেম ডাটাবেসে সেভ
+        usernameLower: normalizeUserSearchText(newUsername),
         name: newName,
+        nameLower: normalizeUserSearchText(newName),
         bio: document.getElementById('edit-bio').value.trim(),
         gender: document.getElementById('edit-gender').value,
         location: document.getElementById('edit-location').value.trim(),
@@ -10040,6 +10094,7 @@ await db.collection('users').doc(currentUser.uid).update(updates);
         // ========================================================
         
 currentUserData={...currentUserData,...updates};
+ensureCurrentUserSearchIndex(currentUserData);
 loadUserUI();
 closeProfileEdit();
 showToast('Profile updated!');
@@ -12846,6 +12901,7 @@ async function completeRegistration() {
 
         await db.collection('users').doc(user.uid).set({
             name: fullName,
+            nameLower: normalizeUserSearchText(fullName),
             email: user.email,
             avatar: '', bio: '', friends: [], followers: [], following: [],
             createdAt: firebase.firestore.FieldValue.serverTimestamp(),
@@ -14042,41 +14098,134 @@ function checkUsernameCooldownV3() {
     }
 }
 
-// ৩. Search Users ফাংশনে Username সাপোর্ট যোগ করা
-// আপনার existing searchUsers() ফাংশনের ভেতরে users.forEach লুপের আগে এই লজিক বসান
-const originalSearchUsers = window.searchUsers;
+// ৩. Search Users — exact-match + server-side query
+// পুরো users collection আর download/filter করা হবে না.
+// Result শুধুমাত্র পুরো নাম বা পুরো username-এর exact match হবে.
+let gcSearchRequestId = 0;
+
+function gcTitleCaseSearch(value){
+    return String(value || '').replace(/\S+/g, function(word){
+        return word.charAt(0).toUpperCase() + word.slice(1);
+    });
+}
+
+function gcRenderSearchUser(u){
+    const uId = u.id;
+    const safeName = escapeHTML(u.name || 'User');
+    const avHtml = u.avatar
+        ? `<img src="${escapeHTML(u.avatar)}">`
+        : avatarInitial(u.name || 'User');
+
+    return `<div class="msg-item" onclick="addToRecentSearches('${uId}'); viewUserProfile('${uId}')">
+        <div class="avatar">${avHtml}</div>
+        <div class="msg-info">
+            <div class="msg-name">${safeName} ${getVerifiedBadge(u.email, u.isVerified)}</div>
+            ${u.username ? `<div style="font-size:12px; color:var(--text-muted);">@${escapeHTML(u.username)}</div>` : ''}
+        </div>
+    </div>`;
+}
+
 window.searchUsers = async function() {
     clearTimeout(searchTimeout);
-    const q = document.getElementById('search-input').value.trim().toLowerCase();
+
+    const input = document.getElementById('search-input');
     const res = document.getElementById('search-results-list');
-    
-    if(!q) { renderRecentSearches(); return; }
-    
-    searchTimeout = setTimeout(async () => {
-        const users = await fetchAllUsers();
-        let html = '';
-        
-        // নাম এবং ইউজারনেম দুটো দিয়েই সার্চ হবে
-        users.forEach(u => {
-            const uId = u.id;
-            const matchesName = (u.name || '').toLowerCase().includes(q);
-            const matchesUsername = (u.username || '').toLowerCase().includes(q);
-            
-            if(matchesName || matchesUsername) {
-                // ... আপনার existing user rendering code here ...
-                // উদাহরণস্বরূপ:
-                const safeName = escapeHTML(u.name);
-                const avHtml = u.avatar ? `<img src="${u.avatar}">` : avatarInitial(u.name);
-                html += `<div class="msg-item" onclick="addToRecentSearches('${uId}'); viewUserProfile('${uId}')">
-                    <div class="avatar">${avHtml}</div>
-                    <div class="msg-info"><div class="msg-name">${safeName}</div>
-                    <div style="font-size:12px; color:var(--text-muted);">@${escapeHTML(u.username||'')}</div></div>
-                </div>`;
+    if(!input || !res) return;
+
+    const raw = input.value.trim();
+    const q = normalizeUserSearchText(raw);
+    const requestId = ++gcSearchRequestId;
+
+    if(!q) {
+        renderRecentSearches();
+        return;
+    }
+
+    // অল্প অক্ষরে কোনো Firestore read নয়।
+    if(q.length < 2){
+        res.innerHTML = '<div class="empty-feed">Type the full name to search</div>';
+        return;
+    }
+
+    res.innerHTML = gcModernLoader('Searching');
+
+    searchTimeout = setTimeout(async function(){
+        if(requestId !== gcSearchRequestId) return;
+
+        try {
+            // Primary path: exact equality queries against indexed fields.
+            const nameQuery = db.collection('users')
+                .where('nameLower', '==', q)
+                .limit(20)
+                .get();
+
+            const usernameQuery = db.collection('users')
+                .where('usernameLower', '==', q)
+                .limit(20)
+                .get();
+
+            const [nameSnap, usernameSnap] = await Promise.all([nameQuery, usernameQuery]);
+
+            const resultMap = {};
+            nameSnap.forEach(doc => {
+                resultMap[doc.id] = { id: doc.id, ...doc.data() };
+            });
+            usernameSnap.forEach(doc => {
+                resultMap[doc.id] = { id: doc.id, ...doc.data() };
+            });
+
+            // Legacy compatibility:
+            // পুরোনো user documents-এ index field না থাকলে সীমিত exact-name
+            // fallback করা হবে। পুরো collection download করা হবে না।
+            if(Object.keys(resultMap).length === 0){
+                const legacyNames = [];
+                const rawExact = raw.replace(/\s+/g, ' ').trim();
+                const titleExact = gcTitleCaseSearch(rawExact);
+
+                [rawExact, titleExact].forEach(function(v){
+                    if(v && !legacyNames.includes(v)) legacyNames.push(v);
+                });
+
+                const legacyNameSnaps = await Promise.all(
+                    legacyNames.map(function(v){
+                        return db.collection('users')
+                            .where('name', '==', v)
+                            .limit(20)
+                            .get();
+                    })
+                );
+
+                legacyNameSnaps.forEach(function(snap){
+                    snap.forEach(function(doc){
+                        resultMap[doc.id] = { id: doc.id, ...doc.data() };
+                    });
+                });
+
+                // Legacy username fallback (usernames are already normalized to lowercase).
+                const legacyUsernameSnap = await db.collection('users')
+                    .where('username', '==', q)
+                    .limit(20)
+                    .get();
+
+                legacyUsernameSnap.forEach(function(doc){
+                    resultMap[doc.id] = { id: doc.id, ...doc.data() };
+                });
             }
-        });
-        
-        res.innerHTML = html || '<div class="empty-feed">No users found</div>';
-    }, 300);
+
+            if(requestId !== gcSearchRequestId) return;
+
+            const users = Object.values(resultMap).slice(0, 20);
+            res.innerHTML = users.length
+                ? users.map(gcRenderSearchUser).join('')
+                : '<div class="empty-feed">No exact match found</div>';
+
+        } catch(e) {
+            console.error('Exact user search failed:', e);
+            if(requestId === gcSearchRequestId){
+                res.innerHTML = '<div class="empty-feed">Search failed. Please try again.</div>';
+            }
+        }
+    }, 350);
 };
 
 // ৪. Copy Profile Link এ Username যুক্ত করা
