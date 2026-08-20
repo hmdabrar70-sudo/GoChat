@@ -302,11 +302,16 @@ body.home-sky-mode:not(.light-mode) #app-screen::before{
             rgba(36,54,86,0.35) 78%,
             rgba(10,10,15,0) 100%);
 }
-body.home-sky-mode .topbar,
+body.home-sky-mode .topbar{
+    background: transparent !important;
+    position: sticky !important;
+    top: 0;
+    z-index: 100;
+}
 body.home-sky-mode #page-feed .stories-wrapper{
     background: transparent !important;
-    position:relative;
-    z-index:1;
+    position: relative;
+    z-index: 1;
 }
 body.light-mode.home-sky-mode .topbar,
 body.light-mode.home-sky-mode #page-feed .stories-wrapper{
@@ -1843,11 +1848,18 @@ box-shadow:0 6px 14px -4px var(--accent-glow);
     transition: transform 0.3s ease-in-out !important;
 }
 .nav-hidden-top {
-    transform: translateY(-100%) !important;
+    transform: translate3d(0, -110%, 0) !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
 }
 
 .nav-hidden-bottom {
     transform: translate(-50%, 150%) !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
+.bottom-nav {
+    transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out !important;
 }
 /* ব্রাউজারের ডিফল্ট কপি অপশন বন্ধ করার ম্যাজিক কোড */
 .chat-bubble-wrapper { 
@@ -4881,7 +4893,7 @@ animation:gcFadeIn .25s ease both;
 
 <div id="app-screen">
 <div class="topbar">
-<div class="topbar-logo" id="topbar-logo-main" onclick="if(!document.body.classList.contains('home-sky-mode')) refreshFeed();">
+<div class="topbar-logo" id="topbar-logo-main">
     <span id="home-drawer-btn" onclick="event.stopPropagation(); gcOpenHomeDrawer();" style="display:none;align-items:center;justify-content:center;width:36px;height:36px;border-radius:50%;margin-right:4px;cursor:pointer;vertical-align:middle;" title="Menu">
         <i class="ph-fill ph-rows" style="font-size:24px;color:var(--text);-webkit-text-fill-color:var(--text);background:none;"></i>
     </span>
@@ -7617,6 +7629,7 @@ function showPage(page) {
         gcCloseHomeDrawer();
     } else {
         if (topbarLogo) {
+            topbarLogo.removeAttribute('onclick');
             topbarLogo.innerHTML = '<span id="home-drawer-btn" onclick="event.stopPropagation(); gcOpenHomeDrawer();" style="display:none;align-items:center;justify-content:center;width:36px;height:36px;border-radius:50%;margin-right:4px;cursor:pointer;" title="Menu"><i class="ph-fill ph-rows" style="font-size:24px;color:var(--text);-webkit-text-fill-color:var(--text);background:none;"></i></span><span id="logo-star-icon">✦</span> GoChat';
         }
         if (page !== 'feed') gcCloseHomeDrawer();
@@ -11452,34 +11465,45 @@ async function unblockUserFromList(uid) {
   loadBlockedUsers(); 
 }
 
-// --- Scroll to Hide Navigation Logic (Isolated & Safe) ---
+// --- Scroll to Hide Navigation Logic (top bar + bottom nav together) ---
 (function() {
     let safeLastScroll = 0;
-    const safeTopBar = document.querySelector('.topbar');
+    let ticking = false;
+    const safeTopBar = document.querySelector('#app-screen > .topbar') || document.querySelector('.topbar');
     const safeBottomNav = document.querySelector('.bottom-nav');
 
-    if (safeTopBar && safeBottomNav) {
-        window.addEventListener('scroll', function() {
-            let currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+    if (!safeTopBar || !safeBottomNav) return;
 
-            if (currentScroll <= 50) {
-                safeTopBar.classList.remove('nav-hidden-top');
-                safeBottomNav.classList.remove('nav-hidden-bottom');
-                safeLastScroll = currentScroll;
-                return;
-            }
-
-            if (currentScroll > safeLastScroll) {
-                safeTopBar.classList.add('nav-hidden-top');
-                safeBottomNav.classList.add('nav-hidden-bottom');
-            } else {
-                safeTopBar.classList.remove('nav-hidden-top');
-                safeBottomNav.classList.remove('nav-hidden-bottom');
-            }
-            
-            safeLastScroll = currentScroll;
-        });
+    function gcShowBothNavs() {
+        safeTopBar.classList.remove('nav-hidden-top');
+        safeBottomNav.classList.remove('nav-hidden-bottom');
     }
+    function gcHideBothNavs() {
+        safeTopBar.classList.add('nav-hidden-top');
+        safeBottomNav.classList.add('nav-hidden-bottom');
+    }
+
+    window.addEventListener('scroll', function() {
+        if (ticking) return;
+        ticking = true;
+        requestAnimationFrame(function() {
+            const currentScroll = window.pageYOffset || document.documentElement.scrollTop || 0;
+            const delta = currentScroll - safeLastScroll;
+
+            if (currentScroll <= 60) {
+                gcShowBothNavs();
+            } else if (delta > 6) {
+                // scrolling down → hide both
+                gcHideBothNavs();
+            } else if (delta < -6) {
+                // scrolling up → show both (top + bottom)
+                gcShowBothNavs();
+            }
+
+            safeLastScroll = currentScroll <= 0 ? 0 : currentScroll;
+            ticking = false;
+        });
+    }, { passive: true });
 })();
 // চ্যাট হেডারের মেনু ওপেন/ক্লোজ করার ফাংশন
 function toggleChatDeleteMenu() {
