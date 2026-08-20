@@ -79,6 +79,26 @@
                     </button>
                 </div>
 
+                <!-- Total users stats -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                    <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+                        <div class="text-xs font-bold text-gray-500 uppercase">Total Users</div>
+                        <div id="statTotalUsers" class="text-2xl font-extrabold text-blue-600">0</div>
+                    </div>
+                    <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+                        <div class="text-xs font-bold text-gray-500 uppercase">Verified</div>
+                        <div id="statVerifiedUsers" class="text-2xl font-extrabold text-indigo-600">0</div>
+                    </div>
+                    <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+                        <div class="text-xs font-bold text-gray-500 uppercase">Banned</div>
+                        <div id="statBannedUsers" class="text-2xl font-extrabold text-red-500">0</div>
+                    </div>
+                    <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+                        <div class="text-xs font-bold text-gray-500 uppercase">Showing</div>
+                        <div id="statShowingUsers" class="text-2xl font-extrabold text-gray-700">0</div>
+                    </div>
+                </div>
+
                 <!-- Search & Filters -->
                 <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200 mb-6 flex flex-col md:flex-row gap-4">
                     <div class="flex-1 relative">
@@ -342,10 +362,21 @@ if (tab === 'reports') renderReports();
                 const snap = await db.collection('users').get();
                 allUsersData = [];
                 snap.forEach(doc => allUsersData.push({ id: doc.id, ...doc.data() }));
+                updateUserStats();
                 filterUsers();
             } catch (e) {
                 grid.innerHTML = '<div class="text-red-500 text-center font-bold">Failed to load users.</div>';
             }
+        }
+
+        function updateUserStats() {
+            const total = allUsersData.length;
+            const verified = allUsersData.filter(u => u.isVerified === true).length;
+            const banned = allUsersData.filter(u => u.isBanned === true).length;
+            const el = id => document.getElementById(id);
+            if (el('statTotalUsers')) el('statTotalUsers').textContent = total;
+            if (el('statVerifiedUsers')) el('statVerifiedUsers').textContent = verified;
+            if (el('statBannedUsers')) el('statBannedUsers').textContent = banned;
         }
 
         function filterUsers() {
@@ -366,6 +397,8 @@ if (tab === 'reports') renderReports();
 
         function renderUsers(users) {
             const grid = document.getElementById('usersGrid');
+            const showing = document.getElementById('statShowingUsers');
+            if (showing) showing.textContent = users.length;
             if (users.length === 0) {
                 grid.innerHTML = '<div class="text-center text-gray-500 py-10 bg-white rounded-xl border border-gray-200">No users found.</div>';
                 return;
@@ -669,6 +702,27 @@ return;
 list.innerHTML = rows.map(gcReportCardHTML).join('');
 rows.forEach(function (r) { gcLoadReportPostPreview(r); });
 }
+function gcResolveOwnerUid(r, postData) {
+return r.postOwnerUid || r.ownerUid || r.reportedUid || (postData && postData.uid) || '';
+}
+function gcUserMini(uid) {
+const u = (allUsersData || []).find(x => x.id === uid);
+if (!u) return { name: 'Unknown user', username: '', avatar: '', email: '' };
+return { name: u.name || 'User', username: u.username || '', avatar: u.avatar || '', email: u.email || '' };
+}
+function gcMediaThumbHtml(p) {
+const img = (p.imgUrls && p.imgUrls[0]) || p.imgUrl || '';
+const vid = p.videoUrl || '';
+const isVid = !!(vid && (String(vid).includes('.mp4') || String(vid).includes('/video/')));
+if (img && !String(img).includes('.mp4')) {
+return `<img src="${escapeHTML(img)}" class="w-14 h-14 rounded-lg object-cover border" onerror="this.style.display='none'">`;
+}
+if (isVid || (img && String(img).includes('.mp4'))) {
+const src = vid || img;
+return `<div class="w-14 h-14 rounded-lg bg-black relative overflow-hidden border flex items-center justify-center"><video src="${escapeHTML(src)}" muted playsinline class="w-full h-full object-cover"></video><span class="absolute text-white text-xs font-bold">▶</span></div>`;
+}
+return '<div class="w-14 h-14 rounded-lg bg-purple-100 text-purple-500 flex items-center justify-center"><i class="fas fa-font"></i></div>';
+}
 function gcReportCardHTML(r) {
 const st = r.status || 'pending';
 const urgent = GC_URGENT_REASONS.indexOf(r.reason) !== -1 && st === 'pending';
@@ -693,16 +747,26 @@ return `
 ${urgentChip} ${stChip}
 <span class="text-xs text-gray-400 ml-auto">${time}</span>
 </div>
-<div class="text-sm text-gray-600 mb-1"><b>Reported by:</b> ${escapeHTML(r.reporterName || 'User')}</div>
+<div class="text-sm text-gray-600 mb-1"><b>Reported by:</b> ${escapeHTML(r.reporterName || 'User')} ${r.reporterUid ? `<span class="text-xs text-gray-400">(${escapeHTML(r.reporterUid)})</span>` : ''}</div>
 ${r.details ? `<div class="text-sm text-gray-500 italic bg-gray-50 border border-gray-100 rounded-lg p-2 mb-3">"${escapeHTML(r.details)}"</div>` : ''}
+<div id="report-owner-${r.id}" class="text-sm text-gray-600 mb-2"></div>
 <div id="report-post-${r.id}" class="bg-gray-50 border border-gray-200 rounded-lg p-3 mb-3 text-sm text-gray-500"><i class="fas fa-spinner fa-spin"></i> Loading post...</div>
 ${actions}
 </div>`;
 }
 async function gcLoadReportPostPreview(r) {
 const box = document.getElementById('report-post-' + r.id);
+const ownerBox = document.getElementById('report-owner-' + r.id);
 if (!box) return;
-if (!r.postId) { box.innerHTML = '<i class="fas fa-info-circle"></i> Account report (no post linked).'; return; }
+if (!r.postId) {
+box.innerHTML = '<i class="fas fa-info-circle"></i> Account report (no post linked).';
+const ouid = gcResolveOwnerUid(r, null);
+if (ownerBox && ouid) {
+const u = gcUserMini(ouid);
+ownerBox.innerHTML = `<b>Reported profile:</b> <button class="text-blue-600 font-bold hover:underline" onclick="gcFocusUser('${ouid}')">${escapeHTML(u.name)}</button> ${u.username ? '@'+escapeHTML(u.username) : ''} <span class="text-xs text-gray-400">${escapeHTML(ouid)}</span>`;
+}
+return;
+}
 if (reportsPostCache[r.postId]) { box.innerHTML = reportsPostCache[r.postId]; return; }
 try {
 const doc = await db.collection('posts').doc(r.postId).get();
@@ -711,17 +775,30 @@ if (!doc.exists) {
 html = '<span class="text-gray-400"><i class="fas fa-unlink"></i> Post already deleted.</span>';
 } else {
 const p = doc.data();
-const img = (p.imgUrls && p.imgUrls[0]) || p.imgUrl || '';
+const ownerUid = gcResolveOwnerUid(r, p);
+const owner = gcUserMini(ownerUid);
+if (ownerBox) {
+ownerBox.innerHTML = `<b>Post owner:</b> <button class="text-blue-600 font-bold hover:underline" onclick="gcFocusUser('${ownerUid}')">${escapeHTML(owner.name || p.name || 'User')}</button> ${owner.username ? '@'+escapeHTML(owner.username) : ''} <span class="text-xs text-gray-400">${escapeHTML(ownerUid)}</span>`;
+}
+const caption = p.title || p.text || p.caption || '';
 html = `<div class="flex items-center gap-3">
-${img ? `<img src="${escapeHTML(img)}" class="w-14 h-14 rounded-lg object-cover border">` : '<div class="w-14 h-14 rounded-lg bg-purple-100 text-purple-500 flex items-center justify-center"><i class="fas fa-font"></i></div>'}
-<div class="min-w-0"><div class="font-bold text-gray-800 text-sm truncate">${escapeHTML(p.name || 'User')}</div>
-<div class="text-gray-500 text-xs truncate">${escapeHTML(p.title || '(Photo post)')}</div></div>
+${gcMediaThumbHtml(p)}
+<div class="min-w-0 flex-1"><div class="font-bold text-gray-800 text-sm truncate">${escapeHTML(p.name || owner.name || 'User')}</div>
+<div class="text-gray-500 text-xs truncate">${escapeHTML(caption || (p.videoUrl ? '(Video post)' : '(Media post)'))}</div>
+<div class="text-xs text-gray-400 mt-0.5"><i class="fas fa-heart text-red-400"></i> ${p.likes || 0} · <i class="fas fa-comment text-blue-400"></i> ${(p.comments && p.comments.length) || p.commentCount || 0}</div></div>
 </div>`;
 }
 reportsPostCache[r.postId] = html;
 const b2 = document.getElementById('report-post-' + r.id);
 if (b2) b2.innerHTML = html;
-} catch (e) { box.innerHTML = '<span class="text-red-400">Could not load post.</span>'; }
+} catch (e) { box.innerHTML = '<span class="text-red-400">Could not load post. (' + escapeHTML(e.message || 'error') + ')</span>'; }
+}
+function gcFocusUser(uid) {
+if (!uid) return;
+switchTab('users');
+const inp = document.getElementById('searchUser');
+if (inp) { inp.value = uid; filterUsers(); }
+showToast('Showing user in User Management', 'success');
 }
 async function gcViewReportPost(rid) {
 const r = allReportsData.find(x => x.id === rid);
@@ -734,14 +811,29 @@ try {
 const doc = await db.collection('posts').doc(r.postId).get();
 if (!doc.exists) { body.innerHTML = '<div class="text-center py-10 text-gray-500 font-bold bg-white rounded-xl">Post already deleted.</div>'; return; }
 const p = doc.data();
+const ownerUid = gcResolveOwnerUid(r, p);
+const owner = gcUserMini(ownerUid);
 const imgs = (p.imgUrls && p.imgUrls.length) ? p.imgUrls : (p.imgUrl ? [p.imgUrl] : []);
+const vid = p.videoUrl || '';
+const caption = p.title || p.text || p.caption || '';
+const mediaHtml = [
+...imgs.filter(u => u && !String(u).includes('.mp4')).map(u => `<img src="${escapeHTML(u)}" class="w-full max-h-96 object-contain rounded-lg mb-2 border bg-black/5">`),
+(vid ? `<video src="${escapeHTML(vid)}" controls playsinline class="w-full max-h-96 rounded-lg mb-2 border bg-black"></video>` : ''),
+...imgs.filter(u => u && String(u).includes('.mp4')).map(u => `<video src="${escapeHTML(u)}" controls playsinline class="w-full max-h-96 rounded-lg mb-2 border bg-black"></video>`)
+].join('');
 body.innerHTML = `<div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
-<div class="font-bold text-gray-800 mb-1">${escapeHTML(p.name || 'User')}</div>
-${p.title ? `<p class="text-gray-800 font-medium mb-3 whitespace-pre-wrap">${escapeHTML(p.title)}</p>` : ''}
-${imgs.map(u => `<img src="${escapeHTML(u)}" class="w-full h-64 object-cover rounded-lg mb-2 border">`).join('')}
-<div class="text-xs text-gray-500 font-bold"><i class="fas fa-heart text-red-500"></i> ${p.likes || 0} · <i class="fas fa-comment text-blue-500"></i> ${(p.comments || []).length}</div>
+<div class="flex items-center gap-3 mb-3">
+${owner.avatar ? `<img src="${escapeHTML(owner.avatar)}" class="w-10 h-10 rounded-full object-cover">` : `<div class="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold">${(owner.name||'U')[0]}</div>`}
+<div>
+<div class="font-bold text-gray-800">${escapeHTML(p.name || owner.name || 'User')}</div>
+<button class="text-xs text-blue-600 font-semibold hover:underline" onclick="closeModal('postsModal'); gcFocusUser('${ownerUid}')">View profile · ${escapeHTML(ownerUid)}</button>
+</div>
+</div>
+${caption ? `<p class="text-gray-800 font-medium mb-3 whitespace-pre-wrap">${escapeHTML(caption)}</p>` : '<p class="text-gray-400 text-sm mb-3 italic">No caption</p>'}
+${mediaHtml || '<div class="text-gray-400 text-sm mb-3">No media attached</div>'}
+<div class="text-xs text-gray-500 font-bold"><i class="fas fa-heart text-red-500"></i> ${p.likes || 0} · <i class="fas fa-comment text-blue-500"></i> ${(p.comments && p.comments.length) || p.commentCount || 0}</div>
 </div>`;
-} catch (e) { body.innerHTML = '<div class="text-center text-red-500 font-bold py-10">Error loading post.</div>'; }
+} catch (e) { body.innerHTML = '<div class="text-center text-red-500 font-bold py-10">Error loading post: ' + escapeHTML(e.message || '') + '</div>'; }
 }
 async function gcDeleteReportedPost(rid) {
 const r = allReportsData.find(x => x.id === rid);
@@ -754,11 +846,18 @@ delete reportsPostCache[r.postId];
 showToast('Post deleted & report closed', 'success');
 } catch (e) { showToast('Failed to delete post', 'error'); }
 }
-function gcBanReportedOwner(rid) {
+async function gcBanReportedOwner(rid) {
 const r = allReportsData.find(x => x.id === rid);
-if (!r || !r.postOwnerUid) { showToast('No owner linked to this report', 'error'); return; }
-const u = allUsersData.find(x => x.id === r.postOwnerUid);
-openBanModal(r.postOwnerUid, u ? u.name : 'Post Owner');
+let uid = r ? (r.postOwnerUid || r.ownerUid || r.reportedUid) : '';
+if (!uid && r && r.postId) {
+try {
+const doc = await db.collection('posts').doc(r.postId).get();
+if (doc.exists) uid = doc.data().uid || '';
+} catch (e) {}
+}
+if (!uid) { showToast('No owner linked to this report', 'error'); return; }
+const u = allUsersData.find(x => x.id === uid);
+openBanModal(uid, u ? u.name : 'Post Owner');
 }
 async function gcResolveReport(rid) {
 if (!confirm('Mark this report as resolved (action taken)?')) return;
@@ -816,7 +915,13 @@ ${st === 'pending' ? `
 }).join('');
 } catch (e) {
 console.error(e);
-grid.innerHTML = '<div class="text-red-500 text-center font-bold col-span-full">Failed to load payment requests.</div>';
+const code = (e && e.code) ? e.code : '';
+const msg = (e && e.message) ? e.message : 'Unknown error';
+grid.innerHTML = `<div class="text-red-500 text-center font-bold col-span-full p-6 bg-red-50 rounded-xl border border-red-100">
+Failed to load payment requests.<br>
+<span class="text-sm font-medium text-red-700">${escapeHTML(code)} ${escapeHTML(msg)}</span>
+<div class="text-xs text-gray-600 font-normal mt-3">Usually this means Firestore rules block <b>elitePayments</b>. Publish the updated rules (include match /elitePayments/{id}).</div>
+</div>`;
 }
 }
 async function approveElite(appId, uid, days, planName) {
