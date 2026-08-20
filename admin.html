@@ -177,23 +177,28 @@
                 <h2 class="text-3xl font-bold text-gray-800 mb-8">System & Settings</h2>
                 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <!-- Global Announcement -->
+                    <!-- Global Announcement → user Notifications -->
                     <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
                         <div class="flex items-center gap-3 mb-4">
                             <div class="p-3 bg-yellow-100 text-yellow-600 rounded-lg"><i class="fas fa-bullhorn text-xl"></i></div>
-                            <h3 class="text-xl font-bold text-gray-800">Global Announcement</h3>
+                            <div>
+                                <h3 class="text-xl font-bold text-gray-800">Official Notice</h3>
+                                <p class="text-sm text-gray-500">Sends to every user’s Notification box (not the home feed)</p>
+                            </div>
                         </div>
-                        <textarea id="annInput" rows="3" class="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 mb-4" placeholder="Write a notice for all users..."></textarea>
-                        <button onclick="postAnnouncement()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition">Publish Announcement</button>
+                        <textarea id="annInput" rows="4" class="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 mb-4" placeholder="Write an official notice for all users..."></textarea>
+                        <button id="annPublishBtn" onclick="postAnnouncement()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition">Publish to Notifications</button>
+                        <p id="annProgress" class="text-xs text-gray-500 mt-2 hidden"></p>
                         
                         <div class="mt-6 border-t pt-4">
-                            <h4 class="text-sm font-bold text-gray-500 mb-3 uppercase tracking-wider">Current Active Notice</h4>
+                            <h4 class="text-sm font-bold text-gray-500 mb-3 uppercase tracking-wider">Last published notice</h4>
                             <div class="p-4 bg-gray-50 border border-gray-200 rounded-xl flex justify-between items-center gap-4">
-                                <p id="currAnnText" class="text-sm text-gray-800 font-medium line-clamp-2">No active announcement.</p>
-                                <button onclick="deleteAnnouncement()" class="text-red-500 hover:text-red-700 bg-red-50 p-2 rounded-lg transition" title="Delete">
+                                <p id="currAnnText" class="text-sm text-gray-800 font-medium line-clamp-3">No announcement yet.</p>
+                                <button onclick="deleteAnnouncement()" class="text-red-500 hover:text-red-700 bg-red-50 p-2 rounded-lg transition" title="Clear record">
                                     <i class="fas fa-trash"></i>
                                 </button>
                             </div>
+                            <p class="text-xs text-gray-400 mt-2">Clearing the record does not delete notifications already delivered to users.</p>
                         </div>
                     </div>
 
@@ -605,20 +610,67 @@ body.innerHTML = '<div class="text-center text-red-500 font-bold py-10">Error lo
 
         async function postAnnouncement() {
             const msg = document.getElementById('annInput').value.trim();
-            if(!msg) return showToast("Type a message first", "error");
+            if (!msg) return showToast("Type a message first", "error");
+            const btn = document.getElementById('annPublishBtn');
+            const prog = document.getElementById('annProgress');
+            if (btn) { btn.disabled = true; btn.textContent = 'Publishing...'; }
+            if (prog) { prog.classList.remove('hidden'); prog.textContent = 'Saving notice & loading users...'; }
             try {
-                await db.collection('system').doc('announcement').set({ message: msg });
+                const annId = 'ann_' + Date.now();
+                await db.collection('system').doc('announcement').set({
+                    message: msg,
+                    annId: annId,
+                    publishedAt: Date.now(),
+                    publishedBy: auth.currentUser ? auth.currentUser.email : 'admin'
+                });
+
+                // Deliver as personal notifications (same inbox as likes/follows)
+                const snap = await db.collection('users').get();
+                const uids = [];
+                snap.forEach(d => uids.push(d.id));
+                const adminUid = auth.currentUser ? auth.currentUser.uid : 'admin';
+                const adminEmail = auth.currentUser ? auth.currentUser.email : 'admin';
+                let sent = 0;
+                const CHUNK = 400;
+                for (let i = 0; i < uids.length; i += CHUNK) {
+                    const batch = db.batch();
+                    const slice = uids.slice(i, i + CHUNK);
+                    slice.forEach(uid => {
+                        const ref = db.collection('notifications').doc();
+                        batch.set(ref, {
+                            toUid: uid,
+                            fromUid: adminUid,
+                            fromName: 'GoChat Official',
+                            type: 'announcement',
+                            message: msg,
+                            annId: annId,
+                            read: false,
+                            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                        });
+                    });
+                    await batch.commit();
+                    sent += slice.length;
+                    if (prog) prog.textContent = 'Sent to ' + sent + ' / ' + uids.length + ' users...';
+                }
+
                 document.getElementById('annInput').value = '';
-                showToast("Announcement published!", "success");
-            } catch(e) { showToast("Error publishing", "error"); }
+                showToast('Notice sent to ' + sent + ' users’ notifications', 'success');
+                if (prog) prog.textContent = 'Done — delivered to ' + sent + ' users.';
+            } catch (e) {
+                console.error(e);
+                showToast('Error publishing: ' + (e.message || 'failed'), 'error');
+                if (prog) prog.textContent = 'Failed: ' + (e.message || '');
+            } finally {
+                if (btn) { btn.disabled = false; btn.textContent = 'Publish to Notifications'; }
+            }
         }
 
         async function deleteAnnouncement() {
-            if(!confirm("Remove current announcement?")) return;
+            if (!confirm('Clear the “last published” record? (Already delivered notifications stay in users’ inboxes.)')) return;
             try {
                 await db.collection('system').doc('announcement').delete();
-                showToast("Announcement removed", "success");
-            } catch(e) { showToast("Error removing", "error"); }
+                showToast('Announcement record cleared', 'success');
+            } catch (e) { showToast('Error removing', 'error'); }
         }
 
         // 🚀 FEATURE 8: MAINTENANCE MODE
