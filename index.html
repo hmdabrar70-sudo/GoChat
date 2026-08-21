@@ -445,6 +445,8 @@ body.home-sky-mode #page-feed .feed-tabs{
     transition:background .15s;
 }
 .gc-hd-item:active,.gc-hd-item:hover{background:var(--surface-2);}
+.gc-hd-item.active{background:rgba(124,92,255,0.12);color:var(--accent);}
+.gc-hd-item.active i{color:var(--accent);}
 .gc-hd-item i{font-size:22px;width:28px;text-align:center;}
 .gc-hd-item .gc-hd-chev{margin-left:auto;color:var(--text-muted);font-size:16px;}
 #home-drawer-btn{display:none;}
@@ -4534,9 +4536,18 @@ body:not(.light-mode) .post-card {
     border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
 }
 
-/* ২. হেডার সেকশন: স্পেসিং কমানো হলো */
+/* ২. হেডার সেকশন: স্পেসিং কমানো + থ্রি-ডট টপ-রাইট */
 .post-header {
     margin-bottom: 4px !important;
+    align-items: flex-start !important;
+    position: relative;
+}
+.post-header .post-more-wrap {
+    margin-left: auto !important;
+    margin-top: 0 !important;
+}
+.post-header .post-more-btn:active {
+    background: var(--surface-2) !important;
 }
 
 .post-avatar-wrapper .avatar {
@@ -5315,6 +5326,14 @@ Edit Profile-এ পার্টনার সিলেক্ট বাটন
         <button type="button" class="gc-hd-close" onclick="gcCloseHomeDrawer()" aria-label="Close"><i class="ph-bold ph-x"></i></button>
     </div>
     <div class="gc-hd-list">
+        <div class="gc-hd-item" id="hd-tab-foryou" onclick="gcCloseHomeDrawer(); setFeedTab('foryou');">
+            <i class="ph-bold ph-sparkle" style="color:var(--accent);"></i> For You
+            <i class="ph-bold ph-caret-right gc-hd-chev"></i>
+        </div>
+        <div class="gc-hd-item" id="hd-tab-following" onclick="gcCloseHomeDrawer(); setFeedTab('following');">
+            <i class="ph-bold ph-users"></i> Following
+            <i class="ph-bold ph-caret-right gc-hd-chev"></i>
+        </div>
         <div class="gc-hd-item" onclick="gcCloseHomeDrawer(); gcOpenTrending();">
             <i class="ph-bold ph-trend-up" style="color:var(--accent);"></i> Trending
             <i class="ph-bold ph-caret-right gc-hd-chev"></i>
@@ -5336,7 +5355,8 @@ Edit Profile-এ পার্টনার সিলেক্ট বাটন
 
 <div class="page active" id="page-feed">
 <div class="stories-wrapper" id="stories-list"></div>
-<div class="feed-tabs">
+<!-- For You / Following moved to Explore drawer (above Trending) -->
+<div class="feed-tabs" style="display:none !important;" aria-hidden="true">
 <div class="feed-tab active" id="tab-foryou" onclick="setFeedTab('foryou')">For You</div>
 <div class="feed-tab" id="tab-following" onclick="setFeedTab('following')">Following</div>
 </div>
@@ -9104,8 +9124,23 @@ async function toggleLike(pid) {
             likes++;
             
             if (p.uid !== currentUser.uid) {
-                gcRollupNotify(p.uid, 'like', pid);
-                awardPoints(p.uid, 5);
+                const notifId = currentUser.uid + '_like_' + pid;
+                const notifRef = db.collection('notifications').doc(notifId);
+                
+                notifRef.get().then(docSnap => {
+                    if (!docSnap.exists) {
+                        notifRef.set({
+                            toUid: p.uid, 
+                            fromUid: currentUser.uid,
+                            fromName: currentUserData.name,
+                            type: 'like', 
+                            postId: pid, 
+                            read: false,
+                            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                        });
+                        awardPoints(p.uid, 5);
+                    }
+                });
             }
         }
         await ref.update({ likes, likedBy });
@@ -11287,7 +11322,18 @@ postLimit = 10;
 document.querySelectorAll('.feed-tab').forEach(t=>t.classList.remove('active'));
 const tabEl=document.getElementById('tab-'+tab);
 if(tabEl)tabEl.classList.add('active');
+// Drawer active highlight
+document.querySelectorAll('#hd-tab-foryou, #hd-tab-following').forEach(function(el){ el.classList.remove('active'); });
+const hdEl = document.getElementById('hd-tab-' + tab);
+if(hdEl) hdEl.classList.add('active');
+if(typeof showPage === 'function'){
+  try {
+    const feedPage = document.getElementById('page-feed');
+    if(feedPage && !feedPage.classList.contains('active')) showPage('feed');
+  } catch(e){}
+}
 loadFeed();
+window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 // =========================================
@@ -11560,8 +11606,10 @@ mediaHtml=`<div class="post-media-wrap" ondblclick="event.stopPropagation(); han
 </div>`;
 }
 
-let postDropdownHtml = `<div style="position:relative;margin-left:auto;">
-<i class="ph-bold ph-dots-three more-btn" onclick="event.stopPropagation();togglePostDropdown('post-drop-${uniqueDropId}')" style="cursor:pointer;padding:6px;border-radius:50%;color:var(--text-secondary);font-size:24px;"></i>
+let postDropdownHtml = `<div class="post-more-wrap" style="position:relative;margin-left:auto;align-self:flex-start;flex-shrink:0;">
+<button type="button" class="post-more-btn more-btn" onclick="event.stopPropagation();togglePostDropdown('post-drop-${uniqueDropId}')" aria-label="More" style="cursor:pointer;padding:4px;width:32px;height:32px;border-radius:50%;border:none;background:transparent;color:var(--text-muted);display:flex;align-items:center;justify-content:center;">
+<i class="ph-bold ph-dots-three" style="font-size:22px;"></i>
+</button>
 <div id="post-drop-${uniqueDropId}" class="post-dropdown-menu" onclick="event.stopPropagation();">`;
 
 if(p.uid === currentUser?.uid){
