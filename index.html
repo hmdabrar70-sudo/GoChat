@@ -243,14 +243,6 @@ box-shadow:inset 0 0 0 1px rgba(124,92,255,0.16);
 }
 .nav-item.active .material-symbols-outlined{font-variation-settings:'FILL' 1;color:var(--accent);}
 .nav-item:active{transform:scale(0.92);}
-.nav-item.active::after{
-content:'';
-position:absolute;bottom:2px;left:50%;
-transform:translateX(-50%);
-width:4px;height:4px;border-radius:50%;
-background:var(--accent);
-box-shadow:0 0 8px var(--accent-glow);
-}
 .nav-item.active #nav-profile-pic-container{
 border-color:var(--accent) !important;
 box-shadow:0 0 0 2px rgba(124,92,255,0.25);
@@ -327,43 +319,76 @@ body.light-mode .stories-wrapper {
 }
 .stories-wrapper::-webkit-scrollbar{display:none;}
 
-/* ═══ Home feed sky + soft (only when body.home-sky-mode) ═══ */
+/* ═══ Home feed sky + realistic clouds (only body.home-sky-mode) ═══ */
 #app-screen{position:relative;}
 body.home-sky-mode #app-screen::before{
     content:'';
     position:absolute;
     top:0; left:0; right:0;
-    height:260px;
+    height:280px;
     pointer-events:none;
     z-index:0;
-    border-radius:0 0 28px 28px;
-    /* Soft day sky → fades to transparent so it blends into the feed */
+    border-radius:0 0 32px 32px;
     background:
-        radial-gradient(ellipse 90px 36px at 12% 38%, rgba(255,255,255,0.85) 0%, rgba(255,255,255,0) 70%),
-        radial-gradient(ellipse 120px 40px at 18% 42%, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0) 72%),
-        radial-gradient(ellipse 100px 34px at 72% 28%, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0) 70%),
-        radial-gradient(ellipse 70px 28px at 88% 48%, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0) 70%),
-        radial-gradient(ellipse 110px 38px at 48% 55%, rgba(255,255,255,0.45) 0%, rgba(255,255,255,0) 75%),
+        radial-gradient(ellipse 160px 100px at 88% 8%, rgba(255,250,230,0.7) 0%, rgba(255,236,200,0.25) 40%, transparent 72%),
+        radial-gradient(ellipse 130px 48px at 10% 32%, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.35) 45%, transparent 72%),
+        radial-gradient(ellipse 90px 36px at 22% 36%, rgba(255,255,255,0.75) 0%, transparent 70%),
+        radial-gradient(ellipse 150px 52px at 42% 22%, rgba(255,255,255,0.55) 0%, transparent 68%),
+        radial-gradient(ellipse 110px 42px at 68% 30%, rgba(255,255,255,0.88) 0%, rgba(255,255,255,0.3) 50%, transparent 72%),
+        radial-gradient(ellipse 80px 30px at 82% 40%, rgba(255,255,255,0.6) 0%, transparent 70%),
+        radial-gradient(ellipse 140px 46px at 55% 48%, rgba(255,255,255,0.4) 0%, transparent 75%),
+        radial-gradient(ellipse 70px 26px at 30% 52%, rgba(255,255,255,0.35) 0%, transparent 70%),
         linear-gradient(180deg,
-            #8ec8ea 0%,
-            #a8d7f0 28%,
-            #cfe9f8 55%,
-            #e8f5fc 78%,
-            rgba(232,245,252,0) 100%);
+            #6eb6e0 0%,
+            #8ec8ea 18%,
+            #b5daf2 42%,
+            #d4ecf9 62%,
+            #eef7fc 80%,
+            rgba(248,250,252,0) 100%);
+}
+body.home-sky-mode #app-screen::after{
+    content:'';
+    position:absolute;
+    top:0; left:-4%; right:-4%;
+    height:240px;
+    pointer-events:none;
+    z-index:0;
+    border-radius:0 0 32px 32px;
+    background:
+        radial-gradient(ellipse 100px 38px at 18% 44%, rgba(255,255,255,0.5) 0%, transparent 70%),
+        radial-gradient(ellipse 120px 40px at 75% 34%, rgba(255,255,255,0.45) 0%, transparent 70%),
+        radial-gradient(ellipse 90px 32px at 48% 58%, rgba(255,255,255,0.3) 0%, transparent 72%);
+    animation: gcSkyDrift 48s ease-in-out infinite alternate;
+    will-change: transform;
+}
+@keyframes gcSkyDrift{
+    from{ transform: translateX(-1.5%); }
+    to{ transform: translateX(1.5%); }
+}
+@media (prefers-reduced-motion: reduce){
+    body.home-sky-mode #app-screen::after{ animation: none; }
 }
 body.home-sky-mode:not(.light-mode) #app-screen::before{
     background:
-        radial-gradient(ellipse 90px 36px at 12% 38%, rgba(180,200,230,0.22) 0%, transparent 70%),
-        radial-gradient(ellipse 120px 40px at 18% 42%, rgba(160,185,220,0.14) 0%, transparent 72%),
-        radial-gradient(ellipse 100px 34px at 72% 28%, rgba(190,210,240,0.18) 0%, transparent 70%),
-        radial-gradient(ellipse 70px 28px at 88% 48%, rgba(150,175,210,0.12) 0%, transparent 70%),
+        radial-gradient(ellipse 140px 90px at 82% 10%, rgba(255,220,160,0.12) 0%, transparent 65%),
+        radial-gradient(ellipse 100px 40px at 14% 34%, rgba(200,220,255,0.2) 0%, transparent 70%),
+        radial-gradient(ellipse 130px 48px at 40% 24%, rgba(180,200,240,0.14) 0%, transparent 68%),
+        radial-gradient(ellipse 110px 42px at 72% 36%, rgba(210,225,255,0.18) 0%, transparent 70%),
+        radial-gradient(ellipse 90px 34px at 55% 50%, rgba(160,185,220,0.12) 0%, transparent 72%),
         linear-gradient(180deg,
-            #1a2740 0%,
-            #1e2f4a 30%,
-            #243656 55%,
-            rgba(36,54,86,0.35) 78%,
+            #152238 0%,
+            #1a2d48 22%,
+            #203654 48%,
+            #243a5c 68%,
+            rgba(20,30,48,0.25) 85%,
             rgba(10,10,15,0) 100%);
 }
+body.home-sky-mode:not(.light-mode) #app-screen::after{
+    background:
+        radial-gradient(ellipse 100px 36px at 20% 42%, rgba(180,200,240,0.12) 0%, transparent 70%),
+        radial-gradient(ellipse 110px 38px at 78% 36%, rgba(160,190,230,0.1) 0%, transparent 70%);
+}
+
 body.home-sky-mode .topbar{
     background: transparent !important;
     position: sticky !important;
