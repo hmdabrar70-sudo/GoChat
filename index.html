@@ -5121,8 +5121,9 @@ animation:gcFadeIn .25s ease both;
 🚀 Update #103 · relationship-link · 2026-08-22
 খুঁজতে: Ctrl+F → "relationship-link"
 ========================================= */
-.gc-rel-mask{position:fixed;inset:0;background:rgba(5,5,10,.6);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);z-index:101900;display:flex;align-items:flex-end;justify-content:center;}
-.gc-rel-sheet{width:100%;max-width:520px;max-height:80vh;background:var(--surface);border-radius:24px 24px 0 0;display:flex;flex-direction:column;animation:gcRelUp .35s cubic-bezier(.22,1,.36,1);}
+.gc-rel-mask{position:fixed;inset:0;background:rgba(5,5,10,.6);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);z-index:200000;display:none;align-items:flex-end;justify-content:center;pointer-events:auto;}
+.gc-rel-mask.open{display:flex !important;}
+.gc-rel-sheet{width:100%;max-width:520px;max-height:80vh;background:var(--surface);border-radius:24px 24px 0 0;display:flex;flex-direction:column;animation:gcRelUp .35s cubic-bezier(.22,1,.36,1);pointer-events:auto;position:relative;z-index:1;}
 @keyframes gcRelUp{from{transform:translateY(30%);opacity:.4;}to{transform:translateY(0);opacity:1;}}
 .gc-rel-head{display:flex;align-items:center;gap:10px;padding:16px;border-bottom:1px solid var(--border);}
 .gc-rel-title{flex:1;font-size:16px;font-weight:800;color:var(--text);display:flex;align-items:center;gap:8px;}
@@ -20069,20 +20070,47 @@ row.parentNode.insertBefore(el, row.nextSibling);
 })();
 // ---------- পিকার শিট ----------
 function gcEnsureRelSheet(){
-if(document.getElementById('gc-rel-sheet')) return;
-const ov = document.createElement('div');
-ov.id = 'gc-rel-mask'; ov.className = 'gc-rel-mask';
-ov.innerHTML = '<div class="gc-rel-sheet"><div class="gc-rel-head"><div class="gc-rel-title"><i class="ph-fill ph-heart"></i> Relationship Partner</div><button class="gc-rel-x" onclick="gcCloseRelSheet()"><i class="ph-bold ph-x"></i></button></div><div id="gc-rel-current"></div><div class="gc-rel-search"><i class="ph-bold ph-magnifying-glass"></i><input id="gc-rel-search" placeholder="Search mutual connections…" oninput="gcRelFilter(this.value)"></div><div class="gc-rel-list" id="gc-rel-list"></div></div>';
+// Remove any duplicate masks left from older buggy opens
+document.querySelectorAll('.gc-rel-mask').forEach(function(el, i){
+  if(el.id !== 'gc-rel-mask') el.remove();
+});
+let ov = document.getElementById('gc-rel-mask');
+if(ov) return ov;
+ov = document.createElement('div');
+ov.id = 'gc-rel-mask';
+ov.className = 'gc-rel-mask';
+ov.innerHTML = '<div class="gc-rel-sheet" id="gc-rel-sheet"><div class="gc-rel-head"><div class="gc-rel-title"><i class="ph-fill ph-heart"></i> Relationship Partner</div><button type="button" class="gc-rel-x" id="gc-rel-close-btn" aria-label="Close"><i class="ph-bold ph-x"></i></button></div><div id="gc-rel-current"></div><div class="gc-rel-search"><i class="ph-bold ph-magnifying-glass"></i><input id="gc-rel-search" type="search" placeholder="Search mutual connections…" autocomplete="off"></div><div class="gc-rel-list" id="gc-rel-list"></div></div>';
 ov.addEventListener('click', function(e){ if(e.target === ov) gcCloseRelSheet(); });
 document.body.appendChild(ov);
+const xBtn = document.getElementById('gc-rel-close-btn');
+if(xBtn) xBtn.addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation(); gcCloseRelSheet(); });
+const search = document.getElementById('gc-rel-search');
+if(search) search.addEventListener('input', function(){ gcRelFilter(this.value); });
+return ov;
 }
 function gcOpenPartnerPicker(){
-gcEnsureRelSheet();
-document.getElementById('gc-rel-mask').style.display = 'flex';
+const ov = gcEnsureRelSheet();
+if(!ov) return;
+ov.classList.add('open');
+ov.style.display = 'flex';
+try { document.body.style.overflow = 'hidden'; } catch(e){}
 gcRelRenderCurrent();
 gcLoadRelList();
+const search = document.getElementById('gc-rel-search');
+if(search){ search.value = ''; setTimeout(function(){ try{ search.focus(); }catch(e){} }, 80); }
 }
-function gcCloseRelSheet(){ const m = document.getElementById('gc-rel-mask'); if(m) m.style.display = 'none'; }
+function gcCloseRelSheet(){
+const m = document.getElementById('gc-rel-mask');
+if(m){
+  m.classList.remove('open');
+  m.style.display = 'none';
+}
+try { document.body.style.overflow = ''; } catch(e){}
+}
+// Global aliases so inline handlers always work
+window.gcOpenPartnerPicker = gcOpenPartnerPicker;
+window.gcCloseRelSheet = gcCloseRelSheet;
+window.gcRelFilter = gcRelFilter;
 function gcRelRenderCurrent(){
 const box = document.getElementById('gc-rel-current');
 if(!box) return;
