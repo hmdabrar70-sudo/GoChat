@@ -3485,8 +3485,24 @@ body.notifications-mode .topbar-btn[onclick*="notifications"] {
     overflow-x: auto;
     scrollbar-width: none;
     background: var(--bg);
+    transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
 }
 .activity-tabs-wrapper::-webkit-scrollbar { display: none; }
+/* Notifications: hide filter tabs with top chrome on scroll */
+#page-notifications .activity-tabs-wrapper.nav-hidden-tabs {
+    transform: translateY(-120%);
+    opacity: 0;
+    pointer-events: none;
+}
+#notif-selection-bar {
+    z-index: 10120 !important;
+    padding-bottom: max(16px, env(safe-area-inset-bottom, 0px));
+}
+body.notif-edit-mode #main-bottom-nav {
+    transform: translate(-50%, 150%) !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
 
 .act-tab {
     padding: 8px 16px;
@@ -5492,7 +5508,7 @@ animation:gcFadeIn .25s ease both;
 <i class="ph-bold ph-x" style="color:#fff;cursor:pointer;font-size:20px;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.6));" onclick="closeStory()"></i>
 </div>
 </div>
-<div class="story-media-container" id="sv-media-container" onclick="nextStorySegment()"></div>
+<div class="story-media-container" id="sv-media-container"></div>
 <div class="story-nav-btn left" onclick="event.stopPropagation(); prevStorySegment()">
     <i class="ph-bold ph-caret-left" style="font-size: 24px;"></i>
 </div>
@@ -7999,6 +8015,19 @@ function showPage(page) {
     // 🚀 নোটিফিকেশন এডিট বাটন হ্যান্ডেল করার লজিক
     const notifEditBtn = document.getElementById('topbar-notif-edit-btn');
     if (notifEditBtn) notifEditBtn.style.display = (page === 'notifications') ? 'block' : 'none';
+    // Leave notifications → exit edit mode & restore chrome
+    if (page !== 'notifications') {
+        if (typeof isNotifEditMode !== 'undefined' && isNotifEditMode) {
+            toggleNotifEditMode();
+        }
+        document.body.classList.remove('notif-edit-mode');
+        const nTabs = document.querySelector('#page-notifications .activity-tabs-wrapper');
+        if (nTabs) nTabs.classList.remove('nav-hidden-tabs');
+        const bn = document.getElementById('main-bottom-nav');
+        if (bn) bn.classList.remove('nav-hidden-bottom');
+        const tb = document.querySelector('#app-screen > .topbar') || document.querySelector('.topbar');
+        if (tb) tb.classList.remove('nav-hidden-top');
+    }
 
     if(page === 'messages') loadMessages();
     if(page === 'profile') { loadUserUI(); loadMyPosts(); }
@@ -11845,13 +11874,35 @@ async function unblockUserFromList(uid) {
 
     if (!safeTopBar || !safeBottomNav) return;
 
+    function gcNotifTabs() {
+        return document.querySelector('#page-notifications .activity-tabs-wrapper');
+    }
+    function gcOnNotificationsPage() {
+        const p = document.getElementById('page-notifications');
+        return !!(p && p.classList.contains('active'));
+    }
+
     function gcShowBothNavs() {
         safeTopBar.classList.remove('nav-hidden-top');
-        safeBottomNav.classList.remove('nav-hidden-bottom');
+        // Edit mode: keep bottom nav hidden so Delete bar stays visible
+        if (typeof isNotifEditMode !== 'undefined' && isNotifEditMode && gcOnNotificationsPage()) {
+            safeBottomNav.classList.add('nav-hidden-bottom');
+            document.body.classList.add('notif-edit-mode');
+        } else {
+            safeBottomNav.classList.remove('nav-hidden-bottom');
+            document.body.classList.remove('notif-edit-mode');
+        }
+        const tabs = gcNotifTabs();
+        if (tabs) tabs.classList.remove('nav-hidden-tabs');
     }
     function gcHideBothNavs() {
         safeTopBar.classList.add('nav-hidden-top');
         safeBottomNav.classList.add('nav-hidden-bottom');
+        // Notifications only: also hide All / Mentions / Follows tabs
+        if (gcOnNotificationsPage()) {
+            const tabs = gcNotifTabs();
+            if (tabs) tabs.classList.add('nav-hidden-tabs');
+        }
     }
 
     window.addEventListener('scroll', function() {
@@ -11864,10 +11915,10 @@ async function unblockUserFromList(uid) {
             if (currentScroll <= 60) {
                 gcShowBothNavs();
             } else if (delta > 6) {
-                // scrolling down → hide both
+                // scrolling down → hide chrome
                 gcHideBothNavs();
             } else if (delta < -6) {
-                // scrolling up → show both (top + bottom)
+                // scrolling up → show chrome
                 gcShowBothNavs();
             }
 
@@ -14930,19 +14981,27 @@ let selectedNotifs = [];
 function toggleNotifEditMode() {
     isNotifEditMode = !isNotifEditMode;
     const btn = document.getElementById('topbar-notif-edit-btn');
-const bar = document.getElementById('notif-selection-bar');
+    const bar = document.getElementById('notif-selection-bar');
+    const bottomNav = document.getElementById('main-bottom-nav');
     
     if (isNotifEditMode) {
-        btn.textContent = 'Cancel';
-        btn.style.color = 'var(--danger)';
-        bar.style.display = 'flex';
-        // Show checkboxes
+        if (btn) {
+            btn.textContent = 'Cancel';
+            btn.style.color = 'var(--danger)';
+        }
+        if (bar) bar.style.display = 'flex';
+        // Hide bottom nav so Delete bar is fully visible
+        document.body.classList.add('notif-edit-mode');
+        if (bottomNav) bottomNav.classList.add('nav-hidden-bottom');
         document.querySelectorAll('.notif-checkbox').forEach(cb => cb.style.display = 'block');
     } else {
-        btn.textContent = 'Edit';
-        btn.style.color = 'var(--text)';
-        bar.style.display = 'none';
-        // Hide checkboxes and uncheck them
+        if (btn) {
+            btn.textContent = 'Edit';
+            btn.style.color = 'var(--text)';
+        }
+        if (bar) bar.style.display = 'none';
+        document.body.classList.remove('notif-edit-mode');
+        if (bottomNav) bottomNav.classList.remove('nav-hidden-bottom');
         document.querySelectorAll('.notif-checkbox').forEach(cb => {
             cb.style.display = 'none';
             cb.checked = false;
