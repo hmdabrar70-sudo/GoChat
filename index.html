@@ -9104,23 +9104,8 @@ async function toggleLike(pid) {
             likes++;
             
             if (p.uid !== currentUser.uid) {
-                const notifId = currentUser.uid + '_like_' + pid;
-                const notifRef = db.collection('notifications').doc(notifId);
-                
-                notifRef.get().then(docSnap => {
-                    if (!docSnap.exists) {
-                        notifRef.set({
-                            toUid: p.uid, 
-                            fromUid: currentUser.uid,
-                            fromName: currentUserData.name,
-                            type: 'like', 
-                            postId: pid, 
-                            read: false,
-                            createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                        });
-                        awardPoints(p.uid, 5);
-                    }
-                });
+                gcRollupNotify(p.uid, 'like', pid);
+                awardPoints(p.uid, 5);
             }
         }
         await ref.update({ likes, likedBy });
@@ -16493,19 +16478,11 @@ async function sendCommentWithImage() {
             comments.push(newComment);
             await ref.update({ comments });
             
-            // নোটিফিকেশন পাঠানো
-            if (docSnap.data().uid !== currentUser.uid) {
-                db.collection('notifications').add({
-                    toUid: docSnap.data().uid,
-                    fromUid: currentUser.uid,
-                    fromName: currentUserData.name,
-                    type: 'comment',
-                    postId: activeCommentPostId,
-                    read: false,
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
-                awardPoints(docSnap.data().uid, 5);
-            }
+            // নোটিফিকেশন পাঠানো (🚀 Update #105: রোল-আপ)
+if (docSnap.data().uid !== currentUser.uid) {
+gcRollupNotify(docSnap.data().uid, 'comment', activeCommentPostId);
+awardPoints(docSnap.data().uid, 5);
+}
         }
         
         // ইনপুট এবং প্রিভিউ ক্লিয়ার করা
@@ -20386,6 +20363,42 @@ lbl.textContent = 'Select Partner';
 }
 }, 1500);
 })();
+
+// ═══════════════════════════════════════════════════════
+// 🚀 Update #105 · notif-rollup · 2026-08-22
+// লাইক/কমেন্ট = ১ রোল-আপ নোটিফিকেশন (স্প্যাম-ফ্রি)
+// খুঁজতে: Ctrl+F → "notif-rollup"
+// ═══════════════════════════════════════════════════════
+async function gcRollupNotify(ownerUid, kind, postId){
+if(!ownerUid || !currentUser || ownerUid === currentUser.uid) return;
+const id = ownerUid + '_rup_' + kind + '_' + postId;
+const ref = db.collection('notifications').doc(id);
+const myName = (currentUserData && currentUserData.name) || 'User';
+try{
+const d = await ref.get();
+let actors = [];
+if(d.exists) actors = (d.data().actors || []).slice();
+if(actors.indexOf(myName) === -1) actors.push(myName);
+const keep = actors.slice(-3);
+const count = (d.exists ? (d.data().count || 0) : 0) + 1;
+let composed;
+if(count === 1) composed = myName;
+else if(count === 2) composed = keep.join(' and ');
+else if(count === 3) composed = keep.slice(0, 2).join(', ') + ' and ' + keep[2];
+else composed = keep.slice(0, 2).join(', ') + ' and ' + (count - 2) + ' others';
+await ref.set({
+toUid: ownerUid,
+fromUid: currentUser.uid,
+fromName: composed,
+type: kind,
+postId: postId,
+count: count,
+actors: keep,
+read: false,
+createdAt: firebase.firestore.FieldValue.serverTimestamp()
+}, { merge: true });
+}catch(e){}
+}
 </script>
 </body>
 </html>
