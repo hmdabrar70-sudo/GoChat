@@ -217,15 +217,46 @@ color:var(--text);
 
 .nav-item{
 flex:1;display:flex;align-items:center;justify-content:center;
-cursor:pointer;color:var(--text);
-transition:all 0.3s;position:relative;
-padding:8px 0;
+cursor:pointer;color:var(--text-muted);
+transition:color .25s ease, transform .2s ease;
+position:relative;
+padding:6px 0;
+}
+.nav-item > i{
+font-size:26px;
+transition:color .25s ease, transform .25s ease, background .25s ease, box-shadow .25s ease;
+width:44px;height:44px;
+display:flex;align-items:center;justify-content:center;
+border-radius:14px;
 }
 .nav-item .material-symbols-outlined{font-size:26px;transition:all 0.3s;}
-.nav-item.active{color:var(--text);}
-.nav-item.active .material-symbols-outlined{font-variation-settings:'FILL' 1;}
-.nav-item:active{transform:scale(0.9);}
-#main-bottom-nav .nav-item #nav-profile-pic-container i{color:var(--text) !important;}
+/* Active: soft accent pill + accent icon */
+.nav-item.active{color:var(--accent);}
+.nav-item.active > i{
+color:var(--accent) !important;
+background:rgba(124,92,255,0.14);
+box-shadow:inset 0 0 0 1px rgba(124,92,255,0.18);
+}
+body.light-mode .nav-item.active > i{
+background:rgba(124,92,255,0.12);
+box-shadow:inset 0 0 0 1px rgba(124,92,255,0.16);
+}
+.nav-item.active .material-symbols-outlined{font-variation-settings:'FILL' 1;color:var(--accent);}
+.nav-item:active{transform:scale(0.92);}
+.nav-item.active::after{
+content:'';
+position:absolute;bottom:2px;left:50%;
+transform:translateX(-50%);
+width:4px;height:4px;border-radius:50%;
+background:var(--accent);
+box-shadow:0 0 8px var(--accent-glow);
+}
+.nav-item.active #nav-profile-pic-container{
+border-color:var(--accent) !important;
+box-shadow:0 0 0 2px rgba(124,92,255,0.25);
+}
+#main-bottom-nav .nav-item #nav-profile-pic-container i{color:var(--text-muted) !important;}
+#main-bottom-nav .nav-item.active #nav-profile-pic-container i{color:var(--accent) !important;}
 .nav-badge{
 position:absolute;top:0px;right:calc(50% - 18px);
 background:var(--danger);color:white;
@@ -236,6 +267,37 @@ font-weight:700;border:2px solid var(--surface);
 }
 
 .nav-fab .material-symbols-outlined{font-size:28px;font-weight:700;}
+
+/* Pinned post indicator */
+.gc-pinned-badge{
+    display:inline-flex;align-items:center;gap:4px;
+    margin-left:8px;padding:2px 8px;
+    border-radius:20px;
+    font-size:11px;font-weight:700;
+    letter-spacing:0.2px;
+    color:var(--accent);
+    background:rgba(124,92,255,0.12);
+    border:1px solid rgba(124,92,255,0.22);
+    vertical-align:middle;
+}
+.gc-pinned-badge i{font-size:12px;}
+body.light-mode .gc-pinned-badge{
+    background:rgba(124,92,255,0.1);
+    border-color:rgba(124,92,255,0.18);
+}
+.post-card.is-pinned{
+    box-shadow:0 0 0 1px rgba(124,92,255,0.18), var(--shadow-sm);
+}
+.gc-grid-pin{
+    position:absolute;top:8px;left:8px;z-index:2;
+    width:28px;height:28px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    background:rgba(0,0,0,0.45);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+    color:#fff;font-size:14px;
+    box-shadow:0 2px 8px rgba(0,0,0,0.25);
+}
+.gc-grid-pin i{color:#c4b5fd;}
+
 .page{display:none;padding:0 0 12px;animation:fadeIn 0.3s ease;}
 @keyframes fadeIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
 .page.active{display:block;}
@@ -5201,7 +5263,7 @@ animation:gcFadeIn .25s ease both;
         </div>
         
         <div class="nav-item" id="nav-profile" onclick="showPage('profile')">
-            <div id="nav-profile-pic-container" style="width: 30px; height: 30px; border-radius: 50%; overflow: hidden; background: var(--surface-2); display: flex; align-items: center; justify-content: center; border: 2px solid transparent; transition: all 0.3s;">
+            <div id="nav-profile-pic-container" style="width: 32px; height: 32px; border-radius: 50%; overflow: hidden; background: var(--surface-2); display: flex; align-items: center; justify-content: center; border: 2px solid transparent; transition: border-color .25s ease, box-shadow .25s ease;">
                 <i class="ph ph-user" style="font-size: 20px; color: var(--text-muted);"></i>
             </div>
         </div>
@@ -11133,9 +11195,13 @@ followBadge = `<button class="tf-plus-badge" onclick="event.stopPropagation(); o
 
     // 🌟 Check if the post author is verified to apply premium class
     const premiumPostClass = p.isVerified ? 'verified-premium-post' : '';
+    const pinnedClass = p.isPinned ? ' is-pinned' : '';
+    const pinnedBadge = p.isPinned
+        ? `<span class="gc-pinned-badge" title="Pinned"><i class="ph-fill ph-push-pin"></i> Pinned</span>`
+        : '';
 
 // 🚀 মেইন কার্ডে onclick যুক্ত করা হলো
-return`<div class="post-card ${premiumPostClass}" style="cursor:pointer;" onclick="openSinglePostView('${pid}')">
+return`<div class="post-card ${premiumPostClass}${pinnedClass}" style="cursor:pointer;" onclick="openSinglePostView('${pid}')">
 <div class="post-header">
 <div class="tf-av-wrap" data-uid="${p.uid}">
 <div class="avatar" style="width:44px;height:44px;cursor:pointer;" onclick="event.stopPropagation(); viewUserProfile('${p.uid}')">${av}</div>
@@ -11148,7 +11214,7 @@ ${activityHtml}
 ${withText}
 ${p.location ? `<span class="gc-post-loc"><i class="ph-fill ph-map-pin"></i>${escapeHTML(p.location)}</span>` : ''}
 </div>
-<div class="post-time">${getRelativeTime(p.createdAt)}</div>
+<div class="post-time">${getRelativeTime(p.createdAt)}${pinnedBadge}</div>
 </div>
 ${postDropdownHtml}
 </div>
@@ -15212,12 +15278,14 @@ function buildGridPostCardHTML(p) {
     }
     
     let multiIcon = imgUrls.length > 1 ? `<i class="ph-light ph-dots-three" style="position:absolute; top:8px; right:8px; color:#fff; font-size:18px; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));"></i>` : '';
+    const pinIcon = p.isPinned ? `<div class="gc-grid-pin" title="Pinned"><i class="ph-fill ph-push-pin"></i></div>` : '';
     const safeName = escapeHTML(p.name || 'User');
     const av = p.avatar ? `<img src="${p.avatar}" style="width:20px;height:20px;border-radius:50%;object-fit:cover;border:1px solid #fff;">` : `<div style="width:20px;height:20px;border-radius:50%;background:var(--gradient);color:#fff;font-size:10px;display:flex;align-items:center;justify-content:center;border:1px solid #fff;">${avatarInitial(safeName)}</div>`;
     
     return `
-    <div class="grid-post-card" onclick="openSinglePostView('${pid}')">
+    <div class="grid-post-card" style="position:relative;" onclick="openSinglePostView('${pid}')">
         ${mediaHtml}
+        ${pinIcon}
         ${multiIcon}
         <div class="grid-post-overlay">
             <div style="flex:1; min-width:0; margin-right:8px;">
