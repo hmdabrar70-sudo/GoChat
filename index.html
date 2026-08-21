@@ -300,7 +300,7 @@ body.light-mode .gc-pinned-badge{
 
 .page{display:none;padding:0 0 12px;animation:fadeIn 0.3s ease;}
 @keyframes fadeIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
-.page.active{display:block;}
+.page.active{display:block;animation:gcPageIn .38s cubic-bezier(.22,1,.36,1) both;}
 .avatar{
 width:42px;height:42px;border-radius:50%;
 background:var(--gradient);
@@ -1906,9 +1906,6 @@ border-radius:10px;padding:5px;
 box-shadow:0 6px 14px -4px var(--accent-glow);
 }
 /* --- Auto-hide Scroll Animation CSS --- */
-.topbar {
-    transition: transform 0.3s ease-in-out !important;
-}
 .nav-hidden-top {
     transform: translate3d(0, -110%, 0) !important;
     opacity: 0 !important;
@@ -1919,9 +1916,6 @@ box-shadow:0 6px 14px -4px var(--accent-glow);
     transform: translate(-50%, 150%) !important;
     opacity: 0 !important;
     pointer-events: none !important;
-}
-.bottom-nav {
-    transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out !important;
 }
 /* ব্রাউজারের ডিফল্ট কপি অপশন বন্ধ করার ম্যাজিক কোড */
 .chat-bubble-wrapper { 
@@ -2029,6 +2023,37 @@ animation:spLoadSlide 1.4s ease-in-out infinite;
 @keyframes splashShine{0%,100%{background-position:0% 50%;}50%{background-position:100% 50%;}}
 [data-theme="dark"] #splash-screen,.dark #splash-screen{background:radial-gradient(ellipse at center,#12100a 0%,#070503 60%,#000000 100%);}
 
+/* =========================================
+   🚀 SPLASH → APP SMOOTH HANDOFF FIX
+   Prevents the first-frame flash/jump when splash finishes.
+   The app is fully laid out underneath the splash, then revealed
+   without triggering the normal page-entry animation on first load.
+   ========================================= */
+#app-screen.gc-splash-pending{
+    opacity:0 !important;
+    visibility:visible !important;
+    transform:translate3d(0,0,0) !important;
+    transition:opacity .45s cubic-bezier(.22,1,.36,1) !important;
+    will-change:opacity;
+}
+#app-screen.gc-splash-ready{
+    opacity:1 !important;
+    visibility:visible !important;
+    transform:none !important;
+}
+#splash-screen.gc-splash-hiding{
+    opacity:0 !important;
+    pointer-events:none !important;
+}
+#splash-screen.gc-splash-hidden{
+    display:none !important;
+}
+body.gc-splash-handoff{
+    overflow:hidden;
+}
+body.gc-splash-handoff .page.active{
+    animation:none !important;
+}
 
 /* =========================================
    ACTIVITY / FEELING MODAL STYLES
@@ -4793,8 +4818,6 @@ body:not(.light-mode) .fb-create-story-card {
 0%{opacity:0;}
 100%{opacity:1;}
 }
-/* ১) মেইন ট্যাব পেজ (ফিড/ফ্রেন্ডস/মেসেজ/প্রোফাইল) */
-.page.active{animation:gcPageIn .38s cubic-bezier(.22,1,.36,1) both;}
 /* ২) ফুল-স্ক্রিন ওভারলে স্ক্রিন */
 #chat-screen.open,#create-post-screen.open,#settings-privacy-screen.open,#page-other-profile.open,#single-post-screen.open,#gc-mr-screen.open,#gc-fr-screen.open,#gc-liked-screen.open,#gc-ins-screen.open,#gc-fp-screen.open,#gc-call-screen.open,#gc-loc-screen.open,#story-viewer.open{
 animation:gcScreenIn .4s cubic-bezier(.22,1,.36,1) both;
@@ -7305,13 +7328,50 @@ function updateOnlineStatus(){
 // ===== AUTH STATE LISTENER =====
 auth.onAuthStateChanged(async(user)=>{
 
-// 🚀 স্প্ল্যাশ স্ক্রিন সরানোর স্মার্ট ম্যাজিক
+// 🚀 স্প্ল্যাশ স্ক্রিন সরানোর স্মার্ট ম্যাজিক — smooth handoff
+let gcSplashRemoved = false;
 const removeSplash = () => {
+    if (gcSplashRemoved) return;
+    gcSplashRemoved = true;
+
     const splash = document.getElementById('splash-screen');
-    if (splash && splash.style.display !== 'none') { 
-        splash.style.opacity = '0'; 
-        setTimeout(() => splash.style.display = 'none', 500); 
+    const appScreen = document.getElementById('app-screen');
+
+    if (appScreen && appScreen.style.display !== 'none') {
+        appScreen.classList.add('gc-splash-pending');
+        document.body.classList.add('gc-splash-handoff');
     }
+
+    if (!splash || splash.style.display === 'none') {
+        if (appScreen && appScreen.style.display !== 'none') {
+            requestAnimationFrame(() => {
+                appScreen.classList.remove('gc-splash-pending');
+                appScreen.classList.add('gc-splash-ready');
+                document.body.classList.remove('gc-splash-handoff');
+            });
+        }
+        return;
+    }
+
+    // Force the browser to commit the current frame before starting the fade.
+    requestAnimationFrame(() => {
+        splash.classList.add('gc-splash-hiding');
+
+        // Reveal the already-laid-out app at the same time as the splash fades.
+        if (appScreen && appScreen.style.display !== 'none') {
+            requestAnimationFrame(() => {
+                appScreen.classList.remove('gc-splash-pending');
+                appScreen.classList.add('gc-splash-ready');
+            });
+        }
+
+        setTimeout(() => {
+            splash.classList.remove('gc-splash-hiding');
+            splash.classList.add('gc-splash-hidden');
+            if (appScreen) appScreen.classList.remove('gc-splash-pending');
+            document.body.classList.remove('gc-splash-handoff');
+        }, 650);
+    });
 };
 
 if(user){
@@ -7343,6 +7403,12 @@ if (navigator.userAgent.toLowerCase().includes('median')) {
 
 // 🚀 ইউজার লগইন থাকলে সাথে সাথেই মেইন স্ক্রিন অন করে দেবো, যাতে ফিডের স্কেলেটন লোডিং দেখা যায়
 document.getElementById('auth-screen').style.display='none';
+const gcAppScreen = document.getElementById('app-screen');
+if (gcAppScreen) {
+    gcAppScreen.classList.add('gc-splash-pending');
+    gcAppScreen.classList.remove('gc-splash-ready');
+}
+document.body.classList.add('gc-splash-handoff');
 document.getElementById('app-screen').style.display='block';
 document.body.classList.add('home-sky-mode'); // default page is feed
 
@@ -7642,6 +7708,11 @@ notifUnsub = db.collection('notifications').where('toUid', '==', user.uid).onSna
 });
 }else{
 currentUser=null;currentUserData=null;
+const gcLoggedOutApp = document.getElementById('app-screen');
+if (gcLoggedOutApp) {
+    gcLoggedOutApp.classList.remove('gc-splash-pending','gc-splash-ready');
+}
+document.body.classList.remove('gc-splash-handoff');
 document.getElementById('auth-screen').style.display='flex';
 document.getElementById('app-screen').style.display='none';
 // লগআউট থাকলে লগইন পেজ রেডি হওয়ার পর স্প্ল্যাশ সরবে
@@ -14267,7 +14338,7 @@ window.searchUsers = async function() {
                     });
                 });
 
-                // Legacy username fallback (usernames are already normalized to lowercase).
+                // Legacy username fallback (exact username only).
                 const legacyUsernameSnap = await db.collection('users')
                     .where('username', '==', q)
                     .limit(20)
