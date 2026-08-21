@@ -970,22 +970,41 @@ opacity:0.3;
     border-bottom: 1px solid var(--border) !important;
     box-shadow: none !important; /* no elevation — flat unified look */
 }
-.profile-main-row{display:flex;align-items:center;gap:16px;width:100%;}
+.profile-main-row{display:flex;align-items:center;gap:18px;width:100%;}
 .profile-avatar-wrap{position:relative;display:inline-block;flex-shrink:0;}
 .profile-avatar{
-width:88px;height:88px;
+width:92px;height:92px;
 border-radius:50%;
 background:var(--gradient);
 display:flex;align-items:center;justify-content:center;
 font-size:34px;font-weight:800;color:#fff;
 overflow:hidden;
-border:4px solid var(--bg);
-box-shadow:var(--shadow-md);
+border:3px solid var(--bg);
+box-shadow:0 0 0 3px rgba(124,92,255,0.35), var(--shadow-md);
 }
 .profile-avatar img{width:100%;height:100%;object-fit:cover;}
+/* Instagram-style stats to the right of avatar */
+.profile-stats-row{
+display:flex;align-items:center;justify-content:space-around;
+flex:1;gap:4px;min-width:0;padding:0 4px;
+}
+.profile-stat{
+display:flex;flex-direction:column;align-items:center;justify-content:center;
+gap:2px;cursor:pointer;padding:4px 6px;min-width:56px;
+}
+.profile-stat b,
+.profile-stat .profile-stat-num{
+font-size:18px;font-weight:800;color:var(--text);line-height:1.15;
+letter-spacing:-0.2px;
+}
+.profile-stat span,
+.profile-stat .profile-stat-label{
+font-size:12px;font-weight:600;color:var(--text-secondary);line-height:1.2;
+}
+.profile-name-block{width:100%;margin-top:2px;}
 .profile-info-col{display:flex;flex-direction:column;gap:4px;flex:1;}
 .profile-name{
-font-size:22px;
+font-size:20px;
 font-weight:800;
 display:flex;
 align-items:center;
@@ -2402,58 +2421,87 @@ body.gc-splash-handoff .page.active{
 /* =========================================
    TWITTER (X) STYLE LIKE BUTTON ANIMATION
    ========================================= */
-
-/* ১. হার্ট পপ অ্যানিমেশন */
 @keyframes twitterHeartPop {
-    0% { transform: scale(0); opacity: 0; }
-    50% { transform: scale(1.3); }
-    100% { transform: scale(1); opacity: 1; }
+    0% { transform: scale(0.2); }
+    40% { transform: scale(1.35); }
+    65% { transform: scale(0.9); }
+    100% { transform: scale(1); }
 }
-
-/* ২. চারপাশের স্পার্ক (Spark Burst) অ্যানিমেশন */
 @keyframes sparkBurst {
-    0% { 
-        box-shadow: 0 0 0 0 var(--danger); 
-        opacity: 1; 
-        transform: translate(-50%, -50%) scale(0);
+    0% {
+        box-shadow: 0 0 0 0 transparent;
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(0.3);
     }
-    50% {
-        /* চারদিকে ছিটকে পড়া বিন্দুগুলোর অবস্থান ও রঙ */
-        box-shadow: 
-            0 -16px 0 -2px var(--danger), 
-            12px -12px 0 -2px var(--warning), 
-            16px 4px 0 -2px var(--danger), 
-            10px 16px 0 -2px var(--warning), 
-            -10px 16px 0 -2px var(--danger), 
-            -16px 4px 0 -2px var(--warning), 
-            -12px -12px 0 -2px var(--danger);
+    45% {
+        box-shadow:
+            0 -18px 0 -1px #f91880,
+            14px -12px 0 -1px #ff7a00,
+            18px 6px 0 -1px #f91880,
+            10px 18px 0 -1px #ff7a00,
+            -10px 18px 0 -1px #f91880,
+            -18px 6px 0 -1px #ff7a00,
+            -14px -12px 0 -1px #f91880,
+            0 0 0 10px rgba(249,24,128,0.12);
         opacity: 1;
         transform: translate(-50%, -50%) scale(1);
     }
-    100% { 
-        /* বিন্দুগুলো বাতাসে মিলিয়ে যাওয়ার লজিক */
-        box-shadow: 
-            0 -26px 0 -5px transparent, 
-            22px -18px 0 -5px transparent, 
-            26px 6px 0 -5px transparent, 
-            16px 26px 0 -5px transparent, 
-            -16px 26px 0 -5px transparent, 
-            -26px 6px 0 -5px transparent, 
-            -22px -18px 0 -5px transparent;
-        opacity: 0; 
-        transform: translate(-50%, -50%) scale(1.1);
+    100% {
+        box-shadow:
+            0 -28px 0 -4px transparent,
+            22px -20px 0 -4px transparent,
+            28px 8px 0 -4px transparent,
+            14px 28px 0 -4px transparent,
+            -14px 28px 0 -4px transparent,
+            -28px 8px 0 -4px transparent,
+            -22px -20px 0 -4px transparent,
+            0 0 0 18px transparent;
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(1.15);
     }
 }
-
-/* ৩. স্পার্ক দেখানোর জন্য বাটনটিকে রিলেটিভ করা */
+@keyframes likeCountPop {
+    0% { transform: translateY(6px); opacity: 0.3; }
+    55% { transform: translateY(-3px); opacity: 1; }
+    100% { transform: translateY(0); opacity: 1; }
+}
+@keyframes likeCountDown {
+    0% { transform: translateY(-4px); opacity: 0.5; }
+    100% { transform: translateY(0); opacity: 1; }
+}
 .post-action-btn {
     position: relative;
-    overflow: visible; /* স্পার্ক যেন কেটে না যায় */
+    overflow: visible;
 }
-
-/* ৪. লাইক করার পর হার্ট পপ ইফেক্ট ট্রিগার করা */
+.post-action-btn.liked {
+    color: #f91880 !important;
+}
 .post-action-btn.liked i {
-    animation: twitterHeartPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    color: #f91880 !important;
+}
+/* Only animate on user action, not on page load */
+.post-action-btn.just-liked i {
+    animation: twitterHeartPop 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+}
+.post-action-btn.just-liked::before {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 42%;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 2;
+    animation: sparkBurst 0.55s ease-out forwards;
+}
+.post-action-btn .like-count.anim-up {
+    display: inline-block;
+    animation: likeCountPop 0.35s ease-out both;
+}
+.post-action-btn .like-count.anim-down {
+    display: inline-block;
+    animation: likeCountDown 0.28s ease-out both;
 }
 
 
@@ -5386,21 +5434,30 @@ Edit Profile-এ পার্টনার সিলেক্ট বাটন
 </label>
 <input type="file" id="avatar-input" accept="image/*" style="display:none" onchange="uploadAvatar(this)">
 </div>
-<div class="profile-info-col">
+<div class="profile-stats-row" id="profile-follow-stats">
+    <div class="profile-stat" onclick="openFollowList('followers', currentUser.uid)">
+        <b id="my-followers-count">0</b>
+        <span>Followers</span>
+    </div>
+    <div class="profile-stat" onclick="openFollowList('following', currentUser.uid)">
+        <b id="my-following-count">0</b>
+        <span>Following</span>
+    </div>
+    <div class="profile-stat" id="my-posts-count-wrap">
+        <b id="my-posts-count">0</b>
+        <span>Posts</span>
+    </div>
+</div>
+</div>
+<div class="profile-name-block">
 <div class="profile-name-row">
     <div class="profile-name" id="profile-name-display">Loading...</div>
     <button type="button" class="profile-personal-toggle" onclick="event.stopPropagation(); togglePersonalInfo('my')" aria-label="Toggle Personal Information">
         <i class="ph-bold ph-caret-down" id="my-pi-chevron"></i>
     </button>
 </div>
-<div id="profile-username-badge" style="display:none; margin-top:-2px; margin-bottom:6px;">
+<div id="profile-username-badge" style="display:none; margin-top:2px; margin-bottom:4px;">
     <span style="font-size:13.5px; font-weight:600; color:var(--text-muted);" id="profile-username-text">@username</span>
-</div>
-
-<div id="profile-follow-stats" class="profile-friend-count" style="display:flex; gap:12px; font-size:14px; color:var(--text-secondary);">
-    <span style="cursor:pointer;" onclick="openFollowList('followers', currentUser.uid)"><b id="my-followers-count" style="color:var(--text);">0</b> Followers</span> 
-    <span style="cursor:pointer;" onclick="openFollowList('following', currentUser.uid)"><b id="my-following-count" style="color:var(--text);">0</b> Following</span>
-</div>
 </div>
 </div>
 <div id="profile-display-section" style="width:100%;">
@@ -5471,21 +5528,29 @@ Edit Profile-এ পার্টনার সিলেক্ট বাটন
             <div class="profile-avatar-wrap">
                 <div class="profile-avatar" id="other-profile-avatar">?</div>
             </div>
-            <div class="profile-info-col">
-<div class="profile-name-row">
-    <div class="profile-name" id="other-profile-name">Loading...</div>
-    <button type="button" class="profile-personal-toggle" onclick="event.stopPropagation(); togglePersonalInfo('other')" aria-label="Toggle Personal Information">
-        <i class="ph-bold ph-caret-down" id="other-pi-chevron"></i>
-    </button>
-</div>
-<!-- 🚀 নতুন: ইউজারনেম ডিসপ্লে -->
-<div id="other-profile-username-display" style="font-size:13px; color:var(--text-muted); font-weight:600; margin-bottom:6px; margin-top:-2px; display:none;"></div>
-
-<div id="other-profile-follow-stats" class="profile-friend-count" style="display:flex; gap:16px; font-size:14px; color:var(--text-secondary); margin-top:6px;">
-    <span style="cursor:pointer;" onclick="openFollowList('followers', currentOtherProfileUid)"><b id="other-followers-count" style="color:var(--text); font-size:16px;">0</b> Followers</span> 
-    <span style="cursor:pointer;" onclick="openFollowList('following', currentOtherProfileUid)"><b id="other-following-count" style="color:var(--text); font-size:16px;">0</b> Following</span>
-</div>
+            <div class="profile-stats-row" id="other-profile-follow-stats">
+                <div class="profile-stat" onclick="openFollowList('followers', currentOtherProfileUid)">
+                    <b id="other-followers-count">0</b>
+                    <span>Followers</span>
+                </div>
+                <div class="profile-stat" onclick="openFollowList('following', currentOtherProfileUid)">
+                    <b id="other-following-count">0</b>
+                    <span>Following</span>
+                </div>
+                <div class="profile-stat" id="other-posts-count-wrap">
+                    <b id="other-posts-count">0</b>
+                    <span>Posts</span>
+                </div>
             </div>
+        </div>
+        <div class="profile-name-block">
+            <div class="profile-name-row">
+                <div class="profile-name" id="other-profile-name">Loading...</div>
+                <button type="button" class="profile-personal-toggle" onclick="event.stopPropagation(); togglePersonalInfo('other')" aria-label="Toggle Personal Information">
+                    <i class="ph-bold ph-caret-down" id="other-pi-chevron"></i>
+                </button>
+            </div>
+            <div id="other-profile-username-display" style="font-size:13px; color:var(--text-muted); font-weight:600; margin-bottom:4px; margin-top:2px; display:none;"></div>
         </div>
         <div class="profile-bio" id="other-profile-bio"></div>
             <!-- 🚀 Personal Information: dropdown control moved beside other user's profile name -->
@@ -8965,7 +9030,7 @@ async function reactToCurrentStory(){
 async function toggleLike(pid) {
     if (!currentUser || !checkRateLimit()) return;
 
-    // ১. হোম ফিডে লাইক আপডেট
+    // ১. হোম ফিডে লাইক আপডেট + X-style pop animation
     const likeButtons = document.querySelectorAll(`button[onclick*="toggleLike('${pid}')"]`);
     let isCurrentlyLiked = false;
     let currentLikes = 0;
@@ -8973,34 +9038,51 @@ async function toggleLike(pid) {
     likeButtons.forEach(btn => {
         const icon = btn.querySelector('i');
         const countSpan = btn.querySelector('span');
-        currentLikes = parseInt(countSpan.innerText) || 0;
+        currentLikes = parseInt((countSpan && countSpan.innerText) || '0', 10) || 0;
         isCurrentlyLiked = btn.classList.contains('liked');
+
+        // restart animations
+        btn.classList.remove('just-liked');
+        if (countSpan) {
+            countSpan.classList.remove('like-count', 'anim-up', 'anim-down');
+            void countSpan.offsetWidth;
+            countSpan.classList.add('like-count');
+        }
 
         if (isCurrentlyLiked) {
             btn.classList.remove('liked');
-            if (icon) icon.className = 'ph-bold ph-thumbs-up'; 
-            if (countSpan) countSpan.innerText = Math.max(0, currentLikes - 1);
+            if (icon) icon.className = 'ph-bold ph-thumbs-up';
+            if (countSpan) {
+                countSpan.innerText = Math.max(0, currentLikes - 1);
+                countSpan.classList.add('anim-down');
+            }
         } else {
             btn.classList.add('liked');
-            if (icon) icon.className = 'ph-fill ph-thumbs-up'; 
-            if (countSpan) countSpan.innerText = currentLikes + 1;
+            if (icon) {
+                icon.className = 'ph-fill ph-thumbs-up';
+                void icon.offsetWidth;
+            }
+            btn.classList.add('just-liked');
+            if (countSpan) {
+                countSpan.innerText = currentLikes + 1;
+                countSpan.classList.add('anim-up');
+            }
+            setTimeout(function(){ btn.classList.remove('just-liked'); }, 500);
         }
     });
     
-    // 🚀 ২. ম্যাজিক: ফুল-স্ক্রিন জুম মডাল ওপেন থাকলেও সেখানে সাথে সাথে লাইক লাল হয়ে যাবে!
+    // 🚀 ২. ফুল-স্ক্রিন জুম মডাল
     if (typeof zoomActivePostId !== 'undefined' && zoomActivePostId === pid) {
         const zBtn = document.getElementById('zoom-like-btn');
         if (zBtn) {
             const zIcon = zBtn.querySelector('i');
             const zSpan = zBtn.querySelector('span');
-            let zLikes = parseInt(zSpan.innerText) || 0;
+            let zLikes = parseInt((zSpan && zSpan.innerText) || '0', 10) || 0;
             
             if (zIcon && zIcon.classList.contains('ph-fill')) {
-                // আনলাইক করা
-                zBtn.innerHTML = `<i class="ph-bold ph-thumbs-up" style="color:#fff; font-size:24px; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));"></i> <span style="font-size:14px; font-weight:800; color:#fff; text-shadow:0 1px 3px rgba(0,0,0,0.6);">${Math.max(0, zLikes - 1)}</span>`;
+                zBtn.innerHTML = `<i class="ph-bold ph-thumbs-up" style="color:#fff; font-size:24px; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));"></i> <span class="like-count anim-down" style="font-size:14px; font-weight:800; color:#fff; text-shadow:0 1px 3px rgba(0,0,0,0.6);">${Math.max(0, zLikes - 1)}</span>`;
             } else {
-                // লাইক করা
-                zBtn.innerHTML = `<i class="ph-fill ph-thumbs-up" style="color:var(--danger); font-size:24px; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));"></i> <span style="font-size:14px; font-weight:800; color:#fff; text-shadow:0 1px 3px rgba(0,0,0,0.6);">${zLikes + 1}</span>`;
+                zBtn.innerHTML = `<i class="ph-fill ph-thumbs-up" style="color:#f91880; font-size:24px; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));"></i> <span class="like-count anim-up" style="font-size:14px; font-weight:800; color:#fff; text-shadow:0 1px 3px rgba(0,0,0,0.6);">${zLikes + 1}</span>`;
             }
         }
     }
