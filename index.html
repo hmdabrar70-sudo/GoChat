@@ -5107,6 +5107,14 @@ animation:gcFadeIn .25s ease both;
 .gc-appr-btn:active{transform:scale(.96);}
 .gc-appr-btn.allow{background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;}
 .gc-appr-btn.reject{background:rgba(255,77,106,.12);color:var(--danger);}
+
+/* =========================================
+🚀 Update #102 · data-saver · 2026-08-21
+স্টোরি ভিডিওতে ডেটা সেভার প্লে বাটন
+খুঁজতে: Ctrl+F → "data-saver"
+========================================= */
+.gc-ds-play{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:64px;height:64px;border-radius:50%;background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.35);color:#fff;display:flex;align-items:center;justify-content:center;font-size:26px;cursor:pointer;z-index:5;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);}
+.gc-ds-play:active{transform:translate(-50%,-50%) scale(.92);}
 </style>
 </head>
 <body>
@@ -19841,6 +19849,119 @@ function gcRejectLogin(id){
 db.collection('users').doc(currentUser.uid).collection('loginRequests').doc(id).update({ status: 'rejected' }).catch(function(){});
 const o = document.getElementById('gc-appr-popup'); if(o) o.remove();
 showToast('🔒 Login rejected');
+}
+
+// ═══════════════════════════════════════════════════════
+// 🚀 Update #102 · data-saver · 2026-08-21
+// Data Saver Mode: ছবি কম কোয়ালিটি + ভিডিও/স্টোরি ম্যানুয়াল প্লে
+// খুঁজতে: Ctrl+F → "data-saver-engine"
+// ═══════════════════════════════════════════════════════
+function gcIsDataSaver(){
+let v = null;
+try{ v = localStorage.getItem('gc_data_saver'); }catch(e){}
+return v === '1';
+}
+function gcDsUrl(url, w){
+if(!gcIsDataSaver()) return url;
+if(!url || url.indexOf('res.cloudinary.com') === -1) return url;
+if(url.indexOf('/upload/') === -1) return url;
+if(/\/upload\/(w_|[^/]*w_)/.test(url)) return url;
+return url.replace('/upload/', '/upload/w_' + (w || 480) + ',q_auto:low,f_auto/');
+}
+function gcToggleDataSaver(){
+const on = !gcIsDataSaver();
+try{ localStorage.setItem('gc_data_saver', on ? '1' : '0'); }catch(e){}
+gcUpdateDataSaverUI();
+if(on && typeof gcPauseAllVideos === 'function') gcPauseAllVideos(true);
+showToast(on ? '🍃 Data Saver ON — কম ডেটা খরচ হবে' : 'Data Saver OFF');
+if(typeof loadFeed === 'function') loadFeed();
+}
+function gcUpdateDataSaverUI(){
+const t = document.getElementById('gc-ds-toggle');
+if(t) t.classList.toggle('active', gcIsDataSaver());
+}
+// ---------- সেটিংসে টগল রো ইনজেকশন ----------
+(function gcInjectDataSaverRow(){
+if(window.gcDsRowOn) return; window.gcDsRowOn = true;
+setInterval(function(){
+if(document.getElementById('gc-ds-row')) { gcUpdateDataSaverUI(); return; }
+const soundToggle = document.getElementById('message-sound-toggle');
+if(!soundToggle) return;
+const row = soundToggle.closest('.settings-list-item');
+if(!row || !row.parentNode) return;
+const clone = row.cloneNode(true);
+clone.id = 'gc-ds-row';
+clone.removeAttribute('onclick');
+const tog = clone.querySelector('.toggle-switch') || clone.querySelector('[id$="toggle"]') || clone.lastElementChild;
+if(tog){
+tog.removeAttribute('id');
+tog.removeAttribute('onclick');
+tog.id = 'gc-ds-toggle';
+tog.onclick = function(e){ e.stopPropagation(); gcToggleDataSaver(); };
+}
+const lbl = clone.querySelector('span');
+if(lbl) lbl.textContent = 'Data Saver';
+const ico = clone.querySelector('i');
+if(ico) ico.className = 'ph-bold ph-leaf';
+row.parentNode.insertBefore(clone, row.nextSibling);
+gcUpdateDataSaverUI();
+}, 1500);
+})();
+// ---------- ফিড ছবি: কম কোয়ালিটি (buildPostCardHTML র‍্যাপার) ----------
+if(typeof buildPostCardHTML === 'function' && !window.gcBpcDs102){
+window.gcBpcDs102 = true;
+window.gcOrigBpcDs102 = buildPostCardHTML;
+buildPostCardHTML = function(p){
+let html = window.gcOrigBpcDs102.apply(this, arguments);
+if(gcIsDataSaver()){
+html = html.replace(/(src=")(https:\/\/res\.cloudinary\.com\/[^"]*\/upload\/)(?!w_)([^"]+")/g, function(m, a, b, c){
+return a + b + 'w_480,q_auto:low,f_auto/' + c;
+});
+}
+return html;
+};
+}
+// ---------- ভিডিও: preload none (ক্লিকের আগে ডেটা নয়) ----------
+(function gcDsVideoGuard(){
+if(window.gcDsVidOn) return; window.gcDsVidOn = true;
+setInterval(function(){
+if(!gcIsDataSaver()) return;
+document.querySelectorAll('video').forEach(function(v){
+if(v.getAttribute('preload') !== 'none') v.setAttribute('preload', 'none');
+});
+}, 2000);
+})();
+// ---------- স্টোরি: ম্যানুয়াল প্লে + কম সাইজ ----------
+if(typeof renderCurrentStory === 'function' && !window.gcRcsDs102){
+window.gcRcsDs102 = true;
+window.gcOrigRcsDs102 = renderCurrentStory;
+renderCurrentStory = function(){
+const r = window.gcOrigRcsDs102.apply(this, arguments);
+if(gcIsDataSaver()){
+const mc = document.querySelector('.story-media-container');
+if(mc){
+const vid = mc.querySelector('video');
+if(vid){
+vid.removeAttribute('autoplay');
+vid.setAttribute('preload', 'none');
+try{ vid.pause(); }catch(e){}
+if(!mc.querySelector('.gc-ds-play')){
+const b = document.createElement('div');
+b.className = 'gc-ds-play';
+b.innerHTML = '<i class="ph-fill ph-play"></i>';
+b.onclick = function(){ b.remove(); vid.setAttribute('controls', 'controls'); vid.play(); };
+mc.appendChild(b);
+}
+}
+const img = mc.querySelector('img');
+if(img){
+const ds = gcDsUrl(img.getAttribute('src'), 640);
+if(ds !== img.getAttribute('src')) img.src = ds;
+}
+}
+}
+return r;
+};
 }
 </script>
 </body>
