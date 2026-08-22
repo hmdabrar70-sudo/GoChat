@@ -991,6 +991,29 @@ flex-direction:column;
   background:var(--bg);
   min-height:120px;
 }
+/* Comment pro features */
+.gc-c-meta{display:flex;align-items:center;gap:12px;margin-top:6px;margin-left:12px;flex-wrap:wrap;}
+.gc-c-meta .gc-c-btn{font-size:12px;color:var(--text-muted);cursor:pointer;font-weight:700;display:inline-flex;align-items:center;gap:4px;user-select:none;}
+.gc-c-meta .gc-c-btn:active{opacity:.7;}
+.gc-c-meta .gc-c-btn.liked{color:var(--danger);}
+.gc-c-meta .gc-c-time{font-size:11px;color:var(--text-muted);font-weight:500;}
+.gc-c-replies{margin-top:8px;margin-left:8px;padding-left:12px;border-left:2px solid var(--border);}
+.gc-c-reply-item{margin-top:8px;}
+.gc-c-reply-toggle{font-size:12px;font-weight:700;color:var(--accent);cursor:pointer;margin:8px 0 4px 12px;user-select:none;}
+.gc-c-load-more{display:flex;justify-content:center;padding:14px 8px 6px;}
+.gc-c-load-more button{border:1px solid var(--border);background:var(--surface-2);color:var(--text);font-weight:700;font-size:13px;padding:10px 18px;border-radius:20px;cursor:pointer;}
+.gc-c-load-more button:active{transform:scale(.97);}
+.sp-comments-wrap.gc-comment-highlight,.comment-list.gc-comment-highlight{animation:gcCommentFlash 1.6s ease;}
+@keyframes gcCommentFlash{
+  0%{box-shadow:inset 0 0 0 0 transparent;}
+  25%{box-shadow:inset 0 0 0 2px color-mix(in srgb, var(--accent) 55%, transparent);}
+  100%{box-shadow:inset 0 0 0 0 transparent;}
+}
+.comment-item.gc-c-flash{animation:gcCommentItemFlash 1.4s ease;}
+@keyframes gcCommentItemFlash{
+  0%,100%{background:transparent;}
+  30%{background:color-mix(in srgb, var(--accent) 12%, transparent);}
+}
 .empty-feed{
 text-align:center;padding:60px 20px;
 color:var(--text-muted);font-size:14px;
@@ -8115,6 +8138,8 @@ notifUnsub = db.collection('notifications').where('toUid', '==', user.uid).onSna
         if (isAnn) {
             const safeMsg = String(data.message || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\n/g, '\\n').replace(/\r/g, '');
             onClickAction += ` openOfficialNotice('${safeMsg}');`;
+        } else if (data.postId && data.type === 'comment') {
+            onClickAction += ` gcOpenCommentFromNotif('${data.postId}');`;
         } else if (data.postId) {
             onClickAction += ` openSinglePostView('${data.postId}');`;
         } else if (data.type === 'friend_request' || data.type === 'request_accepted') {
@@ -9446,105 +9471,238 @@ async function openCommentPanel(pid) {
         await fetchAllUsers();
     }
     
+    if(!window.gcCommentShowCount[pid]) window.gcCommentShowCount[pid] = GC_COMMENT_PAGE;
     commentPanelListener = db.collection('posts').doc(pid).onSnapshot(doc => {
         const list = document.getElementById('comment-list');
+        if (!list) return;
         if (!doc.exists) { list.innerHTML = '<div class="empty-feed">Post deleted</div>'; return; }
-        
         const comments = doc.data().comments || [];
-        
-        // 🚀 Premium Comment Priority Algorithm (অরিজিনাল ইনডেক্স সহ)
-        let mappedComments = comments.map((c, i) => ({ ...c, originalIndex: i }));
-        
-        if (allUsersCache) {
-            mappedComments.sort((a, b) => {
-                const userA = allUsersCache.find(u => u.id === a.uid);
-                const userB = allUsersCache.find(u => u.id === b.uid);
-                const isPremiumA = (userA && userA.isVerified === true) ? 1 : 0;
-                const isPremiumB = (userB && userB.isVerified === true) ? 1 : 0;
-                return isPremiumB - isPremiumA; // গোল্ডেন ব্যাজওয়ালা কমেন্টগুলো সবার উপরে চলে আসবে
-            });
-        }
-        
-        list.innerHTML = mappedComments.map((c) => {
-            const idx = c.originalIndex; // 🚀 ডাটাবেসে সঠিক জায়গায় রিপ্লাই যাওয়ার জন্য অরিজিনাল ইনডেক্স
-            const safeCName = escapeHTML(c.name);
-            let safeCText = escapeHTML(c.text);
-            
-            // --- মেইন কমেন্টে মেনশন ক্লিকেবল করা ---
-            if (allUsersCache) { // এখানেও window বাদ দেওয়া হয়েছে
-                const sortedUsers = [...allUsersCache].sort((a, b) => (b.name || '').length - (a.name || '').length);
-                sortedUsers.forEach(u => {
-                    if (u.name) {
-                        const regex = new RegExp(`@${u.name}`, 'gi'); 
-                        safeCText = safeCText.replace(regex, `<strong style="color:var(--accent); cursor:pointer;" onclick="event.stopPropagation(); closeCommentPanel(); viewUserProfile('${u.id}')">@${u.name}</strong>`);
-                    }
-                });
-            }
-            
-            let repliesHtml = '';
-            if (c.replies) {
-                repliesHtml = c.replies.map(r => {
-                    const safeRName = escapeHTML(r.name);
-                    let safeRText = escapeHTML(r.text);
-                    
-                    // --- রিপ্লাইয়ের টেক্সটেও মেনশন ক্লিকেবল করা ---
-                    if (allUsersCache) { // এখানেও window বাদ দেওয়া হয়েছে
-                        const sortedUsers = [...allUsersCache].sort((a, b) => (b.name || '').length - (a.name || '').length);
-                        sortedUsers.forEach(u => {
-                            if (u.name) {
-                                const regex = new RegExp(`@${u.name}`, 'gi');
-                                safeRText = safeRText.replace(regex, `<strong style="color:var(--accent); cursor:pointer;" onclick="event.stopPropagation(); closeCommentPanel(); viewUserProfile('${u.id}')">@${u.name}</strong>`);
-                            }
-                        });
-                    }
-                    
-                    return `<div style="margin-top:8px;margin-left:16px;padding-left:12px;border-left:2px solid var(--border);">
-                    <div class="comment-author" style="font-size:12px; cursor:pointer;" onclick="closeCommentPanel(); viewUserProfile('${r.uid}')">${safeRName}</div>
-                    <div style="font-size:12px;margin-top:2px;">${safeRText}</div>
-                    </div>`;
-                }).join('');
-            }
-            
-                                    // 🚀 NEW: কমেন্ট করা ইউজারের প্রোফাইল পিকচার বের করা
-            let commentAvHtml = avatarInitial(c.name);
-// 🚀 Update #49 · comment-verified-badge: কমেন্টে নামের পাশে ভেরিফাইড ব্যাজ
-let commentBadge = '';
-const gcBadgeUser = (allUsersCache ? allUsersCache.find(u => u.id === c.uid) : null) || (currentUser && c.uid === currentUser.uid ? currentUserData : null);
-if (gcBadgeUser) commentBadge = getVerifiedBadge(gcBadgeUser.email || '', gcBadgeUser.isVerified === true);
-if (allUsersCache) {
-const commentUser = allUsersCache.find(u => u.id === c.uid);
-if (commentUser && commentUser.avatar) {
-                    commentAvHtml = `<img src="${escapeHTML(commentUser.avatar)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
-                }
-            }
-
-            // 🚀 কমেন্টে ইমেজ থাকলে সেটা দেখানোর লজিক
-            const commentImageHtml = c.imageUrl ? `<img src="${escapeHTML(c.imageUrl)}" style="width:100%; max-width:250px; border-radius:12px; margin-top:8px; cursor:pointer; box-shadow:var(--shadow-sm);" onclick="openImageZoom('${escapeHTML(c.imageUrl)}')">` : '';
-
-                        return `<div class="comment-item" ondblclick="showCommentActions('${pid}', ${idx}, '${c.uid}')">
-                <div class="avatar sm" style="flex-shrink:0; cursor:pointer; margin-top:2px;" onclick="closeCommentPanel(); viewUserProfile('${c.uid}')">${commentAvHtml}</div>
-                <div style="flex:1; min-width:0;">
-                    
-                    <!-- ?? নেম এবং কমেন্ট টেক্সট-এর সুন্দর বাবল -->
-                    <div style="background:var(--surface-2); padding:10px 14px; border-radius:4px 18px 18px 18px; display:inline-block; border:1px solid var(--border);">
-                        <div class="comment-author" style="cursor:pointer; font-size:13px; margin-bottom:4px;" onclick="closeCommentPanel(); viewUserProfile('${c.uid}')">${safeCName}${commentBadge}</div>
-                        ${safeCText ? `<div style="font-size:14px; color:var(--text); line-height:1.4;">${safeCText}</div>` : ''}
-                    </div>
-                    ${commentImageHtml}
-                    
-                    <!-- রিপ্লাই বাটন -->
-                    <div style="display:flex; gap:16px; margin-top:6px; margin-left:12px; align-items:center;">
-                        <div style="font-size:12px; color:var(--text-muted); cursor:pointer; font-weight:700;" onclick="showReplyInput('${pid}',${idx},'${safeCName}')">Reply</div>
-                    </div>
-                    
-                    <div id="reply-input-${idx}"></div>
-                    ${repliesHtml}
-                </div>
-            </div>`;
-        }).join('');
+        list.innerHTML = gcRenderCommentsListHTML(pid, comments, 'panel');
     });
 }
 
+
+// ═══════════════════════════════════════════════════════
+// 🚀 Comment Pro · like + time + nested replies + load-more + notif deep-link
+// ═══════════════════════════════════════════════════════
+window.gcCommentShowCount = window.gcCommentShowCount || {};
+window.gcCommentExpandedReplies = window.gcCommentExpandedReplies || {};
+const GC_COMMENT_PAGE = 12;
+
+function gcCommentLikesArr(c){
+  if(!c) return [];
+  if(Array.isArray(c.likes)) return c.likes;
+  if(typeof c.likes === 'number') return []; // legacy count-only
+  return [];
+}
+function gcCommentTimeLabel(c){
+  try{
+    if(c && (c.time || c.createdAt)) return getRelativeTime(c.time || c.createdAt);
+  }catch(e){}
+  return '';
+}
+function gcIsCommentLiked(c){
+  if(!currentUser) return false;
+  return gcCommentLikesArr(c).indexOf(currentUser.uid) !== -1;
+}
+async function gcToggleCommentLike(pid, idx){
+  if(!currentUser || !pid) return;
+  if(typeof checkRateLimit === 'function' && !checkRateLimit()) return;
+  try{
+    const ref = db.collection('posts').doc(pid);
+    const snap = await ref.get();
+    if(!snap.exists) return;
+    const comments = (snap.data().comments || []).slice();
+    if(!comments[idx]) return;
+    let likes = gcCommentLikesArr(comments[idx]).slice();
+    const i = likes.indexOf(currentUser.uid);
+    if(i === -1) likes.push(currentUser.uid); else likes.splice(i, 1);
+    comments[idx].likes = likes;
+    await ref.update({ comments: comments });
+  }catch(e){
+    console.error(e);
+    showToast('Could not like comment');
+  }
+}
+window.gcToggleCommentLike = gcToggleCommentLike;
+
+function gcToggleRepliesExpand(pid, idx){
+  const key = pid + '_' + idx;
+  window.gcCommentExpandedReplies[key] = !window.gcCommentExpandedReplies[key];
+  // Re-render via existing listeners: touch a no-op by forcing panel/single rebuild
+  const panel = document.getElementById('comment-panel');
+  if(panel && panel.classList.contains('open') && activeCommentPostId === pid){
+    // snapshot will not re-fire; manually re-fetch once
+    db.collection('posts').doc(pid).get().then(function(doc){
+      if(!doc.exists) return;
+      const list = document.getElementById('comment-list');
+      if(list) list.innerHTML = gcRenderCommentsListHTML(pid, doc.data().comments || [], 'panel');
+    });
+  }
+  const single = document.getElementById('single-post-screen');
+  if(single && single.classList.contains('open')){
+    const wrap = document.querySelector('#single-post-container .sp-comments-list');
+    if(wrap){
+      db.collection('posts').doc(pid).get().then(function(doc){
+        if(!doc.exists) return;
+        wrap.innerHTML = gcRenderCommentsListHTML(pid, doc.data().comments || [], 'single');
+      });
+    }
+  }
+}
+window.gcToggleRepliesExpand = gcToggleRepliesExpand;
+
+function gcLoadMoreComments(pid, where){
+  const cur = window.gcCommentShowCount[pid] || GC_COMMENT_PAGE;
+  window.gcCommentShowCount[pid] = cur + GC_COMMENT_PAGE;
+  db.collection('posts').doc(pid).get().then(function(doc){
+    if(!doc.exists) return;
+    const comments = doc.data().comments || [];
+    if(where === 'panel'){
+      const list = document.getElementById('comment-list');
+      if(list) list.innerHTML = gcRenderCommentsListHTML(pid, comments, 'panel');
+    } else {
+      const wrap = document.querySelector('#single-post-container .sp-comments-list');
+      if(wrap) wrap.innerHTML = gcRenderCommentsListHTML(pid, comments, 'single');
+    }
+  });
+}
+window.gcLoadMoreComments = gcLoadMoreComments;
+
+function gcOpenCommentFromNotif(postId){
+  if(!postId) return;
+  if(typeof openSinglePostView === 'function') openSinglePostView(postId);
+  setTimeout(function(){
+    const wrap = document.querySelector('#single-post-container .sp-comments-wrap');
+    if(wrap){
+      wrap.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      wrap.classList.add('gc-comment-highlight');
+      setTimeout(function(){ wrap.classList.remove('gc-comment-highlight'); }, 1800);
+    }
+    // Also open comment panel briefly highlight list
+    setTimeout(function(){
+      if(typeof openCommentPanel === 'function'){
+        // stay on single view; comments already inline
+      }
+    }, 300);
+  }, 450);
+}
+window.gcOpenCommentFromNotif = gcOpenCommentFromNotif;
+
+function gcBuildOneCommentHTML(pid, c, idx, where){
+  const safeCName = escapeHTML(c.name || 'User');
+  let safeCText = escapeHTML(c.text || '');
+  const closeFn = where === 'single' ? 'closeSinglePost' : 'closeCommentPanel';
+  if(allUsersCache){
+    const sortedUsers = allUsersCache.slice().sort(function(a,b){ return (b.name||'').length - (a.name||'').length; });
+    sortedUsers.forEach(function(u){
+      if(u.name){
+        const regex = new RegExp('@' + u.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+        safeCText = safeCText.replace(regex, '<strong style="color:var(--accent);cursor:pointer;" onclick="event.stopPropagation();' + closeFn + '();viewUserProfile(\'' + u.id + '\')">@' + escapeHTML(u.name) + '</strong>');
+      }
+    });
+  }
+  let commentAvHtml = avatarInitial(c.name);
+  let commentBadge = '';
+  const gcBadgeUser = (allUsersCache ? allUsersCache.find(function(u){ return u.id === c.uid; }) : null) || (currentUser && c.uid === currentUser.uid ? currentUserData : null);
+  if(gcBadgeUser) commentBadge = getVerifiedBadge(gcBadgeUser.email || '', gcBadgeUser.isVerified === true);
+  if(allUsersCache){
+    const commentUser = allUsersCache.find(function(u){ return u.id === c.uid; });
+    if(commentUser && commentUser.avatar){
+      commentAvHtml = '<img src="' + escapeHTML(commentUser.avatar) + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">';
+    }
+  }
+  const commentImageHtml = c.imageUrl
+    ? '<img src="' + escapeHTML(c.imageUrl) + '" style="width:100%;max-width:250px;border-radius:12px;margin-top:8px;cursor:pointer;box-shadow:var(--shadow-sm);" onclick="openImageZoom(\'' + escapeHTML(c.imageUrl) + '\')">'
+    : '';
+
+  const likes = gcCommentLikesArr(c);
+  const liked = currentUser && likes.indexOf(currentUser.uid) !== -1;
+  const likeCount = likes.length;
+  const timeLabel = gcCommentTimeLabel(c);
+
+  // Replies nesting
+  const replies = Array.isArray(c.replies) ? c.replies : [];
+  const expKey = pid + '_' + idx;
+  const expanded = !!window.gcCommentExpandedReplies[expKey];
+  const PREVIEW_REPLIES = 2;
+  let repliesHtml = '';
+  if(replies.length){
+    const showAll = expanded || replies.length <= PREVIEW_REPLIES;
+    const visible = showAll ? replies : replies.slice(0, PREVIEW_REPLIES);
+    const inner = visible.map(function(r){
+      const rTime = gcCommentTimeLabel(r);
+      return '<div class="gc-c-reply-item">'
+        + '<div class="comment-author" style="font-size:12px;cursor:pointer;" onclick="' + closeFn + '();viewUserProfile(\'' + r.uid + '\')">' + escapeHTML(r.name || 'User') + '</div>'
+        + '<div style="font-size:12px;margin-top:2px;color:var(--text);">' + escapeHTML(r.text || '') + '</div>'
+        + (rTime ? '<div class="gc-c-time" style="margin-top:2px;">' + rTime + '</div>' : '')
+        + '</div>';
+    }).join('');
+    repliesHtml = '<div class="gc-c-replies">' + inner + '</div>';
+    if(replies.length > PREVIEW_REPLIES){
+      const label = expanded ? 'Hide replies' : ('View ' + replies.length + ' replies');
+      repliesHtml += '<div class="gc-c-reply-toggle" onclick="event.stopPropagation();gcToggleRepliesExpand(\'' + pid + '\',' + idx + ')">' + label + '</div>';
+      if(!expanded){
+        // already showing preview inside; toggle still useful
+      } else {
+        // when expanded, toggle is "Hide"
+      }
+    }
+  }
+
+  const replyClick = where === 'single'
+    ? 'event.stopPropagation();openCommentPanel(\'' + pid + '\');setTimeout(function(){showReplyInput(\'' + pid + '\',' + idx + ',\'' + safeCName.replace(/'/g, '') + '\');},200);'
+    : 'showReplyInput(\'' + pid + '\',' + idx + ',\'' + safeCName.replace(/'/g, '') + '\')';
+
+  return '<div class="comment-item" id="gc-comment-' + pid + '-' + idx + '" style="display:flex;gap:10px;align-items:flex-start;" ondblclick="showCommentActions(\'' + pid + '\', ' + idx + ', \'' + c.uid + '\')">'
+    + '<div class="avatar sm" style="flex-shrink:0;cursor:pointer;margin-top:2px;" onclick="' + closeFn + '();viewUserProfile(\'' + c.uid + '\')">' + commentAvHtml + '</div>'
+    + '<div style="flex:1;min-width:0;">'
+    +   '<div style="background:var(--surface-2);padding:10px 14px;border-radius:4px 18px 18px 18px;display:inline-block;border:1px solid var(--border);">'
+    +     '<div class="comment-author" style="cursor:pointer;font-size:13px;margin-bottom:4px;" onclick="' + closeFn + '();viewUserProfile(\'' + c.uid + '\')">' + safeCName + commentBadge + '</div>'
+    +     (safeCText ? '<div style="font-size:14px;color:var(--text);line-height:1.4;">' + safeCText + '</div>' : '')
+    +   '</div>'
+    +   commentImageHtml
+    +   '<div class="gc-c-meta">'
+    +     (timeLabel ? '<span class="gc-c-time">' + timeLabel + '</span>' : '')
+    +     '<span class="gc-c-btn' + (liked ? ' liked' : '') + '" onclick="event.stopPropagation();gcToggleCommentLike(\'' + pid + '\',' + idx + ')"><i class="' + (liked ? 'ph-fill' : 'ph-bold') + ' ph-heart" style="font-size:14px;"></i>' + (likeCount ? likeCount : '') + '</span>'
+    +     '<span class="gc-c-btn" onclick="event.stopPropagation();' + replyClick + '">Reply</span>'
+    +   '</div>'
+    +   '<div id="reply-input-' + idx + '"></div>'
+    +   repliesHtml
+    + '</div></div>';
+}
+
+function gcRenderCommentsListHTML(pid, comments, where){
+  const list = comments || [];
+  if(!list.length){
+    return '<div class="sp-comments-empty"><i class="ph ph-chat-circle" style="font-size:28px;opacity:.35;display:block;margin-bottom:8px;"></i>No comments yet. Be the first!</div>';
+  }
+  let mapped = list.map(function(c, i){ return Object.assign({}, c, { originalIndex: i }); });
+  // Premium first, then newest
+  mapped.sort(function(a, b){
+    let scoreA = 0, scoreB = 0;
+    if(allUsersCache){
+      const userA = allUsersCache.find(function(u){ return u.id === a.uid; });
+      const userB = allUsersCache.find(function(u){ return u.id === b.uid; });
+      scoreA += (userA && userA.isVerified === true) ? 1000000000 : 0;
+      scoreB += (userB && userB.isVerified === true) ? 1000000000 : 0;
+    }
+    const tA = a.time || (a.createdAt && a.createdAt.toMillis ? a.createdAt.toMillis() : 0) || 0;
+    const tB = b.time || (b.createdAt && b.createdAt.toMillis ? b.createdAt.toMillis() : 0) || 0;
+    scoreA += tA;
+    scoreB += tB;
+    return scoreB - scoreA;
+  });
+  if(!window.gcCommentShowCount[pid]) window.gcCommentShowCount[pid] = GC_COMMENT_PAGE;
+  const limit = window.gcCommentShowCount[pid];
+  const visible = mapped.slice(0, limit);
+  let html = visible.map(function(c){ return gcBuildOneCommentHTML(pid, c, c.originalIndex, where); }).join('');
+  if(mapped.length > limit){
+    const left = mapped.length - limit;
+    html += '<div class="gc-c-load-more"><button type="button" onclick="gcLoadMoreComments(\'' + pid + '\',\'' + where + '\')">Load more comments (' + left + ')</button></div>';
+  }
+  return html;
+}
 
 // 🚀 রিপ্লাইয়ের বক্স ওপেন করার ফাংশন (Fixed)
 function showReplyInput(pid, idx, name) {
@@ -11187,69 +11345,7 @@ closeSinglePost();
 let singlePostUnsub = null; // রিয়েল-টাইম আপডেটের জন্য ভ্যারিয়েবল
 
 function gcBuildInlineCommentsHTML(pid, comments){
-    const list = comments || [];
-    if(!list.length){
-        return '<div class="sp-comments-empty"><i class="ph ph-chat-circle" style="font-size:28px;opacity:.35;display:block;margin-bottom:8px;"></i>No comments yet. Be the first!</div>';
-    }
-    let mapped = list.map(function(c, i){ return Object.assign({}, c, { originalIndex: i }); });
-    if(allUsersCache){
-        mapped.sort(function(a, b){
-            const userA = allUsersCache.find(function(u){ return u.id === a.uid; });
-            const userB = allUsersCache.find(function(u){ return u.id === b.uid; });
-            const isPremiumA = (userA && userA.isVerified === true) ? 1 : 0;
-            const isPremiumB = (userB && userB.isVerified === true) ? 1 : 0;
-            return isPremiumB - isPremiumA;
-        });
-    }
-    return mapped.map(function(c){
-        const idx = c.originalIndex;
-        const safeCName = escapeHTML(c.name);
-        let safeCText = escapeHTML(c.text || '');
-        if(allUsersCache){
-            const sortedUsers = allUsersCache.slice().sort(function(a,b){ return (b.name||'').length - (a.name||'').length; });
-            sortedUsers.forEach(function(u){
-                if(u.name){
-                    const regex = new RegExp('@' + u.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
-                    safeCText = safeCText.replace(regex, '<strong style="color:var(--accent);cursor:pointer;" onclick="event.stopPropagation();closeSinglePost();viewUserProfile(\'' + u.id + '\')">@' + escapeHTML(u.name) + '</strong>');
-                }
-            });
-        }
-        let repliesHtml = '';
-        if(c.replies && c.replies.length){
-            repliesHtml = c.replies.map(function(r){
-                return '<div style="margin-top:8px;margin-left:16px;padding-left:12px;border-left:2px solid var(--border);">'
-                    + '<div class="comment-author" style="font-size:12px;cursor:pointer;" onclick="closeSinglePost();viewUserProfile(\'' + r.uid + '\')">' + escapeHTML(r.name) + '</div>'
-                    + '<div style="font-size:12px;margin-top:2px;">' + escapeHTML(r.text || '') + '</div>'
-                    + '</div>';
-            }).join('');
-        }
-        let commentAvHtml = avatarInitial(c.name);
-        let commentBadge = '';
-        const gcBadgeUser = (allUsersCache ? allUsersCache.find(function(u){ return u.id === c.uid; }) : null) || (currentUser && c.uid === currentUser.uid ? currentUserData : null);
-        if(gcBadgeUser) commentBadge = getVerifiedBadge(gcBadgeUser.email || '', gcBadgeUser.isVerified === true);
-        if(allUsersCache){
-            const commentUser = allUsersCache.find(function(u){ return u.id === c.uid; });
-            if(commentUser && commentUser.avatar){
-                commentAvHtml = '<img src="' + escapeHTML(commentUser.avatar) + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">';
-            }
-        }
-        const commentImageHtml = c.imageUrl
-            ? '<img src="' + escapeHTML(c.imageUrl) + '" style="width:100%;max-width:250px;border-radius:12px;margin-top:8px;cursor:pointer;box-shadow:var(--shadow-sm);" onclick="openImageZoom(\'' + escapeHTML(c.imageUrl) + '\')">'
-            : '';
-        return '<div class="comment-item" style="display:flex;gap:10px;align-items:flex-start;" ondblclick="showCommentActions(\'' + pid + '\', ' + idx + ', \'' + c.uid + '\')">'
-            + '<div class="avatar sm" style="flex-shrink:0;cursor:pointer;margin-top:2px;" onclick="closeSinglePost();viewUserProfile(\'' + c.uid + '\')">' + commentAvHtml + '</div>'
-            + '<div style="flex:1;min-width:0;">'
-            +   '<div style="background:var(--surface-2);padding:10px 14px;border-radius:4px 18px 18px 18px;display:inline-block;border:1px solid var(--border);">'
-            +     '<div class="comment-author" style="cursor:pointer;font-size:13px;margin-bottom:4px;" onclick="closeSinglePost();viewUserProfile(\'' + c.uid + '\')">' + safeCName + commentBadge + '</div>'
-            +     (safeCText ? '<div style="font-size:14px;color:var(--text);line-height:1.4;">' + safeCText + '</div>' : '')
-            +   '</div>'
-            +   commentImageHtml
-            +   '<div style="display:flex;gap:16px;margin-top:6px;margin-left:12px;align-items:center;">'
-            +     '<div style="font-size:12px;color:var(--text-muted);cursor:pointer;font-weight:700;" onclick="event.stopPropagation();openCommentPanel(\'' + pid + '\');setTimeout(function(){showReplyInput(\'' + pid + '\',' + idx + ',\'' + safeCName + '\');},200);">Reply</div>'
-            +   '</div>'
-            +   repliesHtml
-            + '</div></div>';
-    }).join('');
+    return gcRenderCommentsListHTML(pid, comments, 'single');
 }
 
 async function openSinglePostView(pid) {
