@@ -4248,6 +4248,48 @@ body.light-mode #page-notifications {
 .qr-trigger:hover{ transform:translateY(-2px) scale(1.08); box-shadow:0 10px 22px -8px color-mix(in srgb, var(--accent) 60%, transparent); }
 .qr-trigger:active{ transform:scale(.86); }
 .qr-trigger .material-symbols-outlined{ font-size:20px; }
+.qr-trigger i{ font-size:22px; line-height:1; }
+
+/* Chat Tools shortcut panel */
+.gc-chat-tools-mask{
+  display:none; position:fixed; inset:0; z-index:100250;
+  background:rgba(0,0,0,.4); backdrop-filter:blur(3px); -webkit-backdrop-filter:blur(3px);
+  align-items:flex-end; justify-content:center; padding:12px;
+}
+.gc-chat-tools-mask.open{ display:flex; }
+.gc-chat-tools-sheet{
+  width:100%; max-width:420px;
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:22px 22px 18px 18px;
+  box-shadow:0 20px 50px rgba(0,0,0,.35);
+  animation:gcChatToolsIn .28s cubic-bezier(.22,1,.36,1);
+  overflow:hidden;
+}
+@keyframes gcChatToolsIn{
+  from{ opacity:0; transform:translateY(18px); }
+  to{ opacity:1; transform:translateY(0); }
+}
+.gc-chat-tools-head{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:14px 16px; border-bottom:1px solid var(--border);
+}
+.gc-chat-tools-title{ font-weight:800; font-size:16px; color:var(--text); }
+.gc-chat-tools-x{
+  width:34px; height:34px; border-radius:50%; border:none; cursor:pointer;
+  background:var(--surface-2); color:var(--text);
+  display:flex; align-items:center; justify-content:center;
+}
+.gc-chat-tools-list{ padding:10px 12px 16px; display:flex; flex-direction:column; gap:6px; }
+.gc-chat-tools-item{
+  display:flex; align-items:center; gap:12px; width:100%;
+  padding:14px 14px; border-radius:16px; border:none; cursor:pointer;
+  background:var(--surface-2); color:var(--text);
+  font-weight:700; font-size:15px; text-align:left;
+  transition:background .15s, transform .15s;
+}
+.gc-chat-tools-item:active{ transform:scale(.98); }
+.gc-chat-tools-item i{ font-size:22px; width:26px; text-align:center; }
+.gc-chat-tools-chev{ margin-left:auto; color:var(--text-muted); font-size:16px; }
 
 /* চিপস পপআপ */
 .qr-chips-popup{
@@ -8367,7 +8409,7 @@ async function loadAllFriends() {
                 <div class="friend-item-check" style="justify-content: space-between;">
                     <div style="display:flex; align-items:center; gap:12px;" onclick="viewUserProfile('${following[index]}')">
                         <div class="avatar">${avHtml}</div>
-                        <div class="msg-name">${safeName}</div>
+                        <div class="msg-name">${safeName}${getVerifiedBadge(u.email, u.isVerified === true)}</div>
                     </div>
                     <button class="btn-outline" style="padding:6px 12px; font-size:11px;" onclick="toggleFollow('${following[index]}')">Unfollow</button>
                 </div>`;
@@ -8442,7 +8484,7 @@ const avHtml=u.avatar?`<img src="${u.avatar}">`:avatarInitial(u.name);
 html+=`<div class="friend-req-item">
 <div class="avatar" onclick="viewUserProfile('${reqs[index]}')">${avHtml}</div>
 <div class="msg-info" onclick="viewUserProfile('${reqs[index]}')">
-<div class="msg-name">${safeName}</div>
+<div class="msg-name">${safeName}${getVerifiedBadge(u.email, u.isVerified === true)}</div>
 </div>
 <div class="friend-req-actions">
 <button class="accept-btn" onclick="acceptRequest('${reqs[index]}')">Accept</button>
@@ -8737,6 +8779,8 @@ await db.collection('stories').add({
 uid:currentUser.uid,
 name:currentUserData.name,
 avatar:currentUserData.avatar||'',
+email:currentUserData.email||(currentUser.email||''),
+isVerified: currentUserData.isVerified === true,
 mediaUrl:url,
 isVideo:isVideo,
 views:[],reacts:[],
@@ -8957,10 +9001,53 @@ function renderCurrentStory(){
     if(currentStoryIndex>=activeStoryGroup.length){closeStory();return;}
     const s=activeStoryGroup[currentStoryIndex];
     const safeName=escapeHTML(s.name);
-    // 🚀 আমরা এখন ব্যাজ এবং টাইমসহ নাম রেন্ডার করব
-    const sVerified = s.isVerified || false; 
-    const storyTime = getRelativeTime(s.createdAt); // 🚀 টাইম বের করার ফাংশন
-    document.getElementById('sv-name').innerHTML = safeName + getVerifiedBadge(s.email, sVerified) + `<span style="font-size:12px; font-weight:normal; color:rgba(255,255,255,0.8); margin-left:8px;">${storyTime}</span>`;
+    // Resolve verified: story doc → allUsersCache → currentUser → Firestore
+    function gcIsTruthyVerified(v){
+        return v === true || v === 1 || v === 'true' || v === '1';
+    }
+    let sVerified = gcIsTruthyVerified(s.isVerified);
+    let sEmail = s.email || '';
+    const cache = (typeof allUsersCache !== 'undefined' && allUsersCache) ? allUsersCache : (window.allUsersCache || null);
+    if(cache){
+        const live = cache.find(function(u){ return u.id === s.uid; });
+        if(live){
+            if(gcIsTruthyVerified(live.isVerified)) sVerified = true;
+            if(!sEmail) sEmail = live.email || '';
+        }
+    }
+    if(!sVerified && currentUser && s.uid === currentUser.uid && currentUserData){
+        sVerified = gcIsTruthyVerified(currentUserData.isVerified);
+        if(!sEmail) sEmail = currentUserData.email || (currentUser.email || '');
+    }
+    const storyTime = getRelativeTime(s.createdAt);
+    const nameEl = document.getElementById('sv-name');
+    if(nameEl){
+        nameEl.innerHTML = safeName + getVerifiedBadge(sEmail, sVerified) + `<span style="font-size:12px; font-weight:normal; color:rgba(255,255,255,0.8); margin-left:8px;">${storyTime}</span>`;
+    }
+    // If still not verified, fetch user doc once (old stories / cache miss)
+    if(!sVerified && s.uid && typeof db !== 'undefined'){
+        const storyIdx = currentStoryIndex;
+        const storyUid = s.uid;
+        db.collection('users').doc(storyUid).get().then(function(doc){
+            if(!doc.exists) return;
+            // still on same story segment
+            if(currentStoryIndex !== storyIdx) return;
+            const ud = doc.data() || {};
+            if(!gcIsTruthyVerified(ud.isVerified)) return;
+            const el = document.getElementById('sv-name');
+            if(!el) return;
+            const email = ud.email || sEmail || '';
+            el.innerHTML = safeName + getVerifiedBadge(email, true) + `<span style="font-size:12px; font-weight:normal; color:rgba(255,255,255,0.8); margin-left:8px;">${storyTime}</span>`;
+            // patch story object for next segments from same user
+            try {
+                if(activeStoryGroup){
+                    activeStoryGroup.forEach(function(st){
+                        if(st.uid === storyUid){ st.isVerified = true; st.email = email; }
+                    });
+                }
+            } catch(e){}
+        }).catch(function(){});
+    }
 
     // ১. থ্রি-ডট মেনুটি সবার স্টোরিতেই দেখাবে
     const svMenuBtn = document.getElementById('sv-menu-btn');
@@ -9761,7 +9848,8 @@ function openChat(chatId, otherUid, otherName, otherAvatar){
             finalOtherAvatar = liveUser.avatar || '';
         }
         
-        document.getElementById('chat-name-display').textContent = finalOtherName;
+        const chatHeaderBadge = liveUser ? getVerifiedBadge(liveUser.email || '', liveUser.isVerified === true) : '';
+        document.getElementById('chat-name-display').innerHTML = escapeHTML(finalOtherName) + chatHeaderBadge;
         // 🚀 NEW LOGIC: নিজের অফ থাকলে চ্যাট স্ক্রিনে অন্যেরটাও অফ দেখাবে
         const isOnline = currentUserData.showActiveStatus !== false && liveUser && liveUser.online === true && liveUser.showActiveStatus !== false;
         const onlineIndicator = isOnline ? '<div class="online-dot" style="bottom: 0px; right: 0px; border: 2px solid var(--surface);"></div>' : '';
@@ -10549,11 +10637,12 @@ async function loadMessages(){
             // 🚀 NEW LOGIC: নিজের অফ থাকলে মেসেজ লিস্টে অন্যেরটাও অফ দেখাবে
             const isOnline = (currentUserData.showActiveStatus !== false && !chat.isGroup && chatUser && chatUser.online === true && chatUser.showActiveStatus !== false);
             const onlineIndicator = isOnline ? '<div class="online-dot"></div>' : '';
+            const chatVBadge = (!chat.isGroup && chatUser) ? getVerifiedBadge(chatUser.email || '', chatUser.isVerified === true) : '';
 
             html += `<div class="msg-item ${chat.isPinned?'pinned':''} ${chat.isMuted?'muted':''} ${unreadClass}" data-other-uid="${chat.otherUid}" onclick="openChat('${chat.id}','${chat.otherUid}','${escapeHTML(chat.otherName)}','${chat.isGroup ? '' : escapeHTML(chat.otherAv)}')">
             <div class="avatar" style="position:relative;">${avHtml}${onlineIndicator}</div>
             <div class="msg-info" style="flex:1;">
-            <div class="msg-name">${pinIcon}${muteIcon}${escapeHTML(chat.otherName)}</div>
+            <div class="msg-name">${pinIcon}${muteIcon}${escapeHTML(chat.otherName)}${chatVBadge}</div>
             <div class="msg-preview">${escapeHTML(chat.data.lastMsg || 'New Message')}</div>
             </div>
             
@@ -10599,13 +10688,20 @@ if(doc.exists){
 const data=doc.data();
 const parts = chatId.split('_');
 const otherUid = parts[0] === currentUser.uid ? parts[1] : parts[0];
-const otherName=data.names?data.names[otherUid]:'User';
-const otherAv=data.avatars?data.avatars[otherUid]:'';
+let otherName=data.names?data.names[otherUid]:'User';
+let otherAv=data.avatars?data.avatars[otherUid]:'';
+let archBadge = '';
+const liveU = allUsersCache ? allUsersCache.find(u => u.id === otherUid) : null;
+if(liveU){
+  otherName = liveU.name || otherName;
+  otherAv = liveU.avatar || otherAv;
+  archBadge = getVerifiedBadge(liveU.email || '', liveU.isVerified === true);
+}
 const avHtml=otherAv?`<img src="${otherAv}">`:avatarInitial(otherName);
 html+=`<div class="msg-item" onclick="openChat('${chatId}','${otherUid}','${escapeHTML(otherName)}','${escapeHTML(otherAv)}')">
 <div class="avatar">${avHtml}</div>
 <div class="msg-info">
-<div class="msg-name">${escapeHTML(otherName)}</div>
+<div class="msg-name">${escapeHTML(otherName)}${archBadge}</div>
 <div class="msg-preview">${escapeHTML(data.lastMsg||'No messages')}</div>
 </div>
 <button class="btn-outline" style="padding:6px 12px;font-size:11px;" onclick="event.stopPropagation();unarchiveChat('${chatId}')">Unarchive</button>
@@ -13681,6 +13777,8 @@ async function submitTextStory() {
             uid: currentUser.uid,
             name: currentUserData.name,
             avatar: currentUserData.avatar || '',
+            email: currentUserData.email || (currentUser.email || ''),
+            isVerified: currentUserData.isVerified === true,
             isText: true, // এটি টেক্সট স্টোরি চেনার উপায়
             text: text,
             bgColor: currentTextStoryBg,
@@ -16808,24 +16906,65 @@ function qrUpdateTemplate(index, text){
   qrSaveTemplates(templates);
 }
 
-/* ---------- চ্যাট স্ক্রিনে ⚡ বাটন ইনজেক্ট ---------- */
+/* ---------- চ্যাট স্ক্রিনে ⋯ shortcut বাটন ইনজেক্ট ---------- */
 function qrInjectChatButton(){
   const inputBar = document.querySelector('.chat-input-bar');
-  if(!inputBar || inputBar.querySelector('.qr-trigger')) return;
-  
-  const btn = document.createElement('button');
-  btn.className = 'qr-trigger';
-  btn.type = 'button';
-  btn.setAttribute('aria-label', 'Quick Replies');
-  btn.title = 'Quick Replies';
-  btn.innerHTML = '<i class="ph ph-lightning" style="font-size:20px;"></i>';
-  btn.onclick = (e) => { e.stopPropagation(); qrToggleChips(); };
-  
-  // ইনপুটের আগে বসানো
-  const input = inputBar.querySelector('input');
-  if(input){ inputBar.insertBefore(btn, input); }
-  else{ inputBar.appendChild(btn); }
+  if(!inputBar) return;
+  // Upgrade old lightning button if present
+  let btn = inputBar.querySelector('.qr-trigger');
+  if(!btn){
+    btn = document.createElement('button');
+    btn.className = 'qr-trigger';
+    btn.type = 'button';
+    const input = inputBar.querySelector('input');
+    if(input){ inputBar.insertBefore(btn, input); }
+    else{ inputBar.appendChild(btn); }
+  }
+  btn.setAttribute('aria-label', 'Chat tools');
+  btn.title = 'More tools';
+  btn.innerHTML = '<i class="ph ph-dots-three-circle" style="font-size:22px;"></i>';
+  btn.onclick = function(e){ e.stopPropagation(); e.preventDefault(); gcOpenChatTools(); };
 }
+
+/* ---------- Chat Tools popup (shortcut hub) ---------- */
+function gcEnsureChatTools(){
+  let ov = document.getElementById('gc-chat-tools');
+  if(ov) return ov;
+  ov = document.createElement('div');
+  ov.id = 'gc-chat-tools';
+  ov.className = 'gc-chat-tools-mask';
+  ov.innerHTML = ''
+    + '<div class="gc-chat-tools-sheet" onclick="event.stopPropagation()">'
+    +   '<div class="gc-chat-tools-head">'
+    +     '<div class="gc-chat-tools-title">Tools</div>'
+    +     '<button type="button" class="gc-chat-tools-x" onclick="gcCloseChatTools()" aria-label="Close"><i class="ph-bold ph-x"></i></button>'
+    +   '</div>'
+    +   '<div class="gc-chat-tools-list">'
+    +     '<button type="button" class="gc-chat-tools-item" onclick="gcCloseChatTools(); qrToggleChips();">'
+    +       '<i class="ph-fill ph-lightning" style="color:var(--warning);"></i>'
+    +       '<span>Quick Replies</span>'
+    +       '<i class="ph-bold ph-caret-right gc-chat-tools-chev"></i>'
+    +     '</button>'
+    +     '<!-- Future tools go here -->'
+    +   '</div>'
+    + '</div>';
+  ov.addEventListener('click', function(e){ if(e.target === ov) gcCloseChatTools(); });
+  document.body.appendChild(ov);
+  return ov;
+}
+function gcOpenChatTools(){
+  const ov = gcEnsureChatTools();
+  ov.classList.add('open');
+  // close chips if open
+  const chips = document.getElementById('qr-chips-popup');
+  if(chips) chips.classList.remove('open');
+}
+function gcCloseChatTools(){
+  const ov = document.getElementById('gc-chat-tools');
+  if(ov) ov.classList.remove('open');
+}
+window.gcOpenChatTools = gcOpenChatTools;
+window.gcCloseChatTools = gcCloseChatTools;
 
 /* ---------- চিপস পপআপ ---------- */
 function qrToggleChips(){
