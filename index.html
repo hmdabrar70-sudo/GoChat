@@ -480,7 +480,7 @@ text-overflow:ellipsis;max-width:68px;
 }
 .story-viewer-modal{
 display:none;position:fixed;inset:0;
-background:#000;z-index:9999;
+background:#000;z-index:10060;
 flex-direction:column;
 }
 .story-viewer-modal.open{display:flex;}
@@ -973,7 +973,22 @@ opacity:0.3;
     box-shadow: none !important; /* no elevation — flat unified look */
 }
 .profile-main-row{display:flex;align-items:center;gap:18px;width:100%;}
-.profile-avatar-wrap{position:relative;display:inline-block;flex-shrink:0;}
+.profile-avatar-wrap{
+position:relative;display:inline-block;flex-shrink:0;
+border-radius:50%;
+padding:0;
+background:transparent;
+transition:background .2s, padding .2s;
+}
+/* Story ring only when user has active story */
+.profile-avatar-wrap.has-story{
+padding:3px;
+background:var(--gradient);
+cursor:pointer;
+}
+.profile-avatar-wrap.has-story.seen-story{
+background:var(--border);
+}
 .profile-avatar{
 width:92px;height:92px;
 border-radius:50%;
@@ -982,7 +997,10 @@ display:flex;align-items:center;justify-content:center;
 font-size:34px;font-weight:800;color:#fff;
 overflow:hidden;
 border:3px solid var(--bg);
-box-shadow:0 0 0 3px rgba(124,92,255,0.35), var(--shadow-md);
+box-shadow:var(--shadow-md);
+}
+.profile-avatar-wrap.has-story .profile-avatar{
+box-shadow:none;
 }
 .profile-avatar img{width:100%;height:100%;object-fit:cover;}
 /* Instagram-style stats to the right of avatar */
@@ -3158,6 +3176,14 @@ background:rgba(0,0,0,.28);color:#fff;font-size:18px;pointer-events:none;
 /* প্রোফাইল পেজ ওপেন হলে এটাকে ফুল স্ক্রিন ও উপরে রাখা */
 #page-other-profile.open {
     display: flex !important;
+}
+/* Story viewer MUST be above other-profile (10000) so profile-tap story opens immediately */
+.story-viewer-modal,
+#story-viewer,
+#story-viewer.open {
+    z-index: 200000 !important;
+    position: fixed !important;
+    inset: 0 !important;
 }
 /* সিঙ্গেল পোস্ট স্ক্রিন যেন প্রোফাইল পেজের উপরে ওপেন হয় */
 #single-post-screen {
@@ -8819,24 +8845,110 @@ function loadStories(){
         list.innerHTML=html;
         window.allStoriesData=stories;
         window.storyUserIds = userIdsOrder;
+        // Active story uids for profile rings
+        window.gcActiveStoryUids = {};
+        stories.forEach(function(s){
+            if(!s.uid) return;
+            if(!window.gcActiveStoryUids[s.uid]) window.gcActiveStoryUids[s.uid] = { seen: true };
+            const seen = s.views && currentUser && s.views.includes(currentUser.uid);
+            if(!seen) window.gcActiveStoryUids[s.uid].seen = false;
+        });
+        if(typeof gcUpdateProfileStoryRings === 'function') gcUpdateProfileStoryRings();
     });
 }
 
+/** Profile avatar story ring: show only if user has active story; tap opens story */
+function gcUserHasActiveStory(uid){
+    if(!uid || !window.gcActiveStoryUids) return false;
+    return !!window.gcActiveStoryUids[uid];
+}
+function gcUpdateProfileStoryRings(){
+    // Own profile
+    const myWrap = document.getElementById('profile-avatar-big');
+    if(myWrap){
+        const wrap = myWrap.closest('.profile-avatar-wrap') || myWrap.parentElement;
+        if(wrap){
+            const has = currentUser && gcUserHasActiveStory(currentUser.uid);
+            wrap.classList.toggle('has-story', !!has);
+            if(has && window.gcActiveStoryUids[currentUser.uid]){
+                wrap.classList.toggle('seen-story', !!window.gcActiveStoryUids[currentUser.uid].seen);
+            } else {
+                wrap.classList.remove('seen-story');
+            }
+            wrap.onclick = has ? function(e){
+                if(e.target.closest('label') || e.target.closest('input')) return;
+                e.stopPropagation();
+                if(typeof playStories === 'function') playStories(currentUser.uid);
+            } : null;
+            if(has) wrap.style.cursor = 'pointer';
+            else wrap.style.cursor = '';
+        }
+    }
+    // Other profile
+    const otherAv = document.getElementById('other-profile-avatar');
+    if(otherAv){
+        const wrap = otherAv.closest('.profile-avatar-wrap') || otherAv.parentElement;
+        const uid = (typeof currentOtherProfileUid !== 'undefined') ? currentOtherProfileUid : null;
+        if(wrap){
+            const has = uid && gcUserHasActiveStory(uid);
+            wrap.classList.toggle('has-story', !!has);
+            if(has && window.gcActiveStoryUids[uid]){
+                wrap.classList.toggle('seen-story', !!window.gcActiveStoryUids[uid].seen);
+            } else {
+                wrap.classList.remove('seen-story');
+            }
+            wrap.onclick = has ? function(e){
+                e.preventDefault();
+                e.stopPropagation();
+                // Open story on top of profile immediately
+                if(typeof playStories === 'function') playStories(uid);
+            } : null;
+            if(has){
+                wrap.style.cursor = 'pointer';
+                wrap.setAttribute('role','button');
+                wrap.setAttribute('title','View story');
+            } else {
+                wrap.style.cursor = '';
+                wrap.removeAttribute('role');
+                wrap.removeAttribute('title');
+            }
+        }
+    }
+}
+window.gcUpdateProfileStoryRings = gcUpdateProfileStoryRings;
+
 function playStories(uid, startIndex = 0){
-    if(!window.allStoriesData)return;
+    if(!window.allStoriesData){
+        // Stories may not be loaded yet — try once from cache after brief wait
+        if(typeof loadStories === 'function') try{ loadStories(); }catch(e){}
+    }
+    const data = window.allStoriesData || [];
     
     // কোন ইউজারের স্টোরি চলছে তার ইনডেক্স বের করা
-    window.currentStoryUidIndex = window.storyUserIds.indexOf(uid); 
+    if(window.storyUserIds) window.currentStoryUidIndex = window.storyUserIds.indexOf(uid); 
     
-    activeStoryGroup=window.allStoriesData.filter(s=>s.uid===uid).sort((a,b)=>{
+    activeStoryGroup=data.filter(s=>s.uid===uid).sort((a,b)=>{
         const ta=a.createdAt?.toMillis?a.createdAt.toMillis():0;
         const tb=b.createdAt?.toMillis?b.createdAt.toMillis():0;
         return ta-tb;
     });
     
-    if(activeStoryGroup.length===0)return;
-    currentStoryIndex = startIndex; // যেখান থেকে শুরু হবে
-    document.getElementById('story-viewer').classList.add('open');
+    if(activeStoryGroup.length===0){
+        if(typeof showToast === 'function') showToast('No active story');
+        return;
+    }
+    currentStoryIndex = startIndex;
+    const sv = document.getElementById('story-viewer');
+    if(sv){
+        try {
+            if(sv.parentElement !== document.body) document.body.appendChild(sv);
+        } catch(e){}
+        sv.style.zIndex = '200000';
+        sv.style.position = 'fixed';
+        sv.style.inset = '0';
+        sv.style.display = 'flex';
+        sv.classList.add('open');
+    }
     renderCurrentStory();
 }
 
@@ -8959,10 +9071,24 @@ function prevStorySegment(){
 
 
 function closeStory(){
-document.getElementById('story-viewer').classList.remove('open');
-clearTimeout(storyTimer);
-document.getElementById('sv-media-container').innerHTML='';
+    try { clearTimeout(storyTimer); } catch(e){}
+    const sv = document.getElementById('story-viewer');
+    if(sv){
+        sv.classList.remove('open');
+        // Clear inline styles set by playStories (otherwise screen stays black/open)
+        sv.style.display = 'none';
+        sv.style.zIndex = '';
+        sv.style.position = '';
+        sv.style.inset = '';
+    }
+    const media = document.getElementById('sv-media-container');
+    if(media) media.innerHTML = '';
+    try {
+        const menu = document.getElementById('story-menu');
+        if(menu) menu.classList.remove('open');
+    } catch(e){}
 }
+window.closeStory = closeStory;
 
 // স্টোরি থেকে প্রোফাইল দেখার ফাংশন
 function viewProfileFromStory() {
@@ -9343,6 +9469,7 @@ async function submitReply(pid, idx) {
 async function viewUserProfile(uid){
     if(!uid) return;
     if(currentUser && uid === currentUser.uid){
+        try { document.getElementById('page-other-profile').classList.remove('open'); } catch(e){}
         showPage('profile');
         return;
     }
@@ -9357,12 +9484,34 @@ async function viewUserProfile(uid){
         return;
     }
 
+    // Request token: ignore stale async results if user navigated away / opened another profile
+    window._gcProfileReq = (window._gcProfileReq || 0) + 1;
+    const reqId = window._gcProfileReq;
+
+    // Open immediately so partner-chip / nested profile switches feel instant
+    currentOtherProfileUid = uid;
+    const otherPage = document.getElementById('page-other-profile');
+    if(otherPage){
+        otherPage.classList.add('open');
+        try {
+            otherPage.scrollTop = 0;
+            const nameEl = document.getElementById('other-profile-name');
+            if(nameEl) nameEl.textContent = 'Loading…';
+            const detailsWrap = document.getElementById('other-profile-details-wrapper');
+            if(detailsWrap) detailsWrap.style.display = 'none';
+            const chev = document.getElementById('other-pi-chevron');
+            if(chev){ chev.classList.remove('ph-caret-up'); chev.classList.add('ph-caret-down'); }
+        } catch(e){}
+    }
+
     let doc;
     try {
         doc = await db.collection('users').doc(uid).get();
     } catch(e) {
         return;
     }
+    // Stale response (user opened someone else or closed)
+    if(reqId !== window._gcProfileReq || currentOtherProfileUid !== uid) return;
     if(!doc.exists) return;
     const u = doc.data();
 
@@ -9384,8 +9533,11 @@ async function viewUserProfile(uid){
         } catch(e) {}
     }
 
-    currentOtherProfileUid = uid;
-    document.getElementById('page-other-profile').classList.add('open');
+    if(reqId !== window._gcProfileReq || currentOtherProfileUid !== uid) return;
+    if(otherPage && !otherPage.classList.contains('open')) otherPage.classList.add('open');
+    try {
+        otherPage.scrollTop = 0;
+    } catch(e){}
     
     const safeName=escapeHTML(u.name);
     const verifiedBadge = getVerifiedBadge(u.email, u.isVerified);
@@ -9434,7 +9586,9 @@ ${gcDisplayName}
     // 🚀 স্মার্ট চেক + Mutual Visibility: নিজের অফ থাকলে প্রোফাইলে অন্যেরটাও দেখতে পাবে না
     if (currentUserData.showActiveStatus !== false && u.online === true && u.showActiveStatus !== false) {
         profileWrap.insertAdjacentHTML('beforeend', '<div class="online-dot" style="width:20px; height:20px; bottom:2px; right:2px; border:4px solid var(--bg);"></div>');
-    }    
+    }
+    // Story ring on other profile avatar
+    if(typeof gcUpdateProfileStoryRings === 'function') gcUpdateProfileStoryRings();    
 
     document.getElementById('other-profile-bio').textContent=u.bio||'';
 
@@ -9469,7 +9623,7 @@ ${gcDisplayName}
         if(u.partnerStatus === 'confirmed' && u.partnerUid){
             const heart = u.relationship === 'Married' ? '💍' : '❤️';
             const av = u.partnerAvatar ? `<img src="${escapeHTML(u.partnerAvatar)}" alt="">` : '';
-            partnerChip = `<span class="gc-rel-chip" onclick="event.stopPropagation(); viewUserProfile('${u.partnerUid}')">${heart} with ${av}${escapeHTML(u.partnerName || 'Partner')}</span>`;
+            partnerChip = `<span class="gc-rel-chip" onclick="event.stopPropagation(); event.preventDefault(); if(typeof viewUserProfile==='function') viewUserProfile('${u.partnerUid}');">${heart} with ${av}${escapeHTML(u.partnerName || 'Partner')}</span>`;
         }
         dHtml += `<div class="detail-item detail-rel"><i class="ph-bold ph-heart" style="font-size:20px; color:var(--accent-dark);"></i> <strong>${escapeHTML(u.relationship)}</strong>${partnerChip}</div>`;
     }
@@ -9532,6 +9686,8 @@ ${gcDisplayName}
 function closeUserProfile(){
 document.getElementById('page-other-profile').classList.remove('open');
 currentOtherProfileUid=null;
+// Invalidate in-flight profile loads so they don't re-open after back
+window._gcProfileReq = (window._gcProfileReq || 0) + 1;
 }
 
 async function blockCurrentUser(){
@@ -11808,6 +11964,8 @@ ${gcDisplayName}
     setSafeHTML('modal-composer-name', safeName + verifiedBadge);
     setSafeHTML('profile-name-display', nameHtml);
     setSafeHTML('profile-avatar-big', avHtml);
+    // Story ring on own profile avatar
+    if(typeof gcUpdateProfileStoryRings === 'function') gcUpdateProfileStoryRings();
 
     
        // 🚀 নেভিগেশন বারে ইউজারের ছবি আপডেট করার লজিক
