@@ -942,7 +942,55 @@ background:var(--bg);z-index:400;
 flex-direction:column;
 }
 #single-post-screen.open{display:flex;}
-.single-post-content{flex:1;overflow-y:auto;padding-bottom:20px;}
+.single-post-content{flex:1;overflow-y:auto;padding-bottom:20px;-webkit-overflow-scrolling:touch;}
+/* Single post inline comments */
+.sp-comments-wrap{
+  margin:0 12px 16px; padding:14px 0 8px;
+  border-top:1px solid var(--border);
+}
+.sp-comments-head{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:0 4px 12px; gap:10px;
+}
+.sp-comments-title{font-weight:800; font-size:15px; color:var(--text);}
+.sp-comments-count{font-size:12px; color:var(--text-muted); font-weight:600;}
+.sp-comments-list{display:flex; flex-direction:column; gap:12px;}
+.sp-comments-empty{
+  text-align:center; padding:28px 12px; color:var(--text-muted);
+  font-size:13px; font-weight:500;
+}
+.sp-comment-compose{
+  display:flex; align-items:center; gap:8px;
+  margin:12px 12px 8px; padding:8px 10px;
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:24px; z-index:5;
+  box-shadow:0 4px 16px rgba(0,0,0,.08);
+}
+.sp-comment-compose-fixed{
+  margin:0; border-radius:0;
+  border-left:none; border-right:none; border-bottom:none;
+  padding:10px 14px calc(10px + env(safe-area-inset-bottom, 0px));
+  background:var(--surface);
+  box-shadow:0 -6px 20px rgba(0,0,0,.06);
+  flex-shrink:0;
+}
+.sp-comment-compose input{
+  flex:1; border:none; background:transparent; outline:none;
+  color:var(--text); font-size:14px; padding:6px 4px; min-width:0;
+}
+.sp-comment-compose button{
+  border:none; background:var(--accent); color:#fff;
+  width:36px; height:36px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center; cursor:pointer;
+  flex-shrink:0;
+}
+#single-post-screen .single-post-content{
+  padding-bottom:12px;
+}
+.sp-comments-wrap{
+  background:var(--bg);
+  min-height:120px;
+}
 .empty-feed{
 text-align:center;padding:60px 20px;
 color:var(--text-muted);font-size:14px;
@@ -5994,6 +6042,11 @@ Edit Profile-এ পার্টনার সিলেক্ট বাটন
 <div class="chat-name">Post</div>
 </div>
 <div class="single-post-content" id="single-post-container"></div>
+<!-- Fixed comment composer (always visible in single view) -->
+<div id="sp-fixed-compose" class="sp-comment-compose sp-comment-compose-fixed" style="display:none;">
+  <input type="text" id="sp-comment-input" placeholder="Write a comment..." autocomplete="off" onkeypress="if(event.key==='Enter'){event.preventDefault();gcSendSinglePostComment();}">
+  <button type="button" onclick="gcSendSinglePostComment()" aria-label="Send"><i class="ph-bold ph-paper-plane-right" style="font-size:16px;"></i></button>
+</div>
 </div>
 
 <div id="comment-panel" class="comment-panel">
@@ -11130,31 +11183,154 @@ showToast('Post deleted!');
 if(document.getElementById('page-profile').classList.contains('active'))loadMyPosts();
 closeSinglePost();
 }
-// 🚀 FIXED: Single Post View with Working Like & Share Buttons
+// 🚀 FIXED: Single Post View with Working Like & Share Buttons + inline comments
 let singlePostUnsub = null; // রিয়েল-টাইম আপডেটের জন্য ভ্যারিয়েবল
 
+function gcBuildInlineCommentsHTML(pid, comments){
+    const list = comments || [];
+    if(!list.length){
+        return '<div class="sp-comments-empty"><i class="ph ph-chat-circle" style="font-size:28px;opacity:.35;display:block;margin-bottom:8px;"></i>No comments yet. Be the first!</div>';
+    }
+    let mapped = list.map(function(c, i){ return Object.assign({}, c, { originalIndex: i }); });
+    if(allUsersCache){
+        mapped.sort(function(a, b){
+            const userA = allUsersCache.find(function(u){ return u.id === a.uid; });
+            const userB = allUsersCache.find(function(u){ return u.id === b.uid; });
+            const isPremiumA = (userA && userA.isVerified === true) ? 1 : 0;
+            const isPremiumB = (userB && userB.isVerified === true) ? 1 : 0;
+            return isPremiumB - isPremiumA;
+        });
+    }
+    return mapped.map(function(c){
+        const idx = c.originalIndex;
+        const safeCName = escapeHTML(c.name);
+        let safeCText = escapeHTML(c.text || '');
+        if(allUsersCache){
+            const sortedUsers = allUsersCache.slice().sort(function(a,b){ return (b.name||'').length - (a.name||'').length; });
+            sortedUsers.forEach(function(u){
+                if(u.name){
+                    const regex = new RegExp('@' + u.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+                    safeCText = safeCText.replace(regex, '<strong style="color:var(--accent);cursor:pointer;" onclick="event.stopPropagation();closeSinglePost();viewUserProfile(\'' + u.id + '\')">@' + escapeHTML(u.name) + '</strong>');
+                }
+            });
+        }
+        let repliesHtml = '';
+        if(c.replies && c.replies.length){
+            repliesHtml = c.replies.map(function(r){
+                return '<div style="margin-top:8px;margin-left:16px;padding-left:12px;border-left:2px solid var(--border);">'
+                    + '<div class="comment-author" style="font-size:12px;cursor:pointer;" onclick="closeSinglePost();viewUserProfile(\'' + r.uid + '\')">' + escapeHTML(r.name) + '</div>'
+                    + '<div style="font-size:12px;margin-top:2px;">' + escapeHTML(r.text || '') + '</div>'
+                    + '</div>';
+            }).join('');
+        }
+        let commentAvHtml = avatarInitial(c.name);
+        let commentBadge = '';
+        const gcBadgeUser = (allUsersCache ? allUsersCache.find(function(u){ return u.id === c.uid; }) : null) || (currentUser && c.uid === currentUser.uid ? currentUserData : null);
+        if(gcBadgeUser) commentBadge = getVerifiedBadge(gcBadgeUser.email || '', gcBadgeUser.isVerified === true);
+        if(allUsersCache){
+            const commentUser = allUsersCache.find(function(u){ return u.id === c.uid; });
+            if(commentUser && commentUser.avatar){
+                commentAvHtml = '<img src="' + escapeHTML(commentUser.avatar) + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">';
+            }
+        }
+        const commentImageHtml = c.imageUrl
+            ? '<img src="' + escapeHTML(c.imageUrl) + '" style="width:100%;max-width:250px;border-radius:12px;margin-top:8px;cursor:pointer;box-shadow:var(--shadow-sm);" onclick="openImageZoom(\'' + escapeHTML(c.imageUrl) + '\')">'
+            : '';
+        return '<div class="comment-item" style="display:flex;gap:10px;align-items:flex-start;" ondblclick="showCommentActions(\'' + pid + '\', ' + idx + ', \'' + c.uid + '\')">'
+            + '<div class="avatar sm" style="flex-shrink:0;cursor:pointer;margin-top:2px;" onclick="closeSinglePost();viewUserProfile(\'' + c.uid + '\')">' + commentAvHtml + '</div>'
+            + '<div style="flex:1;min-width:0;">'
+            +   '<div style="background:var(--surface-2);padding:10px 14px;border-radius:4px 18px 18px 18px;display:inline-block;border:1px solid var(--border);">'
+            +     '<div class="comment-author" style="cursor:pointer;font-size:13px;margin-bottom:4px;" onclick="closeSinglePost();viewUserProfile(\'' + c.uid + '\')">' + safeCName + commentBadge + '</div>'
+            +     (safeCText ? '<div style="font-size:14px;color:var(--text);line-height:1.4;">' + safeCText + '</div>' : '')
+            +   '</div>'
+            +   commentImageHtml
+            +   '<div style="display:flex;gap:16px;margin-top:6px;margin-left:12px;align-items:center;">'
+            +     '<div style="font-size:12px;color:var(--text-muted);cursor:pointer;font-weight:700;" onclick="event.stopPropagation();openCommentPanel(\'' + pid + '\');setTimeout(function(){showReplyInput(\'' + pid + '\',' + idx + ',\'' + safeCName + '\');},200);">Reply</div>'
+            +   '</div>'
+            +   repliesHtml
+            + '</div></div>';
+    }).join('');
+}
+
 async function openSinglePostView(pid) {
-    document.getElementById('single-post-screen').classList.add('open');
+    const screen = document.getElementById('single-post-screen');
+    if(screen) screen.classList.add('open');
     const container = document.getElementById('single-post-container');
-    container.innerHTML = SKELETON_HTML; 
-    
-    // আগের কোনো লিসেনার থাকলে রিমুভ করা
-    if (singlePostUnsub) singlePostUnsub();
+    if(!container) return;
+    container.innerHTML = (typeof SKELETON_HTML !== 'undefined') ? SKELETON_HTML : '<div class="loading" style="padding:24px;text-align:center;">Loading...</div>';
+    activeCommentPostId = pid;
+
+    // Show fixed comment bar
+    const compose = document.getElementById('sp-fixed-compose');
+    if(compose){
+        compose.style.display = 'flex';
+        const inp = document.getElementById('sp-comment-input');
+        if(inp){ inp.value = ''; inp.disabled = false; }
+    }
+
+    if (singlePostUnsub) { try { singlePostUnsub(); } catch(e){} singlePostUnsub = null; }
+    if (!allUsersCache) { try { await fetchAllUsers(); } catch(e){} }
 
     try {
-        // রিয়েল-টাইম ডাটা আনার জন্য onSnapshot ব্যবহার করা হলো
-        singlePostUnsub = db.collection('posts').doc(pid).onSnapshot(doc => {
-            if (doc.exists) {
-                // মেইন ফিডের মতোই সেম কার্ড তৈরি হবে, তাই সব বাটন কাজ করবে
-                container.innerHTML = buildPostCardHTML({id: doc.id, ...doc.data()});
-            } else {
+        singlePostUnsub = db.collection('posts').doc(pid).onSnapshot(function(doc){
+            if (!doc.exists) {
                 container.innerHTML = '<div class="empty-feed">Post not found</div>';
+                return;
             }
+            const data = doc.data() || {};
+            const comments = data.comments || [];
+            const countLabel = comments.length === 1 ? '1 comment' : (comments.length + ' comments');
+            // Preserve scroll position when snapshot re-renders
+            const prevScroll = container.scrollTop;
+            // Post card + inline comments (no need to open comment panel)
+            container.innerHTML =
+                buildPostCardHTML({id: doc.id, ...data})
+                + '<div class="sp-comments-wrap">'
+                +   '<div class="sp-comments-head">'
+                +     '<div class="sp-comments-title"><i class="ph-bold ph-chat-circle" style="font-size:16px;margin-right:6px;vertical-align:-2px;opacity:.7;"></i>Comments</div>'
+                +     '<div class="sp-comments-count">' + countLabel + '</div>'
+                +   '</div>'
+                +   '<div class="sp-comments-list">' + gcBuildInlineCommentsHTML(pid, comments) + '</div>'
+                + '</div>';
+            try { container.scrollTop = prevScroll; } catch(e){}
         });
     } catch(e) {
         container.innerHTML = '<div class="empty-feed">Error loading post</div>';
     }
 }
+window.openSinglePostView = openSinglePostView;
+
+async function gcSendSinglePostComment(){
+    const inp = document.getElementById('sp-comment-input');
+    if(!inp) return;
+    const txt = (inp.value || '').trim();
+    if(!txt || !activeCommentPostId || !currentUser) return;
+    inp.disabled = true;
+    try {
+        const ref = db.collection('posts').doc(activeCommentPostId);
+        const snap = await ref.get();
+        if(!snap.exists){ showToast('Post not found'); return; }
+        const comments = snap.data().comments || [];
+        comments.push({
+            uid: currentUser.uid,
+            name: (currentUserData && currentUserData.name) || 'User',
+            text: txt,
+            time: Date.now()
+        });
+        await ref.update({ comments: comments });
+        inp.value = '';
+        if(snap.data().uid && snap.data().uid !== currentUser.uid && typeof gcRollupNotify === 'function'){
+            gcRollupNotify(snap.data().uid, 'comment', activeCommentPostId);
+        }
+    } catch(e){
+        console.error(e);
+        showToast('Failed to comment');
+    } finally {
+        inp.disabled = false;
+        try { inp.focus(); } catch(e){}
+    }
+}
+window.gcSendSinglePostComment = gcSendSinglePostComment;
 
 // যখন সিঙ্গেল পোস্ট ক্লোজ করা হবে, তখন লিসেনার অফ করে দিতে হবে
 async function pinPost(postId){
@@ -11976,7 +12152,14 @@ ${generatePollHTML(p)}
 </div>`;
 }
 
-function closeSinglePost(){document.getElementById('single-post-screen').classList.remove('open');}
+function closeSinglePost(){
+    const screen = document.getElementById('single-post-screen');
+    if(screen) screen.classList.remove('open');
+    const compose = document.getElementById('sp-fixed-compose');
+    if(compose) compose.style.display = 'none';
+    if(singlePostUnsub){ try{ singlePostUnsub(); }catch(e){} singlePostUnsub = null; }
+}
+window.closeSinglePost = closeSinglePost;
 
 // নিজের প্রোফাইলের পোস্ট লোড (গ্রিড ভিউ + স্কেলেটন)
 // অন্য ইউজারের প্রোফাইলের পোস্ট লোড (গ্রিড ভিউ + স্কেলেটন)
