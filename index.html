@@ -5699,6 +5699,50 @@ Edit Profile-এ পার্টনার সিলেক্ট বাটন
 .gc-rel-edit-btn{display:flex;align-items:center;gap:10px;width:100%;padding:14px 16px;border-radius:16px;border:1.5px dashed var(--accent);background:var(--accent-glow);color:var(--accent);font-weight:800;font-size:14px;cursor:pointer;font-family:inherit;transition:transform .15s;}
 .gc-rel-edit-btn:active{transform:scale(.98);}
 .gc-rel-edit-btn i:first-child{font-size:18px;}
+
+/* =========================================
+🚀 Update #107 · post-music · 2026-08-23
+মিউজিক ট্রিম শিট + ফিড মিউজিক বার + চিপ
+খুঁজতে: Ctrl+F → "post-music"
+========================================= */
+.gc-mt-mask{position:fixed;inset:0;background:rgba(5,5,10,.65);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);z-index:102000;display:none;align-items:flex-end;justify-content:center;}
+.gc-mt-mask.open{display:flex;}
+.gc-mt-sheet{width:100%;max-width:520px;background:var(--surface);border-radius:24px 24px 0 0;padding:22px 20px 30px;animation:gcRelUp .35s cubic-bezier(.22,1,.36,1);}
+.gc-mt-head{display:flex;align-items:center;gap:12px;margin-bottom:14px;}
+.gc-mt-disc{width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent-dark));color:#fff;display:flex;align-items:center;justify-content:center;font-size:20px;animation:gcDisc 4s linear infinite;flex-shrink:0;}
+@keyframes gcDisc{to{transform:rotate(360deg);}}
+.gc-mt-title{flex:1;min-width:0;}
+.gc-mt-name{font-size:14px;font-weight:800;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.gc-mt-sub{font-size:11px;color:var(--text-muted);margin-top:2px;}
+.gc-mt-time{text-align:center;font-size:15px;font-weight:800;color:var(--accent);margin:6px 0 12px;font-variant-numeric:tabular-nums;}
+.gc-mt-slider{width:100%;-webkit-appearance:none;appearance:none;height:6px;border-radius:4px;background:var(--surface-2);outline:none;}
+.gc-mt-slider::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:var(--accent);border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.3);cursor:pointer;}
+.gc-mt-slider::-moz-range-thumb{width:22px;height:22px;border-radius:50%;background:var(--accent);border:3px solid #fff;cursor:pointer;}
+.gc-mt-hint{text-align:center;font-size:11px;color:var(--text-muted);margin-top:8px;}
+.gc-mt-row{display:flex;gap:10px;margin-top:18px;}
+.gc-mt-btn{flex:1;padding:13px;border:none;border-radius:14px;font-weight:800;font-size:14px;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px;transition:transform .15s;}
+.gc-mt-btn:active{transform:scale(.97);}
+.gc-mt-btn.prev{background:var(--surface-2);color:var(--text);}
+.gc-mt-btn.save{background:linear-gradient(135deg,var(--accent),var(--accent-dark));color:#fff;}
+/* ফিড মিউজিক বার */
+.gc-music-bar{display:flex;align-items:center;gap:10px;margin:10px 0 4px;padding:10px 12px;border-radius:16px;background:var(--surface-2);border:1px solid var(--border);}
+.gc-music-disc{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent-dark));color:#fff;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;}
+.gc-music-bar.playing .gc-music-disc{animation:gcDisc 3s linear infinite;}
+.gc-music-eq{display:flex;align-items:flex-end;gap:2px;height:14px;flex-shrink:0;}
+.gc-music-eq i{width:3px;background:var(--accent);border-radius:2px;height:4px;}
+.gc-music-bar.playing .gc-music-eq i{animation:gcEq 0.9s ease-in-out infinite;}
+.gc-music-bar.playing .gc-music-eq i:nth-child(2){animation-delay:.15s;}
+.gc-music-bar.playing .gc-music-eq i:nth-child(3){animation-delay:.3s;}
+.gc-music-bar.playing .gc-music-eq i:nth-child(4){animation-delay:.45s;}
+@keyframes gcEq{0%,100%{height:4px;}50%{height:14px;}}
+.gc-music-name{flex:1;min-width:0;font-size:12.5px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.gc-music-dur{font-size:11px;color:var(--text-muted);font-weight:700;}
+.gc-music-play{border:none;width:34px;height:34px;border-radius:50%;background:var(--accent-glow);color:var(--accent);display:flex;align-items:center;justify-content:center;font-size:15px;cursor:pointer;flex-shrink:0;}
+/* কম্পোজার চিপ */
+.gc-music-chip{display:flex;align-items:center;gap:8px;margin:10px 16px 0;padding:10px 12px;border-radius:14px;background:var(--accent-glow);border:1px solid var(--accent-glow);}
+.gc-music-chip .nm{flex:1;font-size:12px;font-weight:800;color:var(--accent);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.gc-music-chip button{border:none;background:transparent;color:var(--accent);font-size:16px;cursor:pointer;padding:4px;display:flex;}
+.gc-music-chip .rm{color:var(--danger);}
 </style>
 </head>
 <body>
@@ -12014,7 +12058,7 @@ imgUrls.push(url);
 }
     try{
         const expireAt=new Date(Date.now()+ONE_YEAR_MS);
-                const newPostRef = await db.collection('posts').add({ hashtags: gcExtractHashtags((document.getElementById('post-title') || {}).value || ''),
+                const newPostRef = await db.collection('posts').add({ hashtags: gcExtractHashtags((document.getElementById('post-title') || {}).value || ''), musicUrl: (window.currentPostMusic ? window.currentPostMusic.url : ''), musicName: (window.currentPostMusic ? window.currentPostMusic.name : ''),
             replyPrivacy: (window.currentPostReplyPrivacy || 'everyone'),
             location: (window.currentPostLocation ? window.currentPostLocation.name : ''),
             uid: currentUser.uid,
@@ -21609,6 +21653,207 @@ createdAt: firebase.firestore.FieldValue.serverTimestamp()
 }, { merge: true });
 }catch(e){}
 }
+
+// ═══════════════════════════════════════════════════════
+// 🚀 Update #107 · post-music · 2026-08-23
+// Add Music: ১৫ সেকেন্ড ট্রিম (স্লাইডার) + ফিড মিউজিক বার
+// খুঁজতে: Ctrl+F → "post-music-engine"
+// ═══════════════════════════════════════════════════════
+const GC_MUS_DUR = 15;
+let gcTrimDecoded = null, gcTrimStart = 0, gcTrimPrevSrc = null, gcTrimCtx = null;
+let gcMusicAudio = null, gcMusicBarEl = null;
+// ---------- মেনু বাটন + ফাইল ইনপুট ইনজেকশন ----------
+(function gcMusicInject(){
+if(window.gcMusicInjOn) return; window.gcMusicInjOn = true;
+setInterval(function(){
+const menu = document.getElementById('compose-more-menu');
+if(menu && !document.getElementById('gc-music-item')){
+const locItem = menu.querySelector('.chat-dropdown-item');
+const item = document.createElement('div');
+item.className = 'chat-dropdown-item';
+item.id = 'gc-music-item';
+item.innerHTML = '<i class="ph-bold ph-music-note" style="font-size: 20px; color: var(--text);"></i> Add Music';
+item.onclick = function(){ menu.classList.remove('open'); gcMusicOpenPicker(); };
+if(locItem) menu.insertBefore(item, locItem); else menu.appendChild(item);
+}
+if(!document.getElementById('gc-music-file')){
+const inp = document.createElement('input');
+inp.type = 'file'; inp.id = 'gc-music-file'; inp.accept = 'audio/*'; inp.style.display = 'none';
+inp.onchange = function(){ if(inp.files[0]) gcMusicFileSelected(inp.files[0]); inp.value = ''; };
+document.body.appendChild(inp);
+}
+}, 1500);
+})();
+function gcMusicOpenPicker(){ const f = document.getElementById('gc-music-file'); if(f) f.click(); }
+// ---------- ডিকোড + ট্রিম শিট ----------
+async function gcMusicFileSelected(file){
+if(file.size > 20 * 1024 * 1024){ showToast('⚠️ Max 20MB audio allowed'); return; }
+showToast('🎵 Processing…');
+try{
+const AC = window.AudioContext || window.webkitAudioContext;
+const ctx = new AC();
+if(ctx.state === 'suspended') await ctx.resume();
+const arr = await file.arrayBuffer();
+const decoded = await ctx.decodeAudioData(arr);
+if(decoded.duration < 3){ showToast('⚠️ Audio too short'); return; }
+gcMusicOpenTrim(decoded, file.name.replace(/\.[^/.]+$/, '').replace(/[_-]+/g, ' '));
+}catch(e){ showToast('❌ Unsupported audio format'); }
+}
+function gcFmtT(s){ s = Math.max(0, Math.round(s || 0)); return Math.floor(s / 60) + ':' + ('0' + (s % 60)).slice(-2); }
+function gcMusicOpenTrim(decoded, name){
+gcTrimDecoded = decoded;
+gcTrimStart = 0;
+let m = document.getElementById('gc-mt-mask');
+if(!m){
+m = document.createElement('div');
+m.id = 'gc-mt-mask'; m.className = 'gc-mt-mask';
+m.innerHTML = '<div class="gc-mt-sheet"><div class="gc-mt-head"><div class="gc-mt-disc"><i class="ph-fill ph-music-note"></i></div><div class="gc-mt-title"><div class="gc-mt-name" id="gc-mt-name">Track</div><div class="gc-mt-sub">Select your 15-second clip</div></div></div><div class="gc-mt-time" id="gc-mt-time">0:00 → 0:15</div><input type="range" class="gc-mt-slider" id="gc-mt-slider" min="0" max="0" value="0" step="1"><div class="gc-mt-hint">Slide to choose which part to keep</div><div class="gc-mt-row"><button class="gc-mt-btn prev" id="gc-mt-prev" onclick="gcTrimPreview()"><i class="ph-fill ph-play"></i> Preview</button><button class="gc-mt-btn save" onclick="gcTrimSave()"><i class="ph-bold ph-check"></i> Save 15s</button></div></div>';
+document.body.appendChild(m);
+document.getElementById('gc-mt-slider').addEventListener('input', function(){
+gcTrimStart = parseInt(this.value, 10) || 0;
+gcTrimStopPrev();
+gcTrimUpdateLabel();
+});
+}
+document.getElementById('gc-mt-name').textContent = name;
+window.gcTrimName = name;
+const eff = Math.min(GC_MUS_DUR, decoded.duration);
+const max = Math.max(0, Math.floor(decoded.duration - eff));
+const sl = document.getElementById('gc-mt-slider');
+sl.max = max; sl.value = 0;
+sl.style.display = max > 0 ? 'block' : 'none';
+document.querySelector('.gc-mt-hint').style.display = max > 0 ? 'block' : 'none';
+gcTrimUpdateLabel();
+m.classList.add('open');
+}
+function gcTrimUpdateLabel(){
+const eff = Math.min(GC_MUS_DUR, gcTrimDecoded ? gcTrimDecoded.duration : GC_MUS_DUR);
+document.getElementById('gc-mt-time').textContent = gcFmtT(gcTrimStart) + ' → ' + gcFmtT(gcTrimStart + eff);
+}
+function gcTrimStopPrev(){
+if(gcTrimPrevSrc){ try{ gcTrimPrevSrc.stop(); }catch(e){} gcTrimPrevSrc = null; }
+}
+function gcTrimPreview(){
+if(!gcTrimDecoded) return;
+gcTrimStopPrev();
+try{
+if(!gcTrimCtx) gcTrimCtx = new (window.AudioContext || window.webkitAudioContext)();
+if(gcTrimCtx.state === 'suspended') gcTrimCtx.resume();
+const src = gcTrimCtx.createBufferSource();
+src.buffer = gcTrimDecoded;
+src.connect(gcTrimCtx.destination);
+const eff = Math.min(GC_MUS_DUR, gcTrimDecoded.duration - gcTrimStart);
+src.start(0, gcTrimStart, eff);
+gcTrimPrevSrc = src;
+}catch(e){}
+}
+function gcAudioToWav(buffer){
+const data = buffer.getChannelData(0);
+const sr = buffer.sampleRate;
+const len = data.length;
+const ab = new ArrayBuffer(44 + len * 2);
+const view = new DataView(ab);
+function ws(o, s){ for(let i = 0; i < s.length; i++) view.setUint8(o + i, s.charCodeAt(i)); }
+ws(0, 'RIFF'); view.setUint32(4, 36 + len * 2, true); ws(8, 'WAVE'); ws(12, 'fmt ');
+view.setUint32(16, 16, true); view.setUint16(20, 1, true); view.setUint16(22, 1, true);
+view.setUint32(24, sr, true); view.setUint32(28, sr * 2, true); view.setUint16(32, 2, true); view.setUint16(34, 16, true);
+ws(36, 'data'); view.setUint32(40, len * 2, true);
+let o = 44;
+for(let i = 0; i < len; i++){ const s = Math.max(-1, Math.min(1, data[i])); view.setInt16(o, s < 0 ? s * 0x8000 : s * 0x7FFF, true); o += 2; }
+return new Blob([ab], { type: 'audio/wav' });
+}
+async function gcTrimSave(){
+if(!gcTrimDecoded) return;
+gcTrimStopPrev();
+const btn = document.querySelector('.gc-mt-btn.save');
+btn.innerHTML = '<i class="ph-bold ph-spinner-gap" style="animation:spin 1s linear infinite;"></i> Processing…';
+try{
+const eff = Math.min(GC_MUS_DUR, gcTrimDecoded.duration - gcTrimStart);
+const sr = 22050;
+const off = new OfflineAudioContext(1, Math.ceil(sr * eff), sr);
+const src = off.createBufferSource();
+src.buffer = gcTrimDecoded;
+src.connect(off.destination);
+src.start(0, gcTrimStart, eff);
+const rendered = await off.startRendering();
+const wav = gcAudioToWav(rendered);
+btn.innerHTML = '<i class="ph-bold ph-cloud-arrow-up"></i> Uploading…';
+const url = await uploadToCloudinary(wav, false);
+window.currentPostMusic = { url: url, name: window.gcTrimName || 'My Music', duration: Math.round(eff) };
+gcRenderMusicChip();
+document.getElementById('gc-mt-mask').classList.remove('open');
+showToast('🎵 Music added!');
+}catch(e){ showToast('❌ Could not save music'); }
+btn.innerHTML = '<i class="ph-bold ph-check"></i> Save 15s';
+}
+// ---------- কম্পোজার চিপ ----------
+function gcRenderMusicChip(){
+const old = document.getElementById('gc-music-chip'); if(old) old.remove();
+if(!window.currentPostMusic) return;
+const title = document.getElementById('post-title');
+if(!title) return;
+const chip = document.createElement('div');
+chip.id = 'gc-music-chip'; chip.className = 'gc-music-chip';
+chip.innerHTML = '<i class="ph-fill ph-music-note" style="color:var(--accent);font-size:16px;"></i><div class="nm">' + escapeHTML(window.currentPostMusic.name) + ' · 0:' + ('0' + window.currentPostMusic.duration).slice(-2) + '</div><button onclick="gcPreviewChipMusic()"><i class="ph-fill ph-play"></i></button><button class="rm" onclick="gcClearMusic()"><i class="ph-bold ph-x"></i></button>';
+title.insertAdjacentElement('afterend', chip);
+}
+function gcClearMusic(){
+window.currentPostMusic = null;
+const c = document.getElementById('gc-music-chip'); if(c) c.remove();
+}
+function gcPreviewChipMusic(){
+if(!window.currentPostMusic) return;
+if(gcMusicAudio){ gcMusicAudio.pause(); gcMusicAudio = null; }
+gcMusicAudio = new Audio(window.currentPostMusic.url);
+gcMusicAudio.play().catch(function(){ showToast('Could not play'); });
+}
+// ---------- ফিড মিউজিক বার (buildPostCardHTML র‍্যাপার) ----------
+function gcMusicBarHTML(p){
+return '<div class="gc-music-bar" data-music="' + escapeHTML(p.musicUrl) + '"><div class="gc-music-disc"><i class="ph-fill ph-music-note"></i></div><div class="gc-music-eq"><i></i><i></i><i></i><i></i></div><div class="gc-music-name">' + escapeHTML(p.musicName || 'Original Music') + '</div><div class="gc-music-dur">0:15</div><button class="gc-music-play" onclick="event.stopPropagation(); gcMusicToggle(this.parentNode)"><i class="ph-fill ph-play"></i></button></div>';
+}
+if(typeof buildPostCardHTML === 'function' && !window.gcBpcMusic107){
+window.gcBpcMusic107 = true;
+window.gcOrigBpcMusic107 = buildPostCardHTML;
+buildPostCardHTML = function(p){
+let html = window.gcOrigBpcMusic107.apply(this, arguments);
+if(p && p.musicUrl){
+if(html.indexOf('<div class="post-actions"') !== -1){
+html = html.replace('<div class="post-actions"', gcMusicBarHTML(p) + '<div class="post-actions"');
+}else{
+html += gcMusicBarHTML(p);
+}
+}
+return html;
+};
+}
+// ---------- প্লে ম্যানেজার (একসাথে একটাই) ----------
+function gcMusicSetPlaying(bar, on){
+if(!bar) return;
+bar.classList.toggle('playing', on);
+const ic = bar.querySelector('.gc-music-play i');
+if(ic) ic.className = on ? 'ph-fill ph-pause' : 'ph-fill ph-play';
+}
+function gcMusicToggle(bar){
+const url = bar.getAttribute('data-music');
+if(gcMusicAudio && gcMusicBarEl === bar && !gcMusicAudio.paused){
+gcMusicAudio.pause();
+gcMusicSetPlaying(bar, false);
+return;
+}
+if(gcMusicAudio){ gcMusicAudio.pause(); gcMusicSetPlaying(gcMusicBarEl, false); }
+gcMusicAudio = new Audio(url);
+gcMusicBarEl = bar;
+gcMusicAudio.onended = function(){ gcMusicSetPlaying(bar, false); };
+gcMusicAudio.play().then(function(){ gcMusicSetPlaying(bar, true); }).catch(function(){ showToast('Could not play music'); });
+}
+// ---------- পোস্টের পর রিসেট ----------
+window.gcOrigSubmitPost107 = submitPost;
+submitPost = async function(){
+const r = await window.gcOrigSubmitPost107.apply(this, arguments);
+window.currentPostMusic = null;
+const c = document.getElementById('gc-music-chip'); if(c) c.remove();
+return r;
+};
 </script>
 </body>
 </html>
