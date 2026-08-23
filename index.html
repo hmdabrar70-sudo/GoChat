@@ -275,15 +275,15 @@ color:var(--text);
     transform: translateX(-50%);
     width: 92%; /* আবার আগের মতো ক্যাপসুল সাইজ */
     max-width: 440px;
-    background: var(--surface);
-    border-radius: 40px; /* ক্যাপসুল শেপ বা গোলাকার ভাবটা ফিরিয়ে আনা হলো */
+    background: transparent !important;
+    border-radius: 40px;
     display: flex;
     z-index: 100;
     justify-content: space-around;
     align-items: center;
-    padding: 2px 16px; /* আগের চেয়ে অনেক চিকন করা হলো (আগে 10px ছিল) */
-    box-shadow: var(--shadow-lg);
-    border: 1px solid var(--border);
+    padding: 2px 16px;
+    box-shadow: none !important;
+    border: none !important;
 }
 
 .nav-item{
@@ -3003,43 +3003,6 @@ display:block;
 .gc-vplayer:fullscreen{border-radius:0;}
 .gc-vplayer:fullscreen video{height:100% !important;object-fit:contain !important;}
 
-/* 🚀 Update · fixed-feed-video-size · 2026-08-23
-   হোম ফিড + সিঙ্গেল ভিউ: ভিডিও ফিক্সড উচ্চতা (ছবির মতো 320px)
-   ফুলস্ক্রিনে অরিজিনাল অ্যাসপেক্ট/সাইজ */
-.post-card .gc-vplayer,
-.post-media-wrap .gc-vplayer,
-#page-feed .gc-vplayer,
-#single-post-screen .gc-vplayer,
-#single-post-container .gc-vplayer {
-    height: 320px !important;
-    max-height: 320px !important;
-    min-height: 320px !important;
-    width: 100% !important;
-}
-.post-card .gc-vplayer video,
-.post-media-wrap .gc-vplayer video,
-.post-media-wrap > video,
-#page-feed .gc-vplayer video,
-#single-post-screen .gc-vplayer video,
-#single-post-container .gc-vplayer video {
-    width: 100% !important;
-    height: 100% !important;
-    max-height: 100% !important;
-    object-fit: cover !important;
-    object-position: center !important;
-    display: block !important;
-}
-.gc-vplayer:fullscreen,
-.gc-vplayer:fullscreen video,
-.gc-vplayer:-webkit-full-screen,
-.gc-vplayer:-webkit-full-screen video {
-    height: 100% !important;
-    max-height: none !important;
-    min-height: 0 !important;
-    object-fit: contain !important;
-    background: #000 !important;
-}
-
 /* 🚀 Profile Grid Video Click Fix (Open in Single View) */
 .grid-post-item .gc-vplayer,
 .grid-post-card .gc-vplayer {
@@ -4736,19 +4699,26 @@ transition:background .15s;
     padding: 0;
     transition: transform 0.3s ease-in-out !important;
 }
+/* 🚀 Update · glass-bottom-nav · 2026-08-23
+   ক্যাপসুল + প্রোফাইল = ফ্রস্টেড গ্লাস (ছবির মতো সফট ট্রান্সপারেন্ট হোয়াইট) */
 .nav-capsule {
     flex: 1;
     display: flex;
     justify-content: space-around;
     align-items: center;
-    background: var(--surface);
     border-radius: 40px;
     padding: 2px 12px;
     min-height: 52px;
-    box-shadow: var(--shadow-lg);
-    border: 1px solid var(--border);
+    background: rgba(255, 255, 255, 0.72) !important;
+    backdrop-filter: blur(22px) saturate(160%);
+    -webkit-backdrop-filter: blur(22px) saturate(160%);
+    box-shadow:
+        0 10px 36px rgba(0, 0, 0, 0.10),
+        0 2px 8px rgba(0, 0, 0, 0.05),
+        inset 0 1px 0 rgba(255, 255, 255, 0.85) !important;
+    border: 1px solid rgba(255, 255, 255, 0.55) !important;
 }
-/* Profile button — separate from capsule, own background, same height */
+/* Profile button — same glass style */
 .nav-profile-separate {
     flex: 0 0 auto !important;
     width: 52px;
@@ -4757,9 +4727,14 @@ transition:background .15s;
     padding: 0 !important;
     margin: 0;
     border-radius: 50%;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    box-shadow: var(--shadow-lg);
+    background: rgba(255, 255, 255, 0.72) !important;
+    backdrop-filter: blur(22px) saturate(160%);
+    -webkit-backdrop-filter: blur(22px) saturate(160%);
+    box-shadow:
+        0 10px 36px rgba(0, 0, 0, 0.10),
+        0 2px 8px rgba(0, 0, 0, 0.05),
+        inset 0 1px 0 rgba(255, 255, 255, 0.85) !important;
+    border: 1px solid rgba(255, 255, 255, 0.55) !important;
     display: flex !important;
     align-items: center;
     justify-content: center;
@@ -4770,8 +4745,7 @@ transition:background .15s;
     transform: scale(0.92);
 }
 .nav-profile-separate.active {
-    border-color: var(--accent);
-    box-shadow: var(--shadow-lg), 0 0 0 2px rgba(124, 92, 255, 0.28);
+    border-color: rgba(124, 92, 255, 0.35);
 }
 #nav-profile-pic-container {
     width: 36px;
@@ -4795,8 +4769,29 @@ transition:background .15s;
     object-fit: cover;
     display: block;
 }
+/* Light mode — same frosted glass */
+body.light-mode .nav-capsule,
 body.light-mode .nav-profile-separate {
-    background: var(--surface);
+    background: rgba(255, 255, 255, 0.78) !important;
+    backdrop-filter: blur(22px) saturate(160%);
+    -webkit-backdrop-filter: blur(22px) saturate(160%);
+    box-shadow:
+        0 10px 36px rgba(0, 0, 0, 0.10),
+        0 2px 8px rgba(0, 0, 0, 0.05),
+        inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+    border: 1px solid rgba(255, 255, 255, 0.65) !important;
+}
+/* Dark mode — soft dark glass */
+body:not(.light-mode) .nav-capsule,
+body:not(.light-mode) .nav-profile-separate {
+    background: rgba(30, 30, 42, 0.72) !important;
+    backdrop-filter: blur(22px) saturate(140%);
+    -webkit-backdrop-filter: blur(22px) saturate(140%);
+    box-shadow:
+        0 10px 36px rgba(0, 0, 0, 0.35),
+        0 2px 8px rgba(0, 0, 0, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+    border: 1px solid rgba(255, 255, 255, 0.10) !important;
 }
 .nav-fab {
     width: 50px; 
@@ -5692,7 +5687,7 @@ Edit Profile-এ পার্টনার সিলেক্ট বাটন
     <span id="home-drawer-btn" onclick="event.stopPropagation(); gcOpenHomeDrawer();" style="display:none;align-items:center;justify-content:center;width:36px;height:36px;border-radius:50%;cursor:pointer;" title="Menu">
         <i class="ph-fill ph-rows" style="font-size:24px;color:var(--text);-webkit-text-fill-color:var(--text);background:none;"></i>
     </span>
-    <!-- Profile menu — বাম পাশে (হোম ফিড মেনু যে পজিশনে) -->
+    <!-- Profile menu — হোম ফিড মেনু যে পজিশনে (বাম পাশে) -->
     <div class="topbar-btn" id="topbar-settings-btn" onclick="openMainMenu()" style="display:none;">
         <i class="ph-fill ph-rows" style="font-size: 24px;"></i>
     </div>
