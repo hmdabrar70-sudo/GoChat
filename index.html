@@ -62,6 +62,46 @@ body.light-mode{
 --shadow-lg:0 12px 32px rgba(0,0,0,0.12);
 }
 html,body{overscroll-behavior:none;}
+
+/* ═══ Fix home feed horizontal overflow (without blocking vertical scroll) ═══ */
+html {
+  width: 100%;
+}
+body {
+  width: 100%;
+  overflow-x: hidden;
+  overflow-y: scroll;
+  -webkit-overflow-scrolling: touch;
+}
+#app-screen {
+  width: 100%;
+  max-width: 520px;
+  /* do not set overflow here — lets document/body scroll naturally */
+}
+body.home-sky-mode #app-screen::before,
+body.home-sky-mode #app-screen::after {
+  left: 0 !important;
+  right: 0 !important;
+  width: 100% !important;
+}
+.topbar,
+.stories-wrapper {
+  background-size: 100% 250px !important;
+}
+/* Hide multi-image carousel scrollbar (gray line under images) */
+.post-media-carousel,
+.post-media-wrap > div[style*="overflow-x"] {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+.post-media-carousel::-webkit-scrollbar,
+.post-media-wrap > div::-webkit-scrollbar {
+  display: none !important;
+  height: 0 !important;
+  width: 0 !important;
+  background: transparent !important;
+}
+
 body{
 background:var(--bg);
 color:var(--text);
@@ -243,12 +283,15 @@ box-shadow:inset 0 0 0 1px rgba(124,92,255,0.16);
 }
 .nav-item.active .material-symbols-outlined{font-variation-settings:'FILL' 1;color:var(--accent);}
 .nav-item:active{transform:scale(0.92);}
-.nav-item.active #nav-profile-pic-container{
+.nav-item.active #nav-profile-pic-container,
+.nav-profile-separate.active #nav-profile-pic-container{
 border-color:var(--accent) !important;
 box-shadow:0 0 0 2px rgba(124,92,255,0.25);
 }
-#main-bottom-nav .nav-item #nav-profile-pic-container i{color:var(--text-muted) !important;}
-#main-bottom-nav .nav-item.active #nav-profile-pic-container i{color:var(--accent) !important;}
+#main-bottom-nav .nav-item #nav-profile-pic-container i,
+#main-bottom-nav .nav-profile-separate #nav-profile-pic-container i{color:var(--text-muted) !important;}
+#main-bottom-nav .nav-item.active #nav-profile-pic-container i,
+#main-bottom-nav .nav-profile-separate.active #nav-profile-pic-container i{color:var(--accent) !important;}
 .nav-badge{
 position:absolute;top:0px;right:calc(50% - 18px);
 background:var(--danger);color:white;
@@ -4624,9 +4667,60 @@ transition:background .15s;
     align-items: center;
     background: var(--surface);
     border-radius: 40px;
-    padding: 2px 16px; 
+    padding: 2px 12px;
+    min-height: 52px;
     box-shadow: var(--shadow-lg);
     border: 1px solid var(--border);
+}
+/* Profile button — separate from capsule, own background, same height */
+.nav-profile-separate {
+    flex: 0 0 auto !important;
+    width: 52px;
+    height: 52px;
+    min-width: 52px;
+    padding: 0 !important;
+    margin: 0;
+    border-radius: 50%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-lg);
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: transform .2s ease, box-shadow .2s ease, border-color .25s ease;
+}
+.nav-profile-separate:active {
+    transform: scale(0.92);
+}
+.nav-profile-separate.active {
+    border-color: var(--accent);
+    box-shadow: var(--shadow-lg), 0 0 0 2px rgba(124, 92, 255, 0.28);
+}
+#nav-profile-pic-container {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    overflow: hidden;
+    background: var(--surface-2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid transparent;
+    transition: border-color .25s ease, box-shadow .25s ease;
+}
+.nav-profile-separate.active #nav-profile-pic-container {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(124, 92, 255, 0.2);
+}
+#nav-profile-pic-container img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+body.light-mode .nav-profile-separate {
+    background: var(--surface);
 }
 .nav-fab {
     width: 50px; 
@@ -5539,7 +5633,7 @@ Edit Profile-এ পার্টনার সিলেক্ট বাটন
 <div class="page" id="page-search">
 <div class="search-container">
 <div class="search-input-wrap">
-<span class="material-symbols-outlined">search</span>
+<i class="ph-bold ph-magnifying-glass"></i>
 <input type="text" id="search-input" placeholder="Search users..." oninput="searchUsers()">
 </div>
 </div>
@@ -5761,7 +5855,7 @@ Edit Profile-এ পার্টনার সিলেক্ট বাটন
 </div>
 
 <div class="bottom-nav" id="main-bottom-nav">
-    <div class="nav-capsule" style="width: 100%; padding: 6px 16px;">
+    <div class="nav-capsule">
         <div class="nav-item active" id="nav-feed" onclick="showPage('feed')">
             <i class="ph-fill ph-house-simple" style="font-size: 28px;"></i>
         </div>
@@ -5780,11 +5874,12 @@ Edit Profile-এ পার্টনার সিলেক্ট বাটন
             <i class="ph-fill ph-paper-plane-right" style="font-size: 28px;"></i>
             <div class="nav-badge" id="msg-badge">0</div>
         </div>
-        
-        <div class="nav-item" id="nav-profile" onclick="showPage('profile')">
-            <div id="nav-profile-pic-container" style="width: 32px; height: 32px; border-radius: 50%; overflow: hidden; background: var(--surface-2); display: flex; align-items: center; justify-content: center; border: 2px solid transparent; transition: border-color .25s ease, box-shadow .25s ease;">
-                <i class="ph ph-user" style="font-size: 20px; color: var(--text-muted);"></i>
-            </div>
+    </div>
+
+    <!-- Profile separated — own background, same height as nav capsule -->
+    <div class="nav-item nav-profile-separate" id="nav-profile" onclick="showPage('profile')">
+        <div id="nav-profile-pic-container">
+            <i class="ph ph-user" style="font-size: 20px; color: var(--text-muted);"></i>
         </div>
     </div>
 </div>
@@ -5861,7 +5956,7 @@ Edit Profile-এ পার্টনার সিলেক্ট বাটন
 <h4 style="color:var(--danger);">Danger Zone</h4>
 <p>Permanently delete your profile, posts, logs, data and security credentials from GoChat database.</p>
 <button class="btn-primary" style="background:var(--danger);margin-top:12px;border-radius:var(--radius-md);" onclick="handleDeleteAccount()">
-<span class="material-symbols-outlined">delete_forever</span> Delete Account
+<i class="ph-bold ph-trash"></i> Delete Account
 </button>
 </div>
 </div>
@@ -6037,18 +6132,18 @@ Edit Profile-এ পার্টনার সিলেক্ট বাটন
             <div style="position:relative; display:inline-block;">
                 <div class="avatar xl" id="group-info-avatar" style="width:80px; height:80px; margin: 0 auto; border:3px solid var(--bg); box-shadow:var(--shadow-sm);">?</div>
                 <label for="group-avatar-upload" id="group-avatar-edit-btn" style="display:none; position:absolute; bottom:0; right:0; background:var(--gradient); width:28px; height:28px; border-radius:50%; align-items:center; justify-content:center; color:white; cursor:pointer; border:2px solid var(--bg);">
-                    <span class="material-symbols-outlined" style="font-size:14px;">edit</span>
+                    <i class="ph-bold ph-pencil-simple" style="font-size:14px;"></i>
                 </label>
                 <input type="file" id="group-avatar-upload" accept="image/*" style="display:none;" onchange="updateGroupAvatar(this)">
             </div>
             <div style="display:flex; justify-content:center; align-items:center; gap:8px; margin-top:12px;">
                 <div id="group-info-name" style="font-size: 20px; font-weight: 800; color: var(--text);">Group Name</div>
-                <span class="material-symbols-outlined" id="group-name-edit-btn" style="display:none; font-size:18px; color:var(--text-muted); cursor:pointer;" onclick="editGroupName()">edit</span>
+                <i class="ph-bold ph-pencil-simple" id="group-name-edit-btn" style="display:none; font-size:18px; color:var(--text-muted); cursor:pointer;" onclick="editGroupName()"></i>
             </div>
             
             <div style="display:flex; gap:10px; justify-content:center; margin-top:16px; border-bottom: 1px solid var(--border); padding-bottom: 20px;">
                 <button class="btn-outline" style="padding:8px 16px; font-size:13px; border-radius:20px; border-color:var(--text-muted); color:var(--text);" onclick="toggleGroupMedia()">
-                    <span class="material-symbols-outlined" style="font-size:18px;">perm_media</span> Shared Media
+                    <i class="ph-bold ph-images" style="font-size:18px;"></i> Shared Media
                 </button>
             </div>
         </div>
@@ -6062,7 +6157,7 @@ Edit Profile-এ পার্টনার সিলেক্ট বাটন
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 15px;">
                 <h4 style="color:var(--text); margin:0;">Members (<span id="group-member-count">0</span>)</h4>
                 <button class="btn-outline" style="padding: 6px 12px; font-size:12px; margin:0;" onclick="openAddGroupMemberUI()">
-                    <span class="material-symbols-outlined" style="font-size:16px;">person_add</span> Add
+                    <i class="ph-bold ph-user-plus" style="font-size:16px;"></i> Add
                 </button>
             </div>
             
@@ -6075,7 +6170,7 @@ Edit Profile-এ পার্টনার সিলেক্ট বাটন
             <div id="group-member-list" style="display: flex; flex-direction: column; gap: 10px;"></div>
             
             <button class="btn-outline" style="width: 100%; margin-top: 25px; border-color: var(--danger); color: var(--danger); background: rgba(255, 77, 106, 0.05);" onclick="leaveCurrentGroup()">
-                <span class="material-symbols-outlined">logout</span> Leave Group
+                <i class="ph-bold ph-sign-out"></i> Leave Group
             </button>
         </div>
     </div>
@@ -6161,7 +6256,7 @@ Edit Profile-এ পার্টনার সিলেক্ট বাটন
     <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 24px; display: flex; flex-direction: column; align-items: center; gap: 16px; box-shadow: 0 20px 40px rgba(0,0,0,0.4); width: 280px; animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);">
         
         <div style="width: 60px; height: 60px; border-radius: 50%; background: rgba(255, 77, 106, 0.1); display: flex; align-items: center; justify-content: center;">
-            <span class="material-symbols-outlined" style="animation: pulseMic 1.2s infinite; font-size: 32px; color: var(--danger);">mic</span>
+            <i class="ph-fill ph-microphone" style="animation: pulseMic 1.2s infinite; font-size: 32px; color: var(--danger);"></i>
         </div>
         
         <div style="text-align: center;">
@@ -6171,10 +6266,10 @@ Edit Profile-এ পার্টনার সিলেক্ট বাটন
 
         <div style="display: flex; gap: 12px; width: 100%; margin-top: 8px;">
             <button onclick="cancelVoiceRecord()" style="flex: 1; padding: 12px; border-radius: 12px; border: none; background: var(--surface-2); color: var(--text); font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
-                <span class="material-symbols-outlined" style="font-size: 18px;">delete</span> Cancel
+                <i class="ph-bold ph-trash" style="font-size: 18px;"></i> Cancel
             </button>
             <button onclick="sendVoiceRecord()" style="flex: 1; padding: 12px; border-radius: 12px; border: none; background: var(--accent); color: white; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 4px 12px rgba(124, 92, 255, 0.3);">
-                <span class="material-symbols-outlined" style="font-size: 18px;">send</span> Send
+                <i class="ph-bold ph-paper-plane-tilt" style="font-size: 18px;"></i> Send
             </button>
         </div>
     </div>
@@ -6265,7 +6360,7 @@ Edit Profile-এ পার্টনার সিলেক্ট বাটন
 
 <div class="modal-overlay" id="logout-confirm-modal" style="z-index: 10006;">
     <div class="modal-box" style="text-align: center; max-width: 320px;">
-        <span class="material-symbols-outlined" style="font-size: 50px; color: var(--danger); margin-bottom: 15px;">logout</span>
+        <i class="ph-bold ph-sign-out" style="font-size: 50px; color: var(--danger); margin-bottom: 15px;"></i>
         <div class="modal-title" style="font-size: 20px; margin-bottom: 10px;">Log Out?</div>
         <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 25px;">Are you sure you want to log out of your account?</p>
         <div style="display: flex; gap: 12px; justify-content: center;">
@@ -6278,7 +6373,7 @@ Edit Profile-এ পার্টনার সিলেক্ট বাটন
 <div class="modal-overlay" id="login-success-modal" style="z-index: 10007;">
     <div class="modal-box" style="text-align: center; max-width: 320px; padding: 30px 20px;">
         <div style="width: 80px; height: 80px; background: linear-gradient(135deg, var(--success), #2ecc71); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px auto; box-shadow: 0 4px 20px rgba(46, 204, 113, 0.4); animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;">
-            <span class="material-symbols-outlined" style="font-size: 45px; color: white;">check_circle</span>
+            <i class="ph-fill ph-check-circle" style="font-size: 45px; color: white;"></i>
         </div>
         <div class="modal-title" style="font-size: 22px; margin-bottom: 10px;">Login Successful!</div>
         <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 25px;">Welcome back to GoChat! Connect and share your moments.</p>
@@ -6290,7 +6385,7 @@ Edit Profile-এ পার্টনার সিলেক্ট বাটন
 <div class="modal-box" style="max-height:85vh;display:flex;flex-direction:column;padding:20px 16px;">
 <button class="modal-close" onclick="closeLeaderboard()"><i class="ph-bold ph-x"></i></button>
 <div class="modal-title" style="display:flex; align-items:center; gap:8px;">
-<span class="material-symbols-outlined" style="color:#f59e0b; font-size:28px;">trophy</span> Top Leaderboard
+<i class="ph-fill ph-trophy" style="color:#f59e0b; font-size:28px;"></i> Top Leaderboard
 </div>
 <!-- 🏆 Your Rank Card -->
 <div id="leaderboard-me-card" style="margin-bottom:14px;"></div>
@@ -6314,7 +6409,7 @@ Edit Profile-এ পার্টনার সিলেক্ট বাটন
             </button>
             <div id="zoom-menu" class="post-dropdown-menu" style="top:44px; right:0; width:170px; position:absolute;" onclick="event.stopPropagation();">
                 <div class="chat-dropdown-item" onclick="downloadZoomedImage(event)" style="padding: 12px 14px;">
-                    <span class="material-symbols-outlined" style="color:var(--text);">download</span> Save to device
+                    <i class="ph-bold ph-download-simple" style="color:var(--text);"></i> Save to device
                 </div>
             </div>
         </div>
@@ -6344,8 +6439,8 @@ Edit Profile-এ পার্টনার সিলেক্ট বাটন
             </span>
         </div>
         
-        <!-- 🚀 Solid Share Button — opens existing share modal -->
-        <div style="display:flex; align-items:center; gap:6px; cursor:pointer;" onclick="if(zoomActivePostId){ closeImageZoom(); openShareModal(zoomActivePostId); } else { showToast('Nothing to share'); }">
+        <!-- 🚀 Solid Share Button — opens existing share modal (hydrate post data inside openShareModal) -->
+        <div style="display:flex; align-items:center; gap:6px; cursor:pointer;" onclick="(function(){ var pid=zoomActivePostId; if(!pid){ showToast('Nothing to share'); return; } closeImageZoom(); openShareModal(pid); })()">
             <span style="display:flex; align-items:center; gap:6px; color:#fff;">
                 <i class="ph-fill ph-paper-plane-tilt" style="font-size:24px; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));"></i>
             </span>
@@ -6609,7 +6704,7 @@ Edit Profile-এ পার্টনার সিলেক্ট বাটন
     <div id="gallery-selection-bar" style="display: none; position: sticky; bottom: 0; left: 0; width: 100%; background: var(--surface); border-top: 1px solid var(--border); padding: 16px 20px; z-index: 1006; justify-content: space-between; align-items: center; box-shadow: 0 -4px 20px rgba(0,0,0,0.3);">
         <div style="font-weight:800; font-size:15px; color:var(--text);" id="gallery-selected-count">0 Selected</div>
         <button class="btn-primary" style="background:var(--danger); margin: 0; padding: 10px 16px; box-shadow: none; width: auto;" onclick="deleteSelectedGalleryImages()">
-            <span class="material-symbols-outlined">delete</span> Delete
+            <i class="ph-bold ph-trash"></i> Delete
         </button>
     </div>
 </div>
@@ -6619,7 +6714,7 @@ Edit Profile-এ পার্টনার সিলেক্ট বাটন
         <i class="ph-bold ph-x" onclick="closeSelectionMode()" style="cursor:pointer; color:var(--text); font-size:24px;"></i>
         <span id="selected-count-text" style="font-weight:800; font-size:17px; color:var(--text);">1 Selected</span>
     </div>
-    <span class="material-symbols-outlined" onclick="showDeleteSheet()" style="cursor:pointer; color:var(--danger); font-size:28px;">delete</span>
+    <i class="ph-bold ph-trash" onclick="showDeleteSheet()" style="cursor:pointer; color:var(--danger); font-size:28px;"></i>
 </div>
 
 <div class="modal-overlay" id="delete-sheet-modal" style="z-index: 100000;">
@@ -6627,11 +6722,11 @@ Edit Profile-এ পার্টনার সিলেক্ট বাটন
         <div id="delete-sheet-title" style="font-weight:800; font-size:18px; margin-bottom:20px; color:var(--text);">Delete message(s)?</div>
         
         <button class="btn-primary" id="btn-delete-everyone" onclick="executeDelete('everyone')" style="background:var(--danger); width: 100%; margin-bottom:12px; box-shadow: 0 4px 15px rgba(255, 77, 106, 0.4);">
-            <span class="material-symbols-outlined">delete_forever</span> Delete for everyone
+            <i class="ph-bold ph-trash"></i> Delete for everyone
         </button>
         
         <button class="btn-primary" onclick="executeDelete('forme')" style="background:var(--surface-2); color:var(--text); border:1px solid var(--border); width: 100%; margin-bottom:12px; box-shadow: none;">
-            <span class="material-symbols-outlined">delete</span> Delete for me
+            <i class="ph-bold ph-trash"></i> Delete for me
         </button>
         
         <button class="btn-outline" onclick="closeDeleteSheet()" style="width:100%; border:none; color: var(--text-muted); background: transparent;">Cancel</button>
@@ -6733,12 +6828,12 @@ Edit Profile-এ পার্টনার সিলেক্ট বাটন
         </div>
         
         <div style="background: var(--surface-2); padding: 15px; border-radius: 12px; margin-bottom: 20px; font-size: 13px; display: flex; gap: 10px; color: var(--text);">
-            <span class="material-symbols-outlined" style="color: var(--success); font-size: 20px;">info</span>
+            <i class="ph-bold ph-info" style="color: var(--success); font-size: 20px;"></i>
             <div>All chats are private by default. <b>This is true whether you turn this setting on or not.</b></div>
         </div>
 
         <div style="text-align: center; margin-bottom: 20px;">
-            <span class="material-symbols-outlined" style="font-size: 80px; color: var(--success);">lock</span>
+            <i class="ph-bold ph-lock" style="font-size: 80px; color: var(--success);"></i>
         </div>
 
         <h3 style="margin-bottom: 15px; font-size: 16px; color: var(--text);">Limit how messages and media from this chat can be shared</h3>
@@ -6746,10 +6841,10 @@ Edit Profile-এ পার্টনার সিলেক্ট বাটন
         
         <ul style="list-style: none; padding: 0; margin-bottom: 30px; display: flex; flex-direction: column; gap: 15px;">
             <li style="display: flex; gap: 12px; font-size: 14px; color: var(--text-muted); align-items: center;">
-                <span class="material-symbols-outlined">image_not_supported</span> Can't save media to their device automatically
+                <i class="ph-bold ph-image-broken"></i> Can't save media to their device automatically
             </li>
             <li style="display: flex; gap: 12px; font-size: 14px; color: var(--text-muted); align-items: center;">
-                <span class="material-symbols-outlined">content_copy</span> Can't easily copy or forward messages
+                <i class="ph-bold ph-copy"></i> Can't easily copy or forward messages
             </li>
         </ul>
 
@@ -6796,7 +6891,7 @@ Edit Profile-এ পার্টনার সিলেক্ট বাটন
     <div style="padding: 40px 20px; text-align:center; display:flex; flex-direction:column; align-items:center; gap:20px;">
         <!-- আইকন সেকশন -->
         <div style="width:80px; height:80px; background:var(--accent-glow); border-radius:50%; display:flex; align-items:center; justify-content:center; margin-bottom:10px;">
-            <span class="material-symbols-outlined" style="font-size:40px; color:var(--accent);">headset_mic</span>
+            <i class="ph-bold ph-headset" style="font-size:40px; color:var(--accent);"></i>
         </div>
         
         <h2 style="font-size:22px; font-weight:800; color:var(--text);">Need Help?</h2>
@@ -6850,7 +6945,7 @@ Edit Profile-এ পার্টনার সিলেক্ট বাটন
         <!-- Header Section -->
         <div style="text-align:center; margin-bottom:10px;">
             <div style="width:64px; height:64px; background:var(--accent-glow); border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 16px;">
-                <span class="material-symbols-outlined" style="font-size:32px; color:var(--accent);">lock</span>
+                <i class="ph-bold ph-lock" style="font-size:32px; color:var(--accent);"></i>
             </div>
             <h2 style="font-size:20px; font-weight:800; color:var(--text); margin-bottom:8px;">Who can message you?</h2>
             <p style="font-size:14px; color:var(--text-secondary); line-height:1.6;">
@@ -6881,7 +6976,7 @@ Edit Profile-এ পার্টনার সিলেক্ট বাটন
         <!-- Info Card -->
         <div style="padding:16px; background:var(--surface-2); border-radius:var(--radius-md); border-left:4px solid var(--accent);">
             <div style="display:flex; gap:12px; align-items:flex-start;">
-                <span class="material-symbols-outlined" style="color:var(--accent); font-size:20px;">info</span>
+                <i class="ph-bold ph-info" style="color:var(--accent); font-size:20px;"></i>
                 <div style="font-size:13px; color:var(--text-secondary); line-height:1.5;">
                     Changing this setting will not affect existing conversations. New message requests from non-followers will be hidden if you choose "Those I follow".
                 </div>
@@ -6932,7 +7027,7 @@ Edit Profile-এ পার্টনার সিলেক্ট বাটন
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
       <div style="display:flex; align-items:center; gap:10px;">
         <div style="width:38px;height:38px;border-radius:12px;background:linear-gradient(135deg,var(--accent),#ec4899);display:flex;align-items:center;justify-content:center;">
-          <span class="material-symbols-outlined" style="color:#fff;font-size:22px;">insights</span>
+          <i class="ph-bold ph-chart-line-up" style="color:#fff;font-size:22px;"></i>
         </div>
         <div>
           <div style="font-weight:800; font-size:17px; color:var(--text);">Post Insights</div>
@@ -7006,7 +7101,7 @@ Edit Profile-এ পার্টনার সিলেক্ট বাটন
   <div class="qrnc-box">
     <div class="qrnc-banner">
       <button class="qrnc-close" onclick="qrncCloseCard()"><i class="ph-bold ph-x"></i></button>
-      <div class="qrnc-brand"><span class="material-symbols-outlined">auto_awesome</span> GOCHAT</div>
+      <div class="qrnc-brand"><i class="ph-bold ph-sparkle"></i> GOCHAT</div>
     </div>
     <div class="qrnc-body">
       <div class="qrnc-av" id="qrnc-av">?</div>
@@ -7017,18 +7112,18 @@ Edit Profile-এ পার্টনার সিলেক্ট বাটন
 
       <div class="qrnc-qr-wrap">
         <div class="qrnc-qr-frame" id="qrnc-qr-frame">
-          <div class="qrnc-qr-loading" id="qrnc-qr-loading"><span class="material-symbols-outlined">progress_activity</span>Generating…</div>
+          <div class="qrnc-qr-loading" id="qrnc-qr-loading"><i class="ph-bold ph-spinner-gap" style="animation:spin 1s linear infinite;"></i>Generating…</div>
         </div>
-        <div class="qrnc-scan-hint"><span class="material-symbols-outlined">qr_code_scanner</span> Scan to view this profile</div>
+        <div class="qrnc-scan-hint"><i class="ph-bold ph-qr-code"></i> Scan to view this profile</div>
         <div class="qrnc-link-row" onclick="qrncCopy()">
           <span class="qrnc-url" id="qrnc-url">—</span>
-          <span class="material-symbols-outlined">content_copy</span>
+          <i class="ph-bold ph-copy"></i>
         </div>
       </div>
 
       <div class="qrnc-actions">
-        <button class="qrnc-act qrnc-primary" onclick="qrncDownload()"><span class="material-symbols-outlined">download</span> Download Card</button>
-        <button class="qrnc-act qrnc-scan" id="qrnc-scan-btn" onclick="qrncOpenScanner()"><span class="material-symbols-outlined">qr_code_scanner</span> Scan a QR Code</button>
+        <button class="qrnc-act qrnc-primary" onclick="qrncDownload()"><i class="ph-bold ph-download-simple"></i> Download Card</button>
+        <button class="qrnc-act qrnc-scan" id="qrnc-scan-btn" onclick="qrncOpenScanner()"><i class="ph-bold ph-qr-code"></i> Scan a QR Code</button>
       </div>
     </div>
   </div>
@@ -7038,7 +7133,7 @@ Edit Profile-এ পার্টনার সিলেক্ট বাটন
 <div class="modal-overlay" id="qrnc-scanner" style="display:none; align-items:center; padding:20px;">
   <div class="qrnc-scan-box">
     <div class="qrnc-scan-head">
-      <div class="qrnc-scan-title"><span class="material-symbols-outlined">qr_code_scanner</span> Scan QR</div>
+      <div class="qrnc-scan-title"><i class="ph-bold ph-qr-code"></i> Scan QR</div>
       <button class="qrnc-scan-close" onclick="qrncCloseScanner()"><i class="ph-bold ph-x"></i></button>
     </div>
     <div class="qrnc-viewport">
@@ -7061,7 +7156,7 @@ Edit Profile-এ পার্টনার সিলেক্ট বাটন
   <div class="qr-manage-head">
     <button class="qr-back" onclick="qrCloseManage()"><i class="ph-bold ph-arrow-u-up-left"></i></button>
     <div class="qr-title">Quick Replies</div>
-    <button class="qr-add" onclick="qrOpenEditor()"><span class="material-symbols-outlined">add</span> New</button>
+    <button class="qr-add" onclick="qrOpenEditor()"><i class="ph-bold ph-plus"></i> New</button>
   </div>
   <div class="qr-manage-list" id="qr-manage-list"></div>
 </div>
@@ -7586,7 +7681,7 @@ async function openLeaderboard() {
             <div class="lb-rank">${r.rank}</div>
             <div class="avatar">${av}</div>
             <div class="lb-row-name">${escapeHTML(u.name)}${r.isMe ? ' (You)' : ''}</div>
-            <div class="lb-pts-pill"><span class="material-symbols-outlined">bolt</span>${formatLBNum(u.points||0)}</div>
+            <div class="lb-pts-pill"><i class="ph-fill ph-lightning"></i>${formatLBNum(u.points||0)}</div>
           </div>`;
       });
       list.innerHTML = html;
@@ -8088,7 +8183,7 @@ try { ensureWelcomeMessage(); } catch(e) {}
 if (currentUserData.isBanned) {
     document.body.innerHTML = `
         <div style="height:100vh; display:flex; flex-direction:column; justify-content:center; align-items:center; background:#1a1a2e; color:white; font-family:sans-serif; text-align:center; padding: 20px;">
-            <span class="material-symbols-outlined" style="font-size: 80px; color: #ff4d6a; margin-bottom: 20px;">gavel</span>
+            <i class="ph-bold ph-gavel" style="font-size: 80px; color: #ff4d6a; margin-bottom: 20px;"></i>
             <h1 style="color:#ff4d6a; margin-bottom:10px;">ACCOUNT BANNED</h1>
             <p style="color:#a0a0b5; margin-bottom:30px;">Your account has been permanently suspended by the Admin.</p>
             <button onclick="firebase.auth().signOut().then(()=>window.location.reload())" style="padding:12px 24px; background:#ff4d6a; color:white; border:none; border-radius:30px; font-weight:bold; cursor:pointer;">Exit App</button>
@@ -10003,7 +10098,7 @@ ${gcDisplayName}
     if (isPrivate && !isOwnProfile) {
         document.getElementById('other-user-posts-list').innerHTML = `
             <div style="text-align:center; padding: 60px 20px; color: var(--text-muted);">
-                <span class="material-symbols-outlined" style="font-size: 60px; margin-bottom:15px; opacity:0.5; color: var(--text-secondary);">lock</span>
+                <i class="ph-bold ph-lock" style="font-size: 60px; margin-bottom:15px; opacity:0.5; color: var(--text-secondary);"></i>
                 <h3 style="margin-bottom: 5px; color: var(--text);">This account is private</h3>
                 <p style="font-size:14px;">Only the account owner can see their posts.</p>
             </div>
@@ -10082,7 +10177,7 @@ function openChat(chatId, otherUid, otherName, otherAvatar){
                 const gName = doc.data().groupName || 'Group Chat';
                 const gAv = doc.data().groupAvatar || '';
                 document.getElementById('chat-name-display').textContent = gName;
-                chatAvatarEl.innerHTML = gAv ? `<img src="${escapeHTML(gAv)}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">` : `<div style="width:100%;height:100%;background:var(--gradient-orange);color:white;display:flex;align-items:center;justify-content:center;border-radius:50%;"><span class="material-symbols-outlined" style="font-size: 20px;">groups</span></div>`;
+                chatAvatarEl.innerHTML = gAv ? `<img src="${escapeHTML(gAv)}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">` : `<div style="width:100%;height:100%;background:var(--gradient-orange);color:white;display:flex;align-items:center;justify-content:center;border-radius:50%;"><i class="ph-bold ph-users-three" style="font-size: 20px;"></i></div>`;
             }
         });
     } else {
@@ -10208,9 +10303,9 @@ safeText = safeText.replace(urlRegex, function(url) {
                 <span>${timeString}</span>`;
             if(isMine){
                 if(m.read){
-                    timeAndReceiptHtml += `<span class="material-symbols-outlined filled" style="font-size: 14px; color: #4ade80;">done_all</span>`;
+                    timeAndReceiptHtml += `<i class="ph-bold ph-circle" style="font-size: 14px; color: #4ade80;"></i>`;
                 }else{
-                    timeAndReceiptHtml += `<span class="material-symbols-outlined" style="font-size: 14px;">done</span>`;
+                    timeAndReceiptHtml += `<i class="ph-bold ph-check" style="font-size: 14px;"></i>`;
                 }
             }
             timeAndReceiptHtml += `</div>`;
@@ -10364,7 +10459,7 @@ function showReactionPicker(event, msgId) {
         // 🚀 NEW: আপনার সিলেক্ট করা ৫টি স্পেশাল ইমোজি লিস্ট
     picker.innerHTML = `
         <span class="reaction-emoji" onclick="toggleMessageReaction('${msgId}','❤️')">❤️</span>
-        <span class="reaction-emoji" onclick="toggleMessageReaction('${msgId}','😆')">??</span>
+        <span class="reaction-emoji" onclick="toggleMessageReaction('${msgId}','😆')">😆</span>
         <span class="reaction-emoji" onclick="toggleMessageReaction('${msgId}','🥰')">🥰</span>
         <span class="reaction-emoji" onclick="toggleMessageReaction('${msgId}','😥')">😥</span>
         <span class="reaction-emoji" onclick="toggleMessageReaction('${msgId}','😡')">😡</span>
@@ -10426,10 +10521,10 @@ function showMessageMenu(event, msgId) {
         
     menu.innerHTML = `
     <div style="padding:10px 12px;cursor:pointer;font-size:14px;font-weight:600;border-radius:8px; display:flex; gap:10px; align-items:center; color:var(--text);" onclick="replyToMessage('${msgId}')">
-        <span class="material-symbols-outlined" style="font-size:18px;">reply</span> Reply
+        <i class="ph-bold ph-arrow-bend-up-left" style="font-size:18px;"></i> Reply
     </div>
     <div style="padding:10px 12px;cursor:pointer;font-size:14px;font-weight:600;border-radius:8px;color:var(--danger); display:flex; gap:10px; align-items:center;" onclick="deleteMessage('${msgId}')">
-        <span class="material-symbols-outlined" style="font-size:18px;">delete</span> Delete
+        <i class="ph-bold ph-trash" style="font-size:18px;"></i> Delete
     </div>
     `;
     
@@ -10605,7 +10700,7 @@ function showInAppMessageNotification(chatId, data) {
 
     if (data.isGroup) {
         senderName = data.groupName || 'Group';
-        avatarHtml = `<div class="avatar sm" style="background:var(--gradient-orange);color:white;"><span class="material-symbols-outlined" style="font-size:18px;">groups</span></div>`;
+        avatarHtml = `<div class="avatar sm" style="background:var(--gradient-orange);color:white;"><i class="ph-bold ph-circle" style="font-size:18px;"></i></div>`;
     } else {
         const parts = chatId.split('_');
         otherUid = parts[0] === currentUser.uid ? parts[1] : parts[0];
@@ -10650,7 +10745,7 @@ function showInAppMessageNotification(chatId, data) {
     replyBar.innerHTML = `
         <input type="text" placeholder="Reply to ${escapeHTML(senderName)}..." onclick="event.stopPropagation();" onkeypress="if(event.key==='Enter'){event.stopPropagation(); sendQuickReply('${chatId}', '${otherUid}', this.value, this);}">
         <button onclick="event.stopPropagation(); sendQuickReply('${chatId}', '${otherUid}', this.previousElementSibling.value, this)">
-            <span class="material-symbols-outlined" style="font-size:16px;">send</span>
+            <i class="ph-bold ph-paper-plane-tilt" style="font-size:16px;"></i>
         </button>
     `;
 
@@ -10690,7 +10785,7 @@ async function sendQuickReply(chatId, otherUid, text, btnElement) {
     
     // সেন্ডিং অ্যানিমেশন
     btnElement.disabled = true;
-    btnElement.innerHTML = '<span class="material-symbols-outlined" style="font-size:16px; animation:spin 1s linear infinite;">autorenew</span>';
+    btnElement.innerHTML = '<i class="ph-bold ph-circle" style="font-size:16px; animation:spin 1s linear infinite;"></i>';
 
     const msgData = {
         uid: currentUser.uid,
@@ -10724,7 +10819,7 @@ async function sendQuickReply(chatId, otherUid, text, btnElement) {
     } catch(e) {
         showToast("Failed to send reply");
         btnElement.disabled = false;
-        btnElement.innerHTML = '<span class="material-symbols-outlined" style="font-size:16px;">send</span>';
+        btnElement.innerHTML = '<i class="ph-bold ph-paper-plane-tilt" style="font-size:16px;"></i>';
     }
 }
 
@@ -10735,7 +10830,7 @@ async function loadMessages(){
     
     if(list.innerHTML.trim() === '') {
       if (!allUsersCache) await fetchAllUsers();
-        list.innerHTML = '<div class="loading" style="padding:20px;text-align:center;"><span class="material-symbols-outlined">autorenew</span> Loading...</div>';
+        list.innerHTML = '<div class="loading" style="padding:20px;text-align:center;"><i class="ph-bold ph-arrows-clockwise"></i> Loading...</div>';
     }
     
     if(window.chatListUnsub) window.chatListUnsub();
@@ -10843,8 +10938,8 @@ async function loadMessages(){
         // ৫. HTML রেন্ডারিং (নতুন আনরিড ডিজাইনসহ)
         let html = '';
         chats.forEach(chat => {
-            const pinIcon = chat.isPinned ? '<span class="material-symbols-outlined" style="font-size:16px;color:var(--accent);margin-right:4px;">push_pin</span>' : '';
-            const muteIcon = chat.isMuted ? '<span class="material-symbols-outlined" style="font-size:16px;color:var(--text-muted);margin-right:4px;">notifications_off</span>' : '';
+            const pinIcon = chat.isPinned ? '<i class="ph-bold ph-push-pin" style="font-size:16px;color:var(--accent);margin-right:4px;"></i>' : '';
+            const muteIcon = chat.isMuted ? '<i class="ph-bold ph-bell-slash" style="font-size:16px;color:var(--text-muted);margin-right:4px;"></i>' : '';
             
             // 🚀 আনরিড চেক
             const isUnread = (chat.data.lastSender !== currentUser.uid && chat.data.isRead === false);
@@ -10870,7 +10965,7 @@ async function loadMessages(){
             if (finalAv) {
                 avHtml = `<img src="${escapeHTML(finalAv)}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
             } else if (chat.isGroup) {
-                avHtml = `<div style="width:100%;height:100%;background:var(--gradient-orange);color:white;display:flex;align-items:center;justify-content:center;border-radius:50%;"><span class="material-symbols-outlined" style="font-size: 24px;">groups</span></div>`;
+                avHtml = `<div style="width:100%;height:100%;background:var(--gradient-orange);color:white;display:flex;align-items:center;justify-content:center;border-radius:50%;"><i class="ph-bold ph-circle" style="font-size: 24px;"></i></div>`;
             } else {
                 avHtml = `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:var(--gradient);color:#fff;font-weight:bold;font-size:16px;border-radius:50%;">${avatarInitial(finalName)}</div>`;
             }
@@ -11758,7 +11853,7 @@ function loadFeed() {
         // খালি ফিড হ্যান্ডেলিং (আগে থেকেই কার্ড থাকলে ডিলিট করবে না)
         if (postsData.length === 0) {
             if (actualContainer.children.length === 0) {
-                actualContainer.innerHTML = '<div class="empty-feed"><span class="material-symbols-outlined">inbox</span><br>No posts yet in this feed</div>';
+                actualContainer.innerHTML = '<div class="empty-feed"><i class="ph-bold ph-tray"></i><br>No posts yet in this feed</div>';
             }
             const loadMoreBtn = document.getElementById('load-more-btn');
             if (loadMoreBtn) loadMoreBtn.style.display = 'none';
@@ -12150,7 +12245,7 @@ const safeUrl = escapeHTML(url);
 return`<div style="min-width:100%;"><img class="post-img" src="${safeUrl}" onclick="event.stopPropagation();openImageZoom('${safeUrl}')" style="margin-bottom:0;"></div>`;
 }).join('');
 mediaHtml=`<div class="post-media-wrap" ondblclick="event.stopPropagation(); handleDoubleTap('${pid}',event)">
-<div style="display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;">
+<div class="post-media-carousel" style="display:flex;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;">
 ${slides}
 </div>
 <i class="ph-fill ph-thumbs-up double-tap-heart"></i>
@@ -12171,7 +12266,7 @@ let postDropdownHtml = `<div class="post-more-wrap" style="position:relative;mar
 
 if(p.uid === currentUser?.uid){
     const pinText = p.isPinned ? 'Unpin Post' : 'Pin Post';
-    postDropdownHtml += `<div class="chat-dropdown-item" onclick="event.stopPropagation(); openPostInsights('${pid}')"><span class="material-symbols-outlined">insights</span> Post Insights</div>`;
+    postDropdownHtml += `<div class="chat-dropdown-item" onclick="event.stopPropagation(); openPostInsights('${pid}')"><i class="ph-bold ph-chart-line-up"></i> Post Insights</div>`;
     const pinIcon = p.isPinned ? 'ph-push-pin-slash' : 'ph-push-pin';
     postDropdownHtml += `
     <div class="chat-dropdown-item" onclick="event.stopPropagation(); pinPost('${pid}')">
@@ -12580,7 +12675,7 @@ async function loadBlockedUsers() {
     return;
   }
   
-  list.innerHTML = '<div class="loading" style="font-size:13px; padding:10px;"><span class="material-symbols-outlined" style="font-size:16px;">autorenew</span> Loading...</div>';
+  list.innerHTML = '<div class="loading" style="font-size:13px; padding:10px;"><i class="ph-bold ph-circle" style="font-size:16px;"></i> Loading...</div>';
   
   try {
     const blockedDocs = blocked.map(uid => db.collection('users').doc(uid).get());
@@ -13196,11 +13291,11 @@ async function showCommentActions(pid, idx, commentUid) {
 
     let items = '<div style="font-weight:800; margin-bottom:15px; text-align:center;">Comment Options</div>';
     if (isAuthor) {
-        items += '<div class="chat-dropdown-item" id="gc-c-act-edit"><span class="material-symbols-outlined">edit</span> Edit Comment</div>';
+        items += '<div class="chat-dropdown-item" id="gc-c-act-edit"><i class="ph-bold ph-pencil-simple"></i> Edit Comment</div>';
     }
-    items += '<div class="chat-dropdown-item" id="gc-c-act-copy"><span class="material-symbols-outlined">content_copy</span> Copy</div>';
+    items += '<div class="chat-dropdown-item" id="gc-c-act-copy"><i class="ph-bold ph-copy"></i> Copy</div>';
     if (isAuthor || isPostOwner) {
-        items += '<div class="chat-dropdown-item danger" id="gc-c-act-del"><span class="material-symbols-outlined">delete</span> Delete Comment</div>';
+        items += '<div class="chat-dropdown-item danger" id="gc-c-act-del"><i class="ph-bold ph-trash"></i> Delete Comment</div>';
     }
     items += '<div style="margin-top:10px; padding:10px; text-align:center; color:var(--text-muted); cursor:pointer;" id="gc-c-act-cancel">Cancel</div>';
     menu.innerHTML = items;
@@ -13247,9 +13342,9 @@ async function showReplyActions(pid, cIdx, rIdx, replyUid) {
     menu.className = 'comment-action-menu';
     menu.style.cssText = 'position:fixed; bottom:0; left:0; width:100%; background:var(--surface); border-radius:20px 20px 0 0; padding:20px; z-index:99999; box-shadow:0 -5px 20px rgba(0,0,0,0.3);';
     let items = '<div style="font-weight:800; margin-bottom:15px; text-align:center;">Reply Options</div>';
-    items += '<div class="chat-dropdown-item" id="gc-r-act-copy"><span class="material-symbols-outlined">content_copy</span> Copy</div>';
+    items += '<div class="chat-dropdown-item" id="gc-r-act-copy"><i class="ph-bold ph-copy"></i> Copy</div>';
     if (isAuthor || isPostOwner) {
-        items += '<div class="chat-dropdown-item danger" id="gc-r-act-del"><span class="material-symbols-outlined">delete</span> Delete Reply</div>';
+        items += '<div class="chat-dropdown-item danger" id="gc-r-act-del"><i class="ph-bold ph-trash"></i> Delete Reply</div>';
     }
     items += '<div style="margin-top:10px; padding:10px; text-align:center; color:var(--text-muted); cursor:pointer;" id="gc-r-act-cancel">Cancel</div>';
     menu.innerHTML = items;
@@ -13876,7 +13971,7 @@ async function openFollowList(type, uid) {
     if (uid !== currentUser.uid && type === 'following') {
         const privacy = userData.followingPrivacy || 'everyone';
         if (privacy === 'onlyme') {
-            container.innerHTML = `<div class="empty-feed"><span class="material-symbols-outlined" style="font-size:48px; opacity:0.3; margin-bottom:12px;">lock</span><br>This user's following list is private</div>`;
+            container.innerHTML = `<div class="empty-feed"><i class="ph-bold ph-lock" style="font-size:48px; opacity:0.3; margin-bottom:12px;"></i><br>This user's following list is private</div>`;
             return;
         }
     }
@@ -14081,7 +14176,7 @@ async function deleteSelectedGalleryImages() {
     
     showToast("Deleting images...");
     const btn = document.querySelector('#gallery-selection-bar .btn-primary');
-    if(btn) { btn.disabled = true; btn.innerHTML = '<span class="material-symbols-outlined">autorenew</span> Deleting...'; }
+    if(btn) { btn.disabled = true; btn.innerHTML = '<i class="ph-bold ph-arrows-clockwise"></i> Deleting...'; }
     
     try {
         const groupedByPost = {};
@@ -14136,7 +14231,7 @@ async function deleteSelectedGalleryImages() {
         console.error(e);
         showToast("Failed to delete images.");
     } finally {
-        if(btn) { btn.disabled = false; btn.innerHTML = '<span class="material-symbols-outlined">delete</span> Delete'; }
+        if(btn) { btn.disabled = false; btn.innerHTML = '<i class="ph-bold ph-trash"></i> Delete'; }
     }
 }
 // রেজিস্ট্রেশন সুইচিং লজিক
@@ -14373,7 +14468,7 @@ async function loadSavedPosts() {
     if (!currentUser || !currentUserData.savedPosts || currentUserData.savedPosts.length === 0) {
         container.innerHTML = `
             <div style="text-align:center; padding: 60px 20px; color: var(--text-muted);">
-                <span class="material-symbols-outlined" style="font-size: 60px; margin-bottom:15px; opacity:0.5; color: var(--accent);">bookmark_border</span>
+                <i class="ph-bold ph-circle" style="font-size: 60px; margin-bottom:15px; opacity:0.5; color: var(--accent);"></i>
                 <h3 style="margin-bottom: 5px; color: var(--text);">No saved items yet</h3>
                 <p style="font-size:14px;">Click 'Interested' on any post to save it here for later.</p>
             </div>
@@ -14396,7 +14491,7 @@ async function loadSavedPosts() {
                 
                 // পোস্টদাতার ইনফরমেশন বের করা
                 let uName = 'Unknown User';
-                let uAv = '<span class="material-symbols-outlined" style="font-size:24px; color:white;">person</span>';
+                let uAv = '<i class="ph-bold ph-user" style="font-size:24px; color:white;"></i>';
                 let uVer = false;
                 
                 if (allUsersCache) {
@@ -14546,7 +14641,7 @@ async function loadGroupMembers() {
         activeGroupData = doc.data();
         
         document.getElementById('group-info-name').textContent = activeGroupData.groupName || 'Group Info';
-        document.getElementById('group-info-avatar').innerHTML = activeGroupData.groupAvatar ? `<img src="${activeGroupData.groupAvatar}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">` : `<span class="material-symbols-outlined" style="font-size:40px; color:white;">groups</span>`;
+        document.getElementById('group-info-avatar').innerHTML = activeGroupData.groupAvatar ? `<img src="${activeGroupData.groupAvatar}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">` : `<i class="ph-bold ph-circle" style="font-size:40px; color:white;"></i>`;
         document.getElementById('group-member-count').textContent = (activeGroupData.members || []).length;
         
         const members = activeGroupData.members || [];
@@ -14646,7 +14741,7 @@ async function openAddGroupMemberUI() {
         return;
     }
     
-    list.innerHTML = '<div class="loading"><span class="material-symbols-outlined">autorenew</span> Loading friends...</div>';
+    list.innerHTML = '<div class="loading"><i class="ph-bold ph-arrows-clockwise"></i> Loading friends...</div>';
     if(!allUsersCache) await fetchAllUsers();
     
     let html = '';
@@ -14771,7 +14866,7 @@ async function toggleGroupMedia() {
     }
     mediaCont.style.display = 'block';
     const grid = document.getElementById('group-media-grid');
-    grid.innerHTML = '<div class="loading" style="grid-column:1/-1;"><span class="material-symbols-outlined">autorenew</span> Loading...</div>';
+    grid.innerHTML = '<div class="loading" style="grid-column:1/-1;"><i class="ph-bold ph-arrows-clockwise"></i> Loading...</div>';
     try {
         const snap = await db.collection('chats').doc(activeGroupId).collection('messages').where('imageUrl', '!=', '').orderBy('createdAt', 'desc').limit(20).get();
         let html = '';
@@ -15308,7 +15403,7 @@ function openUsernameSettings() {
         wrapper.innerHTML = `
             <label style="font-size:12px; font-weight:700; color:var(--text-muted); margin-bottom:8px; display:block; text-transform:uppercase; letter-spacing:0.5px;">Username</label>
             <div style="position:relative;">
-                <span class="material-symbols-outlined" style="position:absolute; left:14px; top:50%; transform:translateY(-50%); color:var(--text-muted); font-size:20px; pointer-events:none;">alternate_email</span>
+                <i class="ph-bold ph-circle" style="position:absolute; left:14px; top:50%; transform:translateY(-50%); color:var(--text-muted); font-size:20px; pointer-events:none;"></i>
                 <input type="text" id="modern-username-input" placeholder="e.g. ayesha_jahan" 
                        value="${currentUserData.username || ''}" 
                        style="width:100%; padding:14px 14px 14px 44px; border-radius:14px; background:var(--surface-2); border:1px solid var(--border); color:var(--text); font-size:15px; font-family:monospace; outline:none; transition:all 0.3s ease;"
@@ -15316,7 +15411,7 @@ function openUsernameSettings() {
                        onblur="this.style.borderColor='var(--border)'; this.style.boxShadow='none'">
             </div>
             <div class="username-status-msg" style="font-size:11px; color:var(--text-muted); margin-top:6px; display:flex; align-items:center; gap:4px;">
-                <span class="material-symbols-outlined" style="font-size:14px;">info</span> Only letters, numbers & underscores allowed.
+                <i class="ph-bold ph-info" style="font-size:14px;"></i> Only letters, numbers & underscores allowed.
             </div>
         `;
         
@@ -15361,7 +15456,7 @@ function checkUsernameCooldownV3() {
             msgContainer.style.borderRadius = '10px';
             msgContainer.style.fontWeight = '600';
             msgContainer.innerHTML = `
-                <span class="material-symbols-outlined" style="font-size:16px;">lock_clock</span>
+                <i class="ph-bold ph-circle" style="font-size:16px;"></i>
                 Change available in ${daysLeft} day${daysLeft > 1 ? 's' : ''}
             `;
             
@@ -15566,7 +15661,7 @@ async function loadCategoryPosts(tabName) {
         // যদি ওই ক্যাটাগরিতে কোনো পোস্ট না থাকে
         if (posts.length === 0) {
             list.innerHTML = `<div style="text-align:center; padding: 60px 20px; color: var(--text-muted);">
-                <span class="material-symbols-outlined" style="font-size: 60px; margin-bottom:15px; opacity:0.3;">inbox</span>
+                <i class="ph-bold ph-circle" style="font-size: 60px; margin-bottom:15px; opacity:0.3;"></i>
                 <h3 style="color:var(--text); margin-bottom:5px;">No posts found</h3>
                 <p style="font-size:14px;">No posts match this category yet.</p>
             </div>`;
@@ -16025,7 +16120,7 @@ function switchCategoryTab(catName, tabElement) {
         posts = posts.filter(p => !mutedList.includes(p.uid));
 
         if (posts.length === 0) {
-            list.innerHTML = `<div class="empty-feed" style="margin-top:40px;"><span class="material-symbols-outlined" style="font-size:48px; opacity:0.3;">inbox</span><br>No posts found in '${catName}' category</div>`;
+            list.innerHTML = `<div class="empty-feed" style="margin-top:40px;"><i class="ph-bold ph-circle" style="font-size:48px; opacity:0.3;"></i><br>No posts found in '${catName}' category</div>`;
             return;
         }
 
@@ -16132,14 +16227,14 @@ function renderPostInsights(p){
 
   // মেট্রিক কার্ড
   const cards = [
-    {ico:'visibility',  val:views,    lbl:'Views',    grad:'linear-gradient(135deg,#60a5fa,#2563eb)'},
-    {ico:'favorite',    val:likes,    lbl:'Likes',    grad:'linear-gradient(135deg,#fb7185,#e11d48)'},
-    {ico:'chat_bubble', val:comments, lbl:'Comments', grad:'linear-gradient(135deg,#34d399,#059669)'},
-    {ico:'share',       val:shares,   lbl:'Shares',   grad:'linear-gradient(135deg,#fbbf24,#d97706)'}
+    {ico:'ph-bold ph-eye',          val:views,    lbl:'Views',    grad:'linear-gradient(135deg,#60a5fa,#2563eb)'},
+    {ico:'ph-fill ph-heart',        val:likes,    lbl:'Likes',    grad:'linear-gradient(135deg,#fb7185,#e11d48)'},
+    {ico:'ph-bold ph-chat-circle',  val:comments, lbl:'Comments', grad:'linear-gradient(135deg,#34d399,#059669)'},
+    {ico:'ph-bold ph-share-network',val:shares,   lbl:'Shares',   grad:'linear-gradient(135deg,#fbbf24,#d97706)'}
   ];
   document.getElementById('pi-metrics').innerHTML = cards.map(c => `
     <div class="pi-card">
-      <div class="pi-ico" style="background:${c.grad};"><span class="material-symbols-outlined" style="font-size:20px;">${c.ico}</span></div>
+      <div class="pi-ico" style="background:${c.grad};"><i class="${c.ico}" style="font-size:20px;color:#fff;"></i></div>
       <div class="pi-val">${formatInsightNum(c.val)}</div>
       <div class="pi-lbl">${c.lbl}</div>
     </div>`).join('');
@@ -16205,12 +16300,34 @@ function formatInsightNum(n){
 let currentSharePostData = null;
 let allShareChats = []; 
 
-function openShareModal(postId, postTitle, postImg) {
-    currentSharePostData = { id: postId, title: postTitle, img: postImg };
+async function openShareModal(postId, postTitle, postImg) {
+    if (!postId) {
+        showToast('Nothing to share');
+        return;
+    }
+    // Firestore rejects undefined — always use string/null
+    let title = (postTitle != null && postTitle !== undefined) ? String(postTitle) : '';
+    let img = (postImg != null && postImg !== undefined) ? String(postImg) : '';
+
+    // Zoom / partial callers often pass only id — hydrate from post doc
+    if ((!title || !img) && typeof db !== 'undefined') {
+        try {
+            const snap = await db.collection('posts').doc(postId).get();
+            if (snap.exists) {
+                const d = snap.data() || {};
+                if (!title) title = d.title || d.text || '';
+                if (!img) {
+                    if (Array.isArray(d.imageUrls) && d.imageUrls[0]) img = d.imageUrls[0];
+                    else if (d.imageUrl) img = d.imageUrl;
+                    else if (Array.isArray(d.images) && d.images[0]) img = d.images[0];
+                }
+            }
+        } catch (e) { /* keep empty strings */ }
+    }
+
+    currentSharePostData = { id: postId, title: title || '', img: img || '' };
     document.getElementById('share-post-modal').classList.add('open');
     document.getElementById('share-chat-list').innerHTML = gcModernLoader('Loading chats', 'list');
-    
-    // মডাল ওপেন হলেই চ্যাট লিস্ট লোড হবে
     loadShareChatList();
 }
 
@@ -16286,7 +16403,7 @@ function renderShareChatList(chats) {
         if (chat.avatar) {
             avHtml = `<img src="${escapeHTML(chat.avatar)}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
         } else if (chat.isGroup) {
-            avHtml = `<div style="width:100%;height:100%;background:var(--gradient-orange);color:white;display:flex;align-items:center;justify-content:center;border-radius:50%;"><span class="material-symbols-outlined">groups</span></div>`;
+            avHtml = `<div style="width:100%;height:100%;background:var(--gradient-orange);color:white;display:flex;align-items:center;justify-content:center;border-radius:50%;"><i class="ph-bold ph-users-three"></i></div>`;
         } else {
             avHtml = `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:var(--gradient);color:#fff;font-weight:bold;font-size:16px;border-radius:50%;">${avatarInitial(chat.name)}</div>`;
         }
@@ -16312,19 +16429,20 @@ function filterShareList(query) {
 
 // 🚀 ডেটাবেসে মেসেজ সেন্ড করার ফাংশন (শেয়ার কাউন্ট আপডেট সহ)
 async function sendSharedPost(chatId, otherUid, btn) {
-    if (!currentSharePostData || !checkRateLimit()) return;
+    if (!currentSharePostData || !currentSharePostData.id || !checkRateLimit()) return;
     
     // বাটন লোডিং হওয়া
     btn.disabled = true;
-    btn.innerHTML = '<span class="material-symbols-outlined" style="font-size:16px; animation:spin 1s linear infinite;">autorenew</span>';
+    btn.innerHTML = '<i class="ph-bold ph-circle" style="font-size:16px; animation:spin 1s linear infinite;"></i>';
 
+    // Never send undefined to Firestore
     const msgData = {
         uid: currentUser.uid,
-        senderName: currentUserData.name || 'User',
+        senderName: (currentUserData && currentUserData.name) ? currentUserData.name : 'User',
         text: "Shared a post",
         sharedPostId: currentSharePostData.id,
-        sharedPostTitle: currentSharePostData.title,
-        sharedPostImg: currentSharePostData.img,
+        sharedPostTitle: currentSharePostData.title || '',
+        sharedPostImg: currentSharePostData.img || '',
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
     };
     
@@ -16424,7 +16542,7 @@ function openStoryCreatorModal() {
                     <!-- ফটো বা ভিডিও স্টোরি অপশন -->
                     <label class="story-type-card">
                         <div style="width: 44px; height: 44px; border-radius: 50%; background: rgba(255,77,106,0.1); color: var(--danger); display: flex; align-items: center; justify-content: center;">
-                            <span class="material-symbols-outlined" style="font-size: 24px;">photo_library</span>
+                            <i class="ph-bold ph-images" style="font-size: 24px;"></i>
                         </div>
                         <div style="text-align: left; flex: 1;">
                             <div>Photo/Video Story</div>
@@ -16436,7 +16554,7 @@ function openStoryCreatorModal() {
                     <!-- টেক্সট স্টোরি অপশন -->
                     <div class="story-type-card" onclick="closeStoryCreatorModal(); openTextStoryModal();">
                         <div style="width: 44px; height: 44px; border-radius: 50%; background: rgba(245,158,11,0.1); color: var(--warning); display: flex; align-items: center; justify-content: center;">
-                            <span class="material-symbols-outlined" style="font-size: 24px;">text_fields</span>
+                            <i class="ph-bold ph-circle" style="font-size: 24px;"></i>
                         </div>
                         <div style="text-align: left; flex: 1;">
                             <div>Text Story</div>
@@ -16770,7 +16888,7 @@ async function qrncOpenCard(uid){
     }
   }catch(e){
     console.error('QR gen failed', e);
-    document.getElementById('qrnc-qr-loading').innerHTML = '<span class="material-symbols-outlined" style="animation:none;">wifi_off</span>QR unavailable offline';
+    document.getElementById('qrnc-qr-loading').innerHTML = '<i class="ph-bold ph-wifi-slash" style="animation:none;"></i>QR unavailable offline';
   }
 }
 
@@ -17063,7 +17181,7 @@ async function mfRenderStrip(uid){
       <div class="mf-top"><span class="mf-count">${list.length}</span><span class="mf-label">Mutual</span></div>
       <div class="mf-names">${namesLine}</div>
     </div>
-    <div class="mf-go"><span class="material-symbols-outlined">chevron_right</span></div>`;
+    <div class="mf-go"><i class="ph-bold ph-caret-right"></i></div>`;
   strip.onclick = () => mfOpenSheet(uid);
   strip.onkeydown = (e) => { if(e.key==='Enter'||e.key===' '){ e.preventDefault(); mfOpenSheet(uid); } };
 
@@ -17087,7 +17205,7 @@ function mfBuildSheet(){
     <div class="mf-box">
       <div class="mf-handle"></div>
       <div class="mf-sheet-head">
-        <div class="mf-sh-ico"><span class="material-symbols-outlined">group</span></div>
+        <div class="mf-sh-ico"><i class="ph-bold ph-users"></i></div>
         <div class="mf-sh-t">
           <div class="mf-sh-title" id="mf-sh-title">Mutual Connections</div>
           <div class="mf-sh-sub" id="mf-sh-sub">People you both know</div>
@@ -17095,7 +17213,7 @@ function mfBuildSheet(){
         <button class="mf-sh-close" onclick="mfCloseSheet()"><i class="ph-bold ph-x"></i></button>
       </div>
       <div class="mf-search">
-        <span class="material-symbols-outlined">search</span>
+        <i class="ph-bold ph-magnifying-glass"></i>
         <input type="text" id="mf-search-input" placeholder="Search mutual friends…" oninput="mfFilter(this.value)">
       </div>
       <div class="mf-list" id="mf-list"></div>
@@ -17108,7 +17226,7 @@ async function mfOpenSheet(uid){
   const ov = document.getElementById('mf-sheet');
   ov.style.display = 'flex';
   document.getElementById('mf-search-input').value = '';
-  document.getElementById('mf-list').innerHTML = '<div class="mf-empty"><span class="material-symbols-outlined">progress_activity</span><div class="mf-e-t">Loading…</div></div>';
+  document.getElementById('mf-list').innerHTML = '<div class="mf-empty"><i class="ph-bold ph-spinner-gap" style="animation:spin 1s linear infinite;"></i><div class="mf-e-t">Loading…</div></div>';
 
   const res = await mfGetOther(uid);
   mfCurrentList = (res && res.mutual) ? res.mutual : [];
@@ -17121,7 +17239,7 @@ function mfCloseSheet(){ const ov = document.getElementById('mf-sheet'); if(ov) 
 
 function mfRenderList(arr){
   const box = document.getElementById('mf-list'); if(!box) return;
-  if(!arr.length){ box.innerHTML = '<div class="mf-empty"><span class="material-symbols-outlined">person_search</span><div class="mf-e-t">No matches</div></div>'; return; }
+  if(!arr.length){ box.innerHTML = '<div class="mf-empty"><i class="ph-bold ph-user-focus"></i><div class="mf-e-t">No matches</div></div>'; return; }
   const myFollowing = new Set((currentUserData && currentUserData.following) || []);
   box.innerHTML = arr.map((m, i) => {
     const av = m.avatar ? `<img src="${escapeHTML(m.avatar)}">` : escapeHTML((m.name||'?').trim().charAt(0).toUpperCase());
@@ -17136,7 +17254,7 @@ function mfRenderList(arr){
         ${uname}
       </div>
       ${status}
-      <div class="mf-r-chev"><span class="material-symbols-outlined">chevron_right</span></div>
+      <div class="mf-r-chev"><i class="ph-bold ph-caret-right"></i></div>
     </div>`;
   }).join('');
 }
@@ -17208,7 +17326,7 @@ async function sendCommentWithImage() {
     if (!text && !selectedCommentImage) return; 
     
     btnEl.disabled = true;
-    btnEl.innerHTML = '<span class="material-symbols-outlined" style="font-size:20px; animation:spin 1s linear infinite;">autorenew</span>';
+    btnEl.innerHTML = '<i class="ph-bold ph-circle" style="font-size:20px; animation:spin 1s linear infinite;"></i>';
     
     let imageUrl = null;
     if (selectedCommentImage) {
@@ -17467,7 +17585,7 @@ function qrRenderChips(){
   
   const templates = qrGetTemplates();
   if(templates.length === 0){
-    list.innerHTML = `<div class="qr-chips-empty"><span class="material-symbols-outlined">inbox</span><div>No quick replies yet</div></div>`;
+    list.innerHTML = `<div class="qr-chips-empty"><i class="ph-bold ph-tray"></i><div>No quick replies yet</div></div>`;
     return;
   }
   
@@ -17475,7 +17593,7 @@ function qrRenderChips(){
     <div class="qr-chip-item" style="animation-delay:${i*0.04}s" onclick="qrUseTemplate(${i})">
       <div class="qr-text">${escapeHTML(t.text)}</div>
       <div class="qr-actions">
-        <button class="qr-del" onclick="event.stopPropagation(); qrDeleteFromChips(${i})"><span class="material-symbols-outlined">delete</span></button>
+        <button class="qr-del" onclick="event.stopPropagation(); qrDeleteFromChips(${i})"><i class="ph-bold ph-trash"></i></button>
       </div>
     </div>
   `).join('');
@@ -17535,8 +17653,8 @@ function qrRenderManageList(){
         <div class="qr-m-meta">${new Date(t.createdAt).toLocaleString()}</div>
       </div>
       <div class="qr-m-actions">
-        <button class="qr-m-btn qr-edit" onclick="qrEditItem(${i})"><span class="material-symbols-outlined">edit</span></button>
-        <button class="qr-m-btn qr-delete" onclick="qrDeleteItem(${i})"><span class="material-symbols-outlined">delete</span></button>
+        <button class="qr-m-btn qr-edit" onclick="qrEditItem(${i})"><i class="ph-bold ph-pencil-simple"></i></button>
+        <button class="qr-m-btn qr-delete" onclick="qrDeleteItem(${i})"><i class="ph-bold ph-trash"></i></button>
       </div>
     </div>
   `).join('');
@@ -18171,7 +18289,7 @@ async function loadSuggestions() {
     // লোডিং অ্যানিমেশন
     container.innerHTML = `
         <div style="text-align:center; padding:40px; color:var(--text-muted);">
-            <span class="material-symbols-outlined" style="font-size: 32px; animation: qrncSpin 1s linear infinite;">progress_activity</span>
+            <i class="ph-bold ph-circle" style="font-size: 32px; animation: qrncSpin 1s linear infinite;"></i>
             <div style="font-size: 13px; font-weight: 700; margin-top: 10px;">Finding best profiles...</div>
         </div>`;
     
@@ -18187,8 +18305,12 @@ async function loadSuggestions() {
             !following.includes(u.id)
         );
         
-        // 🚀 ফিল্টার ২: পয়েন্টের ওপর ভিত্তি করে সাজানো (যার পয়েন্ট বেশি সে আগে আসবে)
-        suggestedUsers.sort((a, b) => (b.points || 0) - (a.points || 0));
+        // 🚀 ফিল্টার ২: ফলোয়ার সংখ্যার ওপর ভিত্তি করে সাজানো (বেশি ফলোয়ার আগে)
+        suggestedUsers.sort((a, b) => {
+            const fa = Array.isArray(a.followers) ? a.followers.length : (a.followersCount || 0);
+            const fb = Array.isArray(b.followers) ? b.followers.length : (b.followersCount || 0);
+            return fb - fa;
+        });
         
         // 🚀 ফিল্টার ৩: শুধুমাত্র সেরা ২০ জনকে দেখাবে (অ্যাপ যেন ফাস্ট থাকে)
         suggestedUsers = suggestedUsers.slice(0, 20);
@@ -18217,7 +18339,7 @@ async function loadSuggestions() {
                 <div class="msg-info" style="margin-left: 12px;">
                     <div class="msg-name" style="font-size: 15px; font-weight: 800; color: var(--text); display: flex; align-items: center; gap: 4px;">${safeName} ${verifiedBadge}</div>
                     <div style="font-size: 12px; color: var(--text-muted); font-weight: 600; margin-top: 3px; display: flex; align-items: center; gap: 4px;">
-                        <i class="ph-fill ph-star" style="color: #f59e0b; font-size: 14px;"></i> ${u.points || 0} Points
+                        <i class="ph-fill ph-users" style="color: var(--accent); font-size: 14px;"></i> ${Array.isArray(u.followers) ? u.followers.length : (u.followersCount || 0)} Followers
                     </div>
                 </div>
                 <button class="btn-primary" style="margin: 0; padding: 8px 18px; font-size: 13px; height: auto; border-radius: 20px; width: auto; box-shadow: none;" onclick="event.stopPropagation(); toggleSuggestFollow('${u.id}', this)">Follow</button>
@@ -19377,10 +19499,10 @@ document.getElementById('gc-pay-body').innerHTML = `
 <p class="gc-pay-sub">Verified badge, boosted reach & exclusive perks — unlock it all with one simple bKash payment.</p>
 <div class="gc-pay-mini-perks">
 <div>${perkVerified} Verified Badge</div>
-<div><span class="material-symbols-outlined">whatshot</span> Boosted Reach</div>
-<div><span class="material-symbols-outlined">support_agent</span> Priority Support</div>
+<div><i class="ph-fill ph-fire"></i> Boosted Reach</div>
+<div><i class="ph-bold ph-headset"></i> Priority Support</div>
 </div>
-<button class="gc-pay-cta" onclick="gcPayShowPlans()">Choose Your Plan <span class="material-symbols-outlined">arrow_forward</span></button>
+<button class="gc-pay-cta" onclick="gcPayShowPlans()">Choose Your Plan <i class="ph-bold ph-arrow-right"></i></button>
 </div>`;
 }
 function gcPayShowPlans(){
@@ -19415,7 +19537,7 @@ document.getElementById('gc-pay-body').innerHTML = `
 <div class="gc-bkash-card">
 <div class="gc-bkash-logo">bKash</div>
 <div><div class="gc-bkash-lbl">Send Money to (Personal)</div><div class="gc-bkash-num">${GC_BKASH_NUMBER}</div></div>
-<button class="gc-copy-btn" onclick="gcPayCopyNum()"><span class="material-symbols-outlined">content_copy</span> Copy</button>
+<button class="gc-copy-btn" onclick="gcPayCopyNum()"><i class="ph-bold ph-copy"></i> Copy</button>
 </div>
 <div class="gc-pay-steps">
 <div><b>1.</b> Open bKash & send <b>৳${gcPayPlan.price}</b> to the number above</div>
@@ -20102,7 +20224,7 @@ async function openConversationMedia() {
     const grid = document.getElementById('conv-media-grid');
     
     // লোডিং অ্যানিমেশন
-    grid.innerHTML = '<div class="empty-feed" style="grid-column: 1 / -1; padding: 40px;"><span class="material-symbols-outlined" style="animation: qrncSpin 1s linear infinite; font-size: 32px;">autorenew</span><br><div style="margin-top:10px;">Loading media...</div></div>';
+    grid.innerHTML = '<div class="empty-feed" style="grid-column: 1 / -1; padding: 40px;"><i class="ph-bold ph-circle" style="animation: qrncSpin 1s linear infinite; font-size: 32px;"></i><br><div style="margin-top:10px;">Loading media...</div></div>';
 
     try {
         // ডাটাবেস থেকে শুধু ওই চ্যাটের মেসেজগুলো নিয়ে আসবে
@@ -20915,21 +21037,15 @@ const rset = new Set(r);
 return f.filter(function(id){ return rset.has(id); });
 }
 // ---------- Settings রো ----------
+// Relationship Partner removed from Settings (available in Edit Profile only)
 (function gcInjectRelRow(){
-if(window.gcRelRowOn) return; window.gcRelRowOn = true;
-setInterval(function(){
-if(document.getElementById('gc-rel-row')) return;
-const soundToggle = document.getElementById('message-sound-toggle');
-if(!soundToggle) return;
-const row = soundToggle.closest('.settings-list-item');
-if(!row || !row.parentNode) return;
-const el = document.createElement('div');
-el.className = 'settings-list-item';
-el.id = 'gc-rel-row';
-el.onclick = function(){ gcOpenPartnerPicker(); };
-el.innerHTML = '<div style="display:flex;align-items:center;gap:16px;"><i class="ph-fill ph-heart" style="font-size:24px;color:var(--text);"></i><span style="font-weight:600;font-size:15px;">Relationship Partner</span></div><i class="ph-bold ph-caret-right" style="color:var(--text-muted);font-size:16px;"></i>';
-row.parentNode.insertBefore(el, row.nextSibling);
-}, 1500);
+  // no-op — do not add settings row
+  window.gcRelRowOn = true;
+  // Remove if already injected from older session/cache
+  try {
+    const old = document.getElementById('gc-rel-row');
+    if (old) old.remove();
+  } catch(e){}
 })();
 // ---------- পিকার শিট ----------
 function gcEnsureRelSheet(){
