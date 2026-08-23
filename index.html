@@ -997,9 +997,20 @@ flex-direction:column;
 .gc-c-meta .gc-c-btn:active{opacity:.7;}
 .gc-c-meta .gc-c-btn.liked{color:var(--danger);}
 .gc-c-meta .gc-c-time{font-size:11px;color:var(--text-muted);font-weight:500;}
-.gc-c-replies{margin-top:8px;margin-left:8px;padding-left:12px;border-left:2px solid var(--border);}
-.gc-c-reply-item{margin-top:8px;}
-.gc-c-reply-toggle{font-size:12px;font-weight:700;color:var(--accent);cursor:pointer;margin:8px 0 4px 12px;user-select:none;}
+.gc-c-replies{margin-top:10px;margin-left:4px;padding-left:10px;border-left:2px solid color-mix(in srgb, var(--border) 80%, transparent);display:flex;flex-direction:column;gap:10px;}
+.gc-c-reply-item{display:flex;gap:8px;align-items:flex-start;padding:4px 0;min-height:44px;}
+.gc-c-reply-item .gc-c-reply-av{width:28px;height:28px;border-radius:50%;flex-shrink:0;overflow:hidden;background:var(--surface-2);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--text-muted);}
+.gc-c-reply-item .gc-c-reply-av img{width:100%;height:100%;object-fit:cover;}
+.gc-c-reply-bubble{background:var(--surface-2);padding:8px 12px;border-radius:4px 16px 16px 16px;border:1px solid var(--border);display:inline-block;max-width:100%;}
+.gc-c-reply-bubble .gc-c-reply-name{font-size:12px;font-weight:700;color:var(--text);margin-bottom:2px;cursor:pointer;}
+.gc-c-reply-bubble .gc-c-reply-text{font-size:13px;color:var(--text);line-height:1.4;}
+.gc-c-reply-meta{display:flex;align-items:center;gap:10px;margin-top:4px;margin-left:8px;}
+.gc-c-reply-meta .gc-c-time{font-size:11px !important;color:var(--text-muted);font-weight:500;line-height:1;}
+.gc-c-reply-toggle{font-size:12px;font-weight:700;color:var(--accent);cursor:pointer;margin:4px 0 2px 36px;user-select:none;}
+.gc-c-more-btn{border:none;background:transparent;color:var(--text-muted);cursor:pointer;padding:4px;display:inline-flex;align-items:center;justify-content:center;border-radius:50%;}
+.gc-c-more-btn:active{background:var(--surface-2);}
+.comment-action-menu-mask{position:fixed;inset:0;z-index:99998;background:rgba(0,0,0,.35);}
+.comment-action-menu{z-index:99999;}
 .gc-c-load-more{display:flex;justify-content:center;padding:14px 8px 6px;}
 .gc-c-load-more button{border:1px solid var(--border);background:var(--surface-2);color:var(--text);font-weight:700;font-size:13px;padding:10px 18px;border-radius:20px;cursor:pointer;}
 .gc-c-load-more button:active{transform:scale(.97);}
@@ -9621,7 +9632,7 @@ function gcBuildOneCommentHTML(pid, c, idx, where){
   const likeCount = likes.length;
   const timeLabel = gcCommentTimeLabel(c);
 
-  // Replies nesting
+  // Replies — premium nested bubbles
   const replies = Array.isArray(c.replies) ? c.replies : [];
   const expKey = pid + '_' + idx;
   const expanded = !!window.gcCommentExpandedReplies[expKey];
@@ -9630,23 +9641,33 @@ function gcBuildOneCommentHTML(pid, c, idx, where){
   if(replies.length){
     const showAll = expanded || replies.length <= PREVIEW_REPLIES;
     const visible = showAll ? replies : replies.slice(0, PREVIEW_REPLIES);
-    const inner = visible.map(function(r){
+    const inner = visible.map(function(r, rIdx){
+      const realRIdx = showAll ? rIdx : rIdx; // index in visible slice — need real index in full array
+      const fullIdx = replies.indexOf(r) >= 0 ? replies.indexOf(r) : rIdx;
       const rTime = gcCommentTimeLabel(r);
-      return '<div class="gc-c-reply-item">'
-        + '<div class="comment-author" style="font-size:12px;cursor:pointer;" onclick="' + closeFn + '();viewUserProfile(\'' + r.uid + '\')">' + escapeHTML(r.name || 'User') + '</div>'
-        + '<div style="font-size:12px;margin-top:2px;color:var(--text);">' + escapeHTML(r.text || '') + '</div>'
-        + (rTime ? '<div class="gc-c-time" style="margin-top:2px;">' + rTime + '</div>' : '')
-        + '</div>';
+      let rAv = avatarInitial(r.name);
+      if(allUsersCache){
+        const ru = allUsersCache.find(function(u){ return u.id === r.uid; });
+        if(ru && ru.avatar) rAv = '<img src="' + escapeHTML(ru.avatar) + '" alt="">';
+      }
+      const rTextEsc = escapeHTML(r.text || '');
+      return '<div class="gc-c-reply-item" data-reply-text="' + rTextEsc.replace(/"/g, '&quot;') + '" ondblclick="event.stopPropagation();showReplyActions(\'' + pid + '\',' + idx + ',' + fullIdx + ',\'' + (r.uid || '') + '\')">'
+        + '<div class="gc-c-reply-av" onclick="event.stopPropagation();' + closeFn + '();viewUserProfile(\'' + r.uid + '\')">' + rAv + '</div>'
+        + '<div style="flex:1;min-width:0;">'
+        +   '<div class="gc-c-reply-bubble">'
+        +     '<div class="gc-c-reply-name" onclick="event.stopPropagation();' + closeFn + '();viewUserProfile(\'' + r.uid + '\')">' + escapeHTML(r.name || 'User') + '</div>'
+        +     '<div class="gc-c-reply-text">' + rTextEsc + '</div>'
+        +   '</div>'
+        +   '<div class="gc-c-reply-meta">'
+        +     (rTime ? '<span class="gc-c-time">' + rTime + '</span>' : '')
+        +     '<button type="button" class="gc-c-more-btn" title="Options" onclick="event.stopPropagation();showReplyActions(\'' + pid + '\',' + idx + ',' + fullIdx + ',\'' + (r.uid || '') + '\')"><i class="ph-bold ph-dots-three" style="font-size:16px;"></i></button>'
+        +   '</div>'
+        + '</div></div>';
     }).join('');
     repliesHtml = '<div class="gc-c-replies">' + inner + '</div>';
     if(replies.length > PREVIEW_REPLIES){
       const label = expanded ? 'Hide replies' : ('View ' + replies.length + ' replies');
       repliesHtml += '<div class="gc-c-reply-toggle" onclick="event.stopPropagation();gcToggleRepliesExpand(\'' + pid + '\',' + idx + ')">' + label + '</div>';
-      if(!expanded){
-        // already showing preview inside; toggle still useful
-      } else {
-        // when expanded, toggle is "Hide"
-      }
     }
   }
 
@@ -9654,18 +9675,22 @@ function gcBuildOneCommentHTML(pid, c, idx, where){
     ? 'event.stopPropagation();openCommentPanel(\'' + pid + '\');setTimeout(function(){showReplyInput(\'' + pid + '\',' + idx + ',\'' + safeCName.replace(/'/g, '') + '\');},200);'
     : 'showReplyInput(\'' + pid + '\',' + idx + ',\'' + safeCName.replace(/'/g, '') + '\')';
 
-  return '<div class="comment-item" id="gc-comment-' + pid + '-' + idx + '" style="display:flex;gap:10px;align-items:flex-start;" ondblclick="showCommentActions(\'' + pid + '\', ' + idx + ', \'' + c.uid + '\')">'
-    + '<div class="avatar sm" style="flex-shrink:0;cursor:pointer;margin-top:2px;" onclick="' + closeFn + '();viewUserProfile(\'' + c.uid + '\')">' + commentAvHtml + '</div>'
+  const plainText = (c.text || '').replace(/"/g, '&quot;');
+  return '<div class="comment-item" id="gc-comment-' + pid + '-' + idx + '" data-comment-text="' + plainText + '" style="display:flex;gap:10px;align-items:flex-start;">'
+    + '<div class="avatar sm" style="flex-shrink:0;cursor:pointer;margin-top:2px;" onclick="event.stopPropagation();' + closeFn + '();viewUserProfile(\'' + c.uid + '\')">' + commentAvHtml + '</div>'
     + '<div style="flex:1;min-width:0;">'
-    +   '<div style="background:var(--surface-2);padding:10px 14px;border-radius:4px 18px 18px 18px;display:inline-block;border:1px solid var(--border);">'
-    +     '<div class="comment-author" style="cursor:pointer;font-size:13px;margin-bottom:4px;" onclick="' + closeFn + '();viewUserProfile(\'' + c.uid + '\')">' + safeCName + commentBadge + '</div>'
-    +     (safeCText ? '<div style="font-size:14px;color:var(--text);line-height:1.4;">' + safeCText + '</div>' : '')
+    +   '<div style="display:flex;align-items:flex-start;gap:6px;">'
+    +     '<div style="background:var(--surface-2);padding:10px 14px;border-radius:4px 18px 18px 18px;display:inline-block;border:1px solid var(--border);max-width:calc(100% - 28px);">'
+    +       '<div class="comment-author" style="cursor:pointer;font-size:13px;margin-bottom:4px;" onclick="event.stopPropagation();' + closeFn + '();viewUserProfile(\'' + c.uid + '\')">' + safeCName + commentBadge + '</div>'
+    +       (safeCText ? '<div class="gc-c-body-text" style="font-size:14px;color:var(--text);line-height:1.4;">' + safeCText + '</div>' : '')
+    +     '</div>'
+    +     '<button type="button" class="gc-c-more-btn" title="Options" onclick="event.stopPropagation();showCommentActions(\'' + pid + '\',' + idx + ',\'' + c.uid + '\')"><i class="ph-bold ph-dots-three" style="font-size:18px;"></i></button>'
     +   '</div>'
     +   commentImageHtml
     +   '<div class="gc-c-meta">'
     +     (timeLabel ? '<span class="gc-c-time">' + timeLabel + '</span>' : '')
     +     '<span class="gc-c-btn' + (liked ? ' liked' : '') + '" onclick="event.stopPropagation();gcToggleCommentLike(\'' + pid + '\',' + idx + ')"><i class="' + (liked ? 'ph-fill' : 'ph-bold') + ' ph-heart" style="font-size:14px;"></i>' + (likeCount ? likeCount : '') + '</span>'
-    +     '<span class="gc-c-btn" onclick="event.stopPropagation();' + replyClick + '">Reply</span>'
+    +     '<span class="gc-c-btn" title="Reply" onclick="event.stopPropagation();' + replyClick + '"><i class="ph ph-chat-centered-text" style="font-size:16px;"></i></span>'
     +   '</div>'
     +   '<div id="reply-input-' + idx + '"></div>'
     +   repliesHtml
@@ -13125,86 +13150,233 @@ async function blockUserFromChat() {
 
 // ===== FIXED COMMENT ACTIONS =====
 
-function showCommentActions(pid, idx, commentUid) {
-    if (commentUid !== currentUser.uid) {
+function gcCloseCommentMenus(){
+    document.querySelectorAll('.comment-action-menu, .comment-action-menu-mask').forEach(function(m){ m.remove(); });
+}
+window.gcCloseCommentMenus = gcCloseCommentMenus;
+
+async function showCommentActions(pid, idx, commentUid) {
+    if (!currentUser) return;
+    idx = Number(idx);
+    const isAuthor = String(commentUid) === String(currentUser.uid);
+    let isPostOwner = false;
+    let commentText = '';
+    try {
+        const pdoc = await db.collection('posts').doc(pid).get();
+        if (pdoc.exists) {
+            const pd = pdoc.data() || {};
+            if (String(pd.uid) === String(currentUser.uid)) isPostOwner = true;
+            const comments = pd.comments || [];
+            if (comments[idx] && comments[idx].text) commentText = comments[idx].text;
+        }
+    } catch (e) {}
+
+    if (!isAuthor && !isPostOwner) {
         showToast("You can only manage your own comments.");
         return;
     }
 
+    gcCloseCommentMenus();
+
+    const mask = document.createElement('div');
+    mask.className = 'comment-action-menu-mask';
+    mask.onclick = function(){ gcCloseCommentMenus(); };
+
     const menu = document.createElement('div');
-    menu.className = 'comment-action-menu'; 
-    menu.style.cssText = `position:fixed; bottom:0; left:0; width:100%; background:var(--surface); border-radius:20px 20px 0 0; padding:20px; z-index:99999; box-shadow:0 -5px 20px rgba(0,0,0,0.3);`;
-    
-    menu.innerHTML = `
-        <div style="font-weight:800; margin-bottom:15px; text-align:center;">Comment Options</div>
-        <div class="chat-dropdown-item" onclick="editComment('${pid}', ${idx}); this.parentElement.remove();">
-            <span class="material-symbols-outlined">edit</span> Edit Comment
-        </div>
-        <div class="chat-dropdown-item" onclick="copyComment(this); this.parentElement.remove();">
-            <span class="material-symbols-outlined">content_copy</span> Copy
-        </div>
-        <div class="chat-dropdown-item danger" onclick="deleteComment('${pid}', ${idx}); this.parentElement.remove();">
-            <span class="material-symbols-outlined">delete</span> Delete Comment
-        </div>
-        <div style="margin-top:10px; padding:10px; text-align:center; color:var(--text-muted); cursor:pointer;" onclick="this.parentElement.remove()">Cancel</div>
-    `;
+    menu.className = 'comment-action-menu';
+    menu.style.cssText = 'position:fixed; bottom:0; left:0; width:100%; background:var(--surface); border-radius:20px 20px 0 0; padding:20px; z-index:99999; box-shadow:0 -5px 20px rgba(0,0,0,0.3);';
+
+    let items = '<div style="font-weight:800; margin-bottom:15px; text-align:center;">Comment Options</div>';
+    if (isAuthor) {
+        items += '<div class="chat-dropdown-item" id="gc-c-act-edit"><span class="material-symbols-outlined">edit</span> Edit Comment</div>';
+    }
+    items += '<div class="chat-dropdown-item" id="gc-c-act-copy"><span class="material-symbols-outlined">content_copy</span> Copy</div>';
+    if (isAuthor || isPostOwner) {
+        items += '<div class="chat-dropdown-item danger" id="gc-c-act-del"><span class="material-symbols-outlined">delete</span> Delete Comment</div>';
+    }
+    items += '<div style="margin-top:10px; padding:10px; text-align:center; color:var(--text-muted); cursor:pointer;" id="gc-c-act-cancel">Cancel</div>';
+    menu.innerHTML = items;
+    document.body.appendChild(mask);
     document.body.appendChild(menu);
+
+    const editBtn = document.getElementById('gc-c-act-edit');
+    if (editBtn) editBtn.onclick = function(){ gcCloseCommentMenus(); editComment(pid, idx); };
+    const copyBtn = document.getElementById('gc-c-act-copy');
+    if (copyBtn) copyBtn.onclick = function(){ gcCloseCommentMenus(); copyCommentText(commentText); };
+    const delBtn = document.getElementById('gc-c-act-del');
+    if (delBtn) delBtn.onclick = function(){ gcCloseCommentMenus(); deleteComment(pid, idx); };
+    const cancelBtn = document.getElementById('gc-c-act-cancel');
+    if (cancelBtn) cancelBtn.onclick = function(){ gcCloseCommentMenus(); };
 }
+window.showCommentActions = showCommentActions;
+
+async function showReplyActions(pid, cIdx, rIdx, replyUid) {
+    if (!currentUser) return;
+    cIdx = Number(cIdx); rIdx = Number(rIdx);
+    const isAuthor = String(replyUid) === String(currentUser.uid);
+    let isPostOwner = false;
+    let replyText = '';
+    try {
+        const pdoc = await db.collection('posts').doc(pid).get();
+        if (pdoc.exists) {
+            const pd = pdoc.data() || {};
+            if (String(pd.uid) === String(currentUser.uid)) isPostOwner = true;
+            const comments = pd.comments || [];
+            if (comments[cIdx] && comments[cIdx].replies && comments[cIdx].replies[rIdx]) {
+                replyText = comments[cIdx].replies[rIdx].text || '';
+            }
+        }
+    } catch (e) {}
+    if (!isAuthor && !isPostOwner) {
+        showToast("You can only manage your own comments.");
+        return;
+    }
+    gcCloseCommentMenus();
+    const mask = document.createElement('div');
+    mask.className = 'comment-action-menu-mask';
+    mask.onclick = function(){ gcCloseCommentMenus(); };
+    const menu = document.createElement('div');
+    menu.className = 'comment-action-menu';
+    menu.style.cssText = 'position:fixed; bottom:0; left:0; width:100%; background:var(--surface); border-radius:20px 20px 0 0; padding:20px; z-index:99999; box-shadow:0 -5px 20px rgba(0,0,0,0.3);';
+    let items = '<div style="font-weight:800; margin-bottom:15px; text-align:center;">Reply Options</div>';
+    items += '<div class="chat-dropdown-item" id="gc-r-act-copy"><span class="material-symbols-outlined">content_copy</span> Copy</div>';
+    if (isAuthor || isPostOwner) {
+        items += '<div class="chat-dropdown-item danger" id="gc-r-act-del"><span class="material-symbols-outlined">delete</span> Delete Reply</div>';
+    }
+    items += '<div style="margin-top:10px; padding:10px; text-align:center; color:var(--text-muted); cursor:pointer;" id="gc-r-act-cancel">Cancel</div>';
+    menu.innerHTML = items;
+    document.body.appendChild(mask);
+    document.body.appendChild(menu);
+    document.getElementById('gc-r-act-copy').onclick = function(){ gcCloseCommentMenus(); copyCommentText(replyText); };
+    const del = document.getElementById('gc-r-act-del');
+    if (del) del.onclick = function(){ gcCloseCommentMenus(); deleteReply(pid, cIdx, rIdx); };
+    document.getElementById('gc-r-act-cancel').onclick = function(){ gcCloseCommentMenus(); };
+}
+window.showReplyActions = showReplyActions;
 
 async function editComment(pid, idx) {
     const ref = db.collection('posts').doc(pid);
     const doc = await ref.get();
     if (!doc.exists) return;
-    
-    let comments = doc.data().comments;
+    let comments = (doc.data().comments || []).slice();
+    idx = Number(idx);
+    if (!comments[idx]) return;
+    if (!currentUser || String(comments[idx].uid) !== String(currentUser.uid)) {
+        showToast("You can only edit your own comments.");
+        return;
+    }
     const oldText = comments[idx].text;
     const newText = prompt("Edit your comment:", oldText);
-    
     if (newText !== null && newText.trim() !== "") {
         comments[idx].text = newText.trim();
-        await ref.update({ comments });
+        await ref.update({ comments: comments });
         showToast("Comment updated!");
     }
 }
 
-function copyComment(btnElement) {
-    // কমেন্ট আইটেমটি খুঁজে বের করা
-    const commentItem = btnElement.closest('.comment-item');
-    if (commentItem) {
-        // দ্বিতীয় ডিভ-এর ভেতরে টেক্সট থাকে (আগের গঠন অনুযায়ী)
-        const textToCopy = commentItem.querySelector('div[style*="margin-top:4px"]').textContent;
-        navigator.clipboard.writeText(textToCopy).then(() => {
-            showToast("Copied to clipboard!");
+function copyCommentText(text) {
+    const t = (text || '').trim();
+    if (!t) { showToast('Nothing to copy'); return; }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(t).then(function(){ showToast('Copied to clipboard!'); }).catch(function(){
+            gcFallbackCopy(t);
         });
+    } else {
+        gcFallbackCopy(t);
     }
 }
+function gcFallbackCopy(t){
+    try {
+        const ta = document.createElement('textarea');
+        ta.value = t;
+        ta.style.position = 'fixed';
+        ta.style.left = '-9999px';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        showToast('Copied to clipboard!');
+    } catch (e) {
+        showToast('Copy failed');
+    }
+}
+window.copyCommentText = copyCommentText;
 
-// 🚀 কমেন্ট ডিলিট এবং কাউন্টার ফিক্স করার ফাংশন
+// 🚀 কমেন্ট ডিলিট — কমেন্ট অথর অথবা পোস্ট ওনার
 async function deleteComment(pid, idx) {
+    if (!currentUser) return;
+    idx = Number(idx);
     if (!confirm("Delete this comment?")) return;
     
     const ref = db.collection('posts').doc(pid);
     const doc = await ref.get();
-    if (!doc.exists) return;
+    if (!doc.exists) { showToast('Post not found'); return; }
     
-    let comments = doc.data().comments;
-    // নির্দিষ্ট কমেন্টটি রিমুভ করা হলো
+    const data = doc.data() || {};
+    let comments = (data.comments || []).slice();
+    if (idx < 0 || idx >= comments.length || !comments[idx]) {
+        showToast('Comment not found');
+        return;
+    }
+
+    const isAuthor = String(comments[idx].uid) === String(currentUser.uid);
+    const isPostOwner = String(data.uid) === String(currentUser.uid);
+    if (!isAuthor && !isPostOwner) {
+        showToast("You can only manage your own comments.");
+        return;
+    }
+
     comments.splice(idx, 1);
     
-    // ১. 🚀 ম্যাজিক: ডাটাবেসে কমেন্ট এবং মোট কমেন্টের সংখ্যা (commentCount) আপডেট করা হলো
-    await ref.update({ 
-        comments: comments,
-        commentCount: comments.length 
-    });
+    try {
+        await ref.update({ 
+            comments: comments,
+            commentCount: comments.length 
+        });
+    } catch (e) {
+        console.error(e);
+        showToast('Failed to delete comment');
+        return;
+    }
     
-    // ২. 🚀 ম্যাজিক: পেজ রিফ্রেশ না করেই স্ক্রিনে পোস্টের বাইরের কমেন্ট সংখ্যা সাথে সাথে কমিয়ে দেওয়া হলো
     const commentSpans = document.querySelectorAll(`button[onclick*="openCommentPanel('${pid}')"] span`);
     commentSpans.forEach(span => {
         span.innerText = comments.length;
     });
 
-    showToast("Comment deleted!");
+    showToast(isPostOwner && !isAuthor ? "Comment removed from your post" : "Comment deleted!");
 }
+window.deleteComment = deleteComment;
+
+async function deleteReply(pid, cIdx, rIdx) {
+    if (!currentUser) return;
+    cIdx = Number(cIdx); rIdx = Number(rIdx);
+    if (!confirm("Delete this reply?")) return;
+    const ref = db.collection('posts').doc(pid);
+    const doc = await ref.get();
+    if (!doc.exists) return;
+    const data = doc.data() || {};
+    let comments = (data.comments || []).slice();
+    if (!comments[cIdx] || !Array.isArray(comments[cIdx].replies) || !comments[cIdx].replies[rIdx]) {
+        showToast('Reply not found');
+        return;
+    }
+    const isAuthor = String(comments[cIdx].replies[rIdx].uid) === String(currentUser.uid);
+    const isPostOwner = String(data.uid) === String(currentUser.uid);
+    if (!isAuthor && !isPostOwner) {
+        showToast("You can only manage your own comments.");
+        return;
+    }
+    comments[cIdx].replies = comments[cIdx].replies.slice();
+    comments[cIdx].replies.splice(rIdx, 1);
+    try {
+        await ref.update({ comments: comments });
+        showToast('Reply deleted!');
+    } catch (e) {
+        showToast('Failed to delete reply');
+    }
+}
+window.deleteReply = deleteReply;
 
 async function fixMissingNamesInChats() {
     // শুধুমাত্র যারা বর্তমানে লগইন করা তাদের চ্যাটগুলো চেক করবে
