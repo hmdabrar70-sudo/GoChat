@@ -5725,24 +5725,51 @@ Edit Profile-এ পার্টনার সিলেক্ট বাটন
 .gc-mt-btn.prev{background:var(--surface-2);color:var(--text);}
 .gc-mt-btn.save{background:linear-gradient(135deg,var(--accent),var(--accent-dark));color:#fff;}
 /* ফিড মিউজিক বার */
-.gc-music-bar{display:flex;align-items:center;gap:10px;margin:10px 0 4px;padding:10px 12px;border-radius:16px;background:var(--surface-2);border:1px solid var(--border);}
-.gc-music-disc{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent-dark));color:#fff;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;}
-.gc-music-bar.playing .gc-music-disc{animation:gcDisc 3s linear infinite;}
-.gc-music-eq{display:flex;align-items:flex-end;gap:2px;height:14px;flex-shrink:0;}
-.gc-music-eq i{width:3px;background:var(--accent);border-radius:2px;height:4px;}
-.gc-music-bar.playing .gc-music-eq i{animation:gcEq 0.9s ease-in-out infinite;}
-.gc-music-bar.playing .gc-music-eq i:nth-child(2){animation-delay:.15s;}
-.gc-music-bar.playing .gc-music-eq i:nth-child(3){animation-delay:.3s;}
-.gc-music-bar.playing .gc-music-eq i:nth-child(4){animation-delay:.45s;}
-@keyframes gcEq{0%,100%{height:4px;}50%{height:14px;}}
-.gc-music-name{flex:1;min-width:0;font-size:12.5px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.gc-music-dur{font-size:11px;color:var(--text-muted);font-weight:700;}
-.gc-music-play{border:none;width:34px;height:34px;border-radius:50%;background:var(--accent-glow);color:var(--accent);display:flex;align-items:center;justify-content:center;font-size:15px;cursor:pointer;flex-shrink:0;}
-/* কম্পোজার চিপ */
+/* 🚀 Facebook-style post music */
+.gc-fb-music-tag{
+  display:inline-flex;align-items:center;gap:4px;
+  margin-left:6px;max-width:160px;
+  vertical-align:middle;cursor:pointer;
+  color:var(--text-secondary);font-size:12px;font-weight:600;
+}
+.gc-fb-music-tag i{font-size:13px;color:var(--accent);flex-shrink:0;}
+.gc-fb-music-tag .gc-fb-music-name{
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  color:var(--text-secondary);font-weight:600;
+}
+.gc-fb-music-tag.playing .gc-fb-music-name{color:var(--accent);}
+.gc-fb-music-tag.playing i{animation:gcDisc 3s linear infinite;}
+.post-media-wrap{position:relative;}
+.gc-fb-music-speaker{
+  position:absolute;right:10px;bottom:10px;z-index:5;
+  width:36px;height:36px;border-radius:50%;
+  border:none;cursor:pointer;
+  background:rgba(0,0,0,0.55);color:#fff;
+  display:flex;align-items:center;justify-content:center;
+  backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+  box-shadow:0 2px 8px rgba(0,0,0,0.25);
+  transition:transform .15s, background .15s;
+}
+.gc-fb-music-speaker:active{transform:scale(0.92);}
+.gc-fb-music-speaker i{font-size:18px;}
+.gc-fb-music-speaker.playing{background:rgba(0,0,0,0.65);}
+/* text-only posts: compact inline bar under caption */
+.gc-fb-music-inline{
+  display:inline-flex;align-items:center;gap:6px;
+  margin:8px 0 4px;padding:6px 12px 6px 8px;
+  border-radius:20px;cursor:pointer;
+  background:rgba(124,92,255,0.1);border:1px solid rgba(124,92,255,0.18);
+  color:var(--text);font-size:12.5px;font-weight:600;max-width:100%;
+}
+.gc-fb-music-inline i{color:var(--accent);font-size:14px;flex-shrink:0;}
+.gc-fb-music-inline .gc-fb-music-name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.gc-fb-music-inline.playing{background:rgba(124,92,255,0.16);}
+/* keep compose chip */
 .gc-music-chip{display:flex;align-items:center;gap:8px;margin:10px 16px 0;padding:10px 12px;border-radius:14px;background:var(--accent-glow);border:1px solid var(--accent-glow);}
 .gc-music-chip .nm{flex:1;font-size:12px;font-weight:800;color:var(--accent);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .gc-music-chip button{border:none;background:transparent;color:var(--accent);font-size:16px;cursor:pointer;padding:4px;display:flex;}
 .gc-music-chip .rm{color:var(--danger);}
+
 </style>
 </head>
 <body>
@@ -21778,12 +21805,12 @@ src.start(0, gcTrimStart, eff);
 const rendered = await off.startRendering();
 const wav = gcAudioToWav(rendered);
 btn.innerHTML = '<i class="ph-bold ph-cloud-arrow-up"></i> Uploading…';
-const url = await uploadToCloudinary(wav, false);
+const url = await gcUploadAudioBlob(wav);
 window.currentPostMusic = { url: url, name: window.gcTrimName || 'My Music', duration: Math.round(eff) };
 gcRenderMusicChip();
 document.getElementById('gc-mt-mask').classList.remove('open');
 showToast('🎵 Music added!');
-}catch(e){ showToast('❌ Could not save music'); }
+}catch(e){ console.error(e); showToast('❌ Could not save music: ' + (e && e.message ? e.message : 'error')); }
 btn.innerHTML = '<i class="ph-bold ph-check"></i> Save 15s';
 }
 // ---------- কম্পোজার চিপ ----------
@@ -21808,8 +21835,24 @@ gcMusicAudio = new Audio(window.currentPostMusic.url);
 gcMusicAudio.play().catch(function(){ showToast('Could not play'); });
 }
 // ---------- ফিড মিউজিক বার (buildPostCardHTML র‍্যাপার) ----------
-function gcMusicBarHTML(p){
-return '<div class="gc-music-bar" data-music="' + escapeHTML(p.musicUrl) + '"><div class="gc-music-disc"><i class="ph-fill ph-music-note"></i></div><div class="gc-music-eq"><i></i><i></i><i></i><i></i></div><div class="gc-music-name">' + escapeHTML(p.musicName || 'Original Music') + '</div><div class="gc-music-dur">0:15</div><button class="gc-music-play" onclick="event.stopPropagation(); gcMusicToggle(this.parentNode)"><i class="ph-fill ph-play"></i></button></div>';
+function gcMusicTagHTML(p){
+  const url = escapeHTML(p.musicUrl || '');
+  const name = escapeHTML(p.musicName || 'Original Music');
+  return '<span class="gc-fb-music-tag" data-music="' + url + '" onclick="event.stopPropagation(); gcMusicToggle(this)" title="' + name + '">'
+    + '<i class="ph-fill ph-music-note"></i>'
+    + '<span class="gc-fb-music-name">' + name + '</span>'
+    + '</span>';
+}
+function gcMusicSpeakerHTML(p){
+  const url = escapeHTML(p.musicUrl || '');
+  return '<button type="button" class="gc-fb-music-speaker" data-music="' + url + '" onclick="event.stopPropagation(); gcMusicToggle(this)" aria-label="Play music">'
+    + '<i class="ph-fill ph-speaker-high"></i></button>';
+}
+function gcMusicInlineHTML(p){
+  const url = escapeHTML(p.musicUrl || '');
+  const name = escapeHTML(p.musicName || 'Original Music');
+  return '<div class="gc-fb-music-inline" data-music="' + url + '" onclick="event.stopPropagation(); gcMusicToggle(this)">'
+    + '<i class="ph-fill ph-music-note"></i><span class="gc-fb-music-name">' + name + '</span></div>';
 }
 if(typeof buildPostCardHTML === 'function' && !window.gcBpcMusic107){
 window.gcBpcMusic107 = true;
@@ -21817,35 +21860,67 @@ window.gcOrigBpcMusic107 = buildPostCardHTML;
 buildPostCardHTML = function(p){
 let html = window.gcOrigBpcMusic107.apply(this, arguments);
 if(p && p.musicUrl){
-if(html.indexOf('<div class="post-actions"') !== -1){
-html = html.replace('<div class="post-actions"', gcMusicBarHTML(p) + '<div class="post-actions"');
-}else{
-html += gcMusicBarHTML(p);
-}
+  // Facebook-style: music name next to post time
+  if(html.indexOf('class="post-time"') !== -1){
+    html = html.replace(
+      /(<div class="post-time">)([\s\S]*?)(<\/div>)/,
+      function(m, a, mid, b){ return a + mid + gcMusicTagHTML(p) + b; }
+    );
+  }
+  // Speaker button on media (image/video)
+  if(html.indexOf('class="post-media-wrap"') !== -1 || html.indexOf("class='post-media-wrap'") !== -1){
+    html = html.replace(
+      /(<div class="post-media-wrap"[^>]*>)/,
+      function(m, open){ return open + gcMusicSpeakerHTML(p); }
+    );
+  } else {
+    // Text-only post: compact chip before actions
+    if(html.indexOf('<div class="post-actions"') !== -1){
+      html = html.replace('<div class="post-actions"', gcMusicInlineHTML(p) + '<div class="post-actions"');
+    } else {
+      html += gcMusicInlineHTML(p);
+    }
+  }
 }
 return html;
 };
 }
-// ---------- প্লে ম্যানেজার (একসাথে একটাই) ----------
-function gcMusicSetPlaying(bar, on){
-if(!bar) return;
-bar.classList.toggle('playing', on);
-const ic = bar.querySelector('.gc-music-play i');
-if(ic) ic.className = on ? 'ph-fill ph-pause' : 'ph-fill ph-play';
+// ---------- প্লে ম্যানেজার (Facebook style — একসাথে একটাই) ----------
+function gcMusicSetPlaying(el, on){
+  if(!el) return;
+  // sync all controls with same data-music url
+  const url = el.getAttribute('data-music');
+  document.querySelectorAll('[data-music]').forEach(function(node){
+    if(node.getAttribute('data-music') !== url) return;
+    node.classList.toggle('playing', on);
+    const ic = node.querySelector('i.ph-fill, i.ph-bold');
+    if(!ic) return;
+    if(node.classList.contains('gc-fb-music-speaker')){
+      ic.className = on ? 'ph-fill ph-speaker-high' : 'ph-fill ph-speaker-slash';
+    } else if(node.classList.contains('gc-fb-music-tag') || node.classList.contains('gc-fb-music-inline')){
+      ic.className = 'ph-fill ph-music-note';
+    }
+  });
 }
-function gcMusicToggle(bar){
-const url = bar.getAttribute('data-music');
-if(gcMusicAudio && gcMusicBarEl === bar && !gcMusicAudio.paused){
-gcMusicAudio.pause();
-gcMusicSetPlaying(bar, false);
-return;
+function gcMusicToggle(el){
+  const url = el.getAttribute('data-music');
+  if(!url) return;
+  if(gcMusicAudio && gcMusicBarEl && gcMusicBarEl.getAttribute('data-music') === url && !gcMusicAudio.paused){
+    gcMusicAudio.pause();
+    gcMusicSetPlaying(el, false);
+    return;
+  }
+  if(gcMusicAudio){
+    try{ gcMusicAudio.pause(); }catch(e){}
+    if(gcMusicBarEl) gcMusicSetPlaying(gcMusicBarEl, false);
+  }
+  gcMusicAudio = new Audio(url);
+  gcMusicBarEl = el;
+  gcMusicAudio.onended = function(){ gcMusicSetPlaying(el, false); };
+  gcMusicAudio.play().then(function(){ gcMusicSetPlaying(el, true); }).catch(function(){ showToast('Could not play music'); });
 }
-if(gcMusicAudio){ gcMusicAudio.pause(); gcMusicSetPlaying(gcMusicBarEl, false); }
-gcMusicAudio = new Audio(url);
-gcMusicBarEl = bar;
-gcMusicAudio.onended = function(){ gcMusicSetPlaying(bar, false); };
-gcMusicAudio.play().then(function(){ gcMusicSetPlaying(bar, true); }).catch(function(){ showToast('Could not play music'); });
-}
+window.gcMusicToggle = gcMusicToggle;
+
 // ---------- পোস্টের পর রিসেট ----------
 window.gcOrigSubmitPost107 = submitPost;
 submitPost = async function(){
@@ -21854,6 +21929,45 @@ window.currentPostMusic = null;
 const c = document.getElementById('gc-music-chip'); if(c) c.remove();
 return r;
 };
+
+// ═══════════════════════════════════════════════════════
+// 🚀 Update #108 · music-upload-fix · 2026-08-24
+// WAV → Cloudinary (video/auto এন্ডপয়েন্ট + ফলব্যাক চেইন)
+// খুঁজতে: Ctrl+F → "music-upload-fix"
+// ═══════════════════════════════════════════════════════
+async function gcUploadAudioBlob(blob){
+let cloud = null, preset = null;
+try{
+const src = (typeof uploadToCloudinary === 'function') ? uploadToCloudinary.toString() : '';
+const mc = src.match(/v1_1\/([A-Za-z0-9_-]+)/);
+const mp = src.match(/upload_preset[\s\S]{0,30}?['"]([A-Za-z0-9_-]+)['"]/);
+if(mc) cloud = mc[1];
+if(mp) preset = mp[1];
+}catch(e){}
+const errors = [];
+if(cloud && preset){
+const endpoints = ['video', 'auto'];
+for(let i = 0; i < endpoints.length; i++){
+try{
+const fd = new FormData();
+fd.append('file', blob, 'gochat-music.wav');
+fd.append('upload_preset', preset);
+const r = await fetch('https://api.cloudinary.com/v1_1/' + cloud + '/' + endpoints[i] + '/upload', { method: 'POST', body: fd });
+if(r.ok){
+const j = await r.json();
+if(j && j.secure_url) return j.secure_url;
+}else{
+errors.push(endpoints[i] + ':' + r.status);
+}
+}catch(e){ errors.push(endpoints[i] + ':' + (e.message || 'net')); }
+}
+}
+if(typeof uploadToCloudinary === 'function'){
+try{ return await uploadToCloudinary(blob, true); }catch(e){ errors.push('vid:' + (e.message || 'fail')); }
+try{ return await uploadToCloudinary(blob, false); }catch(e){ errors.push('img:' + (e.message || 'fail')); }
+}
+throw new Error(errors.join(' | ') || 'upload failed');
+}
 </script>
 </body>
 </html>
