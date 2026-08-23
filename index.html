@@ -1451,9 +1451,19 @@ padding:8px;z-index:100;
 box-shadow:var(--shadow-lg);
 flex-direction:column;gap:4px;
 width:200px;
-animation:menuSlide 0.2s ease;
+/* keep centered — do NOT use menuSlide (it overwrites translateX) */
+animation:none;
 }
-#fab-menu.open{display:flex;}
+#fab-menu.open{
+display:flex;
+left:50%;
+transform:translateX(-50%);
+animation:fabMenuIn 0.22s ease;
+}
+@keyframes fabMenuIn{
+from{opacity:0;transform:translateX(-50%) translateY(10px);}
+to{opacity:1;transform:translateX(-50%) translateY(0);}
+}
 .profile-menu{
 display:none;position:absolute;
 top:50px;right:0;
@@ -5218,7 +5228,7 @@ body:not(.light-mode) .fb-create-story-card {
 100%{opacity:1;}
 }
 /* ২) ফুল-স্ক্রিন ওভারলে স্ক্রিন */
-#chat-screen.open,#create-post-screen.open,#settings-privacy-screen.open,#page-other-profile.open,#single-post-screen.open,#gc-mr-screen.open,#gc-fr-screen.open,#gc-liked-screen.open,#gc-ins-screen.open,#gc-fp-screen.open,#gc-call-screen.open,#gc-loc-screen.open,#story-viewer.open{
+#chat-screen.open,#create-post-screen.open,#settings-privacy-screen.open,#page-other-profile.open,#single-post-screen.open,#gc-mr-screen.open,#gc-fr-screen.open,#gc-liked-screen.open,#gc-ins-screen.open,#gc-fp-screen.open,#gc-loc-screen.open,#story-viewer.open{
 animation:gcScreenIn .4s cubic-bezier(.22,1,.36,1) both;
 }
 /* ৩) মেইন মেনু (inline style দিয়ে খোলে) */
@@ -6334,8 +6344,8 @@ Edit Profile-এ পার্টনার সিলেক্ট বাটন
             </span>
         </div>
         
-        <!-- 🚀 Solid Share Button -->
-        <div style="display:flex; align-items:center; gap:6px; cursor:pointer;" onclick="showToast('Share feature coming soon!');">
+        <!-- 🚀 Solid Share Button — opens existing share modal -->
+        <div style="display:flex; align-items:center; gap:6px; cursor:pointer;" onclick="if(zoomActivePostId){ closeImageZoom(); openShareModal(zoomActivePostId); } else { showToast('Nothing to share'); }">
             <span style="display:flex; align-items:center; gap:6px; color:#fff;">
                 <i class="ph-fill ph-paper-plane-tilt" style="font-size:24px; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));"></i>
             </span>
@@ -6567,8 +6577,8 @@ Edit Profile-এ পার্টনার সিলেক্ট বাটন
             <i class="ph-bold ph-caret-right" style="color:var(--text-muted); font-size:16px;"></i>
         </div>
 
-        <!-- 🚀 NEW: Switch Account Menu Item (রং আগের মতোই আছে) -->
-        <div class="settings-list-item" onclick="showToast('Switch Account feature coming soon!')">
+        <!-- 🚀 Switch Account — wired to gcOpenSwitchSheet -->
+        <div class="settings-list-item" onclick="if(typeof gcOpenSwitchSheet==='function'){gcOpenSwitchSheet();}else{showToast('Switch Account unavailable');}">
             <div style="display:flex; align-items:center; gap:16px;">
                 <i class="ph-bold ph-arrows-left-right" style="font-size: 24px; color: #8b5cf6;"></i>
                 <span style="font-weight:600; font-size:15px;">Switch Account</span>
@@ -9679,18 +9689,16 @@ function gcBuildOneCommentHTML(pid, c, idx, where){
   return '<div class="comment-item" id="gc-comment-' + pid + '-' + idx + '" data-comment-text="' + plainText + '" style="display:flex;gap:10px;align-items:flex-start;">'
     + '<div class="avatar sm" style="flex-shrink:0;cursor:pointer;margin-top:2px;" onclick="event.stopPropagation();' + closeFn + '();viewUserProfile(\'' + c.uid + '\')">' + commentAvHtml + '</div>'
     + '<div style="flex:1;min-width:0;">'
-    +   '<div style="display:flex;align-items:flex-start;gap:6px;">'
-    +     '<div style="background:var(--surface-2);padding:10px 14px;border-radius:4px 18px 18px 18px;display:inline-block;border:1px solid var(--border);max-width:calc(100% - 28px);">'
-    +       '<div class="comment-author" style="cursor:pointer;font-size:13px;margin-bottom:4px;" onclick="event.stopPropagation();' + closeFn + '();viewUserProfile(\'' + c.uid + '\')">' + safeCName + commentBadge + '</div>'
-    +       (safeCText ? '<div class="gc-c-body-text" style="font-size:14px;color:var(--text);line-height:1.4;">' + safeCText + '</div>' : '')
-    +     '</div>'
-    +     '<button type="button" class="gc-c-more-btn" title="Options" onclick="event.stopPropagation();showCommentActions(\'' + pid + '\',' + idx + ',\'' + c.uid + '\')"><i class="ph-bold ph-dots-three" style="font-size:18px;"></i></button>'
+    +   '<div style="background:var(--surface-2);padding:10px 14px;border-radius:4px 18px 18px 18px;display:inline-block;border:1px solid var(--border);max-width:100%;">'
+    +     '<div class="comment-author" style="cursor:pointer;font-size:13px;margin-bottom:4px;" onclick="event.stopPropagation();' + closeFn + '();viewUserProfile(\'' + c.uid + '\')">' + safeCName + commentBadge + '</div>'
+    +     (safeCText ? '<div class="gc-c-body-text" style="font-size:14px;color:var(--text);line-height:1.4;">' + safeCText + '</div>' : '')
     +   '</div>'
     +   commentImageHtml
     +   '<div class="gc-c-meta">'
     +     (timeLabel ? '<span class="gc-c-time">' + timeLabel + '</span>' : '')
     +     '<span class="gc-c-btn' + (liked ? ' liked' : '') + '" onclick="event.stopPropagation();gcToggleCommentLike(\'' + pid + '\',' + idx + ')"><i class="' + (liked ? 'ph-fill' : 'ph-bold') + ' ph-heart" style="font-size:14px;"></i>' + (likeCount ? likeCount : '') + '</span>'
     +     '<span class="gc-c-btn" title="Reply" onclick="event.stopPropagation();' + replyClick + '"><i class="ph ph-chat-centered-text" style="font-size:16px;"></i></span>'
+    +     '<button type="button" class="gc-c-more-btn" title="Options" onclick="event.stopPropagation();showCommentActions(\'' + pid + '\',' + idx + ',\'' + c.uid + '\')"><i class="ph-bold ph-dots-three" style="font-size:16px;"></i></button>'
     +   '</div>'
     +   '<div id="reply-input-' + idx + '"></div>'
     +   repliesHtml
@@ -10356,7 +10364,7 @@ function showReactionPicker(event, msgId) {
         // 🚀 NEW: আপনার সিলেক্ট করা ৫টি স্পেশাল ইমোজি লিস্ট
     picker.innerHTML = `
         <span class="reaction-emoji" onclick="toggleMessageReaction('${msgId}','❤️')">❤️</span>
-        <span class="reaction-emoji" onclick="toggleMessageReaction('${msgId}','😆')">😆</span>
+        <span class="reaction-emoji" onclick="toggleMessageReaction('${msgId}','😆')">??</span>
         <span class="reaction-emoji" onclick="toggleMessageReaction('${msgId}','🥰')">🥰</span>
         <span class="reaction-emoji" onclick="toggleMessageReaction('${msgId}','😥')">😥</span>
         <span class="reaction-emoji" onclick="toggleMessageReaction('${msgId}','😡')">😡</span>
