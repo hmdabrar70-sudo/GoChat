@@ -5741,7 +5741,7 @@ Edit Profile-এ পার্টনার সিলেক্ট বাটন
 .gc-fb-music-tag.playing i{animation:gcDisc 3s linear infinite;}
 .post-media-wrap{position:relative;}
 .gc-fb-music-speaker{
-  position:absolute;right:10px;bottom:10px;z-index:5;
+  position:absolute;right:12px;bottom:28px;z-index:5;
   width:36px;height:36px;border-radius:50%;
   border:none;cursor:pointer;
   background:rgba(0,0,0,0.55);color:#fff;
@@ -8677,6 +8677,9 @@ function closeMainSettingsScreen() {
 
 // ===== NAVIGATION =====
 function showPage(page) {
+    // 🚀 Stop post music when leaving current view / switching pages
+    try{ if(typeof gcMusicStopAll === 'function') gcMusicStopAll(); }catch(e){}
+
     // 🚀 স্মার্ট রিফ্রেশ লজিক
     if (page === 'feed' && document.getElementById('page-feed').classList.contains('active')) {
         refreshFeed(); 
@@ -11813,6 +11816,7 @@ function gcBuildInlineCommentsHTML(pid, comments){
 }
 
 async function openSinglePostView(pid) {
+    try{ if(typeof gcMusicStopAll === 'function') gcMusicStopAll(); }catch(e){}
     const screen = document.getElementById('single-post-screen');
     if(screen) screen.classList.add('open');
     const container = document.getElementById('single-post-container');
@@ -12713,6 +12717,7 @@ ${generatePollHTML(p)}
 }
 
 function closeSinglePost(){
+    try{ if(typeof gcMusicStopAll === 'function') gcMusicStopAll(); }catch(e){}
     const screen = document.getElementById('single-post-screen');
     if(screen) screen.classList.remove('open');
     const compose = document.getElementById('sp-fixed-compose');
@@ -21846,7 +21851,7 @@ function gcMusicTagHTML(p){
 function gcMusicSpeakerHTML(p){
   const url = escapeHTML(p.musicUrl || '');
   return '<button type="button" class="gc-fb-music-speaker" data-music="' + url + '" onclick="event.stopPropagation(); gcMusicToggle(this)" aria-label="Play music">'
-    + '<i class="ph-fill ph-speaker-high"></i></button>';
+    + '<i class="ph-fill ph-speaker-slash"></i></button>';
 }
 function gcMusicInlineHTML(p){
   const url = escapeHTML(p.musicUrl || '');
@@ -21886,6 +21891,29 @@ return html;
 };
 }
 // ---------- প্লে ম্যানেজার (Facebook style — একসাথে একটাই) ----------
+function gcMusicStopAll(){
+  try{
+    if(gcMusicAudio){
+      gcMusicAudio.pause();
+      gcMusicAudio.onended = null;
+      try{ gcMusicAudio.src = ''; }catch(e){}
+    }
+  }catch(e){}
+  gcMusicAudio = null;
+  if(gcMusicBarEl){
+    try{ gcMusicSetPlaying(gcMusicBarEl, false); }catch(e){}
+  }
+  gcMusicBarEl = null;
+  document.querySelectorAll('.gc-fb-music-tag.playing, .gc-fb-music-inline.playing, .gc-fb-music-speaker.playing').forEach(function(n){
+    n.classList.remove('playing');
+    const ic = n.querySelector('i');
+    if(ic && n.classList.contains('gc-fb-music-speaker')){
+      ic.className = 'ph-fill ph-speaker-slash';
+    }
+  });
+}
+window.gcMusicStopAll = gcMusicStopAll;
+
 function gcMusicSetPlaying(el, on){
   if(!el) return;
   // sync all controls with same data-music url
@@ -21920,6 +21948,69 @@ function gcMusicToggle(el){
   gcMusicAudio.play().then(function(){ gcMusicSetPlaying(el, true); }).catch(function(){ showToast('Could not play music'); });
 }
 window.gcMusicToggle = gcMusicToggle;
+
+// 🚀 Stop music when the playing post scrolls out of view
+var gcMusicIO = null;
+var gcMusicObservedCard = null;
+function gcMusicWatchCard(el){
+  try{
+    if(gcMusicIO){
+      gcMusicIO.disconnect();
+      gcMusicIO = null;
+    }
+    gcMusicObservedCard = null;
+    if(!el) return;
+    var card = el.closest ? el.closest('.post-card') : null;
+    if(!card) card = el;
+    gcMusicObservedCard = card;
+    gcMusicIO = new IntersectionObserver(function(entries){
+      entries.forEach(function(entry){
+        if(!entry.isIntersecting){
+          try{ if(typeof gcMusicStopAll === 'function') gcMusicStopAll(); }catch(e){}
+        }
+      });
+    }, { root: null, rootMargin: '0px', threshold: 0.12 });
+    gcMusicIO.observe(card);
+  }catch(e){}
+}
+// wrap play path: when music starts, watch its post card
+(function(){
+  var _toggle = gcMusicToggle;
+  gcMusicToggle = function(el){
+    _toggle(el);
+    try{
+      // if now playing this el, observe; if paused, disconnect
+      if(gcMusicAudio && !gcMusicAudio.paused && gcMusicBarEl){
+        gcMusicWatchCard(gcMusicBarEl);
+      } else if(gcMusicIO){
+        gcMusicIO.disconnect();
+        gcMusicIO = null;
+        gcMusicObservedCard = null;
+      }
+    }catch(e){}
+  };
+  window.gcMusicToggle = gcMusicToggle;
+})();
+// also disconnect observer inside stopAll
+(function(){
+  var _stop = gcMusicStopAll;
+  gcMusicStopAll = function(){
+    try{
+      if(gcMusicIO){ gcMusicIO.disconnect(); gcMusicIO = null; }
+      gcMusicObservedCard = null;
+    }catch(e){}
+    _stop();
+  };
+  window.gcMusicStopAll = gcMusicStopAll;
+})();
+
+// Stop music when tab/app backgrounded
+document.addEventListener('visibilitychange', function(){
+  if(document.visibilityState === 'hidden'){
+    try{ if(typeof gcMusicStopAll === 'function') gcMusicStopAll(); }catch(e){}
+  }
+});
+
 
 // ---------- পোস্টের পর রিসেট ----------
 window.gcOrigSubmitPost107 = submitPost;
