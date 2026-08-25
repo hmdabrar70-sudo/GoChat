@@ -16076,6 +16076,96 @@ async function uploadAndSendVoice(audioBlob) {
 }
 
 // ==========================================
+// 🚀 SMART BACK BUTTON & HISTORY MANAGER
+// ==========================================
+let backPressTimer = null;
+
+// শুরুতে একটা ডামি হিস্ট্রি পুশ করে রাখা হলো
+history.pushState({ page: 'gochat_home' }, "", window.location.href);
+
+window.addEventListener('popstate', function(event) {
+    // যদি কোনো স্ক্রিন বা মডাল ওপেন থাকে, তবে সেটা ক্লোজ হবে
+    if (closeTopMostView()) {
+        // বের হওয়া ঠেকাতে আবার হিস্ট্রি পুশ করে দেওয়া হলো
+        history.pushState({ page: 'gochat_home' }, "", window.location.href);
+    } else {
+        // যদি ইউজার মেইন ফিডে থাকে, তখন ডাবল ট্যাপ এক্সিট লজিক
+        if (backPressTimer) {
+            clearTimeout(backPressTimer);
+            // দ্বিতীয়বার চাপলে সত্যি বের হয়ে যাবে (ইতিমধ্যেই popstate হয়ে এক ধাপ পিছনে গেছে)
+        } else {
+            showToast("Press back again to exit");
+            // ভুল করে বের হওয়া ঠেকাতে আবার পুশ করা হলো
+            history.pushState({ page: 'gochat_home' }, "", window.location.href);
+            backPressTimer = setTimeout(() => {
+                backPressTimer = null;
+            }, 2000);
+        }
+    }
+});
+
+// ?? এই ফাংশনটি চেক করবে স্ক্রিনে এই মুহূর্তে কী ওপেন আছে এবং সবচেয়ে ওপরের জিনিসটা বন্ধ করবে
+function closeTopMostView() {
+    // ১. Full Screen Image Zoom
+    const imageZoom = document.getElementById('image-zoom-modal');
+    if (imageZoom && imageZoom.classList.contains('open')) { closeImageZoom(); return true; }
+
+    // ২. Story Viewer
+    const storyViewer = document.getElementById('story-viewer');
+    if (storyViewer && storyViewer.classList.contains('open')) { closeStory(); return true; }
+
+    // ৪. Bottom Sheets / Action Modals
+    const deleteSheet = document.getElementById('delete-sheet-modal');
+    if (deleteSheet && deleteSheet.classList.contains('open')) { closeDeleteSheet(); return true; }
+    
+    const qpModal = document.getElementById('quick-profile-modal');
+    if (qpModal && qpModal.classList.contains('open')) { closeQuickProfile(); return true; }
+
+    const wpModal = document.getElementById('wallpaper-modal');
+    if (wpModal && wpModal.classList.contains('open')) { closeWallpaperPicker(); return true; }
+    
+    // ৫. Sub Screens (Chat, Profile, Post etc)
+    const commentPanel = document.getElementById('comment-panel');
+    if (commentPanel && commentPanel.classList.contains('open')) { closeCommentPanel(); return true; }
+
+    const singlePost = document.getElementById('single-post-screen');
+    if (singlePost && singlePost.classList.contains('open')) { closeSinglePost(); return true; }
+
+    const chatScreen = document.getElementById('chat-screen');
+    if (chatScreen && chatScreen.classList.contains('open')) { closeChat(); return true; }
+
+    const otherProfile = document.getElementById('page-other-profile');
+    if (otherProfile && otherProfile.classList.contains('open')) { closeUserProfile(); return true; }
+
+    const createPost = document.getElementById('create-post-screen');
+    if (createPost && createPost.classList.contains('open')) { closeCreatePost(); return true; }
+
+    const groupInfo = document.getElementById('group-info-modal');
+    if (groupInfo && groupInfo.style.display === 'flex') { closeGroupInfoModal(); return true; }
+
+    // ৬. Settings & Menus
+    const editProfile = document.getElementById('edit-profile-screen');
+    if (editProfile && editProfile.style.display === 'flex') { closeProfileEdit(); return true; }
+
+    const galleryScreen = document.getElementById('gallery-screen');
+    if (galleryScreen && galleryScreen.style.display === 'flex') { closeGallery(); return true; }
+
+    const mainSettings = document.getElementById('main-settings-screen');
+    if (mainSettings && mainSettings.style.display === 'flex') { closeMainSettingsScreen(); return true; }
+
+    const mainMenu = document.getElementById('main-menu-screen');
+    if (mainMenu && mainMenu.style.display === 'flex') { closeMainMenu(); return true; }
+
+    // ৭. Bottom Navigation Pages (Back to Feed)
+    const feedPage = document.getElementById('page-feed');
+    if (feedPage && !feedPage.classList.contains('active')) {
+        showPage('feed'); return true;
+    }
+
+    // কিছু ওপেন না থাকলে false রিটার্ন করবে (অর্থাৎ ইউজার মেইন ফিডে আছে)
+    return false;
+}
+// ==========================================
 // 🚀 ACCOUNT BINDING (LINKING) SYSTEM 🚀
 // ==========================================
 
