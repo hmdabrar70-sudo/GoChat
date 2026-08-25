@@ -679,16 +679,96 @@ width:100%;max-height:85vh;object-fit:contain;
     bottom: 0;
     left: 0;
     right: 0;
-    padding: 20px;
-    background: transparent; /* সাদা রঙ পুরোপুরি সরিয়ে স্বচ্ছ করা হলো */
+    padding: 16px 14px calc(16px + env(safe-area-inset-bottom, 0px));
+    background: linear-gradient(to top, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.2) 55%, transparent 100%);
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 10px;
     z-index: 10;
 }
 
 #sv-views, #sv-react-count, #sv-react-btn {
     color: #ffffff !important;
+}
+
+/* Story reply capsule (between views & react) */
+.sv-reply-wrap {
+    flex: 1;
+    min-width: 0;
+    display: none;
+    align-items: center;
+}
+.sv-reply-wrap.show { display: flex; }
+.sv-reply-capsule {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    gap: 6px;
+    padding: 4px 4px 4px 14px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.12);
+    border: 1px solid rgba(255,255,255,0.35);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+.sv-reply-capsule input {
+    flex: 1;
+    min-width: 0;
+    border: none;
+    outline: none;
+    background: transparent;
+    color: #fff;
+    font-size: 14px;
+    font-weight: 500;
+    padding: 8px 0;
+}
+.sv-reply-capsule input::placeholder { color: rgba(255,255,255,0.65); }
+.sv-reply-send {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(255,255,255,0.22);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: transform .15s, background .15s;
+}
+.sv-reply-send:active { transform: scale(0.92); background: var(--accent); }
+
+/* Pending story upload ring on stories bar */
+.story-circle.gc-story-pending {
+    position: relative;
+}
+.story-circle.gc-story-pending::after {
+    content: '';
+    position: absolute;
+    inset: -3px;
+    border-radius: 50%;
+    border: 3px solid transparent;
+    border-top-color: var(--accent);
+    border-right-color: var(--accent);
+    animation: gcStorySpin 0.9s linear infinite;
+    pointer-events: none;
+}
+@keyframes gcStorySpin { to { transform: rotate(360deg); } }
+.gc-story-pending-pct {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.45);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2;
+    pointer-events: none;
 }
 
 .post-dropdown-menu{
@@ -6174,11 +6254,22 @@ Edit Profile-এ পার্টনার সিলেক্ট বাটন
 </div>
 
 <div class="story-footer">
-<div style="color:#fff;font-size:14px;font-weight:700;display:flex;align-items:center;gap:6px;">
+<div style="color:#fff;font-size:14px;font-weight:700;display:flex;align-items:center;gap:6px;flex-shrink:0;">
 <i class="ph-bold ph-eye" style="font-size:22px; filter:drop-shadow(0 1px 2px rgba(0,0,0,0.5));"></i>
 <span id="sv-views" style="text-shadow:0 1px 2px rgba(0,0,0,0.5);">0</span>
 </div>
-<div style="display:flex; align-items:center; gap:8px;">
+<div class="sv-reply-wrap" id="sv-reply-wrap">
+  <div class="sv-reply-capsule">
+    <input id="sv-reply-input" type="text" maxlength="500" placeholder="Reply to story…" autocomplete="off"
+      onclick="event.stopPropagation();"
+      onfocus="event.stopPropagation(); if(typeof pauseStoryForReply==='function') pauseStoryForReply();"
+      onkeydown="if(event.key==='Enter'){event.preventDefault();sendStoryReply();}">
+    <button type="button" class="sv-reply-send" onclick="event.stopPropagation();sendStoryReply();" aria-label="Send reply">
+      <i class="ph-bold ph-paper-plane-tilt" style="font-size:18px;"></i>
+    </button>
+  </div>
+</div>
+<div style="display:flex; align-items:center; gap:8px;flex-shrink:0;">
 <span id="sv-react-count" style="color:#fff; font-size:18px; font-weight:700; text-shadow:0 1px 2px rgba(0,0,0,0.5);">0</span>
 <i class="ph-bold ph-heart" id="sv-react-btn" onclick="reactToCurrentStory()" style="color:#fff;font-size:32px;cursor:pointer;transition:all 0.2s; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));"></i>
 </div>
@@ -9397,34 +9488,49 @@ async function uploadStory(input){
 const file=input.files[0];
 if(!file)return;
 const isVideo=file.type.startsWith('video/');
+let localPreview = '';
 try{
-showToast(isVideo ? 'Checking video…' : 'Optimizing story…');
-const prepared = await gcPrepareMediaFile(file, 'story');
-showToast('Uploading Story...');
-const url=await uploadToCloudinary(prepared, isVideo);
-await db.collection('stories').add({
-uid:currentUser.uid,
-name:currentUserData.name,
-avatar:currentUserData.avatar||'',
-email:currentUserData.email||(currentUser.email||''),
-isVerified: currentUserData.isVerified === true,
-mediaUrl:url,
-isVideo:isVideo,
-views:[],reacts:[],
-createdAt:firebase.firestore.FieldValue.serverTimestamp(),
-expiresAt:new Date(Date.now()+ONE_DAY_MS)
-});
-showToast('Story added!');
-awardPoints(currentUser.uid, 25);
-input.value='';
+  try{ localPreview = URL.createObjectURL(file); }catch(e){}
+  window.gcStoryPending = { active:true, pct:0, preview: localPreview || ((currentUserData&&currentUserData.avatar)||'') };
+  if(typeof gcPaintStoryPendingInList === 'function') gcPaintStoryPendingInList();
+  showToast(isVideo ? 'Checking video…' : 'Optimizing story…');
+  const prepared = await gcPrepareMediaFile(file, 'story');
+  if(typeof gcSetStoryPendingUI === 'function') gcSetStoryPendingUI(5, localPreview);
+  if(typeof gcPaintStoryPendingInList === 'function') gcPaintStoryPendingInList();
+  const url = await gcUploadWithProgress(prepared, isVideo, function(pct){
+    if(typeof gcSetStoryPendingUI === 'function') gcSetStoryPendingUI(pct, localPreview);
+    const label = document.getElementById('gc-story-pending-pct');
+    if(label) label.textContent = Math.round(pct) + '%';
+    else if(typeof gcPaintStoryPendingInList === 'function') gcPaintStoryPendingInList();
+  });
+  if(typeof gcSetStoryPendingUI === 'function') gcSetStoryPendingUI(100, localPreview);
+  await db.collection('stories').add({
+    uid:currentUser.uid,
+    name:currentUserData.name,
+    avatar:currentUserData.avatar||'',
+    email:currentUserData.email||(currentUser.email||''),
+    isVerified: currentUserData.isVerified === true,
+    mediaUrl:url,
+    isVideo:isVideo,
+    views:[],reacts:[],
+    createdAt:firebase.firestore.FieldValue.serverTimestamp(),
+    expiresAt:new Date(Date.now()+ONE_DAY_MS)
+  });
+  if(typeof gcClearStoryPendingUI === 'function') gcClearStoryPendingUI();
+  showToast('Story added!');
+  awardPoints(currentUser.uid, 25);
+  input.value='';
 }catch(e){
-const msg = (e && e.message) ? String(e.message) : '';
-if(msg === 'IMG_TOO_LARGE') showToast('Story image must be under 5MB!');
-else if(msg.indexOf('VID_TOO_LONG') === 0) showToast('Story video must be under 40 seconds!');
-else if(msg === 'VID_TOO_LARGE') showToast('Story video must be under 2MB. Trim or compress it.');
-else if(msg === 'UNSUPPORTED') showToast('Unsupported file type');
-else showToast('Network error.');
-input.value='';
+  if(typeof gcClearStoryPendingUI === 'function') gcClearStoryPendingUI();
+  const msg = (e && e.message) ? String(e.message) : '';
+  if(msg === 'IMG_TOO_LARGE') showToast('Story image must be under 5MB!');
+  else if(msg.indexOf('VID_TOO_LONG') === 0) showToast('Story video must be under 40 seconds!');
+  else if(msg === 'VID_TOO_LARGE') showToast('Story video must be under 2MB. Trim or compress it.');
+  else if(msg === 'UNSUPPORTED') showToast('Unsupported file type');
+  else showToast('Network error.');
+  input.value='';
+}finally{
+  try{ if(localPreview) URL.revokeObjectURL(localPreview); }catch(e){}
 }
 }
 
@@ -9522,6 +9628,8 @@ function loadStories(){
         });
         
         list.innerHTML=html;
+        // Keep upload progress bubble if a story is still uploading
+        try{ if(window.gcStoryPending && window.gcStoryPending.active && typeof gcPaintStoryPendingInList==='function') gcPaintStoryPendingInList(); }catch(e){}
         window.allStoriesData=stories;
         window.storyUserIds = userIdsOrder;
         // Active story uids for profile rings
@@ -9709,6 +9817,18 @@ function renderCurrentStory(){
     const reactCountDisplay = document.getElementById('sv-react-count');
     if(reactCountDisplay) {
         reactCountDisplay.textContent=(s.reacts||[]).length;
+    }
+
+    // Reply capsule: only on others' stories
+    const replyWrap = document.getElementById('sv-reply-wrap');
+    const replyInp = document.getElementById('sv-reply-input');
+    if(replyWrap){
+      if(s.uid !== currentUser.uid){
+        replyWrap.classList.add('show');
+        if(replyInp){ replyInp.value = ''; replyInp.placeholder = 'Reply to ' + (s.name || 'story') + '…'; }
+      } else {
+        replyWrap.classList.remove('show');
+      }
     }
 
     const reactBtn=document.getElementById('sv-react-btn');
@@ -9903,6 +10023,184 @@ async function reactToCurrentStory(){
         }
     }
 }
+
+// ═══════════════════════════════════════════════════════
+// 🚀 Update · story-reply + upload-progress · 2026-08-26
+// খুঁজতে: Ctrl+F → "story-reply"
+// ═══════════════════════════════════════════════════════
+function pauseStoryForReply(){
+  try{ clearTimeout(storyTimer); }catch(e){}
+  try{
+    const vid = document.querySelector('#sv-media-container video');
+    if(vid && !vid.paused) vid.pause();
+  }catch(e){}
+}
+function resumeStoryAfterReply(){
+  try{
+    const fill = document.querySelector('#story-progress-bar .story-progress-fill.animating');
+    if(fill){
+      // restart short timer so story doesn't freeze forever
+      clearTimeout(storyTimer);
+      storyTimer = setTimeout(nextStorySegment, 4000);
+    }
+  }catch(e){}
+}
+async function sendStoryReply(){
+  if(!currentUser || !activeStoryGroup || currentStoryIndex >= activeStoryGroup.length) return;
+  if(typeof checkRateLimit === 'function' && !checkRateLimit()) return;
+  const s = activeStoryGroup[currentStoryIndex];
+  if(!s || s.uid === currentUser.uid) return;
+  const inp = document.getElementById('sv-reply-input');
+  const text = (inp && inp.value ? inp.value : '').trim();
+  if(!text){ showToast('Write a reply first'); return; }
+  try{
+    pauseStoryForReply();
+    if(inp) inp.value = '';
+    const otherUid = s.uid;
+    const chatId = [currentUser.uid, otherUid].sort().join('_');
+    const otherName = s.name || 'User';
+    const otherAvatar = s.avatar || '';
+    const thumb = s.mediaUrl || '';
+    const isVideo = !!s.isVideo;
+    const msgData = {
+      uid: currentUser.uid,
+      senderName: (currentUserData && currentUserData.name) || 'User',
+      text: text,
+      sharedStoryId: s.id || '',
+      sharedStoryImg: isVideo ? '' : thumb,
+      sharedStoryVideo: isVideo ? thumb : '',
+      sharedStoryIsVideo: isVideo,
+      sharedStoryOwner: otherName,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+    await db.collection('chats').doc(chatId).collection('messages').add(msgData);
+    await db.collection('chats').doc(chatId).set({
+      lastMsg: '📎 Story reply: ' + text,
+      lastAt: firebase.firestore.FieldValue.serverTimestamp(),
+      names: {
+        [currentUser.uid]: (currentUserData && currentUserData.name) || 'User',
+        [otherUid]: otherName
+      },
+      avatars: {
+        [currentUser.uid]: (currentUserData && currentUserData.avatar) || '',
+        [otherUid]: otherAvatar
+      },
+      lastSender: currentUser.uid,
+      isRead: false,
+      users: [currentUser.uid, otherUid]
+    }, { merge: true });
+    try{
+      db.collection('notifications').add({
+        toUid: otherUid,
+        fromUid: currentUser.uid,
+        fromName: (currentUserData && currentUserData.name) || 'User',
+        type: 'story_reply',
+        text: text,
+        storyId: s.id || '',
+        read: false,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    }catch(e){}
+    showToast('Reply sent');
+    // Open chat so user sees the reply under the story card
+    if(typeof closeStory === 'function') closeStory();
+    if(typeof openChat === 'function') openChat(chatId, otherUid, otherName, otherAvatar);
+  }catch(e){
+    console.error(e);
+    showToast('Failed to send reply');
+    resumeStoryAfterReply();
+  }
+}
+window.sendStoryReply = sendStoryReply;
+window.pauseStoryForReply = pauseStoryForReply;
+
+// Upload with progress (XHR) — used by story publish
+function gcUploadWithProgress(file, isVideo, onProgress){
+  return new Promise(function(resolve, reject){
+    try{
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('upload_preset', 'gochat');
+      const endpoint = isVideo
+        ? 'https://api.cloudinary.com/v1_1/dsnqmwyvt/video/upload'
+        : 'https://api.cloudinary.com/v1_1/dsnqmwyvt/image/upload';
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', endpoint);
+      xhr.upload.onprogress = function(e){
+        if(e.lengthComputable && typeof onProgress === 'function'){
+          const pct = Math.max(0, Math.min(99, Math.round((e.loaded / e.total) * 100)));
+          onProgress(pct);
+        }
+      };
+      xhr.onload = function(){
+        try{
+          const data = JSON.parse(xhr.responseText || '{}');
+          if(xhr.status >= 200 && xhr.status < 300 && data.secure_url){
+            if(typeof onProgress === 'function') onProgress(100);
+            resolve(data.secure_url);
+          } else {
+            reject(new Error((data && data.error && data.error.message) || 'Upload failed'));
+          }
+        }catch(err){ reject(err); }
+      };
+      xhr.onerror = function(){ reject(new Error('Network error')); };
+      xhr.send(formData);
+    }catch(e){ reject(e); }
+  });
+}
+
+function gcSetStoryPendingUI(pct, previewUrl){
+  window.gcStoryPending = {
+    active: true,
+    pct: typeof pct === 'number' ? pct : 0,
+    preview: previewUrl || (window.gcStoryPending && window.gcStoryPending.preview) || ''
+  };
+  const el = document.getElementById('gc-story-pending-circle');
+  const label = document.getElementById('gc-story-pending-pct');
+  if(label) label.textContent = Math.round(window.gcStoryPending.pct) + '%';
+  // If list already has pending node, just update %
+  if(el && label) return;
+  // Otherwise force a soft refresh of stories strip if available
+  try{
+    if(typeof loadStories === 'function' && !window.gcStoryPendingPaint){
+      // loadStories is realtime; inject via helper on next snapshot. paint now optimistically:
+      gcPaintStoryPendingInList();
+    }
+  }catch(e){}
+}
+function gcClearStoryPendingUI(){
+  window.gcStoryPending = null;
+  const node = document.getElementById('gc-story-pending-item');
+  if(node) node.remove();
+}
+function gcPaintStoryPendingInList(){
+  const list = document.getElementById('stories-list');
+  if(!list || !window.gcStoryPending || !window.gcStoryPending.active) return;
+  let item = document.getElementById('gc-story-pending-item');
+  const av = (currentUserData && currentUserData.avatar) || '';
+  const pct = Math.round(window.gcStoryPending.pct || 0);
+  const preview = window.gcStoryPending.preview || av;
+  if(!item){
+    item = document.createElement('div');
+    item.id = 'gc-story-pending-item';
+    item.innerHTML =
+      '<div class="story-circle gc-story-pending" id="gc-story-pending-circle">' +
+        (preview ? '<img src="'+preview.replace(/"/g,'&quot;')+'" style="opacity:.85;">' : '<div style="width:100%;height:100%;background:var(--surface-2);border-radius:50%;"></div>') +
+        '<div class="gc-story-pending-pct" id="gc-story-pending-pct">'+pct+'%</div>' +
+      '</div>' +
+      '<div class="story-name">Uploading…</div>';
+    // Insert right after Create story (first child)
+    if(list.firstChild && list.firstChild.nextSibling){
+      list.insertBefore(item, list.firstChild.nextSibling);
+    } else {
+      list.appendChild(item);
+    }
+  } else {
+    const label = document.getElementById('gc-story-pending-pct');
+    if(label) label.textContent = pct + '%';
+  }
+}
+window.gcPaintStoryPendingInList = gcPaintStoryPendingInList;
 
 // ===== POSTS AND LIKE LOGIC =====
 // 🚀 সুপার ফাস্ট লাইক সিস্টেম (Optimistic UI Update) + Spam Notification Fix
@@ -10733,6 +11031,23 @@ safeText = safeText.replace(urlRegex, function(url) {
                         <i class="ph-bold ph-link" style="color:var(--accent); vertical-align:middle; margin-right:4px;"></i>${safeTitle}
                     </div>
                 </div>`;
+                if(m.text) content += `<div style="margin-top:6px;">${safeText}</div>`;
+            } else if (m.sharedStoryId || m.sharedStoryImg || m.sharedStoryVideo) {
+                // Story reply card — story on top, reply text below
+                const sImg = m.sharedStoryImg ? escapeHTML(m.sharedStoryImg) : '';
+                const sVid = m.sharedStoryVideo ? escapeHTML(m.sharedStoryVideo) : '';
+                const sOwner = escapeHTML(m.sharedStoryOwner || 'Story');
+                const mediaBlock = sVid
+                  ? `<video src="${sVid}" muted playsinline style="width:100%;height:140px;object-fit:cover;display:block;background:#000;"></video>`
+                  : (sImg ? `<img src="${sImg}" style="width:100%;height:140px;object-fit:cover;display:block;">` : '');
+                content = `
+                <div style="background:var(--surface-2); border:1px solid var(--border); border-radius:14px; overflow:hidden; width:220px; margin-bottom:4px; box-shadow:var(--shadow-sm);">
+                  ${mediaBlock}
+                  <div style="padding:8px 10px; font-size:11px; font-weight:700; color:var(--text-muted); display:flex; align-items:center; gap:6px;">
+                    <i class="ph-fill ph-circle-wavy" style="color:var(--accent);"></i> ${sOwner}'s story
+                  </div>
+                </div>`;
+                if(m.text) content += `<div style="margin-top:6px;">${safeText}</div>`;
             } else if(m.imageUrl){
                 const safeUrl = escapeHTML(m.imageUrl);
                 content=`${m.text?`<div style="margin-bottom:6px;">${safeText}</div>`:''}<img src="${safeUrl}" onclick="openImageZoom('${safeUrl}')">`;
