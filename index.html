@@ -8479,6 +8479,78 @@ showToast('Login first to view this profile!');
 }
 }, 500);
 }
+
+// ═══════════════════════════════════════════════════════
+// 🚀 Update · in-app-profile-links · 2026-08-26
+// চ্যাট/অ্যাপের ভিতরে প্রোফাইল লিঙ্ক ক্লিক = রিলোড ছাড়াই প্রোফাইল ওপেন
+// খুঁজতে: Ctrl+F → "in-app-profile-links"
+// ═══════════════════════════════════════════════════════
+function gcExtractProfileParam(url){
+  try{
+    if(!url) return null;
+    var u = new URL(String(url), window.location.origin);
+    var p = u.searchParams.get('user');
+    if(p && String(p).length > 1) return String(p);
+  }catch(e){}
+  try{
+    var m = String(url).match(/[?&]user=([^&#]+)/i);
+    if(m && m[1]) return decodeURIComponent(m[1]);
+  }catch(e){}
+  return null;
+}
+function gcIsAppProfileLink(url){
+  var p = gcExtractProfileParam(url);
+  if(!p) return false;
+  try{
+    var u = new URL(String(url), window.location.origin);
+    var host = (u.hostname || '').toLowerCase();
+    var cur = (window.location.hostname || '').toLowerCase();
+    // same origin, vercel previews, gochat domains, or relative
+    if(!host || host === cur) return true;
+    if(host.indexOf('vercel.app') !== -1) return true;
+    if(host.indexOf('gochat') !== -1 || host.indexOf('go-chat') !== -1) return true;
+    // still treat as profile deep-link if it has ?user=
+    return true;
+  }catch(e){ return !!p; }
+}
+async function gcOpenAppProfileLink(url){
+  var param = gcExtractProfileParam(url);
+  if(!param) return false;
+  if(typeof currentUser === 'undefined' || !currentUser){
+    showToast('Login first to view this profile!');
+    return false;
+  }
+  try{
+    var uid = await gcResolveUserParam(param);
+    if(uid){
+      if(typeof viewUserProfile === 'function') viewUserProfile(uid);
+      return true;
+    }
+    showToast('Profile not found!');
+  }catch(e){
+    console.error(e);
+    showToast('Could not open profile');
+  }
+  return false;
+}
+// Capture phase: any <a> with profile deep-link opens in-app (no navigation / splash)
+if(!window.__gcProfileLinkCapture){
+  window.__gcProfileLinkCapture = true;
+  document.addEventListener('click', function(e){
+    try{
+      var a = e.target && e.target.closest ? e.target.closest('a[href]') : null;
+      if(!a) return;
+      var href = a.getAttribute('href') || '';
+      if(!href || href.indexOf('javascript:') === 0) return;
+      if(a.getAttribute('data-gc-user-link') === '1' || gcIsAppProfileLink(href)){
+        e.preventDefault();
+        e.stopPropagation();
+        gcOpenAppProfileLink(href);
+      }
+    }catch(err){}
+  }, true);
+}
+
 // 🚀 NEW: Deep Linking Profile Routing (লিংক থেকে সরাসরি প্রোফাইল ওপেন করার ম্যাজিক)
 const urlParams = new URLSearchParams(window.location.search);
 const profileUidToOpen = urlParams.get('user');
@@ -10624,7 +10696,16 @@ let safeText = escapeHTML(rawText);
 // 🚀 NEW: টেক্সটের ভেতরের URL বা লিংকগুলোকে স্বয়ংক্রিয়ভাবে ক্লিকেবল হাইপারলিংকে রূপান্তর করা
 const urlRegex = /(https?:\/\/[^\s]+)/g;
 safeText = safeText.replace(urlRegex, function(url) {
-    return `<a href="${url}" target="_blank" style="color: inherit; text-decoration: underline; word-break: break-all;" onclick="event.stopPropagation();">${url}</a>`;
+    // GoChat profile links → in-app open (no full reload / splash)
+    var isGcProfile = false;
+    try {
+      var _u = new URL(url, window.location.origin);
+      if (_u.searchParams.get('user')) isGcProfile = true;
+    } catch(e) {}
+    if (isGcProfile) {
+      return '<a href="' + url + '" class="gc-app-link" data-gc-user-link="1" style="color: inherit; text-decoration: underline; word-break: break-all;" onclick="event.preventDefault();event.stopPropagation();if(typeof gcOpenAppProfileLink===\'function\')gcOpenAppProfileLink(this.getAttribute(\'href\'));return false;">' + url + '</a>';
+    }
+    return '<a href="' + url + '" target="_blank" rel="noopener" style="color: inherit; text-decoration: underline; word-break: break-all;" onclick="event.stopPropagation();">' + url + '</a>';
 });
             // 🚀 4. Mention System Render in Chat
             if (currentChatOtherUid === 'group' && allUsersCache) {
