@@ -6037,6 +6037,9 @@ Edit Profile-এ পার্টনার সিলেক্ট বাটন
         <div class="icon-btn" onclick="event.stopPropagation();toggleProfileMenu()" style="background:transparent; padding:8px; border:none; position:relative;">
             <i class="ph-bold ph-dots-three" style="font-size:24px;"></i>
             <div class="profile-menu" id="profile-menu" onclick="event.stopPropagation();">
+    <div class="chat-dropdown-item" onclick="copyOtherProfileLink()">
+        <i class="ph-bold ph-link" style="font-size:20px;"></i> Copy Profile Link
+    </div>
     <div class="chat-dropdown-item danger" id="block-user-btn" onclick="blockCurrentUser()">
         <i class="ph-bold ph-prohibit" style="font-size:20px;"></i> Block User
     </div>
@@ -16132,6 +16135,54 @@ window.copyProfileLink = function() {
         alert("Failed to copy link!");
     });
 };
+
+// 🚀 Update · copy-other-profile-link · 2026-08-26
+// অন্যের প্রোফাইল থ্রি-ডট মেনু → QR কার্ডের মতো একই লিংক কপি
+async function copyOtherProfileLink(){
+  try{
+    if(typeof closeAllDropdowns === 'function') closeAllDropdowns();
+    const menu = document.getElementById('profile-menu');
+    if(menu) menu.classList.remove('open');
+    const uid = currentOtherProfileUid;
+    if(!uid){ showToast('Profile not found'); return; }
+    let u = null;
+    if(typeof qrncLoadUser === 'function'){
+      u = await qrncLoadUser(uid);
+    } else if(typeof allUsersCache !== 'undefined' && allUsersCache){
+      u = allUsersCache.find(function(x){ return x.id === uid; }) || null;
+      if(u) u = Object.assign({ id: uid }, u);
+    }
+    if(!u){
+      try{
+        const doc = await db.collection('users').doc(uid).get();
+        if(doc.exists) u = Object.assign({ id: uid }, doc.data());
+      }catch(e){}
+    }
+    if(!u) u = { id: uid };
+    let link;
+    if(typeof qrncProfileLink === 'function'){
+      link = qrncProfileLink(u);
+    } else {
+      const id = u.username || uid;
+      link = (typeof qrncBase === 'function' ? qrncBase() : (location.origin + location.pathname.replace(/\/+$/,''))) + '/?user=' + encodeURIComponent(id);
+    }
+    const done = function(){ showToast('Profile link copied!'); };
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(link).then(done).catch(function(){
+        if(typeof qrncFallbackCopy === 'function') qrncFallbackCopy(link, done);
+        else showToast('Could not copy link');
+      });
+    } else if(typeof qrncFallbackCopy === 'function'){
+      qrncFallbackCopy(link, done);
+    } else {
+      showToast('Could not copy link');
+    }
+  }catch(e){
+    console.error(e);
+    showToast('Could not copy link');
+  }
+}
+window.copyOtherProfileLink = copyOtherProfileLink;
 // ==========================================
 // 🚀 NEW: ADVANCED VOICE RECORDING SYSTEM
 // ==========================================
