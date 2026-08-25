@@ -7487,6 +7487,138 @@ const MAX_FILE_SIZE = 5 * 1024 * 1024;
 const MAX_IMAGES_PER_POST = 10;
 const RATE_LIMIT_MS = 1000;
 
+/* ═══ Media limits + client-side compression (data saver) ═══ */
+const GC_POST_IMG_TARGET = 180 * 1024;      /* ~100–200 KB */
+const GC_AVATAR_IMG_TARGET = 200 * 1024;
+const GC_STORY_IMG_MAX = 1.5 * 1024 * 1024; /* ≤ 1.5 MB */
+const GC_VIDEO_MAX_BYTES = 2 * 1024 * 1024; /* ≤ 2 MB */
+const GC_POST_VIDEO_MAX_SEC = 30;
+const GC_STORY_VIDEO_MAX_SEC = 40;
+
+function gcLoadImageEl(file){
+  return new Promise(function(resolve, reject){
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = function(){ URL.revokeObjectURL(url); resolve(img); };
+    img.onerror = function(){ URL.revokeObjectURL(url); reject(new Error('Invalid image')); };
+    img.src = url;
+  });
+}
+
+function gcCanvasToBlob(canvas, type, quality){
+  return new Promise(function(resolve){
+    if(canvas.toBlob){
+      canvas.toBlob(function(b){ resolve(b); }, type, quality);
+    } else {
+      try{
+        const data = canvas.toDataURL(type, quality);
+        const bin = atob(data.split(',')[1]);
+        const arr = new Uint8Array(bin.length);
+        for(let i=0;i<bin.length;i++) arr[i]=bin.charCodeAt(i);
+        resolve(new Blob([arr], {type: type}));
+      }catch(e){ resolve(null); }
+    }
+  });
+}
+
+/** Compress image toward maxBytes; keeps visual quality as high as possible. */
+async function gcCompressImageFile(file, maxBytes, maxEdge){
+  if(!file || !file.type || !file.type.startsWith('image/')) return file;
+  maxBytes = maxBytes || GC_POST_IMG_TARGET;
+  maxEdge = maxEdge || 1280;
+  try{
+    if(file.size <= maxBytes && file.size < maxBytes * 1.15){
+      /* already small enough — optional light re-encode only if huge dimensions */
+      const img0 = await gcLoadImageEl(file);
+      if(img0.width <= maxEdge && img0.height <= maxEdge) return file;
+    }
+    const img = await gcLoadImageEl(file);
+    let w = img.width, h = img.height;
+    const scale = Math.min(1, maxEdge / Math.max(w, h));
+    w = Math.max(1, Math.round(w * scale));
+    h = Math.max(1, Math.round(h * scale));
+    const canvas = document.createElement('canvas');
+    canvas.width = w; canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0, w, h);
+    const outType = 'image/jpeg';
+    let q = 0.85;
+    let blob = await gcCanvasToBlob(canvas, outType, q);
+    /* stepwise quality, then shrink dimensions if still large */
+    let guard = 0;
+    while(blob && blob.size > maxBytes && guard < 10){
+      guard++;
+      if(q > 0.45){
+        q = Math.max(0.42, q - 0.1);
+      } else {
+        w = Math.max(320, Math.round(w * 0.82));
+        h = Math.max(320, Math.round(h * 0.82));
+        canvas.width = w; canvas.height = h;
+        ctx.drawImage(img, 0, 0, w, h);
+        q = 0.72;
+      }
+      blob = await gcCanvasToBlob(canvas, outType, q);
+    }
+    if(!blob) return file;
+    const name = (file.name || 'photo.jpg').replace(/\.\w+$/, '.jpg');
+    return new File([blob], name, { type: outType, lastModified: Date.now() });
+  }catch(e){
+    console.warn('gcCompressImageFile', e);
+    return file;
+  }
+}
+
+function gcProbeVideoDuration(file){
+  return new Promise(function(resolve){
+    try{
+      const url = URL.createObjectURL(file);
+      const v = document.createElement('video');
+      v.preload = 'metadata';
+      v.onloadedmetadata = function(){
+        const d = v.duration || 0;
+        URL.revokeObjectURL(url);
+        resolve(d);
+      };
+      v.onerror = function(){ URL.revokeObjectURL(url); resolve(0); };
+      v.src = url;
+    }catch(e){ resolve(0); }
+  });
+}
+
+async function gcPrepareMediaFile(file, kind){
+  /* kind: 'post' | 'avatar' | 'story' */
+  if(!file) return null;
+  const isVideo = file.type && file.type.startsWith('video/');
+  const isImage = file.type && file.type.startsWith('image/');
+
+  if(isImage){
+    if(file.size > MAX_FILE_SIZE){
+      throw new Error('IMG_TOO_LARGE');
+    }
+    let target = GC_POST_IMG_TARGET;
+    let edge = 1280;
+    if(kind === 'avatar'){ target = GC_AVATAR_IMG_TARGET; edge = 720; }
+    if(kind === 'story'){ target = GC_STORY_IMG_MAX; edge = 1080; }
+    return await gcCompressImageFile(file, target, edge);
+  }
+
+  if(isVideo){
+    const maxSec = (kind === 'story') ? GC_STORY_VIDEO_MAX_SEC : GC_POST_VIDEO_MAX_SEC;
+    const dur = await gcProbeVideoDuration(file);
+    if(dur > maxSec + 0.4){
+      throw new Error('VID_TOO_LONG:' + maxSec);
+    }
+    if(file.size > GC_VIDEO_MAX_BYTES){
+      throw new Error('VID_TOO_LARGE');
+    }
+    /* Browser cannot reliably re-encode video without heavy libs — enforce limits */
+    return file;
+  }
+
+  throw new Error('UNSUPPORTED');
+}
+
+
 // 🚀 WELCOME MESSAGE SYSTEM — নতুন ইউজারকে অটো মেসেজ
 const GC_SYSTEM_UID = 'gachat_official';
 const GC_SYSTEM_NAME = 'GoChat Official';
@@ -9232,9 +9364,11 @@ async function uploadStory(input){
 const file=input.files[0];
 if(!file)return;
 const isVideo=file.type.startsWith('video/');
-showToast('Uploading Story...');
 try{
-const url=await uploadToCloudinary(file,isVideo);
+showToast(isVideo ? 'Checking video…' : 'Optimizing story…');
+const prepared = await gcPrepareMediaFile(file, 'story');
+showToast('Uploading Story...');
+const url=await uploadToCloudinary(prepared, isVideo);
 await db.collection('stories').add({
 uid:currentUser.uid,
 name:currentUserData.name,
@@ -9250,7 +9384,15 @@ expiresAt:new Date(Date.now()+ONE_DAY_MS)
 showToast('Story added!');
 awardPoints(currentUser.uid, 25);
 input.value='';
-}catch(e){showToast('Network error.');}
+}catch(e){
+const msg = (e && e.message) ? String(e.message) : '';
+if(msg === 'IMG_TOO_LARGE') showToast('Story image must be under 5MB!');
+else if(msg.indexOf('VID_TOO_LONG') === 0) showToast('Story video must be under 40 seconds!');
+else if(msg === 'VID_TOO_LARGE') showToast('Story video must be under 2MB. Trim or compress it.');
+else if(msg === 'UNSUPPORTED') showToast('Unsupported file type');
+else showToast('Network error.');
+input.value='';
+}
 }
 
 function loadStories(){
@@ -12802,16 +12944,21 @@ list.innerHTML=mine.map(p=>buildPostCardHTML(p)).join('');
 }catch(e){list.innerHTML='<div class="empty-feed">Network issue. Could not load posts.</div>';}
 }
 
-function uploadAvatar(input){
+async function uploadAvatar(input){
 const file=input.files[0];
 if(!file)return;
-if(file.size > MAX_FILE_SIZE) {
-showToast('Profile photo must be under 5MB!');
+if(!file.type || !file.type.startsWith('image/')){
+showToast('Please choose an image file');
+input.value='';
 return;
 }
+try{
+showToast('Optimizing photo…');
+const prepared = await gcPrepareMediaFile(file, 'avatar');
 showToast('Uploading profile photo...');
-uploadToCloudinary(file,false)
-.then(async url=>{
+const url = await uploadToCloudinary(prepared, false);
+
+
 await db.collection('users').doc(currentUser.uid).update({avatar:url});
 currentUserData.avatar=url;
         // === নতুন ম্যাজিক: ইউজারের আগের সব পোস্টের ছবি আপডেট করা ===
@@ -12833,8 +12980,11 @@ currentUserData.avatar=url;
         // ========================================================
 loadUserUI();
 showToast('Profile photo updated!');
-})
-.catch(e=>showToast('Network error.'));
+}catch(e){
+if(e && e.message === 'IMG_TOO_LARGE') showToast('Profile photo must be under 5MB!');
+else { console.error(e); showToast('Network error.'); }
+}
+if(input) input.value='';
 }
 
 async function cleanupExpiredPosts(){
@@ -18366,22 +18516,35 @@ const max = (typeof MAX_IMAGES_PER_POST !== 'undefined') ? MAX_IMAGES_PER_POST :
 const remaining = max - composeImages.length;
 files.slice(0, remaining).forEach(function(file){
 if(file.type.startsWith('video/')){
-const tmp = URL.createObjectURL(file);
-const probe = document.createElement('video');
-probe.preload = 'metadata';
-probe.onloadedmetadata = function(){
-const dur = probe.duration || 0;
-URL.revokeObjectURL(tmp);
-if(dur > 30){ showToast('Video must be under 30 seconds!'); return; }
-composeImages.push({file: file, preview: URL.createObjectURL(file), isVideo: true});
+(async function(){
+try{
+const prepared = await gcPrepareMediaFile(file, 'post');
+composeImages.push({file: prepared, preview: URL.createObjectURL(prepared), isVideo: true});
 renderComposeImageGrid(); checkPostInputs();
-};
-probe.onerror = function(){ URL.revokeObjectURL(tmp); showToast('Invalid video file'); };
-probe.src = tmp;
-}else{
+}catch(e){
+const msg = (e && e.message) ? String(e.message) : '';
+if(msg.indexOf('VID_TOO_LONG') === 0) showToast('Video must be under 30 seconds!');
+else if(msg === 'VID_TOO_LARGE') showToast('Video must be under 2MB. Use a shorter/lower-quality clip.');
+else showToast('Invalid video file');
+}
+})();
+}else if(file.type.startsWith('image/')){
+(async function(){
+try{
+if(file.size > MAX_FILE_SIZE){ showToast('Each image must be under 5MB!'); return; }
+showToast('Optimizing image…');
+const prepared = await gcPrepareMediaFile(file, 'post');
 const reader = new FileReader();
-reader.onload = function(e){ composeImages.push({file: file, preview: e.target.result, isVideo: false}); renderComposeImageGrid(); checkPostInputs(); };
-reader.readAsDataURL(file);
+reader.onload = function(e){ composeImages.push({file: prepared, preview: e.target.result, isVideo: false}); renderComposeImageGrid(); checkPostInputs(); };
+reader.readAsDataURL(prepared);
+}catch(e){
+const msg = (e && e.message) ? String(e.message) : '';
+if(msg === 'IMG_TOO_LARGE') showToast('Each image must be under 5MB!');
+else showToast('Could not process image');
+}
+})();
+}else{
+showToast('Unsupported file type');
 }
 });
 if(files.length > remaining) showToast('Maximum ' + max + ' files allowed');
