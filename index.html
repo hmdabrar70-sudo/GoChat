@@ -21737,69 +21737,6 @@ try{ return await uploadToCloudinary(blob, false); }catch(e){ errors.push('img:'
 }
 throw new Error(errors.join(' | ') || 'upload failed');
 }
-
-// ═══════════════════════════════════════════════════════
-// 🚀 Update #111 · smart-back-v2 · 2026-08-24
-// ভার্চুয়াল পেজ-স্ট্যাক: ব্যাক বাটন এখন আগের পেজে নেবে,
-// ফিডে ডাবল-ব্যাক = এক্সিট (টোস্টসহ)
-// খুঁজতে: Ctrl+F → "smart-back-v2"
-// ═══════════════════════════════════════════════════════
-window.gcNavStack = ['feed'];
-window.gcOrigShowPage111 = showPage;
-showPage = function(page){
-const r = window.gcOrigShowPage111.apply(this, arguments);
-const top = window.gcNavStack[window.gcNavStack.length - 1];
-if(top !== page){
-window.gcNavStack.push(page);
-if(window.gcNavStack.length > 8) window.gcNavStack.splice(1, 1);
-}
-return r;
-};
-// পুরনো popstate লিসেনার এখন এই নতুন লজিক ব্যবহার করবে
-window.closeTopMostView = function(){
-// ১) খোলা ওভারলে/স্ক্রিন আগে বন্ধ (আগের মতোই ক্রম)
-const imageZoom = document.getElementById('image-zoom-modal');
-if(imageZoom && imageZoom.classList.contains('open')){ closeImageZoom(); return true; }
-const storyViewer = document.getElementById('story-viewer');
-if(storyViewer && storyViewer.classList.contains('open')){ closeStory(); return true; }
-const deleteSheet = document.getElementById('delete-sheet-modal');
-if(deleteSheet && deleteSheet.classList.contains('open')){ closeDeleteSheet(); return true; }
-const qpModal = document.getElementById('quick-profile-modal');
-if(qpModal && qpModal.classList.contains('open')){ closeQuickProfile(); return true; }
-const wpModal = document.getElementById('wallpaper-modal');
-if(wpModal && wpModal.classList.contains('open')){ closeWallpaperPicker(); return true; }
-const commentPanel = document.getElementById('comment-panel');
-if(commentPanel && commentPanel.classList.contains('open')){ closeCommentPanel(); return true; }
-const singlePost = document.getElementById('single-post-screen');
-if(singlePost && singlePost.classList.contains('open')){ closeSinglePost(); return true; }
-const chatScreen = document.getElementById('chat-screen');
-if(chatScreen && chatScreen.classList.contains('open')){ closeChat(); return true; }
-const otherProfile = document.getElementById('page-other-profile');
-if(otherProfile && otherProfile.classList.contains('open')){ closeUserProfile(); return true; }
-const createPost = document.getElementById('create-post-screen');
-if(createPost && createPost.classList.contains('open')){ closeCreatePost(); return true; }
-const groupInfo = document.getElementById('group-info-modal');
-if(groupInfo && groupInfo.style.display === 'flex'){ closeGroupInfoModal(); return true; }
-const editProfile = document.getElementById('edit-profile-screen');
-if(editProfile && editProfile.style.display === 'flex'){ closeProfileEdit(); return true; }
-const galleryScreen = document.getElementById('gallery-screen');
-if(galleryScreen && galleryScreen.style.display === 'flex'){ closeGallery(); return true; }
-const catScreen = document.getElementById('category-screen');
-if(catScreen && catScreen.style.display === 'flex'){ closeCategoryScreen(); return true; }
-const mainSettings = document.getElementById('main-settings-screen');
-if(mainSettings && mainSettings.style.display === 'flex'){ closeMainSettingsScreen(); return true; }
-const mainMenu = document.getElementById('main-menu-screen');
-if(mainMenu && mainMenu.style.display === 'flex'){ closeMainMenu(); return true; }
-// ২) পেজ স্ট্যাক: যেভাবে এসেছ সেভাবেই আগের পেজে ফেরত
-if(window.gcNavStack && window.gcNavStack.length > 1){
-window.gcNavStack.pop();
-const prev = window.gcNavStack[window.gcNavStack.length - 1] || 'feed';
-window.gcOrigShowPage111(prev);
-return true;
-}
-// ৩) ফিডে আছি → পুরনো ডাবল-ব্যাক এক্সিট লজিক চলবে
-return false;
-};
 </script>
 </body>
 </html>
