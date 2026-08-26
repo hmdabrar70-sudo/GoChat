@@ -1584,6 +1584,54 @@ z-index:300;
 align-items:flex-end;justify-content:center;
 }
 .modal-overlay.open{display:flex;animation:fadeIn 0.2s ease;}
+
+/* Compact centered logout confirm */
+#logout-confirm-modal.modal-overlay{
+  align-items:center !important;
+  justify-content:center !important;
+  padding:20px;
+}
+#logout-confirm-modal .gc-logout-card{
+  width:100%;
+  max-width:280px;
+  background:var(--surface);
+  border-radius:20px;
+  padding:22px 20px 18px;
+  text-align:center;
+  box-shadow:var(--shadow-lg);
+  border:1px solid var(--border);
+  animation:fadeIn .2s ease;
+}
+#logout-confirm-modal .gc-logout-icon{
+  width:48px;height:48px;margin:0 auto 12px;
+  border-radius:50%;
+  background:rgba(255,77,106,0.12);
+  color:var(--danger);
+  display:flex;align-items:center;justify-content:center;
+  font-size:22px;
+}
+#logout-confirm-modal .gc-logout-title{
+  font-size:17px;font-weight:800;color:var(--text);margin-bottom:6px;
+}
+#logout-confirm-modal .gc-logout-msg{
+  font-size:13px;color:var(--text-muted);margin:0 0 18px;line-height:1.4;
+}
+#logout-confirm-modal .gc-logout-actions{
+  display:flex;gap:10px;
+}
+#logout-confirm-modal .gc-logout-btn{
+  flex:1;padding:11px 12px;border-radius:14px;border:none;
+  font-size:14px;font-weight:700;cursor:pointer;
+  transition:transform .15s ease;
+}
+#logout-confirm-modal .gc-logout-btn:active{transform:scale(0.97);}
+#logout-confirm-modal .gc-logout-btn.cancel{
+  background:var(--surface-2);color:var(--text);
+}
+#logout-confirm-modal .gc-logout-btn.danger{
+  background:var(--danger);color:#fff;
+}
+
 .modal-box{
 background:var(--surface);
 border-radius:var(--radius-xl) var(--radius-xl) 0 0;
@@ -5927,8 +5975,6 @@ Edit Profile-এ পার্টনার সিলেক্ট বাটন
 
         <div id="registration-steps" style="display:none;">
             <div id="step-1">
-                <h2 class="auth-title-welcome">Create account</h2>
-                <p class="auth-sub">Step 1: Basic Information</p>
                 <div class="auth-input-group">
                     <i class="ph-bold ph-user lx-field-ico"></i>
                     <input type="text" id="reg-fname" placeholder="First Name" autocomplete="given-name">
@@ -5952,8 +5998,6 @@ Edit Profile-এ পার্টনার সিলেক্ট বাটন
                 <button class="btn-auth-google" style="margin-top:10px; border:none;" onclick="backToLogin()">Back to Login</button>
             </div>
             <div id="step-2" style="display:none;">
-                <h2 class="auth-title-welcome">Security</h2>
-                <p class="auth-sub">Step 2: Setup Password</p>
                 <div class="auth-input-group">
                     <i class="ph-bold ph-lock-key lx-field-ico"></i>
                     <input type="password" id="reg-pass" placeholder="Password" autocomplete="new-password">
@@ -5963,6 +6007,7 @@ Edit Profile-এ পার্টনার সিলেক্ট বাটন
                     <input type="password" id="reg-confirm" placeholder="Confirm Password" autocomplete="new-password">
                 </div>
                 <button class="btn-auth-primary" onclick="completeRegistration()">Let's go</button>
+                <button class="btn-auth-google" style="margin-top:10px; border:none;" onclick="goToStep1()">Back</button>
             </div>
         </div>
         <div id="auth-msg" class="auth-msg"></div>
@@ -6355,7 +6400,7 @@ Edit Profile-এ পার্টনার সিলেক্ট বাটন
 </div>
 
 <div class="story-footer">
-<div style="color:#fff;font-size:14px;font-weight:700;display:flex;align-items:center;gap:6px;flex-shrink:0;">
+<div id="sv-views-wrap" style="color:#fff;font-size:14px;font-weight:700;display:none;align-items:center;gap:6px;flex-shrink:0;">
 <i class="ph-bold ph-eye" style="font-size:22px; filter:drop-shadow(0 1px 2px rgba(0,0,0,0.5));"></i>
 <span id="sv-views" style="text-shadow:0 1px 2px rgba(0,0,0,0.5);">0</span>
 </div>
@@ -6807,14 +6852,14 @@ Edit Profile-এ পার্টনার সিলেক্ট বাটন
 </div>
 
 
-<div class="modal-overlay" id="logout-confirm-modal" style="z-index: 10006;">
-    <div class="modal-box" style="text-align: center; max-width: 320px;">
-        <i class="ph-bold ph-sign-out" style="font-size: 50px; color: var(--danger); margin-bottom: 15px;"></i>
-        <div class="modal-title" style="font-size: 20px; margin-bottom: 10px;">Log Out?</div>
-        <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 25px;">Are you sure you want to log out of your account?</p>
-        <div style="display: flex; gap: 12px; justify-content: center;">
-            <button class="btn-auth-google" style="flex: 1; border: none; background: var(--surface-2); color: var(--text);" onclick="closeLogoutModal()">Cancel</button>
-            <button class="btn-primary" style="flex: 1; background: var(--danger); box-shadow: 0 4px 15px rgba(255, 68, 68, 0.3);" onclick="confirmLogoutAction()">Yes, Log Out</button>
+<div class="modal-overlay" id="logout-confirm-modal" style="z-index:10006;align-items:center;justify-content:center;padding:20px;">
+    <div class="gc-logout-card" onclick="event.stopPropagation()">
+        <div class="gc-logout-icon"><i class="ph-bold ph-sign-out"></i></div>
+        <div class="gc-logout-title">Log out?</div>
+        <p class="gc-logout-msg">You can always sign back in.</p>
+        <div class="gc-logout-actions">
+            <button type="button" class="gc-logout-btn cancel" onclick="closeLogoutModal()">Cancel</button>
+            <button type="button" class="gc-logout-btn danger" onclick="confirmLogoutAction()">Log out</button>
         </div>
     </div>
 </div>
@@ -10012,7 +10057,13 @@ function renderCurrentStory(){
     document.getElementById('sv-avatar').innerHTML=s.avatar?`<img src="${s.avatar}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`:avatarInitial(s.name);
     
     // ভিউ কাউন্ট এবং রিয়্যাক্ট কাউন্ট
-    document.getElementById('sv-views').textContent=(s.views||[]).length;
+    {
+      const vw = document.getElementById('sv-views');
+      const wrap = document.getElementById('sv-views-wrap');
+      const isOwn = !!(currentUser && s.uid === currentUser.uid);
+      if(vw) vw.textContent = (s.views||[]).length;
+      if(wrap) wrap.style.display = isOwn ? 'flex' : 'none';
+    }
     const reactCountDisplay = document.getElementById('sv-react-count');
     if(reactCountDisplay) {
         reactCountDisplay.textContent=(s.reacts||[]).length;
@@ -15432,6 +15483,12 @@ function goToStep2() {
     document.getElementById('step-1').style.display = 'none';
     document.getElementById('step-2').style.display = 'block';
 }
+
+function goToStep1() {
+    document.getElementById('step-2').style.display = 'none';
+    document.getElementById('step-1').style.display = 'block';
+}
+window.goToStep1 = goToStep1;
 
 async function completeRegistration() {
     const fname = document.getElementById('reg-fname').value.trim();
