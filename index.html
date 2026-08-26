@@ -3539,6 +3539,59 @@ background:rgba(0,0,0,.28);color:#fff;font-size:18px;pointer-events:none;
     border-radius: 20px;
     outline: none;
 }
+/* Custom voice bubble — no native 3-dot / download / extra chrome */
+.gc-voice-player{
+    display:flex; align-items:center; gap:10px;
+    min-width:180px; max-width:240px;
+    padding:8px 12px;
+    border-radius:20px;
+    background:rgba(255,255,255,0.18);
+    user-select:none;
+    -webkit-user-select:none;
+}
+.gc-voice-player .gc-vp-play{
+    width:34px; height:34px; border-radius:50%;
+    border:none; cursor:pointer; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center;
+    background:rgba(255,255,255,0.95); color:#5a3fd6;
+    box-shadow:0 2px 8px rgba(0,0,0,0.12);
+    transition:transform .15s;
+}
+.gc-voice-player .gc-vp-play:active{ transform:scale(0.92); }
+.gc-voice-player .gc-vp-play i{ font-size:18px; line-height:1; }
+.gc-voice-player .gc-vp-meta{ flex:1; min-width:0; display:flex; flex-direction:column; gap:4px; }
+.gc-voice-player .gc-vp-bar{
+    height:4px; border-radius:4px; background:rgba(255,255,255,0.35); overflow:hidden;
+}
+.gc-voice-player .gc-vp-bar > i{
+    display:block; height:100%; width:0%;
+    background:rgba(255,255,255,0.95); border-radius:4px;
+    transition:width .1s linear;
+}
+.gc-voice-player .gc-vp-time{
+    font-size:11px; font-weight:700; letter-spacing:0.2px;
+    color:rgba(255,255,255,0.9); font-variant-numeric:tabular-nums;
+}
+.msg:not(.mine) .gc-voice-player,
+.chat-bubble:not(.mine) .gc-voice-player{
+    background:rgba(124,92,255,0.12);
+}
+.msg:not(.mine) .gc-voice-player .gc-vp-play,
+.chat-bubble:not(.mine) .gc-voice-player .gc-vp-play{
+    background:var(--accent); color:#fff;
+}
+.msg:not(.mine) .gc-voice-player .gc-vp-bar,
+.chat-bubble:not(.mine) .gc-voice-player .gc-vp-bar{
+    background:rgba(124,92,255,0.2);
+}
+.msg:not(.mine) .gc-voice-player .gc-vp-bar > i,
+.chat-bubble:not(.mine) .gc-voice-player .gc-vp-bar > i{
+    background:var(--accent);
+}
+.msg:not(.mine) .gc-voice-player .gc-vp-time,
+.chat-bubble:not(.mine) .gc-voice-player .gc-vp-time{
+    color:var(--text-secondary);
+}
 .recording-ui {
     display: none;
     flex: 1;
@@ -11199,7 +11252,17 @@ safeText = safeText.replace(urlRegex, function(url) {
                 content=`${m.text?`<div style="margin-bottom:6px;">${safeText}</div>`:''}<img src="${safeUrl}" onclick="openImageZoom('${safeUrl}')">`;
             } else if(m.audioUrl) {
                 const safeAudioUrl = escapeHTML(m.audioUrl);
-                content=`${m.text?`<div style="margin-bottom:6px;">${safeText}</div>`:''}<audio class="audio-player" controls preload="metadata" style="height: 40px; border-radius: 20px;"><source src="${safeAudioUrl}" type="audio/webm"><source src="${safeAudioUrl}" type="audio/mp4">Your browser does not support audio.</audio>`;
+                const voiceUi = `<div class="gc-voice-player" data-src="${safeAudioUrl}">
+                    <button type="button" class="gc-vp-play" onclick="event.stopPropagation();gcToggleVoice(this)" aria-label="Play voice">
+                        <i class="ph-fill ph-play"></i>
+                    </button>
+                    <div class="gc-vp-meta">
+                        <div class="gc-vp-bar"><i></i></div>
+                        <div class="gc-vp-time">0:00</div>
+                    </div>
+                    <audio preload="metadata" style="display:none;" src="${safeAudioUrl}"></audio>
+                </div>`;
+                content=`${m.text?`<div style="margin-bottom:6px;">${safeText}</div>`:''}${voiceUi}`;
             } else {
                 content=safeText;
             }
@@ -16805,24 +16868,34 @@ let audioChunks = [];
 let recordInterval;
 let recordSeconds = 0;
 
+// true = user hit Cancel — onstop must NOT upload
+let voiceRecordCancelled = false;
+
 async function startVoiceRecord() {
     try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         mediaRecorder = new MediaRecorder(stream);
         audioChunks = [];
+        voiceRecordCancelled = false;
 
         mediaRecorder.ondataavailable = event => {
-            if (event.data.size > 0) audioChunks.push(event.data);
+            if (voiceRecordCancelled) return;
+            if (event.data && event.data.size > 0) audioChunks.push(event.data);
         };
 
         mediaRecorder.onstop = async () => {
             // মাইক এক্সেস বন্ধ করা
-            stream.getTracks().forEach(track => track.stop());
-            
-            // যদি ক্যান্সেল করা হয়, তবে অডিও আপলোড হবে না
-            if (audioChunks.length === 0) return;
-            
+            try { stream.getTracks().forEach(track => track.stop()); } catch(e) {}
+
+            // Cancel হলে কখনোই আপলোড/সেন্ড নয়
+            if (voiceRecordCancelled) {
+                audioChunks = [];
+                return;
+            }
+            if (!audioChunks.length) return;
+
             const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+            audioChunks = [];
             await uploadAndSendVoice(audioBlob);
         };
 
@@ -16853,20 +16926,85 @@ async function startVoiceRecord() {
 }
 
 function cancelVoiceRecord() {
-    if (mediaRecorder && mediaRecorder.state !== "inactive") {
-        audioChunks = []; // অ্যারে ফাঁকা করে দেওয়া যাতে onstop আপলোড না করে
-        mediaRecorder.stop();
-    }
+    // MUST set flag BEFORE stop() — ondataavailable/onstop can fire sync
+    voiceRecordCancelled = true;
+    audioChunks = [];
+    try {
+        if (mediaRecorder && mediaRecorder.state !== "inactive") {
+            mediaRecorder.stop();
+        }
+    } catch(e) {}
     resetRecordUI();
     showToast("Voice recording canceled");
 }
 
 function sendVoiceRecord() {
-    if (mediaRecorder && mediaRecorder.state !== "inactive") {
-        mediaRecorder.stop(); // এটি onstop ট্রিগার করবে এবং অডিও সেন্ড হবে
-    }
+    voiceRecordCancelled = false;
+    try {
+        if (mediaRecorder && mediaRecorder.state !== "inactive") {
+            mediaRecorder.stop(); // onstop → uploadAndSendVoice
+        }
+    } catch(e) {}
     resetRecordUI();
 }
+
+// ── Custom voice player (no native 3-dot / download menu) ──
+let gcActiveVoiceAudio = null;
+function gcFmtVoiceTime(s){
+    s = Math.max(0, Math.floor(s || 0));
+    return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+}
+function gcToggleVoice(btn){
+    const wrap = btn.closest('.gc-voice-player');
+    if(!wrap) return;
+    const audio = wrap.querySelector('audio');
+    const icon = btn.querySelector('i');
+    const bar = wrap.querySelector('.gc-vp-bar > i');
+    const timeEl = wrap.querySelector('.gc-vp-time');
+    if(!audio) return;
+
+    // pause any other playing voice
+    if(gcActiveVoiceAudio && gcActiveVoiceAudio !== audio){
+        try{ gcActiveVoiceAudio.pause(); }catch(e){}
+        const prevWrap = gcActiveVoiceAudio.closest('.gc-voice-player');
+        if(prevWrap){
+            const pi = prevWrap.querySelector('.gc-vp-play i');
+            if(pi){ pi.className = 'ph-fill ph-play'; }
+        }
+    }
+
+    if(audio.paused){
+        audio.play().then(() => {
+            gcActiveVoiceAudio = audio;
+            if(icon) icon.className = 'ph-fill ph-pause';
+        }).catch(() => showToast('Could not play voice message'));
+    } else {
+        audio.pause();
+        if(icon) icon.className = 'ph-fill ph-play';
+    }
+
+    if(!audio._gcVoiceBound){
+        audio._gcVoiceBound = true;
+        audio.addEventListener('timeupdate', () => {
+            const dur = audio.duration || 0;
+            const cur = audio.currentTime || 0;
+            if(bar && dur) bar.style.width = Math.min(100, (cur / dur) * 100) + '%';
+            if(timeEl) timeEl.textContent = gcFmtVoiceTime(cur) + (dur ? ' / ' + gcFmtVoiceTime(dur) : '');
+        });
+        audio.addEventListener('loadedmetadata', () => {
+            if(timeEl && isFinite(audio.duration)) timeEl.textContent = '0:00 / ' + gcFmtVoiceTime(audio.duration);
+        });
+        audio.addEventListener('ended', () => {
+            if(icon) icon.className = 'ph-fill ph-play';
+            if(bar) bar.style.width = '0%';
+            if(timeEl && isFinite(audio.duration)) timeEl.textContent = '0:00 / ' + gcFmtVoiceTime(audio.duration);
+            if(gcActiveVoiceAudio === audio) gcActiveVoiceAudio = null;
+        });
+        // preload duration label
+        try{ audio.load(); }catch(e){}
+    }
+}
+window.gcToggleVoice = gcToggleVoice;
 
 function resetRecordUI() {
     clearInterval(recordInterval);
