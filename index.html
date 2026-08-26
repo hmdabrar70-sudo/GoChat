@@ -123,7 +123,7 @@ vertical-align:middle;
 #auth-screen{
 min-height:100vh;min-height:100dvh;
 display:flex;align-items:center;justify-content:center;
-background: linear-gradient(rgba(255, 255, 255, 0.75), rgba(255, 255, 255, 0.75)), url('https://i.postimg.cc/fTcdfFf1/20260814-065745.jpg') center/cover no-repeat !important;
+background: linear-gradient(rgba(255, 255, 255, 0.75), rgba(255, 255, 255, 0.75)), url('https://cdn.phototourl.com/free/2026-08-26-71dfa8fd-628b-4b92-8d30-306a5daaaf02.jpg') center/cover no-repeat !important;
 position:relative; overflow:hidden;
 }
 #auth-screen::before{
@@ -165,9 +165,19 @@ position:relative; z-index:10;
 }
 .auth-logo { font-size: 38px; margin-bottom: 12px; }
 
-.auth-msg{font-size:13px;margin-top:20px;padding:12px 16px;border-radius:var(--radius-md);display:none;font-weight:600;}
-.auth-msg.error{background:rgba(255,77,106,0.1);color:#ff4d6a;display:block;}
-.auth-msg.success{background:rgba(34,197,94,0.1);color:#22c55e;display:block;}
+.auth-msg{
+  font-size:13.5px;margin-top:18px;padding:12px 16px;border-radius:14px;
+  display:none;font-weight:600;line-height:1.4;text-align:center;
+  letter-spacing:0.01em;
+}
+.auth-msg.error{
+  background:rgba(255,77,106,0.12);color:#c0392b;display:block;
+  border:1px solid rgba(255,77,106,0.18);
+}
+.auth-msg.success{
+  background:rgba(34,197,94,0.12);color:#15803d;display:block;
+  border:1px solid rgba(34,197,94,0.18);
+}
 
 .auth-input-group label {display:block; font-size:11px; color:#8a8a9a !important; text-transform:uppercase; font-weight:700; margin-bottom:8px;
 letter-spacing:0.5px;}
@@ -3989,12 +3999,11 @@ body.light-mode #page-notifications {
   --lx-body:'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
 }
 
-/* ---------- পুরো অথ স্ক্রিন: layered ambient ---------- */
+/* ---------- পুরো অথ স্ক্রিন: layered ambient (image kept from base rule) ---------- */
 #auth-screen{
   position:relative; overflow:hidden;
   font-family:var(--lx-body);
-  background:
-    radial-gradient(120% 80% at 50% -10%, #ffffff 0%, #fbfaff 45%, #f6f4fb 100%);
+  /* do not override background image — only soft ambient mesh on top via ::before */
 }
 /* animated gradient mesh (flat blob নয় — ঘূর্ণায়মান soft wash) */
 #auth-screen::before{
@@ -8295,12 +8304,12 @@ async function loginWithEmail(){
     const msg = document.getElementById('auth-msg');
     
     if(!idInput || !pass){
-        msg.textContent = 'Please enter email/username and password.';
+        msg.textContent = 'Enter your email or username and password to continue.';
         msg.className = 'auth-msg error';
         return;
     }
     
-    msg.textContent = 'Your information is being checked....';
+    msg.textContent = 'Signing you in…';
     msg.className = 'auth-msg success';
     
     try {
@@ -8308,7 +8317,7 @@ async function loginWithEmail(){
         if(idInput.indexOf('@') === -1){
             const resolved = await gcResolveLoginIdentifier(idInput);
             if(!resolved){
-                msg.textContent = 'Username not linked yet. Log in once with email, then username will work.';
+                msg.textContent = "The username you entered doesn't belong to an account. Please check and try again.";
                 msg.className = 'auth-msg error';
                 return;
             }
@@ -8331,10 +8340,16 @@ async function loginWithEmail(){
         
     } catch(e) {
         const code = e && e.code ? e.code : '';
-        if(code === 'auth/user-not-found' || code === 'auth/wrong-password' || code === 'auth/invalid-credential'){
-            msg.textContent = 'Invalid email/username or password.';
+        if(code === 'auth/wrong-password' || code === 'auth/invalid-credential'){
+            msg.textContent = 'Sorry, your password was incorrect. Please try again.';
+        } else if(code === 'auth/user-not-found'){
+            msg.textContent = "We couldn't find an account with that email. Please check and try again.";
+        } else if(code === 'auth/too-many-requests'){
+            msg.textContent = 'Too many attempts. Please wait a moment and try again.';
+        } else if(code === 'auth/network-request-failed'){
+            msg.textContent = 'Network error. Check your connection and try again.';
         } else {
-            msg.textContent = 'Login failed: ' + (e.message || 'error');
+            msg.textContent = "We couldn't log you in. Please try again.";
         }
         msg.className = 'auth-msg error';
     }
@@ -8431,16 +8446,16 @@ async function registerWithEmail(){
 const email=document.getElementById('auth-email').value.trim();
 const pass=document.getElementById('auth-password').value;
 const msg=document.getElementById('auth-msg');
-if(!email||!pass){msg.textContent='Please enter email and password.';msg.className='auth-msg error';return;}
+if(!email||!pass){msg.textContent='Enter your email and password to create an account.';msg.className='auth-msg error';return;}
 // Check Blacklist
 const banCheck = await db.collection('banned_emails').doc(email).get();
 if (banCheck.exists) {
-    msg.textContent='Access Denied: This email is permanently banned.';
+    msg.textContent="This email can't be used to create an account.";
     msg.className='auth-msg error';
     return;
 }
 
-msg.textContent='Creating account...';msg.className='auth-msg success';
+msg.textContent='Creating your account…';msg.className='auth-msg success';
 try{
 const result=await auth.createUserWithEmailAndPassword(email,pass);
 const user=result.user;
@@ -8459,7 +8474,19 @@ createdAt:firebase.firestore.FieldValue.serverTimestamp(),
 welcomeSent: false
 });
 sendWelcomeMessage(user.uid, defaultName);
-}catch(e){msg.textContent='Registration failed: '+e.message;msg.className='auth-msg error';}
+}catch(e){
+  const code = e && e.code ? e.code : '';
+  if(code === 'auth/email-already-in-use'){
+    msg.textContent = 'An account with this email already exists. Try logging in instead.';
+  } else if(code === 'auth/weak-password'){
+    msg.textContent = 'Please choose a stronger password (at least 6 characters).';
+  } else if(code === 'auth/invalid-email'){
+    msg.textContent = 'Please enter a valid email address.';
+  } else {
+    msg.textContent = "We couldn't create your account. Please try again.";
+  }
+  msg.className='auth-msg error';
+}
 }
 
 // === স্মার্ট লগআউট সিস্টেম ===
