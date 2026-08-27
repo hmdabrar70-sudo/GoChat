@@ -1876,6 +1876,87 @@ display:flex;align-items:center;justify-content:center;
 cursor:pointer;font-size:24px;
 backdrop-filter:blur(10px);
 }
+/* ═══ Avatar crop / preview editor ═══ */
+#gc-av-editor{
+  display:none; position:fixed; inset:0; z-index:100250;
+  background:#0b0b10; flex-direction:column;
+  max-width:520px; margin:0 auto;
+}
+#gc-av-editor.open{ display:flex; }
+.gc-av-head{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:14px 16px; padding-top:max(14px, env(safe-area-inset-top));
+  color:#fff; flex-shrink:0;
+}
+.gc-av-head h3{ font-size:17px; font-weight:800; margin:0; }
+.gc-av-head button{
+  background:transparent; border:none; color:#fff; font-size:15px; font-weight:700;
+  padding:8px 12px; cursor:pointer; border-radius:20px;
+}
+.gc-av-head button:active{ opacity:0.7; }
+.gc-av-stage{
+  flex:1; position:relative; overflow:hidden;
+  display:flex; align-items:center; justify-content:center;
+  touch-action:none; user-select:none; -webkit-user-select:none;
+  background:#000;
+}
+.gc-av-stage img#gc-av-img{
+  position:absolute; max-width:none; max-height:none;
+  transform-origin:center center; will-change:transform;
+  pointer-events:none;
+}
+.gc-av-mask{
+  position:absolute; inset:0; pointer-events:none;
+  background: radial-gradient(
+    circle min(42vw, 180px) at 50% 50%,
+    transparent 0,
+    transparent calc(min(42vw, 180px) - 1px),
+    rgba(0,0,0,0.58) calc(min(42vw, 180px) + 0.5px)
+  );
+}
+.gc-av-ring{
+  position:absolute; left:50%; top:50%;
+  width:min(84vw, 360px); height:min(84vw, 360px);
+  transform:translate(-50%,-50%);
+  border-radius:50%; border:2px solid rgba(255,255,255,0.9);
+  box-shadow:0 0 0 1px rgba(0,0,0,0.3); pointer-events:none;
+}
+.gc-av-hint{
+  position:absolute; bottom:18px; left:0; right:0; text-align:center;
+  color:rgba(255,255,255,0.75); font-size:12px; font-weight:600;
+  pointer-events:none; text-shadow:0 1px 4px rgba(0,0,0,0.6);
+}
+.gc-av-controls{
+  flex-shrink:0; padding:16px 18px calc(16px + env(safe-area-inset-bottom));
+  background:#12121a; border-top:1px solid rgba(255,255,255,0.08);
+}
+.gc-av-zoom-row{
+  display:flex; align-items:center; gap:12px; margin-bottom:14px;
+}
+.gc-av-zoom-row i{ color:rgba(255,255,255,0.7); font-size:18px; }
+.gc-av-zoom-row input[type=range]{
+  flex:1; accent-color:var(--accent); height:4px;
+}
+.gc-av-actions{
+  display:flex; gap:10px;
+}
+.gc-av-actions button{
+  flex:1; padding:14px 12px; border-radius:28px; border:none;
+  font-size:15px; font-weight:800; cursor:pointer;
+  display:flex; align-items:center; justify-content:center; gap:8px;
+  transition:transform .15s;
+}
+.gc-av-actions button:active{ transform:scale(0.97); }
+.gc-av-btn-secondary{
+  background:rgba(255,255,255,0.1); color:#fff;
+}
+.gc-av-btn-primary{
+  background:var(--gradient); color:#fff;
+  box-shadow:0 4px 16px rgba(124,92,255,0.35);
+}
+.gc-av-btn-primary:disabled{
+  opacity:0.55; cursor:wait;
+}
 .double-tap-heart{
 position:absolute;top:50%;left:50%;
 transform:translate(-50%,-50%) scale(0);
@@ -6233,7 +6314,7 @@ Edit Profile-এ পার্টনার সিলেক্ট বাটন
 <label class="avatar-edit-btn" for="avatar-input">
     <i class="ph-bold ph-camera" style="font-size:16px;"></i>
 </label>
-<input type="file" id="avatar-input" accept="image/*" style="display:none" onchange="uploadAvatar(this)">
+<input type="file" id="avatar-input" accept="image/*" style="display:none" onchange="gcOpenAvatarEditor(this)">
 </div>
 <div class="profile-stats-row" id="profile-follow-stats">
     <div class="profile-stat" onclick="openFollowList('followers', currentUser.uid)">
@@ -6991,6 +7072,36 @@ Edit Profile-এ পার্টনার সিলেক্ট বাটন
         </div>
         
     </div>
+</div>
+
+<!-- 🚀 Avatar crop / preview editor -->
+<div id="gc-av-editor" aria-hidden="true">
+  <div class="gc-av-head">
+    <button type="button" onclick="gcCloseAvatarEditor()" aria-label="Cancel"><i class="ph-bold ph-x" style="font-size:20px;"></i></button>
+    <h3>Edit profile photo</h3>
+    <button type="button" onclick="gcAvatarChooseAnother()">Change</button>
+  </div>
+  <div class="gc-av-stage" id="gc-av-stage">
+    <img id="gc-av-img" alt="Profile preview" draggable="false">
+    <div class="gc-av-mask"></div>
+    <div class="gc-av-ring"></div>
+    <div class="gc-av-hint">Pinch or drag · use slider to zoom</div>
+  </div>
+  <div class="gc-av-controls">
+    <div class="gc-av-zoom-row">
+      <i class="ph-bold ph-magnifying-glass-minus"></i>
+      <input type="range" id="gc-av-zoom" min="100" max="300" value="100" step="1">
+      <i class="ph-bold ph-magnifying-glass-plus"></i>
+    </div>
+    <div class="gc-av-actions">
+      <button type="button" class="gc-av-btn-secondary" onclick="gcAvatarChooseAnother()">
+        <i class="ph-bold ph-images"></i> Gallery
+      </button>
+      <button type="button" class="gc-av-btn-primary" id="gc-av-save-btn" onclick="gcConfirmAvatarCrop()">
+        <i class="ph-bold ph-check"></i> Use photo
+      </button>
+    </div>
+  </div>
 </div>
 
 <div id="create-text-story-modal" style="display:none; position:fixed; inset:0; background:var(--bg); z-index:1005; flex-direction:column; animation:slideUp 0.3s ease;">
@@ -13703,66 +13814,305 @@ list.innerHTML=mine.map(p=>buildPostCardHTML(p)).join('');
 }catch(e){list.innerHTML='<div class="empty-feed">Network issue. Could not load posts.</div>';}
 }
 
-async function uploadAvatar(input){
-const file=input.files[0];
-if(!file)return;
-if(!file.type || !file.type.startsWith('image/')){
-showToast('Please choose an image file');
-input.value='';
-return;
+// ═══════════════════════════════════════════════════════
+// 🚀 Avatar editor — crop / position / zoom / confirm
+// খুঁজতে: Ctrl+F → "gcOpenAvatarEditor"
+// ═══════════════════════════════════════════════════════
+var gcAvState = {
+  objectUrl: null,
+  naturalW: 0,
+  naturalH: 0,
+  scale: 1,
+  minScale: 1,
+  tx: 0,
+  ty: 0,
+  dragging: false,
+  lastX: 0,
+  lastY: 0,
+  pinchDist: 0,
+  bound: false
+};
+
+function gcOpenAvatarEditor(input){
+  const file = input && input.files && input.files[0];
+  if(!file) return;
+  if(!file.type || !file.type.startsWith('image/')){
+    showToast('Please choose an image file');
+    if(input) input.value = '';
+    return;
+  }
+  if(file.size > 12 * 1024 * 1024){
+    showToast('Image is too large (max 12MB)');
+    if(input) input.value = '';
+    return;
+  }
+  const editor = document.getElementById('gc-av-editor');
+  const img = document.getElementById('gc-av-img');
+  const zoom = document.getElementById('gc-av-zoom');
+  if(!editor || !img) return;
+
+  if(gcAvState.objectUrl){
+    try{ URL.revokeObjectURL(gcAvState.objectUrl); }catch(e){}
+  }
+  gcAvState.objectUrl = URL.createObjectURL(file);
+  gcAvState.scale = 1;
+  gcAvState.tx = 0;
+  gcAvState.ty = 0;
+  gcAvState.dragging = false;
+  if(zoom) zoom.value = 100;
+
+  img.onload = function(){
+    gcAvState.naturalW = img.naturalWidth || img.width;
+    gcAvState.naturalH = img.naturalHeight || img.height;
+    gcAvFitImage();
+    gcAvApplyTransform();
+  };
+  img.src = gcAvState.objectUrl;
+
+  editor.classList.add('open');
+  editor.setAttribute('aria-hidden', 'false');
+  gcAvBindGestures();
+  // clear input so same file can be re-picked
+  if(input) input.value = '';
 }
-try{
-showToast('Optimizing photo…');
-const prepared = await gcPrepareMediaFile(file, 'avatar');
-showToast('Uploading profile photo...');
-const url = await uploadToCloudinary(prepared, false);
-await db.collection('users').doc(currentUser.uid).update({avatar:url});
-currentUserData.avatar=url;
-        try {
-            const postsSnapshot = await db.collection('posts').where('uid', '==', currentUser.uid).get();
-            if (!postsSnapshot.empty) {
-                const batch = db.batch();
-                postsSnapshot.forEach((doc) => {
-                    batch.update(doc.ref, { avatar: url });
-                });
-                await batch.commit();
-            }
-        } catch (error) {
-            console.error("Error updating old posts avatar: ", error);
-        }
-        // 🚀 Feed post when profile picture is updated (Facebook-style)
-        try {
-            const expireAt = new Date(Date.now() + ONE_YEAR_MS);
-            await db.collection('posts').add({
-                uid: currentUser.uid,
-                name: currentUserData.name || (currentUser.email ? currentUser.email.split('@')[0] : 'User'),
-                email: currentUserData.email || '',
-                isVerified: currentUserData.isVerified || false,
-                avatar: url,
-                title: '',
-                imgUrls: [url],
-                imgUrl: url,
-                likes: 0,
-                likedBy: [],
-                comments: [],
-                commentCount: 0,
-                shares: 0,
-                isProfilePicUpdate: true,
-                isPinned: false,
-                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                expiresAt: expireAt
-            });
-            try { if (typeof loadFeed === 'function') loadFeed(); } catch(e) {}
-        } catch (postErr) {
-            console.error('Profile pic post error:', postErr);
-        }
-loadUserUI();
-showToast('Profile photo updated!');
-}catch(e){
-if(e && e.message === 'IMG_TOO_LARGE') showToast('Profile photo must be under 5MB!');
-else { console.error(e); showToast('Network error.'); }
+window.gcOpenAvatarEditor = gcOpenAvatarEditor;
+// backward-compatible alias
+function uploadAvatar(input){ gcOpenAvatarEditor(input); }
+
+function gcCloseAvatarEditor(){
+  const editor = document.getElementById('gc-av-editor');
+  if(editor){
+    editor.classList.remove('open');
+    editor.setAttribute('aria-hidden', 'true');
+  }
+  if(gcAvState.objectUrl){
+    try{ URL.revokeObjectURL(gcAvState.objectUrl); }catch(e){}
+    gcAvState.objectUrl = null;
+  }
+  const img = document.getElementById('gc-av-img');
+  if(img) img.removeAttribute('src');
 }
-if(input) input.value='';
+window.gcCloseAvatarEditor = gcCloseAvatarEditor;
+
+function gcAvatarChooseAnother(){
+  gcCloseAvatarEditor();
+  const inp = document.getElementById('avatar-input');
+  if(inp) inp.click();
+}
+window.gcAvatarChooseAnother = gcAvatarChooseAnother;
+
+function gcAvCropSize(){
+  // diameter of the visible circle in CSS pixels
+  return Math.min(window.innerWidth * 0.84, 360);
+}
+
+function gcAvFitImage(){
+  const crop = gcAvCropSize();
+  const nw = gcAvState.naturalW || 1;
+  const nh = gcAvState.naturalH || 1;
+  // scale so the shorter side fills the circle
+  gcAvState.minScale = Math.max(crop / nw, crop / nh);
+  gcAvState.scale = gcAvState.minScale;
+  gcAvState.tx = 0;
+  gcAvState.ty = 0;
+  const zoom = document.getElementById('gc-av-zoom');
+  if(zoom){
+    zoom.min = 100;
+    zoom.max = 300;
+    zoom.value = 100;
+  }
+}
+
+function gcAvApplyTransform(){
+  const img = document.getElementById('gc-av-img');
+  if(!img) return;
+  const s = gcAvState.scale;
+  img.style.width = (gcAvState.naturalW * s) + 'px';
+  img.style.height = (gcAvState.naturalH * s) + 'px';
+  img.style.left = '50%';
+  img.style.top = '50%';
+  img.style.transform = 'translate(calc(-50% + ' + gcAvState.tx + 'px), calc(-50% + ' + gcAvState.ty + 'px))';
+  gcAvClamp();
+  // re-apply after clamp
+  img.style.transform = 'translate(calc(-50% + ' + gcAvState.tx + 'px), calc(-50% + ' + gcAvState.ty + 'px))';
+}
+
+function gcAvClamp(){
+  const crop = gcAvCropSize();
+  const half = crop / 2;
+  const w = gcAvState.naturalW * gcAvState.scale;
+  const h = gcAvState.naturalH * gcAvState.scale;
+  const maxX = Math.max(0, w / 2 - half);
+  const maxY = Math.max(0, h / 2 - half);
+  gcAvState.tx = Math.max(-maxX, Math.min(maxX, gcAvState.tx));
+  gcAvState.ty = Math.max(-maxY, Math.min(maxY, gcAvState.ty));
+}
+
+function gcAvBindGestures(){
+  if(gcAvState.bound) return;
+  gcAvState.bound = true;
+  const stage = document.getElementById('gc-av-stage');
+  const zoom = document.getElementById('gc-av-zoom');
+  if(!stage) return;
+
+  if(zoom){
+    zoom.addEventListener('input', function(){
+      const pct = parseInt(zoom.value, 10) || 100;
+      gcAvState.scale = gcAvState.minScale * (pct / 100);
+      gcAvApplyTransform();
+    });
+  }
+
+  stage.addEventListener('pointerdown', function(e){
+    if(e.target.closest('input,button')) return;
+    gcAvState.dragging = true;
+    gcAvState.lastX = e.clientX;
+    gcAvState.lastY = e.clientY;
+    try{ stage.setPointerCapture(e.pointerId); }catch(err){}
+  });
+  stage.addEventListener('pointermove', function(e){
+    if(!gcAvState.dragging) return;
+    const dx = e.clientX - gcAvState.lastX;
+    const dy = e.clientY - gcAvState.lastY;
+    gcAvState.lastX = e.clientX;
+    gcAvState.lastY = e.clientY;
+    gcAvState.tx += dx;
+    gcAvState.ty += dy;
+    gcAvApplyTransform();
+  });
+  stage.addEventListener('pointerup', function(){ gcAvState.dragging = false; });
+  stage.addEventListener('pointercancel', function(){ gcAvState.dragging = false; });
+
+  // Pinch zoom
+  stage.addEventListener('touchstart', function(e){
+    if(e.touches.length === 2){
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      gcAvState.pinchDist = Math.hypot(dx, dy);
+      gcAvState.dragging = false;
+    }
+  }, {passive:true});
+  stage.addEventListener('touchmove', function(e){
+    if(e.touches.length === 2 && gcAvState.pinchDist){
+      e.preventDefault();
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      const dist = Math.hypot(dx, dy);
+      const ratio = dist / gcAvState.pinchDist;
+      gcAvState.pinchDist = dist;
+      gcAvState.scale = Math.max(gcAvState.minScale, Math.min(gcAvState.minScale * 3, gcAvState.scale * ratio));
+      if(zoom){
+        zoom.value = Math.round((gcAvState.scale / gcAvState.minScale) * 100);
+      }
+      gcAvApplyTransform();
+    }
+  }, {passive:false});
+  stage.addEventListener('touchend', function(){ gcAvState.pinchDist = 0; });
+}
+
+function gcExportAvatarBlob(){
+  return new Promise(function(resolve, reject){
+    try{
+      const crop = gcAvCropSize();
+      const outSize = 512; // final avatar resolution
+      const canvas = document.createElement('canvas');
+      canvas.width = outSize;
+      canvas.height = outSize;
+      const ctx = canvas.getContext('2d');
+      const img = document.getElementById('gc-av-img');
+      if(!img || !img.complete){ reject(new Error('Image not ready')); return; }
+
+      // Image is centered at stage center with offset (tx, ty) and scale
+      // Visible circle maps to canvas
+      const scaleToCanvas = outSize / crop;
+      const drawW = gcAvState.naturalW * gcAvState.scale * scaleToCanvas;
+      const drawH = gcAvState.naturalH * gcAvState.scale * scaleToCanvas;
+      const cx = outSize / 2 + gcAvState.tx * scaleToCanvas;
+      const cy = outSize / 2 + gcAvState.ty * scaleToCanvas;
+
+      // Optional: circular clip for clean edges
+      ctx.beginPath();
+      ctx.arc(outSize / 2, outSize / 2, outSize / 2, 0, Math.PI * 2);
+      ctx.closePath();
+      ctx.clip();
+
+      ctx.drawImage(img, cx - drawW / 2, cy - drawH / 2, drawW, drawH);
+
+      canvas.toBlob(function(blob){
+        if(blob) resolve(blob);
+        else reject(new Error('Export failed'));
+      }, 'image/jpeg', 0.92);
+    }catch(e){ reject(e); }
+  });
+}
+
+async function gcConfirmAvatarCrop(){
+  const btn = document.getElementById('gc-av-save-btn');
+  if(btn){ btn.disabled = true; btn.innerHTML = '<i class="ph-bold ph-spinner-gap" style="animation:spin 1s linear infinite;"></i> Uploading…'; }
+  try{
+    const blob = await gcExportAvatarBlob();
+    // Build a File so existing prepare/upload path works
+    const file = new File([blob], 'avatar.jpg', { type: 'image/jpeg' });
+    await gcUploadAvatarFile(file);
+    gcCloseAvatarEditor();
+  }catch(e){
+    console.error(e);
+    if(e && e.message === 'IMG_TOO_LARGE') showToast('Profile photo must be under 5MB!');
+    else showToast('Could not update photo. Try again.');
+  }finally{
+    if(btn){ btn.disabled = false; btn.innerHTML = '<i class="ph-bold ph-check"></i> Use photo'; }
+  }
+}
+window.gcConfirmAvatarCrop = gcConfirmAvatarCrop;
+
+async function gcUploadAvatarFile(file){
+  if(!currentUser) return;
+  showToast('Optimizing photo…');
+  const prepared = await gcPrepareMediaFile(file, 'avatar');
+  showToast('Uploading profile photo...');
+  const url = await uploadToCloudinary(prepared, false);
+  await db.collection('users').doc(currentUser.uid).update({avatar:url});
+  currentUserData.avatar = url;
+  try {
+    const postsSnapshot = await db.collection('posts').where('uid', '==', currentUser.uid).get();
+    if (!postsSnapshot.empty) {
+      const batch = db.batch();
+      postsSnapshot.forEach((doc) => {
+        batch.update(doc.ref, { avatar: url });
+      });
+      await batch.commit();
+    }
+  } catch (error) {
+    console.error("Error updating old posts avatar: ", error);
+  }
+  // Feed post when profile picture is updated
+  try {
+    const expireAt = new Date(Date.now() + ONE_YEAR_MS);
+    await db.collection('posts').add({
+      uid: currentUser.uid,
+      name: currentUserData.name || (currentUser.email ? currentUser.email.split('@')[0] : 'User'),
+      email: currentUserData.email || '',
+      isVerified: currentUserData.isVerified || false,
+      avatar: url,
+      title: '',
+      imgUrls: [url],
+      imgUrl: url,
+      likes: 0,
+      likedBy: [],
+      comments: [],
+      commentCount: 0,
+      shares: 0,
+      isProfilePicUpdate: true,
+      isPinned: false,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      expiresAt: expireAt
+    });
+    try { if (typeof loadFeed === 'function') loadFeed(); } catch(e) {}
+  } catch (postErr) {
+    console.error('Profile pic post error:', postErr);
+  }
+  loadUserUI();
+  showToast('Profile photo updated!');
 }
 
 async function cleanupExpiredPosts(){
