@@ -1907,28 +1907,47 @@ backdrop-filter:blur(10px);
 }
 .gc-av-mask{
   position:absolute; inset:0; pointer-events:none;
-  background: radial-gradient(
-    circle min(42vw, 180px) at 50% 50%,
-    transparent 0,
-    transparent calc(min(42vw, 180px) - 1px),
-    rgba(0,0,0,0.58) calc(min(42vw, 180px) + 0.5px)
-  );
+  /* Square hole in the center (not circle) */
+  background:
+    linear-gradient(#000,#000) top / 100% calc(50% - min(42vw, 180px)) no-repeat,
+    linear-gradient(#000,#000) bottom / 100% calc(50% - min(42vw, 180px)) no-repeat,
+    linear-gradient(#000,#000) left / calc(50% - min(42vw, 180px)) 100% no-repeat,
+    linear-gradient(#000,#000) right / calc(50% - min(42vw, 180px)) 100% no-repeat;
+  opacity:0.58;
 }
 .gc-av-ring{
   position:absolute; left:50%; top:50%;
   width:min(84vw, 360px); height:min(84vw, 360px);
   transform:translate(-50%,-50%);
-  border-radius:50%; border:2px solid rgba(255,255,255,0.9);
-  box-shadow:0 0 0 1px rgba(0,0,0,0.3); pointer-events:none;
+  border-radius:12px; border:2px solid rgba(255,255,255,0.95);
+  box-shadow:0 0 0 1px rgba(0,0,0,0.35); pointer-events:none;
 }
+/* Original mode: hide crop frame, show full photo */
+#gc-av-editor.mode-original .gc-av-mask,
+#gc-av-editor.mode-original .gc-av-ring{ display:none; }
+#gc-av-editor.mode-original .gc-av-zoom-row{ opacity:0.35; pointer-events:none; }
 .gc-av-hint{
   position:absolute; bottom:18px; left:0; right:0; text-align:center;
   color:rgba(255,255,255,0.75); font-size:12px; font-weight:600;
   pointer-events:none; text-shadow:0 1px 4px rgba(0,0,0,0.6);
 }
 .gc-av-controls{
-  flex-shrink:0; padding:16px 18px calc(16px + env(safe-area-inset-bottom));
+  flex-shrink:0; padding:14px 18px calc(16px + env(safe-area-inset-bottom));
   background:#12121a; border-top:1px solid rgba(255,255,255,0.08);
+}
+.gc-av-mode-row{
+  display:flex; gap:8px; margin-bottom:12px;
+  background:rgba(255,255,255,0.06); border-radius:14px; padding:4px;
+}
+.gc-av-mode-row button{
+  flex:1; border:none; background:transparent; color:rgba(255,255,255,0.65);
+  font-size:13px; font-weight:700; padding:10px 8px; border-radius:11px;
+  cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px;
+  transition:all .2s;
+}
+.gc-av-mode-row button.active{
+  background:rgba(255,255,255,0.14); color:#fff;
+  box-shadow:0 2px 8px rgba(0,0,0,0.25);
 }
 .gc-av-zoom-row{
   display:flex; align-items:center; gap:12px; margin-bottom:14px;
@@ -7085,9 +7104,17 @@ Edit Profile-এ পার্টনার সিলেক্ট বাটন
     <img id="gc-av-img" alt="Profile preview" draggable="false">
     <div class="gc-av-mask"></div>
     <div class="gc-av-ring"></div>
-    <div class="gc-av-hint">Pinch or drag · use slider to zoom</div>
+    <div class="gc-av-hint" id="gc-av-hint">Drag to reposition · slide to zoom</div>
   </div>
   <div class="gc-av-controls">
+    <div class="gc-av-mode-row">
+      <button type="button" id="gc-av-mode-original" class="active" onclick="gcAvSetMode('original')">
+        <i class="ph-bold ph-image"></i> Original
+      </button>
+      <button type="button" id="gc-av-mode-crop" onclick="gcAvSetMode('crop')">
+        <i class="ph-bold ph-crop"></i> Crop
+      </button>
+    </div>
     <div class="gc-av-zoom-row">
       <i class="ph-bold ph-magnifying-glass-minus"></i>
       <input type="range" id="gc-av-zoom" min="100" max="300" value="100" step="1">
@@ -13819,6 +13846,7 @@ list.innerHTML=mine.map(p=>buildPostCardHTML(p)).join('');
 // খুঁজতে: Ctrl+F → "gcOpenAvatarEditor"
 // ═══════════════════════════════════════════════════════
 var gcAvState = {
+  file: null,
   objectUrl: null,
   naturalW: 0,
   naturalH: 0,
@@ -13830,7 +13858,8 @@ var gcAvState = {
   lastX: 0,
   lastY: 0,
   pinchDist: 0,
-  bound: false
+  bound: false,
+  mode: 'original' // 'original' | 'crop'
 };
 
 function gcOpenAvatarEditor(input){
@@ -13854,6 +13883,7 @@ function gcOpenAvatarEditor(input){
   if(gcAvState.objectUrl){
     try{ URL.revokeObjectURL(gcAvState.objectUrl); }catch(e){}
   }
+  gcAvState.file = file;
   gcAvState.objectUrl = URL.createObjectURL(file);
   gcAvState.scale = 1;
   gcAvState.tx = 0;
@@ -13864,8 +13894,7 @@ function gcOpenAvatarEditor(input){
   img.onload = function(){
     gcAvState.naturalW = img.naturalWidth || img.width;
     gcAvState.naturalH = img.naturalHeight || img.height;
-    gcAvFitImage();
-    gcAvApplyTransform();
+    gcAvSetMode(gcAvState.mode || 'original');
   };
   img.src = gcAvState.objectUrl;
 
@@ -13875,6 +13904,28 @@ function gcOpenAvatarEditor(input){
   // clear input so same file can be re-picked
   if(input) input.value = '';
 }
+
+function gcAvSetMode(mode){
+  gcAvState.mode = (mode === 'crop') ? 'crop' : 'original';
+  const editor = document.getElementById('gc-av-editor');
+  const btnO = document.getElementById('gc-av-mode-original');
+  const btnC = document.getElementById('gc-av-mode-crop');
+  const hint = document.getElementById('gc-av-hint');
+  if(editor){
+    editor.classList.toggle('mode-original', gcAvState.mode === 'original');
+    editor.classList.toggle('mode-crop', gcAvState.mode === 'crop');
+  }
+  if(btnO) btnO.classList.toggle('active', gcAvState.mode === 'original');
+  if(btnC) btnC.classList.toggle('active', gcAvState.mode === 'crop');
+  if(hint){
+    hint.textContent = gcAvState.mode === 'original'
+      ? 'Original size · no crop'
+      : 'Drag to reposition · slide to zoom';
+  }
+  gcAvFitImage();
+  gcAvApplyTransform();
+}
+window.gcAvSetMode = gcAvSetMode;
 window.gcOpenAvatarEditor = gcOpenAvatarEditor;
 // backward-compatible alias
 function uploadAvatar(input){ gcOpenAvatarEditor(input); }
@@ -13889,6 +13940,7 @@ function gcCloseAvatarEditor(){
     try{ URL.revokeObjectURL(gcAvState.objectUrl); }catch(e){}
     gcAvState.objectUrl = null;
   }
+  gcAvState.file = null;
   const img = document.getElementById('gc-av-img');
   if(img) img.removeAttribute('src');
 }
@@ -13910,9 +13962,19 @@ function gcAvFitImage(){
   const crop = gcAvCropSize();
   const nw = gcAvState.naturalW || 1;
   const nh = gcAvState.naturalH || 1;
-  // scale so the shorter side fills the circle
-  gcAvState.minScale = Math.max(crop / nw, crop / nh);
-  gcAvState.scale = gcAvState.minScale;
+  const stage = document.getElementById('gc-av-stage');
+  const stageW = (stage && stage.clientWidth) ? stage.clientWidth : window.innerWidth;
+  const stageH = (stage && stage.clientHeight) ? stage.clientHeight : window.innerHeight * 0.55;
+
+  if(gcAvState.mode === 'original'){
+    // Fit entire photo inside the stage (original aspect, no forced crop)
+    gcAvState.minScale = Math.min(stageW / nw, stageH / nh) * 0.92;
+    gcAvState.scale = gcAvState.minScale;
+  } else {
+    // COVER square frame — no empty side bars
+    gcAvState.minScale = Math.max(crop / nw, crop / nh);
+    gcAvState.scale = gcAvState.minScale;
+  }
   gcAvState.tx = 0;
   gcAvState.ty = 0;
   const zoom = document.getElementById('gc-av-zoom');
@@ -13938,6 +14000,16 @@ function gcAvApplyTransform(){
 }
 
 function gcAvClamp(){
+  if(gcAvState.mode === 'original'){
+    // Free pan in original preview (soft limits)
+    const w = gcAvState.naturalW * gcAvState.scale;
+    const h = gcAvState.naturalH * gcAvState.scale;
+    const maxX = Math.max(40, w * 0.35);
+    const maxY = Math.max(40, h * 0.35);
+    gcAvState.tx = Math.max(-maxX, Math.min(maxX, gcAvState.tx));
+    gcAvState.ty = Math.max(-maxY, Math.min(maxY, gcAvState.ty));
+    return;
+  }
   const crop = gcAvCropSize();
   const half = crop / 2;
   const w = gcAvState.naturalW * gcAvState.scale;
@@ -14000,7 +14072,7 @@ function gcAvBindGestures(){
       const dist = Math.hypot(dx, dy);
       const ratio = dist / gcAvState.pinchDist;
       gcAvState.pinchDist = dist;
-      gcAvState.scale = Math.max(gcAvState.minScale, Math.min(gcAvState.minScale * 3, gcAvState.scale * ratio));
+      gcAvState.scale = Math.max(gcAvState.minScale, Math.min(gcAvState.minScale * 4, gcAvState.scale * ratio));
       if(zoom){
         zoom.value = Math.round((gcAvState.scale / gcAvState.minScale) * 100);
       }
@@ -14014,7 +14086,8 @@ function gcExportAvatarBlob(){
   return new Promise(function(resolve, reject){
     try{
       const crop = gcAvCropSize();
-      const outSize = 512; // final avatar resolution
+      // Square JPEG, fully covered by the photo (cover mode) — no side bars
+      const outSize = 720;
       const canvas = document.createElement('canvas');
       canvas.width = outSize;
       canvas.height = outSize;
@@ -14022,20 +14095,13 @@ function gcExportAvatarBlob(){
       const img = document.getElementById('gc-av-img');
       if(!img || !img.complete){ reject(new Error('Image not ready')); return; }
 
-      // Image is centered at stage center with offset (tx, ty) and scale
-      // Visible circle maps to canvas
       const scaleToCanvas = outSize / crop;
       const drawW = gcAvState.naturalW * gcAvState.scale * scaleToCanvas;
       const drawH = gcAvState.naturalH * gcAvState.scale * scaleToCanvas;
       const cx = outSize / 2 + gcAvState.tx * scaleToCanvas;
       const cy = outSize / 2 + gcAvState.ty * scaleToCanvas;
 
-      // Optional: circular clip for clean edges
-      ctx.beginPath();
-      ctx.arc(outSize / 2, outSize / 2, outSize / 2, 0, Math.PI * 2);
-      ctx.closePath();
-      ctx.clip();
-
+      // Image covers the whole square (minScale = cover), so no empty padding
       ctx.drawImage(img, cx - drawW / 2, cy - drawH / 2, drawW, drawH);
 
       canvas.toBlob(function(blob){
@@ -14050,9 +14116,15 @@ async function gcConfirmAvatarCrop(){
   const btn = document.getElementById('gc-av-save-btn');
   if(btn){ btn.disabled = true; btn.innerHTML = '<i class="ph-bold ph-spinner-gap" style="animation:spin 1s linear infinite;"></i> Uploading…'; }
   try{
-    const blob = await gcExportAvatarBlob();
-    // Build a File so existing prepare/upload path works
-    const file = new File([blob], 'avatar.jpg', { type: 'image/jpeg' });
+    let file;
+    if(gcAvState.mode === 'original'){
+      // Same as old rule: upload the selected file as-is (original aspect / size)
+      if(!gcAvState.file) throw new Error('No file');
+      file = gcAvState.file;
+    } else {
+      const blob = await gcExportAvatarBlob();
+      file = new File([blob], 'avatar.jpg', { type: 'image/jpeg' });
+    }
     await gcUploadAvatarFile(file);
     gcCloseAvatarEditor();
   }catch(e){
