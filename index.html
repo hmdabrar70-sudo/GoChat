@@ -1457,9 +1457,16 @@ background:var(--bg);z-index:500;
 flex-direction:column;
 overflow-y:auto;
 }
+/* Chat: only the messages area scrolls — stops empty-space bounce scroll */
+#chat-screen{
+overflow:hidden !important;
+}
 #chat-screen.open,#create-post-screen.open,#settings-privacy-screen.open,#page-other-profile.open{
 display:flex;
 animation:slideUp 0.3s ease;
+}
+#chat-screen.open{
+overflow:hidden !important;
 }
 .chat-topbar{
 background:var(--surface);
@@ -1515,7 +1522,12 @@ transition:all 0.2s;
 .chat-back:active{transform:scale(0.9);}
 .chat-name{font-weight:700;font-size:16px;flex:1;}
 .chat-messages{
-flex:1;overflow-y:auto;
+flex:1;
+min-height:0; /* critical: allow flex child to scroll instead of page */
+overflow-y:auto;
+overflow-x:hidden;
+overscroll-behavior:contain;
+-webkit-overflow-scrolling:touch;
 padding:16px;
 display:flex;flex-direction:column;gap:8px;
 }
@@ -1631,6 +1643,46 @@ align-items:flex-end;justify-content:center;
 #logout-confirm-modal .gc-logout-btn.danger{
   background:var(--danger);color:#fff;
 }
+
+/* Compact centered login success (matches logout style) */
+#login-success-modal.modal-overlay{
+  align-items:center !important;
+  justify-content:center !important;
+  padding:20px;
+}
+#login-success-modal .gc-login-ok-card{
+  width:100%;
+  max-width:280px;
+  background:var(--surface);
+  border-radius:20px;
+  padding:22px 20px 18px;
+  text-align:center;
+  box-shadow:var(--shadow-lg);
+  border:1px solid var(--border);
+  animation:fadeIn .2s ease;
+}
+#login-success-modal .gc-login-ok-icon{
+  width:48px;height:48px;margin:0 auto 12px;
+  border-radius:50%;
+  background:rgba(34,197,94,0.14);
+  color:var(--success);
+  display:flex;align-items:center;justify-content:center;
+  font-size:26px;
+}
+#login-success-modal .gc-login-ok-title{
+  font-size:17px;font-weight:800;color:var(--text);margin-bottom:6px;
+}
+#login-success-modal .gc-login-ok-msg{
+  font-size:13px;color:var(--text-muted);margin:0 0 18px;line-height:1.4;
+}
+#login-success-modal .gc-login-ok-btn{
+  width:100%;padding:11px 12px;border-radius:14px;border:none;
+  font-size:14px;font-weight:700;cursor:pointer;
+  background:var(--accent);color:#fff;
+  transition:transform .15s ease;
+}
+#login-success-modal .gc-login-ok-btn:active{transform:scale(0.97);}
+
 
 .modal-box{
 background:var(--surface);
@@ -6255,9 +6307,9 @@ Edit Profile-এ পার্টনার সিলেক্ট বাটন
         <div class="chat-back" onclick="closeUserProfile()"><i class="ph-bold ph-arrow-u-up-left"></i></div>
         <div class="chat-name" id="other-profile-top-name" style="margin-left:8px;">Profile</div>
         
-        <!-- 🚀 NEW: Other User QR Button -->
-        <div class="icon-btn" onclick="openOtherUserQR()" style="background:transparent; padding:8px; border:none; margin-right:8px; color:var(--text);">
-            <i class="ph-bold ph-qr-code" style="font-size:24px;"></i>
+        <!-- 🚀 Mute Profile (top bar) — bell / bell-simple-slash -->
+        <div class="icon-btn" id="other-mute-profile-btn" onclick="event.stopPropagation(); toggleMuteFeed(currentOtherProfileUid)" title="Mute Profile" style="background:transparent; padding:8px; border:none; margin-right:4px; color:var(--text);">
+            <i class="ph ph-bell" id="other-mute-profile-icon" style="font-size:22px;"></i>
         </div>
 
         <div class="icon-btn" onclick="event.stopPropagation();toggleProfileMenu()" style="background:transparent; padding:8px; border:none; position:relative;">
@@ -6266,11 +6318,11 @@ Edit Profile-এ পার্টনার সিলেক্ট বাটন
     <div class="chat-dropdown-item" onclick="copyOtherProfileLink()">
         <i class="ph-bold ph-link" style="font-size:20px;"></i> Copy Profile Link
     </div>
+    <div class="chat-dropdown-item" onclick="closeAllDropdowns(); openOtherUserQR()">
+        <i class="ph-bold ph-qr-code" style="font-size:20px;"></i> Scan QR
+    </div>
     <div class="chat-dropdown-item danger" id="block-user-btn" onclick="blockCurrentUser()">
         <i class="ph-bold ph-prohibit" style="font-size:20px;"></i> Block User
-    </div>
-    <div class="chat-dropdown-item" onclick="toggleMuteFeed(currentOtherProfileUid)">
-        <i class="ph-bold ph-eye-slash" style="font-size:20px;"></i> Hide from Feed
     </div>
 </div>
         </div>
@@ -6864,14 +6916,12 @@ Edit Profile-এ পার্টনার সিলেক্ট বাটন
     </div>
 </div>
 
-<div class="modal-overlay" id="login-success-modal" style="z-index: 10007;">
-    <div class="modal-box" style="text-align: center; max-width: 320px; padding: 30px 20px;">
-        <div style="width: 80px; height: 80px; background: linear-gradient(135deg, var(--success), #2ecc71); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px auto; box-shadow: 0 4px 20px rgba(46, 204, 113, 0.4); animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;">
-            <i class="ph-fill ph-check-circle" style="font-size: 45px; color: white;"></i>
-        </div>
-        <div class="modal-title" style="font-size: 22px; margin-bottom: 10px;">Login Successful!</div>
-        <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 25px;">Welcome back to GoChat! Connect and share your moments.</p>
-        <button class="btn-primary" style="width: 100%; border-radius: 25px; font-weight: bold;" onclick="closeLoginSuccessModal()">Continue to Feed</button>
+<div class="modal-overlay" id="login-success-modal" style="z-index:10007;align-items:center;justify-content:center;padding:20px;">
+    <div class="gc-login-ok-card" onclick="event.stopPropagation()">
+        <div class="gc-login-ok-icon"><i class="ph-fill ph-check-circle"></i></div>
+        <div class="gc-login-ok-title">You're in!</div>
+        <p class="gc-login-ok-msg">Welcome back to GoChat.</p>
+        <button type="button" class="gc-login-ok-btn" onclick="closeLoginSuccessModal()">Continue</button>
     </div>
 </div>
 
@@ -6897,7 +6947,7 @@ Edit Profile-এ পার্টনার সিলেক্ট বাটন
     
     <!-- 🚀 Top Right Actions (Smaller Size) -->
     <div style="position:absolute; top:20px; right:20px; display:flex; gap:10px; z-index:10005;">
-        <div style="position:relative;">
+        <div id="zoom-menu-wrap" style="position:relative;">
             <button class="image-zoom-close" style="position:static; width:34px; height:34px; background:rgba(0,0,0,0.5);" onclick="event.stopPropagation(); document.getElementById('zoom-menu').classList.toggle('open')">
                 <i class="ph-bold ph-dots-three" style="font-size:20px;"></i>
             </button>
@@ -9906,13 +9956,17 @@ function gcUpdateProfileStoryRings(){
             } else {
                 wrap.classList.remove('seen-story');
             }
-            wrap.onclick = has ? function(e){
+            wrap.onclick = function(e){
                 if(e.target.closest('label') || e.target.closest('input')) return;
                 e.stopPropagation();
-                if(typeof playStories === 'function') playStories(currentUser.uid);
-            } : null;
-            if(has) wrap.style.cursor = 'pointer';
-            else wrap.style.cursor = '';
+                if(has){
+                    if(typeof playStories === 'function') playStories(currentUser.uid);
+                } else if(currentUserData && currentUserData.avatar){
+                    // Profile photo zoom — no download menu
+                    openImageZoom(currentUserData.avatar, null, true);
+                }
+            };
+            wrap.style.cursor = (has || (currentUserData && currentUserData.avatar)) ? 'pointer' : '';
         }
     }
     // Other profile
@@ -9928,21 +9982,21 @@ function gcUpdateProfileStoryRings(){
             } else {
                 wrap.classList.remove('seen-story');
             }
-            wrap.onclick = has ? function(e){
+            wrap.onclick = function(e){
                 e.preventDefault();
                 e.stopPropagation();
-                // Open story on top of profile immediately
-                if(typeof playStories === 'function') playStories(uid);
-            } : null;
-            if(has){
-                wrap.style.cursor = 'pointer';
-                wrap.setAttribute('role','button');
-                wrap.setAttribute('title','View story');
-            } else {
-                wrap.style.cursor = '';
-                wrap.removeAttribute('role');
-                wrap.removeAttribute('title');
-            }
+                if(has){
+                    if(typeof playStories === 'function') playStories(uid);
+                } else {
+                    // Profile photo zoom — no download menu
+                    const img = otherAv.querySelector('img');
+                    const src = img ? img.src : '';
+                    if(src) openImageZoom(src, null, true);
+                }
+            };
+            wrap.style.cursor = 'pointer';
+            wrap.setAttribute('role','button');
+            wrap.setAttribute('title', has ? 'View story' : 'View photo');
         }
     }
 }
@@ -11018,13 +11072,12 @@ ${gcDisplayName}
     const otherFollowersCount = document.getElementById('other-followers-count');
     const otherFollowingCount = document.getElementById('other-following-count');
     if(otherFollowersCount) otherFollowersCount.textContent = (u.followers || []).length;
+    // Always show following count (no lock icon). Privacy still enforced when opening the list.
     if(otherFollowingCount) {
-        if (u.followingPrivacy === 'onlyme') {
-            otherFollowingCount.innerHTML = '<i class="ph-bold ph-lock-key" style="font-size: 16px; vertical-align: text-bottom; color: var(--text-muted);"></i>';
-        } else {
-            otherFollowingCount.textContent = (u.following || []).length;
-        }
+        otherFollowingCount.textContent = (u.following || []).length;
     }
+    // Sync Mute Profile top-bar icon
+    if(typeof gcSyncOtherMuteIcon === 'function') gcSyncOtherMuteIcon(uid);
     
     let dHtml='';
     // Order: Gender → Phone → Email → Home town → Current location → Profession → Join date → Relationship
@@ -11311,7 +11364,7 @@ safeText = safeText.replace(urlRegex, function(url) {
                         <div class="gc-vp-bar"><i></i></div>
                         <div class="gc-vp-time">0:00</div>
                     </div>
-                    <audio preload="metadata" style="display:none;" src="${safeAudioUrl}"></audio>
+                    <audio preload="auto" playsinline webkit-playsinline style="display:none;" src="${safeAudioUrl}"></audio>
                 </div>`;
                 content=`${m.text?`<div style="margin-bottom:6px;">${safeText}</div>`:''}${voiceUi}`;
             } else {
@@ -13092,10 +13145,11 @@ let zoomCurrentIdx = 0;
 let zoomActivePostId = null;
 let zoomUnsub = null;
 
-function openImageZoom(url, postId = null) {
+function openImageZoom(url, postId = null, isProfilePic = false) {
     zoomImagesList = [];
     zoomCurrentIdx = 0;
     zoomActivePostId = postId;
+    window.zoomIsProfilePic = !!isProfilePic;
     
     const e = window.event;
     if (e && e.target && e.target.tagName === 'IMG') {
@@ -13122,6 +13176,14 @@ function openImageZoom(url, postId = null) {
     }
 
     if (zoomImagesList.length === 0) zoomImagesList = [url];
+
+    // Security: hide 3-dot (download) menu only for profile pictures
+    const zoomMenuWrap = document.getElementById('zoom-menu-wrap');
+    if (zoomMenuWrap) {
+        zoomMenuWrap.style.display = window.zoomIsProfilePic ? 'none' : '';
+    }
+    const zoomMenu = document.getElementById('zoom-menu');
+    if (zoomMenu) zoomMenu.classList.remove('open');
 
     document.getElementById('image-zoom-modal').classList.add('open');
     renderZoomImage();
@@ -13331,14 +13393,20 @@ let activityHtml = '';
 if (p.activity) {
     activityHtml = `<span style="font-weight:500; color:var(--text-secondary); font-size:14px; margin-left:4px;">is ${escapeHTML(p.activity.text)}</span> <i class="${escapeHTML(p.activity.icon)}" style="font-size:16px; margin-left:4px; vertical-align:middle; color:var(--accent);"></i>`;
 }
+// Profile picture update action text (Facebook-style)
+let profileUpdateHtml = '';
+if (p.isProfilePicUpdate) {
+    profileUpdateHtml = `<span style="font-weight:500; color:var(--text-secondary); font-size:14px; margin-left:4px;">updated profile picture</span>`;
+}
 // ---------------------------------------------
 
 const imgUrls=p.imgUrls&&p.imgUrls.length>0?p.imgUrls:(p.imgUrl?[p.imgUrl]:[]);
+const zoomIsProfile = p.isProfilePicUpdate ? 'true' : 'false';
 let mediaHtml='';
 if(imgUrls.length>1){
 let slides=imgUrls.map(url=>{
 const safeUrl = escapeHTML(url);
-return`<div class="gc-feed-slide"><img class="post-img" src="${safeUrl}" onclick="event.stopPropagation();openImageZoom('${safeUrl}')" alt=""></div>`;
+return`<div class="gc-feed-slide"><img class="post-img" src="${safeUrl}" onclick="event.stopPropagation();openImageZoom('${safeUrl}',null,${zoomIsProfile})" alt=""></div>`;
 }).join('');
 mediaHtml=`<div class="post-media-wrap" ondblclick="event.stopPropagation(); handleDoubleTap('${pid}',event)">
 <div class="post-media-carousel">
@@ -13349,7 +13417,7 @@ ${slides}
 }else if(imgUrls.length===1){
 const safeUrl = escapeHTML(imgUrls[0]);
 mediaHtml=`<div class="post-media-wrap" ondblclick="event.stopPropagation(); handleDoubleTap('${pid}',event)">
-<img class="post-img" src="${safeUrl}" onclick="event.stopPropagation();openImageZoom('${safeUrl}')" alt="">
+<img class="post-img" src="${safeUrl}" onclick="event.stopPropagation();openImageZoom('${safeUrl}','${pid}',${zoomIsProfile})" alt="">
 <i class="ph-fill ph-thumbs-up double-tap-heart"></i>
 </div>`;
 }
@@ -13422,6 +13490,7 @@ ${followBadge}
 <div style="flex:1; min-width:0;">
 <div class="post-name" style="display: block; line-height: 1.4;">
 <span style="display: inline; cursor:pointer;" onclick="event.stopPropagation(); viewUserProfile('${p.uid}')">${safeName} <span style="display: inline-flex; vertical-align: middle; margin-top: -3px; margin-left: 2px;">${vBadge}</span></span>
+${profileUpdateHtml}
 ${activityHtml}
 ${withText}
 ${p.location ? `<span class="gc-post-loc"><i class="ph-fill ph-map-pin"></i>${escapeHTML(p.location)}</span>` : ''}
@@ -13660,6 +13729,32 @@ currentUserData.avatar=url;
             }
         } catch (error) {
             console.error("Error updating old posts avatar: ", error);
+        }
+        // 🚀 Feed post when profile picture is updated (Facebook-style)
+        try {
+            const expireAt = new Date(Date.now() + ONE_YEAR_MS);
+            await db.collection('posts').add({
+                uid: currentUser.uid,
+                name: currentUserData.name || (currentUser.email ? currentUser.email.split('@')[0] : 'User'),
+                email: currentUserData.email || '',
+                isVerified: currentUserData.isVerified || false,
+                avatar: url,
+                title: '',
+                imgUrls: [url],
+                imgUrl: url,
+                likes: 0,
+                likedBy: [],
+                comments: [],
+                commentCount: 0,
+                shares: 0,
+                isProfilePicUpdate: true,
+                isPinned: false,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                expiresAt: expireAt
+            });
+            try { if (typeof loadFeed === 'function') loadFeed(); } catch(e) {}
+        } catch (postErr) {
+            console.error('Profile pic post error:', postErr);
         }
 loadUserUI();
 showToast('Profile photo updated!');
@@ -15047,24 +15142,52 @@ function selectPostBg(color, element) {
         textarea.style.borderRadius = '16px';
     }
 }
-async function toggleMuteFeed(uid) {
-    if (!currentUser) return;
-    // ইউজারের ডাটাবেসে মিউটেড লিস্ট আপডেট করা
-    let mutedList = currentUserData.mutedFeedUsers || [];
-    if (mutedList.includes(uid)) {
-        await db.collection('users').doc(currentUser.uid).update({
-            mutedFeedUsers: firebase.firestore.FieldValue.arrayRemove(uid)
-        });
-        showToast("User unhidden from feed");
+function gcSyncOtherMuteIcon(uid) {
+    const icon = document.getElementById('other-mute-profile-icon');
+    const btn = document.getElementById('other-mute-profile-btn');
+    if (!icon) return;
+    const muted = !!(currentUserData && currentUserData.mutedFeedUsers && currentUserData.mutedFeedUsers.includes(uid));
+    if (muted) {
+        icon.className = 'ph ph-bell-simple-slash';
+        if (btn) btn.title = 'Unmute Profile';
     } else {
-        await db.collection('users').doc(currentUser.uid).update({
-            mutedFeedUsers: firebase.firestore.FieldValue.arrayUnion(uid)
-        });
-        showToast("User hidden from feed");
+        icon.className = 'ph ph-bell';
+        if (btn) btn.title = 'Mute Profile';
     }
-    closeAllDropdowns();
-    closeUserProfile();
-    loadFeed();
+}
+window.gcSyncOtherMuteIcon = gcSyncOtherMuteIcon;
+
+async function toggleMuteFeed(uid) {
+    if (!currentUser || !uid) return;
+    // ইউজারের ডাটাবেসে মিউটেড লিস্ট আপডেট করা
+    let mutedList = (currentUserData && currentUserData.mutedFeedUsers) ? currentUserData.mutedFeedUsers.slice() : [];
+    try {
+        if (mutedList.includes(uid)) {
+            await db.collection('users').doc(currentUser.uid).update({
+                mutedFeedUsers: firebase.firestore.FieldValue.arrayRemove(uid)
+            });
+            if (currentUserData) {
+                currentUserData.mutedFeedUsers = mutedList.filter(function(id){ return id !== uid; });
+            }
+            showToast('Profile unmuted — posts will appear in your feed');
+        } else {
+            await db.collection('users').doc(currentUser.uid).update({
+                mutedFeedUsers: firebase.firestore.FieldValue.arrayUnion(uid)
+            });
+            if (currentUserData) {
+                if (!currentUserData.mutedFeedUsers) currentUserData.mutedFeedUsers = [];
+                if (!currentUserData.mutedFeedUsers.includes(uid)) currentUserData.mutedFeedUsers.push(uid);
+            }
+            showToast('Profile muted — posts hidden from your feed');
+        }
+        gcSyncOtherMuteIcon(uid);
+        closeAllDropdowns();
+        // Stay on profile; refresh feed in background so home updates
+        try { if (typeof loadFeed === 'function') loadFeed(); } catch(e) {}
+    } catch (e) {
+        console.error(e);
+        showToast('Could not update mute. Try again.');
+    }
 }
 
 // Followers এবং Following লিস্ট ওপেন করার ফাংশন
@@ -17020,45 +17143,92 @@ function gcToggleVoice(btn){
     const timeEl = wrap.querySelector('.gc-vp-time');
     if(!audio) return;
 
-    // pause any other playing voice
-    if(gcActiveVoiceAudio && gcActiveVoiceAudio !== audio){
-        try{ gcActiveVoiceAudio.pause(); }catch(e){}
-        const prevWrap = gcActiveVoiceAudio.closest('.gc-voice-player');
-        if(prevWrap){
-            const pi = prevWrap.querySelector('.gc-vp-play i');
-            if(pi){ pi.className = 'ph-fill ph-play'; }
-        }
-    }
-
-    if(audio.paused){
-        audio.play().then(() => {
-            gcActiveVoiceAudio = audio;
-            if(icon) icon.className = 'ph-fill ph-pause';
-        }).catch(() => showToast('Could not play voice message'));
-    } else {
-        audio.pause();
-        if(icon) icon.className = 'ph-fill ph-play';
-    }
-
+    // Bind once
     if(!audio._gcVoiceBound){
         audio._gcVoiceBound = true;
-        audio.addEventListener('timeupdate', () => {
+        try{ audio.setAttribute('playsinline', ''); audio.playsInline = true; audio.preload = 'auto'; }catch(e){}
+        audio.addEventListener('timeupdate', function(){
             const dur = audio.duration || 0;
             const cur = audio.currentTime || 0;
             if(bar && dur) bar.style.width = Math.min(100, (cur / dur) * 100) + '%';
-            if(timeEl) timeEl.textContent = gcFmtVoiceTime(cur) + (dur ? ' / ' + gcFmtVoiceTime(dur) : '');
+            if(timeEl) timeEl.textContent = gcFmtVoiceTime(cur) + (dur && isFinite(dur) ? ' / ' + gcFmtVoiceTime(dur) : '');
         });
-        audio.addEventListener('loadedmetadata', () => {
+        audio.addEventListener('loadedmetadata', function(){
             if(timeEl && isFinite(audio.duration)) timeEl.textContent = '0:00 / ' + gcFmtVoiceTime(audio.duration);
         });
-        audio.addEventListener('ended', () => {
+        audio.addEventListener('ended', function(){
             if(icon) icon.className = 'ph-fill ph-play';
             if(bar) bar.style.width = '0%';
             if(timeEl && isFinite(audio.duration)) timeEl.textContent = '0:00 / ' + gcFmtVoiceTime(audio.duration);
             if(gcActiveVoiceAudio === audio) gcActiveVoiceAudio = null;
         });
-        // preload duration label
+        audio.addEventListener('error', function(){
+            if(icon) icon.className = 'ph-fill ph-play';
+            showToast('Voice file could not load');
+        });
+    }
+
+    // pause any other playing voice
+    if(gcActiveVoiceAudio && gcActiveVoiceAudio !== audio){
+        try{ gcActiveVoiceAudio.pause(); }catch(e){}
+        try{
+            const prevWrap = gcActiveVoiceAudio.closest && gcActiveVoiceAudio.closest('.gc-voice-player');
+            if(prevWrap){
+                const pi = prevWrap.querySelector('.gc-vp-play i');
+                if(pi) pi.className = 'ph-fill ph-play';
+            }
+        }catch(e){}
+        gcActiveVoiceAudio = null;
+    }
+
+    if(!audio.paused && !audio.ended){
+        try{ audio.pause(); }catch(e){}
+        if(icon) icon.className = 'ph-fill ph-play';
+        return;
+    }
+
+    // First-play fix for mobile WebView: ensure buffer is ready, then play
+    const doPlay = function(){
+        const p = audio.play();
+        if(p && typeof p.then === 'function'){
+            p.then(function(){
+                gcActiveVoiceAudio = audio;
+                if(icon) icon.className = 'ph-fill ph-pause';
+            }).catch(function(err){
+                // Retry once after a short load
+                try{ audio.load(); }catch(e){}
+                setTimeout(function(){
+                    audio.play().then(function(){
+                        gcActiveVoiceAudio = audio;
+                        if(icon) icon.className = 'ph-fill ph-pause';
+                    }).catch(function(){
+                        showToast('Could not play voice message');
+                        if(icon) icon.className = 'ph-fill ph-play';
+                    });
+                }, 120);
+            });
+        } else {
+            gcActiveVoiceAudio = audio;
+            if(icon) icon.className = 'ph-fill ph-pause';
+        }
+    };
+
+    if(icon) icon.className = 'ph-fill ph-pause'; // optimistic UI
+    if(audio.readyState >= 2){
+        doPlay();
+    } else {
+        const onReady = function(){
+            audio.removeEventListener('canplay', onReady);
+            audio.removeEventListener('loadeddata', onReady);
+            doPlay();
+        };
+        audio.addEventListener('canplay', onReady);
+        audio.addEventListener('loadeddata', onReady);
         try{ audio.load(); }catch(e){}
+        // safety timeout
+        setTimeout(function(){
+            if(audio.paused) doPlay();
+        }, 400);
     }
 }
 window.gcToggleVoice = gcToggleVoice;
@@ -20614,10 +20784,23 @@ return tb - ta;
 list.innerHTML = pending.map(function(uid){
 const u = users[uid] || { name: 'User', avatar: '' };
 const t = timeMap[uid];
-const timeTxt = t ? (typeof getRelativeTime === 'function' ? getRelativeTime(t) : '') : 'recently';
+let timeTxt = '';
+if(t){
+  try{
+    if(typeof getRelativeTime === 'function') timeTxt = getRelativeTime(t) || '';
+    if(!timeTxt){
+      const ms = t.toMillis ? t.toMillis() : (t.seconds ? t.seconds*1000 : Number(t));
+      if(ms && !isNaN(ms)){
+        const d = new Date(ms);
+        timeTxt = d.toLocaleDateString(undefined,{month:'short',day:'numeric'}) + ' · ' + d.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'});
+      }
+    }
+  }catch(e){ timeTxt = ''; }
+}
+
 const av = u.avatar ? '<img class="gc-fr-av" src="' + escapeHTML(u.avatar) + '">' : '<div class="gc-fr-av-init">' + (u.name || 'U').charAt(0).toUpperCase() + '</div>';
 return '<div class="gc-fr-item">' + av +
-'<div class="gc-fr-info" onclick="gcCloseFollowRequests(); viewUserProfile(\'' + uid + '\')"><div class="gc-fr-name">' + escapeHTML(u.name || 'User') + '</div><div class="gc-fr-time"><i class="ph-bold ph-clock" style="font-size:12px;"></i>Followed ' + escapeHTML(timeTxt || 'recently') + '</div></div>' +
+'<div class="gc-fr-info" onclick="gcCloseFollowRequests(); viewUserProfile(\'' + uid + '\')"><div class="gc-fr-name">' + escapeHTML(u.name || 'User') + '</div><div class="gc-fr-time"><i class="ph-bold ph-clock" style="font-size:12px;"></i>' + (timeTxt ? ('Requested ' + escapeHTML(timeTxt)) : 'New request') + '</div></div>' +
 '<div class="gc-fr-btns"><button class="gc-fr-btn back" onclick="gcFollowBack(\'' + uid + '\')">Follow Back</button><button class="gc-fr-btn rm" onclick="gcRemoveFollower(\'' + uid + '\')">Remove</button></div></div>';
 }).join('');
 }
