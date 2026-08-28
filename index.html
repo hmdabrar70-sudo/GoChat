@@ -5389,12 +5389,23 @@ body:not(.light-mode) .post-card {
     display: none; background: var(--surface-2); border: 1px solid var(--border);
     border-radius: 16px; padding: 16px; margin-top: 12px; animation: fadeIn 0.3s ease;
 }
+.poll-question-wrap { margin-bottom: 12px; }
+.poll-question-wrap input {
+    width: 100%; padding: 12px 16px; border-radius: 12px; background: var(--surface);
+    border: 1.5px solid var(--border); color: var(--text); font-size: 15px; font-weight: 600;
+    outline: none; transition: 0.2s;
+}
+.poll-question-wrap input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+.poll-question-wrap input::placeholder { font-weight: 500; color: var(--text-muted); }
 .poll-input-wrapper { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
 .poll-input-wrapper input {
     flex: 1; padding: 12px 16px; border-radius: 12px; background: var(--surface);
     border: 1px solid var(--border); color: var(--text); font-size: 14px; outline: none; transition: 0.2s;
 }
 .poll-input-wrapper input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+.feed-poll-question {
+    font-size: 16px; font-weight: 700; color: var(--text); margin-bottom: 10px; line-height: 1.35;
+}
 .poll-input-remove {
     background: transparent; border: none; color: var(--text-muted); cursor: pointer; padding: 6px;
 }
@@ -6704,6 +6715,10 @@ Edit Profile-এ পার্টনার সিলেক্ট বাটন
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 12px;">
         <div style="font-size: 12px; font-weight: 800; color: var(--text-muted); text-transform: uppercase;">Create a Poll</div>
         <i class="ph-bold ph-x" style="cursor:pointer; color:var(--text-muted);" onclick="togglePollCreator()"></i>
+    </div>
+    <!-- Poll question / title -->
+    <div class="poll-question-wrap">
+        <input type="text" id="poll-question-input" maxlength="200" placeholder="Ask a question…" oninput="checkPostInputs()">
     </div>
     <div id="poll-inputs-container">
         <div class="poll-input-wrapper"><input type="text" class="poll-choice-val" placeholder="Option 1" oninput="checkPostInputs()"></div>
@@ -8668,65 +8683,254 @@ function closeLoginSuccessModal() {
     if(successModal) successModal.classList.remove('open');
 }
 
-// --- পাসওয়ার্ড হাইড/শো করার ফাংশন ---
-// --- 🚀 আপডেট: গুগল লগইন (অ্যাকাউন্ট সিলেক্ট করার অপশন সহ) ---
-function loginWithGoogle() {
-    const provider = new firebase.auth.GoogleAuthProvider();
-    
-    // 🚀 এই লাইনটিই হলো ম্যাজিক! এটা গুগলকে জোর করবে প্রতিবার অ্যাকাউন্ট সিলেক্ট করার অপশন দেখাতে
-    provider.setCustomParameters({
-        prompt: 'select_account'
-    });
-    
-    // Redirect এর বদলে Popup ব্যবহার করা হচ্ছে
-    auth.signInWithPopup(provider).then(async (result) => {
-        if (result && result.user) {
-            const user = result.user;
-            
-            // Check Blacklist
-            const banCheck = await db.collection('banned_emails').doc(user.email).get();
-            if (banCheck.exists) {
-                await auth.signOut();
-                showToast("Access Denied: This account is permanently banned.");
-                return;
-            }
-
-            // Create user doc if not exists
-            const doc = await db.collection('users').doc(user.uid).get();
-            if (!doc.exists) {
-                const gName = user.email.split('@')[0];
-                await db.collection('users').doc(user.uid).set({
-                    name: gName,
-                    nameLower: normalizeUserSearchText(gName),
-                    email: user.email,
-                    avatar: '',
-                    bio: '', location: '', hometown: '', relationship: '', gender: '',
-                    followers: [], following: [], 
-                    blockedUsers: [], mutedChats: [], pinnedChats: [], archivedChats: [],
-                    online: true,
-                    points: 20,
-                    loginStreak: 1,
-                    lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                    welcomeSent: false
-                });
-                sendWelcomeMessage(user.uid, gName);
-            }
-            
-            showToast("Logged in successfully!");
-            
-            const successModal = document.getElementById('login-success-modal');
-            if(successModal) successModal.classList.add('open');
-            
-            setTimeout(() => {
-                if(successModal) successModal.classList.remove('open');
-            }, 3000);
-        }
-    }).catch((error) => {
-        console.error("Google Login Error: ", error);
-        showToast("Google Login failed!");
-    });
+// ═══════════════════════════════════════════════════════
+// 🚀 Google Sign-In (clean rebuild · no third-party wrappers)
+// খুঁজতে: Ctrl+F → "loginWithGoogle"
+// - Browser: popup first, redirect fallback
+// - WebView / APK: redirect (popups usually blocked)
+// - getRedirectResult handled on boot
+// ═══════════════════════════════════════════════════════
+function gcIsRestrictedWebView(){
+  try{
+    const ua = (navigator.userAgent || '').toLowerCase();
+    // Common in-app / WebView environments where popups fail
+    if (window.ReactNativeWebView) return true;
+    if (window.capacitor || window.Capacitor) return true;
+    if (window.cordova || window.PhoneGap) return true;
+    if (window.webkit && window.webkit.messageHandlers) {
+      // iOS WKWebView often lacks reliable popups
+      if (/iphone|ipad|ipod/.test(ua) && !/safari/.test(ua)) return true;
+    }
+    if (/; wv\)/.test(ua)) return true; // Android WebView
+    if (/fbav|fban|instagram|line\/|tiktok|snapchat|whatsapp|messenger/.test(ua)) return true;
+    // standalone PWA / installed webapp
+    if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) return true;
+    if (navigator.standalone === true) return true;
+  }catch(e){}
+  return false;
 }
+
+function gcGoogleProvider(){
+  const provider = new firebase.auth.GoogleAuthProvider();
+  provider.setCustomParameters({ prompt: 'select_account' });
+  provider.addScope('email');
+  provider.addScope('profile');
+  return provider;
+}
+
+function gcSetGoogleBtnBusy(busy){
+  try{
+    document.querySelectorAll('.btn-auth-google, button.lx-google').forEach(function(btn){
+      if (busy) {
+        btn.dataset.gcBusy = '1';
+        btn.style.opacity = '0.7';
+        btn.style.pointerEvents = 'none';
+        if (!btn.dataset.gcLabel) btn.dataset.gcLabel = btn.innerHTML;
+        btn.innerHTML = '<span style="display:inline-flex;align-items:center;gap:8px;"><i class="ph-bold ph-spinner-gap" style="animation:spin 1s linear infinite;font-size:18px;"></i> Connecting…</span>';
+      } else {
+        btn.style.opacity = '';
+        btn.style.pointerEvents = '';
+        btn.dataset.gcBusy = '';
+        if (btn.dataset.gcLabel) {
+          btn.innerHTML = btn.dataset.gcLabel;
+          delete btn.dataset.gcLabel;
+        }
+      }
+    });
+  }catch(e){}
+}
+
+function gcGoogleAuthErrorMessage(error){
+  if (!error) return 'Google sign-in failed. Please try again.';
+  const code = error.code || '';
+  if (code === 'auth/popup-closed-by-user' || code === 'auth/cancelled-popup-request') {
+    return 'Sign-in cancelled.';
+  }
+  if (code === 'auth/popup-blocked') {
+    return 'Popup blocked. Trying another method…';
+  }
+  if (code === 'auth/network-request-failed') {
+    return 'Network error. Check your connection.';
+  }
+  if (code === 'auth/unauthorized-domain') {
+    return 'This domain is not authorized for Google login.';
+  }
+  if (code === 'auth/account-exists-with-different-credential') {
+    return 'An account already exists with this email using another sign-in method.';
+  }
+  if (code === 'auth/user-disabled') {
+    return 'This account has been disabled.';
+  }
+  return 'Google sign-in failed. Please try again.';
+}
+
+async function gcEnsureGoogleUserProfile(user){
+  if (!user || !user.uid) return;
+  const email = (user.email || '').trim();
+  if (email) {
+    try {
+      const banCheck = await db.collection('banned_emails').doc(email).get();
+      if (banCheck.exists) {
+        await auth.signOut();
+        showToast('Access Denied: This account is permanently banned.');
+        throw new Error('BANNED');
+      }
+    } catch (e) {
+      if (e && e.message === 'BANNED') throw e;
+      // non-fatal if ban list unread
+    }
+  }
+
+  const ref = db.collection('users').doc(user.uid);
+  const doc = await ref.get();
+  if (doc.exists) {
+    // Light touch: keep lastSeen / online; fill missing avatar from Google once
+    try {
+      const data = doc.data() || {};
+      const patch = {
+        online: true,
+        lastSeen: firebase.firestore.FieldValue.serverTimestamp()
+      };
+      if (!data.avatar && user.photoURL) patch.avatar = user.photoURL;
+      if (!data.email && email) patch.email = email;
+      await ref.update(patch);
+    } catch (e) {}
+    return;
+  }
+
+  const gName = (user.displayName && user.displayName.trim())
+    || (email ? email.split('@')[0] : 'User');
+  const profile = {
+    name: gName,
+    nameLower: (typeof normalizeUserSearchText === 'function')
+      ? normalizeUserSearchText(gName)
+      : String(gName).toLowerCase(),
+    email: email,
+    avatar: user.photoURL || '',
+    bio: '',
+    location: '',
+    hometown: '',
+    relationship: '',
+    gender: '',
+    followers: [],
+    following: [],
+    blockedUsers: [],
+    mutedChats: [],
+    pinnedChats: [],
+    archivedChats: [],
+    online: true,
+    points: 20,
+    loginStreak: 1,
+    provider: 'google',
+    lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
+    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+    welcomeSent: false
+  };
+  await ref.set(profile);
+  try {
+    if (typeof sendWelcomeMessage === 'function') sendWelcomeMessage(user.uid, gName);
+  } catch (e) {}
+}
+
+function gcShowGoogleLoginSuccess(){
+  showToast('Logged in successfully!');
+  const successModal = document.getElementById('login-success-modal');
+  if (successModal) {
+    successModal.classList.add('open');
+    setTimeout(function(){ successModal.classList.remove('open'); }, 2500);
+  }
+}
+
+async function loginWithGoogle(){
+  if (!window.firebase || !auth) {
+    showToast('Auth is not ready. Please refresh.');
+    return;
+  }
+  gcSetGoogleBtnBusy(true);
+  try {
+    try {
+      await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+    } catch (e) {}
+
+    const provider = gcGoogleProvider();
+    const preferRedirect = gcIsRestrictedWebView();
+
+    if (preferRedirect) {
+      // WebView / APK: popup almost always fails → redirect
+      sessionStorage.setItem('gc_google_auth', '1');
+      await auth.signInWithRedirect(provider);
+      return; // page will navigate away
+    }
+
+    try {
+      const result = await auth.signInWithPopup(provider);
+      if (result && result.user) {
+        await gcEnsureGoogleUserProfile(result.user);
+        gcShowGoogleLoginSuccess();
+        // onAuthStateChanged will open the app
+      }
+    } catch (popupErr) {
+      const code = (popupErr && popupErr.code) || '';
+      // Fallback to redirect when popup is blocked / unsupported
+      if (
+        code === 'auth/popup-blocked' ||
+        code === 'auth/operation-not-supported-in-this-environment' ||
+        code === 'auth/cancelled-popup-request'
+      ) {
+        sessionStorage.setItem('gc_google_auth', '1');
+        await auth.signInWithRedirect(provider);
+        return;
+      }
+      if (code === 'auth/popup-closed-by-user') {
+        showToast(gcGoogleAuthErrorMessage(popupErr));
+        return;
+      }
+      console.error('Google popup error:', popupErr);
+      showToast(gcGoogleAuthErrorMessage(popupErr));
+    }
+  } catch (e) {
+    if (e && e.message === 'BANNED') return;
+    console.error('Google login error:', e);
+    showToast(gcGoogleAuthErrorMessage(e));
+  } finally {
+    // If we redirected, page unloads; otherwise restore button
+    gcSetGoogleBtnBusy(false);
+  }
+}
+window.loginWithGoogle = loginWithGoogle;
+
+// Complete redirect-based Google sign-in / link (call once on boot)
+async function gcHandleGoogleRedirectResult(){
+  const wasLogin = sessionStorage.getItem('gc_google_auth') === '1';
+  const wasLink = sessionStorage.getItem('gc_google_link') === '1';
+  try {
+    if (!auth || typeof auth.getRedirectResult !== 'function') return;
+    const result = await auth.getRedirectResult();
+    sessionStorage.removeItem('gc_google_auth');
+    sessionStorage.removeItem('gc_google_link');
+    if (result && result.user) {
+      if (wasLink) {
+        showToast('Google account linked successfully!');
+        try { if (typeof renderLinkedAccountsUI === 'function') renderLinkedAccountsUI(); } catch (e) {}
+      } else {
+        await gcEnsureGoogleUserProfile(result.user);
+        // Always show success if we got a user from redirect (even without flag)
+        gcShowGoogleLoginSuccess();
+      }
+    }
+  } catch (e) {
+    sessionStorage.removeItem('gc_google_auth');
+    sessionStorage.removeItem('gc_google_link');
+    if (e && e.code === 'auth/popup-closed-by-user') return;
+    if (e && e.message === 'BANNED') return;
+    console.error('Google redirect result error:', e);
+    if (wasLogin || wasLink || (e && e.code && e.code.indexOf('auth/') === 0)) {
+      showToast(gcGoogleAuthErrorMessage(e));
+    }
+  }
+}
+// Run as early as possible after auth is ready
+try { gcHandleGoogleRedirectResult(); } catch (e) {}
 
 async function registerWithEmail(){
 const email=document.getElementById('auth-email').value.trim();
@@ -8920,13 +9124,6 @@ db.collection('system').doc('settings').onSnapshot(doc => {
 });
 
 // Official announcements arrive as type:'announcement' notifications (no feed alert)
-// ==========================================
-// Median OneSignal-এর সাথে ফায়ারবেস ইউজার লিংক করা
-if (navigator.userAgent.toLowerCase().includes('median')) {
-    if (window.median && window.median.onesignal) {
-        window.median.onesignal.login({ externalId: user.uid });
-    }
-}
 
 // 🚀 ইউজার লগইন থাকলে সাথে সাথেই মেইন স্ক্রিন অন করে দেবো, যাতে ফিডের স্কেলেটন লোডিং দেখা যায়
 document.getElementById('auth-screen').style.display='none';
@@ -12492,6 +12689,8 @@ function closeCreatePost(){
     isPollActive = false;
     const pollBox = document.getElementById('poll-creator-box');
     if (pollBox) pollBox.style.display = 'none';
+    const pollQ = document.getElementById('poll-question-input');
+    if (pollQ) pollQ.value = '';
     const pollInputs = document.getElementById('poll-inputs-container');
     if (pollInputs) {
         pollInputs.innerHTML = `
@@ -12504,9 +12703,11 @@ function closeCreatePost(){
 function checkPostInputs(){
 const text=document.getElementById('post-title').value.trim();
 const hasImg=composeImages.length>0;
+const pollQ = isPollActive && (document.getElementById('poll-question-input') || {}).value
+  ? document.getElementById('poll-question-input').value.trim() : '';
 const pollHasOption = isPollActive && Array.from(document.querySelectorAll('.poll-choice-val')).some(inp => inp.value.trim() !== '');
 const btn=document.getElementById('modal-post-btn');
-if(text||hasImg||pollHasOption){btn.disabled=false;btn.style.opacity='1';}
+if(text||hasImg||pollHasOption||pollQ){btn.disabled=false;btn.style.opacity='1';}
 else{btn.disabled=true;btn.style.opacity='0.5';}
 }
 
@@ -12972,6 +13173,12 @@ function generatePollHTML(post) {
     });
 
     let html = `<div class="feed-poll-container ${userVotedId !== null ? 'has-voted' : ''}" id="poll-${post.id}">`;
+
+    // Dedicated poll question (not the optional post caption)
+    const q = (post.pollQuestion || '').trim();
+    if (q) {
+        html += `<div class="feed-poll-question">${escapeHTML(q)}</div>`;
+    }
     
     post.pollOptions.forEach(opt => {
         let votesForOpt = (opt.votes || []).length;
@@ -13008,9 +13215,17 @@ function generatePollHTML(post) {
 }
 
 async function submitPost(){
-const title=document.getElementById('post-title').value.trim();
+let title=document.getElementById('post-title').value.trim();
 let finalPollData = null;
+let pollQuestion = '';
 if (isPollActive) {
+    const qEl = document.getElementById('poll-question-input');
+    pollQuestion = qEl ? qEl.value.trim() : '';
+    if (!pollQuestion) {
+        showToast('Please write a poll question.');
+        if (qEl) qEl.focus();
+        return;
+    }
     const inputs = document.querySelectorAll('.poll-choice-val');
     let opts = [];
     inputs.forEach((inp, idx) => {
@@ -13021,6 +13236,7 @@ if (isPollActive) {
     if (opts.length < 2) { showToast('Please add at least 2 poll options.'); return; }
     finalPollData = opts;
 }
+// Poll can post with question+options only (caption optional)
 if(!title && composeImages.length===0 && !finalPollData)return;
 if(!checkRateLimit()) return;
 
@@ -13055,6 +13271,7 @@ imgUrls.push(url);
             taggedNames: currentTaggedNames,
             activity: currentPostActivity,
             pollOptions: finalPollData,
+            pollQuestion: pollQuestion || '',
             isPinned: false,
             createdAt: firebase.firestore.FieldValue.serverTimestamp(),
             expiresAt: expireAt
@@ -17845,22 +18062,41 @@ function renderLinkedAccountsUI() {
     `;
 }
 
-// ২. Google অ্যাকাউন্ট বাইন্ড (Link) করার ফাংশন
+// ২. Google অ্যাকাউন্ট বাইন্ড (Link) — popup + redirect fallback
 async function bindGoogleAccount() {
-    if(!checkRateLimit()) return;
-    const provider = new firebase.auth.GoogleAuthProvider();
+    if (!checkRateLimit()) return;
+    if (!currentUser) { showToast('Please log in first.'); return; }
+    const provider = gcGoogleProvider();
     try {
-        showToast("Opening Google login...");
-        // পপ-আপের মাধ্যমে লিংক করা
-        await currentUser.linkWithPopup(provider);
-        showToast("Google Account Linked Successfully! 🚀");
-        renderLinkedAccountsUI(); // UI আপডেট
+        showToast('Opening Google…');
+        if (gcIsRestrictedWebView()) {
+            sessionStorage.setItem('gc_google_link', '1');
+            await currentUser.linkWithRedirect(provider);
+            return;
+        }
+        try {
+            await currentUser.linkWithPopup(provider);
+            showToast('Google account linked successfully!');
+            if (typeof renderLinkedAccountsUI === 'function') renderLinkedAccountsUI();
+        } catch (popupErr) {
+            const code = (popupErr && popupErr.code) || '';
+            if (code === 'auth/popup-blocked' || code === 'auth/operation-not-supported-in-this-environment') {
+                sessionStorage.setItem('gc_google_link', '1');
+                await currentUser.linkWithRedirect(provider);
+                return;
+            }
+            throw popupErr;
+        }
     } catch (error) {
         console.error(error);
         if (error.code === 'auth/credential-already-in-use') {
-            alert("Error: This Google account is already linked to another GoChat profile!");
+            showToast('This Google account is already linked to another profile.');
+        } else if (error.code === 'auth/provider-already-linked') {
+            showToast('Google is already linked to this account.');
+        } else if (error.code === 'auth/popup-closed-by-user') {
+            showToast('Cancelled.');
         } else {
-            showToast("Failed to bind: " + error.message);
+            showToast('Failed to link Google: ' + (error.message || 'error'));
         }
     }
 }
