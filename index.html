@@ -9291,6 +9291,7 @@ if(doc.exists){
 currentUserData=doc.data();
 // 🚀 নতুন ইউজারের জন্য ওয়েলকাম মেসেজ (fallback)
 try { ensureWelcomeMessage(); } catch(e) {}
+try { if(typeof gcEnsureStatsHistory === 'function') gcEnsureStatsHistory(); } catch(e) {}
 // --- LOCKDOWN CHECK ---
 if (currentUserData.isBanned) {
     document.body.innerHTML = `
@@ -11344,12 +11345,17 @@ async function viewUserProfile(uid){
         return;
     }
 
-    // Profile views (merged from insights wrapper)
+    // Profile views — last 30 days only (daily buckets, 1 write / visitor / session)
     if(currentUser && uid !== currentUser.uid){
         try {
-            db.collection('users').doc(uid).update({
-                profileViews: firebase.firestore.FieldValue.increment(1)
-            });
+            const flag = 'gc_pv_' + uid;
+            if(!sessionStorage.getItem(flag)){
+                sessionStorage.setItem(flag, '1');
+                const dayKey = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+                db.collection('users').doc(uid).update({
+                    ['profileViewDays.' + dayKey]: firebase.firestore.FieldValue.increment(1)
+                }).catch(function(){});
+            }
         } catch(e) {}
     }
 
@@ -18359,16 +18365,26 @@ function formatInsightNum(n){
   if(typeof _orig !== 'function') return;
   window.openSinglePostView = function(pid, ...rest){
     const ret = _orig.apply(this, [pid, ...rest]);
-    // এক session-এ এক পোস্ট একবারই গণনা (honest unique-ish view)
     try{
+      if(!currentUser || !pid) return ret;
       const flag = 'pi_viewed_' + pid;
-      if(!sessionStorage.getItem(flag)){
-        db.collection('posts').doc(pid).get().then(d=>{
-          if(d.exists && d.data().uid !== currentUser.uid){
-            db.collection('posts').doc(pid).update({ views: firebase.firestore.FieldValue.increment(1) }).catch(()=>{});
-            sessionStorage.setItem(flag, '1');
-          }
-        }).catch(()=>{});
+      if(sessionStorage.getItem(flag)) return ret;
+      sessionStorage.setItem(flag, '1');
+      /* Prefer cached post uid from feed if present — saves 1 read */
+      let ownerUid = null;
+      try{
+        const el = document.querySelector('[data-post-id="' + pid + '"], .post-card[data-id="' + pid + '"]');
+        if(el) ownerUid = el.getAttribute('data-uid') || el.getAttribute('data-owner');
+      }catch(e){}
+      const bump = function(uid){
+        if(uid && uid === currentUser.uid) return;
+        db.collection('posts').doc(pid).update({ views: firebase.firestore.FieldValue.increment(1) }).catch(function(){});
+      };
+      if(ownerUid){ bump(ownerUid); }
+      else {
+        db.collection('posts').doc(pid).get().then(function(d){
+          if(d.exists) bump(d.data().uid);
+        }).catch(function(){});
       }
     }catch(e){}
     return ret;
@@ -20769,17 +20785,61 @@ btn.onclick = function(e){ e.preventDefault(); e.stopPropagation(); gcOpenInsigh
 // দৈনিক স্ন্যাপশট (ফলোয়ার গ্রোথের ইতিহাস)
 async function gcEnsureStatsHistory(){
 try{
-const hist = currentUserData.statsHistory || [];
+if(!currentUser || !currentUserData) return;
+const patch = {};
+/* ── Profile views: keep only last 30 days, recompute rolling total ── */
+const rawDays = currentUserData.profileViewDays || {};
+const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
+let sum30 = 0;
+const keep = {};
+let pruned = false;
+Object.keys(rawDays).forEach(function(k){
+  const t = Date.parse(k + 'T12:00:00.000Z');
+  const n = Number(rawDays[k]) || 0;
+  if(!isNaN(t) && t >= cutoff && n > 0){
+    keep[k] = n;
+    sum30 += n;
+  } else {
+    pruned = true;
+  }
+});
+if(pruned || Object.keys(rawDays).length !== Object.keys(keep).length){
+  patch.profileViewDays = keep;
+  currentUserData.profileViewDays = keep;
+}
+if((currentUserData.profileViews || 0) !== sum30){
+  patch.profileViews = sum30;
+  currentUserData.profileViews = sum30;
+}
+/* ── Daily follower snapshot (max ~35 days ≈ 30D range + buffer) ── */
+const hist = (currentUserData.statsHistory || []).slice();
 const today = new Date().toDateString();
 const last = hist[hist.length - 1];
 if(!last || new Date(last.d).toDateString() !== today){
-hist.push({ d: new Date().toISOString(), f: (currentUserData.followers || []).length, v: currentUserData.profileViews || 0 });
-while(hist.length > 90) hist.shift();
-await db.collection('users').doc(currentUser.uid).update({ statsHistory: hist });
-currentUserData.statsHistory = hist;
+  hist.push({ d: new Date().toISOString(), f: (currentUserData.followers || []).length, v: sum30 });
+  while(hist.length > 35) hist.shift();
+  patch.statsHistory = hist;
+  currentUserData.statsHistory = hist;
+} else if(Object.keys(patch).length){
+  /* still write prune even if snapshot exists */
+}
+if(Object.keys(patch).length){
+  await db.collection('users').doc(currentUser.uid).update(patch);
 }
 }catch(e){}
 }
+/** Sum profile views in last N days from profileViewDays map (no extra reads). */
+function gcProfileViewsInDays(data, days){
+  const map = (data && data.profileViewDays) || {};
+  const cutoff = Date.now() - (days || 30) * 24 * 60 * 60 * 1000;
+  let sum = 0;
+  Object.keys(map).forEach(function(k){
+    const t = Date.parse(k + 'T12:00:00.000Z');
+    if(!isNaN(t) && t >= cutoff) sum += Number(map[k]) || 0;
+  });
+  return sum;
+}
+
 function gcOpenInsights(){
 if(!currentUser){ showToast('Login first!'); return; }
 let scr = document.getElementById('gc-insights-screen');
@@ -20842,107 +20902,251 @@ return '<svg viewBox="0 0 ' + w + ' ' + h + '" style="width:100%;height:120px;">
 }
 async function gcLoadInsights(){
 const body = document.getElementById('gc-ins-body');
+if(!body || !currentUser) return;
 body.innerHTML = '<div style="text-align:center;padding:60px 0;color:var(--text-muted);"><i class="ph-bold ph-spinner-gap" style="font-size:30px;color:var(--accent);animation:spin 1s linear infinite;"></i><div style="margin-top:10px;font-size:13px;">Crunching your numbers…</div></div>';
 await gcEnsureStatsHistory();
+
 const now = Date.now();
+const rangeDays = gcInsRange || 7;
+const rangeMs = rangeDays * 86400000;
+const rangeStart = now - rangeMs;
+
+/* ── Cost: cache posts 5 min ── */
 let posts = [];
 try{
-const snap = await db.collection('posts').where('uid', '==', currentUser.uid).get();
-snap.forEach(function(d){ posts.push({ id: d.id, ...d.data() }); });
+  const cache = window._gcInsPostCache;
+  if(cache && cache.uid === currentUser.uid && (now - cache.at) < 5 * 60 * 1000){
+    posts = cache.posts;
+  } else {
+    const snap = await db.collection('posts').where('uid', '==', currentUser.uid).limit(80).get();
+    snap.forEach(function(d){ posts.push({ id: d.id, ...d.data() }); });
+    window._gcInsPostCache = { uid: currentUser.uid, at: now, posts: posts };
+  }
 }catch(e){}
-function gcCount(x){ if(Array.isArray(x)) return x.length; if(typeof x === 'number' && isFinite(x)) return x; if(x && typeof x === 'object') return Object.keys(x).length; return 0; }
-function peng(p){ return gcCount(p.likes) + gcCount(p.comments) + gcCount(p.shares); }
-let totLikes = 0, totComments = 0, totShares = 0, vid = 0, pho = 0, txt = 0;
-const perDay = {};
-for(let i = 0; i < gcInsRange; i++){ perDay[new Date(now - i * 86400000).toDateString()] = 0; }
-const hourEng = new Array(24).fill(0);
-posts.forEach(function(p){
-const e = peng(p);
-totLikes += gcCount(p.likes); totComments += gcCount(p.comments); totShares += gcCount(p.shares);
-const isVid = p.videoUrl || (p.imgUrls || []).some(function(u){ return (u || '').indexOf('/video/') !== -1; });
-if(isVid) vid++; else if((p.imgUrls || []).length) pho++; else txt++;
-const t = p.createdAt && p.createdAt.toMillis ? p.createdAt.toMillis() : 0;
-if(t){
-const k = new Date(t).toDateString();
-if(perDay[k] !== undefined) perDay[k] += e;
-hourEng[new Date(t).getHours()] += e;
+
+function gcCount(x){
+  if(Array.isArray(x)) return x.length;
+  if(typeof x === 'number' && isFinite(x)) return x;
+  if(x && typeof x === 'object'){
+    if(typeof x.count === 'number') return x.count;
+    return Object.keys(x).length;
+  }
+  return 0;
 }
+function peng(p){ return gcCount(p.likes) + gcCount(p.comments) + gcCount(p.shares); }
+function postMs(p){ return (p.createdAt && p.createdAt.toMillis) ? p.createdAt.toMillis() : 0; }
+function postViews(p){ return gcCount(p.views) || (Number(p.viewCount) || 0); }
+
+/* Strict 7D/30D: only posts CREATED in range for range metrics */
+const ranged = posts.filter(function(p){ const t = postMs(p); return t >= rangeStart && t <= now; });
+
+let totLikes = 0, totComments = 0, totShares = 0, totPostViews = 0, vid = 0, pho = 0, txt = 0;
+const perDay = {};
+for(let i = 0; i < rangeDays; i++){ perDay[new Date(now - i * 86400000).toDateString()] = 0; }
+const hourEng = new Array(24).fill(0);
+const hourPosts = new Array(24).fill(0);
+
+ranged.forEach(function(p){
+  const likes = gcCount(p.likes), comments = gcCount(p.comments), shares = gcCount(p.shares);
+  const e = likes + comments + shares;
+  totLikes += likes; totComments += comments; totShares += shares;
+  totPostViews += postViews(p);
+  const isVid = !!(p.videoUrl || (p.imgUrls || []).some(function(u){ return (u || '').indexOf('/video/') !== -1; }));
+  if(isVid) vid++; else if((p.imgUrls || []).length) pho++; else txt++;
+  const t = postMs(p);
+  if(t){
+    const k = new Date(t).toDateString();
+    if(perDay[k] !== undefined) perDay[k] += e;
+    const h = new Date(t).getHours();
+    hourEng[h] += e;
+    hourPosts[h] += 1;
+  }
 });
+
 const followers = (currentUserData.followers || []).length;
-const views = currentUserData.profileViews || 0;
+const views30 = gcProfileViewsInDays(currentUserData, 30);
+const viewsRange = rangeDays <= 7 ? gcProfileViewsInDays(currentUserData, 7) : views30;
 const hist = currentUserData.statsHistory || [];
-const past = hist[Math.max(0, hist.length - 1 - gcInsRange)];
-const deltaF = past ? followers - past.f : 0;
+/* Follower delta: compare snapshot ~rangeDays ago */
+let pastF = followers;
+for(let i = hist.length - 1; i >= 0; i--){
+  const t = Date.parse(hist[i].d);
+  if(!isNaN(t) && t <= rangeStart){ pastF = hist[i].f || 0; break; }
+  if(i === 0) pastF = hist[0].f || 0;
+}
+const deltaF = followers - pastF;
 const totEng = totLikes + totComments + totShares;
-const eng = (followers > 0 && posts.length > 0 && isFinite(totEng)) ? (Math.round((totEng / posts.length) / followers * 1000) / 10) : 0;
-// লাইন চার্ট পয়েন্ট
+
+/* ✅ Engagement Rate (standard): interactions / reach * 100
+   reach = post views in range if available, else profile views in range, else followers */
+const reach = Math.max(totPostViews, viewsRange, followers > 0 ? followers : 0, 1);
+const engRate = Math.round((totEng / reach) * 1000) / 10;
+
+/* Growth line from statsHistory */
 const dayMap = {};
 hist.forEach(function(hh){ dayMap[new Date(hh.d).toDateString()] = hh; });
 let carry = followers;
 const linePts = [];
-for(let i = gcInsRange - 1; i >= 0; i--){
-const k = new Date(now - i * 86400000).toDateString();
-if(dayMap[k]) carry = dayMap[k].f;
-linePts.push({ v: carry });
+for(let i = rangeDays - 1; i >= 0; i--){
+  const k = new Date(now - i * 86400000).toDateString();
+  if(dayMap[k]) carry = dayMap[k].f;
+  linePts.push({ v: carry });
 }
 const barPts = [];
-for(let i = gcInsRange - 1; i >= 0; i--){ barPts.push(perDay[new Date(now - i * 86400000).toDateString()] || 0); }
-// অডিয়েন্স
-let gM = 0, gF = 0, gO = 0;
+for(let i = rangeDays - 1; i >= 0; i--){
+  barPts.push(perDay[new Date(now - i * 86400000).toDateString()] || 0);
+}
+
+/* Audience: sample up to 40, show coverage note (cost-aware) */
+let gM = 0, gF = 0, gO = 0, sampled = 0;
 const locs = {};
+const allF = currentUserData.followers || [];
 try{
-const fids = (currentUserData.followers || []).slice(0, 60);
-const docs = await Promise.all(fids.map(function(id){ return db.collection('users').doc(id).get(); }));
-docs.forEach(function(dc){
-if(!dc.exists) return;
-const u = dc.data();
-if(/male/i.test(u.gender || '')) gM++; else if(/female/i.test(u.gender || '')) gF++; else gO++;
-const lc = u.location || u.homeTown || '';
-if(lc) locs[lc] = (locs[lc] || 0) + 1;
-});
+  const fids = allF.slice(0, 40);
+  if(fids.length){
+    const docs = await Promise.all(fids.map(function(id){ return db.collection('users').doc(id).get(); }));
+    docs.forEach(function(dc){
+      if(!dc.exists) return;
+      sampled++;
+      const u = dc.data() || {};
+      const g = (u.gender || '').toLowerCase();
+      if(g.indexOf('female') >= 0 || g === 'f' || g === 'নারী' || g === 'মহিলা') gF++;
+      else if(g.indexOf('male') >= 0 || g === 'm' || g === 'পুরুষ') gM++;
+      else gO++;
+      const lc = String(u.location || u.hometown || u.homeTown || '').trim();
+      if(lc) locs[lc] = (locs[lc] || 0) + 1;
+    });
+  }
 }catch(e){}
 const topLocs = Object.keys(locs).sort(function(a, b){ return locs[b] - locs[a]; }).slice(0, 3);
-// বেস্ট টাইম
-let bestH = -1, bestV = 0;
-hourEng.forEach(function(v, h){ if(v > bestV){ bestV = v; bestH = h; } });
-const fmtH = function(h){ return ((h % 12) || 12) + ':00 ' + (h < 12 ? 'AM' : 'PM'); };
-const bestTxt = bestH >= 0 ? fmtH(bestH) + ' – ' + fmtH(bestH + 1) : '—';
-// উইকলি রিপোর্ট
+
+/* Best time: hour with highest avg engagement per post published (not just total) */
+let bestH = -1, bestScore = -1;
+for(let h = 0; h < 24; h++){
+  if(hourPosts[h] < 1) continue;
+  const score = hourEng[h] / hourPosts[h];
+  if(score > bestScore){ bestScore = score; bestH = h; }
+}
+const fmtH = function(h){ const x = ((h % 12) || 12); return x + ':00 ' + (h < 12 ? 'AM' : 'PM'); };
+const bestTxt = bestH >= 0 ? (fmtH(bestH) + ' – ' + fmtH((bestH + 1) % 24)) : '—';
+
+/* Weekly compare (fixed windows) */
 let w1 = 0, w0 = 0;
 posts.forEach(function(p){
-const t = p.createdAt && p.createdAt.toMillis ? p.createdAt.toMillis() : 0;
-if(!t) return;
-const age = now - t;
-if(age < 7 * 86400000) w1 += peng(p); else if(age < 14 * 86400000) w0 += peng(p);
+  const t = postMs(p);
+  if(!t) return;
+  const age = now - t;
+  if(age < 7 * 86400000) w1 += peng(p);
+  else if(age < 14 * 86400000) w0 += peng(p);
 });
 const wPct = w0 > 0 ? Math.round((w1 - w0) / w0 * 100) : (w1 > 0 ? 100 : 0);
-// ===== রেন্ডার =====
-let html = '<div class="gc-ins-grid">';
-html += gcInsCard('ph-users', 'Followers', followers, (deltaF > 0 ? '+' : '') + deltaF + ' in ' + gcInsRange + 'd', deltaF);
-html += gcInsCard('ph-eye', 'Profile Views', views, '', 0);
-html += gcInsCard('ph-heart', 'Total Likes', totLikes, '', 0);
-html += gcInsCard('ph-chat-circle', 'Comments', totComments, '', 0);
-html += gcInsCard('ph-share-network', 'Shares', totShares, '', 0);
-html += gcInsCard('ph-chart-line-up', 'Engagement', eng + '%', '', 0);
+
+/* Content performance: avg eng per type */
+function avgEng(filterFn){
+  let n = 0, s = 0;
+  ranged.forEach(function(p){ if(filterFn(p)){ n++; s += peng(p); } });
+  return n ? (s / n) : 0;
+}
+const avgVid = avgEng(function(p){ return !!(p.videoUrl || (p.imgUrls || []).some(function(u){ return (u || '').indexOf('/video/') !== -1; })); });
+const avgPho = avgEng(function(p){ return !p.videoUrl && (p.imgUrls || []).length; });
+const avgTxt = avgEng(function(p){ return !p.videoUrl && !(p.imgUrls || []).length; });
+
+/* Recommendations (no extra reads) */
+const tips = [];
+if(avgVid > 0 && avgPho > 0){
+  const pct = Math.round(((avgVid - avgPho) / Math.max(avgPho, 0.01)) * 100);
+  if(pct >= 10) tips.push({ ico: '💡', t: 'Your videos are performing ' + pct + '% better than photos.' });
+  else if(pct <= -10) tips.push({ ico: '💡', t: 'Your photos are performing ' + Math.abs(pct) + '% better than videos.' });
+}
+if(bestH >= 0) tips.push({ ico: '🕐', t: 'Your posts get the most engagement when published around ' + bestTxt + '.' });
+if(deltaF > 0) tips.push({ ico: '📈', t: 'You gained ' + deltaF + ' follower' + (deltaF > 1 ? 's' : '') + ' in the last ' + rangeDays + ' days.' });
+else if(deltaF < 0) tips.push({ ico: '📉', t: 'Followers changed by ' + deltaF + ' in the last ' + rangeDays + ' days.' });
+if(vid + pho + txt > 0){
+  const topType = avgVid >= avgPho && avgVid >= avgTxt ? 'video' : (avgPho >= avgTxt ? 'photo' : 'text');
+  tips.push({ ico: '🎯', t: 'Try posting more ' + topType + ' content this week.' });
+}
+if(!tips.length) tips.push({ ico: '✨', t: 'Keep posting — insights improve as you get more activity.' });
+
+const rangeLbl = rangeDays + 'D';
+const sec = function(title, icon, inner){
+  return '<div class="gc-ins-sec"><h4><i class="ph-bold ' + icon + '"></i>' + title + '</h4>' + inner + '</div>';
+};
+
+let html = '';
+html += '<div style="font-size:11px;color:var(--text-muted);margin:0 0 12px;font-weight:600;line-height:1.4;">Last ' + rangeLbl + ' · Profile views = rolling 30 days · Engagement = (likes+comments+shares) ÷ reach</div>';
+
+/* Overview */
+html += '<div class="gc-ins-grid">';
+html += gcInsCard('ph-users', 'Followers', followers, (deltaF > 0 ? '+' : '') + deltaF + ' · ' + rangeLbl, deltaF);
+html += gcInsCard('ph-eye', 'Profile Views', viewsRange, rangeDays <= 7 ? 'last 7 days' : 'last 30 days', 0);
+html += gcInsCard('ph-heart', 'Likes', totLikes, 'posts in ' + rangeLbl, 0);
+html += gcInsCard('ph-chat-circle', 'Comments', totComments, 'posts in ' + rangeLbl, 0);
+html += gcInsCard('ph-share-network', 'Shares', totShares, 'posts in ' + rangeLbl, 0);
+html += gcInsCard('ph-chart-line-up', 'Eng. Rate', engRate + '%', 'on reach ' + reach, 0);
 html += '</div>';
-html += '<div class="gc-ins-sec"><h4><i class="ph-bold ph-trend-up"></i>Follower Growth<span style="margin-left:auto;font-size:12px;color:var(--text-muted);">' + followers + ' now</span></h4>' + gcSvgLine(linePts, 300, 130) + '</div>';
-html += '<div class="gc-ins-sec"><h4><i class="ph-bold ph-lightning"></i>Engagement (' + gcInsRange + ' days)<span style="margin-left:auto;font-size:12px;color:var(--text-muted);">' + (totLikes + totComments + totShares) + ' total</span></h4>' + gcSvgBars(barPts, 300, 120) + '</div>';
-const top = posts.slice().sort(function(a, b){ return peng(b) - peng(a); }).slice(0, 5);
-html += '<div class="gc-ins-sec"><h4><i class="ph-bold ph-trophy"></i>Top Posts</h4>';
-if(!top.length) html += '<div style="font-size:12px;color:var(--text-muted);">No posts yet — publish something!</div>';
-top.forEach(function(p, i){
-const img = (p.imgUrls && p.imgUrls[0]) || p.videoUrl || '';
-html += '<div class="gc-ins-top-post" onclick="gcCloseInsights(); openSinglePostView(\'' + p.id + '\')"><div class="gc-ins-rank">' + (i + 1) + '</div>' + gcMediaThumb(img, 'gc-ins-tp-img') + '<div class="gc-ins-tp-txt">' + escapeHTML(p.title || '(no caption)') + '</div><div class="gc-ins-tp-num"><i class="ph-fill ph-heart" style="color:var(--danger);font-size:12px;"></i>' + gcCount(p.likes) + '</div></div>';
+
+/* Growth */
+html += sec('Follower Growth', 'ph-trend-up',
+  '<div style="font-size:12px;color:var(--text-muted);margin:-4px 0 8px;">' + followers + ' now · change ' + (deltaF >= 0 ? '+' : '') + deltaF + ' in ' + rangeLbl + '</div>' +
+  gcSvgLine(linePts, 300, 130));
+
+/* Content / engagement bars */
+html += sec('Engagement by day (' + rangeLbl + ')', 'ph-lightning',
+  '<div style="font-size:12px;color:var(--text-muted);margin:-4px 0 8px;">' + totEng + ' interactions on ' + ranged.length + ' posts</div>' +
+  gcSvgBars(barPts, 300, 120));
+
+/* Top posts — ranked by engagement, then views */
+const top = ranged.slice().sort(function(a, b){
+  const d = peng(b) - peng(a);
+  if(d) return d;
+  return postViews(b) - postViews(a);
+}).slice(0, 5);
+let topHtml = '';
+if(!top.length) topHtml = '<div style="font-size:12px;color:var(--text-muted);">No posts in this period yet.</div>';
+else top.forEach(function(p, i){
+  const img = (p.imgUrls && p.imgUrls[0]) || p.videoUrl || '';
+  const title = escapeHTML((p.title || 'Untitled').slice(0, 42));
+  const thumb = img
+    ? '<img class="gc-ins-tp-img" src="' + escapeHTML(img) + '" loading="lazy">'
+    : '<div class="gc-ins-tp-img" style="display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--text-muted);">Text</div>';
+  topHtml += '<div class="gc-ins-top-post" onclick="gcCloseInsights(); if(typeof openSinglePostView===\'function\') openSinglePostView(\'' + p.id + '\')"><div class="gc-ins-rank">' + (i + 1) + '</div>' + thumb + '<div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + title + '</div><div style="font-size:11px;color:var(--text-muted);">' + peng(p) + ' eng · ' + postViews(p) + ' views</div></div><div class="gc-ins-tp-num"><i class="ph-fill ph-heart" style="color:var(--danger);font-size:12px;"></i>' + gcCount(p.likes) + '</div></div>';
 });
-html += '</div>';
-html += '<div class="gc-ins-sec"><h4><i class="ph-bold ph-chart-pie"></i>Content Mix</h4>' + gcBarRow('Photos', pho, posts.length) + gcBarRow('Videos', vid, posts.length) + gcBarRow('Status', txt, posts.length) + '</div>';
-html += '<div class="gc-ins-sec"><h4><i class="ph-bold ph-users-three"></i>Audience</h4>' + gcBarRow('Male', gM, gM + gF + gO) + gcBarRow('Female', gF, gM + gF + gO) + gcBarRow('Other', gO, gM + gF + gO);
-if(topLocs.length){ html += '<div style="margin-top:8px;font-size:12px;font-weight:800;color:var(--text-muted);">TOP LOCATIONS</div>'; topLocs.forEach(function(l){ html += '<div class="gc-ins-bar-row" style="margin-top:6px;"><div class="nm" style="width:auto;flex:1;">📍 ' + escapeHTML(l) + '</div><div class="pc" style="width:auto;">' + locs[l] + '</div></div>'; }); }
-html += '</div>';
-html += '<div class="gc-ins-sec"><h4><i class="ph-bold ph-clock-afternoon"></i>Best Time to Post</h4><div style="font-size:16px;font-weight:800;color:var(--accent);">' + bestTxt + '</div><div style="font-size:12px;color:var(--text-muted);margin-top:4px;">The more active, the more familiar.</div></div>';
-html += '<div class="gc-ins-sec"><h4><i class="ph-bold ph-calendar-check"></i>Weekly Report</h4><div class="gc-ins-bar-row"><div class="nm" style="width:auto;">Engagement this week</div><div class="pc" style="width:auto;font-size:14px;font-weight:800;color:var(--text);">' + w1 + '</div></div><div class="delta ' + (wPct >= 0 ? 'up' : 'down') + '" style="font-size:13px;font-weight:800;">' + (wPct >= 0 ? '↑' : '↓') + ' ' + Math.abs(wPct) + '% vs last week</div></div>';
+html += sec('Top Posts', 'ph-trophy', topHtml);
+
+/* Content mix */
+const mixTotal = Math.max(1, pho + vid + txt);
+html += sec('Content Mix', 'ph-chart-pie',
+  gcBarRow('Photos', pho, mixTotal) + gcBarRow('Videos', vid, mixTotal) + gcBarRow('Status', txt, mixTotal));
+
+/* Audience */
+let audNote = '<div style="font-size:11px;color:var(--text-muted);margin-bottom:8px;">Based on ' + sampled + ' of ' + allF.length + ' followers (sample)</div>';
+html += sec('Audience', 'ph-users-three',
+  audNote +
+  gcBarRow('Male', gM, gM + gF + gO) + gcBarRow('Female', gF, gM + gF + gO) + gcBarRow('Other', gO, gM + gF + gO) +
+  (topLocs.length ? ('<div style="margin-top:8px;font-size:12px;font-weight:800;color:var(--text-muted);">TOP LOCATIONS</div>' +
+    topLocs.map(function(l){ return '<div class="gc-ins-bar-row" style="margin-top:6px;"><div class="nm" style="width:auto;flex:1;">📍 ' + escapeHTML(l) + '</div><div class="pc" style="width:auto;">' + locs[l] + '</div></div>'; }).join('')) : ''));
+
+/* Best time */
+html += sec('Best Time to Post', 'ph-clock-afternoon',
+  '<div style="font-size:16px;font-weight:800;color:var(--accent);">' + bestTxt + '</div>' +
+  '<div style="font-size:12px;color:var(--text-muted);margin-top:4px;">Hour when your posts in this period got the highest average engagement.</div>');
+
+/* Recommendations */
+let tipHtml = tips.map(function(x){
+  return '<div style="display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-radius:12px;background:var(--surface-2);margin-bottom:8px;font-size:13px;font-weight:600;color:var(--text);line-height:1.4;"><span style="font-size:16px;flex-shrink:0;">' + x.ico + '</span><span>' + escapeHTML(x.t) + '</span></div>';
+}).join('');
+html += sec('GoChat Recommendations', 'ph-lightbulb', tipHtml);
+
+/* Weekly report */
+html += sec('Weekly Report', 'ph-calendar-check',
+  '<div class="gc-ins-bar-row"><div class="nm" style="width:auto;">Engagement this week</div><div class="pc" style="width:auto;font-size:14px;font-weight:800;color:var(--text);">' + w1 + '</div></div>' +
+  '<div class="delta ' + (wPct >= 0 ? 'up' : 'down') + '" style="font-size:13px;font-weight:800;">' + (wPct >= 0 ? '↑' : '↓') + ' ' + Math.abs(wPct) + '% vs last week</div>' +
+  '<div style="font-size:11px;color:var(--text-muted);margin-top:8px;">Live metrics · Profile views auto-clear after 30 days</div>');
+
 body.innerHTML = html;
 }
+
+
 
 
 // ═══════════════════════════════════════════════════════
