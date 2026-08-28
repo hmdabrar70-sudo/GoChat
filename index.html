@@ -546,6 +546,47 @@ body.home-sky-mode #page-feed .feed-tabs{
   color: var(--text-muted) !important;
   font-size: 14px !important;
 }
+
+/* ═══ Unified icon size (match Explore drawer ~22px)
+   Exceptions: bottom nav, home topbar, profile/chat topbars ═══ */
+#main-menu-screen .settings-list-item i,
+#settings-privacy-screen .settings-list-item i,
+.gc-sheet-item i,
+.chat-dropdown-item i,
+.setting-item i,
+.activity-item i,
+.activity-sub-item i,
+.gc-hd-item > i:first-of-type,
+.modal-box i.ph-bold,
+.modal-box i.ph-fill,
+.modal-box i.ph,
+.gc-cf-item i,
+.friend-req-item i,
+.detail-item i,
+.gc-rel-item i,
+.qrnc-act i,
+.mf-sheet i,
+#gc-home-drawer .gc-hd-item > i:first-of-type {
+  font-size: 22px !important;
+  width: 28px;
+  text-align: center;
+  line-height: 1;
+}
+/* Keep chevrons slightly smaller like Explore */
+.gc-hd-chev,
+.settings-list-item .ph-caret-right,
+.chat-dropdown-item .ph-caret-right {
+  font-size: 16px !important;
+  width: auto !important;
+}
+/* Explicitly DO NOT touch bottom nav / topbars */
+#main-bottom-nav .nav-item > i,
+.topbar-btn i,
+.chat-topbar i,
+.topbar-actions i {
+  /* leave original sizes */
+}
+
 #main-menu-screen .settings-list-item > div > i:first-child,
 #settings-privacy-screen .settings-list-item > div > i:first-child{
   color: var(--text) !important;
@@ -6229,23 +6270,9 @@ Edit Profile-এ পার্টনার সিলেক্ট বাটন
 #create-post-screen #poll-creator-box i[class*="ph-"]{
   font-size: 18px !important;
 }
-
 </style>
 </head>
 <body>
-<script>
-// GoChat: Light mode is the default for new installs/first visits.
-// Keep an explicit user preference if they previously selected Dark Mode.
-(function(){
-  try {
-    if (localStorage.getItem('theme') !== 'dark') {
-      document.body.classList.add('light-mode');
-    }
-  } catch(e) {
-    document.body.classList.add('light-mode');
-  }
-})();
-</script>
 <!-- Splash Screen HTML -->
 <div id="splash-screen">
     <div class="splash-logo">GoChat</div>
@@ -13885,7 +13912,7 @@ const vBadge=getVerifiedBadge(p.email, p.isVerified);
 const isLiked=p.likedBy&&p.likedBy.includes(currentUser?.uid);
 const likeColor=isLiked?'var(--danger)':'var(--text-secondary)';
 const fillProp=isLiked?'1':'0';
-const commentCount=p.comments?p.comments.length:0;
+const commentCount=(Array.isArray(p.comments)?p.comments.length:(typeof p.commentCount==='number'?p.commentCount:0));
 const safeName=escapeHTML(p.name||'User');
 const safeTitle=escapeHTML(p.title||'');
 const safeTitleForAttr=(p.title||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;');
@@ -14043,7 +14070,7 @@ ${generatePollHTML(p)}
 <!-- 🚀 নতুন কমেন্ট বাটন -->
 <button class="post-action-btn" onclick="event.stopPropagation(); openCommentPanel('${pid}')">
     <i class="ph-fill ph-chat-circle" style="font-size:24px;"></i>
-    <span>${p.commentCount || 0}</span>
+    <span>${commentCount}</span>
 </button>
 
 <!-- 🚀 নতুন শেয়ার বাটন (শেয়ার কাউন্ট সহ) -->
@@ -15413,16 +15440,27 @@ window.copyCommentText = copyCommentText;
 async function deleteComment(pid, idx) {
     if (!currentUser) return;
     idx = Number(idx);
-    if(typeof gcOpenConfirm==='function' && !window.__gcConfirmForceYes){
-      const _a=arguments;
-      gcOpenConfirm({title:'Delete Comment?',text:'This comment will be permanently removed.',icon:'ph-chat-centered-text',yesLabel:'Delete',onYes:function(){window.__gcConfirmForceYes=true; /* continue */}});
-      return;
+    if (typeof gcOpenConfirm === 'function' && !window.__gcConfirmForceYes) {
+        gcOpenConfirm({
+            title: 'Delete Comment?',
+            text: 'This comment will be permanently removed.',
+            icon: 'ph-chat-centered-text',
+            yesLabel: 'Delete',
+            onYes: function () {
+                window.__gcConfirmForceYes = true;
+                deleteComment(pid, idx).finally(function () {
+                    window.__gcConfirmForceYes = false;
+                });
+            }
+        });
+        return;
     }
-    
+    window.__gcConfirmForceYes = false;
+
     const ref = db.collection('posts').doc(pid);
     const doc = await ref.get();
     if (!doc.exists) { showToast('Post not found'); return; }
-    
+
     const data = doc.data() || {};
     let comments = (data.comments || []).slice();
     if (idx < 0 || idx >= comments.length || !comments[idx]) {
@@ -15438,22 +15476,42 @@ async function deleteComment(pid, idx) {
     }
 
     comments.splice(idx, 1);
-    
+
     try {
-        await ref.update({ 
+        await ref.update({
             comments: comments,
-            commentCount: comments.length 
+            commentCount: comments.length
         });
     } catch (e) {
         console.error(e);
         showToast('Failed to delete comment');
         return;
     }
-    
-    const commentSpans = document.querySelectorAll(`button[onclick*="openCommentPanel('${pid}')"] span`);
-    commentSpans.forEach(span => {
+
+    // Update all visible comment counters on feed cards
+    document.querySelectorAll("button[onclick*=\"openCommentPanel('" + pid + "')\"] span").forEach(function (span) {
         span.innerText = comments.length;
     });
+    // Refresh open comment panel list if any
+    try {
+        if (typeof activeCommentPostId !== 'undefined' && activeCommentPostId === pid) {
+            if (typeof openCommentPanel === 'function') {
+                // soft refresh: rebuild list if helper exists
+                const list = document.getElementById('comment-list') || document.querySelector('.comment-list');
+                if (list && typeof gcRenderCommentsListHTML === 'function') {
+                    list.innerHTML = gcRenderCommentsListHTML(pid, comments, 'panel');
+                }
+            }
+            const spList = document.querySelector('#single-post-container .sp-comments-list');
+            if (spList && typeof gcBuildInlineCommentsHTML === 'function') {
+                spList.innerHTML = gcBuildInlineCommentsHTML(pid, comments);
+            }
+            const spCount = document.querySelector('#single-post-container .sp-comments-count');
+            if (spCount) {
+                spCount.textContent = comments.length === 1 ? '1 comment' : (comments.length + ' comments');
+            }
+        }
+    } catch (e) {}
 
     showToast(isPostOwner && !isAuthor ? "Comment removed from your post" : "Comment deleted!");
 }
@@ -15463,9 +15521,13 @@ async function deleteReply(pid, cIdx, rIdx) {
     if (!currentUser) return;
     cIdx = Number(cIdx); rIdx = Number(rIdx);
     if(typeof gcOpenConfirm==='function' && !window.__gcConfirmForceYes){
-      gcOpenConfirm({title:'Delete Reply?',text:'This reply will be permanently removed.',icon:'ph-chat-centered-text',yesLabel:'Delete',onYes:function(){window.__gcConfirmForceYes=true;}});
+      gcOpenConfirm({title:'Delete Reply?',text:'This reply will be permanently removed.',icon:'ph-chat-centered-text',yesLabel:'Delete',onYes:function(){
+        window.__gcConfirmForceYes=true;
+        deleteReply(pid, cIdx, rIdx).finally(function(){ window.__gcConfirmForceYes=false; });
+      }});
       return;
     }
+    window.__gcConfirmForceYes=false;
     const ref = db.collection('posts').doc(pid);
     const doc = await ref.get();
     if (!doc.exists) return;
@@ -21641,7 +21703,23 @@ title:'Delete Comment?',
 text:'This comment will be permanently removed.',
 icon:'ph-chat-centered-text',
 yesLabel:'Delete',
-onYes:function(){ gcAutoConfirmRun(function(){ origFn.apply(null, args); }); }
+onYes:function(){
+  // deleteComment() already has its own custom-confirm guard.
+  // Mark this invocation as confirmed so the original function does not open a second dialog.
+  window.__gcConfirmForceYes = true;
+  try {
+    var result = origFn.apply(null, args);
+    if (result && typeof result.finally === 'function') {
+      result.finally(function(){ window.__gcConfirmForceYes = false; });
+    } else {
+      window.__gcConfirmForceYes = false;
+    }
+    return result;
+  } catch (err) {
+    window.__gcConfirmForceYes = false;
+    throw err;
+  }
+}
 });
 };
 }
@@ -24034,6 +24112,18 @@ try{ return await uploadToCloudinary(blob, false); }catch(e){ errors.push('img:'
 }
 throw new Error(errors.join(' | ') || 'upload failed');
 }
+
+// GoChat: Light mode is the default for new installs/first visits.
+// Keep an explicit user preference if they previously selected Dark Mode.
+(function(){
+  try {
+    if (localStorage.getItem('theme') !== 'dark') {
+      document.body.classList.add('light-mode');
+    }
+  } catch(e) {
+    document.body.classList.add('light-mode');
+  }
+})();
 </script>
 </body>
 </html>
