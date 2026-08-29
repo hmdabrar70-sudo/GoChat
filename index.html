@@ -63,6 +63,67 @@ body.light-mode{
 }
 html,body{overscroll-behavior:none;}
 
+/* ═══ FEATURE: stories · media preview before upload ═══ */
+.gc-story-preview-mask{
+  display:none; position:fixed; inset:0; z-index:100080;
+  background:rgba(0,0,0,0.92); flex-direction:column;
+  align-items:center; justify-content:center;
+}
+.gc-story-preview-mask.open{ display:flex; }
+.gc-story-preview-top{
+  position:absolute; top:0; left:0; right:0;
+  display:flex; align-items:center; justify-content:space-between;
+  padding:14px 16px; padding-top:max(14px, env(safe-area-inset-top));
+  z-index:2;
+}
+.gc-story-preview-top button{
+  background:rgba(255,255,255,0.12); border:none; color:#fff;
+  width:40px; height:40px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer; font-size:20px;
+}
+.gc-story-preview-top .gc-sp-title{
+  color:#fff; font-weight:700; font-size:15px;
+}
+.gc-story-preview-media{
+  flex:1; width:100%; max-width:520px;
+  display:flex; align-items:center; justify-content:center;
+  padding:60px 16px 100px; box-sizing:border-box;
+  overflow:hidden;
+}
+.gc-story-preview-media img,
+.gc-story-preview-media video{
+  max-width:100%; max-height:100%;
+  border-radius:16px; object-fit:contain;
+  background:#000;
+}
+.gc-story-preview-actions{
+  position:absolute; bottom:0; left:0; right:0;
+  display:flex; gap:10px; align-items:center; justify-content:center;
+  padding:16px 18px; padding-bottom:max(16px, env(safe-area-inset-bottom));
+  background:linear-gradient(transparent, rgba(0,0,0,0.75));
+  z-index:2;
+}
+.gc-story-preview-actions button{
+  border:none; border-radius:24px; font-weight:700; font-size:14px;
+  padding:12px 18px; cursor:pointer; font-family:inherit;
+  display:inline-flex; align-items:center; gap:8px;
+}
+.gc-sp-btn-change{
+  background:rgba(255,255,255,0.14); color:#fff;
+}
+.gc-sp-btn-cancel{
+  background:transparent; color:rgba(255,255,255,0.75);
+  border:1px solid rgba(255,255,255,0.25) !important;
+}
+.gc-sp-btn-post{
+  background:var(--gradient); color:#fff;
+  box-shadow:0 4px 16px rgba(124,92,255,0.4);
+  flex:1; max-width:200px; justify-content:center;
+}
+.gc-sp-btn-post:disabled{ opacity:.6; pointer-events:none; }
+
+
 /* ═══ FEATURE: profile · other content tabs (Media / Gallery / Status) ═══ */
 .other-profile-content-tabs{
   display:flex; width:100%;
@@ -10397,55 +10458,218 @@ document.getElementById('friends-list-modal').classList.remove('open');
 }
 
 // ===== STORY LOGIC =====
+
+// ═══ FEATURE: stories · media preview before upload ═══
+window.__gcStoryPreview = null; // { file, url, isVideo }
+
+function gcRevokeStoryPreviewUrl(){
+  try{
+    if(window.__gcStoryPreview && window.__gcStoryPreview.url){
+      URL.revokeObjectURL(window.__gcStoryPreview.url);
+    }
+  }catch(e){}
+}
+
+function gcEnsureStoryPreviewMask(){
+  let mask = document.getElementById('gc-story-preview-mask');
+  if(mask) return mask;
+  mask = document.createElement('div');
+  mask.id = 'gc-story-preview-mask';
+  mask.className = 'gc-story-preview-mask';
+  mask.innerHTML =
+    '<div class="gc-story-preview-top">'
+    +  '<button type="button" onclick="gcCancelStoryPreview()" aria-label="Close"><i class="ph-bold ph-x"></i></button>'
+    +  '<div class="gc-sp-title">Story Preview</div>'
+    +  '<div style="width:40px;"></div>'
+    + '</div>'
+    + '<div class="gc-story-preview-media" id="gc-story-preview-media"></div>'
+    + '<div class="gc-story-preview-actions">'
+    +  '<button type="button" class="gc-sp-btn-cancel" onclick="gcCancelStoryPreview()">Cancel</button>'
+    +  '<button type="button" class="gc-sp-btn-change" onclick="gcChangeStoryMedia()"><i class="ph-bold ph-images"></i> Change</button>'
+    +  '<button type="button" class="gc-sp-btn-post" id="gc-story-preview-post-btn" onclick="gcConfirmStoryUpload()"><i class="ph-bold ph-paper-plane-tilt"></i> Post Story</button>'
+    + '</div>'
+    + '<input type="file" id="gc-story-preview-file" accept="image/*,video/*" style="display:none;" onchange="gcOnStoryPreviewFileChange(this)">';
+  document.body.appendChild(mask);
+  return mask;
+}
+
+function gcOpenStoryMediaPreview(input){
+  try{
+    const file = input && input.files && input.files[0];
+    if(!file) return;
+    // reset source input so same file can be re-picked later
+    try{ input.value = ''; }catch(e){}
+    gcShowStoryPreviewFile(file);
+  }catch(e){
+    console.error(e);
+    showToast('Could not open preview');
+  }
+}
+window.gcOpenStoryMediaPreview = gcOpenStoryMediaPreview;
+
+function gcShowStoryPreviewFile(file){
+  if(!file) return;
+  const isVideo = !!(file.type && file.type.startsWith('video/'));
+  // basic type guard
+  if(!isVideo && !(file.type && file.type.startsWith('image/'))){
+    showToast('Unsupported file type');
+    return;
+  }
+  gcRevokeStoryPreviewUrl();
+  let url = '';
+  try{ url = URL.createObjectURL(file); }catch(e){}
+  window.__gcStoryPreview = { file: file, url: url, isVideo: isVideo };
+
+  const mask = gcEnsureStoryPreviewMask();
+  const media = document.getElementById('gc-story-preview-media');
+  if(media){
+    if(isVideo){
+      media.innerHTML = '<video src="'+url+'" controls playsinline webkit-playsinline autoplay muted loop style="max-width:100%;max-height:100%;border-radius:16px;"></video>';
+    } else {
+      media.innerHTML = '<img src="'+url+'" alt="Story preview">';
+    }
+  }
+  const postBtn = document.getElementById('gc-story-preview-post-btn');
+  if(postBtn){
+    postBtn.disabled = false;
+    postBtn.innerHTML = '<i class="ph-bold ph-paper-plane-tilt"></i> Post Story';
+  }
+  mask.classList.add('open');
+}
+
+function gcCancelStoryPreview(){
+  const mask = document.getElementById('gc-story-preview-mask');
+  if(mask) mask.classList.remove('open');
+  // stop video
+  try{
+    const v = mask && mask.querySelector('video');
+    if(v){ v.pause(); v.removeAttribute('src'); v.load(); }
+  }catch(e){}
+  gcRevokeStoryPreviewUrl();
+  window.__gcStoryPreview = null;
+  const media = document.getElementById('gc-story-preview-media');
+  if(media) media.innerHTML = '';
+}
+window.gcCancelStoryPreview = gcCancelStoryPreview;
+
+function gcChangeStoryMedia(){
+  const inp = document.getElementById('gc-story-preview-file');
+  if(inp){
+    try{ inp.value = ''; }catch(e){}
+    inp.click();
+  }
+}
+window.gcChangeStoryMedia = gcChangeStoryMedia;
+
+function gcOnStoryPreviewFileChange(input){
+  const file = input && input.files && input.files[0];
+  if(!file) return;
+  try{ input.value = ''; }catch(e){}
+  gcShowStoryPreviewFile(file);
+}
+window.gcOnStoryPreviewFileChange = gcOnStoryPreviewFileChange;
+
+async function gcConfirmStoryUpload(){
+  const state = window.__gcStoryPreview;
+  if(!state || !state.file){
+    showToast('No media selected');
+    return;
+  }
+  const postBtn = document.getElementById('gc-story-preview-post-btn');
+  if(postBtn){
+    postBtn.disabled = true;
+    postBtn.innerHTML = '<i class="ph-bold ph-spinner-gap" style="animation:spin 1s linear infinite;"></i> Posting…';
+  }
+  // Close preview UI first (keep file reference)
+  const file = state.file;
+  const localPreview = state.url || '';
+  const isVideo = state.isVideo;
+  const mask = document.getElementById('gc-story-preview-mask');
+  if(mask) mask.classList.remove('open');
+  try{
+    const v = mask && mask.querySelector('video');
+    if(v){ v.pause(); }
+  }catch(e){}
+  // Don't revoke URL yet — used as pending preview thumb
+  window.__gcStoryPreview = null;
+
+  // Fake input-like object for uploadStory path — call core uploader
+  try{
+    await gcUploadStoryFile(file, localPreview, isVideo);
+  }catch(e){
+    console.error(e);
+  }
+}
+window.gcConfirmStoryUpload = gcConfirmStoryUpload;
+
+
 async function uploadStory(input){
-const file=input.files[0];
-if(!file)return;
-const isVideo=file.type.startsWith('video/');
-let localPreview = '';
-try{
+  // Legacy path (direct) — still goes through preview-aware core
+  const file = input && input.files && input.files[0];
+  if(!file) return;
+  try{ input.value = ''; }catch(e){}
+  // If called directly, open preview instead of instant upload
+  if(typeof gcShowStoryPreviewFile === 'function'){
+    gcShowStoryPreviewFile(file);
+    return;
+  }
+  const isVideo = !!(file.type && file.type.startsWith('video/'));
+  let localPreview = '';
   try{ localPreview = URL.createObjectURL(file); }catch(e){}
-  window.gcStoryPending = { active:true, pct:0, preview: localPreview || ((currentUserData&&currentUserData.avatar)||'') };
-  if(typeof gcPaintStoryPendingInList === 'function') gcPaintStoryPendingInList();
-  showToast(isVideo ? 'Checking video…' : 'Optimizing story…');
-  const prepared = await gcPrepareMediaFile(file, 'story');
-  if(typeof gcSetStoryPendingUI === 'function') gcSetStoryPendingUI(5, localPreview);
-  if(typeof gcPaintStoryPendingInList === 'function') gcPaintStoryPendingInList();
-  const url = await gcUploadWithProgress(prepared, isVideo, function(pct){
-    if(typeof gcSetStoryPendingUI === 'function') gcSetStoryPendingUI(pct, localPreview);
-    const label = document.getElementById('gc-story-pending-pct');
-    if(label) label.textContent = Math.round(pct) + '%';
-    else if(typeof gcPaintStoryPendingInList === 'function') gcPaintStoryPendingInList();
-  });
-  if(typeof gcSetStoryPendingUI === 'function') gcSetStoryPendingUI(100, localPreview);
-  await db.collection('stories').add({
-    uid:currentUser.uid,
-    name:currentUserData.name,
-    avatar:currentUserData.avatar||'',
-    email:currentUserData.email||(currentUser.email||''),
-    isVerified: currentUserData.isVerified === true,
-    mediaUrl:url,
-    isVideo:isVideo,
-    views:[],reacts:[],
-    createdAt:firebase.firestore.FieldValue.serverTimestamp(),
-    expiresAt:new Date(Date.now()+ONE_DAY_MS)
-  });
-  if(typeof gcClearStoryPendingUI === 'function') gcClearStoryPendingUI();
-  showToast('Story added!');
-  awardPoints(currentUser.uid, 25);
-  input.value='';
-}catch(e){
-  if(typeof gcClearStoryPendingUI === 'function') gcClearStoryPendingUI();
-  const msg = (e && e.message) ? String(e.message) : '';
-  if(msg === 'IMG_TOO_LARGE') showToast('Story image must be under 5MB!');
-  else if(msg.indexOf('VID_TOO_LONG') === 0) showToast('Story video must be under 40 seconds!');
-  else if(msg === 'VID_TOO_LARGE') showToast('Story video must be under 2MB. Trim or compress it.');
-  else if(msg === 'UNSUPPORTED') showToast('Unsupported file type');
-  else showToast('Network error.');
-  input.value='';
-}finally{
-  try{ if(localPreview) URL.revokeObjectURL(localPreview); }catch(e){}
+  await gcUploadStoryFile(file, localPreview, isVideo);
 }
+
+async function gcUploadStoryFile(file, localPreview, isVideo){
+  if(!file || !currentUser) return;
+  if(typeof isVideo !== 'boolean'){
+    isVideo = !!(file.type && file.type.startsWith('video/'));
+  }
+  if(!localPreview){
+    try{ localPreview = URL.createObjectURL(file); }catch(e){}
+  }
+  try{
+    window.gcStoryPending = { active:true, pct:0, preview: localPreview || ((currentUserData&&currentUserData.avatar)||'') };
+    if(typeof gcPaintStoryPendingInList === 'function') gcPaintStoryPendingInList();
+    showToast(isVideo ? 'Checking video…' : 'Optimizing story…');
+    const prepared = await gcPrepareMediaFile(file, 'story');
+    if(typeof gcSetStoryPendingUI === 'function') gcSetStoryPendingUI(5, localPreview);
+    if(typeof gcPaintStoryPendingInList === 'function') gcPaintStoryPendingInList();
+    const url = await gcUploadWithProgress(prepared, isVideo, function(pct){
+      if(typeof gcSetStoryPendingUI === 'function') gcSetStoryPendingUI(pct, localPreview);
+      const label = document.getElementById('gc-story-pending-pct');
+      if(label) label.textContent = Math.round(pct) + '%';
+      else if(typeof gcPaintStoryPendingInList === 'function') gcPaintStoryPendingInList();
+    });
+    if(typeof gcSetStoryPendingUI === 'function') gcSetStoryPendingUI(100, localPreview);
+    await db.collection('stories').add({
+      uid:currentUser.uid,
+      name:currentUserData.name,
+      avatar:currentUserData.avatar||'',
+      email:currentUserData.email||(currentUser.email||''),
+      isVerified: currentUserData.isVerified === true,
+      mediaUrl:url,
+      isVideo:isVideo,
+      views:[],reacts:[],
+      createdAt:firebase.firestore.FieldValue.serverTimestamp(),
+      expiresAt:new Date(Date.now()+ONE_DAY_MS)
+    });
+    if(typeof gcClearStoryPendingUI === 'function') gcClearStoryPendingUI();
+    showToast('Story added!');
+    awardPoints(currentUser.uid, 25);
+  }catch(e){
+    if(typeof gcClearStoryPendingUI === 'function') gcClearStoryPendingUI();
+    const msg = (e && e.message) ? String(e.message) : '';
+    if(msg === 'IMG_TOO_LARGE') showToast('Story image must be under 5MB!');
+    else if(msg.indexOf('VID_TOO_LONG') === 0) showToast('Story video must be under 40 seconds!');
+    else if(msg === 'VID_TOO_LARGE') showToast('Story video must be under 2MB. Trim or compress it.');
+    else if(msg === 'UNSUPPORTED') showToast('Unsupported file type');
+    else showToast('Network error.');
+  }finally{
+    try{ if(localPreview) URL.revokeObjectURL(localPreview); }catch(e){}
+  }
 }
+window.gcUploadStoryFile = gcUploadStoryFile;
+
 
 function loadStories(){
     const list=document.getElementById('stories-list');
@@ -19250,7 +19474,7 @@ function openStoryCreatorModal() {
                             <div>Photo/Video Story</div>
                             <div style="font-size: 12px; color: var(--text-muted); font-weight: 500;">Upload from your gallery</div>
                         </div>
-                        <input type="file" accept="image/*,video/*" style="display:none;" onchange="closeStoryCreatorModal(); uploadStory(this);">
+                        <input type="file" accept="image/*,video/*" style="display:none;" onchange="closeStoryCreatorModal(); gcOpenStoryMediaPreview(this);">
                     </label>
 
                     <!-- টেক্সট স্টোরি অপশন -->
