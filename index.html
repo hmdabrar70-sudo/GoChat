@@ -5222,6 +5222,32 @@ transition:background .15s;
 
 #selection-bottom-bar { display: none; position: fixed; bottom: 0; left: 0; width: 100%; background: var(--surface); border-top: 1px solid var(--border); padding: 16px 20px; z-index: 99999; justify-content: space-between; align-items: center; box-shadow: 0 -4px 20px rgba(0,0,0,0.3); }
     #selection-bottom-bar.active { display: flex !important; }
+
+/* Selection bottom bar — Reply / Copy / Edit / Delete */
+#selection-bottom-bar{
+  gap: 10px;
+  padding: 12px 14px calc(12px + env(safe-area-inset-bottom, 0px));
+}
+#selection-bottom-bar .sel-act-btn{
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-width: 48px;
+  padding: 6px 8px;
+  border-radius: 12px;
+  cursor: pointer;
+  font: inherit;
+}
+#selection-bottom-bar .sel-act-btn i{ font-size: 22px; line-height: 1; }
+#selection-bottom-bar .sel-act-btn span{ font-size: 11px; font-weight: 800; white-space: nowrap; }
+#selection-bottom-bar .sel-act-btn:active{ background: var(--surface-2); }
+#selection-bottom-bar .sel-act-btn.danger{ color: var(--danger); }
+
     .chat-bubble-wrapper.selected { background: rgba(124, 92, 255, 0.15); border-radius: 8px; }
 /* ঠিক এইখানে ২ নম্বর কোডটি পেস্ট করুন: */
 .bottom-nav {
@@ -7564,11 +7590,24 @@ Edit Profile-এ পার্টনার সিলেক্ট বাটন
 </div>
 
 <div id="selection-bottom-bar">
-    <div style="display:flex; align-items:center; gap:16px;">
-        <i class="ph-bold ph-x" onclick="closeSelectionMode()" style="cursor:pointer; color:var(--text); font-size:24px;"></i>
-        <span id="selected-count-text" style="font-weight:800; font-size:17px; color:var(--text);">1 Selected</span>
+    <div style="display:flex; align-items:center; gap:14px; min-width:0;">
+        <i class="ph-bold ph-x" onclick="closeSelectionMode()" style="cursor:pointer; color:var(--text); font-size:24px; flex-shrink:0;"></i>
+        <span id="selected-count-text" style="font-weight:800; font-size:16px; color:var(--text); white-space:nowrap;">1 Selected</span>
     </div>
-    <i class="ph-bold ph-trash" onclick="showDeleteSheet()" style="cursor:pointer; color:var(--danger); font-size:28px;"></i>
+    <div id="selection-actions" style="display:flex; align-items:center; gap:6px; margin-left:auto;">
+        <button type="button" id="sel-act-reply" class="sel-act-btn" onclick="selectionReply()" title="Reply" style="display:none;">
+            <i class="ph-bold ph-arrow-bend-up-left"></i><span>Reply</span>
+        </button>
+        <button type="button" id="sel-act-copy" class="sel-act-btn" onclick="selectionCopy()" title="Copy" style="display:none;">
+            <i class="ph-bold ph-copy"></i><span>Copy</span>
+        </button>
+        <button type="button" id="sel-act-edit" class="sel-act-btn" onclick="selectionEdit()" title="Edit" style="display:none;">
+            <i class="ph-bold ph-pencil-simple"></i><span>Edit</span>
+        </button>
+        <button type="button" id="sel-act-delete" class="sel-act-btn danger" onclick="showDeleteSheet()" title="Delete">
+            <i class="ph-bold ph-trash"></i><span>Delete</span>
+        </button>
+    </div>
 </div>
 
 <div class="modal-overlay" id="delete-sheet-modal" style="z-index: 100000;">
@@ -12183,6 +12222,88 @@ async function replyToMessage(msgId) {
     } catch(e) { console.error(e); }
 }
 
+
+async function copyMessageText(msgId){
+    try{
+        const ref = db.collection('chats').doc(currentChatId).collection('messages').doc(msgId);
+        const snap = await ref.get();
+        if(!snap.exists){ showToast('Message not found'); return; }
+        const text = String((snap.data() || {}).text || '');
+        if(!text){ showToast('Nothing to copy'); return; }
+        if(navigator.clipboard && navigator.clipboard.writeText){
+            await navigator.clipboard.writeText(text);
+        }else{
+            const ta=document.createElement('textarea');
+            ta.value=text; ta.style.position='fixed'; ta.style.opacity='0';
+            document.body.appendChild(ta); ta.focus(); ta.select();
+            document.execCommand('copy'); ta.remove();
+        }
+        showToast('Message copied');
+    }catch(e){
+        console.error(e);
+        showToast('Copy failed');
+    }
+}
+window.copyMessageText = copyMessageText;
+
+
+let editingMessageId = null;
+function cancelEditMessage(){
+    editingMessageId = null;
+    if(currentChatId) localStorage.removeItem('gochat_draft_' + currentChatId);
+    const input = document.getElementById('chat-input');
+    const preview = document.getElementById('reply-preview-container');
+    if(preview) preview.innerHTML = '';
+    if(input){
+        input.placeholder = 'Message...';
+        input.value = '';
+        input.focus();
+    }
+}
+async function editMessage(msgId){
+    if(!currentUser || !currentChatId) return;
+    try{
+        const ref = db.collection('chats').doc(currentChatId).collection('messages').doc(msgId);
+        const snap = await ref.get();
+        if(!snap.exists){ showToast('Message not found'); return; }
+        const data = snap.data() || {};
+        if(String(data.uid) !== String(currentUser.uid)){
+            showToast('You can only edit your own messages.');
+            return;
+        }
+        if(!data.text || data.imageUrl || data.voiceUrl){
+            showToast('Only text messages can be edited.');
+            return;
+        }
+        editingMessageId = msgId;
+        if(typeof cancelReply === 'function') cancelReply();
+        if(currentChatId) localStorage.removeItem('gochat_draft_' + currentChatId);
+        const input = document.getElementById('chat-input');
+        const preview = document.getElementById('reply-preview-container');
+        if(input){
+            input.value = data.text || '';
+            input.placeholder = 'Edit message...';
+            input.focus();
+            try{ input.setSelectionRange(input.value.length, input.value.length); }catch(e){}
+        }
+        if(preview){
+            preview.innerHTML =
+                '<div style="display:flex;justify-content:space-between;align-items:center;background:var(--surface-2);padding:10px 14px;border-left:4px solid var(--accent);border-radius:16px 16px 0 0;border:1px solid var(--border);border-bottom:none;">'
+                + '<div style="display:flex;flex-direction:column;overflow:hidden;flex:1;margin-right:10px;">'
+                + '<span style="font-size:12px;font-weight:800;color:var(--accent);margin-bottom:2px;"><i class="ph-bold ph-pencil-simple"></i> Editing message</span>'
+                + '<span style="font-size:13px;color:var(--text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + escapeHTML(data.text || '') + '</span>'
+                + '</div>'
+                + '<i class="ph-bold ph-x" style="cursor:pointer;color:var(--text-muted);padding:6px;background:rgba(0,0,0,.1);border-radius:50%;flex-shrink:0;" onclick="cancelEditMessage()"></i>'
+                + '</div>';
+        }
+    }catch(e){
+        console.error(e);
+        showToast('Could not edit message');
+    }
+}
+window.editMessage = editMessage;
+window.cancelEditMessage = cancelEditMessage;
+
 function cancelReply() {
     currentReplyMsgId = null;
     replyToMsgData = null;
@@ -12223,6 +12344,38 @@ async function sendMsg(){
 const inp=document.getElementById('chat-input');
 const text=inp.value.trim();
 if(!text||!currentChatId||!checkRateLimit())return;
+
+// Edit mode: update existing message instead of creating a new one
+if(typeof editingMessageId !== 'undefined' && editingMessageId){
+    const msgId = editingMessageId;
+    try{
+        const ref = db.collection('chats').doc(currentChatId).collection('messages').doc(msgId);
+        const snap = await ref.get();
+        if(!snap.exists){ showToast('Message not found'); return; }
+        const data = snap.data() || {};
+        if(String(data.uid) !== String(currentUser.uid)){ showToast('You can only edit your own messages.'); return; }
+        await ref.update({ text: text, edited: true, editedAt: firebase.firestore.FieldValue.serverTimestamp() });
+        try{
+            const chatSnap = await db.collection('chats').doc(currentChatId).get();
+            if(chatSnap.exists && chatSnap.data().lastSender === currentUser.uid){
+                await db.collection('chats').doc(currentChatId).set({ lastMsg: text }, { merge:true });
+            }
+        }catch(e){}
+        inp.value='';
+        if(currentChatId) localStorage.removeItem('gochat_draft_' + currentChatId);
+        editingMessageId = null;
+        const preview = document.getElementById('reply-preview-container');
+        if(preview) preview.innerHTML = '';
+        inp.placeholder = 'Message...';
+        showToast('Message updated');
+        return;
+    }catch(e){
+        console.error(e);
+        showToast('Failed to update message');
+        return;
+    }
+}
+
 inp.value='';
     // 🚀 NEW: মেসেজ সেন্ড হলে ড্রাফট ক্লিয়ার করা
     if(currentChatId) localStorage.removeItem('gochat_draft_' + currentChatId);    
@@ -15068,6 +15221,8 @@ function handleMsgTouchEnd(msgId, event) {
 function enterSelectionMode(msgId) {
     isMsgSelectionMode = true;
     selectedMsgIds = [];
+    // hide any floating bubble menu
+    try{ document.querySelectorAll('.chat-bubble-menu.show').forEach(function(el){ el.remove(); }); }catch(e){}
     const bar = document.getElementById('selection-bottom-bar');
     const inputArea = document.getElementById('chat-input-area');
     if(bar) bar.classList.add('active');
@@ -15096,6 +15251,7 @@ function toggleMsgSelection(msgId) {
     const countText = document.getElementById('selected-count-text');
     if(countText) countText.textContent = count + ' Selected';
     if(count === 0) closeSelectionMode();
+    else updateSelectionBarActions();
 }
 
 function closeSelectionMode() {
@@ -15106,6 +15262,53 @@ function closeSelectionMode() {
     if(bar) bar.classList.remove('active');
     if(inputArea) inputArea.style.display = 'flex';
     document.querySelectorAll('.chat-bubble-wrapper.selected').forEach(el => el.classList.remove('selected'));
+}
+
+
+function updateSelectionBarActions(){
+    const replyBtn = document.getElementById('sel-act-reply');
+    const copyBtn = document.getElementById('sel-act-copy');
+    const editBtn = document.getElementById('sel-act-edit');
+    const single = selectedMsgIds.length === 1;
+    const msgId = single ? selectedMsgIds[0] : null;
+    let isMine = false, isText = false;
+    if(single && msgId){
+        const wrapper = document.querySelector('.chat-bubble-wrapper[data-msgid="'+msgId+'"]');
+        if(wrapper){
+            isMine = wrapper.classList.contains('mine');
+            const bubble = wrapper.querySelector('.chat-bubble');
+            isText = !!(bubble && !bubble.querySelector('.gc-voice-player') && !bubble.querySelector('img') && !bubble.querySelector('video'));
+            // text-only: has text content or not media
+            if(!isText && bubble){
+                const t = (bubble.textContent || '').trim();
+                isText = t.length > 0 && !bubble.querySelector('img,video,audio,.gc-voice-player');
+            }
+        }
+    }
+    if(replyBtn) replyBtn.style.display = single ? 'flex' : 'none';
+    if(copyBtn) copyBtn.style.display = (single && isText) ? 'flex' : 'none';
+    if(editBtn) editBtn.style.display = (single && isMine && isText) ? 'flex' : 'none';
+}
+
+function selectionReply(){
+    if(selectedMsgIds.length !== 1) return;
+    const id = selectedMsgIds[0];
+    closeSelectionMode();
+    if(typeof replyToMessage === 'function') replyToMessage(id);
+}
+
+async function selectionCopy(){
+    if(selectedMsgIds.length !== 1) return;
+    const id = selectedMsgIds[0];
+    if(typeof copyMessageText === 'function') await copyMessageText(id);
+    closeSelectionMode();
+}
+
+async function selectionEdit(){
+    if(selectedMsgIds.length !== 1) return;
+    const id = selectedMsgIds[0];
+    closeSelectionMode();
+    if(typeof editMessage === 'function') await editMessage(id);
 }
 
 function showDeleteSheet() {
