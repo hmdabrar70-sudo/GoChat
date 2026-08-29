@@ -5320,38 +5320,6 @@ transition:background .15s;
     margin: 20px 2px 8px !important;
 }
 
-
-/* ===== Phase 3 UX: Modern dialogs & message action sheet ===== */
-.gc-ux-overlay{position:fixed;inset:0;z-index:1000000;display:none;align-items:flex-end;justify-content:center;padding:14px;background:rgba(0,0,0,.48);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
-.gc-ux-overlay.open{display:flex;animation:gcUxFade .18s ease}
-.gc-ux-card{width:100%;max-width:520px;background:var(--surface);border:1px solid var(--border);border-radius:26px 26px 18px 18px;box-shadow:0 24px 80px rgba(0,0,0,.42);padding:20px 18px 16px;animation:gcUxUp .28s cubic-bezier(.22,1,.36,1);max-height:min(82vh,680px);overflow:auto}
-.gc-ux-handle{width:42px;height:4px;border-radius:999px;background:var(--border);margin:0 auto 16px}
-.gc-ux-icon{width:46px;height:46px;border-radius:15px;display:flex;align-items:center;justify-content:center;background:var(--accent-glow);color:var(--accent);font-size:23px;margin-bottom:12px}
-.gc-ux-icon.danger{background:rgba(255,77,106,.12);color:var(--danger)}
-.gc-ux-title{font-size:18px;font-weight:850;color:var(--text);letter-spacing:-.2px}
-.gc-ux-text{font-size:14px;line-height:1.6;color:var(--text-secondary);margin-top:7px;white-space:pre-wrap}
-.gc-ux-input{width:100%;box-sizing:border-box;margin-top:14px;padding:13px 14px;border:1px solid var(--border);background:var(--surface-2);color:var(--text);border-radius:15px;outline:none;font:inherit;font-size:15px}
-.gc-ux-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow)}
-.gc-ux-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px}
-.gc-ux-btn{border:0;border-radius:15px;padding:13px 14px;font:inherit;font-weight:800;cursor:pointer;min-height:46px;background:var(--surface-2);color:var(--text);border:1px solid var(--border)}
-.gc-ux-btn.primary{background:var(--gradient);color:#fff;border-color:transparent;box-shadow:0 8px 20px rgba(124,92,255,.22)}
-.gc-ux-btn.danger{background:var(--danger);color:#fff;border-color:transparent}
-.gc-ux-btn:active{transform:scale(.98)}
-.gc-msg-sheet .gc-ux-card{padding-bottom:12px}
-.gc-msg-target{display:flex;align-items:center;gap:11px;padding:10px 11px;border:1px solid var(--border);background:var(--surface-2);border-radius:16px;margin-bottom:10px}
-.gc-msg-target .gc-msg-preview{min-width:0;flex:1}
-.gc-msg-target .gc-msg-preview b{display:block;font-size:12px;color:var(--accent);margin-bottom:2px}
-.gc-msg-target .gc-msg-preview span{display:block;font-size:13px;color:var(--text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.gc-msg-action{width:100%;display:flex;align-items:center;gap:14px;border:0;background:transparent;color:var(--text);padding:14px 10px;border-radius:15px;font:inherit;font-weight:750;text-align:left;cursor:pointer}
-.gc-msg-action i{width:24px;font-size:20px;text-align:center;color:var(--accent)}
-.gc-msg-action.danger{color:var(--danger)}
-.gc-msg-action.danger i{color:var(--danger)}
-.gc-msg-action:active{background:var(--surface-2)}
-.gc-msg-action-sub{font-size:11px;color:var(--text-muted);font-weight:600;margin-left:auto}
-@keyframes gcUxFade{from{opacity:0}to{opacity:1}}
-@keyframes gcUxUp{from{transform:translateY(18px);opacity:.75}to{transform:translateY(0);opacity:1}}
-@media(min-width:640px){.gc-ux-overlay{align-items:center}.gc-ux-card{border-radius:26px}}
-
 #selection-bottom-bar { display: none; position: fixed; bottom: 0; left: 0; width: 100%; background: var(--surface); border-top: 1px solid var(--border); padding: 16px 20px; z-index: 99999; justify-content: space-between; align-items: center; box-shadow: 0 -4px 20px rgba(0,0,0,0.3); }
     #selection-bottom-bar.active { display: flex !important; }
 
@@ -8188,22 +8156,13 @@ const MAX_FILE_SIZE = 5 * 1024 * 1024;
 const MAX_IMAGES_PER_POST = 10;
 const RATE_LIMIT_MS = 1000;
 
-/* ═══ Media limits + smart client-side optimization ═══
-   Images: prefer WebP when supported, with JPEG fallback.
-   Videos: realistic upload limits for mobile social content; server-side
-   transcoding can be added later without changing this client contract. */
-const GC_POST_IMG_TARGET = 700 * 1024;       /* quality-first target: ≤ ~700 KB */
-const GC_AVATAR_IMG_TARGET = 450 * 1024;     /* crisp avatar target */
-const GC_STORY_IMG_MAX = 1.5 * 1024 * 1024;  /* story image hard cap */
-const GC_VIDEO_MAX_BYTES = 25 * 1024 * 1024; /* post video: ≤ 25 MB */
-const GC_STORY_VIDEO_MAX_BYTES = 15 * 1024 * 1024; /* story video: ≤ 15 MB */
-const GC_POST_VIDEO_MAX_SEC = 60;
-const GC_STORY_VIDEO_MAX_SEC = 45;
-const GC_POST_IMG_MAX_EDGE = 2048;
-const GC_AVATAR_IMG_MAX_EDGE = 1024;
-const GC_STORY_IMG_MAX_EDGE = 1920;
-const GC_VIDEO_MAX_EDGE = 1920;               /* avoid raw 4K uploads */
-/* Note: client-side video transcoding is intentionally not forced here; the upload keeps the original video after validation. A future server/Cloudinary transformation can transcode it to adaptive resolutions. */
+/* ═══ Media limits + client-side compression (data saver) ═══ */
+const GC_POST_IMG_TARGET = 180 * 1024;      /* ~100–200 KB */
+const GC_AVATAR_IMG_TARGET = 200 * 1024;
+const GC_STORY_IMG_MAX = 1.5 * 1024 * 1024; /* ≤ 1.5 MB */
+const GC_VIDEO_MAX_BYTES = 2 * 1024 * 1024; /* ≤ 2 MB */
+const GC_POST_VIDEO_MAX_SEC = 30;
+const GC_STORY_VIDEO_MAX_SEC = 40;
 
 function gcLoadImageEl(file){
   return new Promise(function(resolve, reject){
@@ -8235,61 +8194,40 @@ function gcCanvasToBlob(canvas, type, quality){
 async function gcCompressImageFile(file, maxBytes, maxEdge){
   if(!file || !file.type || !file.type.startsWith('image/')) return file;
   maxBytes = maxBytes || GC_POST_IMG_TARGET;
-  maxEdge = maxEdge || GC_POST_IMG_MAX_EDGE;
+  maxEdge = maxEdge || 1280;
   try{
-    const img = await gcLoadImageEl(file);
-    const originalW = img.width || 1, originalH = img.height || 1;
-    const scale = Math.min(1, maxEdge / Math.max(originalW, originalH));
-    let w = Math.max(1, Math.round(originalW * scale));
-    let h = Math.max(1, Math.round(originalH * scale));
-
-    /* Keep already-small images untouched when dimensions are also reasonable. */
-    if(file.size <= maxBytes && scale >= 1) return file;
-
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d', {alpha:true});
-    if(!ctx) return file;
-
-    const draw = function(){
-      canvas.width = w; canvas.height = h;
-      ctx.clearRect(0, 0, w, h);
-      ctx.drawImage(img, 0, 0, w, h);
-    };
-
-    /* Prefer WebP: usually much smaller than JPEG at comparable quality,
-       while retaining transparency. Fall back to JPEG for older browsers. */
-    let outType = 'image/webp';
-    draw();
-    let blob = await gcCanvasToBlob(canvas, outType, 0.88);
-    if(!blob){
-      outType = 'image/jpeg';
-      blob = await gcCanvasToBlob(canvas, outType, 0.88);
+    if(file.size <= maxBytes){
+      const img0 = await gcLoadImageEl(file);
+      if(img0.width <= maxEdge && img0.height <= maxEdge) return file;
     }
-    if(!blob) return file;
-
-    let q = 0.88;
+    const img = await gcLoadImageEl(file);
+    let w = img.width, h = img.height;
+    const scale = Math.min(1, maxEdge / Math.max(w, h));
+    w = Math.max(1, Math.round(w * scale));
+    h = Math.max(1, Math.round(h * scale));
+    const canvas = document.createElement('canvas');
+    canvas.width = w; canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0, w, h);
+    const outType = 'image/jpeg';
+    let q = 0.85;
+    let blob = await gcCanvasToBlob(canvas, outType, q);
     let guard = 0;
-    while(blob && blob.size > maxBytes && guard < 12){
+    while(blob && blob.size > maxBytes && guard < 10){
       guard++;
-      if(q > 0.56){
-        q = Math.max(0.56, q - 0.06);
-      }else{
-        /* Reduce dimensions only after quality has been lowered moderately. */
-        w = Math.max(480, Math.round(w * 0.88));
-        h = Math.max(480, Math.round(h * 0.88));
+      if(q > 0.45){
+        q = Math.max(0.42, q - 0.1);
+      } else {
+        w = Math.max(320, Math.round(w * 0.82));
+        h = Math.max(320, Math.round(h * 0.82));
+        canvas.width = w; canvas.height = h;
+        ctx.drawImage(img, 0, 0, w, h);
+        q = 0.72;
       }
-      draw();
       blob = await gcCanvasToBlob(canvas, outType, q);
     }
-
     if(!blob) return file;
-
-    /* If the optimized result is still larger than the original, don't make
-       the user's file worse just for the sake of re-encoding. */
-    if(blob.size >= file.size && scale >= 1) return file;
-
-    const ext = outType === 'image/webp' ? '.webp' : '.jpg';
-    const name = (file.name || 'photo').replace(/\.[^/.]+$/, '') + ext;
+    const name = (file.name || 'photo.jpg').replace(/\.\w+$/, '.jpg');
     return new File([blob], name, { type: outType, lastModified: Date.now() });
   }catch(e){
     console.warn('gcCompressImageFile', e);
@@ -8304,17 +8242,13 @@ function gcProbeVideoDuration(file){
       const v = document.createElement('video');
       v.preload = 'metadata';
       v.onloadedmetadata = function(){
-        const meta = {
-          duration: Number(v.duration || 0),
-          width: Number(v.videoWidth || 0),
-          height: Number(v.videoHeight || 0)
-        };
+        const d = v.duration || 0;
         URL.revokeObjectURL(url);
-        resolve(meta);
+        resolve(d);
       };
-      v.onerror = function(){ URL.revokeObjectURL(url); resolve({duration:0,width:0,height:0,error:true}); };
+      v.onerror = function(){ URL.revokeObjectURL(url); resolve(0); };
       v.src = url;
-    }catch(e){ resolve({duration:0,width:0,height:0,error:true}); }
+    }catch(e){ resolve(0); }
   });
 }
 
@@ -8329,28 +8263,20 @@ async function gcPrepareMediaFile(file, kind){
       throw new Error('IMG_TOO_LARGE');
     }
     let target = GC_POST_IMG_TARGET;
-    let edge = GC_POST_IMG_MAX_EDGE;
-    if(kind === 'avatar'){ target = GC_AVATAR_IMG_TARGET; edge = GC_AVATAR_IMG_MAX_EDGE; }
-    if(kind === 'story'){ target = GC_STORY_IMG_MAX; edge = GC_STORY_IMG_MAX_EDGE; }
+    let edge = 1280;
+    if(kind === 'avatar'){ target = GC_AVATAR_IMG_TARGET; edge = 720; }
+    if(kind === 'story'){ target = GC_STORY_IMG_MAX; edge = 1080; }
     return await gcCompressImageFile(file, target, edge);
   }
 
   if(isVideo){
     const maxSec = (kind === 'story') ? GC_STORY_VIDEO_MAX_SEC : GC_POST_VIDEO_MAX_SEC;
-    const maxBytes = (kind === 'story') ? GC_STORY_VIDEO_MAX_BYTES : GC_VIDEO_MAX_BYTES;
-    const meta = await gcProbeVideoDuration(file);
-
-    if(meta.error || !meta.duration){
-      throw new Error('VID_METADATA');
-    }
-    if(meta.duration > maxSec + 0.4){
+    const dur = await gcProbeVideoDuration(file);
+    if(dur > maxSec + 0.4){
       throw new Error('VID_TOO_LONG:' + maxSec);
     }
-    if(meta.width && meta.height && Math.max(meta.width, meta.height) > GC_VIDEO_MAX_EDGE){
-      throw new Error('VID_DIM_TOO_LARGE:' + GC_VIDEO_MAX_EDGE);
-    }
-    if(file.size > maxBytes){
-      throw new Error('VID_TOO_LARGE:' + maxBytes);
+    if(file.size > GC_VIDEO_MAX_BYTES){
+      throw new Error('VID_TOO_LARGE');
     }
     return file;
   }
@@ -8637,67 +8563,6 @@ if(!e.target.closest('.icon-btn')&&!e.target.closest('.more-btn')&&!e.target.clo
 closeAllDropdowns();
 }
 });
-
-
-function gcEnsureUxOverlay(kind){
-  const id='gc-ux-'+kind;
-  let ov=document.getElementById(id);
-  if(!ov){ ov=document.createElement('div'); ov.id=id; ov.className='gc-ux-overlay'; document.body.appendChild(ov); }
-  return ov;
-}
-function gcCloseUx(kind){ const ov=document.getElementById('gc-ux-'+kind); if(ov) ov.classList.remove('open'); }
-function gcOpenAlert(opts){
-  opts=opts||{};
-  const ov=gcEnsureUxOverlay('alert');
-  ov.innerHTML='<div class="gc-ux-card" role="dialog" aria-modal="true"><div class="gc-ux-handle"></div><div class="gc-ux-icon '+(opts.danger?'danger':'')+'"><i class="ph-bold '+(opts.icon||'ph-info')+'"></i></div><div class="gc-ux-title">'+escapeHTML(opts.title||'Notice')+'</div><div class="gc-ux-text">'+escapeHTML(opts.text||'')+'</div><div class="gc-ux-actions"><button class="gc-ux-btn primary" id="gc-ux-alert-ok">'+escapeHTML(opts.okLabel||'Got it')+'</button></div></div>';
-  ov.classList.add('open');
-  const close=function(){gcCloseUx('alert'); if(typeof opts.onClose==='function') opts.onClose();};
-  ov.onclick=function(e){if(e.target===ov) close();};
-  document.getElementById('gc-ux-alert-ok').onclick=close;
-  setTimeout(function(){const b=document.getElementById('gc-ux-alert-ok');if(b)b.focus();},30);
-}
-function gcOpenPrompt(opts){
-  opts=opts||{};
-  return new Promise(function(resolve){
-    const ov=gcEnsureUxOverlay('prompt');
-    ov.innerHTML='<div class="gc-ux-card" role="dialog" aria-modal="true"><div class="gc-ux-handle"></div><div class="gc-ux-icon"><i class="ph-bold '+(opts.icon||'ph-pencil-simple')+'"></i></div><div class="gc-ux-title">'+escapeHTML(opts.title||'Enter a value')+'</div><div class="gc-ux-text">'+escapeHTML(opts.text||'')+'</div><input class="gc-ux-input" id="gc-ux-prompt-input" type="'+(opts.inputType||'text')+'" maxlength="'+(opts.maxLength||1000)+'" placeholder="'+escapeHTML(opts.placeholder||'')+'" value="'+escapeHTML(opts.value||'')+'"><div class="gc-ux-actions"><button class="gc-ux-btn" id="gc-ux-prompt-cancel">Cancel</button><button class="gc-ux-btn primary" id="gc-ux-prompt-ok">'+escapeHTML(opts.okLabel||'Save')+'</button></div></div>';
-    ov.classList.add('open');
-    const finish=function(value){gcCloseUx('prompt');resolve(value);};
-    ov.onclick=function(e){if(e.target===ov) finish(null);};
-    const input=document.getElementById('gc-ux-prompt-input');
-    document.getElementById('gc-ux-prompt-cancel').onclick=function(){finish(null);};
-    document.getElementById('gc-ux-prompt-ok').onclick=function(){finish(input.value);};
-    input.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();finish(input.value);}else if(e.key==='Escape'){e.preventDefault();finish(null);}});
-    setTimeout(function(){input.focus();input.select();},40);
-  });
-}
-function gcOpenMessageActionSheet(msgId){
-  if(!currentChatId||!msgId)return;
-  const ov=gcEnsureUxOverlay('message');
-  db.collection('chats').doc(currentChatId).collection('messages').doc(msgId).get().then(function(snap){
-    if(!snap.exists){showToast('Message not found');return;}
-    const m=snap.data()||{};
-    if(m.deletedFor && m.deletedFor.includes(currentUser.uid)) return;
-    const isMine=String(m.uid)===String(currentUser.uid);
-    const isText=!!String(m.text||'').trim() && !m.imageUrl && !m.audioUrl && !m.voiceUrl && !m.sharedPostId && !m.sharedStoryId;
-    const preview=escapeHTML(String(m.text|| (m.imageUrl?'📷 Photo':(m.audioUrl||m.voiceUrl?'🎙️ Voice message':'Message'))));
-    const short=preview.length>72?preview.slice(0,72)+'…':preview;
-    let actions='';
-    actions+='<button class="gc-msg-action" onclick="gcMessageActionReply(\''+msgId+'\')"><i class="ph-bold ph-arrow-bend-up-left"></i><span>Reply</span></button>';
-    if(isText) actions+='<button class="gc-msg-action" onclick="gcMessageActionCopy(\''+msgId+'\')"><i class="ph-bold ph-copy"></i><span>Copy</span></button>';
-    if(isMine && isText) actions+='<button class="gc-msg-action" onclick="gcMessageActionEdit(\''+msgId+'\')"><i class="ph-bold ph-pencil-simple"></i><span>Edit</span></button>';
-    actions+='<button class="gc-msg-action" onclick="gcMessageActionSelect(\''+msgId+'\')"><i class="ph-bold ph-check-square"></i><span>Select</span><span class="gc-msg-action-sub">More</span></button>';
-    actions+='<button class="gc-msg-action danger" onclick="gcMessageActionDelete(\''+msgId+'\')"><i class="ph-bold ph-trash"></i><span>Delete</span></button>';
-    ov.classList.add('gc-msg-sheet');
-    ov.innerHTML='<div class="gc-ux-card" role="dialog" aria-modal="true"><div class="gc-ux-handle"></div><div class="gc-msg-target"><div class="gc-ux-icon" style="margin:0;flex-shrink:0"><i class="ph-bold '+(isMine?'ph-paper-plane-tilt':'ph-chat-circle')+'"></i></div><div class="gc-msg-preview"><b>'+escapeHTML(isMine?'Your message':(m.senderName||'Message'))+'</b><span>'+short+'</span></div></div>'+actions+'<button class="gc-msg-action" onclick="gcCloseUx(\'message\')"><i class="ph-bold ph-x"></i><span>Cancel</span></button></div>';
-    ov.onclick=function(e){if(e.target===ov)gcCloseUx('message');};
-  }).catch(function(){showToast('Could not open message actions');});
-}
-function gcMessageActionReply(id){gcCloseUx('message');setTimeout(function(){replyToMessage(id);},80);}
-function gcMessageActionCopy(id){gcCloseUx('message');setTimeout(function(){copyMessageText(id);},80);}
-function gcMessageActionEdit(id){gcCloseUx('message');setTimeout(function(){editMessage(id);},80);}
-function gcMessageActionSelect(id){gcCloseUx('message');setTimeout(function(){enterSelectionMode(id,true);},80);}
-function gcMessageActionDelete(id){gcCloseUx('message');setTimeout(function(){selectedMsgIds=[id];showDeleteSheet();},80);}
 
 function showToast(msg){
 const t=document.getElementById('toast');
@@ -10541,7 +10406,7 @@ try{
   try{ localPreview = URL.createObjectURL(file); }catch(e){}
   window.gcStoryPending = { active:true, pct:0, preview: localPreview || ((currentUserData&&currentUserData.avatar)||'') };
   if(typeof gcPaintStoryPendingInList === 'function') gcPaintStoryPendingInList();
-  showToast(isVideo ? 'Checking video quality…' : 'Optimizing story…');
+  showToast(isVideo ? 'Checking video…' : 'Optimizing story…');
   const prepared = await gcPrepareMediaFile(file, 'story');
   if(typeof gcSetStoryPendingUI === 'function') gcSetStoryPendingUI(5, localPreview);
   if(typeof gcPaintStoryPendingInList === 'function') gcPaintStoryPendingInList();
@@ -10572,8 +10437,8 @@ try{
   if(typeof gcClearStoryPendingUI === 'function') gcClearStoryPendingUI();
   const msg = (e && e.message) ? String(e.message) : '';
   if(msg === 'IMG_TOO_LARGE') showToast('Story image must be under 5MB!');
-  else if(msg.indexOf('VID_TOO_LONG') === 0) showToast('Story video must be under 45 seconds.');
-  else if(msg.indexOf('VID_DIM_TOO_LARGE:') === 0) showToast('Story video resolution is too high. Please use up to Full HD.'); else if(msg.indexOf('VID_TOO_LARGE:') === 0) showToast('Story video can be up to 15MB.'); else if(msg === 'VID_METADATA') showToast('Could not read this video. Please choose another video.');
+  else if(msg.indexOf('VID_TOO_LONG') === 0) showToast('Story video must be under 40 seconds!');
+  else if(msg === 'VID_TOO_LARGE') showToast('Story video must be under 2MB. Trim or compress it.');
   else if(msg === 'UNSUPPORTED') showToast('Unsupported file type');
   else showToast('Network error.');
   input.value='';
@@ -11045,7 +10910,7 @@ function showDelConfirm(){
     }catch(e){}
     return;
   }
-  gcConfirmAsync({title:'Delete story?',text:'This story will be permanently removed.',icon:'ph-trash',yesLabel:'Delete'}).then(function(ok){if(ok)gcDoDeleteCurrentStory();});
+  if(window.confirm('Delete this story?')) gcDoDeleteCurrentStory();
 }
 /* Defer one tick so menu close paints first, then modal above story viewer */
 setTimeout(showDelConfirm, 30);
@@ -13867,25 +13732,6 @@ imgUrls.push(url);
 // ==========================================
 // ✅ ULTIMATE GRID VIEW & JUMP SCROLLING FIXED 
 // ==========================================
-function gcRankForYouPosts(posts){
-    const now=Date.now();
-    const following=(currentUserData && currentUserData.following) || [];
-    return posts.map(function(p){
-        let created=0;
-        try{ created=p.createdAt && p.createdAt.toDate ? p.createdAt.toDate().getTime() : new Date(p.createdAt || 0).getTime(); }catch(e){ created=0; }
-        const ageH=created ? Math.max(0,(now-created)/3600000) : 999;
-        const freshness=created ? 42*Math.exp(-ageH/60) : 0;
-        const likes=Math.max(0,Number(p.likes||0));
-        const comments=Array.isArray(p.comments)?p.comments.length:Number(p.commentCount||0);
-        const shares=Math.max(0,Number(p.shares||p.shareCount||0));
-        const engagement=(Math.log1p(likes)*7)+(Math.log1p(comments)*9)+(Math.log1p(shares)*10);
-        const relationship=following.includes(p.uid)?24:0;
-        const own=p.uid===currentUser?.uid?12:0;
-        const liked=p.likedBy && currentUser?.uid && p.likedBy.includes(currentUser.uid)?3:0;
-        return {...p,_gcForYouScore:freshness+engagement+relationship+own+liked};
-    }).sort(function(a,b){return b._gcForYouScore-a._gcForYouScore;});
-}
-
 function loadFeed() {
     const feedList = document.getElementById('feed-list');
     if (!feedList) return;
@@ -13906,10 +13752,6 @@ function loadFeed() {
 
         if (currentFeedTab === 'following') { 
             postsData = postsData.filter(p => currentUserData?.following?.includes(p.uid) || p.uid === currentUser?.uid);
-        } else {
-            // Lightweight local recommendation layer: freshness + engagement + relationship signals.
-            // It only re-ranks the already-fetched posts, so it does not add extra Firestore reads.
-            postsData = gcRankForYouPosts(postsData);
         }
 
         // 🚀 ফিক্স: একটি ডেডিকেটেড কন্টেইনার তৈরি করা যাতে পুরো ফিড ডিলিট না হয়
@@ -13934,7 +13776,7 @@ function loadFeed() {
         // খালি ফিড হ্যান্ডেলিং (আগে থেকেই কার্ড থাকলে ডিলিট করবে না)
         if (postsData.length === 0) {
             if (actualContainer.children.length === 0) {
-                actualContainer.innerHTML = '<div class="empty-feed" style="padding:56px 24px;text-align:center;"><i class="ph-bold ph-sparkle" style="font-size:38px;display:block;margin-bottom:12px;color:var(--accent);"></i><div style="font-weight:850;font-size:16px;color:var(--text);">Nothing here yet</div><div style="font-size:13px;color:var(--text-muted);margin-top:6px;line-height:1.5;">Follow people or create your first post to fill this space.</div></div>';
+                actualContainer.innerHTML = '<div class="empty-feed"><i class="ph-bold ph-tray"></i><br>No posts yet in this feed</div>';
             }
             const loadMoreBtn = document.getElementById('load-more-btn');
             if (loadMoreBtn) loadMoreBtn.style.display = 'none';
@@ -14010,12 +13852,6 @@ function loadFeed() {
         if (loadMoreBtn) {
             loadMoreBtn.style.display = postsData.length >= postLimit ? 'block' : 'none';
         }
-    }, (error) => {
-        console.error('Feed listener error:', error);
-        const loadEl = document.getElementById('feed-loading');
-        if (loadEl) loadEl.style.display = 'none';
-        const c = document.getElementById('feed-list');
-        if (c) c.innerHTML = '<div class="empty-feed" style="padding:56px 24px;text-align:center;"><i class="ph-bold ph-wifi-slash" style="font-size:38px;display:block;margin-bottom:12px;color:var(--danger);"></i><div style="font-weight:850;font-size:16px;color:var(--text);">Couldn’t load your feed</div><div style="font-size:13px;color:var(--text-muted);margin-top:6px;line-height:1.5;">Check your connection and try again.</div><button class="btn-outline" style="margin-top:16px;" onclick="loadFeed()"><i class="ph-bold ph-arrow-clockwise"></i> Try again</button></div>';
     });
 }
 
@@ -15098,7 +14934,7 @@ awardPoints(doc.data().uid, 10);
 
 // Reply to comment with inline input
 async function replyToComment(pid,idx){
-gcOpenPrompt({title:'Reply to comment',text:'Write your reply below.',placeholder:'Write a reply…',okLabel:'Reply',icon:'ph-arrow-bend-up-left'}).then(async function(txt){
+const txt=prompt("Write your reply:");
 if(!txt||!txt.trim())return;
 const ref=db.collection('posts').doc(pid);
 const doc=await ref.get();
@@ -15109,7 +14945,6 @@ await ref.update({comments});
 if(doc.data().uid !== currentUser.uid) {
 awardPoints(doc.data().uid, 10);
 }
-}).catch(function(e){console.error(e);showToast('Could not send reply');});
 }
 // ===== BLOCKED ACCOUNTS SETTINGS LOGIC =====
 
@@ -15270,7 +15105,7 @@ async function deleteChatForEveryone() {
 
     try {
         if (!currentChatId) {
-            showToast("Chat ID not found");
+            alert("Error: Chat ID not found!");
             return;
         }
 
@@ -15294,7 +15129,7 @@ async function deleteChatForEveryone() {
         // ৪. মেইন চ্যাটের ইনফরমেশন (last message ইত্যাদি) ডিলিট করা
         await db.collection('chats').doc(currentChatId).delete();
         
-        showToast("Chat deleted for everyone successfully");
+        alert("Chat deleted for everyone successfully! Storage freed.");
         
         // চ্যাট স্ক্রিনটা বন্ধ করে দেওয়া
         if (typeof closeChat === 'function') {
@@ -15303,7 +15138,7 @@ async function deleteChatForEveryone() {
         
     } catch (error) {
         console.error("Error deleting chat:", error);
-        showToast("Failed to delete chat. Please try again.");
+        alert("Failed to delete chat. Please try again.");
     }
 }
 // ===== Password Visibility Toggle =====
@@ -15496,8 +15331,7 @@ function handleMsgTouchEnd(msgId, event) {
     isSwiping = false;
 }
 
-function enterSelectionMode(msgId, fromActionSheet) {
-    if(!fromActionSheet){ gcOpenMessageActionSheet(msgId); return; }
+function enterSelectionMode(msgId) {
     isMsgSelectionMode = true;
     selectedMsgIds = [];
     // hide any floating bubble menu
@@ -15882,16 +15716,11 @@ async function editComment(pid, idx) {
         return;
     }
     const oldText = comments[idx].text;
-    const newText = await gcOpenPrompt({title:'Edit comment',text:'Update your comment below.',value:oldText,okLabel:'Save changes',icon:'ph-pencil-simple',maxLength:1000});
+    const newText = prompt("Edit your comment:", oldText);
     if (newText !== null && newText.trim() !== "") {
         comments[idx].text = newText.trim();
-        try {
-            await ref.update({ comments: comments });
-            showToast("Comment updated!");
-        } catch(e) {
-            console.error(e);
-            showToast('Could not update comment');
-        }
+        await ref.update({ comments: comments });
+        showToast("Comment updated!");
     }
 }
 
@@ -17534,9 +17363,8 @@ async function updateGroupAvatar(input) {
 }
 
 async function editGroupName() {
-    if(!activeGroupId || !activeGroupData) return;
-    const newName = await gcOpenPrompt({title:'Rename group',text:'Choose a clear name for this group.',value:activeGroupData.groupName || '',placeholder:'Group name',okLabel:'Rename',icon:'ph-pencil-simple',maxLength:80});
-    if(!newName || newName.trim() === "") return;
+    const newName = prompt("Enter new group name:", activeGroupData.groupName);
+    if(!newName || newName.trim() === "" || !activeGroupId) return;
     try {
         await db.collection('chats').doc(activeGroupId).update({
             groupName: newName.trim(),
@@ -17547,7 +17375,7 @@ async function editGroupName() {
         document.getElementById('group-info-name').textContent = newName.trim();
         document.getElementById('chat-name-display').textContent = newName.trim();
         showToast('Group name updated!');
-    } catch(e) { console.error(e); showToast('Update failed'); }
+    } catch(e) { showToast('Update failed'); }
 }
 
 async function makeGroupAdmin(uid, name) {
@@ -18422,7 +18250,7 @@ window.copyProfileLink = function() {
         showToast(username ? "Username link copied!" : "Profile link copied!");
     }).catch(err => {
         console.error('Failed to copy: ', err);
-        showToast("Failed to copy link!");
+        alert("Failed to copy link!");
     });
 };
 
@@ -18912,7 +18740,7 @@ async function unlinkAccount(providerId) {
         if (error.code === 'auth/no-such-provider') {
              showToast("Provider not found.");
         } else {
-             gcOpenAlert({title:'Cannot unlink account',text:'You must set a password or have another login method before unlinking this account.',icon:'ph-lock-key',danger:true});
+             alert("Error: You must set a password or have another login method before unlinking this account.");
         }
     }
 }
@@ -21069,8 +20897,8 @@ composeImages.push({file: prepared, preview: URL.createObjectURL(prepared), isVi
 renderComposeImageGrid(); checkPostInputs();
 }catch(e){
 const msg = (e && e.message) ? String(e.message) : '';
-if(msg.indexOf('VID_TOO_LONG') === 0) showToast('Video must be under 60 seconds.');
-else if(msg.indexOf('VID_DIM_TOO_LARGE:') === 0) showToast('Video resolution is too high. Please use up to Full HD.'); else if(msg.indexOf('VID_TOO_LARGE:') === 0) showToast('Post video can be up to 25MB.'); else if(msg === 'VID_METADATA') showToast('Could not read this video. Please choose another video.');
+if(msg.indexOf('VID_TOO_LONG') === 0) showToast('Video must be under 30 seconds!');
+else if(msg === 'VID_TOO_LARGE') showToast('Video must be under 2MB. Use a shorter/lower-quality clip.');
 else showToast('Invalid video file');
 }
 })();
