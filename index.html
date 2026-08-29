@@ -63,6 +63,31 @@ body.light-mode{
 }
 html,body{overscroll-behavior:none;}
 
+/* ═══ FEATURE: profile · other content tabs (Media / Gallery / Status) ═══ */
+.other-profile-content-tabs{
+  display:flex; width:100%;
+}
+.other-profile-content-tabs .op-tab{
+  flex:1;
+  background:transparent;
+  border:none;
+  border-top:2px solid transparent;
+  margin-top:-1px;
+  padding:12px 8px;
+  font-size:14px;
+  font-weight:700;
+  color:var(--text-muted);
+  cursor:pointer;
+  font-family:inherit;
+  transition:color .2s, border-color .2s;
+}
+.other-profile-content-tabs .op-tab.active{
+  color:var(--text);
+  border-top-color:var(--text);
+}
+.other-profile-content-tabs .op-tab:active{ opacity:.75; }
+
+
 /* ═══ Fix home feed horizontal overflow (without blocking vertical scroll) ═══ */
 html {
   width: 100%;
@@ -1234,7 +1259,7 @@ display:flex;flex-direction:column;gap:12px;
 .comment-input-bar{
 background:var(--surface);
 border-top:1px solid var(--border);
-padding:12px 16px;
+padding:12px 14px calc(12px + env(safe-area-inset-bottom, 0px));
 display:flex;gap:10px;align-items:center;
 }
 .comment-input-bar input{
@@ -1246,6 +1271,41 @@ color:var(--text);font-size:14px;outline:none;
 transition:border-color 0.2s;
 }
 .comment-input-bar input:focus{border-color:var(--accent);}
+/* Comment compose: larger photo + send */
+.comment-input-bar label[for="comment-img-input"]{
+  width:44px;height:44px;padding:0 !important;margin:0 !important;
+  display:flex !important;align-items:center;justify-content:center;
+  border-radius:50%;flex-shrink:0;
+  color:var(--accent);
+}
+.comment-input-bar label[for="comment-img-input"] i{
+  font-size:28px !important;
+}
+.comment-input-bar .chat-send-btn,
+#comment-panel-send-btn{
+  width:48px !important;height:48px !important;
+  flex-shrink:0;
+  background:var(--text-muted) !important;
+  box-shadow:none !important;
+  opacity:0.85;
+  transition:background .2s, box-shadow .2s, transform .15s, opacity .2s;
+}
+.comment-input-bar .chat-send-btn i,
+#comment-panel-send-btn i{
+  font-size:22px !important;
+}
+.comment-input-bar .chat-send-btn.is-ready,
+#comment-panel-send-btn.is-ready{
+  background:var(--gradient) !important;
+  box-shadow:var(--shadow-glow) !important;
+  opacity:1;
+  cursor:pointer;
+}
+.comment-input-bar .chat-send-btn:not(.is-ready),
+#comment-panel-send-btn:not(.is-ready){
+  cursor:default;
+  pointer-events:none;
+}
 .reply-input-container{
 background:var(--surface-2);
 border:1px solid var(--border);
@@ -1307,10 +1367,21 @@ flex-direction:column;
   color:var(--text); font-size:14px; padding:6px 4px; min-width:0;
 }
 .sp-comment-compose button{
-  border:none; background:var(--accent); color:#fff;
-  width:36px; height:36px; border-radius:50%;
+  border:none; background:var(--text-muted); color:#fff;
+  width:46px; height:46px; border-radius:50%;
   display:flex; align-items:center; justify-content:center; cursor:pointer;
   flex-shrink:0;
+  transition:background .2s, box-shadow .2s, opacity .2s;
+  opacity:.85;
+}
+.sp-comment-compose button i{ font-size:20px !important; }
+.sp-comment-compose button.is-ready{
+  background:var(--gradient) !important;
+  box-shadow:var(--shadow-glow);
+  opacity:1;
+}
+.sp-comment-compose button:not(.is-ready){
+  pointer-events:none; cursor:default;
 }
 #single-post-screen .single-post-content{
   padding-bottom:12px;
@@ -1654,30 +1725,59 @@ cursor:pointer;
 .chat-input-bar{
 background:var(--surface);
 border-top:1px solid var(--border);
-padding:12px 16px;
-display:flex;gap:10px;align-items:center;
+padding:10px 12px calc(10px + env(safe-area-inset-bottom, 0px));
+display:flex;gap:8px;align-items:center;
 }
-.chat-input-bar input{
-flex:1;background:var(--surface-2);
+.chat-input-bar input#chat-input,
+.chat-input-bar > input[type="text"]{
+flex:1;min-width:0;background:var(--surface-2);
 border:1px solid var(--border);
 border-radius:var(--radius-xl);
-padding:12px 18px;
-color:var(--text);font-size:15px;outline:none;
+padding:10px 14px;
+color:var(--text);font-size:14px;outline:none;
 transition:border-color 0.2s;
 }
 .chat-input-bar input:focus{border-color:var(--accent);}
+/* Chat mic + image — compact size (match previous perfect look) */
+#voice-start-btn,
+#image-upload-btn{
+  width:auto !important;height:auto !important;
+  padding:4px !important;margin:0 !important;
+  display:flex !important;align-items:center;justify-content:center;
+  border-radius:50%;flex-shrink:0;
+  color:var(--accent) !important;
+  background:none;border:none;cursor:pointer;
+}
+#voice-start-btn i,
+#image-upload-btn i{
+  font-size:22px !important;
+}
+/* Chat send — compact, gray until text ready */
 .chat-send-btn{
-width:44px;height:44px;
-background:var(--gradient);
+width:40px;height:40px;
+background:var(--text-muted);
 border:none;border-radius:50%;
 color:#fff;
 display:flex;align-items:center;justify-content:center;
 cursor:pointer;
-transition:all 0.2s;
-box-shadow:var(--shadow-glow);
+transition:background .2s, box-shadow .2s, transform .15s, opacity .2s;
+box-shadow:none;
+opacity:.85;
+flex-shrink:0;
 }
-.chat-send-btn:hover{transform:scale(1.05);}
-.chat-send-btn:active{transform:scale(0.95);}
+.chat-send-btn i{ font-size:18px !important; }
+.chat-send-btn.is-ready{
+  background:var(--gradient) !important;
+  box-shadow:var(--shadow-glow) !important;
+  opacity:1;
+}
+.chat-send-btn:not(.is-ready){
+  cursor:default;
+  pointer-events:none;
+}
+.chat-send-btn.is-ready:hover{transform:scale(1.05);}
+.chat-send-btn.is-ready:active{transform:scale(0.95);}
+/* Comment panel send keeps its own larger rules via #comment-panel-send-btn */
 .modal-overlay{
 display:none;position:fixed;inset:0;
 background:rgba(0,0,0,0.6);
@@ -6612,12 +6712,13 @@ Edit Profile-এ পার্টনার সিলেক্ট বাটন
         <div class="chat-back" onclick="closeUserProfile()"><i class="ph-bold ph-arrow-u-up-left"></i></div>
         <div class="chat-name" id="other-profile-top-name" style="margin-left:8px;">Profile</div>
         
-        <!-- 🚀 Mute Profile (top bar) — bell / bell-simple-slash -->
-        <div class="icon-btn" id="other-mute-profile-btn" onclick="event.stopPropagation(); toggleMuteFeed(currentOtherProfileUid)" title="Mute Profile" style="background:transparent; padding:8px; border:none; margin-right:4px; color:var(--text);">
+        <!-- 🚀 Mute + menu (slightly tighter gap) -->
+        <div class="other-profile-top-actions" style="display:flex;align-items:center;gap:2px;margin-left:auto;">
+        <div class="icon-btn" id="other-mute-profile-btn" onclick="event.stopPropagation(); toggleMuteFeed(currentOtherProfileUid)" title="Mute Profile" style="background:transparent; padding:6px; border:none; margin:0; color:var(--text);">
             <i class="ph ph-bell" id="other-mute-profile-icon" style="font-size:22px;"></i>
         </div>
 
-        <div class="icon-btn" onclick="event.stopPropagation();toggleProfileMenu()" style="background:transparent; padding:8px; border:none; position:relative;">
+        <div class="icon-btn" onclick="event.stopPropagation();toggleProfileMenu()" style="background:transparent; padding:6px; border:none; margin:0; position:relative;">
             <i class="ph-bold ph-dots-three" style="font-size:24px;"></i>
             <div class="profile-menu" id="profile-menu" onclick="event.stopPropagation();">
     <div class="chat-dropdown-item" onclick="copyOtherProfileLink()">
@@ -6630,6 +6731,7 @@ Edit Profile-এ পার্টনার সিলেক্ট বাটন
         <i class="ph-bold ph-prohibit" style="font-size:20px;"></i> Block User
     </div>
 </div>
+        </div>
         </div>
     </div>
     <div class="profile-header">
@@ -6669,22 +6771,10 @@ Edit Profile-এ পার্টনার সিলেক্ট বাটন
         <div class="profile-btns" id="other-profile-btns" style="margin-top:16px;display:flex;gap:10px;width:100%;flex-wrap:wrap;"></div>
     </div>
     <!-- 🚀 Other Profile Filter Menu -->
-<div style="display: flex; justify-content: center; gap: 20px; border-top: 1px solid var(--border); margin-top: 20px; margin-bottom: 10px;">
-    <!-- Grid / All Button -->
-    <div id="other-filter-all-btn" style="padding: 12px 20px; border-top: 2px solid var(--text); margin-top: -1px; color: var(--text); cursor: pointer; transition: 0.2s;" onclick="applyProfileFilter('all', 'other', this)">
-        <i class="ph-bold ph-squares-four" style="font-size: 28px;"></i>
-    </div>
-    <!-- Filter Icon Button -->
-    <div id="other-filter-icon-btn" style="padding: 12px 20px; border-top: 2px solid transparent; margin-top: -1px; color: var(--text-muted); cursor: pointer; position: relative; transition: 0.2s;" onclick="event.stopPropagation(); closeAllDropdowns(); document.getElementById('other-profile-filter-menu').classList.toggle('open');">
-        <i class="ph-bold ph-faders" style="font-size: 28px;"></i>
-        <!-- Filter Dropdown (Fixed Jumping Issue) -->
-        <div id="other-profile-filter-menu" class="post-dropdown-menu" style="top: 55px; right: 0; width: 160px; z-index: 1000;" onclick="event.stopPropagation();">
-            <div class="gc-cf-item active" onclick="applyProfileFilter('all', 'other', this)">All <i class="ph-bold ph-check gc-cf-check"></i></div>
-            <div class="gc-cf-item" onclick="applyProfileFilter('media', 'other', this)">Media <i class="ph-bold ph-check gc-cf-check"></i></div>
-            <div class="gc-cf-item" onclick="applyProfileFilter('gallery', 'other', this)">Gallery <i class="ph-bold ph-check gc-cf-check"></i></div>
-            <div class="gc-cf-item" onclick="applyProfileFilter('status', 'other', this)">Status <i class="ph-bold ph-check gc-cf-check"></i></div>
-        </div>
-    </div>
+<div class="other-profile-content-tabs" id="other-profile-tabs" style="display:flex;justify-content:center;align-items:stretch;gap:0;border-top:1px solid var(--border);margin-top:20px;margin-bottom:10px;">
+    <button type="button" class="op-tab active" data-filter="media" id="other-tab-media" onclick="applyProfileFilter('media','other',this)">Media</button>
+    <button type="button" class="op-tab" data-filter="gallery" id="other-tab-gallery" onclick="applyProfileFilter('gallery','other',this)">Gallery</button>
+    <button type="button" class="op-tab" data-filter="status" id="other-tab-status" onclick="applyProfileFilter('status','other',this)">Status</button>
 </div>
 <div id="other-user-posts-list"></div>
 </div>
@@ -7035,7 +7125,7 @@ Edit Profile-এ পার্টনার সিলেক্ট বাটন
 <div class="single-post-content" id="single-post-container"></div>
 <!-- Fixed comment composer (always visible in single view) -->
 <div id="sp-fixed-compose" class="sp-comment-compose sp-comment-compose-fixed" style="display:none;">
-  <input type="text" id="sp-comment-input" placeholder="Write a comment..." autocomplete="off" onkeypress="if(event.key==='Enter'){event.preventDefault();gcSendSinglePostComment();}">
+  <input type="text" id="sp-comment-input" placeholder="Write a comment..." autocomplete="off" oninput="if(typeof gcUpdateSpCommentSendState==='function') gcUpdateSpCommentSendState();" onkeypress="if(event.key==='Enter'){event.preventDefault(); var b=this.nextElementSibling; if(b && !b.classList.contains('is-ready')) return; gcSendSinglePostComment();}">
   <button type="button" onclick="gcSendSinglePostComment()" aria-label="Send"><i class="ph ph-paper-plane-right"></i></button>
 </div>
 </div>
@@ -7061,13 +7151,13 @@ Edit Profile-এ পার্টনার সিলেক্ট বাটন
 
 <div class="comment-input-bar">
     <!-- 🚀 NEW: Image Upload Button for Comments -->
-    <label for="comment-img-input" style="cursor:pointer; color:var(--accent); padding:4px; display:flex; margin:0;">
+    <label for="comment-img-input" style="cursor:pointer; color:var(--accent);">
         <i class="ph ph-image-square"></i>
     </label>
-    <input type="file" id="comment-img-input" accept="image/*" style="display:none" onchange="previewCommentImage(this)">
+    <input type="file" id="comment-img-input" accept="image/*" style="display:none" onchange="previewCommentImage(this); if(typeof gcUpdateCommentSendState==='function') gcUpdateCommentSendState();">
     
-    <input type="text" id="comment-panel-input" placeholder="Write a comment..." onkeypress="if(event.key==='Enter') sendCommentWithImage()">
-    <button class="chat-send-btn" id="comment-panel-send-btn" onclick="sendCommentWithImage()">
+    <input type="text" id="comment-panel-input" placeholder="Write a comment..." oninput="if(typeof gcUpdateCommentSendState==='function') gcUpdateCommentSendState();" onkeypress="if(event.key==='Enter'){ if(typeof gcUpdateCommentSendState==='function' && !document.getElementById('comment-panel-send-btn').classList.contains('is-ready')) return; sendCommentWithImage(); }">
+    <button class="chat-send-btn" id="comment-panel-send-btn" onclick="sendCommentWithImage()" aria-label="Send">
         <i class="ph ph-paper-plane-right"></i>
     </button>
 </div>
@@ -7128,24 +7218,24 @@ Edit Profile-এ পার্টনার সিলেক্ট বাটন
 </div>
 
 <!-- 📝 Text Input -->
-<input type="text" id="chat-input" placeholder="Message..." autocomplete="off" oninput="if(currentChatId) localStorage.setItem('gochat_draft_' + currentChatId, this.value);" onkeypress="if(event.key==='Enter')sendMsg()" style="min-width: 0; flex: 1;">
+<input type="text" id="chat-input" placeholder="Message..." autocomplete="off" oninput="if(currentChatId) localStorage.setItem('gochat_draft_' + currentChatId, this.value); if(typeof gcUpdateChatSendState==='function') gcUpdateChatSendState();" onkeypress="if(event.key==='Enter'){var b=document.getElementById('text-send-btn'); if(b && !b.classList.contains('is-ready')) return; sendMsg();}" style="min-width: 0; flex: 1;">
 
 <!-- 🚀 Action Buttons Group -->
 <div style="display: flex; align-items: center; gap: 2px; flex-shrink: 0;">
     
     <!-- 🎤 Start Voice Record Button -->
-    <button id="voice-start-btn" onclick="startVoiceRecord()" style="background:none; border:none; cursor:pointer; color:var(--accent); padding:4px; display:flex; outline:none; transition:0.2s;">
+    <button id="voice-start-btn" type="button" onclick="startVoiceRecord()" style="background:none; border:none; cursor:pointer; color:var(--accent); outline:none;">
         <i class="ph ph-microphone"></i>
     </button>
 
     <!-- 🖼️ Image Upload Button -->
-    <label for="chat-img-input" style="cursor:pointer; color:var(--accent); padding:4px; display:flex; margin:0;" id="image-upload-btn">
+    <label for="chat-img-input" id="image-upload-btn" style="cursor:pointer; color:var(--accent);">
         <i class="ph ph-image-square"></i>
     </label>
     <input type="file" id="chat-img-input" accept="image/*" style="display:none;" onchange="sendChatImage(this)">
 
-    <!-- 📤 Send Button -->
-    <button class="chat-send-btn" id="text-send-btn" onclick="sendMsg()" style="margin-left: 4px; width: 40px; height: 40px;">
+    <!-- 📤 Send Button (gray until text) -->
+    <button class="chat-send-btn" id="text-send-btn" type="button" onclick="sendMsg()" style="margin-left: 2px;">
         <i class="ph ph-paper-plane-right"></i>
     </button>
     
@@ -11765,6 +11855,7 @@ function openChat(chatId, otherUid, otherName, otherAvatar){
         // 🚀 NEW: চ্যাট ওপেন হলে সেভ করা ড্রাফট ফিরিয়ে আনা
     const savedDraft = localStorage.getItem('gochat_draft_' + chatId);
     document.getElementById('chat-input').value = savedDraft ? savedDraft : '';
+    if(typeof gcUpdateChatSendState==='function') gcUpdateChatSendState();
 
         // 🚀 Group Security: রিমুভ হলে বা লিভ নিলে সাথে সাথে চ্যাট থেকে বের করে দেবে
     if (otherUid === 'group') {
@@ -12378,7 +12469,8 @@ if(typeof editingMessageId !== 'undefined' && editingMessageId){
 
 inp.value='';
     // 🚀 NEW: মেসেজ সেন্ড হলে ড্রাফট ক্লিয়ার করা
-    if(currentChatId) localStorage.removeItem('gochat_draft_' + currentChatId);    
+    if(currentChatId) localStorage.removeItem('gochat_draft_' + currentChatId);
+    if(typeof gcUpdateChatSendState==='function') gcUpdateChatSendState();
 setTypingStatus(false);
 const msgData={
 uid:currentUser.uid,
@@ -14262,22 +14354,39 @@ async function loadOtherUserPosts(uid){
         });
         if(posts.length===0){list.innerHTML='<div class="empty-feed">No posts yet</div>';return;}
         
-        // গ্রিড জেনারেট করা
+        // গ্রিড জেনারেট করা — Media=video, Gallery=image, Status=text
         let html = '<div class="profile-photo-grid">';
         posts.forEach(p => {
             const imgUrls = p.imgUrls && p.imgUrls.length > 0 ? p.imgUrls : (p.imgUrl ? [p.imgUrl] : []);
+            const isVideoPost = !!(p.videoUrl) || imgUrls.some(function(u){
+                u = String(u || '');
+                return u.indexOf('/video/') !== -1 || /\.(mp4|webm|mov)(\?|$)/i.test(u);
+            });
+            const isImagePost = !isVideoPost && imgUrls.length > 0;
+            const kind = isVideoPost ? 'media' : (isImagePost ? 'gallery' : 'status');
             let media = '';
-            let multiIcon = imgUrls.length > 1 ? `<i class="ph-light ph-dots-three grid-multi-icon"></i>` : '';
-            
-            if(imgUrls.length > 0){
-                media = `<img src="${escapeHTML(imgUrls[0])}">`;
+            let multiIcon = (!isVideoPost && imgUrls.length > 1) ? '<i class="ph-light ph-dots-three grid-multi-icon"></i>' : '';
+            if (isVideoPost) {
+                const thumb = p.videoUrl || imgUrls[0] || '';
+                media = '<div class="grid-post-video-thumb" style="position:relative;width:100%;height:100%;background:#111;display:flex;align-items:center;justify-content:center;">'
+                    + (thumb ? '<img src="' + escapeHTML(thumb) + '" style="width:100%;height:100%;object-fit:cover;">' : '')
+                    + '<i class="ph-fill ph-play-circle" style="position:absolute;font-size:28px;color:#fff;filter:drop-shadow(0 2px 6px rgba(0,0,0,.5));"></i></div>';
+            } else if (isImagePost) {
+                media = '<img src="' + escapeHTML(imgUrls[0]) + '">';
             } else {
-                media = `<div class="grid-post-text">${escapeHTML(p.title || '')}</div>`;
+                media = '<div class="grid-post-text">' + escapeHTML(p.title || '') + '</div>';
             }
-            html += `<div class="grid-post-item" onclick="openSinglePostView('${p.id}')">${media}${multiIcon}</div>`;
+            html += '<div class="grid-post-item" data-post-kind="' + kind + '" onclick="openSinglePostView(\'' + p.id + '\')">' + media + multiIcon + '</div>';
         });
         html += '</div>';
         list.innerHTML = html;
+        // Default tab: Media (videos only) — or last selected
+        try{
+            const f = window.__otherProfileFilter || 'media';
+            if (typeof applyProfileFilter === 'function') {
+                applyProfileFilter(f, 'other', document.getElementById('other-tab-' + f));
+            }
+        }catch(e){}
     }catch(e){list.innerHTML='<div class="empty-feed">Failed to load posts.</div>';}
 }
 
@@ -19906,9 +20015,54 @@ function removeCommentImage() {
     document.getElementById('comment-img-input').value = '';
     document.getElementById('comment-image-preview').style.display = 'none';
     document.getElementById('comment-preview-img').src = '';
+    if(typeof gcUpdateCommentSendState === 'function') gcUpdateCommentSendState();
 }
 
 // কমেন্ট (টেক্সট + ছবি) ডাটাবেসে সেভ করা
+
+// ═══ FEATURE: comments · send-btn-state ═══
+
+// ═══ FEATURE: messages · send-btn-state ═══
+function gcUpdateChatSendState(){
+  try{
+    const input = document.getElementById('chat-input');
+    const btn = document.getElementById('text-send-btn');
+    if(!btn) return;
+    // when recording UI hides text send, skip
+    if(btn.style.display === 'none') return;
+    const hasText = !!(input && input.value.trim().length);
+    if(hasText) btn.classList.add('is-ready');
+    else btn.classList.remove('is-ready');
+  }catch(e){}
+}
+window.gcUpdateChatSendState = gcUpdateChatSendState;
+
+function gcUpdateCommentSendState(){
+  try{
+    const input = document.getElementById('comment-panel-input');
+    const btn = document.getElementById('comment-panel-send-btn');
+    if(!btn) return;
+    const hasText = !!(input && input.value.trim().length);
+    const hasImg = !!(typeof selectedCommentImage !== 'undefined' && selectedCommentImage);
+    if(hasText || hasImg) btn.classList.add('is-ready');
+    else btn.classList.remove('is-ready');
+  }catch(e){}
+}
+window.gcUpdateCommentSendState = gcUpdateCommentSendState;
+
+function gcUpdateSpCommentSendState(){
+  try{
+    const input = document.getElementById('sp-comment-input');
+    const compose = document.getElementById('sp-fixed-compose');
+    const btn = compose ? compose.querySelector('button') : null;
+    if(!btn) return;
+    const hasText = !!(input && input.value.trim().length);
+    if(hasText) btn.classList.add('is-ready');
+    else btn.classList.remove('is-ready');
+  }catch(e){}
+}
+window.gcUpdateSpCommentSendState = gcUpdateSpCommentSendState;
+
 async function sendCommentWithImage() {
     if (!activeCommentPostId || !currentUser) return;
     
@@ -19931,7 +20085,8 @@ async function sendCommentWithImage() {
         } catch(e) {
             showToast("Failed to upload image");
             btnEl.disabled = false;
-            btnEl.innerHTML = '<i class="ph-bold ph-paper-plane-right" style="font-size:22px;"></i>';
+            btnEl.innerHTML = '<i class="ph ph-paper-plane-right"></i>';
+    if(typeof gcUpdateCommentSendState === 'function') gcUpdateCommentSendState();
             return;
         }
     }
@@ -19971,7 +20126,8 @@ awardPoints(docSnap.data().uid, 5);
     }
     
     btnEl.disabled = false;
-    btnEl.innerHTML = '<i class="ph-bold ph-paper-plane-right" style="font-size:22px;"></i>';
+    btnEl.innerHTML = '<i class="ph ph-paper-plane-right"></i>';
+    if(typeof gcUpdateCommentSendState === 'function') gcUpdateCommentSendState();
 }
 // =========================================
 // 📥 EXPORT CHAT OFFLINE (Zero Server Cost)
@@ -20787,48 +20943,84 @@ function applyProfileFilter(filterType, profileType, clickedElement) {
     const allBtn = document.getElementById(profileType + '-filter-all-btn');
     const iconBtn = document.getElementById(profileType + '-filter-icon-btn');
     const menu = document.getElementById(profileType + '-profile-filter-menu');
-    
-    // মেনুর ভেতরের টিক চিহ্ন (active class) রিসেট করা
-    if(menu) menu.querySelectorAll('.gc-cf-item').forEach(el => el.classList.remove('active'));
-    
-    // টপ বর্ডারের কালার চেঞ্জ করার লজিক
-    if (filterType === 'all') {
-        if(allBtn) { allBtn.style.borderTop = '2px solid var(--text)'; allBtn.style.color = 'var(--text)'; }
-        if(iconBtn) { iconBtn.style.borderTop = '2px solid transparent'; iconBtn.style.color = 'var(--text-muted)'; }
-        if(menu) { const firstItem = menu.querySelector('.gc-cf-item:nth-child(1)'); if(firstItem) firstItem.classList.add('active'); }
+
+    // Other profile: horizontal Media / Gallery / Status tabs (no All)
+    if (profileType === 'other') {
+        const tabs = document.querySelectorAll('#other-profile-tabs .op-tab');
+        tabs.forEach(function(t){
+            t.classList.toggle('active', t.getAttribute('data-filter') === filterType);
+        });
+        if (clickedElement && clickedElement.classList && clickedElement.classList.contains('op-tab')) {
+            // already handled via data-filter match
+        }
+        window.__otherProfileFilter = filterType;
     } else {
-        if(allBtn) { allBtn.style.borderTop = '2px solid transparent'; allBtn.style.color = 'var(--text-muted)'; }
-        if(iconBtn) { iconBtn.style.borderTop = '2px solid var(--text)'; iconBtn.style.color = 'var(--text)'; }
-        if(clickedElement) clickedElement.classList.add('active');
+        // My profile: keep grid + dropdown behavior
+        if(menu) menu.querySelectorAll('.gc-cf-item').forEach(el => el.classList.remove('active'));
+        if (filterType === 'all') {
+            if(allBtn) { allBtn.style.borderTop = '2px solid var(--text)'; allBtn.style.color = 'var(--text)'; }
+            if(iconBtn) { iconBtn.style.borderTop = '2px solid transparent'; iconBtn.style.color = 'var(--text-muted)'; }
+            if(menu) { const firstItem = menu.querySelector('.gc-cf-item:nth-child(1)'); if(firstItem) firstItem.classList.add('active'); }
+        } else {
+            if(allBtn) { allBtn.style.borderTop = '2px solid transparent'; allBtn.style.color = 'var(--text-muted)'; }
+            if(iconBtn) { iconBtn.style.borderTop = '2px solid var(--text)'; iconBtn.style.color = 'var(--text)'; }
+            if(clickedElement) clickedElement.classList.add('active');
+        }
+        if(menu) menu.classList.remove('open');
     }
-    
-    if(menu) menu.classList.remove('open');
 
     if (!listContainer) return;
 
-    // 🚀 ম্যাজিক ফিক্স: এখানে '.post-card' যোগ করা হয়েছে, যাতে নিজের প্রোফাইলের বড় পোস্টগুলোও ফিল্টার হয়
     const posts = listContainer.querySelectorAll('.grid-post-card, .grid-post-item, .post-card');
-    
+    let visible = 0;
     posts.forEach(post => {
-        const hasVideo = post.querySelector('video') !== null;
-        const hasImage = post.querySelector('img') !== null;
-        const isTextOnly = !hasVideo && !hasImage;
+        // Prefer data attributes if present; else detect from DOM
+        let kind = post.getAttribute('data-post-kind');
+        if (!kind) {
+            const hasVideo = post.querySelector('video') !== null;
+            // grid may use background-image or img
+            const hasImage = post.querySelector('img') !== null || (post.style && post.style.backgroundImage);
+            const isTextOnly = !hasVideo && !hasImage;
+            if (hasVideo) kind = 'media';
+            else if (hasImage) kind = 'gallery';
+            else kind = 'status';
+        }
 
         let shouldShow = false;
-        
         if (filterType === 'all') {
             shouldShow = true;
-        } else if (filterType === 'media' && hasVideo) {
-            shouldShow = true; // শুধু ভিডিও
-        } else if (filterType === 'gallery' && hasImage && !hasVideo) {
-            shouldShow = true; // শুধু ছবি
-        } else if (filterType === 'status' && isTextOnly) {
-            shouldShow = true; // শুধু স্ট্যাটাস
+        } else if (filterType === 'media') {
+            shouldShow = kind === 'media';
+        } else if (filterType === 'gallery') {
+            shouldShow = kind === 'gallery';
+        } else if (filterType === 'status') {
+            shouldShow = kind === 'status';
         }
 
         post.style.display = shouldShow ? '' : 'none';
+        if (shouldShow) visible++;
     });
+
+    // Empty state for other profile tabs
+    if (profileType === 'other') {
+        let empty = listContainer.querySelector('.op-filter-empty');
+        if (visible === 0 && posts.length > 0) {
+            if (!empty) {
+                empty = document.createElement('div');
+                empty.className = 'empty-feed op-filter-empty';
+                empty.style.padding = '28px 12px';
+                listContainer.appendChild(empty);
+            }
+            const labels = { media: 'videos', gallery: 'photos', status: 'status posts' };
+            empty.textContent = 'No ' + (labels[filterType] || 'posts') + ' yet';
+            empty.style.display = 'block';
+        } else if (empty) {
+            empty.style.display = 'none';
+        }
+    }
 }
+window.applyProfileFilter = applyProfileFilter;
+
 // ==========================================
 // 🚀 NOTIFICATIONS FILTER LOGIC 
 // ==========================================
