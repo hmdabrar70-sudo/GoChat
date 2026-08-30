@@ -2152,14 +2152,24 @@ animation:menuSlide 0.2s ease;
 .msg-item.pinned{border-left:3px solid var(--accent);}
 .msg-item.muted{opacity:0.7;}
 .image-zoom-modal{
-display:none;position:fixed;inset:0;
-background:rgba(0,0,0,0.95);
+display:flex;position:fixed;inset:0;
+background:rgba(0,0,0,0.96);
 z-index:10000;
 align-items:center;justify-content:center;
 flex-direction:column;
+opacity:0;visibility:hidden;pointer-events:none;
+transition:opacity .32s cubic-bezier(.22,1,.36,1), visibility .32s cubic-bezier(.22,1,.36,1);
 }
-.image-zoom-modal.open{display:flex;}
-.image-zoom-modal img{max-width:95%;max-height:90vh;object-fit:contain;}
+.image-zoom-modal.open{
+opacity:1;visibility:visible;pointer-events:auto;
+}
+.image-zoom-modal img#zoom-image{
+max-width:95%;max-height:90vh;object-fit:contain;
+transform:scale(.92);opacity:0;
+transition:transform .38s cubic-bezier(.22,1,.36,1), opacity .32s cubic-bezier(.22,1,.36,1);
+}
+.image-zoom-modal.open img#zoom-image{transform:scale(1);opacity:1;}
+.image-zoom-modal.closing img#zoom-image{transform:scale(.94);opacity:0;}
 .image-zoom-close{
 position:absolute;top:20px;right:20px;
 background:rgba(255,255,255,0.15);
@@ -7436,13 +7446,13 @@ Edit Profile-এ পার্টনার সিলেক্ট বাটন
     <!-- 🚀 Top Right Actions (Smaller Size) -->
     <div style="position:absolute; top:20px; right:20px; display:flex; gap:10px; z-index:10005;">
         <div id="zoom-menu-wrap" style="position:relative;">
-            <button class="image-zoom-close" style="position:static; width:34px; height:34px; background:rgba(0,0,0,0.5);" onclick="event.stopPropagation(); document.getElementById('zoom-menu').classList.toggle('open')">
-                <i class="ph ph-dots-three"></i>
+            <button class="image-zoom-close" style="position:static; width:34px; height:34px; background:rgba(0,0,0,0.5);" onclick="event.stopPropagation(); openZoomActionSheet(event)">
+                <i class="ph-bold ph-dots-three"></i>
             </button>
-            <div id="zoom-menu" class="post-dropdown-menu" style="top:44px; right:0; width:170px; position:absolute;" onclick="event.stopPropagation();">
-                <div class="chat-dropdown-item" onclick="downloadZoomedImage(event)" style="padding: 12px 14px;">
-                    <i class="ph ph-download-simple"></i> Save to device
-                </div>
+            <!-- hidden source items — opened via Threads-style gc-sheet -->
+            <div id="zoom-menu" class="post-dropdown-menu" style="display:none !important;" aria-hidden="true">
+                <div class="chat-dropdown-item" onclick="shareZoomedImage(event)"><i class="ph-bold ph-export"></i> Share via...</div>
+                <div class="chat-dropdown-item" onclick="downloadZoomedImage(event)"><i class="ph-bold ph-download-simple"></i> Save image</div>
             </div>
         </div>
         <button class="image-zoom-close" style="position:static; width:34px; height:34px; background:rgba(0,0,0,0.5);" onclick="closeImageZoom()">
@@ -14226,7 +14236,10 @@ function openImageZoom(url, postId = null, isProfilePic = false) {
     const zoomMenu = document.getElementById('zoom-menu');
     if (zoomMenu) zoomMenu.classList.remove('open');
 
-    document.getElementById('image-zoom-modal').classList.add('open');
+    const _zm = document.getElementById('image-zoom-modal');
+    _zm.classList.remove('closing');
+    void _zm.offsetWidth;
+    _zm.classList.add('open');
     renderZoomImage();
 }
 
@@ -14351,18 +14364,23 @@ zModal.addEventListener('touchend', e => {
 }, {passive: true});
 
 function closeImageZoom() {
-    document.getElementById('image-zoom-modal').classList.remove('open');
-    if (zoomUnsub) { zoomUnsub(); zoomUnsub = null; }
+    const zModal = document.getElementById('image-zoom-modal');
+    if(!zModal || !zModal.classList.contains('open')) return;
+    try{ gcCloseSheet(); }catch(e){}
+    zModal.classList.add('closing');
+    zModal.classList.remove('open');
     const zImg = document.getElementById('zoom-image');
-    zImg.src = '';
-    zImg.style.transform = 'translateX(0) scale(1)'; 
+    setTimeout(function(){
+      zModal.classList.remove('closing');
+      if (zoomUnsub) { try{ zoomUnsub(); }catch(e){} zoomUnsub = null; }
+      if(zImg){ zImg.src = ''; zImg.style.transform = ''; zImg.style.opacity = ''; }
+    }, 320);
 }
 
 // নতুন ফাংশন: ছবি ডাউনলোড করার জন্য (APK এবং Web উভয়ের জন্য ফিক্সড)
 async function downloadZoomedImage(event) {
     if(event) event.stopPropagation();
-    
-    // মেনু হাইড করা
+    try{ gcCloseSheet(); }catch(e){}
     const menu = document.getElementById('zoom-menu');
     if(menu) menu.classList.remove('open');
     
@@ -20907,6 +20925,73 @@ closeAllDropdowns();
 gcOpenSheetFromMenu(document.getElementById('profile-menu'));
 }
 document.addEventListener('keydown', function(e){ if(e.key === 'Escape') gcCloseSheet(); });
+
+// ═══ FEATURE: zoom menu uses same Threads sheet as post 3-dot ═══
+function openZoomActionSheet(e){
+  if(e) e.stopPropagation();
+  const menu = document.getElementById('zoom-menu');
+  if(!menu) return;
+  // ensure sheet appears ABOVE image zoom modal
+  let ov = document.getElementById('gc-sheet-overlay');
+  if(!ov){
+    // force create via empty open then rebuild
+  }
+  gcOpenSheetFromMenu(menu);
+  ov = document.getElementById('gc-sheet-overlay');
+  if(ov){
+    ov.style.zIndex = '1000300';
+    ov.dataset.gcFromZoom = '1';
+  }
+}
+window.openZoomActionSheet = openZoomActionSheet;
+
+async function shareZoomedImage(event){
+  if(event) event.stopPropagation();
+  try{ gcCloseSheet(); }catch(e){}
+  const imgUrl = (document.getElementById('zoom-image') || {}).src || '';
+  if(!imgUrl){ showToast('Nothing to share'); return; }
+  try{
+    if(navigator.share){
+      try{
+        const res = await fetch(imgUrl);
+        const blob = await res.blob();
+        const file = new File([blob], 'GoChat_Photo.jpg', { type: blob.type || 'image/jpeg' });
+        if(navigator.canShare && navigator.canShare({ files: [file] })){
+          await navigator.share({ files: [file], title: 'GoChat' });
+          return;
+        }
+      }catch(err){}
+      await navigator.share({ url: imgUrl, title: 'GoChat' });
+      return;
+    }
+  }catch(err){
+    if(err && err.name === 'AbortError') return;
+  }
+  try{
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      await navigator.clipboard.writeText(imgUrl);
+      showToast('Link copied');
+      return;
+    }
+  }catch(e){}
+  showToast('Share not supported on this device');
+}
+window.shareZoomedImage = shareZoomedImage;
+
+// reset sheet z-index when closed after zoom
+(function(){
+  const _close = typeof gcCloseSheet === 'function' ? gcCloseSheet : null;
+  if(!_close) return;
+  window.gcCloseSheet = function(){
+    const ov = document.getElementById('gc-sheet-overlay');
+    if(ov && ov.dataset.gcFromZoom){
+      delete ov.dataset.gcFromZoom;
+      ov.style.zIndex = '';
+    }
+    _close();
+  };
+})();
+
 
 
 // ═══════════════════════════════════════════════════════
