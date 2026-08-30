@@ -63,6 +63,48 @@ body.light-mode{
 }
 html,body{overscroll-behavior:none;}
 
+/* ═══ FEATURE: feed · long text see-more (See more) ═══ */
+.gc-post-caption{
+  margin-bottom:12px;
+  color:var(--text);
+  font-weight:600;
+  font-size:16px;
+  line-height:1.5;
+}
+.gc-post-caption-text{
+  white-space:pre-wrap;
+  word-break:break-word;
+  overflow-wrap:anywhere;
+}
+.gc-post-caption-text.is-clamped{
+  display:-webkit-box;
+  -webkit-box-orient:vertical;
+  -webkit-line-clamp:10;
+  line-clamp:10;
+  overflow:hidden;
+}
+.gc-see-more-btn{
+  display:inline-block;
+  margin-top:4px;
+  padding:0;
+  border:none;
+  background:none;
+  color:var(--text-muted);
+  font-weight:700;
+  font-size:14px;
+  font-family:inherit;
+  cursor:pointer;
+}
+.gc-see-more-btn:active{ opacity:.7; }
+.colored-post-bg .gc-post-caption-text{
+  color:inherit;
+}
+.colored-post-bg .gc-see-more-btn{
+  color:rgba(255,255,255,0.85);
+  text-shadow:0 1px 2px rgba(0,0,0,0.25);
+}
+
+
 /* ═══ FEATURE: stories · media preview before upload ═══ */
 .gc-story-preview-mask{
   display:none; position:fixed; inset:0; z-index:100080;
@@ -3551,7 +3593,7 @@ display:block;
 ========================================= */
 .gc-vplayer{position:relative;width:100%;border-radius:18px;overflow:hidden;background:#000;}
 .gc-vplayer video{width:100%;display:block;}
-.gc-vp-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:64px;height:64px;border-radius:50%;background:rgba(255,255,255,.92);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .25s;box-shadow:0 8px 30px rgba(0,0,0,.35);z-index:2;}
+.gc-vp-center{display:none !important;}
 .gc-vp-center i{font-size:28px;color:#1a1a2e;margin-left:3px;}
 .gc-vp-center.hide{opacity:0;pointer-events:none;transform:translate(-50%,-50%) scale(.8);}
 .gc-vp-bar{position:absolute;left:0;right:0;bottom:0;display:flex;align-items:center;gap:8px;padding:10px 12px;background:linear-gradient(transparent, rgba(0,0,0,.78));z-index:2;}
@@ -5826,6 +5868,7 @@ transition:background .2s;
 .gc-vp-btn i{font-size:17px;}
 .gc-vp-btn:active{transform:scale(.9);}
 .gc-vplayer.gc-controls-hidden .gc-vp-bar{opacity:0;visibility:hidden;pointer-events:none;}
+.gc-vp-full,.gc-vp-dl,.gc-vp-center{display:none !important;}
 .gc-vplayer:fullscreen{border-radius:0;background:#000;}
 .gc-vplayer:fullscreen video{width:100%;height:100%;object-fit:contain;}
 
@@ -14361,6 +14404,30 @@ async function downloadZoomedImage(event) {
 }
 
 
+
+// ═══ FEATURE: feed · see-more / see-less ═══
+function gcExpandPostCaption(btn){
+  try{
+    if(!btn) return;
+    const wrap = btn.closest('.gc-post-caption') || btn.parentElement;
+    if(!wrap) return;
+    const textEl = wrap.querySelector('.gc-post-caption-text');
+    if(!textEl) return;
+    const expanded = !textEl.classList.contains('is-clamped');
+    if(expanded){
+      // currently full → collapse
+      textEl.classList.add('is-clamped');
+      btn.textContent = 'See more';
+    } else {
+      // clamped → expand
+      textEl.classList.remove('is-clamped');
+      btn.textContent = 'See less';
+    }
+  }catch(e){}
+}
+window.gcExpandPostCaption = gcExpandPostCaption;
+
+
 function buildPostCardHTML(p){
 const pid=p.id;
 const uniqueDropId = pid + '_' + Math.random().toString(36).substr(2, 5);
@@ -14507,13 +14574,19 @@ ${p.title ? (() => {
             }
         });
     }
-    
+    const raw = String(p.title || '');
+    const lineCount = raw.split(/\r?\n/).length;
+    const needsClamp = lineCount > 10 || raw.length > 520;
+    const clampClass = needsClamp ? ' is-clamped' : '';
+    const seeMore = needsClamp
+      ? `<button type="button" class="gc-see-more-btn" onclick="event.stopPropagation(); gcExpandPostCaption(this)">See more</button>`
+      : '';
+    const body = `<div class="gc-post-caption-text${clampClass}">${processedTitle}</div>${seeMore}`;
     const hasImages = (p.imgUrls && p.imgUrls.length > 0) || p.imgUrl;
     if (p.bgColor && p.bgColor !== 'default' && !hasImages) {
-        return `<div class="colored-post-bg" style="background: ${escapeHTML(p.bgColor)};">${processedTitle}</div>`;
-    } else {
-        return `<div style="font-weight:600;font-size:16px;margin-bottom:12px;color:var(--text);white-space:pre-wrap;line-height:1.5;">${processedTitle}</div>`;
+        return `<div class="colored-post-bg" style="background: ${escapeHTML(p.bgColor)};"><div class="gc-post-caption" style="margin-bottom:0;color:#fff;">${body}</div></div>`;
     }
+    return `<div class="gc-post-caption">${body}</div>`;
 })() : ''}
 ${mediaHtml}
 ${generatePollHTML(p)}
@@ -22864,7 +22937,7 @@ if(v.muted) v.setAttribute('muted', ''); else v.removeAttribute('muted');
 v.setAttribute('playsinline', ''); v.setAttribute('webkit-playsinline', '');
 wrap.appendChild(v);
 var muteIcon = v.muted ? 'ph-speaker-slash' : 'ph-speaker-high';
-wrap.insertAdjacentHTML('beforeend', '<div class="gc-vp-center"><i class="ph-fill ph-play"></i></div><div class="gc-vp-bar"><span class="gc-vp-cur">0:00</span><div class="gc-vp-track"><div class="gc-vp-fill"></div></div><span class="gc-vp-dur">0:00</span><button class="gc-vp-btn gc-vp-mute" type="button"><i class="ph-fill ' + muteIcon + '"></i></button><button class="gc-vp-btn gc-vp-full" type="button"><i class="ph-bold ph-corners-out"></i></button><button class="gc-vp-btn gc-vp-dl" type="button"><i class="ph-bold ph-download-simple"></i></button></div>');
+wrap.insertAdjacentHTML('beforeend', '<div class="gc-vp-bar"><span class="gc-vp-cur">0:00</span><div class="gc-vp-track"><div class="gc-vp-fill"></div></div><span class="gc-vp-dur">0:00</span><button class="gc-vp-btn gc-vp-mute" type="button"><i class="ph-fill ' + muteIcon + '"></i></button></div>');
 img.replaceWith(wrap);
 gcBindVPlayer(wrap);
 if(window.gcVpObserver) window.gcVpObserver.observe(wrap);
@@ -22894,18 +22967,17 @@ function gcBindVPlayer(wrap){
 const v = wrap.querySelector('video');
 if(!v || wrap.dataset.gcBound) return;
 wrap.dataset.gcBound = '1';
-// apply global sound preference
 v.muted = !!window.gcGlobalMuted;
-const center = wrap.querySelector('.gc-vp-center');
 const cur = wrap.querySelector('.gc-vp-cur');
 const dur = wrap.querySelector('.gc-vp-dur');
 const track = wrap.querySelector('.gc-vp-track');
 const fill = wrap.querySelector('.gc-vp-fill');
 const muteBtn = wrap.querySelector('.gc-vp-mute');
-const fullBtn = wrap.querySelector('.gc-vp-full');
-const dlBtn = wrap.querySelector('.gc-vp-dl');
 function fmt(s){ s = Math.max(0, Math.round(s || 0)); return Math.floor(s / 60) + ':' + ('0' + (s % 60)).slice(-2); }
-function syncMute(){ muteBtn.innerHTML = v.muted ? '<i class="ph-fill ph-speaker-slash"></i>' : '<i class="ph-fill ph-speaker-high"></i>'; }
+function syncMute(){
+  if(!muteBtn) return;
+  muteBtn.innerHTML = v.muted ? '<i class="ph-fill ph-speaker-slash"></i>' : '<i class="ph-fill ph-speaker-high"></i>';
+}
 syncMute();
 let gcControlsTimer = null;
 function showControls(){
@@ -22919,34 +22991,30 @@ function hideControls(){
 if(gcControlsTimer) clearTimeout(gcControlsTimer);
 wrap.classList.add('gc-controls-hidden');
 }
-// Play only via center play button
 function playVideo(){
 showControls();
 v.gcUserPaused = false;
-// keep current mute state (default muted)
 const p = v.play();
 if(p) p.catch(function(){ v.muted = true; syncMute(); v.play().catch(function(){}); });
 }
-// Pause only (one click on video body)
 function pauseVideo(){
 v.gcUserPaused = true;
 v.pause();
 showControls();
 }
-// One-tap pause is delayed so double-tap can like without stopping the video
 let gcTapTimer = null;
 function gcCancelTapPause(){
 if(gcTapTimer){ clearTimeout(gcTapTimer); gcTapTimer = null; }
 }
-function gcScheduleTapPause(){
+function gcScheduleTapToggle(){
 gcCancelTapPause();
 gcTapTimer = setTimeout(function(){
 gcTapTimer = null;
-if(!v.paused) pauseVideo();
+if(v.paused) playVideo();
+else pauseVideo();
 }, 280);
 }
 function gcLikeFromVideo(){
-// Find post id from surrounding card / media wrap
 let pid = null;
 const mediaWrap = wrap.closest('.post-media-wrap');
 if(mediaWrap){
@@ -22963,89 +23031,53 @@ if(m) pid = m[1];
 }
 }
 if(!pid) return;
-// Heart animation if present
-const host = mediaWrap || wrap;
-let heart = host.querySelector('.double-tap-heart');
-if(heart){
-heart.classList.remove('show');
-void heart.offsetWidth;
-heart.classList.add('show');
+try{
+if(typeof handleDoubleTap === 'function') handleDoubleTap(pid);
+else if(typeof toggleLike === 'function') toggleLike(pid);
+}catch(e){}
 }
-if(typeof toggleLike === 'function' && currentUser){
-const ref = db.collection('posts').doc(pid);
-ref.get().then(function(doc){
-if(doc.exists){
-const likedBy = doc.data().likedBy || [];
-if(!likedBy.includes(currentUser.uid)) toggleLike(pid);
-}
-}).catch(function(){});
-}
-}
-// Video surface: single tap → pause (delayed); double tap → like only, keep playing
 v.addEventListener('click', function(e){
 e.stopPropagation();
-if(v.paused){ showControls(); return; }
-gcScheduleTapPause();
+gcScheduleTapToggle();
 });
 v.addEventListener('dblclick', function(e){
 e.preventDefault();
 e.stopPropagation();
-gcCancelTapPause(); // do NOT pause
-// ensure still playing
-if(v.paused){ /* user had paused earlier — leave as is */ }
-else { /* keep playing */ }
+gcCancelTapPause();
 gcLikeFromVideo();
 });
-// Also catch dblclick on the player chrome (not controls buttons)
 wrap.addEventListener('dblclick', function(e){
-if(e.target.closest('.gc-vp-btn, .gc-vp-track, .gc-vp-center')) return;
+if(e.target.closest('.gc-vp-btn, .gc-vp-track')) return;
 e.preventDefault();
 e.stopPropagation();
 gcCancelTapPause();
 gcLikeFromVideo();
 });
-// Center play/pause button (immediate, not delayed)
-center.addEventListener('click', function(e){
-e.stopPropagation();
-gcCancelTapPause();
-if(v.paused){ playVideo(); }
-else { pauseVideo(); }
+v.addEventListener('play', function(){ hideControls(); });
+v.addEventListener('pause', function(){ showControls(); });
+v.addEventListener('ended', function(){ v.gcUserPaused = false; showControls(); });
+v.addEventListener('loadedmetadata', function(){ if(dur) dur.textContent = fmt(v.duration); });
+v.addEventListener('timeupdate', function(){
+  if(cur) cur.textContent = fmt(v.currentTime);
+  if(fill && v.duration) fill.style.width = (v.currentTime / v.duration * 100) + '%';
 });
-v.addEventListener('play', function(){ center.classList.add('hide'); hideControls(); });
-v.addEventListener('pause', function(){ center.classList.remove('hide'); showControls(); });
-v.addEventListener('ended', function(){ center.classList.remove('hide'); v.gcUserPaused = false; showControls(); });
-v.addEventListener('loadedmetadata', function(){ dur.textContent = fmt(v.duration); });
-v.addEventListener('timeupdate', function(){ cur.textContent = fmt(v.currentTime); if(v.duration) fill.style.width = (v.currentTime / v.duration * 100) + '%'; });
-track.addEventListener('click', function(e){ e.stopPropagation(); showControls(); const r = track.getBoundingClientRect(); const p = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)); if(v.duration) v.currentTime = p * v.duration; });
+if(track){
+track.addEventListener('click', function(e){
+  e.stopPropagation();
+  showControls();
+  const r = track.getBoundingClientRect();
+  const p = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width));
+  if(v.duration) v.currentTime = p * v.duration;
+});
+}
+if(muteBtn){
 muteBtn.addEventListener('click', function(e){
 e.stopPropagation();
 showControls();
-// Toggle GLOBAL mute — one unmute turns sound on for all feed videos
 window.gcGlobalMuted = !window.gcGlobalMuted;
 gcApplyGlobalMuteToAll();
 });
-function syncFull(){ fullBtn.innerHTML = document.fullscreenElement ? '<i class="ph-bold ph-corners-in"></i>' : '<i class="ph-bold ph-corners-out"></i>'; }
-fullBtn.addEventListener('click', function(e){
-e.stopPropagation();
-showControls();
-try{
-if(document.fullscreenElement){ document.exitFullscreen(); }
-else if(wrap.requestFullscreen){ wrap.requestFullscreen(); }
-else if(v.webkitEnterFullscreen){ v.webkitEnterFullscreen(); }
-}catch(err){}
-syncFull();
-});
-document.addEventListener('fullscreenchange', syncFull);
-dlBtn.addEventListener('click', function(e){
-e.stopPropagation();
-showControls();
-let url = v.src || '';
-if(url.indexOf('cloudinary.com') !== -1 && url.indexOf('fl_attachment') === -1){ url = url.replace('/upload/', '/upload/fl_attachment:GoChat_Video/'); }
-const a = document.createElement('a');
-a.href = url; a.download = 'GoChat_Video.mp4'; a.target = '_blank'; a.rel = 'noopener';
-document.body.appendChild(a); a.click(); a.remove();
-showToast('⬇️ Download started…');
-});
+}
 wrap.addEventListener('click', function(e){ e.stopPropagation(); });
 }
 // অটো-প্লে: একসাথে একটাই চলে; নতুন ইন-ভিউ → পুরনো পজ, নতুন প্লে (muted)
