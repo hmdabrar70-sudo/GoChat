@@ -1540,6 +1540,53 @@ font-weight:500;
 font-size:48px;margin-bottom:12px;
 opacity:0.3;
 }
+/* ═══ Profile tab empty states (Media / Gallery / Status) ═══ */
+.gc-profile-empty{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  padding:48px 20px 56px;
+  width:100%;
+  box-sizing:border-box;
+  grid-column: 1 / -1;
+}
+.gc-profile-empty-icon{
+  width:88px;
+  height:88px;
+  border-radius:50%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  margin-bottom:16px;
+  background: linear-gradient(145deg, rgba(124,92,255,0.12), rgba(124,92,255,0.04));
+  border: 1px solid rgba(124,92,255,0.14);
+  box-shadow: 0 8px 24px rgba(124,92,255,0.08);
+}
+.gc-profile-empty-icon i{
+  font-size:40px;
+  color: var(--accent);
+  opacity: 0.9;
+}
+body.light-mode .gc-profile-empty-icon{
+  background: linear-gradient(145deg, rgba(124,92,255,0.10), rgba(124,92,255,0.03));
+  border-color: rgba(124,92,255,0.12);
+}
+.gc-profile-empty-title{
+  font-size:16px;
+  font-weight:700;
+  color: var(--text);
+  letter-spacing: -0.01em;
+  margin-bottom:6px;
+}
+.gc-profile-empty-sub{
+  font-size:13px;
+  font-weight:500;
+  color: var(--text-muted);
+  max-width:240px;
+  line-height:1.45;
+}
 /* প্রোফাইলের উপরের অংশ */
 .profile-header {
     background: var(--bg); /* unified with page — no two-tone in dark mode */
@@ -1549,6 +1596,212 @@ opacity:0.3;
     display: flex;
     flex-direction: column;
     gap: 14px;
+    /* overflow visible so mutual-friends strip / buttons are not clipped.
+       Cover image is clipped by .gc-cover-wrap instead. */
+    overflow: visible;
+}
+
+/* ═══ FEATURE: profile · cover photo (mockup style) ═══ */
+.gc-cover-wrap{
+  position:absolute;
+  top:0; left:0; right:0;
+  height:200px;
+  z-index:0;
+  pointer-events:none;
+  overflow:hidden;
+}
+.gc-cover-img{
+  position:absolute; inset:0;
+  background-size:cover;
+  background-position:center center;
+  background-repeat:no-repeat;
+  background-color:transparent;
+}
+/* Soft fade — bottom of cover melts into page bg (no hard edge) */
+.gc-cover-fade{
+  position:absolute;
+  left:0; right:0; bottom:0;
+  height:58%;
+  pointer-events:none;
+}
+body.light-mode .gc-cover-fade{
+  background:linear-gradient(to bottom,
+    rgba(255,255,255,0) 0%,
+    rgba(255,255,255,0.15) 25%,
+    rgba(255,255,255,0.55) 55%,
+    rgba(255,255,255,0.92) 82%,
+    var(--bg) 100%);
+}
+body:not(.light-mode) .gc-cover-fade{
+  background:linear-gradient(to bottom,
+    rgba(10,10,15,0) 0%,
+    rgba(10,10,15,0.2) 25%,
+    rgba(10,10,15,0.55) 55%,
+    rgba(10,10,15,0.92) 82%,
+    var(--bg) 100%);
+}
+
+/* ═══ COVER UX · OPTION A — Gradient Overlay Top Bars ═══
+   When a profile has a cover photo, the navigation chrome sits directly
+   over the cover instead of appearing as a separate white/solid strip.
+   This is intentionally limited to the profile screens.
+*/
+body.gc-own-cover-topbar #app-screen > .topbar{
+  position:absolute !important;
+  top:0; left:0; right:0;
+  width:100%;
+  background:linear-gradient(to bottom,
+    rgba(10,10,15,.62) 0%,
+    rgba(10,10,15,.34) 48%,
+    rgba(10,10,15,0) 100%) !important;
+  border-bottom:none !important;
+  color:#fff !important;
+  box-shadow:none !important;
+}
+body.gc-own-cover-topbar #app-screen > .topbar .topbar-btn,
+body.gc-own-cover-topbar #app-screen > .topbar .topbar-btn i{
+  color:#fff !important;
+  -webkit-text-fill-color:#fff !important;
+  text-shadow:0 1px 4px rgba(0,0,0,.35);
+}
+
+body.gc-other-cover-topbar #page-other-profile > .chat-topbar{
+  position:absolute !important;
+  top:0; left:0; right:0;
+  width:100%;
+  background:linear-gradient(to bottom,
+    rgba(10,10,15,.62) 0%,
+    rgba(10,10,15,.34) 48%,
+    rgba(10,10,15,0) 100%) !important;
+  border-bottom:none !important;
+  color:#fff !important;
+  box-shadow:none !important;
+}
+body.gc-other-cover-topbar #page-other-profile > .chat-topbar .chat-back,
+body.gc-other-cover-topbar #page-other-profile > .chat-topbar .chat-name,
+body.gc-other-cover-topbar #page-other-profile > .chat-topbar i{
+  color:#fff !important;
+  -webkit-text-fill-color:#fff !important;
+  text-shadow:0 1px 4px rgba(0,0,0,.35);
+}
+/* Pill button: camera + "Add/Edit Cover" (sibling of cover wrap) */
+.gc-cover-edit-btn{
+  position:absolute;
+  z-index:5;
+  height:34px;
+  padding:0 14px;
+  border-radius:20px;
+  border:none;
+  background:rgba(30,30,35,.55);
+  color:#fff;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+  cursor:pointer;
+  pointer-events:auto;
+  backdrop-filter:blur(10px);
+  -webkit-backdrop-filter:blur(10px);
+  box-shadow:0 2px 12px rgba(0,0,0,.22);
+  font-size:13px;
+  font-weight:700;
+  font-family:inherit;
+  letter-spacing:0.01em;
+  white-space:nowrap;
+}
+.gc-cover-edit-btn i{ font-size:15px; }
+.gc-cover-edit-btn:active{ transform:scale(.96); opacity:.9; }
+/* Show only on own profile header */
+#my-profile-header{
+  position:relative;
+}
+#my-profile-header .gc-cover-edit-btn{
+  display:inline-flex;
+}
+/* With cover: on the cover image, upper-right (above avatar/stats — not overlapping Posts) */
+#my-profile-header.gc-has-cover .gc-cover-edit-btn{
+  top: 112px;
+  right: 16px;
+  background: rgba(30,30,35,.58);
+}
+/* No cover yet: compact header, top-right */
+#my-profile-header:not(.gc-has-cover) .gc-cover-edit-btn{
+  top: 10px;
+  right: 12px;
+  background: rgba(30,30,35,.72);
+  color: #fff;
+  box-shadow: 0 2px 10px rgba(0,0,0,.18);
+}
+/* Keep profile content above cover (button stays z-index 5) */
+.profile-header > *:not(.gc-cover-wrap):not(.gc-cover-edit-btn){
+  position:relative;
+  z-index:1;
+}
+/* Cover present: room for banner + avatar overlap (Instagram-style) */
+.profile-header.gc-has-cover{
+  padding-top: 0;
+  padding-left: 16px;
+  padding-right: 16px;
+}
+.profile-header.gc-has-cover .profile-main-row{
+  margin-top: 148px; /* sits on lower third of cover → avatar overlaps */
+  align-items: flex-end;
+  gap: 14px;
+}
+.profile-header.gc-has-cover .profile-avatar{
+  width: 96px;
+  height: 96px;
+  border: 4px solid var(--bg);
+  box-shadow: 0 2px 14px rgba(0,0,0,.16);
+}
+.profile-header.gc-has-cover .profile-stats-row{
+  padding-bottom: 6px;
+  /* stats readable on fade zone */
+}
+/* No cover: keep original compact header (own profile) — button is outside wrap */
+.profile-header:not(.gc-has-cover) .gc-cover-wrap{
+  height: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* ═══ COVER · other profile ═══
+   Only expand cover zone when user actually has a cover (or brief loading).
+   Avoids huge empty gap + broken mutual-friends layout when no coverPhoto. */
+#other-profile-header.gc-has-cover,
+#other-profile-header.gc-cover-loading{
+  padding-top: 0;
+  padding-left: 16px;
+  padding-right: 16px;
+}
+#other-profile-header.gc-has-cover .gc-cover-wrap,
+#other-profile-header.gc-cover-loading .gc-cover-wrap{
+  height: 200px;
+  opacity: 1;
+}
+#other-profile-header.gc-has-cover .profile-main-row,
+#other-profile-header.gc-cover-loading .profile-main-row{
+  margin-top: 148px;
+  align-items: flex-end;
+  gap: 14px;
+}
+#other-profile-header.gc-has-cover .profile-avatar,
+#other-profile-header.gc-cover-loading .profile-avatar{
+  width: 96px;
+  height: 96px;
+  border: 4px solid var(--bg);
+  box-shadow: 0 2px 14px rgba(0,0,0,.16);
+}
+#other-profile-header.gc-has-cover .profile-stats-row,
+#other-profile-header.gc-cover-loading .profile-stats-row{
+  padding-bottom: 6px;
+}
+#other-profile-header.gc-cover-loading:not(.gc-has-cover) .gc-cover-img{
+  background-image: none !important;
+  background: linear-gradient(180deg, var(--surface-2) 0%, var(--bg) 100%);
+}
+#other-profile-header .gc-cover-img{
+  transition: opacity 0.28s ease;
 }
 
 /* প্রোফাইল ফিল্টার মেনুকে হেডারের সাথে জুড়ে দেওয়ার ম্যাজিক কোড */
@@ -6795,7 +7048,17 @@ Edit Profile-এ পার্টনার সিলেক্ট বাটন
 </div>
 
 <div class="page" id="page-profile">
-<div class="profile-header">
+<div class="profile-header" id="my-profile-header">
+<!-- 🚀 Cover photo (own profile · test) -->
+<div class="gc-cover-wrap" id="my-cover-wrap">
+  <div class="gc-cover-img" id="my-cover-img"></div>
+  <div class="gc-cover-fade"></div>
+</div>
+<!-- Cover button OUTSIDE wrap so it stays visible even when cover height is 0 -->
+<button type="button" class="gc-cover-edit-btn" id="my-cover-edit-btn" onclick="document.getElementById('cover-input').click()" title="Add Cover" aria-label="Add Cover">
+  <i class="ph-bold ph-camera"></i><span>Add Cover</span>
+</button>
+<input type="file" id="cover-input" accept="image/*" style="display:none" onchange="gcUploadCoverPhoto(this)">
 
 <div class="profile-main-row">
 <div class="profile-avatar-wrap">
@@ -6887,7 +7150,12 @@ Edit Profile-এ পার্টনার সিলেক্ট বাটন
         </div>
         </div>
     </div>
-    <div class="profile-header">
+    <div class="profile-header" id="other-profile-header">
+        <!-- 🚀 Cover photo (other profile · view only) -->
+        <div class="gc-cover-wrap" id="other-cover-wrap">
+          <div class="gc-cover-img" id="other-cover-img"></div>
+          <div class="gc-cover-fade"></div>
+        </div>
         <div class="profile-main-row">
             <div class="profile-avatar-wrap">
                 <div class="profile-avatar" id="other-profile-avatar">?</div>
@@ -9916,6 +10184,9 @@ function showPage(page) {
     const nEl = document.getElementById('nav-' + page);
     if(nEl) nEl.classList.add('active');
 
+    // Sync the cover-photo gradient top-bar mode after navigation.
+    if (typeof gcSyncCoverTopbarMode === 'function') gcSyncCoverTopbarMode();
+
     // 🚀 Topbar Dynamic Logic (লোগো ও নোটিফিকেশন হাইড/শো করার ম্যাজিক)
     const topbarLogo = document.querySelector('.topbar-logo');
     document.body.classList.remove('messages-mode', 'notifications-mode', 'home-sky-mode');
@@ -11913,6 +12184,25 @@ async function viewUserProfile(uid){
             if(detailsWrap) detailsWrap.style.display = 'none';
             const chev = document.getElementById('other-pi-chevron');
             if(chev){ chev.classList.remove('ph-caret-up'); chev.classList.add('ph-caret-down'); }
+            // ── COVER: avoid wrong image flash + layout jump ──
+            try {
+              const oHeader = document.getElementById('other-profile-header');
+              let earlyCover = '';
+              if (typeof allUsersCache !== 'undefined' && allUsersCache && allUsersCache.length) {
+                const hit = allUsersCache.find(function(u){ return u && u.id === uid; });
+                if (hit && hit.coverPhoto) earlyCover = hit.coverPhoto;
+              }
+              if (oHeader) {
+                // Brief loading reserve only when we expect a cover from cache
+                if (earlyCover) oHeader.classList.add('gc-cover-loading');
+                else oHeader.classList.remove('gc-cover-loading');
+              }
+              if (typeof gcApplyCoverPhoto === 'function') {
+                gcApplyCoverPhoto('other', earlyCover || '');
+              } else if (typeof gcSyncCoverTopbarMode === 'function') {
+                gcSyncCoverTopbarMode();
+              }
+            } catch(eCover){}
         } catch(e){}
     }
 
@@ -11991,7 +12281,20 @@ ${gcDisplayName}
     document.getElementById('other-profile-avatar').innerHTML=avHtml;
     
     // Story ring on other profile avatar
-    if(typeof gcUpdateProfileStoryRings === 'function') gcUpdateProfileStoryRings();    
+    if(typeof gcUpdateProfileStoryRings === 'function') gcUpdateProfileStoryRings();
+    // Cover photo (view only) — final authoritative value from Firestore
+    if(typeof gcApplyCoverPhoto === 'function') gcApplyCoverPhoto('other', u.coverPhoto || '');
+    // Keep cache warm so next open can paint cover instantly (no jump)
+    try {
+      if (typeof allUsersCache !== 'undefined' && allUsersCache) {
+        const ix = allUsersCache.findIndex(function(x){ return x && x.id === uid; });
+        if (ix >= 0) {
+          allUsersCache[ix].coverPhoto = u.coverPhoto || '';
+          if (u.name) allUsersCache[ix].name = u.name;
+          if (u.avatar) allUsersCache[ix].avatar = u.avatar;
+        }
+      }
+    } catch(eCache){}
 
     document.getElementById('other-profile-bio').textContent=u.bio||'';
 
@@ -12090,6 +12393,7 @@ document.getElementById('page-other-profile').classList.remove('open');
 currentOtherProfileUid=null;
 // Invalidate in-flight profile loads so they don't re-open after back
 window._gcProfileReq = (window._gcProfileReq || 0) + 1;
+if (typeof gcSyncCoverTopbarMode === 'function') gcSyncCoverTopbarMode();
 }
 
 async function blockCurrentUser(){
@@ -14704,7 +15008,11 @@ async function loadOtherUserPosts(uid){
             const tb=b.createdAt?.toMillis?b.createdAt.toMillis():0;
             return tb-ta;
         });
-        if(posts.length===0){list.innerHTML='<div class="empty-feed">No posts yet</div>';return;}
+        if(posts.length===0){
+          const f = window.__otherProfileFilter || 'media';
+          list.innerHTML = (typeof gcProfileEmptyHTML === 'function') ? gcProfileEmptyHTML(f) : '<div class="empty-feed">No posts yet</div>';
+          return;
+        }
         
         // গ্রিড জেনারেট করা — Media=video, Gallery=image, Status=text
         let html = '<div class="profile-photo-grid">';
@@ -14790,6 +15098,8 @@ ${gcDisplayName}
     setSafeHTML('profile-avatar-big', avHtml);
     // Story ring on own profile avatar
     if(typeof gcUpdateProfileStoryRings === 'function') gcUpdateProfileStoryRings();
+    // Cover photo
+    if(typeof gcApplyCoverPhoto === 'function') gcApplyCoverPhoto('my', currentUserData.coverPhoto || '');
 
     
        // 🚀 নেভিগেশন বারে ইউজারের ছবি আপডেট করার লজিক
@@ -14853,7 +15163,11 @@ const ta=a.createdAt?.toMillis?a.createdAt.toMillis():0;
 const tb=b.createdAt?.toMillis?b.createdAt.toMillis():0;
 return tb-ta;
 });
-if(mine.length===0){list.innerHTML='<div class="empty-feed">No posts yet</div>';return;}
+if(mine.length===0){
+  const f = window.__myProfileFilter || 'media';
+  list.innerHTML = (typeof gcProfileEmptyHTML === 'function') ? gcProfileEmptyHTML(f) : '<div class="empty-feed">No posts yet</div>';
+  return;
+}
 list.innerHTML=mine.map(function(p){
   var card = buildPostCardHTML(p);
   // Tag kind for Media / Gallery / Status tabs
@@ -14873,6 +15187,135 @@ try{
 }catch(e){}
 }catch(e){list.innerHTML='<div class="empty-feed">Network issue. Could not load posts.</div>';}
 }
+
+// ═══════════════════════════════════════════════════════
+// 🚀 FEATURE: profile · cover photo (test)
+// Field: users/{uid}.coverPhoto
+// খুঁজতে: Ctrl+F → "gcApplyCoverPhoto"
+// ═══════════════════════════════════════════════════════
+function gcSyncCoverTopbarMode(){
+  const body = document.body;
+  if(!body) return;
+
+  const ownPage = document.getElementById('page-profile');
+  const ownHeader = document.getElementById('my-profile-header');
+  const otherPage = document.getElementById('page-other-profile');
+  const otherHeader = document.getElementById('other-profile-header');
+
+  const ownActive = !!(ownPage && ownPage.classList.contains('active') && ownHeader && ownHeader.classList.contains('gc-has-cover'));
+  // Gradient topbar only when other profile is open AND has a real cover
+  const otherActive = !!(otherPage && otherPage.classList.contains('open') && otherHeader && otherHeader.classList.contains('gc-has-cover'));
+
+  body.classList.toggle('gc-own-cover-topbar', ownActive);
+  body.classList.toggle('gc-other-cover-topbar', otherActive);
+}
+window.gcSyncCoverTopbarMode = gcSyncCoverTopbarMode;
+
+function gcApplyCoverPhoto(which, url){
+  const header = document.getElementById(which === 'other' ? 'other-profile-header' : 'my-profile-header');
+  const imgEl = document.getElementById(which === 'other' ? 'other-cover-img' : 'my-cover-img');
+  if(!header || !imgEl) return;
+  const clean = (url && String(url).trim()) ? String(url).trim() : '';
+  if(clean){
+    try {
+      if (which === 'other') {
+        const prev = imgEl.style.backgroundImage || '';
+        const next = 'url("' + clean.replace(/"/g, '%22') + '")';
+        if (prev !== next) {
+          imgEl.style.opacity = '0.35';
+          imgEl.style.backgroundImage = next;
+          requestAnimationFrame(function(){
+            requestAnimationFrame(function(){ imgEl.style.opacity = '1'; });
+          });
+        } else {
+          imgEl.style.backgroundImage = next;
+          imgEl.style.opacity = '1';
+        }
+      } else {
+        imgEl.style.backgroundImage = 'url("' + clean.replace(/"/g, '%22') + '")';
+      }
+    } catch(e) {
+      imgEl.style.backgroundImage = 'url("' + clean.replace(/"/g, '%22') + '")';
+    }
+    header.classList.add('gc-has-cover');
+    header.classList.remove('gc-cover-loading');
+  } else {
+    imgEl.style.backgroundImage = '';
+    imgEl.style.opacity = '1';
+    header.classList.remove('gc-has-cover');
+    header.classList.remove('gc-cover-loading');
+  }
+  // Own profile: label "Edit Cover" / "Add Cover"
+  if(which !== 'other'){
+    const btn = document.getElementById('my-cover-edit-btn');
+    const span = btn && btn.querySelector('span');
+    const label = clean ? 'Edit Cover' : 'Add Cover';
+    if(span) span.textContent = label;
+    if(btn){
+      btn.title = label;
+      btn.setAttribute('aria-label', label);
+    }
+  }
+  gcSyncCoverTopbarMode();
+}
+window.gcApplyCoverPhoto = gcApplyCoverPhoto;
+
+async function gcUploadCoverPhoto(input){
+  if(!currentUser || !input || !input.files || !input.files[0]) return;
+  const file = input.files[0];
+  if(!file.type || file.type.indexOf('image/') !== 0){
+    showToast('Please select an image');
+    input.value = '';
+    return;
+  }
+  if(file.size > 12 * 1024 * 1024){
+    showToast('Image too large (max 12MB)');
+    input.value = '';
+    return;
+  }
+  try{
+    showToast('Uploading cover…');
+    const url = await uploadToCloudinary(file, false);
+    if(!url) throw new Error('No URL');
+    await db.collection('users').doc(currentUser.uid).update({ coverPhoto: url });
+    if(currentUserData) currentUserData.coverPhoto = url;
+    gcApplyCoverPhoto('my', url);
+    showToast('Cover photo updated');
+  }catch(e){
+    console.error(e);
+    showToast('Failed to upload cover');
+  }
+  try{ input.value = ''; }catch(e){}
+}
+window.gcUploadCoverPhoto = gcUploadCoverPhoto;
+
+// Long-press / hold on cover edit → remove cover
+(function(){
+  document.addEventListener('DOMContentLoaded', function(){
+    const btn = document.getElementById('my-cover-edit-btn');
+    if(!btn || btn._gcCoverLong) return;
+    btn._gcCoverLong = true;
+    let t = null;
+    const start = function(){
+      t = setTimeout(async function(){
+        if(!currentUser || !currentUserData || !currentUserData.coverPhoto) return;
+        if(!confirm('Remove cover photo?')) return;
+        try{
+          await db.collection('users').doc(currentUser.uid).update({ coverPhoto: firebase.firestore.FieldValue.delete() });
+          if(currentUserData) delete currentUserData.coverPhoto;
+          gcApplyCoverPhoto('my', '');
+          showToast('Cover removed');
+        }catch(e){ showToast('Could not remove cover'); }
+      }, 650);
+    };
+    const cancel = function(){ if(t){ clearTimeout(t); t = null; } };
+    btn.addEventListener('touchstart', start, { passive: true });
+    btn.addEventListener('mousedown', start);
+    btn.addEventListener('touchend', cancel);
+    btn.addEventListener('mouseup', cancel);
+    btn.addEventListener('mouseleave', cancel);
+  });
+})();
 
 // ═══════════════════════════════════════════════════════
 // 🚀 Avatar editor — crop / position / zoom / confirm
@@ -21453,22 +21896,43 @@ function applyProfileFilter(filterType, profileType, clickedElement) {
         if (shouldShow) visible++;
     });
 
-    // Empty state for Media / Gallery / Status tabs
-    let empty = listContainer.querySelector('.op-filter-empty');
-    if (visible === 0 && posts.length > 0) {
-        if (!empty) {
-            empty = document.createElement('div');
-            empty.className = 'empty-feed op-filter-empty';
-            empty.style.padding = '28px 12px';
-            listContainer.appendChild(empty);
-        }
-        const labels = { media: 'videos', gallery: 'photos', status: 'status posts' };
-        empty.textContent = 'No ' + (labels[filterType] || 'posts') + ' yet';
-        empty.style.display = 'block';
-    } else if (empty) {
-        empty.style.display = 'none';
+    // Empty state for Media / Gallery / Status — single instance only (no double icons)
+    Array.from(listContainer.children).forEach(function(n){
+      if (n.classList && (
+        n.classList.contains('op-filter-empty') ||
+        n.classList.contains('gc-profile-empty') ||
+        n.classList.contains('empty-feed')
+      )) {
+        n.remove();
+      }
+    });
+    if (visible === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'op-filter-empty';
+        empty.innerHTML = (typeof gcProfileEmptyHTML === 'function')
+          ? gcProfileEmptyHTML(filterType)
+          : ('No ' + (filterType || 'posts') + ' yet');
+        listContainer.appendChild(empty);
     }
 }
+
+// Beautiful empty state for profile Media / Gallery / Status tabs
+function gcProfileEmptyHTML(kind){
+  const map = {
+    media:  { icon: 'ph-fill ph-video-camera', title: 'No videos yet',  sub: 'Videos will show up here' },
+    gallery:{ icon: 'ph-fill ph-images',       title: 'No photos yet',  sub: 'Photos will show up here' },
+    status: { icon: 'ph-fill ph-text-aa',      title: 'No status yet',  sub: 'Text posts will show up here' },
+    all:    { icon: 'ph-fill ph-images-square',title: 'No posts yet',   sub: 'Posts will show up here' }
+  };
+  const m = map[kind] || map.all;
+  return ''
+    + '<div class="gc-profile-empty">'
+    +   '<div class="gc-profile-empty-icon"><i class="' + m.icon + '"></i></div>'
+    +   '<div class="gc-profile-empty-title">' + m.title + '</div>'
+    +   '<div class="gc-profile-empty-sub">' + m.sub + '</div>'
+    + '</div>';
+}
+window.gcProfileEmptyHTML = gcProfileEmptyHTML;
 
 window.applyProfileFilter = applyProfileFilter;
 
