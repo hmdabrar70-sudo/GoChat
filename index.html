@@ -1765,14 +1765,16 @@ background:transparent !important;
 }
 #chat-screen.gc-has-wallpaper > .chat-input-bar,
 #chat-screen.gc-has-wallpaper > #chat-input-area{
-background:rgba(22,22,31,0.42) !important;
-backdrop-filter:blur(14px);
--webkit-backdrop-filter:blur(14px);
-border-top:1px solid rgba(255,255,255,0.08);
+background:rgba(22,22,31,0.28) !important;
+backdrop-filter:blur(22px) saturate(1.25);
+-webkit-backdrop-filter:blur(22px) saturate(1.25);
+border-top:1px solid rgba(255,255,255,0.10);
 }
 body.light-mode #chat-screen.gc-has-wallpaper > .chat-input-bar,
 body.light-mode #chat-screen.gc-has-wallpaper > #chat-input-area{
-background:rgba(255,255,255,0.55) !important;
+background:rgba(255,255,255,0.30) !important;
+backdrop-filter:blur(22px) saturate(1.25);
+-webkit-backdrop-filter:blur(22px) saturate(1.25);
 border-top:1px solid rgba(0,0,0,0.06);
 }
 #chat-screen.gc-has-wallpaper #chat-wallpaper-bg{
@@ -1799,6 +1801,31 @@ overscroll-behavior:contain;
 -webkit-overflow-scrolling:touch;
 padding:16px;
 display:flex;flex-direction:column;gap:8px;
+}
+/* Messenger-style date separators between message days */
+.gc-msg-date-sep{
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  width:100%;
+  margin:12px 0 6px;
+  flex-shrink:0;
+  pointer-events:none;
+  user-select:none;
+}
+.gc-msg-date-sep span{
+  font-size:11px;
+  font-weight:700;
+  letter-spacing:0.35px;
+  color:var(--text-muted);
+  background:var(--surface-2);
+  border:1px solid var(--border);
+  padding:5px 12px;
+  border-radius:999px;
+  text-transform:uppercase;
+  line-height:1.2;
+  max-width:90%;
+  text-align:center;
 }
 .chat-bubble{
 max-width:78%;
@@ -3757,7 +3784,10 @@ background:rgba(0,0,0,.28);color:#fff;font-size:14px;pointer-events:none;
 .gc-sw-overlay.open{display:flex;}
 .gc-sw-sheet{width:100%;max-width:520px;max-height:82vh;overflow-y:auto;background:var(--bg);border-radius:26px 26px 0 0;padding:10px 16px calc(16px + env(safe-area-inset-bottom));animation:gcSheetUp .3s cubic-bezier(.22,1,.36,1);scrollbar-width:none;}
 .gc-sw-sheet::-webkit-scrollbar{display:none;}
-.gc-sw-handle{width:44px;height:4px;border-radius:2px;background:var(--border);margin:6px auto 12px;}
+.gc-sw-handle{width:44px;height:4px;border-radius:2px;background:var(--border);margin:6px auto 12px;cursor:grab;touch-action:none;position:relative;}
+.gc-sw-handle::after{content:'';position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:72px;height:28px;}
+.gc-sheet-handle,.gc-rp-handle,.gc-report-handle,.gc-cf-handle,.gc-un-handle,.mf-handle{cursor:grab;touch-action:none;position:relative;}
+.gc-sheet-handle::after,.gc-rp-handle::after,.gc-report-handle::after,.gc-cf-handle::after,.gc-un-handle::after,.mf-handle::after{content:'';position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:72px;height:28px;}
 .gc-sw-title{font-size:17px;font-weight:800;color:var(--text);text-align:center;margin-bottom:4px;}
 .gc-sw-sub{font-size:12px;color:var(--text-muted);text-align:center;margin-bottom:14px;}
 .gc-sw-row{display:flex;align-items:center;gap:12px;padding:12px;border-radius:16px;background:var(--surface);border:1px solid var(--border);margin-bottom:8px;cursor:pointer;transition:all .15s;}
@@ -3773,7 +3803,7 @@ background:rgba(0,0,0,.28);color:#fff;font-size:14px;pointer-events:none;
 .gc-sw-x{border:none;background:var(--surface-2);color:var(--danger);width:28px;height:28px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
 .gc-sw-x i{font-size:14px;}
 .gc-sw-add{display:flex;align-items:center;justify-content:center;gap:8px;padding:14px;border-radius:16px;border:1.5px dashed var(--accent);color:var(--accent);font-size:14px;font-weight:800;cursor:pointer;margin-top:4px;background:var(--accent-glow);}
-.gc-sw-note{font-size:10.5px;color:var(--text-muted);text-align:center;margin-top:12px;}
+.gc-sw-note{font-size:10.5px;color:var(--text-muted);text-align:center;margin-top:12px;display:flex;align-items:center;justify-content:center;gap:4px;}
 .gc-sw-form input{width:100%;padding:13px 14px;border-radius:14px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:14px;margin-bottom:10px;}
 .gc-sw-form input:focus{outline:none;border-color:var(--accent);}
 .gc-sw-btn{width:100%;padding:14px;border:none;border-radius:14px;background:var(--gradient);color:#fff;font-size:15px;font-weight:800;cursor:pointer;box-shadow:0 8px 20px var(--accent-glow);}
@@ -8763,9 +8793,8 @@ console.log("Error awarding points", e);
 // 🏆 PREMIUM LEADERBOARD (same data, new look)
 // ==========================================
 function formatLBNum(n){
-  n = n || 0;
-  if(n >= 1000000) return (n/1000000).toFixed(1).replace(/\.0$/,'') + 'M';
-  if(n >= 1000)    return (n/1000).toFixed(1).replace(/\.0$/,'') + 'K';
+  n = Math.round(Number(n) || 0);
+  // Full exact points — no K/M abbreviation
   return String(n);
 }
 
@@ -8898,7 +8927,7 @@ async function openLeaderboard() {
               ${rankNum === 1 ? `<div class="lb-crown">👑</div>` : ''}
               ${av}
             </div>
-            <div class="lb-pod-name">${escapeHTML(u.name)}${r.isMe ? ' ⭐' : ''}</div>
+            <div class="lb-pod-name">${escapeHTML(u.name)}${r.isMe ? ' <i class="ph-fill ph-star" style="color:#F5B800;font-size:12px;"></i>' : ''}</div>
             <div class="lb-pod-pts">${formatLBNum(u.points||0)} pts</div>
             <div class="lb-pod-bar" style="animation-delay:${delay};">${badge}</div>
           </div>`;
@@ -9495,7 +9524,7 @@ db.collection('system').doc('settings').onSnapshot(doc => {
             const overlay = document.createElement('div');
             overlay.id = 'maintenance-overlay';
             overlay.style = 'position:fixed; top:0; left:0; width:100%; height:100%; background:#f4f7f6; z-index:99999; display:flex; justify-content:center; align-items:center; flex-direction:column;';
-            overlay.innerHTML = '<h2 style="color:#333;">🛠️ App Under Maintenance</h2><p>We are updating GoChat. Please wait!</p>';
+            overlay.innerHTML = '<h2 style="color:#333;display:flex;align-items:center;justify-content:center;gap:8px;"><i class="ph ph-wrench" style="font-size:22px;"></i> App Under Maintenance</h2><p>We are updating GoChat. Please wait!</p>';
             document.body.appendChild(overlay);
         }
     } else {
@@ -12096,6 +12125,48 @@ viewUserProfile(uid);
 }
 
 // ===== CHAT FUNCTIONS =====
+
+// ═══ FEATURE: chat date separators (Messenger-style) ═══
+function gcFormatChatDateLabel(date){
+  try{
+    if(!date || isNaN(date.getTime())) return '';
+    const now = new Date();
+    const startToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const startMsg = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const diffDays = Math.round((startToday - startMsg) / 86400000);
+    const timePart = date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }).toUpperCase();
+    if(diffDays === 0) return 'TODAY AT ' + timePart;
+    if(diffDays === 1) return 'YESTERDAY AT ' + timePart;
+    if(diffDays > 1 && diffDays < 7){
+      const day = date.toLocaleDateString([], { weekday: 'short' }).toUpperCase();
+      return day + ' AT ' + timePart;
+    }
+    if(date.getFullYear() === now.getFullYear()){
+      const md = date.toLocaleDateString([], { month: 'short', day: 'numeric' }).toUpperCase();
+      return md + ' AT ' + timePart;
+    }
+    const full = date.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' }).toUpperCase();
+    return full + ' AT ' + timePart;
+  }catch(e){ return ''; }
+}
+function gcMsgDayKey(createdAt){
+  try{
+    if(!createdAt) return null;
+    const d = createdAt.toDate ? createdAt.toDate() : new Date(createdAt);
+    if(isNaN(d.getTime())) return null;
+    return d.getFullYear() + '-' + d.getMonth() + '-' + d.getDate();
+  }catch(e){ return null; }
+}
+function gcBuildMsgDateSep(createdAt){
+  try{
+    if(!createdAt) return '';
+    const d = createdAt.toDate ? createdAt.toDate() : new Date(createdAt);
+    const label = gcFormatChatDateLabel(d);
+    if(!label) return '';
+    return '<div class="gc-msg-date-sep" aria-hidden="true"><span>' + label + '</span></div>';
+  }catch(e){ return ''; }
+}
+
 function openChat(chatId, otherUid, otherName, otherAvatar){
     currentChatId=chatId;
     currentChatOtherUid=otherUid;
@@ -12188,7 +12259,7 @@ function openChat(chatId, otherUid, otherName, otherAvatar){
     chatUnsub=db.collection('chats').doc(chatId).collection('messages').orderBy('createdAt').onSnapshot(snap=>{
         const list=document.getElementById('chat-messages');
         
-        list.innerHTML = snap.docs.map(d=>{
+        list.innerHTML = snap.docs.map((d, idx)=>{
             const m=d.data();
             // System/welcome messages always show as incoming (left)
             const isMine = (m.uid === currentUser.uid) && !m.isSystem;
@@ -12339,7 +12410,23 @@ safeText = safeText.replace(urlRegex, function(url) {
 
         if (m.deletedFor && m.deletedFor.includes(currentUser.uid)) { return ''; }
 
-        return `<div class="chat-bubble-wrapper ${isMine?'mine':'theirs'}" data-msgid="${d.id}" ontouchstart="handleMsgTouchStart('${d.id}', event)" ontouchmove="handleMsgTouchMove(event)" ontouchend="handleMsgTouchEnd('${d.id}', event)" ontouchcancel="handleMsgTouchEnd('${d.id}', event)" onmousedown="handleMsgTouchStart('${d.id}', event)" onmouseup="handleMsgTouchEnd('${d.id}', event)" onmouseleave="handleMsgTouchEnd('${d.id}', event)" oncontextmenu="event.preventDefault(); return false;" onclick="handleMsgClick('${d.id}')">
+        // Date separator when calendar day changes (Messenger-style)
+        let dateSepHtml = '';
+        try {
+            const curKey = gcMsgDayKey(m.createdAt);
+            if (curKey) {
+                let prevKey = null;
+                if (idx > 0) {
+                    const prevM = snap.docs[idx - 1].data();
+                    prevKey = gcMsgDayKey(prevM && prevM.createdAt);
+                }
+                if (curKey !== prevKey) {
+                    dateSepHtml = gcBuildMsgDateSep(m.createdAt);
+                }
+            }
+        } catch (e) {}
+
+        return dateSepHtml + `<div class="chat-bubble-wrapper ${isMine?'mine':'theirs'}" data-msgid="${d.id}" ontouchstart="handleMsgTouchStart('${d.id}', event)" ontouchmove="handleMsgTouchMove(event)" ontouchend="handleMsgTouchEnd('${d.id}', event)" ontouchcancel="handleMsgTouchEnd('${d.id}', event)" onmousedown="handleMsgTouchStart('${d.id}', event)" onmouseup="handleMsgTouchEnd('${d.id}', event)" onmouseleave="handleMsgTouchEnd('${d.id}', event)" oncontextmenu="event.preventDefault(); return false;" onclick="handleMsgClick('${d.id}')">
             <div style="display:flex; flex-direction:row; align-items:flex-end; width:100%; ${isMine?'justify-content:flex-end;':''}">
                 ${!isMine ? msgAvatarHtml : ''}
                 <div class="chat-bubble ${isMine?'mine':'theirs'}" ondblclick="showReactionPicker(event,'${d.id}')">
@@ -12351,27 +12438,6 @@ safeText = safeText.replace(urlRegex, function(url) {
             </div>
             ${reactionsHtml}
         </div>`;
-
-
-            return `<div class="chat-bubble-wrapper ${isMine?'mine':'theirs'}" data-msgid="${d.id}" 
-            ontouchstart="handleMsgTouchStart('${d.id}', event)" 
-            ontouchmove="handleMsgTouchMove(event)"
-            ontouchend="handleMsgTouchEnd('${d.id}', event)" 
-            ontouchcancel="handleMsgTouchEnd('${d.id}', event)"
-            onmousedown="handleMsgTouchStart('${d.id}', event)" 
-            onmouseup="handleMsgTouchEnd('${d.id}', event)" 
-            onmouseleave="handleMsgTouchEnd('${d.id}', event)"
-            oncontextmenu="event.preventDefault(); return false;"
-            onclick="handleMsgClick('${d.id}')">
-
-            <div class="chat-bubble ${isMine?'mine':'theirs'}" ondblclick="showReactionPicker(event,'${d.id}')">
-            ${senderNameHtml}
-            ${replyHtml}
-            ${content}
-            ${timeAndReceiptHtml}
-            </div>
-            ${reactionsHtml}
-            </div>`;
         }).join(''); 
         
         list.scrollTop=list.scrollHeight;
@@ -17819,7 +17885,7 @@ async function toggleAdvancedPrivacy() {
         // ২. টগল বাটনের কালার চেঞ্জ করা
         if (newStatus) {
             toggle.classList.add('active');
-            showToast("🔒 Advanced Privacy ON");
+            showToast("Advanced Privacy ON");
         } else {
             toggle.classList.remove('active');
             showToast("🔓 Advanced Privacy OFF");
@@ -22023,7 +22089,7 @@ html += '<div class="gc-ins-top-post" onclick="gcCloseInsights(); openSinglePost
 html += '</div>';
 html += '<div class="gc-ins-sec"><h4><i class="ph-bold ph-chart-pie"></i>Content Mix</h4>' + gcBarRow('Photos', pho, posts.length) + gcBarRow('Videos', vid, posts.length) + gcBarRow('Status', txt, posts.length) + '</div>';
 html += '<div class="gc-ins-sec"><h4><i class="ph-bold ph-users-three"></i>Audience</h4>' + gcBarRow('Male', gM, gM + gF + gO) + gcBarRow('Female', gF, gM + gF + gO) + gcBarRow('Other', gO, gM + gF + gO);
-if(topLocs.length){ html += '<div style="margin-top:8px;font-size:12px;font-weight:800;color:var(--text-muted);">TOP LOCATIONS</div>'; topLocs.forEach(function(l){ html += '<div class="gc-ins-bar-row" style="margin-top:6px;"><div class="nm" style="width:auto;flex:1;">📍 ' + escapeHTML(l) + '</div><div class="pc" style="width:auto;">' + locs[l] + '</div></div>'; }); }
+if(topLocs.length){ html += '<div style="margin-top:8px;font-size:12px;font-weight:800;color:var(--text-muted);">TOP LOCATIONS</div>'; topLocs.forEach(function(l){ html += '<div class="gc-ins-bar-row" style="margin-top:6px;"><div class="nm" style="width:auto;flex:1;display:flex;align-items:center;gap:6px;"><i class="ph ph-map-pin" style="font-size:14px;color:var(--accent);flex-shrink:0;"></i> ' + escapeHTML(l) + '</div><div class="pc" style="width:auto;">' + locs[l] + '</div></div>'; }); }
 html += '</div>';
 html += '<div class="gc-ins-sec"><h4><i class="ph-bold ph-clock-afternoon"></i>Best Time to Post</h4><div style="font-size:16px;font-weight:800;color:var(--accent);">' + bestTxt + '</div><div style="font-size:12px;color:var(--text-muted);margin-top:4px;">The more active, the more familiar.</div></div>';
 html += '<div class="gc-ins-sec"><h4><i class="ph-bold ph-calendar-check"></i>Weekly Report</h4><div class="gc-ins-bar-row"><div class="nm" style="width:auto;">Engagement this week</div><div class="pc" style="width:auto;font-size:14px;font-weight:800;color:var(--text);">' + w1 + '</div></div><div class="delta ' + (wPct >= 0 ? 'up' : 'down') + '" style="font-size:13px;font-weight:800;">' + (wPct >= 0 ? '↑' : '↓') + ' ' + Math.abs(wPct) + '% vs last week</div></div>';
@@ -22036,7 +22102,123 @@ body.innerHTML = html;
 // মাল্টি-অ্যাকাউন্ট ইনস্ট্যান্ট সুইচার (বাটন তোমার নিজের, লজিক এখানে)
 // খুঁজতে: Ctrl+F → "switch-account"
 // ═══════════════════════════════════════════════════════
-const GC_MAX_ACCOUNTS = 3;
+
+// ═══ FEATURE: bottom-sheet drag-to-dismiss (handle + top edge) ═══
+(function(){
+  if (window.__gcSheetDragInit) return;
+  window.__gcSheetDragInit = true;
+
+  const SHEET_SEL = '.gc-sw-sheet, .gc-sheet, .gc-rp-sheet, .gc-report-sheet, .gc-cf-sheet, .gc-un-sheet';
+  const HANDLE_SEL = '.gc-sw-handle, .gc-sheet-handle, .gc-rp-handle, .gc-report-handle, .gc-cf-handle, .gc-un-handle, .mf-handle';
+  const OVERLAY_SEL = '.gc-sw-overlay, .gc-sheet-overlay, .gc-rp-overlay, .gc-report-overlay, .gc-cf-overlay, #gc-sheet-overlay, #gc-unfollow-overlay';
+
+  let drag = null; // { sheet, overlay, startY, lastY, lastT, moved }
+
+  function findSheet(el){
+    return el && el.closest ? el.closest(SHEET_SEL) : null;
+  }
+  function findOverlay(el){
+    return el && el.closest ? el.closest(OVERLAY_SEL) : null;
+  }
+  function closeOverlay(overlay, sheet){
+    if(!overlay) return;
+    try{
+      if(sheet){
+        sheet.style.transition = 'transform .28s cubic-bezier(.22,1,.36,1), opacity .22s ease';
+        sheet.style.transform = 'translateY(110%)';
+        sheet.style.opacity = '0.6';
+      }
+      setTimeout(function(){
+        overlay.classList.remove('open');
+        if(sheet){
+          sheet.style.transition = '';
+          sheet.style.transform = '';
+          sheet.style.opacity = '';
+        }
+        // known close helpers
+        try{ if(typeof gcCloseSheet === 'function' && overlay.id === 'gc-sheet-overlay') gcCloseSheet(); }catch(e){}
+      }, 260);
+    }catch(e){
+      overlay.classList.remove('open');
+    }
+  }
+
+  function onStart(e){
+    if(drag) return;
+    const t = e.touches ? e.touches[0] : e;
+    if(!t) return;
+    const handle = e.target.closest && e.target.closest(HANDLE_SEL);
+    const sheetFromHandle = handle ? findSheet(handle) : null;
+    let sheet = sheetFromHandle;
+    if(!sheet){
+      // allow drag from top 36px of any open sheet
+      sheet = findSheet(e.target);
+      if(!sheet) return;
+      const rect = sheet.getBoundingClientRect();
+      if(t.clientY - rect.top > 40) return;
+    }
+    // if scrollable content scrolled down, don't hijack
+    if(sheet.scrollTop > 2) return;
+
+    const overlay = findOverlay(sheet) || sheet.parentElement;
+    drag = {
+      sheet: sheet,
+      overlay: overlay,
+      startY: t.clientY,
+      lastY: t.clientY,
+      lastT: Date.now(),
+      moved: false
+    };
+    sheet.style.transition = 'none';
+    sheet.style.willChange = 'transform';
+  }
+
+  function onMove(e){
+    if(!drag) return;
+    const t = e.touches ? e.touches[0] : e;
+    if(!t) return;
+    let dy = t.clientY - drag.startY;
+    if(dy < 0) dy = dy * 0.15; // slight resistance upward
+    drag.lastY = t.clientY;
+    drag.lastT = Date.now();
+    if(Math.abs(t.clientY - drag.startY) > 4) drag.moved = true;
+    drag.sheet.style.transform = 'translateY(' + Math.max(0, dy) + 'px)';
+    if(drag.overlay && dy > 0){
+      const p = Math.min(1, dy / 280);
+      try{ drag.overlay.style.background = 'rgba(10,10,20,' + (0.55 * (1 - p * 0.7)).toFixed(3) + ')'; }catch(err){}
+    }
+    if(drag.moved && e.cancelable) e.preventDefault();
+  }
+
+  function onEnd(){
+    if(!drag) return;
+    const sheet = drag.sheet;
+    const overlay = drag.overlay;
+    const dy = Math.max(0, drag.lastY - drag.startY);
+    const shouldClose = dy > 110 || (dy > 56 && (Date.now() - drag.lastT) < 40);
+    drag = null;
+    if(shouldClose){
+      closeOverlay(overlay, sheet);
+      try{ if(overlay) overlay.style.background = ''; }catch(e){}
+      return;
+    }
+    sheet.style.transition = 'transform .32s cubic-bezier(.22,1,.36,1)';
+    sheet.style.transform = 'translateY(0)';
+    if(overlay) overlay.style.background = '';
+    setTimeout(function(){
+      sheet.style.transition = '';
+      sheet.style.willChange = '';
+      sheet.style.transform = '';
+    }, 340);
+  }
+
+  document.addEventListener('touchstart', onStart, { passive: true, capture: true });
+  document.addEventListener('touchmove', onMove, { passive: false, capture: true });
+  document.addEventListener('touchend', onEnd, { passive: true, capture: true });
+  document.addEventListener('touchcancel', onEnd, { passive: true, capture: true });
+})();
+
+const GC_MAX_ACCOUNTS = 5;
 function gcGetAccounts(){ try{ return JSON.parse(localStorage.getItem('gc_accounts') || '[]'); }catch(e){ return []; } }
 function gcSaveAccounts(l){ localStorage.setItem('gc_accounts', JSON.stringify(l)); }
 function gcSlotApp(slot){
@@ -22118,7 +22300,7 @@ html += '<div class="gc-sw-row' + (active ? ' active' : '') + '" onclick="' + (a
 if(list.length < GC_MAX_ACCOUNTS){
 html += '<div class="gc-sw-add" onclick="gcOpenAddAccount()"><i class="ph-bold ph-plus"></i> Add Account</div>';
 }
-html += '<div class="gc-sw-note">🔒 Accounts are stored securely on this device only.</div></div>';
+html += '<div class="gc-sw-note"><i class="ph ph-lock-simple" style="font-size:12px;margin-right:4px;vertical-align:-1px;"></i>Accounts are stored securely on this device only.</div></div>';
 ov.innerHTML = html;
 ov.classList.add('open');
 }
@@ -22235,7 +22417,7 @@ const ov = document.getElementById('gc-rp-overlay');
 if(ov) ov.classList.remove('open');
 gcSyncPrivacyIcon();
 const o = GC_RP_OPTIONS.find(function(x){ return x.key === key; });
-showToast('🔒 Replies limited to: ' + o.label);
+showToast('Replies limited to: ' + o.label);
 }
 function gcSyncPrivacyIcon(){
 const ic = document.getElementById('post-privacy-icon');
@@ -22279,11 +22461,11 @@ if(allowed) return;
 const input = document.getElementById('comment-input') || document.querySelector('input[placeholder*="comment" i]');
 if(input){
 input.disabled = true;
-input.placeholder = '🔒 The author limited who can reply';
+input.placeholder = 'The author limited who can reply';
 const bar = input.parentElement;
 if(bar) bar.querySelectorAll('button').forEach(function(b){ b.style.opacity = '.4'; b.style.pointerEvents = 'none'; });
 }
-showToast('🔒 The author limited who can reply');
+showToast('The author limited who can reply');
 }
 
 
@@ -23912,7 +24094,7 @@ const others = await gcActiveOtherSessions(devId);
 if(others.length){
 const approved = await gcRequestLoginApproval(devId, dev, others[0]);
 if(!approved){
-showToast('🔒 Login not approved on your other device');
+showToast('Login not approved on your other device');
 try{ await auth.signOut(); }catch(e){}
 return;
 }
@@ -23960,7 +24142,7 @@ gcSessionsData = [];
 snap.forEach(function(d){ gcSessionsData.push({ id: d.id, ...d.data() }); });
 const mine = gcSessionsData.find(function(s){ return s.id === window.gcMySessionId; });
 if(mine && mine.forceLogout){
-showToast('🔒 Logged out from another device');
+showToast('Logged out from another device');
 auth.signOut();
 return;
 }
@@ -23968,7 +24150,7 @@ snap.docChanges().forEach(function(ch){
 if(ch.type === 'added' && ch.doc.id !== window.gcMySessionId){
 const d = ch.doc.data();
 const lm = d.loginAt && d.loginAt.toMillis ? d.loginAt.toMillis() : 0;
-if(lm && Date.now() - lm < 15000) showToast('🔐 New login: ' + (d.device || 'Unknown device'));
+if(lm && Date.now() - lm < 15000) showToast('New login: ' + (d.device || 'Unknown device'));
 }
 });
 const scr = document.getElementById('gc-sess-screen');
@@ -24156,7 +24338,7 @@ showToast('✅ Device approved');
 function gcRejectLogin(id){
 db.collection('users').doc(currentUser.uid).collection('loginRequests').doc(id).update({ status: 'rejected' }).catch(function(){});
 const o = document.getElementById('gc-appr-popup'); if(o) o.remove();
-showToast('🔒 Login rejected');
+showToast('Login rejected');
 }
 
 // ═══════════════════════════════════════════════════════
