@@ -762,11 +762,15 @@ body.home-sky-mode #page-feed .feed-tabs{
 .gc-hd-list{padding:10px 12px 24px;overflow-y:auto;flex:1;}
 .gc-hd-item{
     display:flex;align-items:center;gap:14px;
-    padding:14px 14px;border-radius:16px;cursor:pointer;
-    font-weight:700;font-size:15px;color:var(--text);
-    transition:background .15s;
+    padding:14px 4px;
+    border-radius:0;
+    border-bottom:1px solid var(--border);
+    cursor:pointer;
+    font-weight:600;font-size:15px;color:var(--text);
+    transition:opacity .15s, background .15s;
 }
-.gc-hd-item:active,.gc-hd-item:hover{background:var(--surface-2);}
+.gc-hd-list .gc-hd-item:last-child{border-bottom:none;}
+.gc-hd-item:active,.gc-hd-item:hover{background:transparent;opacity:0.55;}
 .gc-hd-item.active{background:rgba(124,92,255,0.12);color:var(--accent);}
 .gc-hd-item.active i{color:var(--accent);}
 .gc-hd-item i{font-size:22px;width:28px;text-align:center;}
@@ -8404,59 +8408,13 @@ const GC_SYSTEM_UID = 'gachat_official';
 const GC_SYSTEM_NAME = 'GoChat Official';
 
 async function sendWelcomeMessage(newUid, userName) {
-    if (!newUid) return false;
-    try {
-        try {
-            const uDoc = await db.collection('users').doc(newUid).get();
-            if (uDoc.exists && uDoc.data().welcomeSent === true) return true;
-        } catch (e) {}
-
-        const chatId = [GC_SYSTEM_UID, newUid].sort().join('_');
-        const name = ((userName || 'friend') + '').trim() || 'friend';
-        const welcomeText = '👋 Welcome to GoChat, ' + name + '!\n\nWe\'re so happy to have you here. Share moments, connect with friends, and explore everything GoChat has to offer.\n\n✨ Tips to get started:\n• Complete your profile & add a photo\n• Post your first story or status\n• Find and follow interesting people\n\nNeed help? Just reply to this message — we\'re always here for you.\n\nEnjoy your journey! 💜\n— Team GoChat';
-
-        await db.collection('chats').doc(chatId).collection('messages').add({
-            uid: newUid,
-            isSystem: true,
-            systemUid: GC_SYSTEM_UID,
-            senderName: GC_SYSTEM_NAME,
-            text: welcomeText,
-            createdAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
-
-        var namesObj = {};
-        namesObj[GC_SYSTEM_UID] = GC_SYSTEM_NAME;
-        namesObj[newUid] = name;
-        var avatarsObj = {};
-        avatarsObj[GC_SYSTEM_UID] = '';
-        avatarsObj[newUid] = '';
-
-        await db.collection('chats').doc(chatId).set({
-            lastMsg: '👋 Welcome to GoChat! We\'re so happy to have you here…',
-            lastAt: firebase.firestore.FieldValue.serverTimestamp(),
-            names: namesObj,
-            avatars: avatarsObj,
-            lastSender: GC_SYSTEM_UID,
-            isRead: false,
-            isSystemChat: true
-        }, { merge: true });
-
-        try {
-            await db.collection('users').doc(newUid).set({ welcomeSent: true }, { merge: true });
-        } catch (e) {}
-
-        return true;
-    } catch (e) {
-        console.log('Welcome message error:', e);
-        return false;
-    }
+    // Disabled — no automatic official welcome chat
+    return false;
 }
 
 async function ensureWelcomeMessage() {
-    if (!currentUser || !currentUserData) return;
-    if (currentUserData.welcomeSent === true) return;
-    var name = currentUserData.name || ((currentUser.email || '').split('@')[0]) || 'friend';
-    await sendWelcomeMessage(currentUser.uid, name);
+    // Disabled — no automatic official welcome chat
+    return;
 }
 
 const SKELETON_HTML = `
@@ -12829,7 +12787,7 @@ input.value='';
 }
 
 // --- ইন-অ্যাপ নোটিফিকেশন ফাংশন (Smart Version) ---
-const notifSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+const notifSound = new Audio('https://videotourl.com/audio/1788154164140-0d675144-18cd-4348-9f5f-5b4be974d882.mp3');
 
 function showInAppMessageNotification(chatId, data) {
     let senderName = 'User';
