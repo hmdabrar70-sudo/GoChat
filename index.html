@@ -14986,7 +14986,12 @@ followBadge = `<button class="tf-plus-badge" onclick="event.stopPropagation(); o
         : '';
 
 // 🚀 মেইন কার্ডে onclick যুক্ত করা হলো
-return`<div class="post-card ${premiumPostClass}${pinnedClass}" style="cursor:pointer;" onclick="openSinglePostView('${pid}')">
+// Media = video · Gallery = image · Status = text-only (for profile tabs)
+const __pcUrls = (p.imgUrls && p.imgUrls.length) ? p.imgUrls : (p.imgUrl ? [p.imgUrl] : []);
+const __pcIsVid = !!(p.videoUrl) || __pcUrls.some(function(u){ u=String(u||''); return u.indexOf('/video/')!==-1 || /\.(mp4|webm|mov)(\?|$)/i.test(u); });
+const __pcIsImg = !__pcIsVid && __pcUrls.length > 0;
+const __pcKind = __pcIsVid ? 'media' : (__pcIsImg ? 'gallery' : 'status');
+return`<div class="post-card ${premiumPostClass}${pinnedClass}" data-post-kind="${__pcKind}" style="cursor:pointer;" onclick="openSinglePostView('${pid}')">
 <div class="post-header">
 <div class="tf-av-wrap" data-uid="${p.uid}">
 <div class="avatar" style="width:44px;height:44px;cursor:pointer;" onclick="event.stopPropagation(); viewUserProfile('${p.uid}')">${av}</div>
@@ -15014,6 +15019,10 @@ ${p.title ? (() => {
             }
         });
     }
+    // Clickable hashtags (same purple style as single-view linkify)
+    processedTitle = processedTitle.replace(/#([A-Za-z0-9_\u0980-\u09FF]{1,30})/g, function(_, tag){
+      return '<span class="gc-hash" onclick="event.stopPropagation(); if(typeof gcOpenHashtag===\'function\') gcOpenHashtag(\'' + tag.toLowerCase().replace(/'/g,'') + '\')">#' + tag + '</span>';
+    });
     const raw = String(p.title || '');
     const lineCount = raw.split(/\r?\n/).length;
     const needsClamp = lineCount > 10 || raw.length > 520;
@@ -15237,19 +15246,8 @@ if(mine.length===0){
   list.innerHTML = (typeof gcProfileEmptyHTML === 'function') ? gcProfileEmptyHTML(f) : '<div class="empty-feed">No posts yet</div>';
   return;
 }
-list.innerHTML=mine.map(function(p){
-  var card = buildPostCardHTML(p);
-  // Tag kind for Media / Gallery / Status tabs
-  try {
-    var urls = (p.imgUrls && p.imgUrls.length) ? p.imgUrls : (p.imgUrl ? [p.imgUrl] : []);
-    var isVid = !!(p.videoUrl) || urls.some(function(u){ u=String(u||''); return u.indexOf('/video/')!==-1 || /\.(mp4|webm|mov)(\?|$)/i.test(u); });
-    var isImg = !isVid && urls.length > 0;
-    var kind = isVid ? 'media' : (isImg ? 'gallery' : 'status');
-    card = card.replace('class="post-card"', 'class="post-card" data-post-kind="'+kind+'"');
-    card = card.replace("class='post-card'", "class='post-card' data-post-kind='"+kind+"'");
-  } catch(e) {}
-  return card;
-}).join('');
+list.innerHTML=mine.map(function(p){ return buildPostCardHTML(p); }).join('');
+// data-post-kind is set inside buildPostCardHTML (media / gallery / status)
 try{
   var f = window.__myProfileFilter || 'media';
   if(typeof applyProfileFilter==='function') applyProfileFilter(f, 'my', document.getElementById('my-tab-'+f));
@@ -21939,12 +21937,15 @@ function applyProfileFilter(filterType, profileType, clickedElement) {
     let visible = 0;
     posts.forEach(post => {
         // Prefer data attributes if present; else detect from DOM
+        // IMPORTANT: ignore avatar images — post-cards always have avatar <img>
         let kind = post.getAttribute('data-post-kind');
         if (!kind) {
-            const hasVideo = post.querySelector('video') !== null;
-            // grid may use background-image or img
-            const hasImage = post.querySelector('img') !== null || (post.style && post.style.backgroundImage);
-            const isTextOnly = !hasVideo && !hasImage;
+            const hasVideo = post.querySelector('video') !== null
+              || post.querySelector('.grid-post-video-thumb') !== null
+              || post.querySelector('.post-media-wrap video') !== null;
+            // Media images only (not profile avatars inside .avatar / .tf-av-wrap)
+            const mediaImg = post.querySelector('.post-img, .grid-post-item > img, .post-media-wrap img, .gc-feed-slide img');
+            const hasImage = !!mediaImg || !!(post.style && post.style.backgroundImage && post.style.backgroundImage !== 'none');
             if (hasVideo) kind = 'media';
             else if (hasImage) kind = 'gallery';
             else kind = 'status';
