@@ -1617,28 +1617,24 @@ body.light-mode .gc-profile-empty-icon{
   background-repeat:no-repeat;
   background-color:transparent;
 }
-/* Soft fade — bottom of cover melts into page bg (no hard edge) */
+/* Soft fade under Design-1 sheet edge (very subtle — sheet does the real blend) */
 .gc-cover-fade{
   position:absolute;
   left:0; right:0; bottom:0;
-  height:58%;
+  height:22%;
   pointer-events:none;
 }
 body.light-mode .gc-cover-fade{
   background:linear-gradient(to bottom,
     rgba(255,255,255,0) 0%,
-    rgba(255,255,255,0.15) 25%,
-    rgba(255,255,255,0.55) 55%,
-    rgba(255,255,255,0.92) 82%,
-    var(--bg) 100%);
+    rgba(255,255,255,0.12) 50%,
+    rgba(255,255,255,0.4) 100%);
 }
 body:not(.light-mode) .gc-cover-fade{
   background:linear-gradient(to bottom,
     rgba(10,10,15,0) 0%,
-    rgba(10,10,15,0.2) 25%,
-    rgba(10,10,15,0.55) 55%,
-    rgba(10,10,15,0.92) 82%,
-    var(--bg) 100%);
+    rgba(10,10,15,0.15) 50%,
+    rgba(10,10,15,0.4) 100%);
 }
 
 /* ═══ COVER UX · OPTION A — Gradient Overlay Top Bars ═══
@@ -1646,43 +1642,69 @@ body:not(.light-mode) .gc-cover-fade{
    over the cover instead of appearing as a separate white/solid strip.
    This is intentionally limited to the profile screens.
 */
-body.gc-own-cover-topbar #app-screen > .topbar{
+/* Cover / profile topbar: fully clean — no dark bar, no shadow, no frosted overlay */
+body.gc-own-cover-topbar #app-screen > .topbar,
+body.profile-mode #app-screen > .topbar,
+body.light-mode.gc-own-cover-topbar #app-screen > .topbar,
+body.light-mode.profile-mode #app-screen > .topbar{
   position:absolute !important;
   top:0; left:0; right:0;
   width:100%;
-  background:linear-gradient(to bottom,
-    rgba(10,10,15,.62) 0%,
-    rgba(10,10,15,.34) 48%,
-    rgba(10,10,15,0) 100%) !important;
+  background:transparent !important;
+  background-color:transparent !important;
   border-bottom:none !important;
-  color:#fff !important;
   box-shadow:none !important;
+  backdrop-filter:none !important;
+  -webkit-backdrop-filter:none !important;
+  color:#fff !important;
 }
 body.gc-own-cover-topbar #app-screen > .topbar .topbar-btn,
-body.gc-own-cover-topbar #app-screen > .topbar .topbar-btn i{
+body.gc-own-cover-topbar #app-screen > .topbar .topbar-btn i,
+body.profile-mode #app-screen > .topbar .topbar-btn,
+body.profile-mode #app-screen > .topbar .topbar-btn i{
   color:#fff !important;
   -webkit-text-fill-color:#fff !important;
-  text-shadow:0 1px 4px rgba(0,0,0,.35);
+  text-shadow:none !important;
+  background:transparent !important;
+}
+/* Hide center G logo on own profile always (cover or not) */
+body.profile-mode #app-screen > .topbar .topbar-logo,
+body.profile-mode #topbar-logo-main,
+body.profile-mode #topbar-logo-main .gc-brand-icon,
+body.profile-mode #topbar-logo-main .gc-brand-img,
+body.gc-own-cover-topbar #app-screen > .topbar .topbar-logo,
+body.gc-own-cover-topbar #topbar-logo-main,
+body.gc-own-cover-topbar #topbar-logo-main .gc-brand-icon,
+body.gc-own-cover-topbar #topbar-logo-main .gc-brand-img{
+  display:none !important;
+  visibility:hidden !important;
+  opacity:0 !important;
+  pointer-events:none !important;
+  width:0 !important;
+  height:0 !important;
+  overflow:hidden !important;
 }
 
-body.gc-other-cover-topbar #page-other-profile > .chat-topbar{
+body.gc-other-cover-topbar #page-other-profile > .chat-topbar,
+body.light-mode.gc-other-cover-topbar #page-other-profile > .chat-topbar{
   position:absolute !important;
   top:0; left:0; right:0;
   width:100%;
-  background:linear-gradient(to bottom,
-    rgba(10,10,15,.62) 0%,
-    rgba(10,10,15,.34) 48%,
-    rgba(10,10,15,0) 100%) !important;
+  background:transparent !important;
+  background-color:transparent !important;
   border-bottom:none !important;
-  color:#fff !important;
   box-shadow:none !important;
+  backdrop-filter:none !important;
+  -webkit-backdrop-filter:none !important;
+  color:#fff !important;
 }
 body.gc-other-cover-topbar #page-other-profile > .chat-topbar .chat-back,
 body.gc-other-cover-topbar #page-other-profile > .chat-topbar .chat-name,
 body.gc-other-cover-topbar #page-other-profile > .chat-topbar i{
   color:#fff !important;
   -webkit-text-fill-color:#fff !important;
-  text-shadow:0 1px 4px rgba(0,0,0,.35);
+  text-shadow:none !important;
+  background:transparent !important;
 }
 /* Pill button: camera + "Add/Edit Cover" (sibling of cover wrap) */
 .gc-cover-edit-btn{
@@ -1718,9 +1740,9 @@ body.gc-other-cover-topbar #page-other-profile > .chat-topbar i{
 #my-profile-header .gc-cover-edit-btn{
   display:inline-flex;
 }
-/* With cover: on the cover image, upper-right (above avatar/stats — not overlapping Posts) */
+/* With cover: on cover, upper-right — above the rounded sheet curve */
 #my-profile-header.gc-has-cover .gc-cover-edit-btn{
-  top: 112px;
+  top: 118px;
   right: 16px;
   background: rgba(30,30,35,.58);
 }
@@ -1737,16 +1759,39 @@ body.gc-other-cover-topbar #page-other-profile > .chat-topbar i{
   position:relative;
   z-index:1;
 }
-/* Cover present: room for banner + avatar overlap (Instagram-style) */
+/* ═══ DESIGN 1 · rounded profile sheet over cover ═══ */
+.gc-profile-sheet{
+  position: relative;
+  z-index: 2;
+  background: var(--bg);
+  padding: 0 16px 6px;
+  width: 100%;
+  box-sizing: border-box;
+}
+/* Cover present: sheet sits on cover with big rounded top (Design 1) */
 .profile-header.gc-has-cover{
   padding-top: 0;
-  padding-left: 16px;
-  padding-right: 16px;
+  padding-left: 0;
+  padding-right: 0;
+  gap: 0;
 }
+.profile-header.gc-has-cover .gc-cover-wrap{
+  height: 210px;
+}
+.profile-header.gc-has-cover .gc-profile-sheet{
+  margin-top: 158px;
+  border-radius: 28px 28px 0 0;
+  padding-top: 0;
+  box-shadow: 0 -8px 28px rgba(0,0,0,.06);
+}
+/* Avatar straddles the cover / sheet seam */
 .profile-header.gc-has-cover .profile-main-row{
-  margin-top: 148px; /* sits on lower third of cover → avatar overlaps */
+  margin-top: 0;
+  padding-top: 0;
   align-items: flex-end;
   gap: 14px;
+  transform: translateY(-42px);
+  margin-bottom: -30px;
 }
 .profile-header.gc-has-cover .profile-avatar{
   width: 96px;
@@ -1755,35 +1800,48 @@ body.gc-other-cover-topbar #page-other-profile > .chat-topbar i{
   box-shadow: 0 2px 14px rgba(0,0,0,.16);
 }
 .profile-header.gc-has-cover .profile-stats-row{
-  padding-bottom: 6px;
-  /* stats readable on fade zone */
+  padding-bottom: 2px;
+  padding-top: 18px; /* nudge Followers/Following/Posts slightly lower */
 }
-/* No cover: keep original compact header (own profile) — button is outside wrap */
+/* No cover: compact, no big radius */
 .profile-header:not(.gc-has-cover) .gc-cover-wrap{
   height: 0;
   opacity: 0;
   pointer-events: none;
 }
+.profile-header:not(.gc-has-cover) .gc-profile-sheet{
+  margin-top: 0;
+  border-radius: 0;
+  box-shadow: none;
+  padding-top: 4px;
+}
 
-/* ═══ COVER · other profile ═══
-   Only expand cover zone when user actually has a cover (or brief loading).
-   Avoids huge empty gap + broken mutual-friends layout when no coverPhoto. */
+/* ═══ COVER · other profile (same Design 1 sheet) ═══ */
 #other-profile-header.gc-has-cover,
 #other-profile-header.gc-cover-loading{
   padding-top: 0;
-  padding-left: 16px;
-  padding-right: 16px;
+  padding-left: 0;
+  padding-right: 0;
+  gap: 0;
 }
 #other-profile-header.gc-has-cover .gc-cover-wrap,
 #other-profile-header.gc-cover-loading .gc-cover-wrap{
-  height: 200px;
+  height: 210px;
   opacity: 1;
+}
+#other-profile-header.gc-has-cover .gc-profile-sheet,
+#other-profile-header.gc-cover-loading .gc-profile-sheet{
+  margin-top: 158px;
+  border-radius: 28px 28px 0 0;
+  box-shadow: 0 -8px 28px rgba(0,0,0,.06);
 }
 #other-profile-header.gc-has-cover .profile-main-row,
 #other-profile-header.gc-cover-loading .profile-main-row{
-  margin-top: 148px;
+  margin-top: 0;
   align-items: flex-end;
   gap: 14px;
+  transform: translateY(-42px);
+  margin-bottom: -30px;
 }
 #other-profile-header.gc-has-cover .profile-avatar,
 #other-profile-header.gc-cover-loading .profile-avatar{
@@ -1794,7 +1852,8 @@ body.gc-other-cover-topbar #page-other-profile > .chat-topbar i{
 }
 #other-profile-header.gc-has-cover .profile-stats-row,
 #other-profile-header.gc-cover-loading .profile-stats-row{
-  padding-bottom: 6px;
+  padding-bottom: 2px;
+  padding-top: 18px; /* nudge Followers/Following/Posts slightly lower */
 }
 #other-profile-header.gc-cover-loading:not(.gc-has-cover) .gc-cover-img{
   background-image: none !important;
@@ -7060,6 +7119,8 @@ Edit Profile-এ পার্টনার সিলেক্ট বাটন
 </button>
 <input type="file" id="cover-input" accept="image/*" style="display:none" onchange="gcUploadCoverPhoto(this)">
 
+<!-- DESIGN 1 · rounded sheet over cover -->
+<div class="gc-profile-sheet">
 <div class="profile-main-row">
 <div class="profile-avatar-wrap">
 <div class="profile-avatar" id="profile-avatar-big">?</div>
@@ -7112,6 +7173,7 @@ Edit Profile-এ পার্টনার সিলেক্ট বাটন
 </div>
 
 </div>
+</div><!-- /.gc-profile-sheet -->
 </div>
 
 <!-- 🚀 Own Profile Filter Menu -->
@@ -7156,6 +7218,8 @@ Edit Profile-এ পার্টনার সিলেক্ট বাটন
           <div class="gc-cover-img" id="other-cover-img"></div>
           <div class="gc-cover-fade"></div>
         </div>
+        <!-- DESIGN 1 · rounded sheet over cover -->
+        <div class="gc-profile-sheet">
         <div class="profile-main-row">
             <div class="profile-avatar-wrap">
                 <div class="profile-avatar" id="other-profile-avatar">?</div>
@@ -7190,6 +7254,7 @@ Edit Profile-এ পার্টনার সিলেক্ট বাটন
         <div class="profile-personal-details" id="other-profile-details-display" style="margin-top: 0; padding: 0;"></div>
     </div>
         <div class="profile-btns" id="other-profile-btns" style="margin-top:16px;display:flex;gap:10px;width:100%;flex-wrap:wrap;"></div>
+        </div><!-- /.gc-profile-sheet -->
     </div>
     <!-- 🚀 Other Profile Filter Menu -->
 <div class="other-profile-content-tabs" id="other-profile-tabs" style="display:flex;justify-content:center;align-items:stretch;gap:0;border-top:1px solid var(--border);margin-top:20px;margin-bottom:10px;">
@@ -10189,10 +10254,14 @@ function showPage(page) {
 
     // 🚀 Topbar Dynamic Logic (লোগো ও নোটিফিকেশন হাইড/শো করার ম্যাজিক)
     const topbarLogo = document.querySelector('.topbar-logo');
-    document.body.classList.remove('messages-mode', 'notifications-mode', 'home-sky-mode');
+    document.body.classList.remove('messages-mode', 'notifications-mode', 'home-sky-mode', 'profile-mode');
 
     if (page === 'feed') {
         document.body.classList.add('home-sky-mode');
+    }
+
+    if (page === 'profile') {
+        document.body.classList.add('profile-mode');
     }
 
     if (page === 'messages') {
