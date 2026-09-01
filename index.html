@@ -1605,13 +1605,20 @@ body.light-mode .gc-profile-empty-icon{
 .gc-cover-wrap{
   position:absolute;
   top:0; left:0; right:0;
+  width:100%;
+  max-width:100%;
   height:200px;
   z-index:0;
   pointer-events:none;
   overflow:hidden;
+  /* prevent sub-pixel gap on the right edge */
+  transform:translateZ(0);
 }
 .gc-cover-img{
-  position:absolute; inset:0;
+  position:absolute;
+  top:0; left:0;
+  width:100%;
+  height:100%;
   background-size:cover;
   background-position:center center;
   background-repeat:no-repeat;
@@ -1774,15 +1781,26 @@ body.gc-other-cover-topbar #page-other-profile > .chat-topbar i{
   padding-left: 0;
   padding-right: 0;
   gap: 0;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow-x: hidden;
 }
 .profile-header.gc-has-cover .gc-cover-wrap{
   height: 210px;
+  left: 0;
+  right: 0;
+  width: 100%;
+  pointer-events: auto; /* allow tap-to-zoom cover */
 }
 .profile-header.gc-has-cover .gc-profile-sheet{
   margin-top: 158px;
   border-radius: 28px 28px 0 0;
   padding-top: 0;
   box-shadow: 0 -8px 28px rgba(0,0,0,.06);
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 /* Avatar straddles the cover / sheet seam */
 .profile-header.gc-has-cover .profile-main-row{
@@ -1803,7 +1821,11 @@ body.gc-other-cover-topbar #page-other-profile > .chat-topbar i{
   padding-bottom: 2px;
   padding-top: 18px; /* nudge Followers/Following/Posts slightly lower */
 }
-/* No cover: compact, no big radius */
+/* No cover: comfortable spacing (not cramped) — own + other */
+.profile-header:not(.gc-has-cover){
+  padding: 16px 16px 4px 16px;
+  gap: 12px;
+}
 .profile-header:not(.gc-has-cover) .gc-cover-wrap{
   height: 0;
   opacity: 0;
@@ -1813,7 +1835,31 @@ body.gc-other-cover-topbar #page-other-profile > .chat-topbar i{
   margin-top: 0;
   border-radius: 0;
   box-shadow: none;
+  padding: 8px 4px 10px;
+}
+.profile-header:not(.gc-has-cover) .profile-main-row{
+  margin-top: 4px;
+  margin-bottom: 4px;
+  gap: 16px;
+  align-items: center;
+  transform: none;
+}
+.profile-header:not(.gc-has-cover) .profile-avatar{
+  width: 92px;
+  height: 92px;
+  border: 3px solid var(--bg);
+  box-shadow: 0 2px 10px rgba(0,0,0,.08);
+}
+.profile-header:not(.gc-has-cover) .profile-stats-row{
   padding-top: 4px;
+  padding-bottom: 2px;
+}
+.profile-header:not(.gc-has-cover) .profile-name-block{
+  margin-top: 6px;
+}
+.profile-header:not(.gc-has-cover) .profile-btns,
+.profile-header:not(.gc-has-cover) .gc-my-profile-actions{
+  margin-top: 14px !important;
 }
 
 /* ═══ COVER · other profile (same Design 1 sheet) ═══ */
@@ -3219,6 +3265,10 @@ background: rgba(0, 0, 0, 0.05) !important;
 column-count:2;
 column-gap:10px;
 padding:10px 14px 24px;
+width:100%;
+max-width:100%;
+box-sizing:border-box;
+overflow-x:hidden;
 }
 .grid-post-item{
 break-inside:avoid;
@@ -3230,6 +3280,9 @@ background:var(--surface-2);
 border:1px solid var(--border);
 border-radius:18px;
 transform:translateZ(0);
+width:100%;
+max-width:100%;
+box-sizing:border-box;
 box-shadow:0 2px 8px rgba(0,0,0,.06), 0 12px 26px -14px rgba(0,0,0,.14);
 transition:transform .3s cubic-bezier(.22,1,.36,1), box-shadow .3s;
 animation:gcMasonryIn .5s cubic-bezier(.22,1,.36,1) both;
@@ -4245,8 +4298,9 @@ background:rgba(0,0,0,.28);color:#fff;font-size:18px;pointer-events:none;
 }
 .gc-un-save.is-ready:active{transform:scale(.98);}
 
-.gc-cf-overlay{position:fixed;inset:0;background:rgba(10,10,20,.65);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);z-index:999999 !important;display:none;align-items:center;justify-content:center;padding:24px;pointer-events:auto !important;}
-.gc-cf-overlay.open{display:flex;}
+/* z-index above image-zoom-modal (1000100) so confirm shows ON TOP of zoom */
+.gc-cf-overlay{position:fixed;inset:0;background:rgba(10,10,20,.65);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);z-index:1000500 !important;display:none;align-items:center;justify-content:center;padding:24px;pointer-events:auto !important;}
+.gc-cf-overlay.open{display:flex !important;}
 .gc-cf-card{width:100%;max-width:320px;background:var(--surface);border-radius:24px;padding:26px 20px 20px;text-align:center;box-shadow:0 24px 70px rgba(0,0,0,.5);animation:gcUnfollowPop .25s cubic-bezier(.22,1,.36,1);}
 .gc-cf-icon{width:70px;height:70px;margin:0 auto 14px;border-radius:50%;background:rgba(255,77,106,.12);border:2px solid var(--danger);display:flex;align-items:center;justify-content:center;}
 .gc-cf-icon i{font-size:30px;color:var(--danger);}
@@ -4357,6 +4411,24 @@ background:rgba(0,0,0,.28);color:#fff;font-size:18px;pointer-events:none;
 #page-other-profile {
     z-index: 10000 !important; 
     display: none; /* ডিফল্ট ভাবে লুকানো */
+    overflow-x: hidden !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+}
+/* Own profile page — no horizontal spill (Gallery grid) */
+#page-profile {
+    overflow-x: hidden !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+}
+#my-posts-list,
+#other-user-posts-list {
+    overflow-x: hidden;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
 }
 
 /* চ্যাট স্ক্রিনের z-index প্রোফাইল পেজের নিচে রাখা */
@@ -7161,15 +7233,32 @@ Edit Profile-এ পার্টনার সিলেক্ট বাটন
     <div id="profile-details-wrapper" style="display: none; padding: 8px 0 4px; border-top: none;">
         <div class="profile-personal-details" id="profile-details-display" style="margin-top: 0; padding: 0;"></div>
     </div>
-<div style="display:flex; justify-content:center; gap:12px; width:100%; margin-top:16px; flex-wrap:wrap;">
-    <button class="icon-btn" style="border-radius:30px; padding:10px 24px; background:var(--gradient); color:#fff; border:none; box-shadow:var(--shadow-glow); display:flex; align-items:center; gap:8px; font-size:14px; font-weight:700;" onclick="openProfileEdit()">
-        <i class="ph-bold ph-pencil-simple" style="font-size:20px;"></i> Edit Profile
+<div class="gc-my-profile-actions" style="display:flex; justify-content:center; align-items:center; gap:8px; width:100%; margin-top:16px; flex-wrap:nowrap;">
+    <button class="icon-btn" style="border-radius:30px; padding:8px 16px; background:var(--gradient); color:#fff; border:none; box-shadow:var(--shadow-glow); display:flex; align-items:center; gap:6px; font-size:13px; font-weight:700; flex-shrink:0;" onclick="openProfileEdit()">
+        <i class="ph-bold ph-pencil-simple" style="font-size:17px;"></i> Edit Profile
     </button>
     
     <!-- 🚀 Insights Button (fixed) -->
-    <button id="gc-profile-insights-btn" class="icon-btn" style="border-radius:30px; padding:10px 24px; border:1px solid var(--accent); color:var(--accent); background:transparent; display:flex; align-items:center; gap:8px; font-size:14px; font-weight:700;" onclick="event.stopPropagation(); gcOpenInsights();">
-        <i class="ph-bold ph-chart-bar" style="font-size:20px;"></i> Insights
-    </button>    
+    <button id="gc-profile-insights-btn" class="icon-btn" style="border-radius:30px; padding:8px 16px; border:1px solid var(--accent); color:var(--accent); background:transparent; display:flex; align-items:center; gap:6px; font-size:13px; font-weight:700; flex-shrink:0;" onclick="event.stopPropagation(); gcOpenInsights();">
+        <i class="ph-bold ph-chart-bar" style="font-size:17px;"></i> Insights
+    </button>
+
+    <!-- 🚀 Own profile · more (3-dot) — capsule like Insights -->
+    <button type="button" id="gc-my-profile-more-btn" class="icon-btn" style="border-radius:30px; padding:8px 16px; border:1px solid var(--accent); color:var(--accent); background:transparent; display:flex; align-items:center; justify-content:center; flex-shrink:0;" onclick="event.stopPropagation(); gcOpenMyProfileMore();" aria-label="More">
+        <i class="ph-bold ph-dots-three" style="font-size:18px;"></i>
+    </button>
+    <!-- hidden source menu → opened as Threads-style bottom sheet -->
+    <div id="gc-my-profile-more-menu" class="profile-menu" style="display:none;" onclick="event.stopPropagation();">
+        <div class="chat-dropdown-item" onclick="gcViewProfilePhoto('my')">
+            <i class="ph-bold ph-user-circle" style="font-size:20px;"></i> View profile photo
+        </div>
+        <div class="chat-dropdown-item" onclick="gcViewCoverPhoto('my')">
+            <i class="ph-bold ph-image" style="font-size:20px;"></i> View cover photo
+        </div>
+        <div class="chat-dropdown-item" onclick="gcShareMyProfileLink()">
+            <i class="ph-bold ph-share-network" style="font-size:20px;"></i> Share profile link
+        </div>
+    </div>
 </div>
 
 </div>
@@ -7199,6 +7288,12 @@ Edit Profile-এ পার্টনার সিলেক্ট বাটন
         <div class="icon-btn" onclick="event.stopPropagation();toggleProfileMenu()" style="background:transparent; padding:6px; border:none; margin:0; position:relative;">
             <i class="ph-bold ph-dots-three" style="font-size:24px;"></i>
             <div class="profile-menu" id="profile-menu" onclick="event.stopPropagation();">
+    <div class="chat-dropdown-item" onclick="gcViewProfilePhoto('other')">
+        <i class="ph-bold ph-user-circle" style="font-size:20px;"></i> View profile photo
+    </div>
+    <div class="chat-dropdown-item" onclick="gcViewCoverPhoto('other')">
+        <i class="ph-bold ph-image" style="font-size:20px;"></i> View cover photo
+    </div>
     <div class="chat-dropdown-item" onclick="copyOtherProfileLink()">
         <i class="ph-bold ph-link" style="font-size:20px;"></i> Copy Profile Link
     </div>
@@ -11210,8 +11305,8 @@ function gcUpdateProfileStoryRings(){
                 if(has){
                     if(typeof playStories === 'function') playStories(currentUser.uid);
                 } else if(currentUserData && currentUserData.avatar){
-                    // Profile photo zoom — no download menu
-                    openImageZoom(currentUserData.avatar, null, true);
+                    // Own profile photo — zoom with Remove/Change menu
+                    openImageZoom(currentUserData.avatar, null, true, true, 'profile');
                 }
             };
             wrap.style.cursor = (has || (currentUserData && currentUserData.avatar)) ? 'pointer' : '';
@@ -11236,10 +11331,10 @@ function gcUpdateProfileStoryRings(){
                 if(has){
                     if(typeof playStories === 'function') playStories(uid);
                 } else {
-                    // Profile photo zoom — no download menu
+                    // Other's profile photo — no 3-dot (privacy)
                     const img = otherAv.querySelector('img');
                     const src = img ? img.src : '';
-                    if(src) openImageZoom(src, null, true);
+                    if(src) openImageZoom(src, null, true, false, 'profile');
                 }
             };
             wrap.style.cursor = 'pointer';
@@ -14618,11 +14713,15 @@ let zoomCurrentIdx = 0;
 let zoomActivePostId = null;
 let zoomUnsub = null;
 
-function openImageZoom(url, postId = null, isProfilePic = false) {
+// isProfilePic: hide download for privacy on profile pics
+// isOwnMedia + mediaKind ('profile'|'cover'|'post'): own zoom shows Remove/Change only
+function openImageZoom(url, postId = null, isProfilePic = false, isOwnMedia = false, mediaKind = null) {
     zoomImagesList = [];
     zoomCurrentIdx = 0;
     zoomActivePostId = postId;
     window.zoomIsProfilePic = !!isProfilePic;
+    window.zoomIsOwnMedia = !!isOwnMedia;
+    window.zoomMediaKind = mediaKind || (isProfilePic ? 'profile' : 'post');
     
     const e = window.event;
     if (e && e.target && e.target.tagName === 'IMG') {
@@ -14650,11 +14749,21 @@ function openImageZoom(url, postId = null, isProfilePic = false) {
 
     if (zoomImagesList.length === 0) zoomImagesList = [url];
 
-    // Security: hide 3-dot (download) menu only for profile pictures
+    // Privacy + own-media menu
+    // - Other's profile/cover: no 3-dot (no download)
+    // - Own profile/cover: 3-dot with Remove / Change only
+    // - Normal post images: Share / Save
     const zoomMenuWrap = document.getElementById('zoom-menu-wrap');
+    const kind = window.zoomMediaKind;
+    const own = !!window.zoomIsOwnMedia;
     if (zoomMenuWrap) {
-        zoomMenuWrap.style.display = window.zoomIsProfilePic ? 'none' : '';
+        if (kind === 'profile' || kind === 'cover') {
+            zoomMenuWrap.style.display = own ? '' : 'none';
+        } else {
+            zoomMenuWrap.style.display = '';
+        }
     }
+    if (typeof gcConfigureZoomMenu === 'function') gcConfigureZoomMenu();
     const zoomMenu = document.getElementById('zoom-menu');
     if (zoomMenu) zoomMenu.classList.remove('open');
 
@@ -15323,6 +15432,25 @@ function gcApplyCoverPhoto(which, url){
       btn.setAttribute('aria-label', label);
     }
   }
+  // Tap cover → zoom (own: Remove/Change menu · other: view only, no 3-dot)
+  const wrap = document.getElementById(which === 'other' ? 'other-cover-wrap' : 'my-cover-wrap');
+  if(wrap){
+    if(clean){
+      wrap.style.cursor = 'pointer';
+      wrap.onclick = function(ev){
+        if(ev.target.closest('.gc-cover-edit-btn') || ev.target.closest('button') || ev.target.closest('input')) return;
+        ev.stopPropagation();
+        if(which === 'other'){
+          if(typeof openImageZoom === 'function') openImageZoom(clean, null, true, false, 'cover');
+        } else {
+          if(typeof openImageZoom === 'function') openImageZoom(clean, null, false, true, 'cover');
+        }
+      };
+    } else {
+      wrap.style.cursor = '';
+      wrap.onclick = null;
+    }
+  }
   gcSyncCoverTopbarMode();
 }
 window.gcApplyCoverPhoto = gcApplyCoverPhoto;
@@ -15356,33 +15484,7 @@ async function gcUploadCoverPhoto(input){
 }
 window.gcUploadCoverPhoto = gcUploadCoverPhoto;
 
-// Long-press / hold on cover edit → remove cover
-(function(){
-  document.addEventListener('DOMContentLoaded', function(){
-    const btn = document.getElementById('my-cover-edit-btn');
-    if(!btn || btn._gcCoverLong) return;
-    btn._gcCoverLong = true;
-    let t = null;
-    const start = function(){
-      t = setTimeout(async function(){
-        if(!currentUser || !currentUserData || !currentUserData.coverPhoto) return;
-        if(!confirm('Remove cover photo?')) return;
-        try{
-          await db.collection('users').doc(currentUser.uid).update({ coverPhoto: firebase.firestore.FieldValue.delete() });
-          if(currentUserData) delete currentUserData.coverPhoto;
-          gcApplyCoverPhoto('my', '');
-          showToast('Cover removed');
-        }catch(e){ showToast('Could not remove cover'); }
-      }, 650);
-    };
-    const cancel = function(){ if(t){ clearTimeout(t); t = null; } };
-    btn.addEventListener('touchstart', start, { passive: true });
-    btn.addEventListener('mousedown', start);
-    btn.addEventListener('touchend', cancel);
-    btn.addEventListener('mouseup', cancel);
-    btn.addEventListener('mouseleave', cancel);
-  });
-})();
+// Cover remove is now via zoom 3-dot (own cover only) — long-press removed for discoverability
 
 // ═══════════════════════════════════════════════════════
 // 🚀 Avatar editor — crop / position / zoom / confirm
@@ -21503,6 +21605,248 @@ gcOpenSheetFromMenu(document.getElementById('profile-menu'));
 }
 document.addEventListener('keydown', function(e){ if(e.key === 'Escape') gcCloseSheet(); });
 
+// ═══════════════════════════════════════════════════════
+// 🚀 FEATURE: profile · more menu (own 3-dot + other view photo/cover)
+// খুঁজতে: Ctrl+F → "gcOpenMyProfileMore"
+// ═══════════════════════════════════════════════════════
+function gcOpenMyProfileMore(){
+  try{
+    if(typeof closeAllDropdowns === 'function') closeAllDropdowns();
+    const menu = document.getElementById('gc-my-profile-more-menu');
+    if(menu && typeof gcOpenSheetFromMenu === 'function') gcOpenSheetFromMenu(menu);
+  }catch(e){}
+}
+window.gcOpenMyProfileMore = gcOpenMyProfileMore;
+
+function gcResolveProfilePhotoUrl(which){
+  if(which === 'other'){
+    const av = document.getElementById('other-profile-avatar');
+    if(av){
+      const img = av.querySelector('img');
+      if(img && img.src) return img.src;
+    }
+    try{
+      const uid = (typeof currentOtherProfileUid !== 'undefined') ? currentOtherProfileUid : null;
+      if(uid && typeof allUsersCache !== 'undefined' && allUsersCache){
+        const u = allUsersCache.find(function(x){ return x.id === uid; });
+        if(u && u.avatar) return u.avatar;
+      }
+    }catch(e){}
+    return '';
+  }
+  // own
+  if(typeof currentUserData !== 'undefined' && currentUserData && currentUserData.avatar) return currentUserData.avatar;
+  const av = document.getElementById('profile-avatar-big');
+  if(av){
+    const img = av.querySelector('img');
+    if(img && img.src) return img.src;
+  }
+  return '';
+}
+
+function gcResolveCoverPhotoUrl(which){
+  if(which === 'other'){
+    try{
+      const uid = (typeof currentOtherProfileUid !== 'undefined') ? currentOtherProfileUid : null;
+      if(uid && typeof allUsersCache !== 'undefined' && allUsersCache){
+        const u = allUsersCache.find(function(x){ return x.id === uid; });
+        if(u && u.coverPhoto) return u.coverPhoto;
+      }
+    }catch(e){}
+    const el = document.getElementById('other-cover-img');
+    if(el){
+      const bg = el.style && el.style.backgroundImage;
+      if(bg){
+        const m = bg.match(/url\(["']?(.*?)["']?\)/);
+        if(m && m[1] && m[1] !== 'none') return m[1];
+      }
+      const img = el.querySelector && el.querySelector('img');
+      if(img && img.src) return img.src;
+    }
+    return '';
+  }
+  // own
+  if(typeof currentUserData !== 'undefined' && currentUserData && currentUserData.coverPhoto) return currentUserData.coverPhoto;
+  const el = document.getElementById('my-cover-img');
+  if(el){
+    const bg = el.style && el.style.backgroundImage;
+    if(bg){
+      const m = bg.match(/url\(["']?(.*?)["']?\)/);
+      if(m && m[1] && m[1] !== 'none') return m[1];
+    }
+  }
+  return '';
+}
+
+function gcViewProfilePhoto(which){
+  try{
+    if(typeof closeAllDropdowns === 'function') closeAllDropdowns();
+    if(typeof gcCloseSheet === 'function') gcCloseSheet();
+    const who = which || 'my';
+    const url = gcResolveProfilePhotoUrl(who);
+    if(!url){ showToast('No profile photo'); return; }
+    const isOwn = who === 'my';
+    // isProfilePic=true → privacy; isOwnMedia only for owner → Remove/Change menu
+    if(typeof openImageZoom === 'function') openImageZoom(url, null, true, isOwn, 'profile');
+    else window.open(url, '_blank');
+  }catch(e){ showToast('Could not open photo'); }
+}
+window.gcViewProfilePhoto = gcViewProfilePhoto;
+
+function gcViewCoverPhoto(which){
+  try{
+    if(typeof closeAllDropdowns === 'function') closeAllDropdowns();
+    if(typeof gcCloseSheet === 'function') gcCloseSheet();
+    const who = which || 'my';
+    const url = gcResolveCoverPhotoUrl(who);
+    if(!url){ showToast('No cover photo yet'); return; }
+    const isOwn = who === 'my';
+    // cover treated like protected media for others (no download)
+    if(typeof openImageZoom === 'function') openImageZoom(url, null, !isOwn, isOwn, 'cover');
+    else window.open(url, '_blank');
+  }catch(e){ showToast('Could not open cover'); }
+}
+window.gcViewCoverPhoto = gcViewCoverPhoto;
+
+// Zoom menu content by context (post vs own profile/cover)
+function gcConfigureZoomMenu(){
+  const menu = document.getElementById('zoom-menu');
+  if(!menu) return;
+  const kind = window.zoomMediaKind || 'post';
+  const own = !!window.zoomIsOwnMedia;
+  if(kind === 'profile' && own){
+    menu.innerHTML =
+      '<div class="chat-dropdown-item" onclick="gcChangeProfilePhotoFromZoom(event)"><i class="ph-bold ph-camera" style="font-size:20px;"></i> Change profile photo</div>' +
+      '<div class="chat-dropdown-item danger" onclick="gcRemoveProfilePhotoFromZoom(event)"><i class="ph-bold ph-trash" style="font-size:20px;"></i> Remove profile photo</div>';
+  } else if(kind === 'cover' && own){
+    menu.innerHTML =
+      '<div class="chat-dropdown-item" onclick="gcChangeCoverFromZoom(event)"><i class="ph-bold ph-camera" style="font-size:20px;"></i> Change cover photo</div>' +
+      '<div class="chat-dropdown-item danger" onclick="gcRemoveCoverFromZoom(event)"><i class="ph-bold ph-trash" style="font-size:20px;"></i> Remove cover photo</div>';
+  } else {
+    menu.innerHTML =
+      '<div class="chat-dropdown-item" onclick="shareZoomedImage(event)"><i class="ph-bold ph-export" style="font-size:20px;"></i> Share via...</div>' +
+      '<div class="chat-dropdown-item" onclick="downloadZoomedImage(event)"><i class="ph-bold ph-download-simple" style="font-size:20px;"></i> Save image</div>';
+  }
+}
+window.gcConfigureZoomMenu = gcConfigureZoomMenu;
+
+function gcChangeProfilePhotoFromZoom(e){
+  if(e) e.stopPropagation();
+  try{ if(typeof gcCloseSheet === 'function') gcCloseSheet(); }catch(err){}
+  try{ if(typeof closeImageZoom === 'function') closeImageZoom(); }catch(err){}
+  const inp = document.getElementById('avatar-input');
+  if(inp) inp.click();
+  else showToast('Could not open gallery');
+}
+window.gcChangeProfilePhotoFromZoom = gcChangeProfilePhotoFromZoom;
+
+function gcChangeCoverFromZoom(e){
+  if(e) e.stopPropagation();
+  try{ if(typeof gcCloseSheet === 'function') gcCloseSheet(); }catch(err){}
+  try{ if(typeof closeImageZoom === 'function') closeImageZoom(); }catch(err){}
+  const inp = document.getElementById('cover-input');
+  if(inp) inp.click();
+  else showToast('Could not open gallery');
+}
+window.gcChangeCoverFromZoom = gcChangeCoverFromZoom;
+
+function gcRemoveProfilePhotoFromZoom(e){
+  if(e) e.stopPropagation();
+  try{ if(typeof gcCloseSheet === 'function') gcCloseSheet(); }catch(err){}
+  const run = async function(){
+    if(!currentUser) return;
+    try{
+      await db.collection('users').doc(currentUser.uid).update({ avatar: '' });
+      if(currentUserData) currentUserData.avatar = '';
+      try{ if(typeof closeImageZoom === 'function') closeImageZoom(); }catch(err){}
+      try{ if(typeof loadUserUI === 'function') loadUserUI(); }catch(err){}
+      showToast('Profile photo removed');
+    }catch(err){
+      console.error(err);
+      showToast('Could not remove photo');
+    }
+  };
+  if(typeof gcOpenConfirm === 'function'){
+    gcOpenConfirm({
+      title: 'Remove profile photo?',
+      text: 'Your profile will show the default avatar.',
+      icon: 'ph-trash',
+      yesLabel: 'Remove',
+      onYes: function(){ run(); }
+    });
+  } else if(confirm('Remove profile photo?')) {
+    run();
+  }
+}
+window.gcRemoveProfilePhotoFromZoom = gcRemoveProfilePhotoFromZoom;
+
+function gcRemoveCoverFromZoom(e){
+  if(e) e.stopPropagation();
+  try{ if(typeof gcCloseSheet === 'function') gcCloseSheet(); }catch(err){}
+  const run = async function(){
+    if(!currentUser) return;
+    try{
+      await db.collection('users').doc(currentUser.uid).update({ coverPhoto: firebase.firestore.FieldValue.delete() });
+      if(currentUserData) delete currentUserData.coverPhoto;
+      if(typeof gcApplyCoverPhoto === 'function') gcApplyCoverPhoto('my', '');
+      try{ if(typeof closeImageZoom === 'function') closeImageZoom(); }catch(err){}
+      showToast('Cover photo removed');
+    }catch(err){
+      console.error(err);
+      showToast('Could not remove cover');
+    }
+  };
+  if(typeof gcOpenConfirm === 'function'){
+    gcOpenConfirm({
+      title: 'Remove cover photo?',
+      text: 'Your profile header will use the default background.',
+      icon: 'ph-trash',
+      yesLabel: 'Remove',
+      onYes: function(){ run(); }
+    });
+  } else if(confirm('Remove cover photo?')) {
+    run();
+  }
+}
+window.gcRemoveCoverFromZoom = gcRemoveCoverFromZoom;
+
+async function gcShareMyProfileLink(){
+  try{
+    if(typeof closeAllDropdowns === 'function') closeAllDropdowns();
+    if(typeof gcCloseSheet === 'function') gcCloseSheet();
+    if(!currentUser || !currentUserData){ showToast('Profile not found'); return; }
+    const u = Object.assign({ id: currentUser.uid }, currentUserData);
+    let link;
+    if(typeof qrncProfileLink === 'function') link = qrncProfileLink(u);
+    else {
+      const id = u.username || currentUser.uid;
+      link = (typeof qrncBase === 'function' ? qrncBase() : (location.origin + location.pathname.replace(/\/+$/,''))) + '/?user=' + encodeURIComponent(id);
+    }
+    // Prefer native share when available
+    if(navigator.share){
+      try{
+        await navigator.share({ title: (currentUserData.name || 'Profile') + ' on GoChat', url: link });
+        return;
+      }catch(shareErr){
+        // user cancelled or share failed → fall through to copy
+        if(shareErr && shareErr.name === 'AbortError') return;
+      }
+    }
+    const done = function(){ showToast('Profile link copied!'); };
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(link).then(done).catch(function(){
+        if(typeof qrncFallbackCopy === 'function') qrncFallbackCopy(link, done);
+        else showToast('Could not copy link');
+      });
+    } else if(typeof qrncFallbackCopy === 'function'){
+      qrncFallbackCopy(link, done);
+    } else {
+      showToast('Could not copy link');
+    }
+  }catch(e){ showToast('Could not share link'); }
+}
+window.gcShareMyProfileLink = gcShareMyProfileLink;
+
 // ═══ FEATURE: zoom menu uses same Threads sheet as post 3-dot ═══
 function openZoomActionSheet(e){
   if(e) e.stopPropagation();
@@ -23115,7 +23459,8 @@ ov.addEventListener('click', function(e){ if(e.target === ov) gcCloseConfirm(); 
 document.getElementById('gc-cf-cancel').onclick = function(){ gcCloseConfirm(); };
 }
 if(ov.parentElement !== document.body) document.body.appendChild(ov);
-try{ ov.style.setProperty('z-index', '999999', 'important'); }catch(e){ ov.style.zIndex = '999999'; }
+// Above image-zoom-modal (1000100) and zoom sheets (1000300)
+try{ ov.style.setProperty('z-index', '1000500', 'important'); }catch(e){ ov.style.zIndex = '1000500'; }
 ov.querySelector('.gc-cf-icon i').className = 'ph-bold ' + (opts.icon || 'ph-trash');
 ov.querySelector('.gc-cf-title').textContent = opts.title || 'Are you sure?';
 ov.querySelector('.gc-cf-text').textContent = opts.text || '';
@@ -23126,12 +23471,12 @@ yes.onclick = function(e){ e.stopPropagation(); gcCloseConfirm(); if(opts.onYes)
 if(cancel){
   cancel.onclick = function(e){ e.stopPropagation(); gcCloseConfirm(); };
 }
-/* Force paint above story-viewer stacking context */
+/* Force paint above zoom / story stacking context */
 requestAnimationFrame(function(){
   ov.classList.add('open');
   try{
     ov.style.removeProperty('display');
-    ov.style.setProperty('z-index', '999999', 'important');
+    ov.style.setProperty('z-index', '1000500', 'important');
     ov.style.setProperty('display', 'flex', 'important');
   }catch(e){ ov.style.display = 'flex'; }
 });
