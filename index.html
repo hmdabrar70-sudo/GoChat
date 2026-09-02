@@ -1588,228 +1588,174 @@ body.light-mode .gc-profile-empty-icon{
   line-height:1.45;
 }
 /* প্রোফাইলের উপরের অংশ */
+/* ═══════════════════════════════════════════════════════════
+   PROFILE HEADER · Design-1 look + single-flow system
+   Cover is a normal block (not page-absolute). White sheet
+   overlaps cover with rounded top. No floating Add/Edit Cover
+   button — cover managed from ⋮ menu only.
+   ═══════════════════════════════════════════════════════════ */
 .profile-header {
-    background: var(--bg); /* unified with page — no two-tone in dark mode */
-    padding: 24px 20px 0 20px;
-    text-align: left;
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-    /* overflow visible so mutual-friends strip / buttons are not clipped.
-       Cover image is clipped by .gc-cover-wrap instead. */
-    overflow: visible;
-}
-
-/* ═══ FEATURE: profile · cover photo (mockup style) ═══ */
-.gc-cover-wrap{
-  position:absolute;
-  top:0; left:0; right:0;
-  width:100%;
-  max-width:100%;
-  height:200px;
-  z-index:0;
-  pointer-events:none;
-  overflow:hidden;
-  /* prevent sub-pixel gap on the right edge */
-  transform:translateZ(0);
-}
-.gc-cover-img{
-  position:absolute;
-  top:0; left:0;
-  width:100%;
-  height:100%;
-  background-size:cover;
-  background-position:center center;
-  background-repeat:no-repeat;
-  background-color:transparent;
-}
-/* Soft fade under Design-1 sheet edge (very subtle — sheet does the real blend) */
-.gc-cover-fade{
-  position:absolute;
-  left:0; right:0; bottom:0;
-  height:22%;
-  pointer-events:none;
-}
-body.light-mode .gc-cover-fade{
-  background:linear-gradient(to bottom,
-    rgba(255,255,255,0) 0%,
-    rgba(255,255,255,0.12) 50%,
-    rgba(255,255,255,0.4) 100%);
-}
-body:not(.light-mode) .gc-cover-fade{
-  background:linear-gradient(to bottom,
-    rgba(10,10,15,0) 0%,
-    rgba(10,10,15,0.15) 50%,
-    rgba(10,10,15,0.4) 100%);
-}
-
-/* ═══ COVER UX · OPTION A — Gradient Overlay Top Bars ═══
-   When a profile has a cover photo, the navigation chrome sits directly
-   over the cover instead of appearing as a separate white/solid strip.
-   This is intentionally limited to the profile screens.
-*/
-/* Cover / profile topbar: fully clean — no dark bar, no shadow, no frosted overlay */
-body.gc-own-cover-topbar #app-screen > .topbar,
-body.profile-mode #app-screen > .topbar,
-body.light-mode.gc-own-cover-topbar #app-screen > .topbar,
-body.light-mode.profile-mode #app-screen > .topbar{
-  position:absolute !important;
-  top:0; left:0; right:0;
-  width:100%;
-  background:transparent !important;
-  background-color:transparent !important;
-  border-bottom:none !important;
-  box-shadow:none !important;
-  backdrop-filter:none !important;
-  -webkit-backdrop-filter:none !important;
-  color:#fff !important;
-}
-body.gc-own-cover-topbar #app-screen > .topbar .topbar-btn,
-body.gc-own-cover-topbar #app-screen > .topbar .topbar-btn i,
-body.profile-mode #app-screen > .topbar .topbar-btn,
-body.profile-mode #app-screen > .topbar .topbar-btn i{
-  color:#fff !important;
-  -webkit-text-fill-color:#fff !important;
-  text-shadow:none !important;
-  background:transparent !important;
-}
-/* Hide center G logo on own profile always (cover or not) */
-body.profile-mode #app-screen > .topbar .topbar-logo,
-body.profile-mode #topbar-logo-main,
-body.profile-mode #topbar-logo-main .gc-brand-icon,
-body.profile-mode #topbar-logo-main .gc-brand-img,
-body.gc-own-cover-topbar #app-screen > .topbar .topbar-logo,
-body.gc-own-cover-topbar #topbar-logo-main,
-body.gc-own-cover-topbar #topbar-logo-main .gc-brand-icon,
-body.gc-own-cover-topbar #topbar-logo-main .gc-brand-img{
-  display:none !important;
-  visibility:hidden !important;
-  opacity:0 !important;
-  pointer-events:none !important;
-  width:0 !important;
-  height:0 !important;
-  overflow:hidden !important;
-}
-
-body.gc-other-cover-topbar #page-other-profile > .chat-topbar,
-body.light-mode.gc-other-cover-topbar #page-other-profile > .chat-topbar{
-  position:absolute !important;
-  top:0; left:0; right:0;
-  width:100%;
-  background:transparent !important;
-  background-color:transparent !important;
-  border-bottom:none !important;
-  box-shadow:none !important;
-  backdrop-filter:none !important;
-  -webkit-backdrop-filter:none !important;
-  color:#fff !important;
-}
-body.gc-other-cover-topbar #page-other-profile > .chat-topbar .chat-back,
-body.gc-other-cover-topbar #page-other-profile > .chat-topbar .chat-name,
-body.gc-other-cover-topbar #page-other-profile > .chat-topbar i{
-  color:#fff !important;
-  -webkit-text-fill-color:#fff !important;
-  text-shadow:none !important;
-  background:transparent !important;
-}
-/* Pill button: camera + "Add/Edit Cover" (sibling of cover wrap) */
-.gc-cover-edit-btn{
-  position:absolute;
-  z-index:5;
-  height:34px;
-  padding:0 14px;
-  border-radius:20px;
-  border:none;
-  background:rgba(30,30,35,.55);
-  color:#fff;
-  display:none;
-  align-items:center;
-  justify-content:center;
-  gap:6px;
-  cursor:pointer;
-  pointer-events:auto;
-  backdrop-filter:blur(10px);
-  -webkit-backdrop-filter:blur(10px);
-  box-shadow:0 2px 12px rgba(0,0,0,.22);
-  font-size:13px;
-  font-weight:700;
-  font-family:inherit;
-  letter-spacing:0.01em;
-  white-space:nowrap;
-}
-.gc-cover-edit-btn i{ font-size:15px; }
-.gc-cover-edit-btn:active{ transform:scale(.96); opacity:.9; }
-/* Show only on own profile header */
-#my-profile-header{
-  position:relative;
-}
-#my-profile-header .gc-cover-edit-btn{
-  display:inline-flex;
-}
-/* With cover: on cover, upper-right — above the rounded sheet curve */
-#my-profile-header.gc-has-cover .gc-cover-edit-btn{
-  top: 118px;
-  right: 16px;
-  background: rgba(30,30,35,.58);
-}
-/* No cover yet: compact header, top-right */
-#my-profile-header:not(.gc-has-cover) .gc-cover-edit-btn{
-  top: 10px;
-  right: 12px;
-  background: rgba(30,30,35,.72);
-  color: #fff;
-  box-shadow: 0 2px 10px rgba(0,0,0,.18);
-}
-/* Keep profile content above cover (button stays z-index 5) */
-.profile-header > *:not(.gc-cover-wrap):not(.gc-cover-edit-btn){
-  position:relative;
-  z-index:1;
-}
-/* ═══ DESIGN 1 · rounded profile sheet over cover ═══ */
-.gc-profile-sheet{
-  position: relative;
-  z-index: 2;
   background: var(--bg);
-  padding: 0 16px 6px;
-  width: 100%;
-  box-sizing: border-box;
-}
-/* Cover present: sheet sits on cover with big rounded top (Design 1) */
-.profile-header.gc-has-cover{
-  padding-top: 0;
-  padding-left: 0;
-  padding-right: 0;
+  padding: 0;
+  text-align: left;
+  position: relative;
+  display: flex;
+  flex-direction: column;
   gap: 0;
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
-  overflow-x: hidden;
+  overflow: visible;
 }
-.profile-header.gc-has-cover .gc-cover-wrap{
-  height: 210px;
-  left: 0;
-  right: 0;
+
+/* Cover block in document flow */
+.gc-cover-wrap{
+  position: relative;
   width: 100%;
-  pointer-events: auto; /* allow tap-to-zoom cover */
+  max-width: 100%;
+  height: 0;
+  overflow: hidden;
+  flex-shrink: 0;
+  pointer-events: none;
 }
-.profile-header.gc-has-cover .gc-profile-sheet{
-  margin-top: 158px;
-  border-radius: 28px 28px 0 0;
-  padding-top: 0;
-  box-shadow: 0 -8px 28px rgba(0,0,0,.06);
+.profile-header.gc-has-cover .gc-cover-wrap,
+.profile-header.gc-cover-loading .gc-cover-wrap{
+  height: 200px;
+  pointer-events: auto;
+  overflow: hidden;
+}
+.gc-cover-img{
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
+  background-color: var(--surface-2);
+}
+.gc-cover-fade{
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  height: 22%;
+  pointer-events: none;
+}
+body.light-mode .gc-cover-fade{
+  background: linear-gradient(to bottom, rgba(255,255,255,0) 0%, rgba(255,255,255,0.35) 100%);
+}
+body:not(.light-mode) .gc-cover-fade{
+  background: linear-gradient(to bottom, rgba(10,10,15,0) 0%, rgba(10,10,15,0.35) 100%);
+}
+#other-profile-header .gc-cover-img{
+  transition: opacity 0.28s ease;
+}
+#other-profile-header.gc-cover-loading:not(.gc-has-cover) .gc-cover-img{
+  background-image: none !important;
+  background: linear-gradient(180deg, var(--surface-2) 0%, var(--bg) 100%);
+}
+
+/* Hide center G logo on own profile only — topbar stays solid/normal */
+body.profile-mode #app-screen > .topbar .topbar-logo,
+body.profile-mode #topbar-logo-main,
+body.profile-mode #topbar-logo-main .gc-brand-icon,
+body.profile-mode #topbar-logo-main .gc-brand-img{
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  overflow: hidden !important;
+}
+
+/* ═══════════════════════════════════════════════════════
+   🚀 facebook-style-cover-topbar · 2026-09-02 (v2 — no scrim)
+   কভার ফটো থাকলে টপবার একটা সলিড বার হিসেবে আলাদা না বসে,
+   কভারের উপরে সরাসরি ভেসে থাকবে — কোনো গ্রেডিয়েন্ট/শ্যাডো
+   ব্যাকগ্রাউন্ড থাকবে না, শুধু আইকনগুলো সাদা রঙে (নিজস্ব
+   drop-shadow সহ, পড়ার জন্য যথেষ্ট কনট্রাস্ট) ভেসে থাকবে।
+   কভার না থাকলে টপবার আগের মতোই সলিড/স্বাভাবিক থাকবে — কিছু
+   ভাঙবে না।
+   খুঁজতে: Ctrl+F → "facebook-style-cover-topbar"
+   ═══════════════════════════════════════════════════════ */
+#app-screen{ position: relative; }
+
+body.profile-mode:has(#my-profile-header.gc-has-cover) .topbar{
+  position: absolute !important;
+  top: 0 !important; left: 0 !important; right: 0 !important;
+  z-index: 60;
+  background: transparent !important;
+  border-bottom: none !important;
+  box-shadow: none !important;
+  padding-top: max(14px, env(safe-area-inset-top, 0px));
+}
+body.profile-mode:has(#my-profile-header.gc-has-cover) .topbar-btn i,
+body.profile-mode:has(#my-profile-header.gc-has-cover) .topbar-btn .material-symbols-outlined{
+  color:#fff !important;
+  -webkit-text-fill-color:#fff !important;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.85), 0 1px 10px rgba(0,0,0,0.5);
+}
+
+#page-other-profile{ position: relative; }
+#page-other-profile:has(#other-profile-header.gc-has-cover) > .chat-topbar:first-child{
+  position: absolute !important;
+  top: 0 !important; left: 0 !important; right: 0 !important;
+  z-index: 60;
+  background: transparent !important;
+  border-bottom: none !important;
+  box-shadow: none !important;
+  padding-top: max(14px, env(safe-area-inset-top, 0px));
+}
+#page-other-profile:has(#other-profile-header.gc-has-cover) > .chat-topbar:first-child .chat-back i,
+#page-other-profile:has(#other-profile-header.gc-has-cover) > .chat-topbar:first-child .chat-name,
+#page-other-profile:has(#other-profile-header.gc-has-cover) > .chat-topbar:first-child .icon-btn i,
+#page-other-profile:has(#other-profile-header.gc-has-cover) > .chat-topbar:first-child .material-symbols-outlined{
+  color:#fff !important;
+  -webkit-text-fill-color:#fff !important;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.85), 0 1px 10px rgba(0,0,0,0.5);
+}
+/* Fallback for browsers without :has() support (very old WebViews) —
+   topbar simply stays in its current solid/sticky style, nothing breaks. */
+
+
+/* Cover edit button permanently removed from UI (use ⋮ menu) */
+.gc-cover-edit-btn,
+#my-profile-header .gc-cover-edit-btn,
+#my-profile-header.gc-has-cover .gc-cover-edit-btn,
+#my-profile-header:not(.gc-has-cover) .gc-cover-edit-btn{
+  display: none !important;
+  pointer-events: none !important;
+  visibility: hidden !important;
+}
+
+/* White content sheet */
+.gc-profile-sheet{
+  position: relative;
+  z-index: 2;
+  background: var(--bg);
+  padding: 12px 16px 10px;
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
+  margin-top: 0;
+  border-radius: 0;
+  box-shadow: none;
+  overflow: visible;
 }
-/* Avatar straddles the cover / sheet seam */
+/* Design-1: sheet overlaps cover, big rounded top */
+.profile-header.gc-has-cover .gc-profile-sheet{
+  margin-top: -48px;
+  border-radius: 28px 28px 0 0;
+  padding-top: 0;
+  box-shadow: 0 -8px 28px rgba(0,0,0,.06);
+}
 .profile-header.gc-has-cover .profile-main-row{
   margin-top: 0;
   padding-top: 0;
   align-items: flex-end;
   gap: 14px;
-  transform: translateY(-42px);
-  margin-bottom: -30px;
+  transform: translateY(-36px);
+  margin-bottom: -22px;
 }
 .profile-header.gc-has-cover .profile-avatar{
   width: 96px;
@@ -1818,28 +1764,20 @@ body.gc-other-cover-topbar #page-other-profile > .chat-topbar i{
   box-shadow: 0 2px 14px rgba(0,0,0,.16);
 }
 .profile-header.gc-has-cover .profile-stats-row{
+  padding-top: 14px;
   padding-bottom: 2px;
-  padding-top: 18px; /* nudge Followers/Following/Posts slightly lower */
 }
-/* No cover: comfortable spacing (not cramped) — own + other */
+
+/* No cover: clean classic profile (pre-cover-feature look) */
 .profile-header:not(.gc-has-cover){
-  padding: 16px 16px 4px 16px;
-  gap: 12px;
-}
-.profile-header:not(.gc-has-cover) .gc-cover-wrap{
-  height: 0;
-  opacity: 0;
-  pointer-events: none;
+  padding-top: 12px;
 }
 .profile-header:not(.gc-has-cover) .gc-profile-sheet{
-  margin-top: 0;
-  border-radius: 0;
-  box-shadow: none;
-  padding: 8px 4px 10px;
+  padding: 8px 16px 12px;
 }
 .profile-header:not(.gc-has-cover) .profile-main-row{
   margin-top: 4px;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
   gap: 16px;
   align-items: center;
   transform: none;
@@ -1862,51 +1800,14 @@ body.gc-other-cover-topbar #page-other-profile > .chat-topbar i{
   margin-top: 14px !important;
 }
 
-/* ═══ COVER · other profile (same Design 1 sheet) ═══ */
-#other-profile-header.gc-has-cover,
-#other-profile-header.gc-cover-loading{
-  padding-top: 0;
-  padding-left: 0;
-  padding-right: 0;
-  gap: 0;
-}
-#other-profile-header.gc-has-cover .gc-cover-wrap,
-#other-profile-header.gc-cover-loading .gc-cover-wrap{
-  height: 210px;
-  opacity: 1;
-}
-#other-profile-header.gc-has-cover .gc-profile-sheet,
-#other-profile-header.gc-cover-loading .gc-profile-sheet{
-  margin-top: 158px;
-  border-radius: 28px 28px 0 0;
-  box-shadow: 0 -8px 28px rgba(0,0,0,.06);
-}
-#other-profile-header.gc-has-cover .profile-main-row,
-#other-profile-header.gc-cover-loading .profile-main-row{
-  margin-top: 0;
-  align-items: flex-end;
-  gap: 14px;
-  transform: translateY(-42px);
-  margin-bottom: -30px;
-}
-#other-profile-header.gc-has-cover .profile-avatar,
-#other-profile-header.gc-cover-loading .profile-avatar{
-  width: 96px;
-  height: 96px;
-  border: 4px solid var(--bg);
-  box-shadow: 0 2px 14px rgba(0,0,0,.16);
-}
-#other-profile-header.gc-has-cover .profile-stats-row,
-#other-profile-header.gc-cover-loading .profile-stats-row{
-  padding-bottom: 2px;
-  padding-top: 18px; /* nudge Followers/Following/Posts slightly lower */
-}
-#other-profile-header.gc-cover-loading:not(.gc-has-cover) .gc-cover-img{
-  background-image: none !important;
-  background: linear-gradient(180deg, var(--surface-2) 0%, var(--bg) 100%);
-}
-#other-profile-header .gc-cover-img{
-  transition: opacity 0.28s ease;
+/* Action buttons never clip */
+#other-profile-btns,
+.gc-my-profile-actions{
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow: visible;
+  flex-wrap: wrap;
 }
 
 /* প্রোফাইল ফিল্টার মেনুকে হেডারের সাথে জুড়ে দেওয়ার ম্যাজিক কোড */
@@ -2930,7 +2831,7 @@ font-size:14px;
 .auth-box{padding:32px 20px;}
 .post-card{margin:10px 12px;padding:16px;}
 .msg-item{margin:8px 12px;padding:12px 14px;}
-.profile-header{padding:20px 16px;}
+/* profile-header padding controlled by unified cover layout — do not override */
 }
 .friends-tab-nav {
 display: flex;
@@ -3268,7 +3169,7 @@ padding:10px 14px 24px;
 width:100%;
 max-width:100%;
 box-sizing:border-box;
-overflow-x:hidden;
+overflow:hidden; /* prevent gallery grid from shifting profile header horizontally */
 }
 .grid-post-item{
 break-inside:avoid;
@@ -4412,9 +4313,22 @@ background:rgba(0,0,0,.28);color:#fff;font-size:18px;pointer-events:none;
     z-index: 10000 !important; 
     display: none; /* ডিফল্ট ভাবে লুকানো */
     overflow-x: hidden !important;
+    overflow-y: auto !important;
     width: 100% !important;
     max-width: 100% !important;
     box-sizing: border-box !important;
+}
+#page-other-profile .profile-header{
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow: visible; /* avatar may overlap cover upward */
+}
+#page-other-profile .gc-profile-sheet{
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow: visible;
 }
 /* Own profile page — no horizontal spill (Gallery grid) */
 #page-profile {
@@ -4429,6 +4343,45 @@ background:rgba(0,0,0,.28);color:#fff;font-size:18px;pointer-events:none;
     width: 100%;
     max-width: 100%;
     box-sizing: border-box;
+}
+/* 🚀 fix-other-profile-scroll · 2026-09-02
+   কারণ: overflow-x:hidden সেট করলে ব্রাউজার automatically overflow-y-কে
+   "auto" বানিয়ে দেয় (CSS স্পেক অনুযায়ী)। #page-other-profile একটা
+   flex-column কন্টেইনার হওয়ায়, flexbox-এর নিয়মে overflow:auto থাকা
+   চাইল্ডের automatic min-height content-based না হয়ে 0 হয়ে যায় —
+   ফলে flexbox এই লিস্টটাকে বাকি ছোট্ট জায়গায় (~430px) চেপে ধরে
+   নিজের আলাদা ছোট স্ক্রলবক্স বানিয়ে ফেলে, আর উপরের কভার/হেডার/ট্যাব
+   কখনো সরে না — ঠিক যে সমস্যাটা রিপোর্ট করা হয়েছিল।
+   সমাধান: flex-shrink:0 দিয়ে এটাকে সংকুচিত হতে না দেওয়া, তাহলে
+   পুরো #page-other-profile (own profile-এর মতোই) একসাথে স্ক্রল হবে।
+   খুঁজতে: Ctrl+F → "fix-other-profile-scroll" */
+#other-user-posts-list{
+    flex-shrink: 0 !important;
+}
+/* 🚀 fix-other-profile-cover-width · 2026-09-02
+   কারণ: Media/Gallery-তে কনটেন্ট বেশি হওয়ায় #page-other-profile-এর
+   নিজস্ব স্ক্রলবার দেখা যায় (Status-এ কম কনটেন্ট থাকায় স্ক্রলবার
+   লাগে না) — এই স্ক্রলবার ডান পাশ থেকে জায়গা খেয়ে নেওয়ায় কভার/হেডার
+   ট্যাব-ভেদে সংকুচিত-অসংকুচিত দেখাচ্ছিল। অ্যাপের বাকি সব শিট/প্যানেলে
+   যেভাবে scrollbar-width:none দিয়ে স্ক্রলবার লুকানো হয়, এখানেও একই
+   প্যাটার্ন — স্ক্রল কাজ করবে, শুধু বার দেখা যাবে না, তাই প্রস্থ সবসময়
+   একই থাকবে।
+   খুঁজতে: Ctrl+F → "fix-other-profile-cover-width" */
+#page-other-profile{
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+#page-other-profile::-webkit-scrollbar{
+    display: none;
+    width: 0;
+    height: 0;
+}
+/* 🚀 remove-other-profile-title · 2026-09-02
+   অন্যের প্রোফাইলে টপবারে "Profile" লেখাটা লুকানো হলো — শুধু
+   ব্যাক অ্যারো + বেল + ৩-ডট থাকবে, নিজের প্রোফাইলের মতোই minimal।
+   খুঁজতে: Ctrl+F → "remove-other-profile-title" */
+#other-profile-top-name{
+    display: none !important;
 }
 
 /* চ্যাট স্ক্রিনের z-index প্রোফাইল পেজের নিচে রাখা */
@@ -7180,12 +7133,12 @@ Edit Profile-এ পার্টনার সিলেক্ট বাটন
 
 <div class="page" id="page-profile">
 <div class="profile-header" id="my-profile-header">
-<!-- 🚀 Cover photo (own profile · test) -->
+<!-- 🚀 Cover photo — unified flow block (own) -->
 <div class="gc-cover-wrap" id="my-cover-wrap">
   <div class="gc-cover-img" id="my-cover-img"></div>
   <div class="gc-cover-fade"></div>
 </div>
-<!-- Cover button OUTSIDE wrap so it stays visible even when cover height is 0 -->
+<!-- Add/Edit Cover — position via CSS (inside header flow, not topbar) -->
 <button type="button" class="gc-cover-edit-btn" id="my-cover-edit-btn" onclick="document.getElementById('cover-input').click()" title="Add Cover" aria-label="Add Cover">
   <i class="ph-bold ph-camera"></i><span>Add Cover</span>
 </button>
@@ -7252,8 +7205,9 @@ Edit Profile-এ পার্টনার সিলেক্ট বাটন
         <div class="chat-dropdown-item" onclick="gcViewProfilePhoto('my')">
             <i class="ph-bold ph-user-circle" style="font-size:20px;"></i> View profile photo
         </div>
-        <div class="chat-dropdown-item" onclick="gcViewCoverPhoto('my')">
-            <i class="ph-bold ph-image" style="font-size:20px;"></i> View cover photo
+        <div class="chat-dropdown-item" id="gc-my-cover-menu-item" onclick="gcHandleCoverMenuAction('my')">
+            <i class="ph-bold ph-image" id="gc-my-cover-menu-icon" style="font-size:20px;"></i>
+            <span id="gc-my-cover-menu-label">View cover photo</span>
         </div>
         <div class="chat-dropdown-item" onclick="gcShareMyProfileLink()">
             <i class="ph-bold ph-share-network" style="font-size:20px;"></i> Share profile link
@@ -7291,8 +7245,9 @@ Edit Profile-এ পার্টনার সিলেক্ট বাটন
     <div class="chat-dropdown-item" onclick="gcViewProfilePhoto('other')">
         <i class="ph-bold ph-user-circle" style="font-size:20px;"></i> View profile photo
     </div>
-    <div class="chat-dropdown-item" onclick="gcViewCoverPhoto('other')">
-        <i class="ph-bold ph-image" style="font-size:20px;"></i> View cover photo
+    <div class="chat-dropdown-item" id="gc-other-cover-menu-item" onclick="gcHandleCoverMenuAction('other')">
+        <i class="ph-bold ph-image" style="font-size:20px;"></i>
+        <span id="gc-other-cover-menu-label">View cover photo</span>
     </div>
     <div class="chat-dropdown-item" onclick="copyOtherProfileLink()">
         <i class="ph-bold ph-link" style="font-size:20px;"></i> Copy Profile Link
@@ -15370,20 +15325,12 @@ try{
 // খুঁজতে: Ctrl+F → "gcApplyCoverPhoto"
 // ═══════════════════════════════════════════════════════
 function gcSyncCoverTopbarMode(){
+  /* Unified profile layout: topbar is always normal (solid/sticky).
+     Clear any legacy transparent-over-cover classes so they never stick. */
   const body = document.body;
   if(!body) return;
-
-  const ownPage = document.getElementById('page-profile');
-  const ownHeader = document.getElementById('my-profile-header');
-  const otherPage = document.getElementById('page-other-profile');
-  const otherHeader = document.getElementById('other-profile-header');
-
-  const ownActive = !!(ownPage && ownPage.classList.contains('active') && ownHeader && ownHeader.classList.contains('gc-has-cover'));
-  // Gradient topbar only when other profile is open AND has a real cover
-  const otherActive = !!(otherPage && otherPage.classList.contains('open') && otherHeader && otherHeader.classList.contains('gc-has-cover'));
-
-  body.classList.toggle('gc-own-cover-topbar', ownActive);
-  body.classList.toggle('gc-other-cover-topbar', otherActive);
+  body.classList.remove('gc-own-cover-topbar');
+  body.classList.remove('gc-other-cover-topbar');
 }
 window.gcSyncCoverTopbarMode = gcSyncCoverTopbarMode;
 
@@ -21601,6 +21548,7 @@ gcOpenSheetFromMenu(document.getElementById('chat-menu-' + chatId));
 }
 function toggleProfileMenu(){
 closeAllDropdowns();
+if(typeof gcRefreshCoverMenuLabels === 'function') gcRefreshCoverMenuLabels('other');
 gcOpenSheetFromMenu(document.getElementById('profile-menu'));
 }
 document.addEventListener('keydown', function(e){ if(e.key === 'Escape') gcCloseSheet(); });
@@ -21612,11 +21560,63 @@ document.addEventListener('keydown', function(e){ if(e.key === 'Escape') gcClose
 function gcOpenMyProfileMore(){
   try{
     if(typeof closeAllDropdowns === 'function') closeAllDropdowns();
+    // Update cover menu label before open
+    if(typeof gcRefreshCoverMenuLabels === 'function') gcRefreshCoverMenuLabels('my');
     const menu = document.getElementById('gc-my-profile-more-menu');
     if(menu && typeof gcOpenSheetFromMenu === 'function') gcOpenSheetFromMenu(menu);
   }catch(e){}
 }
 window.gcOpenMyProfileMore = gcOpenMyProfileMore;
+
+/** Update ⋮ menu: Add cover photo (no cover) / View cover photo (has cover) */
+function gcRefreshCoverMenuLabels(which){
+  const hasCover = !!(typeof gcResolveCoverPhotoUrl === 'function' && gcResolveCoverPhotoUrl(which || 'my'));
+  if(which === 'other'){
+    const item = document.getElementById('gc-other-cover-menu-item');
+    const label = document.getElementById('gc-other-cover-menu-label');
+    if(item){
+      // Other profile: only show when they have a cover
+      item.style.display = hasCover ? '' : 'none';
+    }
+    if(label) label.textContent = 'View cover photo';
+    return;
+  }
+  const label = document.getElementById('gc-my-cover-menu-label');
+  const icon = document.getElementById('gc-my-cover-menu-icon');
+  const item = document.getElementById('gc-my-cover-menu-item');
+  if(item) item.style.display = '';
+  if(label) label.textContent = hasCover ? 'View cover photo' : 'Add cover photo';
+  if(icon){
+    icon.className = hasCover ? 'ph-bold ph-image' : 'ph-bold ph-camera';
+    icon.style.fontSize = '20px';
+  }
+}
+window.gcRefreshCoverMenuLabels = gcRefreshCoverMenuLabels;
+
+/** ⋮ cover action: view if exists, else open file picker (own only) */
+function gcHandleCoverMenuAction(which){
+  try{
+    if(typeof closeAllDropdowns === 'function') closeAllDropdowns();
+    if(typeof gcCloseSheet === 'function') gcCloseSheet();
+    const who = which || 'my';
+    const url = (typeof gcResolveCoverPhotoUrl === 'function') ? gcResolveCoverPhotoUrl(who) : '';
+    if(url){
+      if(typeof gcViewCoverPhoto === 'function') gcViewCoverPhoto(who);
+      return;
+    }
+    // No cover
+    if(who === 'my'){
+      const input = document.getElementById('cover-input');
+      if(input) input.click();
+      else showToast('Cover picker unavailable');
+    } else {
+      showToast('No cover photo');
+    }
+  }catch(e){
+    showToast('Could not open cover');
+  }
+}
+window.gcHandleCoverMenuAction = gcHandleCoverMenuAction;
 
 function gcResolveProfilePhotoUrl(which){
   if(which === 'other'){
@@ -22309,6 +22309,14 @@ function applyProfileFilter(filterType, profileType, clickedElement) {
         post.style.display = shouldShow ? '' : 'none';
         if (shouldShow) visible++;
     });
+
+    // Defensive: profile action buttons must never be affected by tab filter
+    try{
+      const ownActions = document.querySelector('.gc-my-profile-actions');
+      if(ownActions) ownActions.style.display = 'flex';
+      const otherBtns = document.getElementById('other-profile-btns');
+      if(otherBtns) otherBtns.style.display = 'flex';
+    }catch(e){}
 
     // Empty state for Media / Gallery / Status — single instance only (no double icons)
     Array.from(listContainer.children).forEach(function(n){
