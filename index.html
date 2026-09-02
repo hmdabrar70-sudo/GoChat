@@ -1809,14 +1809,22 @@ body.profile-mode:has(#my-profile-header.gc-has-cover) .topbar-btn .material-sym
   flex-wrap: wrap;
 }
 
-/* প্রোফাইল ফিল্টার মেনুকে হেডারের সাথে জুড়ে দেওয়ার ম্যাজিক কোড */
+/* Profile tabs under header — keep seamless bg but allow breathing room */
 .profile-header + div {
     margin-top: 0 !important;
     border-top: none !important;
-    background: var(--bg) !important; /* same as header & page */
-    padding: 16px 0 12px 0 !important;
+    background: var(--surface) !important;
+    padding: 8px 0 12px 0 !important;
     border-bottom: 1px solid var(--border) !important;
-    box-shadow: none !important; /* no elevation — flat unified look */
+    box-shadow: none !important;
+}
+/* Real tabs row (sibling after profile-header) needs top gap */
+#page-profile > .other-profile-content-tabs,
+#page-other-profile > .other-profile-content-tabs,
+#my-profile-tabs,
+#other-profile-tabs{
+  margin-top: 16px !important;
+  padding-top: 6px !important;
 }
 .profile-main-row{display:flex;align-items:center;gap:18px;width:100%;}
 .profile-avatar-wrap{
@@ -4142,50 +4150,156 @@ background:rgba(0,0,0,.28);color:#fff;font-size:18px;pointer-events:none;
 ========================================= */
 
 /* ═══ Username settings page (Settings → Username) ═══ */
-#gc-username-screen{position:fixed;inset:0;background:var(--bg);z-index:100700;display:none;flex-direction:column;}
-#gc-username-screen.open{display:flex;}
-.gc-un-head{display:flex;align-items:center;gap:12px;padding:14px 16px;background:var(--surface);border-bottom:1px solid var(--border);}
-.gc-un-title{font-size:17px;font-weight:800;color:var(--text);flex:1;}
-.gc-un-body{flex:1;overflow-y:auto;padding:28px 20px 40px;-webkit-overflow-scrolling:touch;}
-.gc-un-card{
-  background:var(--surface);border:1px solid var(--border);border-radius:24px;
-  padding:28px 20px 22px;text-align:center;
-  box-shadow:var(--shadow-md);
-  position:relative;
+
+/* ═══ Username screen · Design 2 (purple hero + bottom editor) ═══ */
+#gc-username-screen{
+  position:fixed;inset:0;z-index:100700;display:none;flex-direction:column;
+  background:var(--bg);
 }
-.gc-un-av{
-  width:96px;height:96px;border-radius:50%;margin:0 auto 14px;
-  background:var(--gradient);overflow:hidden;
-  box-shadow:0 8px 28px var(--accent-glow);
-  border:3px solid var(--surface);
+#gc-username-screen.open{display:flex;}
+.gc-un-topbar{
+  display:flex;align-items:center;justify-content:center;
+  padding:0;
+  padding-top:max(6px, env(safe-area-inset-top));
+  background:transparent !important;position:relative;z-index:5;
+  min-height:48px;width:100%;box-sizing:border-box;
+  margin:0 0 4px 0;
+}
+/* plain icon like other pages — NO circle / gray bg */
+.gc-un-topbar .gc-un-back,
+#gc-username-screen .gc-un-back{
+  position:absolute !important;
+  left:4px !important;
+  top:max(6px, env(safe-area-inset-top)) !important;
+  width:44px !important;height:44px !important;
+  border:none !important;border-radius:0 !important;
+  background:transparent !important;
+  background-color:transparent !important;
+  color:#fff !important;
+  display:flex !important;align-items:center;justify-content:center;
+  cursor:pointer;padding:0 !important;margin:0 !important;
+  box-shadow:none !important;outline:none !important;
+  -webkit-appearance:none;appearance:none;
+  -webkit-tap-highlight-color:transparent;
+  filter:drop-shadow(0 1px 3px rgba(0,0,0,.45));
+  z-index:6;
+}
+.gc-un-topbar .gc-un-back::before,
+.gc-un-topbar .gc-un-back::after,
+#gc-username-screen .gc-un-back::before,
+#gc-username-screen .gc-un-back::after{
+  display:none !important;content:none !important;
+}
+.gc-un-topbar .gc-un-back i,
+.gc-un-topbar .gc-un-back .ph,
+.gc-un-topbar .gc-un-back .ph-bold,
+#gc-username-screen .gc-un-back i{
+  font-size:24px !important;color:#fff !important;
+  background:transparent !important;border-radius:0 !important;
+  box-shadow:none !important;width:auto !important;height:auto !important;
+  padding:0 !important;margin:0 !important;line-height:1 !important;
+}
+.gc-un-topbar .gc-un-back:active{opacity:.65;}
+/* true center title — absolute center of screen */
+.gc-un-topbar .gc-un-title,
+#gc-username-screen .gc-un-title{
+  position:absolute !important;
+  left:50% !important;
+  top:max(6px, env(safe-area-inset-top)) !important;
+  transform:translateX(-50%) !important;
+  height:44px;
+  display:flex;align-items:center;justify-content:center;
+  width:auto !important;
+  max-width:60%;
+  text-align:center !important;
+  font-size:17px;font-weight:800;color:#fff;
+  pointer-events:none;white-space:nowrap;
+  text-shadow:0 1px 4px rgba(0,0,0,.25);
+  z-index:1;
+  margin:0 !important;padding:0 !important;
+  box-sizing:border-box;
+}
+.gc-un-hero{
+  position:relative;
+  background:linear-gradient(160deg, #7c5cff 0%, #9b7bff 45%, #b794f6 100%);
+  padding:8px 20px 56px;
+  text-align:center;
+  overflow:hidden;
+  flex-shrink:0;
+}
+.gc-un-hero::before{
+  content:'';position:absolute;inset:0;
+  background-image:radial-gradient(circle at 18% 28%, rgba(255,255,255,.22) 0 2px, transparent 3px),
+    radial-gradient(circle at 82% 22%, rgba(255,255,255,.18) 0 2px, transparent 3px),
+    radial-gradient(circle at 70% 70%, rgba(255,255,255,.12) 0 3px, transparent 4px),
+    radial-gradient(circle at 30% 78%, rgba(255,255,255,.14) 0 2px, transparent 3px);
+  pointer-events:none;
+}
+.gc-un-hero .gc-un-av{
+  width:96px;height:96px;border-radius:50%;margin:8px auto 14px;
+  border:4px solid rgba(255,255,255,0.95);
+  box-shadow:0 8px 28px rgba(0,0,0,.2);
+  background:rgba(255,255,255,.25);
+  overflow:hidden;position:relative;z-index:1;
   display:flex;align-items:center;justify-content:center;
   font-size:36px;font-weight:800;color:#fff;
 }
-.gc-un-av img{width:100%;height:100%;object-fit:cover;}
-.gc-un-name{font-size:20px;font-weight:800;color:var(--text);margin-bottom:4px;}
-.gc-un-handle{font-size:14px;font-weight:600;color:var(--accent);font-family:monospace;letter-spacing:.3px;}
-.gc-un-edit-btn{
-  margin-top:18px;width:100%;padding:13px;border:none;border-radius:14px;
+.gc-un-hero .gc-un-av img{width:100%;height:100%;object-fit:cover;}
+.gc-un-hero .gc-un-name{
+  font-size:20px;font-weight:800;color:#fff;margin-bottom:4px;position:relative;z-index:1;
+  text-shadow:0 1px 8px rgba(0,0,0,.15);
+}
+.gc-un-hero .gc-un-handle{
+  font-size:14px;font-weight:600;color:rgba(255,255,255,.88);
+  font-family:monospace;letter-spacing:.3px;position:relative;z-index:1;
+}
+.gc-un-sheet{
+  flex:1;margin-top:-28px;position:relative;z-index:2;
+  background:var(--surface);
+  border-radius:28px 28px 0 0;
+  box-shadow:0 -8px 32px rgba(0,0,0,.08);
+  padding:18px 20px 32px;
+  overflow-y:auto;-webkit-overflow-scrolling:touch;
+}
+.gc-un-cancel-bar{
+  width:100%;padding:13px;border:none;border-radius:14px;
   background:var(--surface-2);color:var(--text);font-size:14px;font-weight:800;
   cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;
-  border:1px solid var(--border);transition:all .2s;
+  border:1px solid var(--border);transition:all .2s;margin-bottom:18px;
 }
-.gc-un-edit-btn:active{transform:scale(.98);}
-.gc-un-field{margin-top:18px;text-align:left;display:none;}
-.gc-un-field.show{display:block;}
-.gc-un-field label{font-size:11px;font-weight:800;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:8px;}
+.gc-un-cancel-bar:active{transform:scale(.98);}
+.gc-un-field label{
+  font-size:11px;font-weight:800;color:var(--text-muted);
+  text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:8px;
+}
 .gc-un-input-wrap{position:relative;}
-.gc-un-input-wrap .at{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-weight:800;font-size:16px;pointer-events:none;}
+.gc-un-input-wrap .at{
+  position:absolute;left:14px;top:50%;transform:translateY(-50%);
+  color:var(--text-muted);font-weight:800;font-size:16px;pointer-events:none;
+}
 .gc-un-input-wrap input{
-  width:100%;padding:14px 14px 14px 34px;border-radius:14px;
+  width:100%;padding:14px 44px 14px 34px;border-radius:14px;
   background:var(--surface-2);border:1.5px solid var(--border);
   color:var(--text);font-size:15px;font-family:monospace;outline:none;
   transition:border-color .2s, box-shadow .2s;
 }
-.gc-un-input-wrap input:focus{border-color:var(--accent);box-shadow:0 0 0 4px var(--accent-glow);}
+.gc-un-input-wrap input:focus{
+  border-color:var(--accent);box-shadow:0 0 0 4px var(--accent-glow);
+}
+.gc-un-input-wrap input.is-valid{
+  border-color:#22c55e;box-shadow:0 0 0 3px rgba(34,197,94,.18);
+}
+.gc-un-check{
+  position:absolute;right:12px;top:50%;transform:translateY(-50%);
+  width:24px;height:24px;border-radius:50%;
+  background:#22c55e;color:#fff;
+  display:none;align-items:center;justify-content:center;
+  font-size:14px;pointer-events:none;
+}
+.gc-un-check.show{display:flex;}
 .gc-un-hint{font-size:11px;color:var(--text-muted);margin-top:8px;line-height:1.4;}
 .gc-un-save{
-  margin-top:16px;width:100%;padding:14px;border:none;border-radius:14px;
+  margin-top:18px;width:100%;padding:15px;border:none;border-radius:16px;
   font-size:15px;font-weight:800;cursor:pointer;transition:all .2s;
 }
 .gc-un-save:disabled,.gc-un-save.is-weak{
@@ -4193,10 +4307,22 @@ background:rgba(0,0,0,.28);color:#fff;font-size:18px;pointer-events:none;
   box-shadow:none;
 }
 .gc-un-save.is-ready{
-  background:var(--gradient);color:#fff;
-  box-shadow:0 8px 22px var(--accent-glow);cursor:pointer;opacity:1;
+  background:linear-gradient(135deg,#7c5cff 0%,#a78bfa 100%);
+  color:#fff;box-shadow:0 10px 28px rgba(124,92,255,.35);cursor:pointer;opacity:1;
 }
 .gc-un-save.is-ready:active{transform:scale(.98);}
+/* view mode: hero only + edit entry in sheet */
+.gc-un-edit-entry{
+  width:100%;padding:13px;border:none;border-radius:14px;
+  background:var(--surface-2);color:var(--text);font-size:14px;font-weight:800;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;
+  border:1px solid var(--border);transition:all .2s;
+}
+.gc-un-edit-entry:active{transform:scale(.98);}
+.gc-un-edit-panel{display:none;}
+.gc-un-edit-panel.show{display:block;}
+.gc-un-view-panel.show{display:block;}
+.gc-un-view-panel{display:none;}
 
 /* z-index above image-zoom-modal (1000100) so confirm shows ON TOP of zoom */
 .gc-cf-overlay{position:fixed;inset:0;background:rgba(10,10,20,.65);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);z-index:1000500 !important;display:none;align-items:center;justify-content:center;padding:24px;pointer-events:auto !important;}
@@ -4343,6 +4469,84 @@ background:rgba(0,0,0,.28);color:#fff;font-size:18px;pointer-events:none;
     max-width: 100%;
     box-sizing: border-box;
 }
+
+/* ═══ seamless profile content bg (sheet + tabs + posts = same surface) ═══ */
+#page-other-profile,
+#page-profile{
+  background: var(--surface) !important;
+}
+#page-other-profile .gc-profile-sheet,
+#page-profile .gc-profile-sheet{
+  background: var(--surface) !important;
+  box-shadow: none !important;
+}
+#page-other-profile .other-profile-content-tabs,
+#page-profile .other-profile-content-tabs,
+#page-other-profile #other-user-posts-list,
+#page-profile #my-posts-list{
+  background: var(--surface) !important;
+}
+#page-other-profile .other-profile-content-tabs,
+#page-profile .other-profile-content-tabs{
+  margin-top: 0 !important;
+  border-top: none !important;
+  padding-top: 0 !important;
+}
+
+/* ═══ profile action / tab breathing room · 2026-09-02 ═══ */
+/* Bio → action buttons */
+#page-profile .gc-my-profile-actions,
+#page-profile .profile-btns,
+.profile-header .gc-my-profile-actions,
+.profile-header:not(.gc-has-cover) .gc-my-profile-actions,
+.profile-header.gc-has-cover .gc-my-profile-actions{
+  margin-top: 22px !important;
+  margin-bottom: 8px !important;
+  gap: 12px !important;
+  padding-bottom: 4px;
+}
+#page-other-profile #other-profile-btns,
+#page-other-profile .profile-btns,
+.profile-header #other-profile-btns,
+.profile-header:not(.gc-has-cover) .profile-btns,
+.profile-header.gc-has-cover .profile-btns{
+  margin-top: 22px !important;
+  margin-bottom: 8px !important;
+  gap: 12px !important;
+  padding-bottom: 4px;
+}
+/* Extra space under bio when bio exists */
+.profile-bio{
+  margin-bottom: 4px;
+}
+/* Sheet bottom padding so buttons aren't glued to tabs */
+#page-profile .gc-profile-sheet,
+#page-other-profile .gc-profile-sheet,
+.profile-header .gc-profile-sheet{
+  padding-bottom: 18px !important;
+}
+/* Action buttons → Media/Gallery/Status tabs */
+#page-profile .other-profile-content-tabs,
+#page-other-profile .other-profile-content-tabs,
+#my-profile-tabs,
+#other-profile-tabs{
+  margin-top: 18px !important;
+  margin-bottom: 12px !important;
+  padding-top: 4px !important;
+}
+/* Own profile action chips — not cramped */
+#page-profile .gc-my-profile-actions > button,
+#page-profile .gc-my-profile-actions > .icon-btn,
+.gc-my-profile-actions > button,
+.gc-my-profile-actions > .icon-btn{
+  flex-shrink: 0;
+}
+
+/* keep rounded sheet top over cover, but fill pure surface white */
+.profile-header.gc-has-cover .gc-profile-sheet{
+  background: var(--surface) !important;
+}
+
 /* 🚀 fix-other-profile-scroll · 2026-09-02
    কারণ: overflow-x:hidden সেট করলে ব্রাউজার automatically overflow-y-কে
    "auto" বানিয়ে দেয় (CSS স্পেক অনুযায়ী)। #page-other-profile একটা
@@ -6920,6 +7124,127 @@ Edit Profile-এ পার্টনার সিলেক্ট বাটন
 #create-post-screen #poll-creator-box i[class*="ph-"]{
   font-size: 18px !important;
 }
+
+/* ═══ Story likers · TikTok-style floating avatars ═══ */
+.sv-float-likes{
+  position:absolute;
+  left:50%;
+  transform:translateX(-50%);
+  bottom:88px;
+  width:140px;
+  height:170px;
+  pointer-events:none;
+  z-index:60;
+  overflow:visible;
+}
+.sv-float-likes.clickable{
+  pointer-events:auto !important;
+  cursor:pointer;
+  /* invisible hit pad so taps always register */
+  background:transparent;
+}
+.sv-float-av{
+  position:absolute;
+  left:50%;
+  bottom:8px;
+  width:48px;
+  height:48px;
+  margin-left:-24px;
+  border-radius:50%;
+  border:2.5px solid #fff;
+  box-shadow:0 4px 16px rgba(0,0,0,.45);
+  overflow:visible;
+  background:#333;
+  opacity:0;
+  animation:svFloatUp 2.1s cubic-bezier(.22,.68,0,1.05) forwards;
+  pointer-events:auto; /* allow tap on avatar itself */
+  cursor:pointer;
+}
+.sv-float-av img{
+  width:100%;height:100%;object-fit:cover;display:block;border-radius:50%;
+}
+.sv-float-av .sv-float-heart{
+  position:absolute;right:-5px;bottom:-5px;
+  width:20px;height:20px;border-radius:50%;
+  background:#60a5fa;color:#fff;
+  display:flex;align-items:center;justify-content:center;
+  font-size:11px;border:1.5px solid #fff;
+  box-shadow:0 1px 5px rgba(0,0,0,.4);
+}
+/* Rise a little from bottom-center, then fade — TikTok style, not too high */
+@keyframes svFloatUp{
+  0%{ transform:translateY(22px) scale(.35); opacity:0; }
+  14%{ opacity:1; transform:translateY(0) scale(1.08); }
+  50%{ opacity:1; transform:translateY(-48px) scale(1); }
+  100%{ transform:translateY(-78px) scale(.9); opacity:0; }
+}
+#sv-likers-sheet{
+  position:fixed;inset:0;z-index:200050;
+  display:none;align-items:flex-end;justify-content:center;
+  background:rgba(0,0,0,.45);
+}
+#sv-likers-sheet.open{display:flex;}
+.sv-likers-box{
+  width:100%;max-width:520px;
+  max-height:70vh;
+  background:var(--surface);
+  border-radius:22px 22px 0 0;
+  padding:16px 16px 24px;
+  display:flex;flex-direction:column;
+  animation:menuSlide .25s ease;
+}
+.sv-likers-head{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:12px;
+}
+.sv-likers-head h3{font-size:16px;font-weight:800;color:var(--text);margin:0;}
+.sv-likers-head button{
+  width:36px;height:36px;border:none;border-radius:50%;
+  background:var(--surface-2);color:var(--text);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+}
+.sv-likers-list{
+  overflow-y:auto;-webkit-overflow-scrolling:touch;flex:1;
+  display:flex;flex-direction:column;gap:4px;
+}
+.sv-liker-row{
+  display:flex;align-items:center;gap:12px;
+  padding:10px 8px;border-radius:12px;cursor:pointer;
+}
+.sv-liker-row:active{background:var(--surface-2);}
+.sv-liker-row .av{
+  width:44px;height:44px;border-radius:50%;overflow:hidden;
+  background:var(--surface-2);flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  font-weight:800;color:var(--text-muted);
+}
+.sv-liker-row .av img{width:100%;height:100%;object-fit:cover;}
+.sv-liker-row .nm{font-weight:700;font-size:14px;color:var(--text);}
+.sv-likers-more{
+  text-align:center;padding:12px;font-size:13px;color:var(--text-muted);font-weight:600;
+}
+#sv-react-count.clickable-count{
+  cursor:pointer;
+  text-decoration:underline;
+  text-underline-offset:3px;
+  padding:8px 10px;
+  margin:-8px -6px;
+  position:relative;
+  z-index:5;
+}
+/* Own-story like cluster is tappable */
+#sv-like-hit{
+  display:flex;align-items:center;gap:8px;
+  flex-shrink:0;
+  padding:6px 4px;
+  position:relative;
+  z-index:5;
+  -webkit-tap-highlight-color:transparent;
+}
+#sv-like-hit.is-openable{ cursor:pointer; }
+
+
+
 </style>
 </head>
 <body>
@@ -7201,7 +7526,7 @@ Edit Profile-এ পার্টনার সিলেক্ট বাটন
     <div id="profile-details-wrapper" style="display: none; padding: 8px 0 4px; border-top: none;">
         <div class="profile-personal-details" id="profile-details-display" style="margin-top: 0; padding: 0;"></div>
     </div>
-<div class="gc-my-profile-actions" style="display:flex; justify-content:center; align-items:center; gap:8px; width:100%; margin-top:16px; flex-wrap:nowrap;">
+<div class="gc-my-profile-actions" style="display:flex; justify-content:center; align-items:center; gap:12px; width:100%; margin-top:22px; margin-bottom:8px; flex-wrap:nowrap;">
     <button class="icon-btn" style="border-radius:30px; padding:8px 16px; background:var(--gradient); color:#fff; border:none; box-shadow:var(--shadow-glow); display:flex; align-items:center; gap:6px; font-size:13px; font-weight:700; flex-shrink:0;" onclick="openProfileEdit()">
         <i class="ph-bold ph-pencil-simple" style="font-size:17px;"></i> Edit Profile
     </button>
@@ -7235,7 +7560,7 @@ Edit Profile-এ পার্টনার সিলেক্ট বাটন
 </div>
 
 <!-- 🚀 Own Profile Filter Menu -->
-<div class="other-profile-content-tabs" id="my-profile-tabs" style="display:flex;justify-content:center;align-items:stretch;gap:0;border-top:1px solid var(--border);margin-top:20px;margin-bottom:10px;">
+<div class="other-profile-content-tabs" id="my-profile-tabs" style="display:flex;justify-content:center;align-items:stretch;gap:0;margin-top:18px;margin-bottom:12px;">
     <button type="button" class="op-tab active" data-filter="media" id="my-tab-media" onclick="applyProfileFilter('media','my',this)">Media</button>
     <button type="button" class="op-tab" data-filter="gallery" id="my-tab-gallery" onclick="applyProfileFilter('gallery','my',this)">Gallery</button>
     <button type="button" class="op-tab" data-filter="status" id="my-tab-status" onclick="applyProfileFilter('status','my',this)">Status</button>
@@ -7318,11 +7643,11 @@ Edit Profile-এ পার্টনার সিলেক্ট বাটন
     <div id="other-profile-details-wrapper" style="display: none; padding: 8px 0 4px; border-top: none;">
         <div class="profile-personal-details" id="other-profile-details-display" style="margin-top: 0; padding: 0;"></div>
     </div>
-        <div class="profile-btns" id="other-profile-btns" style="margin-top:16px;display:flex;gap:10px;width:100%;flex-wrap:wrap;"></div>
+        <div class="profile-btns" id="other-profile-btns" style="margin-top:22px;margin-bottom:8px;display:flex;gap:12px;width:100%;flex-wrap:wrap;"></div>
         </div><!-- /.gc-profile-sheet -->
     </div>
     <!-- 🚀 Other Profile Filter Menu -->
-<div class="other-profile-content-tabs" id="other-profile-tabs" style="display:flex;justify-content:center;align-items:stretch;gap:0;border-top:1px solid var(--border);margin-top:20px;margin-bottom:10px;">
+<div class="other-profile-content-tabs" id="other-profile-tabs" style="display:flex;justify-content:center;align-items:stretch;gap:0;margin-top:18px;margin-bottom:12px;">
     <button type="button" class="op-tab active" data-filter="media" id="other-tab-media" onclick="applyProfileFilter('media','other',this)">Media</button>
     <button type="button" class="op-tab" data-filter="gallery" id="other-tab-gallery" onclick="applyProfileFilter('gallery','other',this)">Gallery</button>
     <button type="button" class="op-tab" data-filter="status" id="other-tab-status" onclick="applyProfileFilter('status','other',this)">Status</button>
@@ -7402,6 +7727,7 @@ Edit Profile-এ পার্টনার সিলেক্ট বাটন
     <i class="ph-bold ph-caret-right" style="font-size: 24px;"></i>
 </div>
 
+<div class="sv-float-likes" id="sv-float-likes" aria-hidden="true"></div>
 <div class="story-footer">
 <div id="sv-views-wrap" style="color:#fff;font-size:14px;font-weight:700;display:none;align-items:center;gap:6px;flex-shrink:0;">
 <i class="ph-bold ph-eye" style="font-size:22px; filter:drop-shadow(0 1px 2px rgba(0,0,0,0.5));"></i>
@@ -7418,9 +7744,9 @@ Edit Profile-এ পার্টনার সিলেক্ট বাটন
     </button>
   </div>
 </div>
-<div style="display:flex; align-items:center; gap:8px;flex-shrink:0;">
+<div id="sv-like-hit" style="display:flex; align-items:center; gap:8px;flex-shrink:0;">
 <span id="sv-react-count" style="color:#fff; font-size:18px; font-weight:700; text-shadow:0 1px 2px rgba(0,0,0,0.5);">0</span>
-<i class="ph-bold ph-thumbs-up" id="sv-react-btn" onclick="reactToCurrentStory()" style="color:#fff;font-size:28px;cursor:pointer;transition:all 0.2s; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));"></i>
+<i class="ph-bold ph-thumbs-up" id="sv-react-btn" style="color:#fff;font-size:28px;cursor:pointer;transition:all 0.2s; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));"></i>
 </div>
 </div>
 </div>
@@ -8054,14 +8380,6 @@ Edit Profile-এ পার্টনার সিলেক্ট বাটন
                     <i class="ph ph-caret-right"></i>
                 </div>
 
-                <!-- 🚀 NEW: See where the login is Menu Item -->
-                <div class="settings-list-item" onclick="openLoginDevicesScreen()">
-                    <div style="display:flex; align-items:center; gap:16px;">
-                        <i class="ph ph-laptop"></i>
-                        <span style="font-weight:600; font-size:15px;">See where the login is</span>
-                    </div>
-                    <i class="ph ph-caret-right"></i>
-                </div>
 
                 <!-- 🚀 NEW: Share profile Menu Item -->
                 <div class="settings-list-item" onclick="closeMainSettingsScreen(); closeMainMenu(); openQRCodeModal();">
@@ -8137,14 +8455,6 @@ Edit Profile-এ পার্টনার সিলেক্ট বাটন
                     <i class="ph ph-caret-right"></i>
                 </div>
                 
-                <!-- 🚀 Grid View Toggle Option -->
-                <div class="settings-list-item" onclick="toggleFeedViewMode()">
-                    <div style="display:flex; align-items:center; gap:16px;">
-                        <i class="ph ph-squares-four"></i>
-                        <span style="font-weight:600; font-size:15px;">Grid View (Home Feed)</span>
-                    </div>
-                    <div id="grid-view-toggle" class="toggle-switch"></div>
-                </div>
 
                 <div class="settings-list-item" onclick="toggleDarkMode()">
                     <div style="display:flex; align-items:center; gap:16px;">
@@ -8346,9 +8656,12 @@ Edit Profile-এ পার্টনার সিলেক্ট বাটন
     </div>
 </div>
 
-<div class="modal-overlay" id="following-privacy-modal" style="z-index: 100000; align-items: flex-end;">
-    <div class="modal-box" style="margin-top:auto; border-radius: 24px 24px 0 0; padding:24px 20px;">
-        <div class="modal-title" style="margin-bottom:10px;">Following list</div>
+<div class="modal-overlay" id="following-privacy-modal" style="z-index: 100000; align-items: flex-end;" onclick="if(event.target===this) closeFollowingPrivacy()">
+    <div class="modal-box" style="margin-top:auto; border-radius: 24px 24px 0 0; padding:24px 20px; position:relative;">
+        <button type="button" onclick="closeFollowingPrivacy()" aria-label="Close" style="position:absolute;top:16px;right:16px;width:36px;height:36px;border:none;border-radius:50%;background:var(--surface-2);color:var(--text);display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:2;">
+            <i class="ph-bold ph-x" style="font-size:18px;"></i>
+        </button>
+        <div class="modal-title" style="margin-bottom:10px; padding-right:40px;">Following list</div>
         <p style="font-size:14px; color:var(--text-secondary); margin-bottom:20px;">Who can see your following list?</p>
         
         <div class="setting-item" onclick="setFollowingPrivacy('everyone')" style="justify-content:space-between;">
@@ -11486,6 +11799,7 @@ function renderCurrentStory(){
             views:firebase.firestore.FieldValue.arrayUnion(currentUser.uid)
         });
     }
+    try{ if(typeof gcRefreshStoryFloat==='function') gcRefreshStoryFloat(); }catch(e){}
 }
 
 
@@ -11530,6 +11844,8 @@ function prevStorySegment(){
 
 
 function closeStory(){
+    try{ if(typeof gcStopStoryFloat==='function') gcStopStoryFloat(); }catch(e){}
+    try{ if(typeof gcCloseStoryLikers==='function') gcCloseStoryLikers(); }catch(e){}
     try { clearTimeout(storyTimer); } catch(e){}
     const sv = document.getElementById('story-viewer');
     if(sv){
@@ -11637,26 +11953,19 @@ async function reactToCurrentStory(){
         
         reactBtn.style.color='#fff';
         reactBtn.className='ph-bold ph-thumbs-up';
-        reactCountDisplay.textContent = s.reacts.length; // কাউন্ট আপডেট
+        reactCountDisplay.textContent = s.reacts.length;
+        try{ if(typeof gcRefreshStoryFloat==='function') gcRefreshStoryFloat(); }catch(e){} // কাউন্ট আপডেট
     }else{
-        // রিয়্যাক্ট এড করার লজিক
+        // রিয়্যাক্ট এড করার লজিক — NO notification for story likes
         await ref.update({reacts:firebase.firestore.FieldValue.arrayUnion(currentUser.uid)});
         if(!s.reacts)s.reacts=[];
         s.reacts.push(currentUser.uid);
         
         reactBtn.style.color='#60a5fa';
         reactBtn.className='ph-fill ph-thumbs-up';
-        reactCountDisplay.textContent = s.reacts.length; // কাউন্ট আপডেট
-        // ...
-        
-        if(s.uid!==currentUser.uid){
-            db.collection('notifications').add({
-                toUid:s.uid,fromUid:currentUser.uid,
-                fromName:currentUserData.name,
-                type:'like',read:false,
-                createdAt:firebase.firestore.FieldValue.serverTimestamp()
-            });
-        }
+        reactCountDisplay.textContent = s.reacts.length;
+        try{ if(typeof gcRefreshStoryFloat==='function') gcRefreshStoryFloat(); }catch(e){}
+        /* intentionally no db.collection('notifications').add — story likes stay silent */
     }
 }
 
@@ -17423,6 +17732,11 @@ async function openFollowList(type, uid) {
 }
 
 
+function closeFollowingPrivacy() {
+    const m = document.getElementById('following-privacy-modal');
+    if (m) m.classList.remove('open');
+}
+window.closeFollowingPrivacy = closeFollowingPrivacy;
 function openFollowingPrivacy() {
     document.getElementById('following-privacy-modal').classList.add('open');
     const mode = currentUserData.followingPrivacy || 'everyone';
@@ -18934,30 +19248,38 @@ async function saveChatPrivacy() {
 // ==========================================
 
 function openUsernameSettings() {
-  if(!currentUser || !currentUserData){ showToast('Login first'); return; }
   let scr = document.getElementById('gc-username-screen');
+  if(scr && !scr.querySelector('.gc-un-hero')){ try{ scr.remove(); }catch(e){} scr = null; }
+
   if(!scr){
     scr = document.createElement('div');
     scr.id = 'gc-username-screen';
     scr.innerHTML = `
-      <div class="gc-un-head">
-        <div class="chat-back" onclick="gcCloseUsernameScreen()"><i class="ph-bold ph-arrow-u-up-left" style="font-size:20px;"></i></div>
-        <div class="gc-un-title">Username</div>
-        <div style="width:40px;"></div>
+      <div class="gc-un-hero">
+        <div class="gc-un-topbar">
+          <div class="gc-un-back" onclick="gcCloseUsernameScreen()" role="button" aria-label="Back"><i class="ph-bold ph-arrow-u-up-left"></i></div>
+          <div class="gc-un-title">Username</div>
+        </div>
+        <div class="gc-un-av" id="gc-un-av"></div>
+        <div class="gc-un-name" id="gc-un-name"></div>
+        <div class="gc-un-handle" id="gc-un-handle"></div>
       </div>
-      <div class="gc-un-body">
-        <div class="gc-un-card">
-          <div class="gc-un-av" id="gc-un-av"></div>
-          <div class="gc-un-name" id="gc-un-name"></div>
-          <div class="gc-un-handle" id="gc-un-handle"></div>
-          <button type="button" class="gc-un-edit-btn" id="gc-un-edit-btn" onclick="gcUsernameToggleEdit()">
+      <div class="gc-un-sheet">
+        <div class="gc-un-view-panel show" id="gc-un-view-panel">
+          <button type="button" class="gc-un-edit-entry" id="gc-un-edit-btn" onclick="gcUsernameToggleEdit()">
             <i class="ph-bold ph-pencil-simple"></i> <span>Edit</span>
           </button>
-          <div class="gc-un-field" id="gc-un-field">
-            <label>Username</label>
+        </div>
+        <div class="gc-un-edit-panel" id="gc-un-edit-panel">
+          <button type="button" class="gc-un-cancel-bar" onclick="gcUsernameToggleEdit()">
+            <i class="ph-bold ph-x"></i> <span>Cancel</span>
+          </button>
+          <div class="gc-un-field show" id="gc-un-field">
+            <label>USERNAME</label>
             <div class="gc-un-input-wrap">
               <span class="at">@</span>
               <input type="text" id="gc-un-input" maxlength="24" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="your_username" oninput="gcUsernameOnInput()">
+              <span class="gc-un-check" id="gc-un-check"><i class="ph-bold ph-check"></i></span>
             </div>
             <div class="gc-un-hint" id="gc-un-hint">Only letters, numbers & underscores. 3–24 characters.</div>
             <button type="button" class="gc-un-save is-weak" id="gc-un-save" disabled onclick="gcUsernameSave()">Save</button>
@@ -18967,49 +19289,56 @@ function openUsernameSettings() {
     document.body.appendChild(scr);
   }
   /* Fill profile data */
-  const u = currentUserData;
+  const u = currentUserData || {};
   const av = document.getElementById('gc-un-av');
   const photo = u.avatar || u.photoURL || u.profilePic || '';
   if(photo){
     av.innerHTML = '<img src="' + escapeHTML(photo) + '" alt="" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display=\'none\'">';
   } else {
+    av.innerHTML = '';
     av.textContent = ((u.name || 'U').trim().charAt(0) || 'U').toUpperCase();
   }
   document.getElementById('gc-un-name').textContent = u.name || 'User';
   const un = (u.username || '').replace(/^@/, '');
   document.getElementById('gc-un-handle').textContent = un ? ('@' + un) : 'No username set';
-  /* Reset edit state */
-  const field = document.getElementById('gc-un-field');
-  field.classList.remove('show');
+  /* Reset to view mode */
+  const viewP = document.getElementById('gc-un-view-panel');
+  const editP = document.getElementById('gc-un-edit-panel');
+  if(viewP){ viewP.classList.add('show'); }
+  if(editP){ editP.classList.remove('show'); }
   const btn = document.getElementById('gc-un-edit-btn');
-  btn.innerHTML = '<i class="ph-bold ph-pencil-simple"></i> <span>Edit</span>';
-  btn.dataset.mode = 'view';
+  if(btn){ btn.dataset.mode = 'view'; }
   const inp = document.getElementById('gc-un-input');
-  inp.value = un;
+  if(inp){ inp.value = un; }
   gcUsernameOnInput();
   scr.classList.add('open');
 }
+
 function gcCloseUsernameScreen(){
   const s = document.getElementById('gc-username-screen');
   if(s) s.classList.remove('open');
 }
 function gcUsernameToggleEdit(){
-  const field = document.getElementById('gc-un-field');
+  const viewP = document.getElementById('gc-un-view-panel');
+  const editP = document.getElementById('gc-un-edit-panel');
   const btn = document.getElementById('gc-un-edit-btn');
-  const mode = btn.dataset.mode || 'view';
+  const mode = (btn && btn.dataset.mode) || 'view';
   if(mode === 'view'){
-    field.classList.add('show');
-    btn.dataset.mode = 'edit';
-    btn.innerHTML = '<i class="ph-bold ph-x"></i> <span>Cancel</span>';
+    if(viewP) viewP.classList.remove('show');
+    if(editP) editP.classList.add('show');
+    if(btn) btn.dataset.mode = 'edit';
     const inp = document.getElementById('gc-un-input');
-    inp.focus();
-    try{ inp.setSelectionRange(inp.value.length, inp.value.length); }catch(e){}
+    if(inp){
+      inp.focus();
+      try{ inp.setSelectionRange(inp.value.length, inp.value.length); }catch(e){}
+    }
   } else {
-    field.classList.remove('show');
-    btn.dataset.mode = 'view';
-    btn.innerHTML = '<i class="ph-bold ph-pencil-simple"></i> <span>Edit</span>';
-    const un = (currentUserData.username || '').replace(/^@/, '');
-    document.getElementById('gc-un-input').value = un;
+    if(viewP) viewP.classList.add('show');
+    if(editP) editP.classList.remove('show');
+    if(btn) btn.dataset.mode = 'view';
+    const un = ((currentUserData && currentUserData.username) || '').replace(/^@/, '');
+    const inp = document.getElementById('gc-un-input');
+    if(inp) inp.value = un;
     gcUsernameOnInput();
   }
 }
@@ -19017,6 +19346,7 @@ function gcUsernameOnInput(){
   const inp = document.getElementById('gc-un-input');
   const save = document.getElementById('gc-un-save');
   const hint = document.getElementById('gc-un-hint');
+  const check = document.getElementById('gc-un-check');
   if(!inp || !save) return;
   let v = (inp.value || '').toLowerCase().replace(/[^a-z0-9_]/g, '');
   if(v !== inp.value) inp.value = v;
@@ -19024,6 +19354,9 @@ function gcUsernameOnInput(){
   save.disabled = !ok;
   save.classList.toggle('is-weak', !ok);
   save.classList.toggle('is-ready', ok);
+  inp.classList.toggle('is-valid', ok);
+  if(check) check.classList.toggle('show', ok);
+  if(!hint) return;
   if(!v.length){
     hint.textContent = 'Username cannot be empty.';
     hint.style.color = 'var(--danger)';
@@ -19055,11 +19388,12 @@ async function gcUsernameSave(){
       await gcSyncUsernameIndex(currentUser.uid, v, currentUserData.email || (currentUser.email || ''), oldUsername);
     }
     document.getElementById('gc-un-handle').textContent = '@' + v;
-    const field = document.getElementById('gc-un-field');
-    field.classList.remove('show');
+    const viewP = document.getElementById('gc-un-view-panel');
+    const editP = document.getElementById('gc-un-edit-panel');
+    if(viewP) viewP.classList.add('show');
+    if(editP) editP.classList.remove('show');
     const btn = document.getElementById('gc-un-edit-btn');
-    btn.dataset.mode = 'view';
-    btn.innerHTML = '<i class="ph-bold ph-pencil-simple"></i> <span>Edit</span>';
+    if(btn) btn.dataset.mode = 'view';
     if(typeof loadUserUI === 'function') loadUserUI();
     showToast('Username updated');
   }catch(e){
@@ -20278,20 +20612,8 @@ function closeStoryCreatorModal() {
 }
 // 🚀 Grid View টগল ফাংশন
 async function toggleFeedViewMode() {
-    if (!currentUser) return;
-    const currentMode = currentUserData.feedViewMode || 'list';
-    const newMode = currentMode === 'list' ? 'grid' : 'list';
-    
-    currentUserData.feedViewMode = newMode;
-    await db.collection('users').doc(currentUser.uid).update({ feedViewMode: newMode });
-    
-    updateGridToggleUI();
-    
-    // হোম ফিডে থাকলে সাথে সাথে রিফ্রেশ হবে
-    if (document.getElementById('page-feed').classList.contains('active')) {
-        loadFeed(); 
-    }
-    showToast(newMode === 'grid' ? 'Grid View Enabled' : 'List View Enabled');
+    /* Grid View feature removed — always list */
+    return;
 }
 
 function updateGridToggleUI() {
@@ -25980,6 +26302,233 @@ try{ return await uploadToCloudinary(blob, false); }catch(e){ errors.push('img:'
 }
 throw new Error(errors.join(' | ') || 'upload failed');
 }
+
+
+// ═══════════════════════════════════════════════════════
+// 🚀 Update · story-float-likes · TikTok-style · 2026-09-02
+// ═══════════════════════════════════════════════════════
+var gcStoryFloatTimer = null;
+var gcStoryFloatIdx = 0;
+
+function gcStoryLikerMeta(uid){
+  var cache = (typeof allUsersCache !== 'undefined' && allUsersCache) ? allUsersCache : (window.allUsersCache || []);
+  var u = null;
+  for(var i=0;i<cache.length;i++){
+    if(cache[i] && (cache[i].id === uid || cache[i].uid === uid)){ u = cache[i]; break; }
+  }
+  if(!u && currentUser && uid === currentUser.uid && currentUserData){
+    u = currentUserData;
+  }
+  var name = (u && (u.name || u.displayName)) || 'User';
+  var photo = (u && (u.avatar || u.photoURL || u.profilePic || u.photo)) || '';
+  return { uid: uid, name: name, photo: photo };
+}
+
+function gcStopStoryFloat(){
+  if(gcStoryFloatTimer){ clearInterval(gcStoryFloatTimer); gcStoryFloatTimer = null; }
+  var box = document.getElementById('sv-float-likes');
+  if(box){ box.innerHTML = ''; box.classList.remove('clickable'); box.onclick = null; }
+}
+
+function gcSpawnStoryFloatAv(meta){
+  var box = document.getElementById('sv-float-likes');
+  if(!box || !meta) return;
+  var el = document.createElement('div');
+  el.className = 'sv-float-av';
+  /* slight horizontal jitter around center */
+  var jx = (Math.random() * 16) - 8;
+  el.style.marginLeft = (-19 + jx) + 'px';
+  el.style.animationDuration = (1.7 + Math.random() * 0.5) + 's';
+  if(meta.photo){
+    el.innerHTML = '<img src="'+escapeHTML(meta.photo)+'" alt="" onerror="this.parentNode && this.remove()"><span class="sv-float-heart"><i class="ph-fill ph-thumbs-up"></i></span>';
+  } else {
+    var ch = (meta.name || 'U').charAt(0).toUpperCase();
+    el.innerHTML = '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#7c5cff,#c084fc);color:#fff;font-weight:800;font-size:14px;border-radius:50%;">'+escapeHTML(ch)+'</div><span class="sv-float-heart"><i class="ph-fill ph-thumbs-up"></i></span>';
+  }
+  el.onclick = function(e){ e.stopPropagation(); e.preventDefault(); gcOpenStoryLikers(); };
+  el.ontouchend = function(e){ e.stopPropagation(); e.preventDefault(); gcOpenStoryLikers(); };
+  box.appendChild(el);
+  setTimeout(function(){ try{ el.remove(); }catch(e){} }, 2200);
+}
+
+function gcRefreshStoryFloat(){
+  gcStopStoryFloat();
+  if(!activeStoryGroup || currentStoryIndex >= activeStoryGroup.length) return;
+  var s = activeStoryGroup[currentStoryIndex];
+  if(!s || !currentUser) return;
+  var isOwn = (s.uid === currentUser.uid);
+  var reacts = (s.reacts && s.reacts.length) ? s.reacts.slice() : [];
+  var box = document.getElementById('sv-float-likes');
+  var countEl = document.getElementById('sv-react-count');
+  if(countEl){
+    if(isOwn && reacts.length > 0) countEl.classList.add('clickable-count');
+    else countEl.classList.remove('clickable-count');
+  }
+  /* Wire like-count / icon hit area */
+  var likeHit = document.getElementById('sv-like-hit');
+  var reactBtn = document.getElementById('sv-react-btn');
+  if(likeHit){
+    likeHit.classList.toggle('is-openable', isOwn && reacts.length > 0);
+    likeHit.onclick = function(e){
+      e.stopPropagation();
+      e.preventDefault();
+      /* own story + has likes → open list; else toggle like */
+      if(isOwn && reacts.length > 0){
+        gcOpenStoryLikers();
+      } else if(typeof reactToCurrentStory === 'function'){
+        reactToCurrentStory();
+      }
+    };
+  }
+  if(reactBtn){
+    reactBtn.onclick = function(e){
+      e.stopPropagation();
+      e.preventDefault();
+      if(typeof reactToCurrentStory === 'function') reactToCurrentStory();
+    };
+  }
+  if(!isOwn || reacts.length === 0 || !box) return;
+  box.classList.add('clickable');
+  function openLikers(e){
+    if(e){ e.stopPropagation(); e.preventDefault(); }
+    gcOpenStoryLikers();
+  }
+  box.onclick = openLikers;
+  box.ontouchend = function(e){
+    e.stopPropagation();
+    e.preventDefault();
+    openLikers(e);
+  };
+  /* unique only, max 10 avatars in the float cycle */
+  var seen = {};
+  var list = [];
+  for(var i=0;i<reacts.length;i++){
+    var id = reacts[i];
+    if(!id || seen[id]) continue;
+    seen[id] = 1;
+    list.push(id);
+    if(list.length >= 10) break;
+  }
+  if(!list.length) return;
+  /* light shuffle */
+  for(var j=list.length-1;j>0;j--){
+    var k = Math.floor(Math.random()*(j+1));
+    var t = list[j]; list[j]=list[k]; list[k]=t;
+  }
+  gcStoryFloatIdx = 0;
+  var lastUid = null;
+  function tick(){
+    if(!document.getElementById('story-viewer') || !document.getElementById('story-viewer').classList.contains('open')){
+      gcStopStoryFloat(); return;
+    }
+    if(!activeStoryGroup || activeStoryGroup[currentStoryIndex] !== s){
+      gcStopStoryFloat(); return;
+    }
+    if(!list.length) return;
+    var uid = list[gcStoryFloatIdx % list.length];
+    /* avoid same user twice in a row when list > 1 */
+    if(list.length > 1 && uid === lastUid){
+      gcStoryFloatIdx++;
+      uid = list[gcStoryFloatIdx % list.length];
+    }
+    lastUid = uid;
+    gcStoryFloatIdx++;
+    gcSpawnStoryFloatAv(gcStoryLikerMeta(uid));
+  }
+  tick();
+  gcStoryFloatTimer = setInterval(tick, 850);
+}
+
+async function gcOpenStoryLikers(){
+  if(!activeStoryGroup || currentStoryIndex >= activeStoryGroup.length) return;
+  var s = activeStoryGroup[currentStoryIndex];
+  if(!s || !currentUser) return;
+  if(s.uid !== currentUser.uid){
+    if(typeof showToast==='function') showToast('Only the story owner can see likers');
+    return;
+  }
+  var reacts = (s.reacts && s.reacts.length) ? s.reacts.slice() : [];
+  if(!reacts.length){ if(typeof showToast==='function') showToast('No likes yet'); return; }
+  try{ if(typeof pauseStoryProgress==='function') pauseStoryProgress(); }catch(e){}
+  try{ if(typeof pauseStoryForReply==='function') pauseStoryForReply(); }catch(e){}
+
+  var total = reacts.length;
+  var showIds = reacts.slice(0, 100);
+  var remaining = total - showIds.length;
+
+  var sheet = document.getElementById('sv-likers-sheet');
+  if(!sheet){
+    sheet = document.createElement('div');
+    sheet.id = 'sv-likers-sheet';
+    sheet.onclick = function(e){ if(e.target === sheet) gcCloseStoryLikers(); };
+    sheet.innerHTML = '<div class="sv-likers-box" onclick="event.stopPropagation()"><div class="sv-likers-head"><h3 id="sv-likers-title">Likes</h3><button type="button" onclick="gcCloseStoryLikers()" aria-label="Close"><i class="ph-bold ph-x"></i></button></div><div class="sv-likers-list" id="sv-likers-list"></div></div>';
+    document.body.appendChild(sheet);
+  }
+  document.getElementById('sv-likers-title').textContent = total + (total === 1 ? ' Like' : ' Likes');
+  var listEl = document.getElementById('sv-likers-list');
+  listEl.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-muted);">Loading…</div>';
+  sheet.classList.add('open');
+
+  // Resolve users (cache first, then batch fetch missing)
+  var rows = [];
+  var missing = [];
+  showIds.forEach(function(uid){
+    var m = gcStoryLikerMeta(uid);
+    if(m.photo || (m.name && m.name !== 'User')) rows.push(m);
+    else missing.push(uid);
+  });
+  if(missing.length && typeof db !== 'undefined'){
+    // fetch up to 20 missing (Firestore get limit practicality)
+    var fetches = missing.slice(0, 40).map(function(uid){
+      return db.collection('users').doc(uid).get().then(function(doc){
+        if(!doc.exists) return { uid: uid, name: 'User', photo: '' };
+        var d = doc.data() || {};
+        return { uid: uid, name: d.name || d.displayName || 'User', photo: d.avatar || d.photoURL || d.profilePic || d.photo || '' };
+      }).catch(function(){ return { uid: uid, name: 'User', photo: '' }; });
+    });
+    try{
+      var fetched = await Promise.all(fetches);
+      rows = [];
+      var map = {};
+      fetched.forEach(function(m){ map[m.uid] = m; });
+      showIds.forEach(function(uid){
+        if(map[uid]) rows.push(map[uid]);
+        else rows.push(gcStoryLikerMeta(uid));
+      });
+    }catch(e){}
+  } else {
+    rows = showIds.map(gcStoryLikerMeta);
+  }
+
+  var html = '';
+  rows.forEach(function(m){
+    var av = m.photo
+      ? '<img src="'+escapeHTML(m.photo)+'" alt="" onerror="this.parentNode.textContent=\''+escapeHTML((m.name||'U').charAt(0))+ '\'">'
+      : escapeHTML((m.name||'U').charAt(0).toUpperCase());
+    html += '<div class="sv-liker-row" onclick="gcCloseStoryLikers(); if(typeof openUserProfile===\'function\') openUserProfile(\''+escapeHTML(m.uid)+'\'); else if(typeof viewUserProfile===\'function\') viewUserProfile(\''+escapeHTML(m.uid)+'\');">'
+      + '<div class="av">'+av+'</div>'
+      + '<div class="nm">'+escapeHTML(m.name)+'</div></div>';
+  });
+  if(remaining > 0){
+    html += '<div class="sv-likers-more">and '+remaining+' more</div>';
+  }
+  if(!rows.length){
+    html = '<div class="sv-likers-more">No likes yet</div>';
+  }
+  listEl.innerHTML = html;
+}
+
+function gcCloseStoryLikers(){
+  var sheet = document.getElementById('sv-likers-sheet');
+  if(sheet) sheet.classList.remove('open');
+  try{ if(typeof resumeStoryAfterReply==='function') resumeStoryAfterReply(); }catch(e){}
+}
+
+window.gcRefreshStoryFloat = gcRefreshStoryFloat;
+window.gcOpenStoryLikers = gcOpenStoryLikers;
+window.gcCloseStoryLikers = gcCloseStoryLikers;
+window.gcStopStoryFloat = gcStopStoryFloat;
+
 
 // GoChat: Light mode is the default for new installs/first visits.
 // Keep an explicit user preference if they previously selected Dark Mode.
