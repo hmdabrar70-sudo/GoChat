@@ -1084,22 +1084,22 @@ body:not(.light-mode) .post-card {
 .post-name { font-weight: 700; font-size: 15px; display: flex; align-items: center; gap: 4px; }
 .post-time { font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 4px; margin-top: 2px; }
 
-/* 🚀 Update · fixed-feed-image-size · 2026-08-23
-   হোম ফিডে সব ছবি একই নির্দিষ্ট উচ্চতায় — অরিজিনাল অ্যাসপেক্ট শুধু ফুলস্ক্রিন জুমে */
+/* 🚀 Update · compact feed images (Threads-style) · 2026-09-02 */
 .post-img {
     width: 100%;
-    height: 320px;
-    max-height: 320px;
-    min-height: 320px;
+    height: auto;
+    max-height: 220px;
+    min-height: 0;
     object-fit: cover;
     object-position: center;
-    border-radius: 18px;
-    margin-top: 8px;
-    margin-bottom: 18px;
+    border-radius: 14px;
+    margin-top: 4px;
+    margin-bottom: 8px;
     background-color: var(--surface-2);
-    box-shadow: 0 6px 20px rgba(0,0,0,0.08);
-    border: 1px solid rgba(0,0,0,0.03);
+    box-shadow: none;
+    border: 1px solid var(--border);
     display: block;
+    aspect-ratio: 4 / 5;
 }
 
 /* =========================================
@@ -6071,49 +6071,69 @@ body:not(.light-mode) .post-card {
     color: var(--text) !important;
 }
 
-/* ৫. ছবি — ফিক্সড সাইজ (সব পোস্টে একই উচ্চতা) */
+/* ৫. ছবি — Threads-style compact feed (less vertical space per post) */
 .post-card .post-img {
-    height: 320px !important;
-    max-height: 320px !important;
-    min-height: 320px !important;
+    height: auto !important;
+    max-height: 220px !important;
+    min-height: 0 !important;
     width: 100% !important;
     object-fit: cover !important;
     object-position: center !important;
-    border-radius: 16px !important;
+    border-radius: 14px !important;
     margin-top: 2px !important;
-    margin-bottom: 12px !important;
+    margin-bottom: 8px !important;
     border: 1px solid var(--border) !important;
     box-shadow: none !important;
     display: block !important;
+    aspect-ratio: 4 / 5;
+    background: var(--surface-2);
 }
-/* মাল্টি-ইমেজ ক্যারাউসেল স্লাইড — প্রতিটা স্লাইড একই উচ্চতা */
+/* মাল্টি-ইমেজ: ছোট টাইল + পাশের ছবি দেখা যায় (Threads peek) */
 .post-media-carousel {
     display: flex;
+    gap: 8px;
     overflow-x: auto;
     scroll-snap-type: x mandatory;
     -webkit-overflow-scrolling: touch;
-    height: 320px;
+    height: 200px;
+    padding-bottom: 2px;
 }
 .post-media-carousel > div,
 .post-media-carousel .gc-feed-slide {
-    min-width: 100% !important;
-    width: 100% !important;
+    min-width: 78% !important;
+    width: 78% !important;
     flex-shrink: 0 !important;
-    height: 320px !important;
+    height: 200px !important;
     scroll-snap-align: start;
     overflow: hidden;
-    border-radius: 16px;
+    border-radius: 14px;
 }
 .post-media-carousel .post-img {
     height: 100% !important;
     min-height: 100% !important;
     max-height: 100% !important;
+    width: 100% !important;
+    aspect-ratio: auto !important;
     margin: 0 !important;
-    border-radius: 16px !important;
+    border-radius: 14px !important;
 }
 .post-media-wrap {
     overflow: hidden;
-    border-radius: 16px;
+    border-radius: 14px;
+}
+/* Single-post / zoom stays readable — slightly taller only in single view */
+#single-post-screen .post-card .post-img {
+    max-height: 360px !important;
+    aspect-ratio: auto;
+}
+#single-post-screen .post-media-carousel {
+    height: 280px;
+}
+#single-post-screen .post-media-carousel > div,
+#single-post-screen .post-media-carousel .gc-feed-slide {
+    height: 280px !important;
+    min-width: 85% !important;
+    width: 85% !important;
 }
 
 /* ৬. রঙিন পোস্টের সাইজ ছোট করা হলো */
@@ -12612,8 +12632,19 @@ function openChat(chatId, otherUid, otherName, otherAvatar){
     }
 
     
-    // চ্যাট ওপেন করলেই মেসেজ 'Read' হয়ে যাবে
-    db.collection('chats').doc(chatId).set({ isRead: true }, { merge: true });
+    // চ্যাট ওপেন করলেই মেসেজ 'Read' + users[] ব্যাকফিল (লিস্ট কুয়েরির জন্য)
+    try{
+      const patch = { isRead: true };
+      if (otherUid && otherUid !== 'group' && chatId && String(chatId).indexOf('group_') !== 0) {
+        const parts = String(chatId).split('_');
+        if (parts.length === 2 && parts[0] && parts[1]) {
+          patch.users = [parts[0], parts[1]];
+        }
+      }
+      db.collection('chats').doc(chatId).set(patch, { merge: true });
+    }catch(e){
+      db.collection('chats').doc(chatId).set({ isRead: true }, { merge: true });
+    }
 
     // ইনপুট বার ঠিক রাখা
     document.getElementById('chat-input-area').style.display = 'flex';
@@ -13235,6 +13266,9 @@ if (currentChatOtherUid === 'group') {
     lastText = (currentUserData.name || 'User') + ": " + text;
 }
 
+const __chatUsers = (currentChatOtherUid && currentChatOtherUid !== 'group' && currentChatId && currentChatId.indexOf('group_') !== 0)
+  ? [currentUser.uid, currentChatOtherUid].filter(Boolean)
+  : null;
 await db.collection('chats').doc(currentChatId).set({
     lastMsg: lastText,
     lastAt: firebase.firestore.FieldValue.serverTimestamp(),
@@ -13247,7 +13281,8 @@ await db.collection('chats').doc(currentChatId).set({
         [currentChatOtherUid]: '' 
     },
     lastSender: currentUser.uid, // কে মেসেজ পাঠালো
-    isRead: false // মেসেজটি এখনো পড়া হয়নি
+    isRead: false, // মেসেজটি এখনো পড়া হয়নি
+    ...(__chatUsers ? { users: __chatUsers } : {})
 }, { merge: true });
 }
 
@@ -13434,6 +13469,8 @@ async function sendQuickReply(chatId, otherUid, text, btnElement) {
 }
 
 // ===== STRICT & SECURE loadMessages FUNCTION =====
+// Firestore rules require filtered queries (array-contains on users/members).
+// Unfiltered collection().onSnapshot is rejected → endless Loading.
 async function loadMessages(){
     const list=document.getElementById('msg-list');
     if(!list)return;
@@ -13443,66 +13480,31 @@ async function loadMessages(){
         list.innerHTML = '<div class="loading" style="padding:20px;text-align:center;"><i class="ph-bold ph-arrows-clockwise"></i> Loading...</div>';
     }
     
-    if(window.chatListUnsub) window.chatListUnsub();
+    if(window.chatListUnsub) {
+      try { window.chatListUnsub(); } catch(e){}
+    }
     
     let isInitialChatLoad = true;
-    
-    window.chatListUnsub = db.collection('chats').onSnapshot(snap => {
+    const chatDocsMap = new Map(); // chatId -> { id, data }
+
+    function gcRenderChatListFromMap(){
+        if(!currentUser) return;
         const mutedChats = currentUserData?.mutedChats || [];
         const pinnedChats = currentUserData?.pinnedChats || [];
         const archivedChats = currentUserData?.archivedChats || [];
         const blockedUsers = currentUserData?.blockedUsers || [];
         let chats = [];
 
-        // ১. কঠোর নোটিফিকেশন লজিক
-        snap.docChanges().forEach(change => {
-            const data = change.doc.data();
-            const chatId = change.doc.id;
-            
-            let isMyChat = false;
-            if (data.isGroup && data.members && data.members.includes(currentUser.uid)) {
-                isMyChat = true; 
-            } else if (!data.isGroup && chatId.includes(currentUser.uid)) {
-                isMyChat = true; 
-            }
-
-            if (!isMyChat) return; 
-
-            if (!isInitialChatLoad && (change.type === 'added' || change.type === 'modified')) {
-                if (data.lastSender && data.lastSender !== currentUser.uid && data.isRead === false && !mutedChats.includes(chatId)) {
-                    if (currentChatId !== chatId || !document.getElementById('chat-screen').classList.contains('open')) {
-                        
-                        window.notifiedChatsCache = window.notifiedChatsCache || {};
-                        const msgTime = data.lastAt?.toMillis ? data.lastAt.toMillis() : 0;
-                        
-                        if (window.notifiedChatsCache[chatId] !== msgTime) {
-                            window.notifiedChatsCache[chatId] = msgTime; 
-                            
-                            const oldPopup = document.getElementById(`popup-${chatId}`);
-                            if (oldPopup) oldPopup.remove();
-                            
-                            showInAppMessageNotification(chatId, data);
-                        }
-                    }
-                }
-            }
-        });
-        isInitialChatLoad = false;
-
-        // ২. মেসেজ লিস্ট তৈরি
-        snap.forEach(d => {
-            const data = d.data();
-            const chatId = d.id;
-            
+        chatDocsMap.forEach(function(entry, chatId){
+            const data = entry.data || {};
             let isMyChat = false;
             if (data.isGroup && data.members && data.members.includes(currentUser.uid)) {
                 isMyChat = true;
-            } else if (!data.isGroup && chatId.includes(currentUser.uid)) {
+            } else if (!data.isGroup && (chatId.includes(currentUser.uid) || (data.users && data.users.includes(currentUser.uid)))) {
                 isMyChat = true;
             }
+            if (!isMyChat) return;
 
-            if (!isMyChat) return; 
-            
             if (data.isGroup && !archivedChats.includes(chatId)) {
                 chats.push({
                     id: chatId, otherUid: 'group', otherName: data.groupName || 'Group', otherAv: 'group_icon', data: data, isGroup: true,
@@ -13521,7 +13523,7 @@ async function loadMessages(){
                 }
             }
         });
-        
+
         // ৩. সর্টিং (পিন করা গুলো উপরে, বাকিগুলো সময়ের ভিত্তিতে)
         chats.sort((a,b) => {
             if(a.isPinned && !b.isPinned) return -1;
@@ -13614,9 +13616,72 @@ async function loadMessages(){
             </div>`;
         });
         
-        // 🚀 আগেরবার এই অংশটুকু মিসিং ছিল, যার কারণে এররটি এসেছিল!
         list.innerHTML = html || '<div class="empty-feed">No messages yet</div>';
-    });
+    }
+
+    function gcOnChatSnap(snap){
+        try{
+            const mutedChats = currentUserData?.mutedChats || [];
+            snap.docChanges().forEach(function(change){
+                const data = change.doc.data() || {};
+                const chatId = change.doc.id;
+                if(change.type === 'removed'){
+                    chatDocsMap.delete(chatId);
+                    return;
+                }
+                chatDocsMap.set(chatId, { id: chatId, data: data });
+
+                let isMyChat = false;
+                if (data.isGroup && data.members && data.members.includes(currentUser.uid)) isMyChat = true;
+                else if (!data.isGroup && (chatId.includes(currentUser.uid) || (data.users && data.users.includes(currentUser.uid)))) isMyChat = true;
+                if (!isMyChat) return;
+
+                if (!isInitialChatLoad && (change.type === 'added' || change.type === 'modified')) {
+                    if (data.lastSender && data.lastSender !== currentUser.uid && data.isRead === false && !mutedChats.includes(chatId)) {
+                        if (currentChatId !== chatId || !document.getElementById('chat-screen').classList.contains('open')) {
+                            window.notifiedChatsCache = window.notifiedChatsCache || {};
+                            const msgTime = data.lastAt?.toMillis ? data.lastAt.toMillis() : 0;
+                            if (window.notifiedChatsCache[chatId] !== msgTime) {
+                                window.notifiedChatsCache[chatId] = msgTime;
+                                const oldPopup = document.getElementById('popup-' + chatId);
+                                if (oldPopup) oldPopup.remove();
+                                showInAppMessageNotification(chatId, data);
+                            }
+                        }
+                    }
+                }
+            });
+            isInitialChatLoad = false;
+            gcRenderChatListFromMap();
+        }catch(e){
+            console.error('chat list snap error', e);
+        }
+    }
+
+    function gcOnChatErr(err){
+        console.error('chat list query failed', err);
+        if(list && list.querySelector('.loading')){
+            list.innerHTML = '<div class="empty-feed">Could not load chats. Pull to refresh or re-open Messages.</div>';
+        }
+    }
+
+    if(!currentUser){
+        list.innerHTML = '<div class="empty-feed">Sign in to see messages</div>';
+        return;
+    }
+
+    // Filtered queries required by security rules
+    const unsubUsers = db.collection('chats')
+        .where('users', 'array-contains', currentUser.uid)
+        .onSnapshot(gcOnChatSnap, gcOnChatErr);
+    const unsubMembers = db.collection('chats')
+        .where('members', 'array-contains', currentUser.uid)
+        .onSnapshot(gcOnChatSnap, gcOnChatErr);
+
+    window.chatListUnsub = function(){
+        try{ unsubUsers(); }catch(e){}
+        try{ unsubMembers(); }catch(e){}
+    };
 }
 
 async function loadArchivedMessages(){
