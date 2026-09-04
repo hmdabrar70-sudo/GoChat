@@ -14,12 +14,13 @@
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
 :root{
 --app-bg-image: url('');
+/* Dark mode: single solid canvas (no two-tone bg/surface split) */
 --bg:#0a0a0f;
---surface:#16161f;
---surface-2:#1e1e2a;
---card:#22222f;
---border:#2a2a3a;
---border-light:#3a3a4a;
+--surface:#0a0a0f;
+--surface-2:#14141c;
+--card:#0a0a0f;
+--border:#1c1c28;
+--border-light:#262633;
 --accent:#7c5cff;
 --accent-light:#9d85ff;
 --accent-dark:#5a3fd6;
@@ -206,10 +207,8 @@ body {
   max-width: 520px;
   /* do not set overflow here — lets document/body scroll naturally */
 }
-.topbar,
-.stories-wrapper {
-  background-size: 100% 250px !important;
-}
+/* topbar/stories use solid surface — no bg-image size */
+
 /* Hide multi-image carousel scrollbar (gray line under images) */
 .post-media-carousel,
 .post-media-wrap > div[style*="overflow-x"] {
@@ -318,12 +317,11 @@ letter-spacing:0.5px;}
 #app-screen{display:none;max-width:520px;margin:0 auto;padding-bottom:100px;}
 .topbar {
     position: sticky; top: 0; z-index: 100;
-    /* খেয়াল করুন, এখানে লিংকের বদলে var(--app-bg-image) বসানো হয়েছে */
-    background: var(--app-bg-image) center top / 100vw 250px no-repeat !important;
+    background: var(--surface) !important;
     border-bottom: none !important;
     padding: 14px 18px;
     display: flex; align-items: center; justify-content: space-between;
-    transition: transform 0.3s ease-in-out !important; /* আগের হাইড হওয়ার এনিমেশন */
+    transition: transform 0.3s ease-in-out !important;
 }
 
 /* 🚀 Update · center-logo · 2026-08-23 — GoChat লেখা মাঝ বরাবর */
@@ -378,6 +376,7 @@ body.notifications-mode .topbar-actions {
 .topbar-actions{display:flex;gap:8px;align-items:center;margin-left:auto;z-index:2;}
 
 body.light-mode .topbar{background:var(--surface) !important;}
+body:not(.light-mode) .topbar{background:var(--surface) !important;}
 .topbar-btn{
 width:40px;height:40px;
 border-radius:50%;
@@ -532,17 +531,42 @@ flex-shrink:0;overflow:hidden;
 .stories-wrapper {
     display: flex; gap: 14px;
     overflow-x: auto; padding: 16px 18px;
-    /* এখানেও লিংকের বদলে var(--app-bg-image) বসানো হয়েছে */
-    background: var(--app-bg-image) center -68px / 100vw 250px no-repeat !important;
+    background: var(--surface) !important;
     border-bottom: none !important;
-    border-radius: 0 0 24px 24px;
+    border-radius: 0;
     box-shadow: none;
     scrollbar-width: none;
 }
 body.light-mode .stories-wrapper {
     background: var(--surface) !important;
 }
+body:not(.light-mode) .stories-wrapper {
+    background: var(--surface) !important;
+}
 .stories-wrapper::-webkit-scrollbar{display:none;}
+
+/* ═══ Dark mode canvas lock · one solid color everywhere · 2026-09-04 ═══ */
+body:not(.light-mode),
+body:not(.light-mode) #app-screen,
+body:not(.light-mode) #page-feed,
+body:not(.light-mode) #page-profile,
+body:not(.light-mode) #page-other-profile,
+body:not(.light-mode) #page-messages,
+body:not(.light-mode) #page-notifications,
+body:not(.light-mode) .stories-wrapper,
+body:not(.light-mode) .topbar,
+body:not(.light-mode) .profile-header,
+body:not(.light-mode) .other-profile-content-tabs,
+body:not(.light-mode) .feed-tabs,
+body:not(.light-mode) .gc-profile-sheet {
+  background-color: var(--bg) !important;
+  background-image: none !important;
+}
+body:not(.light-mode) .post-card {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
 
 /* 🚀 হোম ফিডের আকাশ+মেঘ ডিজাইন সরানো হয়েছে (শুধু টেস্টের জন্য দেওয়া হয়েছিল) —
    এখন topbar/stories-wrapper স্বাভাবিক var(--surface) ব্যাকগ্রাউন্ডেই থাকবে,
@@ -5132,6 +5156,58 @@ body.notif-edit-mode #notif-selection-bar {
     border-color: var(--text);
 }
 
+/* 🚀 profile-action-btns-restyle · 2026-09-04
+   Edit Profile / Insights / three-dot — unified pale-blue chip style.
+   rgba blue tint blends naturally: pale blue on light bg, muted blue on dark bg. */
+.gc-profile-action-btn{
+    background: rgba(96,165,250,0.16) !important;
+    border: 1px solid #c7cdd6 !important;
+    color: var(--text) !important;
+}
+
+/* 🚀 followers-following-merge · 2026-09-04 */
+/* 🚀 followers-following-fullscreen · এখন থেকে এটি পপআপ না, ফুল-স্ক্রিন পেজ */
+.gc-fl-screen{
+    position:fixed; inset:0;
+    background:var(--bg);
+    z-index:100670;
+    transform:translateX(100%);
+    transition:transform .3s cubic-bezier(.22,1,.36,1);
+    display:flex; flex-direction:column;
+}
+.gc-fl-screen.open{ transform:translateX(0); }
+.gc-fl-head{
+    display:flex; align-items:center; gap:14px;
+    padding:14px 16px;
+    border-bottom:1px solid var(--border);
+    flex-shrink:0;
+}
+.gc-fl-head-title{ font-size:18px; font-weight:800; color:var(--text); }
+.gc-fl-body{
+    flex:1; overflow-y:auto;
+    padding:8px 16px 20px;
+    -webkit-overflow-scrolling:touch;
+}
+.gc-fl-tabs{
+    display:flex; gap:0;
+    border-bottom:1px solid var(--border);
+    padding:0 16px;
+    flex-shrink:0;
+}
+.gc-fl-tab{
+    flex:1; text-align:center;
+    padding:12px 8px 10px;
+    font-size:14.5px; font-weight:700;
+    color:var(--text-muted);
+    cursor:pointer;
+    border-bottom:2.5px solid transparent;
+    transition:color .2s ease, border-color .2s ease;
+}
+.gc-fl-tab.active{
+    color:var(--text);
+    border-bottom-color:var(--accent);
+}
+
 .activity-item-card {
     display: flex;
     align-items: center;
@@ -6921,7 +6997,7 @@ body:not(.light-mode) .fb-create-story-card {
 100%{opacity:1;}
 }
 /* ২) ফুল-স্ক্রিন ওভারলে স্ক্রিন */
-#chat-screen.open,#create-post-screen.open,#settings-privacy-screen.open,#page-other-profile.open,#single-post-screen.open,#gc-mr-screen.open,#gc-fr-screen.open,#gc-liked-screen.open,#gc-ins-screen.open,#gc-fp-screen.open,#gc-loc-screen.open,#story-viewer.open{
+#chat-screen.open,#create-post-screen.open,#settings-privacy-screen.open,#page-other-profile.open,#single-post-screen.open,#gc-mr-screen.open,#gc-fr-screen.open,#gc-liked-screen.open,#gc-ins-screen.open,#gc-fp-screen.open,#gc-loc-screen.open,#story-viewer.open,#friends-list-modal.open{
 animation:gcScreenIn .4s cubic-bezier(.22,1,.36,1) both;
 }
 /* ৩) মেইন মেনু (inline style দিয়ে খোলে) */
@@ -6969,57 +7045,6 @@ animation:gcFadeIn .25s ease both;
 .gc-tag-sug-item{padding:10px 14px;font-size:13px;font-weight:700;color:var(--text);cursor:pointer;display:flex;gap:8px;align-items:center;}
 .gc-tag-sug-item i{color:var(--accent);}
 .gc-tag-sug-item:active{background:var(--surface-2);}
-
-/* =========================================
-🚀 Update #95 · login-activity · 2026-08-19
-ডিভাইস লগইন মনিটর (রিয়েল-টাইম)
-খুঁজতে: Ctrl+F → "login-activity"
-========================================= */
-.gc-sess-screen{position:fixed;inset:0;background:var(--bg);z-index:100710;display:none;flex-direction:column;}
-.gc-sess-screen.open{display:flex;}
-.gc-sess-head{display:flex;align-items:center;gap:12px;padding:14px 16px;background:var(--surface);border-bottom:1px solid var(--border);}
-.gc-sess-title{font-size:16px;font-weight:800;color:var(--text);flex:1;line-height:1.3;}
-.gc-sess-body{flex:1;overflow-y:auto;padding:14px 16px;scrollbar-width:none;}
-.gc-sess-body::-webkit-scrollbar{display:none;}
-.gc-sess-allbtn{width:100%;padding:12px;border:none;border-radius:14px;background:rgba(255,77,106,.12);color:var(--danger);font-weight:800;font-size:13px;cursor:pointer;font-family:inherit;margin-bottom:14px;display:flex;align-items:center;justify-content:center;gap:8px;}
-.gc-sess-item{display:flex;gap:12px;align-items:flex-start;padding:14px;border-radius:18px;background:var(--surface);border:1px solid var(--border);margin-bottom:10px;}
-.gc-sess-item.me{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow);}
-.gc-sess-ico{width:44px;height:44px;border-radius:14px;background:var(--surface-2);color:var(--text-muted);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;position:relative;}
-.gc-sess-ico.on{color:#22c55e;}
-.gc-sess-ico.on::after{content:'';position:absolute;top:-2px;right:-2px;width:10px;height:10px;border-radius:50%;background:#22c55e;box-shadow:0 0 0 3px var(--surface);animation:gcSessPulse 1.6s ease-in-out infinite;}
-@keyframes gcSessPulse{0%,100%{transform:scale(1);opacity:1;}50%{transform:scale(1.25);opacity:.7;}}
-.gc-sess-info{flex:1;min-width:0;}
-.gc-sess-dev{font-size:14px;font-weight:800;color:var(--text);display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
-.gc-sess-cur{font-size:10px;font-weight:800;color:var(--accent);background:var(--accent-glow);padding:2px 8px;border-radius:8px;text-transform:uppercase;letter-spacing:.4px;}
-.gc-sess-meta{font-size:11.5px;color:var(--text-muted);margin-top:3px;display:flex;align-items:center;gap:5px;}
-.gc-sess-meta i{font-size:12px;}
-.gc-sess-status{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:800;padding:3px 9px;border-radius:8px;margin-top:6px;}
-.gc-sess-status.on{background:rgba(34,197,94,.12);color:#16a34a;}
-.gc-sess-status.off{background:var(--surface-2);color:var(--text-muted);}
-.gc-sess-out{border:none;background:var(--surface-2);color:var(--danger);width:34px;height:34px;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
-.gc-sess-empty{text-align:center;color:var(--text-muted);padding:50px 10px;font-size:13px;}
-
-/* =========================================
-🚀 Update #99 · login-approval · 2026-08-20
-ডিভাইস অ্যাপ্রুভাল পপআপ + ওয়েটিং স্ক্রিন
-খুঁজতে: Ctrl+F → "login-approval"
-========================================= */
-.gc-appr-mask{position:fixed;inset:0;background:rgba(5,5,10,.7);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);z-index:101800;display:flex;align-items:center;justify-content:center;padding:24px;}
-.gc-appr-card{width:100%;max-width:340px;background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:26px 22px;text-align:center;box-shadow:0 30px 80px rgba(0,0,0,.4);animation:gcApprIn .35s cubic-bezier(.22,1,.36,1);}
-@keyframes gcApprIn{from{opacity:0;transform:scale(.9) translateY(14px);}to{opacity:1;transform:scale(1) translateY(0);}}
-.gc-appr-ico{width:64px;height:64px;border-radius:20px;margin:0 auto 14px;display:flex;align-items:center;justify-content:center;font-size:28px;color:#fff;}
-.gc-appr-ico.wait{background:linear-gradient(135deg,var(--accent),var(--accent-dark));}
-.gc-appr-ico.ask{background:linear-gradient(135deg,#f59e0b,#ef4444);animation:gcApprPulse 1.6s ease-in-out infinite;}
-@keyframes gcApprPulse{0%,100%{transform:scale(1);}50%{transform:scale(1.08);}}
-.gc-appr-t{font-size:17px;font-weight:800;color:var(--text);}
-.gc-appr-s{font-size:12.5px;color:var(--text-muted);line-height:1.6;margin:8px 0 18px;}
-.gc-appr-s b{color:var(--text);}
-.gc-appr-spin{width:26px;height:26px;border-radius:50%;border:3px solid var(--border);border-top-color:var(--accent);margin:0 auto 18px;animation:spin 1s linear infinite;}
-.gc-appr-row{display:flex;gap:10px;}
-.gc-appr-btn{flex:1;padding:13px;border:none;border-radius:14px;font-weight:800;font-size:14px;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:7px;transition:transform .15s;}
-.gc-appr-btn:active{transform:scale(.96);}
-.gc-appr-btn.allow{background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;}
-.gc-appr-btn.reject{background:rgba(255,77,106,.12);color:var(--danger);}
 
 /* =========================================
 🚀 Update #103 · relationship-link · 2026-08-22
@@ -7593,7 +7618,7 @@ Edit Profile-এ পার্টনার সিলেক্ট বাটন
         
         <!-- Suggestions Button -->
         <div onclick="openSuggestionsSheet()" style="flex: 1; text-align: center; font-weight: 800; font-size: 15px; color: var(--text); padding: 8px 0; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: 0.2s;" onmouseover="this.style.opacity='0.7'" onmouseout="this.style.opacity='1'">
-            Suggestions <i class="ph-bold ph-sparkle" style="color: var(--accent); font-size: 16px;"></i>
+            Suggestions
         </div>
 
     </div>
@@ -7685,17 +7710,18 @@ Edit Profile-এ পার্টনার সিলেক্ট বাটন
         <div class="profile-personal-details" id="profile-details-display" style="margin-top: 0; padding: 0;"></div>
     </div>
 <div class="gc-my-profile-actions" style="display:flex; justify-content:center; align-items:center; gap:8px; width:100%; margin-top:22px; margin-bottom:8px; flex-wrap:nowrap;">
-    <button class="icon-btn" style="flex:1; border-radius:30px; padding:10px 0; background:var(--gradient); color:#fff; border:none; box-shadow:var(--shadow-glow); display:flex; justify-content:center; align-items:center; gap:4px; font-size:13px; font-weight:700;" onclick="openProfileEdit()">
+    <!-- 🚀 profile-action-btns-restyle · 2026-09-04 — সব কটা বাটন এখন এক ডিজাইনে: হালকা নীল ব্যাকগ্রাউন্ড, হালকা ধূসর বর্ডার, থিম অনুযায়ী টেক্সট -->
+    <button class="icon-btn gc-profile-action-btn" style="flex:1; border-radius:30px; padding:10px 0; display:flex; justify-content:center; align-items:center; gap:4px; font-size:13px; font-weight:700;" onclick="openProfileEdit()">
         <i class="ph-bold ph-pencil-simple" style="font-size:18px;"></i> Edit Profile
     </button>
     
     <!-- 🚀 Insights Button (fixed) -->
-    <button id="gc-profile-insights-btn" class="icon-btn" style="flex:1; border-radius:30px; padding:10px 0; border:1px solid var(--accent); color:var(--accent); background:transparent; display:flex; justify-content:center; align-items:center; gap:4px; font-size:13px; font-weight:700;" onclick="event.stopPropagation(); gcOpenInsights();">
+    <button id="gc-profile-insights-btn" class="icon-btn gc-profile-action-btn" style="flex:1; border-radius:30px; padding:10px 0; display:flex; justify-content:center; align-items:center; gap:4px; font-size:13px; font-weight:700;" onclick="event.stopPropagation(); gcOpenInsights();">
         <i class="ph-bold ph-chart-bar" style="font-size:18px;"></i> Insights
     </button>
 
     <!-- 🚀 Own profile · more (3-dot) — capsule like Insights -->
-    <button type="button" id="gc-my-profile-more-btn" class="icon-btn" style="flex:0 0 auto; min-width:48px; border-radius:30px; padding:10px 14px; border:1px solid var(--accent); color:var(--accent); background:transparent; display:flex; align-items:center; justify-content:center;" onclick="event.stopPropagation(); gcOpenMyProfileMore();" aria-label="More">
+    <button type="button" id="gc-my-profile-more-btn" class="icon-btn gc-profile-action-btn" style="flex:0 0 auto; min-width:48px; border-radius:30px; padding:10px 14px; display:flex; align-items:center; justify-content:center;" onclick="event.stopPropagation(); gcOpenMyProfileMore();" aria-label="More">
         <i class="ph-bold ph-dots-three" style="font-size:18px;"></i>
     </button>
     <!-- hidden source menu → opened as Threads-style bottom sheet -->
@@ -8346,12 +8372,17 @@ Edit Profile-এ পার্টনার সিলেক্ট বাটন
     </div>
 </div>
 
-<div class="modal-overlay" id="friends-list-modal">
-<div class="modal-box" style="max-height:80vh;display:flex;flex-direction:column;">
-<button class="modal-close" onclick="closeFriendsListModal()"><i class="ph ph-x"></i></button>
-<div class="modal-title">Person</div>
-<div id="friends-list-container" style="overflow-y:auto;flex:1;margin-bottom:20px;max-height:400px;"></div>
+<div class="gc-fl-screen" id="friends-list-modal">
+<div class="gc-fl-head">
+<div class="chat-back" onclick="closeFriendsListModal()"><i class="ph-bold ph-arrow-left" style="font-size:20px;"></i></div>
+<div class="gc-fl-head-title" id="gc-fl-head-title">Followers</div>
 </div>
+<!-- 🚀 followers-following-merge · 2026-09-04 — একই স্ক্রিনে দুই ট্যাব -->
+<div class="gc-fl-tabs" id="gc-fl-tabs">
+    <div class="gc-fl-tab" id="gc-fl-tab-followers" onclick="gcSwitchFollowTab('followers')">Followers</div>
+    <div class="gc-fl-tab" id="gc-fl-tab-following" onclick="gcSwitchFollowTab('following')">Following</div>
+</div>
+<div id="friends-list-container" class="gc-fl-body"></div>
 </div>
 
 
@@ -8440,7 +8471,7 @@ Edit Profile-এ পার্টনার সিলেক্ট বাটন
         <!-- 🚀 Solid Share Button — opens existing share modal (hydrate post data inside openShareModal) -->
         <div style="display:flex; align-items:center; gap:6px; cursor:pointer;" onclick="(function(){ var pid=zoomActivePostId; if(!pid){ showToast('Nothing to share'); return; } closeImageZoom(); openShareModal(pid); })()">
             <span style="display:flex; align-items:center; gap:6px; color:#fff;">
-                <i class="ph-fill ph-paper-plane-tilt"></i>
+                <i class="ph-fill ph-paper-plane-tilt" style="font-size:24px; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));"></i>
             </span>
         </div>
         
@@ -9091,7 +9122,7 @@ Edit Profile-এ পার্টনার সিলেক্ট বাটন
             <div class="gc-sheet-handle" style="margin-top: 0; margin-bottom: 16px;"></div>
             <div style="display: flex; justify-content: space-between; align-items: center;">
                 <div style="font-weight: 800; font-size: 18px; color: var(--text); display: flex; align-items: center; gap: 8px;">
-                    Suggested for you <i class="ph-bold ph-sparkle" style="color: var(--accent);"></i>
+                    Suggested for you
                 </div>
                 <div onclick="closeSuggestionsSheet()" style="width: 32px; height: 32px; border-radius: 50%; background: var(--surface-2); display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--text-muted); transition: 0.2s;" onmouseover="this.style.background='var(--border)'" onmouseout="this.style.background='var(--surface-2)'">
                     <i class="ph-bold ph-x" style="font-size: 16px;"></i>
@@ -11392,6 +11423,10 @@ async function removeRecentSearch(uid) {
 
 async function openFriendsListModal(uid){
 document.getElementById('friends-list-modal').classList.add('open');
+const tabs = document.getElementById('gc-fl-tabs');
+if (tabs) tabs.style.display = 'none';
+const title = document.getElementById('gc-fl-head-title');
+if (title) title.textContent = 'Friends';
 const container=document.getElementById('friends-list-container');
 container.innerHTML=gcModernLoader('Loading friends', 'list');
 const doc=await db.collection('users').doc(uid).get();
@@ -11421,6 +11456,7 @@ container.innerHTML = '<div class="empty-feed">Failed to load friends</div>';
 
 function closeFriendsListModal(){
 document.getElementById('friends-list-modal').classList.remove('open');
+gcFollowListUid = null;
 }
 
 // ===== STORY LOGIC =====
@@ -12982,7 +13018,7 @@ ${gcDisplayName}
     if(isBlocked){
         btnHtml=`<button class="icon-btn" style="flex:1; border-radius:30px; padding:10px 0; border:1px solid var(--success); color:var(--success); background:transparent; display:flex; justify-content:center; align-items:center; gap:4px; font-size:13px; font-weight:700;" onclick="unblockUser('${uid}')"><i class="ph-bold ph-lock-key-open" style="font-size:18px;"></i> Unblock</button>`;
     }else if(isFollowing){
-        btnHtml=`<button class="icon-btn" style="flex:1; border-radius:30px; padding:10px 0; border:1px solid var(--text-muted); color:var(--text-muted); background:transparent; display:flex; justify-content:center; align-items:center; gap:4px; font-size:13px; font-weight:700;" onclick="toggleFollow('${uid}')"><i class="ph-bold ph-user-check" style="font-size:18px;"></i> Following</button>`;
+        btnHtml=`<button class="icon-btn gc-profile-action-btn" style="flex:1; border-radius:30px; padding:10px 0; display:flex; justify-content:center; align-items:center; gap:4px; font-size:13px; font-weight:700;" onclick="toggleFollow('${uid}')"><i class="ph-bold ph-user-check" style="font-size:18px;"></i> Following</button>`;
     }else{
         btnHtml=`<button class="icon-btn" style="flex:1; border-radius:30px; padding:10px 0; background:var(--gradient); color:#fff; border:none; box-shadow:var(--shadow-glow); display:flex; justify-content:center; align-items:center; gap:4px; font-size:13px; font-weight:700;" onclick="toggleFollow('${uid}')"><i class="ph-bold ph-user-plus" style="font-size:18px;"></i> Follow</button>`;
     }
@@ -13000,7 +13036,7 @@ ${gcDisplayName}
     document.getElementById('other-profile-btns').innerHTML=`
         <div style="display:flex; justify-content:center; gap:8px; width:100%; margin-top:16px; flex-wrap:nowrap;">
             ${btnHtml}
-            <button class="icon-btn" style="flex:1; border-radius:30px; padding:10px 0; background:var(--surface-2); color:var(--text); border:1px solid var(--border); display:flex; justify-content:center; align-items:center; gap:4px; font-size:13px; font-weight:700;" onclick="closeUserProfile(); openChat('${[currentUser.uid,uid].sort().join('_')}','${uid}','${safeName}','${u.avatar||''}')">
+            <button class="icon-btn gc-profile-action-btn" style="flex:1; border-radius:30px; padding:10px 0; display:flex; justify-content:center; align-items:center; gap:4px; font-size:13px; font-weight:700;" onclick="closeUserProfile(); openChat('${[currentUser.uid,uid].sort().join('_')}','${uid}','${safeName}','${u.avatar||''}')">
                 <i class="ph-bold ph-chat-circle-dots" style="font-size:18px;"></i> Message
             </button>
             <button class="icon-btn" style="flex:1; border-radius:30px; padding:10px 0; border:1px solid #f59e0b; color:#f59e0b; background:transparent; display:flex; justify-content:center; align-items:center; gap:4px; font-size:13px; font-weight:700;" onclick="openLeaderboard()">
@@ -17936,16 +17972,39 @@ async function toggleMuteFeed(uid) {
 }
 
 // Followers এবং Following লিস্ট ওপেন করার ফাংশন
+// 🚀 followers-following-merge · 2026-09-04
+// খুঁজতে: Ctrl+F → "followers-following-merge"
+let gcFollowListUid = null;
+
 async function openFollowList(type, uid) {
+    gcFollowListUid = uid;
     const modal = document.getElementById('friends-list-modal');
-    modal.style.zIndex = "100000"; 
+    const tabs = document.getElementById('gc-fl-tabs');
+    if (tabs) tabs.style.display = 'flex';
     modal.classList.add('open');
-    
+    gcRenderFollowTabsUI(type);
+    await gcLoadFollowListData(type, uid);
+}
+
+function gcRenderFollowTabsUI(activeType){
+    const fTab = document.getElementById('gc-fl-tab-followers');
+    const gTab = document.getElementById('gc-fl-tab-following');
+    if(fTab) fTab.classList.toggle('active', activeType === 'followers');
+    if(gTab) gTab.classList.toggle('active', activeType === 'following');
+    const title = document.getElementById('gc-fl-head-title');
+    if(title) title.textContent = activeType === 'following' ? 'Following' : 'Followers';
+}
+
+async function gcSwitchFollowTab(type){
+    if(!gcFollowListUid) return;
+    gcRenderFollowTabsUI(type);
+    await gcLoadFollowListData(type, gcFollowListUid);
+}
+window.gcSwitchFollowTab = gcSwitchFollowTab;
+
+async function gcLoadFollowListData(type, uid) {
     const container = document.getElementById('friends-list-container');
-    const titleEl = document.querySelector('#friends-list-modal .modal-title');
-    if(titleEl) titleEl.innerHTML = type === 'followers' ? 'Followers' : 'Following';
-    
-    // 🚀 ফিক্স: list.innerHTML এর জায়গায় container.innerHTML দেওয়া হলো
+
     container.innerHTML='<div class="gc-sk-grid"><div class="gc-sk-tile"></div><div class="gc-sk-tile" style="animation-delay:.08s"></div><div class="gc-sk-tile" style="animation-delay:.16s"></div><div class="gc-sk-tile" style="animation-delay:.24s"></div><div class="gc-sk-tile" style="animation-delay:.32s"></div><div class="gc-sk-tile" style="animation-delay:.4s"></div></div>';
     
     const doc = await db.collection('users').doc(uid).get();
@@ -23305,14 +23364,13 @@ async function loadSuggestions() {
             const avHtml = u.avatar ? `<img src="${escapeHTML(u.avatar)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">` : avatarInitial(u.name);
             const verifiedBadge = getVerifiedBadge(u.email, u.isVerified);
             
-            // মডার্ন কার্ড ডিজাইন
             html += `
-            <div class="msg-item" style="margin: 0 0 12px 0; padding: 14px; border-radius: 18px; background: var(--surface-2); border: 1px solid var(--border); transition: 0.2s; box-shadow: 0 4px 10px rgba(0,0,0,0.05);" onclick="closeSuggestionsSheet(); viewUserProfile('${u.id}')">
-                <div class="avatar" style="width: 46px; height: 46px; flex-shrink: 0; border: 2px solid var(--surface); box-shadow: 0 2px 8px rgba(0,0,0,0.2);">${avHtml}</div>
+            <div class="msg-item" style="margin: 0 0 12px 0; padding: 14px; border-radius: 18px; transition: 0.2s;" onclick="closeSuggestionsSheet(); viewUserProfile('${u.id}')">
+                <div class="avatar" style="width: 46px; height: 46px; flex-shrink: 0;">${avHtml}</div>
                 <div class="msg-info" style="margin-left: 12px;">
                     <div class="msg-name" style="font-size: 15px; font-weight: 800; color: var(--text); display: flex; align-items: center; gap: 4px;">${safeName} ${verifiedBadge}</div>
                     <div style="font-size: 12px; color: var(--text-muted); font-weight: 600; margin-top: 3px; display: flex; align-items: center; gap: 4px;">
-                        <i class="ph-fill ph-users" style="color: var(--accent); font-size: 14px;"></i> ${Array.isArray(u.followers) ? u.followers.length : (u.followersCount || 0)} Followers
+                        <i class="ph-fill ph-users" style="color: var(--accent-light); font-size: 14px;"></i> ${Array.isArray(u.followers) ? u.followers.length : (u.followersCount || 0)} Followers
                     </div>
                 </div>
                 <button class="btn-primary" style="margin: 0; padding: 8px 18px; font-size: 13px; height: auto; border-radius: 20px; width: auto; box-shadow: none;" onclick="event.stopPropagation(); toggleSuggestFollow('${u.id}', this)">Follow</button>
@@ -25722,347 +25780,6 @@ e.target.focus();
 })();
 
 // ═══════════════════════════════════════════════════════
-// 🚀 Update #95 · login-activity · 2026-08-19
-// ডিভাইস লগইন মনিটর + রিমোট লগআউট (রিয়েল-টাইম)
-// খুঁজতে: Ctrl+F → "login-activity"
-// ═══════════════════════════════════════════════════════
-let gcSessionsData = [];
-function gcGetDeviceId(){
-let id = null;
-try{ id = localStorage.getItem('gc_device_id'); }catch(e){}
-if(!id){ id = 'dev_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8); try{ localStorage.setItem('gc_device_id', id); }catch(e){} }
-return id;
-}
-function gcParseDevice(){
-const ua = navigator.userAgent;
-let browser = 'Browser';
-if(/Edg\//.test(ua)) browser = 'Edge';
-else if(/Chrome\//.test(ua)) browser = 'Chrome';
-else if(/Firefox\//.test(ua)) browser = 'Firefox';
-else if(/Safari\//.test(ua)) browser = 'Safari';
-let os = 'Unknown';
-if(/Android/.test(ua)) os = 'Android';
-else if(/iPhone|iPad|iPod/.test(ua)) os = 'iOS';
-else if(/Windows/.test(ua)) os = 'Windows';
-else if(/Mac OS/.test(ua)) os = 'macOS';
-else if(/Linux/.test(ua)) os = 'Linux';
-return { name: browser + ' · ' + os, mobile: /Mobi|Android|iPhone/.test(ua) };
-}
-async function gcGetLoc(){
-try{
-const c = new AbortController(); const t = setTimeout(function(){ c.abort(); }, 4000);
-const r = await fetch('https://ipwho.is/', { signal: c.signal });
-clearTimeout(t);
-const d = await r.json();
-if(d && d.city) return d.city + (d.country ? ', ' + d.country : '');
-}catch(e){}
-return 'Unknown location';
-}
-function gcAgo(ms){
-const s = Math.floor((Date.now() - ms) / 1000);
-if(s < 60) return 'Just now';
-const m = Math.floor(s / 60); if(m < 60) return m + 'm ago';
-const h = Math.floor(m / 60); if(h < 24) return h + 'h ago';
-return Math.floor(h / 24) + 'd ago';
-}
-function gcSessCol(){ return db.collection('users').doc(currentUser.uid).collection('loginSessions'); }
-async function gcStartSessionTracking(){
-const devId = gcGetDeviceId();
-const dev = gcParseDevice();
-let sid = null;
-try{ sid = localStorage.getItem('gc_cur_session_' + currentUser.uid); }catch(e){}
-let needNew = false;
-try{ needNew = localStorage.getItem('gc_need_new_session_' + currentUser.uid) === '1'; }catch(e){}
-const now = Date.now();
-const RESUME_WINDOW = 6 * 60 * 60 * 1000;
-try{
-if(needNew){
-try{ localStorage.removeItem('gc_need_new_session_' + currentUser.uid); }catch(e){}
-sid = null;
-}
-// ১) সেভ করা সেশন রিজিউম (forceLogout লুপ ফিক্সসহ)
-if(sid){
-let docData = null;
-try{ const d0 = await gcSessCol().doc(sid).get(); if(d0.exists) docData = d0.data(); else sid = null; }catch(e){}
-if(sid && docData && docData.forceLogout){
-sid = null;
-try{ localStorage.removeItem('gc_cur_session_' + currentUser.uid); }catch(e){}
-}
-if(sid){
-const ok = await gcSessCol().doc(sid).update({ active: true, lastActiveAt: firebase.firestore.FieldValue.serverTimestamp() }).then(function(){ return true; }).catch(function(){ return false; });
-if(!ok) sid = null;
-}
-}
-// ২) একই ডিভাইসের সাম্প্রতিক সেশন রিজিউম
-if(!sid && !needNew){
-try{
-const q = await gcSessCol().where('deviceId', '==', devId).limit(10).get();
-let bestId = null, bestTs = 0, bestForce = false;
-q.forEach(function(d){
-const dd = d.data();
-const lm = dd.loginAt && dd.loginAt.toMillis ? dd.loginAt.toMillis() : 0;
-if(lm > bestTs){ bestTs = lm; bestId = d.id; bestForce = !!dd.forceLogout; }
-});
-if(bestId && !bestForce && (now - bestTs) < RESUME_WINDOW){
-sid = bestId;
-await gcSessCol().doc(sid).update({ active: true, lastActiveAt: firebase.firestore.FieldValue.serverTimestamp() }).catch(function(){});
-}
-}catch(e){}
-}
-// ৩) নতুন লগইন: অন্য ডিভাইস এক্টিভ থাকলে অনুমতি লাগবে
-if(!sid){
-const others = await gcActiveOtherSessions(devId);
-if(others.length){
-const approved = await gcRequestLoginApproval(devId, dev, others[0]);
-if(!approved){
-showToast('Login not approved on your other device');
-try{ await auth.signOut(); }catch(e){}
-return;
-}
-}
-const loc = await gcGetLoc();
-try{ localStorage.setItem('gc_loc_cache', loc); }catch(e){}
-const ref = await gcSessCol().add({ deviceId: devId, device: dev.name, mobile: dev.mobile, location: loc, loginAt: firebase.firestore.FieldValue.serverTimestamp(), lastActiveAt: firebase.firestore.FieldValue.serverTimestamp(), active: true, forceLogout: false });
-sid = ref.id;
-try{ localStorage.setItem('gc_cur_session_' + currentUser.uid, sid); localStorage.setItem('gc_sess_start_' + currentUser.uid, String(now)); }catch(e){}
-}
-// ৪) ডুপ্লিকেট ক্লিন
-try{
-const q2 = await gcSessCol().where('deviceId', '==', devId).limit(15).get();
-q2.forEach(function(d){
-if(d.id !== sid && d.data().active !== true){
-d.ref.delete().catch(function(){});
-}
-});
-}catch(e){}
-}catch(e){}
-window.gcMySessionId = sid;
-gcListenSessions();
-gcListenLoginRequests();
-if(window.gcHbInt) clearInterval(window.gcHbInt);
-window.gcHbInt = setInterval(function(){
-if(currentUser && window.gcMySessionId){
-gcSessCol().doc(window.gcMySessionId).update({ active: true, lastActiveAt: firebase.firestore.FieldValue.serverTimestamp() }).catch(function(){});
-}
-}, 90000);
-}
-function gcMarkInactive(){
-if(currentUser && window.gcMySessionId){
-gcSessCol().doc(window.gcMySessionId).update({ active: false, lastActiveAt: firebase.firestore.FieldValue.serverTimestamp() }).catch(function(){});
-}
-}
-document.addEventListener('visibilitychange', function(){
-if(!currentUser || !window.gcMySessionId) return;
-if(document.visibilityState === 'hidden') gcMarkInactive();
-else gcSessCol().doc(window.gcMySessionId).update({ active: true, lastActiveAt: firebase.firestore.FieldValue.serverTimestamp() }).catch(function(){});
-});
-function gcListenSessions(){
-if(window.gcSessUnsub){ try{ window.gcSessUnsub(); }catch(e){} }
-window.gcSessUnsub = gcSessCol().orderBy('loginAt', 'desc').limit(10).onSnapshot(function(snap){
-gcSessionsData = [];
-snap.forEach(function(d){ gcSessionsData.push({ id: d.id, ...d.data() }); });
-const mine = gcSessionsData.find(function(s){ return s.id === window.gcMySessionId; });
-if(mine && mine.forceLogout){
-showToast('Logged out from another device');
-auth.signOut();
-return;
-}
-snap.docChanges().forEach(function(ch){
-if(ch.type === 'added' && ch.doc.id !== window.gcMySessionId){
-const d = ch.doc.data();
-const lm = d.loginAt && d.loginAt.toMillis ? d.loginAt.toMillis() : 0;
-if(lm && Date.now() - lm < 15000) showToast('New login: ' + (d.device || 'Unknown device'));
-}
-});
-const scr = document.getElementById('gc-sess-screen');
-if(scr && scr.classList.contains('open')) gcRenderSessions();
-}, function(){});
-}
-// ---------- UI ----------
-function gcEnsureSessionsScreen(){
-let s = document.getElementById('gc-sess-screen');
-if(s) return s;
-s = document.createElement('div');
-s.id = 'gc-sess-screen'; s.className = 'gc-sess-screen';
-s.innerHTML = '<div class="gc-sess-head"><div class="chat-back" onclick="gcCloseSessions()"><i class="ph-bold ph-arrow-left" style="font-size:20px;"></i></div><div class="gc-sess-title">See when and where you logged in</div></div><div class="gc-sess-body" id="gc-sess-list"></div>';
-document.body.appendChild(s);
-return s;
-}
-function gcOpenSessions(){
-gcEnsureSessionsScreen();
-document.getElementById('gc-sess-screen').classList.add('open');
-gcRenderSessions();
-}
-function gcCloseSessions(){ const s = document.getElementById('gc-sess-screen'); if(s) s.classList.remove('open'); }
-window.openLoginDevicesScreen = gcOpenSessions;
-function gcRenderSessions(){
-const list = document.getElementById('gc-sess-list');
-if(!list) return;
-const now = Date.now();
-const hasMe = gcSessionsData.some(function(s){ return s.id === window.gcMySessionId; });
-if(currentUser && !hasMe){
-const dev = gcParseDevice();
-let startMs = 0;
-try{ startMs = parseInt(localStorage.getItem('gc_sess_start_' + currentUser.uid) || '0', 10); }catch(e){}
-if(!startMs) startMs = now;
-let locTxt = 'Unknown location';
-try{ locTxt = localStorage.getItem('gc_loc_cache') || locTxt; }catch(e){}
-gcSessionsData.unshift({ id: (window.gcMySessionId || 'local-me'), device: dev.name, mobile: dev.mobile, location: locTxt, loginAtMs: startMs, localMe: true });
-}
-if(!gcSessionsData.length){ list.innerHTML = '<div class="gc-sess-empty">No login activity yet.</div>'; return; }
-let html = '';
-if(gcSessionsData.length > 1){
-html += '<button class="gc-sess-allbtn" onclick="gcLogoutAllOthers()"><i class="ph-bold ph-sign-out"></i> Log out all other devices</button>';
-}
-html += gcSessionsData.map(function(s){
-const isMe = s.id === window.gcMySessionId;
-const lastMs = s.lastActiveAt && s.lastActiveAt.toMillis ? s.lastActiveAt.toMillis() : 0;
-const activeNow = isMe ? true : (s.active === true && (now - lastMs) < 240000);
-const loginMs = s.loginAtMs || (s.loginAt && s.loginAt.toMillis ? s.loginAt.toMillis() : now);
-const dateStr = new Date(loginMs).toLocaleString(undefined, { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-return '<div class="gc-sess-item' + (isMe ? ' me' : '') + '">' +
-'<div class="gc-sess-ico' + (activeNow ? ' on' : '') + '"><i class="' + (s.mobile ? 'ph-fill ph-device-mobile' : 'ph-fill ph-laptop') + '"></i></div>' +
-'<div class="gc-sess-info"><div class="gc-sess-dev">' + escapeHTML(s.device || 'Unknown device') + (isMe ? ' <span class="gc-sess-cur">This device</span>' : '') + '</div>' +
-'<div class="gc-sess-meta"><i class="ph-bold ph-map-pin"></i>' + escapeHTML(s.location || 'Unknown location') + '</div>' +
-'<div class="gc-sess-meta"><i class="ph-bold ph-clock"></i>' + dateStr + ' · ' + gcAgo(loginMs) + '</div>' +
-'<span class="gc-sess-status ' + (activeNow ? 'on' : 'off') + '"><i class="ph-fill ph-circle" style="font-size:7px;"></i>' + (activeNow ? 'Active now' : 'Inactive') + '</span></div>' +
-(isMe ? '' : '<button class="gc-sess-out" onclick="gcLogoutSession(\'' + s.id + '\')"><i class="ph-bold ph-sign-out"></i></button>') +
-'</div>';
-}).join('');
-list.innerHTML = html;
-}
-function gcLogoutSession(sid){
-gcSessCol().doc(sid).update({ forceLogout: true, active: false }).then(function(){ showToast('Device logged out'); }).catch(function(){ showToast('Failed to log out device'); });
-}
-function gcLogoutAllOthers(){
-gcSessionsData.forEach(function(s){
-if(s.id !== window.gcMySessionId){
-gcSessCol().doc(s.id).update({ forceLogout: true, active: false }).catch(function(){});
-}
-});
-showToast('All other devices logged out');
-}
-// ---------- লগআউটে নতুন সেশন ফ্ল্যাগ ----------
-if(typeof window.confirmLogoutAction === 'function' && !window.gcLogoutWrapped95){
-window.gcLogoutWrapped95 = true;
-window.gcOrigConfirmLogout95 = window.confirmLogoutAction;
-window.confirmLogoutAction = function(){
-if(currentUser){
-try{ localStorage.setItem('gc_need_new_session_' + currentUser.uid, '1'); }catch(e){}
-gcMarkInactive();
-}
-return window.gcOrigConfirmLogout95.apply(this, arguments);
-};
-}
-// ---------- বুটস্ট্র্যাপ ----------
-(function gcSessBoot(){
-if(window.gcSessBootOn) return; window.gcSessBootOn = true;
-setInterval(function(){
-if(currentUser){
-if(window.gcSessionUid !== currentUser.uid){
-window.gcSessionUid = currentUser.uid;
-gcStartSessionTracking();
-}
-}else{
-window.gcSessionUid = null;
-window.gcMySessionId = null;
-if(window.gcSessUnsub){ try{ window.gcSessUnsub(); }catch(e){} window.gcSessUnsub = null; }
-}
-}, 2000);
-})();
-
-// ═══════════════════════════════════════════════════════
-// 🚀 Update #99 · login-approval · 2026-08-20
-// নতুন ডিভাইস লগইনে পুরনো ডিভাইসের অনুমতি
-// খুঁজতে: Ctrl+F → "login-approval-engine"
-// ═══════════════════════════════════════════════════════
-async function gcActiveOtherSessions(devId){
-const out = [];
-try{
-const snap = await gcSessCol().limit(20).get();
-const now = Date.now();
-snap.forEach(function(d){
-const s = d.data();
-if(s.deviceId === devId) return;
-if(s.forceLogout) return;
-const lm = s.lastActiveAt && s.lastActiveAt.toMillis ? s.lastActiveAt.toMillis() : 0;
-if(s.active === true && (now - lm) < 300000) out.push({ id: d.id, ...s });
-});
-}catch(e){}
-return out;
-}
-function gcRequestLoginApproval(devId, dev, other){
-return new Promise(function(resolve){
-let done = false, un = null, to = null;
-const finish = function(val){
-if(done) return; done = true;
-if(un){ try{ un(); }catch(e){} }
-if(to) clearTimeout(to);
-gcHideApprovalWait();
-resolve(val);
-};
-window.gcApprovalCancel = function(){ finish(false); };
-(async function(){
-try{
-const loc = await gcGetLoc();
-const ref = await db.collection('users').doc(currentUser.uid).collection('loginRequests').add({ deviceId: devId, device: dev.name, mobile: dev.mobile, location: loc, status: 'pending', createdAt: firebase.firestore.FieldValue.serverTimestamp() });
-gcShowApprovalWait(other);
-un = db.collection('users').doc(currentUser.uid).collection('loginRequests').doc(ref.id).onSnapshot(function(d){
-if(!d.exists){ finish(true); return; }
-const st = d.data().status;
-if(st === 'approved'){ finish(true); showToast('✅ Login approved'); }
-else if(st === 'rejected'){ finish(false); }
-}, function(){ finish(true); });
-to = setTimeout(function(){
-ref.update({ status: 'timeout' }).catch(function(){});
-showToast('⏳ No response — try again');
-finish(false);
-}, 90000);
-}catch(e){ finish(true); }
-})();
-});
-}
-function gcShowApprovalWait(other){
-gcHideApprovalWait();
-const ov = document.createElement('div');
-ov.id = 'gc-appr-wait'; ov.className = 'gc-appr-mask';
-ov.innerHTML = '<div class="gc-appr-card"><div class="gc-appr-ico wait"><i class="ph-bold ph-device-mobile"></i></div><div class="gc-appr-t">Login request sent</div><div class="gc-appr-s">Check your other device<br><b>' + escapeHTML(other.device || 'Unknown device') + '</b> — approve to continue</div><div class="gc-appr-spin"></div><button class="gc-appr-btn reject" onclick="gcCancelApproval()">Cancel</button></div>';
-document.body.appendChild(ov);
-}
-function gcHideApprovalWait(){ const o = document.getElementById('gc-appr-wait'); if(o) o.remove(); }
-function gcCancelApproval(){ if(window.gcApprovalCancel) window.gcApprovalCancel(); }
-function gcListenLoginRequests(){
-if(!currentUser || !window.gcMySessionId || window.gcReqUnsub) return;
-window.gcReqUnsub = db.collection('users').doc(currentUser.uid).collection('loginRequests').where('status', '==', 'pending').onSnapshot(function(snap){
-snap.docChanges().forEach(function(ch){
-if(ch.type !== 'added') return;
-const r = ch.doc.data();
-const cm = r.createdAt && r.createdAt.toMillis ? r.createdAt.toMillis() : 0;
-if(Date.now() - cm > 120000) return;
-if(r.deviceId === gcGetDeviceId()) return;
-gcShowApprovePopup(ch.doc.id, r);
-});
-}, function(){});
-}
-function gcShowApprovePopup(id, r){
-if(document.getElementById('gc-appr-popup')) return;
-const ov = document.createElement('div');
-ov.id = 'gc-appr-popup'; ov.className = 'gc-appr-mask';
-ov.innerHTML = '<div class="gc-appr-card"><div class="gc-appr-ico ask"><i class="ph-bold ph-shield-warning"></i></div><div class="gc-appr-t">New login attempt</div><div class="gc-appr-s"><b>' + escapeHTML(r.device || 'Unknown device') + '</b><br><i class="ph-bold ph-map-pin"></i> ' + escapeHTML(r.location || 'Unknown location') + ' · Just now</div><div class="gc-appr-row"><button class="gc-appr-btn reject" onclick="gcRejectLogin(\'' + id + '\')"><i class="ph-bold ph-x"></i> Reject</button><button class="gc-appr-btn allow" onclick="gcApproveLogin(\'' + id + '\')"><i class="ph-bold ph-check"></i> Allow</button></div></div>';
-document.body.appendChild(ov);
-}
-function gcApproveLogin(id){
-db.collection('users').doc(currentUser.uid).collection('loginRequests').doc(id).update({ status: 'approved' }).catch(function(){});
-const o = document.getElementById('gc-appr-popup'); if(o) o.remove();
-showToast('✅ Device approved');
-}
-function gcRejectLogin(id){
-db.collection('users').doc(currentUser.uid).collection('loginRequests').doc(id).update({ status: 'rejected' }).catch(function(){});
-const o = document.getElementById('gc-appr-popup'); if(o) o.remove();
-showToast('Login rejected');
-}
-
-// ═══════════════════════════════════════════════════════
 // 🚀 Update #103 · relationship-link · 2026-08-22
 // মিউচুয়াল-অনলি পার্টনার সিলেকশন + কনফার্মেশন + প্রোফাইল চিপ
 // খুঁজতে: Ctrl+F → "relationship-link-engine"
@@ -27187,8 +26904,6 @@ async function gcConfirmForward(){
   }
 }
 window.gcConfirmForward = gcConfirmForward;
-
-
 
 
 // GoChat: Light mode is the default for new installs/first visits.
