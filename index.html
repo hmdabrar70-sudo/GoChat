@@ -1855,7 +1855,20 @@ padding:16px 5px;
 border:none;
 }
 .detail-item{display:flex;gap:12px;align-items:center;color:var(--text);font-weight:500;flex-wrap:wrap;}
-.detail-item .material-symbols-outlined{font-size:20px;color:var(--accent-dark);}
+.detail-item .material-symbols-outlined{font-size:20px;color:#000;}
+/* Personal info icons: regular weight + black (light mode) */
+.detail-item > i{
+  font-size:20px !important;
+  color:#000 !important;
+  -webkit-text-fill-color:#000 !important;
+  width:22px;
+  text-align:center;
+  flex-shrink:0;
+}
+body:not(.light-mode) .detail-item > i{
+  color:#f0f0f5 !important;
+  -webkit-text-fill-color:#f0f0f5 !important;
+}
 .detail-item .gc-rel-chip{margin-top:0 !important;}
 .avatar-edit-btn{
 position:absolute;bottom:2px;right:2px;
@@ -12982,21 +12995,22 @@ ${gcDisplayName}
     
     let dHtml='';
     // Order: Gender → Phone → Email → Home town → Current location → Profession → Join date → Relationship
-    if(u.gender) dHtml += `<div class="detail-item"><i class="ph-bold ph-user" style="font-size:20px; color:var(--accent-dark);"></i> <strong>${escapeHTML(u.gender)}</strong></div>`;
-    if(u.phone) dHtml += `<div class="detail-item"><i class="ph-bold ph-phone" style="font-size:20px; color:var(--accent-dark);"></i> <strong>${escapeHTML(u.phone)}</strong></div>`;
-    if(u.email) dHtml += `<div class="detail-item"><i class="ph-bold ph-envelope-simple" style="font-size:20px; color:var(--accent-dark);"></i> <strong>${escapeHTML(u.email)}</strong></div>`;
-    if(u.hometown) dHtml += `<div class="detail-item"><i class="ph-bold ph-house" style="font-size:20px; color:var(--accent-dark);"></i> From <strong>${escapeHTML(u.hometown)}</strong></div>`;
-    if(u.location) dHtml += `<div class="detail-item"><i class="ph-bold ph-map-pin" style="font-size:20px; color:var(--accent-dark);"></i> Lives in <strong>${escapeHTML(u.location)}</strong></div>`;
-    if(u.profession) dHtml += `<div class="detail-item"><i class="ph-bold ph-briefcase" style="font-size:20px; color:var(--accent-dark);"></i> <strong>${escapeHTML(u.profession)}</strong></div>`;
+    // Icons: regular (ph) + black via CSS .detail-item > i
+    if(u.gender) dHtml += `<div class="detail-item"><i class="ph ph-user"></i> <strong>${escapeHTML(u.gender)}</strong></div>`;
+    if(u.phone) dHtml += `<div class="detail-item"><i class="ph ph-phone"></i> <strong>${escapeHTML(u.phone)}</strong></div>`;
+    if(u.email) dHtml += `<div class="detail-item"><i class="ph ph-envelope-simple"></i> <strong>${escapeHTML(u.email)}</strong></div>`;
+    if(u.hometown) dHtml += `<div class="detail-item"><i class="ph ph-house-line"></i> From <strong>${escapeHTML(u.hometown)}</strong></div>`;
+    if(u.location) dHtml += `<div class="detail-item"><i class="ph ph-map-pin"></i> Lives in <strong>${escapeHTML(u.location)}</strong></div>`;
+    if(u.profession) dHtml += `<div class="detail-item"><i class="ph ph-briefcase"></i> <strong>${escapeHTML(u.profession)}</strong></div>`;
     if(u.dob && u.dobPrivacy !== 'private'){
         const otherDobDisp = (typeof gcFormatDobDisplay === 'function') ? gcFormatDobDisplay(u.dob) : null;
-        if(otherDobDisp) dHtml += `<div class="detail-item"><i class="ph-fill ph-cake" style="font-size:20px; color:var(--accent-dark);"></i> <strong>${escapeHTML(otherDobDisp)}</strong></div>`;
+        if(otherDobDisp) dHtml += `<div class="detail-item"><i class="ph ph-cake"></i> <strong>${escapeHTML(otherDobDisp)}</strong></div>`;
     }
     if (u.createdAt) {
         const joinedDate = u.createdAt.toDate ? u.createdAt.toDate() : new Date(u.createdAt);
         const month = joinedDate.toLocaleString('default', { month: 'long' });
         const year = joinedDate.getFullYear();
-        dHtml += `<div class="detail-item"><i class="ph-bold ph-clock" style="font-size:20px; color:var(--accent-dark);"></i> Joined <strong>${month} ${year}</strong></div>`;
+        dHtml += `<div class="detail-item"><i class="ph ph-clock"></i> Joined <strong>${month} ${year}</strong></div>`;
     }
     if(u.relationship){
         let partnerChip = '';
@@ -13005,7 +13019,7 @@ ${gcDisplayName}
             const av = u.partnerAvatar ? `<img src="${escapeHTML(u.partnerAvatar)}" alt="">` : '';
             partnerChip = `<span class="gc-rel-chip" onclick="event.stopPropagation(); event.preventDefault(); if(typeof viewUserProfile==='function') viewUserProfile('${u.partnerUid}');">${heart} with ${av}${escapeHTML(u.partnerName || 'Partner')}</span>`;
         }
-        dHtml += `<div class="detail-item detail-rel"><i class="ph-bold ph-heart" style="font-size:20px; color:var(--accent-dark);"></i> <strong>${escapeHTML(u.relationship)}</strong>${partnerChip}</div>`;
+        dHtml += `<div class="detail-item detail-rel"><i class="ph ph-heart"></i> <strong>${escapeHTML(u.relationship)}</strong>${partnerChip}</div>`;
     }
 
     document.getElementById('other-profile-details-display').innerHTML=dHtml; 
@@ -15915,24 +15929,25 @@ ${gcDisplayName}
     
         let dHtml='';
     // Order: Gender → Phone → Email → Home town → Current location → Profession → Join date → Relationship
-    if(currentUserData.gender)dHtml+=`<div class="detail-item"><i class="ph-bold ph-user" style="font-size:20px; color:var(--accent-dark);"></i> <strong>${escapeHTML(currentUserData.gender)}</strong></div>`;
-    if(currentUserData.phone) dHtml += `<div class="detail-item"><i class="ph-bold ph-phone" style="font-size:20px; color:var(--accent-dark);"></i> <strong>${escapeHTML(currentUserData.phone)}</strong></div>`;
-    if(currentUserData.email) dHtml += `<div class="detail-item"><i class="ph-bold ph-envelope-simple" style="font-size:20px; color:var(--accent-dark);"></i> <strong>${escapeHTML(currentUserData.email)}</strong></div>`;
-    if(currentUserData.hometown)dHtml+=`<div class="detail-item"><i class="ph-bold ph-house" style="font-size:20px; color:var(--accent-dark);"></i> From <strong>${escapeHTML(currentUserData.hometown)}</strong></div>`;
-    if(currentUserData.location)dHtml+=`<div class="detail-item"><i class="ph-bold ph-map-pin" style="font-size:20px; color:var(--accent-dark);"></i> Lives in <strong>${escapeHTML(currentUserData.location)}</strong></div>`;
-    if(currentUserData.profession) dHtml += `<div class="detail-item"><i class="ph-bold ph-briefcase" style="font-size:20px; color:var(--accent-dark);"></i> <strong>${escapeHTML(currentUserData.profession)}</strong></div>`;
+    // Icons: regular (ph) + black via CSS .detail-item > i
+    if(currentUserData.gender)dHtml+=`<div class="detail-item"><i class="ph ph-user"></i> <strong>${escapeHTML(currentUserData.gender)}</strong></div>`;
+    if(currentUserData.phone) dHtml += `<div class="detail-item"><i class="ph ph-phone"></i> <strong>${escapeHTML(currentUserData.phone)}</strong></div>`;
+    if(currentUserData.email) dHtml += `<div class="detail-item"><i class="ph ph-envelope-simple"></i> <strong>${escapeHTML(currentUserData.email)}</strong></div>`;
+    if(currentUserData.hometown)dHtml+=`<div class="detail-item"><i class="ph ph-house-line"></i> From <strong>${escapeHTML(currentUserData.hometown)}</strong></div>`;
+    if(currentUserData.location)dHtml+=`<div class="detail-item"><i class="ph ph-map-pin"></i> Lives in <strong>${escapeHTML(currentUserData.location)}</strong></div>`;
+    if(currentUserData.profession) dHtml += `<div class="detail-item"><i class="ph ph-briefcase"></i> <strong>${escapeHTML(currentUserData.profession)}</strong></div>`;
     if(currentUserData.dob){
         const myDobDisp = (typeof gcFormatDobDisplay === 'function') ? gcFormatDobDisplay(currentUserData.dob) : null;
         if(myDobDisp){
-            const privLockIcon = currentUserData.dobPrivacy === 'private' ? ' <i class="ph-bold ph-lock-key" style="font-size:13px; color:var(--text-muted); margin-left:2px;" title="Only visible to you"></i>' : '';
-            dHtml += `<div class="detail-item"><i class="ph-fill ph-cake" style="font-size:20px; color:var(--accent-dark);"></i> <strong>${escapeHTML(myDobDisp)}</strong>${privLockIcon}</div>`;
+            const privLockIcon = currentUserData.dobPrivacy === 'private' ? ' <i class="ph ph-lock-key" style="font-size:13px; color:var(--text-muted); margin-left:2px;" title="Only visible to you"></i>' : '';
+            dHtml += `<div class="detail-item"><i class="ph ph-cake"></i> <strong>${escapeHTML(myDobDisp)}</strong>${privLockIcon}</div>`;
         }
     }
     if (currentUserData.createdAt) {
         const joinedDate = currentUserData.createdAt.toDate ? currentUserData.createdAt.toDate() : new Date(currentUserData.createdAt);
         const month = joinedDate.toLocaleString('default', { month: 'long' });
         const year = joinedDate.getFullYear();
-        dHtml += `<div class="detail-item"><i class="ph-bold ph-clock" style="font-size:20px; color:var(--accent-dark);"></i> Joined <strong>${month} ${year}</strong></div>`;
+        dHtml += `<div class="detail-item"><i class="ph ph-clock"></i> Joined <strong>${month} ${year}</strong></div>`;
     }
     if(currentUserData.relationship){
         let partnerChip = '';
@@ -15943,7 +15958,7 @@ ${gcDisplayName}
         } else if(currentUserData.partnerStatus === 'pending' && currentUserData.partnerUid){
             partnerChip = `<span class="gc-rel-chip"><span class="pend">⏳ Pending confirmation</span></span>`;
         }
-        dHtml+=`<div class="detail-item detail-rel"><i class="ph-bold ph-heart" style="font-size:20px; color:var(--accent-dark);"></i> <strong>${escapeHTML(currentUserData.relationship)}</strong>${partnerChip}</div>`;
+        dHtml+=`<div class="detail-item detail-rel"><i class="ph ph-heart"></i> <strong>${escapeHTML(currentUserData.relationship)}</strong>${partnerChip}</div>`;
     }
     setSafeHTML('profile-details-display', dHtml);
     
