@@ -90,6 +90,10 @@
                         <div id="statVerifiedUsers" class="text-2xl font-extrabold text-indigo-600">0</div>
                     </div>
                     <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+                        <div class="text-xs font-bold text-gray-500 uppercase">Leaders</div>
+                        <div id="statLeaderUsers" class="text-2xl font-extrabold text-amber-500">0</div>
+                    </div>
+                    <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
                         <div class="text-xs font-bold text-gray-500 uppercase">Banned</div>
                         <div id="statBannedUsers" class="text-2xl font-extrabold text-red-500">0</div>
                     </div>
@@ -109,6 +113,7 @@
                         <option value="all">All Users</option>
                         <option value="active">Active Users</option>
                         <option value="verified">Verified Users</option>
+                        <option value="leader">Leaders</option>
                         <option value="banned">Banned Users</option>
                     </select>
                 </div>
@@ -377,10 +382,12 @@ if (tab === 'reports') renderReports();
         function updateUserStats() {
             const total = allUsersData.length;
             const verified = allUsersData.filter(u => u.isVerified === true).length;
+            const leaders = allUsersData.filter(u => u.isLeader === true).length;
             const banned = allUsersData.filter(u => u.isBanned === true).length;
             const el = id => document.getElementById(id);
             if (el('statTotalUsers')) el('statTotalUsers').textContent = total;
             if (el('statVerifiedUsers')) el('statVerifiedUsers').textContent = verified;
+            if (el('statLeaderUsers')) el('statLeaderUsers').textContent = leaders;
             if (el('statBannedUsers')) el('statBannedUsers').textContent = banned;
         }
 
@@ -393,6 +400,7 @@ if (tab === 'reports') renderReports();
                 let matchS = true;
                 if(status === 'active') matchS = !u.isBanned;
                 if(status === 'verified') matchS = u.isVerified === true;
+                if(status === 'leader') matchS = u.isLeader === true;
                 if(status === 'banned') matchS = u.isBanned === true;
                 return matchQ && matchS;
             });
@@ -412,6 +420,7 @@ if (tab === 'reports') renderReports();
             grid.innerHTML = users.map(u => {
                 const av = u.avatar ? `<img src="${u.avatar}" class="w-12 h-12 rounded-full object-cover shadow-sm">` : `<div class="w-12 h-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold shadow-sm">${(u.name||'U')[0]}</div>`;
                 const vBadge = u.isVerified ? `<i class="fas fa-check-circle text-blue-500 ml-1" title="Verified"></i>` : '';
+                const lBadge = u.isLeader ? `<i class="fas fa-crown text-amber-500 ml-1" title="Community Leader"></i>` : '';
                 const uNameText = u.username ? `@${u.username}` : `<span class="text-gray-400 italic">No Username</span>`;
                 const banLabel = u.isBanned ? `<span class="bg-red-100 text-red-600 px-2 py-0.5 rounded text-xs font-bold ml-2">BANNED</span>` : '';
 
@@ -420,7 +429,7 @@ if (tab === 'reports') renderReports();
                     <div class="flex items-center gap-4 w-full md:w-auto">
                         ${av}
                         <div>
-                            <div class="font-bold text-gray-800 text-lg flex items-center">${escapeHTML(u.name || 'Unknown')} ${vBadge} ${banLabel}</div>
+                            <div class="font-bold text-gray-800 text-lg flex items-center">${escapeHTML(u.name || 'Unknown')} ${vBadge} ${lBadge} ${banLabel}</div>
                             <div class="text-sm text-gray-500">${uNameText} • ${escapeHTML(u.email || 'No Email')}</div>
                             <div class="text-xs text-gray-400 mt-1">ID: ${u.id}</div>
                         </div>
@@ -429,6 +438,10 @@ if (tab === 'reports') renderReports();
                         <!-- Verification -->
                         <button onclick="toggleVerify('${u.id}', ${!u.isVerified})" class="px-3 py-2 rounded-lg font-bold text-xs flex items-center gap-1 ${u.isVerified ? 'bg-gray-100 text-gray-600 hover:bg-gray-200' : 'bg-blue-50 text-blue-600 border border-blue-200 hover:bg-blue-100'}">
                             <i class="fas ${u.isVerified ? 'fa-times' : 'fa-check'}"></i> ${u.isVerified ? 'Unverify' : 'Verify'}
+                        </button>
+                        <!-- Leader badge -->
+                        <button onclick="toggleLeader('${u.id}', ${!u.isLeader})" class="px-3 py-2 rounded-lg font-bold text-xs flex items-center gap-1 ${u.isLeader ? 'bg-gray-100 text-gray-600 hover:bg-gray-200' : 'bg-amber-50 text-amber-600 border border-amber-200 hover:bg-amber-100'}">
+                            <i class="fas ${u.isLeader ? 'fa-times' : 'fa-crown'}"></i> ${u.isLeader ? 'Remove Leader' : 'Make Leader'}
                         </button>
                         <!-- Posts Preview -->
                         <button onclick="previewPosts('${u.id}', '${escapeHTML(u.name)}')" class="px-3 py-2 rounded-lg font-bold text-xs bg-purple-50 text-purple-600 border border-purple-200 hover:bg-purple-100 flex items-center gap-1">
@@ -452,15 +465,15 @@ if (tab === 'reports') renderReports();
         // 🚀 FEATURE 3: VERIFICATION CONTROL (UNIVERSAL BATCH UPDATE)
         async function toggleVerify(uid, setVerified) {
             if(!confirm(`Are you sure you want to ${setVerified ? 'grant' : 'remove'} the verified badge for this user?`)) return;
-            
+
             showToast("Processing universal update...", "success");
-            
+
             try {
                 const batch = db.batch();
-                
+
                 const userRef = db.collection('users').doc(uid);
                 batch.update(userRef, { isVerified: setVerified });
-                
+
                 const postsSnap = await db.collection('posts').where('uid', '==', uid).get();
                 postsSnap.forEach(doc => {
                     batch.update(doc.ref, { isVerified: setVerified });
@@ -470,14 +483,46 @@ if (tab === 'reports') renderReports();
                 storiesSnap.forEach(doc => {
                     batch.update(doc.ref, { isVerified: setVerified });
                 });
-                
+
                 await batch.commit();
 
                 showToast(setVerified ? "User Verified Everywhere!" : "Verification Removed Everywhere!", "success");
-                loadUsers(); 
-            } catch (e) { 
-                showToast("Error updating verification", "error"); 
+                loadUsers();
+            } catch (e) {
+                showToast("Error updating verification", "error");
                 console.error("Verification Error: ", e);
+            }
+        }
+
+        // 🚀 FEATURE: COMMUNITY LEADER BADGE (UNIVERSAL BATCH UPDATE, mirrors toggleVerify)
+        async function toggleLeader(uid, setLeader) {
+            if(!confirm(`Are you sure you want to ${setLeader ? 'grant' : 'remove'} the Community Leader badge for this user?`)) return;
+
+            showToast("Processing universal update...", "success");
+
+            try {
+                const batch = db.batch();
+
+                const userRef = db.collection('users').doc(uid);
+                batch.update(userRef, { isLeader: setLeader });
+
+                const postsSnap = await db.collection('posts').where('uid', '==', uid).get();
+                postsSnap.forEach(doc => {
+                    batch.update(doc.ref, { isLeader: setLeader });
+                });
+
+                const storiesSnap = await db.collection('stories').where('uid', '==', uid).get();
+                storiesSnap.forEach(doc => {
+                    batch.update(doc.ref, { isLeader: setLeader });
+                });
+
+                await batch.commit();
+
+                showToast(setLeader ? "Leader Badge Granted Everywhere!" : "Leader Badge Removed Everywhere!", "success");
+                loadUsers();
+            } catch (e) {
+                showToast("Error updating leader badge", "error");
+                console.error("Leader Badge Error: ", e);
             }
         }
 
