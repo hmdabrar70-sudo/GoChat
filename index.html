@@ -1172,8 +1172,10 @@ transition:background .15s;
 Edit Profile: মডার্ন কার্ড-ফর্ম লুক — নিখুঁত অ্যালাইনমেন্ট
 খুঁজতে: Ctrl+F → "edit-profile-refine"
 ========================================= */
-#edit-profile-screen{background:var(--bg) !important;}
-#edit-profile-screen label{
+#edit-profile-screen,
+.gc-ep-section{background:var(--bg) !important;}
+#edit-profile-screen label,
+.gc-ep-section label{
 display:block;
 margin:20px 2px 8px;
 color:var(--accent) !important;
@@ -1184,7 +1186,10 @@ letter-spacing:1px !important;
 }
 #edit-profile-screen input,
 #edit-profile-screen select,
-#edit-profile-screen textarea{
+#edit-profile-screen textarea,
+.gc-ep-section input,
+.gc-ep-section select,
+.gc-ep-section textarea{
 width:100%;
 background:var(--surface) !important;
 border:1px solid var(--border) !important;
@@ -1196,7 +1201,10 @@ color:var(--text) !important;
 }
 #edit-profile-screen input:focus,
 #edit-profile-screen select:focus,
-#edit-profile-screen textarea:focus{
+#edit-profile-screen textarea:focus,
+.gc-ep-section input:focus,
+.gc-ep-section select:focus,
+.gc-ep-section textarea:focus{
 outline:none !important;
 border-color:var(--accent) !important;
 box-shadow:0 0 0 3px var(--accent-glow) !important;
@@ -7979,47 +7987,194 @@ Edit Profile-এ পার্টনার সিলেক্ট বাটন
 </div>
 </div>
 </div>
+<!-- ═══ Edit Profile HUB + section pages · 2026-09-05 ═══ -->
+<style>
+.gc-ep-hub{padding:12px 16px 28px;display:flex;flex-direction:column;gap:10px;}
+.gc-ep-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:18px;
+  overflow:hidden;
+}
+.gc-ep-row{
+  display:flex;align-items:center;gap:14px;padding:16px 16px;
+  cursor:pointer;transition:background .15s;border:none;background:transparent;
+  width:100%;text-align:left;font-family:inherit;color:var(--text);
+}
+.gc-ep-row + .gc-ep-row{border-top:1px solid var(--border);}
+.gc-ep-row:active{background:var(--surface-2);}
+.gc-ep-ico{
+  width:40px;height:40px;border-radius:12px;
+  display:flex;align-items:center;justify-content:center;
+  background:var(--surface-2);color:var(--text);flex-shrink:0;
+}
+.gc-ep-ico i{font-size:20px;}
+.gc-ep-txt{flex:1;min-width:0;}
+.gc-ep-title{font-weight:800;font-size:15px;line-height:1.2;}
+.gc-ep-sub{font-size:12px;color:var(--text-muted);margin-top:3px;font-weight:500;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.gc-ep-chev{color:var(--text-muted);font-size:16px;flex-shrink:0;}
+.gc-ep-section{
+  display:none;position:fixed;inset:0;background:var(--bg);z-index:1006;
+  flex-direction:column;overflow-y:auto;animation:slideUp .25s ease;
+}
+.gc-ep-section.open{display:flex;}
+.gc-ep-body{padding:16px 18px 40px;display:flex;flex-direction:column;gap:10px;}
+.gc-edu-search-wrap{position:relative;}
+.gc-edu-search{
+  width:100%;padding:14px 16px 14px 44px;border-radius:16px;
+  border:1px solid var(--border);background:var(--surface-2);
+  color:var(--text);font-size:15px;font-family:inherit;outline:none;
+}
+.gc-edu-search:focus{border-color:var(--accent);}
+.gc-edu-search-ico{
+  position:absolute;left:14px;top:50%;transform:translateY(-50%);
+  color:var(--text-muted);font-size:18px;pointer-events:none;
+}
+.gc-edu-results{
+  margin-top:8px;background:var(--surface);border:1px solid var(--border);
+  border-radius:16px;overflow:hidden;max-height:240px;overflow-y:auto;
+  display:none;
+}
+.gc-edu-results.open{display:block;}
+.gc-edu-item{
+  padding:12px 14px;display:flex;align-items:center;gap:12px;
+  cursor:pointer;border:none;background:transparent;width:100%;
+  text-align:left;font-family:inherit;color:var(--text);
+}
+.gc-edu-item + .gc-edu-item{border-top:1px solid var(--border);}
+.gc-edu-item:active{background:var(--surface-2);}
+.gc-edu-item i{color:var(--accent);font-size:18px;flex-shrink:0;}
+.gc-edu-item span{font-weight:600;font-size:14px;}
+.gc-edu-list{display:flex;flex-direction:column;gap:8px;margin-top:6px;}
+.gc-edu-chip{
+  display:flex;align-items:center;gap:12px;padding:12px 14px;
+  background:var(--surface);border:1px solid var(--border);border-radius:14px;
+}
+.gc-edu-chip .gc-edu-chip-ico{
+  width:36px;height:36px;border-radius:10px;background:rgba(124,92,255,.12);
+  display:flex;align-items:center;justify-content:center;color:var(--accent);flex-shrink:0;
+}
+.gc-edu-chip .gc-edu-chip-txt{flex:1;min-width:0;font-weight:700;font-size:14px;}
+.gc-edu-chip .gc-edu-chip-rm{
+  border:none;background:transparent;color:var(--danger);cursor:pointer;
+  width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+}
+.gc-edu-empty{text-align:center;padding:28px 12px;color:var(--text-muted);font-size:13px;font-weight:600;}
+</style>
+
 <div id="edit-profile-screen" style="display:none; position:fixed; inset:0; background:var(--bg); z-index:1005; flex-direction:column; overflow-y:auto; animation:slideUp 0.3s ease;">
     <div class="chat-topbar" style="position:sticky; top:0; z-index:100; display:flex; justify-content:space-between; align-items:center;">
         <div style="display:flex; align-items:center; gap:12px;">
             <div class="chat-back" onclick="closeProfileEdit()"><i class="ph ph-x"></i></div>
             <div style="font-weight:800; font-size:18px;">Edit Profile</div>
         </div>
-        <button class="btn-primary" onclick="saveProfileChanges()" style="margin:0; width:auto; padding:8px 16px; border-radius:20px; font-size:14px;">Save</button>
     </div>
-    
-    <div style="padding: 20px; display:flex; flex-direction:column; gap:8px;">
-    
-    <!-- 🚀 Username Field Updated -->
-    <div class="input-group" id="modern-username-wrapper">
-        <label>Username</label>
-        <input type="text" id="edit-username" placeholder="e.g. sabbir_ahmed">
-        <div class="username-status-msg" style="font-size:11px; color:var(--text-muted); margin-top:6px;">Only letters, numbers and underscores allowed.</div>
+    <div class="gc-ep-hub">
+        <div class="gc-ep-card">
+            <button type="button" class="gc-ep-row" onclick="gcOpenEpSection('personal')">
+                <div class="gc-ep-ico"><i class="ph ph-user-circle"></i></div>
+                <div class="gc-ep-txt">
+                    <div class="gc-ep-title">Personal details</div>
+                    <div class="gc-ep-sub" id="ep-hub-personal-sub">Name, bio, contact & more</div>
+                </div>
+                <i class="ph ph-caret-right gc-ep-chev"></i>
+            </button>
+            <button type="button" class="gc-ep-row" onclick="gcOpenEpSection('work')">
+                <div class="gc-ep-ico"><i class="ph ph-briefcase"></i></div>
+                <div class="gc-ep-txt">
+                    <div class="gc-ep-title">Work</div>
+                    <div class="gc-ep-sub" id="ep-hub-work-sub">Add your profession</div>
+                </div>
+                <i class="ph ph-caret-right gc-ep-chev"></i>
+            </button>
+            <button type="button" class="gc-ep-row" onclick="gcOpenEpSection('education')">
+                <div class="gc-ep-ico"><i class="ph ph-graduation-cap"></i></div>
+                <div class="gc-ep-txt">
+                    <div class="gc-ep-title">Education</div>
+                    <div class="gc-ep-sub" id="ep-hub-edu-sub">School, college & university</div>
+                </div>
+                <i class="ph ph-caret-right gc-ep-chev"></i>
+            </button>
+        </div>
     </div>
+</div>
 
-    <!-- অন্যান্য ফিল্ডগুলো আগের মতোই থাকবে -->
-    <div class="input-group"><label>Name</label><input type="text" id="edit-name"></div>
-    <div class="input-group"><label>Bio</label><input type="text" id="edit-bio"></div>
-    <div class="input-group"><label>Gender</label><select id="edit-gender"><option value="">Select Gender</option><option value="Male">Male</option><option value="Female">Female</option></select></div>
-    <div class="input-group"><label>Location</label><input type="text" id="edit-location"></div>
-    <div class="input-group"><label>Phone</label><input type="tel" id="edit-phone"></div>
-    <div class="input-group"><label>Email</label><input type="email" id="edit-email"></div>
-    <div class="input-group"><label>Home Town</label><input type="text" id="edit-hometown"></div>
-    <div class="input-group"><label>Relationship</label><select id="edit-relationship"><option value="">Select Status</option><option value="Single">Single</option><option value="In a relationship">In a relationship</option><option value="Married">Married</option></select></div>
-    <div class="input-group"><label>Profession</label><input type="text" id="edit-profession" placeholder="e.g. Graphic Designer"></div>
-    <div class="input-group">
-        <label>Birthday</label>
-        <div class="gc-dob-field-row">
-            <div class="gc-dob-field-box" onclick="gcEditBirthdayBoxClick()">
-                <i class="ph-fill ph-cake"></i>
-                <span class="gc-dob-field-text gc-dob-placeholder" id="edit-dob-text">Add your birthday</span>
-            </div>
-            <div class="gc-dob-privacy-btn" onclick="gcOpenDobPrivacyPopup()" title="Birthday privacy">
-                <i class="ph-bold ph-caret-right"></i>
+<!-- Personal Details section -->
+<div id="ep-section-personal" class="gc-ep-section" aria-hidden="true">
+    <div class="chat-topbar" style="position:sticky; top:0; z-index:100; display:flex; justify-content:space-between; align-items:center;">
+        <div style="display:flex; align-items:center; gap:12px;">
+            <div class="chat-back" onclick="gcCloseEpSection('personal')"><i class="ph ph-arrow-left"></i></div>
+            <div style="font-weight:800; font-size:18px;">Personal details</div>
+        </div>
+        <button class="btn-primary" onclick="savePersonalDetails()" style="margin:0; width:auto; padding:8px 16px; border-radius:20px; font-size:14px;">Save</button>
+    </div>
+    <div class="gc-ep-body">
+        <div class="input-group" id="modern-username-wrapper">
+            <label>Username</label>
+            <input type="text" id="edit-username" placeholder="e.g. sabbir_ahmed">
+            <div class="username-status-msg" style="font-size:11px; color:var(--text-muted); margin-top:6px;">Only letters, numbers and underscores allowed.</div>
+        </div>
+        <div class="input-group"><label>Name</label><input type="text" id="edit-name"></div>
+        <div class="input-group"><label>Bio</label><input type="text" id="edit-bio"></div>
+        <div class="input-group"><label>Gender</label><select id="edit-gender"><option value="">Select Gender</option><option value="Male">Male</option><option value="Female">Female</option></select></div>
+        <div class="input-group"><label>Location</label><input type="text" id="edit-location"></div>
+        <div class="input-group"><label>Phone</label><input type="tel" id="edit-phone"></div>
+        <div class="input-group"><label>Email</label><input type="email" id="edit-email"></div>
+        <div class="input-group"><label>Home Town</label><input type="text" id="edit-hometown"></div>
+        <div class="input-group"><label>Relationship</label><select id="edit-relationship"><option value="">Select Status</option><option value="Single">Single</option><option value="In a relationship">In a relationship</option><option value="Married">Married</option></select></div>
+        <div class="input-group">
+            <label>Birthday</label>
+            <div class="gc-dob-field-row">
+                <div class="gc-dob-field-box" onclick="gcEditBirthdayBoxClick()">
+                    <i class="ph ph-cake"></i>
+                    <span class="gc-dob-field-text gc-dob-placeholder" id="edit-dob-text">Add your birthday</span>
+                </div>
+                <div class="gc-dob-privacy-btn" onclick="gcOpenDobPrivacyPopup()" title="Birthday privacy">
+                    <i class="ph-bold ph-caret-right"></i>
+                </div>
             </div>
         </div>
     </div>
 </div>
+
+<!-- Work section -->
+<div id="ep-section-work" class="gc-ep-section" aria-hidden="true">
+    <div class="chat-topbar" style="position:sticky; top:0; z-index:100; display:flex; justify-content:space-between; align-items:center;">
+        <div style="display:flex; align-items:center; gap:12px;">
+            <div class="chat-back" onclick="gcCloseEpSection('work')"><i class="ph ph-arrow-left"></i></div>
+            <div style="font-weight:800; font-size:18px;">Work</div>
+        </div>
+        <button class="btn-primary" onclick="saveWorkDetails()" style="margin:0; width:auto; padding:8px 16px; border-radius:20px; font-size:14px;">Save</button>
+    </div>
+    <div class="gc-ep-body">
+        <div class="input-group">
+            <label>Profession / Title</label>
+            <input type="text" id="edit-profession" placeholder="e.g. Graphic Designer, Student">
+        </div>
+        <div class="input-group">
+            <label>Company / Workplace (optional)</label>
+            <input type="text" id="edit-work-company" placeholder="e.g. GoChat, Freelancer">
+        </div>
+    </div>
+</div>
+
+<!-- Education section -->
+<div id="ep-section-education" class="gc-ep-section" aria-hidden="true">
+    <div class="chat-topbar" style="position:sticky; top:0; z-index:100; display:flex; justify-content:space-between; align-items:center;">
+        <div style="display:flex; align-items:center; gap:12px;">
+            <div class="chat-back" onclick="gcCloseEpSection('education')"><i class="ph ph-arrow-left"></i></div>
+            <div style="font-weight:800; font-size:18px;">Education</div>
+        </div>
+        <button class="btn-primary" onclick="saveEducationDetails()" style="margin:0; width:auto; padding:8px 16px; border-radius:20px; font-size:14px;">Save</button>
+    </div>
+    <div class="gc-ep-body">
+        <div class="gc-edu-search-wrap">
+            <i class="ph ph-magnifying-glass gc-edu-search-ico"></i>
+            <input type="search" id="edu-search-input" class="gc-edu-search" placeholder="Search school, college or university…" autocomplete="off" oninput="gcFilterEducationSearch(this.value)" onkeydown="if(event.key==='Enter'){event.preventDefault();gcAddCustomEducation();}">
+            <div class="gc-edu-results" id="edu-search-results"></div>
+        </div>
+        <div style="font-size:12px;font-weight:700;color:var(--text-muted);margin-top:4px;">Your education</div>
+        <div class="gc-edu-list" id="edu-selected-list"></div>
+    </div>
 </div>
 <div id="create-post-screen">
 <div class="chat-topbar">
@@ -9687,6 +9842,33 @@ function getVerifiedBadge(email, isVerified) {
     return '';
 }
 
+// 🚀 Community Leader ব্যাজ · একই স্ক্যালপড শেপ, কিন্তু সোনালি গ্র্যাডিয়েন্ট + মুকুট আইকন
+// যাতে ভেরিফাইড ব্যাজের সাথে গুলিয়ে না যায়, পাশাপাশি বসলেও আলাদা বোঝা যাবে
+function getLeaderBadge(email, isLeader) {
+    if (isLeader === true) {
+        return `
+        <svg class="leader-badge-icon" viewBox="0 0 24 24" style="width: 20px; height: 20px; display: inline-flex; vertical-align: middle; margin-top: -2px; margin-left: 3px;">
+            <defs>
+                <linearGradient id="gcLeaderGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#FFE29A"></stop>
+                    <stop offset="50%" stop-color="#F3AC2F"></stop>
+                    <stop offset="100%" stop-color="#B9761A"></stop>
+                </linearGradient>
+            </defs>
+            <!-- পেছনের সোনালি খাঁজকাটা ডিজাইন -->
+            <path d="M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.998-3.918-3.998-.47 0-.92.084-1.336.25C14.818 2.415 13.51 1.5 12 1.5s-2.816.917-3.337 2.25c-.416-.165-.866-.25-1.336-.25-2.21 0-3.918 1.792-3.918 4 0 .495.084.965.238 1.4-1.273.65-2.148 2.02-2.148 3.6 0 1.46.827 2.766 2.044 3.462-.014.116-.022.234-.022.35 0 2.21 1.71 3.998 3.918 3.998.47 0 .92-.084 1.336-.25C9.182 21.585 10.49 22.5 12 22.5s2.816-.917 3.337-2.25c.416.165.866.25 1.336.25 2.21 0 3.918-1.792 3.918-4 0-.116-.008-.234-.022-.35 1.217-.696 2.044-2.002 2.044-3.462z" fill="url(#gcLeaderGrad)"></path>
+            <!-- ভেতরের সাদা মুকুট আইকন -->
+            <g transform="translate(2.6, 3.2) scale(0.79)">
+                <path d="M5 7L8 11L12 6L16 11L19 7L18 16L6 16Z" fill="#ffffff"></path>
+                <circle cx="5" cy="7" r="1.15" fill="#B9761A"></circle>
+                <circle cx="12" cy="6" r="1.15" fill="#B9761A"></circle>
+                <circle cx="19" cy="7" r="1.15" fill="#B9761A"></circle>
+            </g>
+        </svg>`;
+    }
+    return '';
+}
+
 function openSettingsPrivacy(){
   // পুরনো মেনু থাকলে সেটা হাইড করবে
   const oldMenu = document.getElementById('settings-menu');
@@ -11101,7 +11283,7 @@ async function loadAllFriends() {
                 <div class="friend-item-check" style="justify-content: space-between;">
                     <div style="display:flex; align-items:center; gap:12px;" onclick="viewUserProfile('${following[index]}')">
                         <div class="avatar">${avHtml}</div>
-                        <div class="msg-name">${safeName}${getVerifiedBadge(u.email, u.isVerified === true)}</div>
+                        <div class="msg-name">${safeName}${getVerifiedBadge(u.email, u.isVerified === true) + getLeaderBadge(u.email, u.isLeader === true)}</div>
                     </div>
                     <button class="btn-outline" style="padding:6px 12px; font-size:11px;" onclick="toggleFollow('${following[index]}')">Unfollow</button>
                 </div>`;
@@ -11184,7 +11366,7 @@ const avHtml=u.avatar?`<img src="${u.avatar}">`:avatarInitial(u.name);
 html+=`<div class="friend-req-item">
 <div class="avatar" onclick="viewUserProfile('${reqs[index]}')">${avHtml}</div>
 <div class="msg-info" onclick="viewUserProfile('${reqs[index]}')">
-<div class="msg-name">${safeName}${getVerifiedBadge(u.email, u.isVerified === true)}</div>
+<div class="msg-name">${safeName}${getVerifiedBadge(u.email, u.isVerified === true) + getLeaderBadge(u.email, u.isLeader === true)}</div>
 </div>
 <div class="friend-req-actions">
 <button class="accept-btn" onclick="acceptRequest('${reqs[index]}')">Accept</button>
@@ -11387,7 +11569,7 @@ async function renderRecentSearches() {
             html += `<div class="msg-item" onclick="viewUserProfile('${uid}')">
                 <div class="avatar">${avHtml}</div>
                 <div class="msg-info" style="margin-left:10px;">
-                    <div class="msg-name">${safeName} ${getVerifiedBadge(u.email, u.isVerified)}</div>
+                    <div class="msg-name">${safeName} ${getVerifiedBadge(u.email, u.isVerified) + getLeaderBadge(u.email, u.isLeader)}</div>
                 </div>
                 <i class="ph-bold ph-x" style="color:var(--text-muted); font-size: 20px; padding: 4px; cursor:pointer;" onclick="event.stopPropagation(); removeRecentSearch('${uid}')"></i>
             </div>`;
@@ -11914,12 +12096,14 @@ function renderCurrentStory(){
         return v === true || v === 1 || v === 'true' || v === '1';
     }
     let sVerified = gcIsTruthyVerified(s.isVerified);
+    let sLeader = s.isLeader === true;
     let sEmail = s.email || '';
     const cache = (typeof allUsersCache !== 'undefined' && allUsersCache) ? allUsersCache : (window.allUsersCache || null);
     if(cache){
         const live = cache.find(function(u){ return u.id === s.uid; });
         if(live){
             if(gcIsTruthyVerified(live.isVerified)) sVerified = true;
+            if(live.isLeader === true) sLeader = true;
             if(!sEmail) sEmail = live.email || '';
         }
     }
@@ -11927,10 +12111,13 @@ function renderCurrentStory(){
         sVerified = gcIsTruthyVerified(currentUserData.isVerified);
         if(!sEmail) sEmail = currentUserData.email || (currentUser.email || '');
     }
+    if(!sLeader && currentUser && s.uid === currentUser.uid && currentUserData){
+        sLeader = currentUserData.isLeader === true;
+    }
     const storyTime = getRelativeTime(s.createdAt);
     const nameEl = document.getElementById('sv-name');
     if(nameEl){
-        nameEl.innerHTML = safeName + getVerifiedBadge(sEmail, sVerified) + `<span style="font-size:12px; font-weight:normal; color:rgba(255,255,255,0.8); margin-left:8px;">${storyTime}</span>`;
+        nameEl.innerHTML = safeName + getVerifiedBadge(sEmail, sVerified) + getLeaderBadge(sEmail, sLeader) + `<span style="font-size:12px; font-weight:normal; color:rgba(255,255,255,0.8); margin-left:8px;">${storyTime}</span>`;
     }
     // If still not verified, fetch user doc once (old stories / cache miss)
     if(!sVerified && s.uid && typeof db !== 'undefined'){
@@ -11945,7 +12132,8 @@ function renderCurrentStory(){
             const el = document.getElementById('sv-name');
             if(!el) return;
             const email = ud.email || sEmail || '';
-            el.innerHTML = safeName + getVerifiedBadge(email, true) + `<span style="font-size:12px; font-weight:normal; color:rgba(255,255,255,0.8); margin-left:8px;">${storyTime}</span>`;
+            const eLeader = ud.isLeader === true || sLeader;
+            el.innerHTML = safeName + getVerifiedBadge(email, true) + getLeaderBadge(email, eLeader) + `<span style="font-size:12px; font-weight:normal; color:rgba(255,255,255,0.8); margin-left:8px;">${storyTime}</span>`;
             // patch story object for next segments from same user
             try {
                 if(activeStoryGroup){
@@ -12657,7 +12845,7 @@ function gcBuildOneCommentHTML(pid, c, idx, where){
   let commentAvHtml = avatarInitial(c.name);
   let commentBadge = '';
   const gcBadgeUser = (allUsersCache ? allUsersCache.find(function(u){ return u.id === c.uid; }) : null) || (currentUser && c.uid === currentUser.uid ? currentUserData : null);
-  if(gcBadgeUser) commentBadge = getVerifiedBadge(gcBadgeUser.email || '', gcBadgeUser.isVerified === true);
+  if(gcBadgeUser) commentBadge = getVerifiedBadge(gcBadgeUser.email || '', gcBadgeUser.isVerified === true) + getLeaderBadge(gcBadgeUser.email || '', gcBadgeUser.isLeader === true);
   if(allUsersCache){
     const commentUser = allUsersCache.find(function(u){ return u.id === c.uid; });
     if(commentUser && commentUser.avatar){
@@ -12926,7 +13114,7 @@ async function viewUserProfile(uid){
     } catch(e){}
     
     const safeName=escapeHTML(u.name);
-    const verifiedBadge = getVerifiedBadge(u.email, u.isVerified);
+    const verifiedBadge = getVerifiedBadge(u.email, u.isVerified) + getLeaderBadge(u.email, u.isLeader);
 // - এখানে ব্যাজ ও নামের লেআউট আপডেট করা হলো -
 const isLongName = (u.name || '').length > 16;
 let gcDisplayName = safeName;
@@ -13001,7 +13189,16 @@ ${gcDisplayName}
     if(u.email) dHtml += `<div class="detail-item"><i class="ph ph-envelope-simple"></i> <strong>${escapeHTML(u.email)}</strong></div>`;
     if(u.hometown) dHtml += `<div class="detail-item"><i class="ph ph-house-line"></i> From <strong>${escapeHTML(u.hometown)}</strong></div>`;
     if(u.location) dHtml += `<div class="detail-item"><i class="ph ph-map-pin"></i> Lives in <strong>${escapeHTML(u.location)}</strong></div>`;
-    if(u.profession) dHtml += `<div class="detail-item"><i class="ph ph-briefcase"></i> <strong>${escapeHTML(u.profession)}</strong></div>`;
+    if(u.profession){
+        const workLine = u.workCompany ? (escapeHTML(u.profession) + ' · ' + escapeHTML(u.workCompany)) : escapeHTML(u.profession);
+        dHtml += `<div class="detail-item"><i class="ph ph-briefcase"></i> <strong>${workLine}</strong></div>`;
+    }
+    if(Array.isArray(u.education) && u.education.length){
+        u.education.forEach(function(ed){
+            const school = (ed && (ed.school || ed.name)) ? (ed.school || ed.name) : '';
+            if(school) dHtml += `<div class="detail-item"><i class="ph ph-graduation-cap"></i> <strong>${escapeHTML(school)}</strong></div>`;
+        });
+    }
     if(u.dob && u.dobPrivacy !== 'private'){
         const otherDobDisp = (typeof gcFormatDobDisplay === 'function') ? gcFormatDobDisplay(u.dob) : null;
         if(otherDobDisp) dHtml += `<div class="detail-item"><i class="ph ph-cake"></i> <strong>${escapeHTML(otherDobDisp)}</strong></div>`;
@@ -13230,7 +13427,7 @@ function openChat(chatId, otherUid, otherName, otherAvatar){
             finalOtherAvatar = liveUser.avatar || '';
         }
         
-        const chatHeaderBadge = liveUser ? getVerifiedBadge(liveUser.email || '', liveUser.isVerified === true) : '';
+        const chatHeaderBadge = liveUser ? getVerifiedBadge(liveUser.email || '', liveUser.isVerified === true) + getLeaderBadge(liveUser.email || '', liveUser.isLeader === true) : '';
         document.getElementById('chat-name-display').innerHTML = escapeHTML(finalOtherName) + chatHeaderBadge;
 
         if (finalOtherAvatar && finalOtherAvatar !== 'undefined' && finalOtherAvatar !== '') {
@@ -14168,7 +14365,7 @@ async function loadMessages(){
             chat.otherName = finalName;
             
             const chatUser = allUsersCache ? allUsersCache.find(u => u.id === chat.otherUid) : null;
-            const chatVBadge = (!chat.isGroup && chatUser) ? getVerifiedBadge(chatUser.email || '', chatUser.isVerified === true) : '';
+            const chatVBadge = (!chat.isGroup && chatUser) ? getVerifiedBadge(chatUser.email || '', chatUser.isVerified === true) + getLeaderBadge(chatUser.email || '', chatUser.isLeader === true) : '';
 
             html += `<div class="msg-item ${chat.isPinned?'pinned':''} ${chat.isMuted?'muted':''} ${unreadClass}" data-other-uid="${chat.otherUid}" onclick="openChat('${chat.id}','${chat.otherUid}','${escapeHTML(chat.otherName)}','${chat.isGroup ? '' : escapeHTML(chat.otherAv)}')">
             <div class="avatar" style="position:relative;">${avHtml}</div>
@@ -14289,7 +14486,7 @@ const liveU = allUsersCache ? allUsersCache.find(u => u.id === otherUid) : null;
 if(liveU){
   otherName = liveU.name || otherName;
   otherAv = liveU.avatar || otherAv;
-  archBadge = getVerifiedBadge(liveU.email || '', liveU.isVerified === true);
+  archBadge = getVerifiedBadge(liveU.email || '', liveU.isVerified === true) + getLeaderBadge(liveU.email || '', liveU.isLeader === true);
 }
 const avHtml=otherAv?`<img src="${otherAv}">`:avatarInitial(otherName);
 html+=`<div class="msg-item" onclick="openChat('${chatId}','${otherUid}','${escapeHTML(otherName)}','${escapeHTML(otherAv)}')">
@@ -14383,55 +14580,190 @@ loadMessages();
 }catch(e){showToast('Failed to delete chat');}
 }
 
-// নতুন ফুল-স্ক্রিন এডিট প্রোফাইল ওপেন ও ক্লোজ ফাংশন
+// ═══════════════════════════════════════════════════════
+// 🚀 Edit Profile hub + Personal / Work / Education · 2026-09-05
+// ═══════════════════════════════════════════════════════
+var gcEduDraft = [];
+
+var GC_SCHOOL_DB = [
+  'University of Dhaka','Bangladesh University of Engineering and Technology (BUET)',
+  'University of Rajshahi','Jahangirnagar University','Chittagong University',
+  'Khulna University','Shahjalal University of Science and Technology (SUST)',
+  'Islamic University, Bangladesh','Bangladesh Agricultural University',
+  'Jagannath University','Comilla University','Barisal University',
+  'Begum Rokeya University','Noakhali Science and Technology University',
+  'Hajee Mohammad Danesh Science and Technology University',
+  'North South University','BRAC University','Independent University, Bangladesh (IUB)',
+  'American International University-Bangladesh (AIUB)','East West University',
+  'United International University (UIU)','Daffodil International University',
+  'Ahsanullah University of Science and Technology','Stamford University Bangladesh',
+  'International Islamic University Chittagong','Premier University',
+  'Dhaka Medical College','Sir Salimullah Medical College','Chittagong Medical College',
+  'Rajshahi Medical College','Notre Dame College, Dhaka','Holy Cross College, Dhaka',
+  'Viqarunnisa Noon School and College','Ideal School and College','Rajuk Uttara Model College',
+  'Dhaka Residential Model College','Adamjee Cantonment College','Milestone College',
+  'Harvard University','Stanford University','MIT','Oxford University','Cambridge University',
+  'National University, Bangladesh','Open University Bangladesh'
+];
+
 function openProfileEdit(){
     document.getElementById('edit-profile-screen').style.display = 'flex';
-    
-    document.getElementById('edit-username').value = currentUserData.username || '';
-    document.getElementById('edit-name').value = currentUserData.name || '';
-    document.getElementById('edit-bio').value = currentUserData.bio || '';
-    document.getElementById('edit-gender').value = currentUserData.gender || '';
-    document.getElementById('edit-location').value = currentUserData.location || '';
-    document.getElementById('edit-phone').value = currentUserData.phone || '';
-    document.getElementById('edit-email').value = currentUserData.email || ''; 
-    document.getElementById('edit-hometown').value = currentUserData.hometown || '';
-    document.getElementById('edit-relationship').value = currentUserData.relationship || '';
-    document.getElementById('edit-profession').value = currentUserData.profession || '';
-    window.gcEditDobValue = currentUserData.dob || '';
-    window.gcEditDobPrivacyValue = currentUserData.dobPrivacy || 'public';
-    if(typeof gcRenderEditDobBox === 'function') gcRenderEditDobBox();
+    gcRefreshEpHubSubs();
 }
 
 function closeProfileEdit(){
     document.getElementById('edit-profile-screen').style.display = 'none';
+    ['personal','work','education'].forEach(function(k){ gcCloseEpSection(k); });
     window.gcEditDobValue = undefined;
     window.gcEditDobPrivacyValue = undefined;
 }
 
-async function saveProfileChanges(){
+function gcRefreshEpHubSubs(){
+    try{
+        var pSub = document.getElementById('ep-hub-personal-sub');
+        if(pSub){
+            var bits = [];
+            if(currentUserData && currentUserData.name) bits.push(currentUserData.name);
+            if(currentUserData && currentUserData.username) bits.push('@'+currentUserData.username);
+            pSub.textContent = bits.length ? bits.join(' · ') : 'Name, bio, contact & more';
+        }
+        var wSub = document.getElementById('ep-hub-work-sub');
+        if(wSub){
+            var prof = (currentUserData && currentUserData.profession) || '';
+            var co = (currentUserData && currentUserData.workCompany) || '';
+            wSub.textContent = prof ? (co ? (prof + ' at ' + co) : prof) : 'Add your profession';
+        }
+        var eSub = document.getElementById('ep-hub-edu-sub');
+        if(eSub){
+            var edu = (currentUserData && Array.isArray(currentUserData.education)) ? currentUserData.education : [];
+            eSub.textContent = edu.length ? (edu.length + ' school' + (edu.length>1?'s':'') + ' added') : 'School, college & university';
+        }
+    }catch(e){}
+}
+
+function gcOpenEpSection(which){
+    var el = document.getElementById('ep-section-' + which);
+    if(!el) return;
+    el.classList.add('open');
+    el.setAttribute('aria-hidden','false');
+    if(which === 'personal'){
+        document.getElementById('edit-username').value = currentUserData.username || '';
+        document.getElementById('edit-name').value = currentUserData.name || '';
+        document.getElementById('edit-bio').value = currentUserData.bio || '';
+        document.getElementById('edit-gender').value = currentUserData.gender || '';
+        document.getElementById('edit-location').value = currentUserData.location || '';
+        document.getElementById('edit-phone').value = currentUserData.phone || '';
+        document.getElementById('edit-email').value = currentUserData.email || '';
+        document.getElementById('edit-hometown').value = currentUserData.hometown || '';
+        document.getElementById('edit-relationship').value = currentUserData.relationship || '';
+        window.gcEditDobValue = currentUserData.dob || '';
+        window.gcEditDobPrivacyValue = currentUserData.dobPrivacy || 'public';
+        if(typeof gcRenderEditDobBox === 'function') gcRenderEditDobBox();
+    } else if(which === 'work'){
+        document.getElementById('edit-profession').value = currentUserData.profession || '';
+        var coEl = document.getElementById('edit-work-company');
+        if(coEl) coEl.value = currentUserData.workCompany || '';
+    } else if(which === 'education'){
+        gcEduDraft = Array.isArray(currentUserData.education)
+            ? currentUserData.education.map(function(x){ return { id: x.id || ('e_'+Date.now()+Math.random()), school: x.school || x.name || String(x) }; })
+            : [];
+        gcRenderEducationList();
+        var si = document.getElementById('edu-search-input');
+        if(si) si.value = '';
+        var res = document.getElementById('edu-search-results');
+        if(res){ res.classList.remove('open'); res.innerHTML = ''; }
+    }
+}
+
+function gcCloseEpSection(which){
+    var el = document.getElementById('ep-section-' + which);
+    if(!el) return;
+    el.classList.remove('open');
+    el.setAttribute('aria-hidden','true');
+}
+
+function gcFilterEducationSearch(q){
+    var res = document.getElementById('edu-search-results');
+    if(!res) return;
+    q = (q || '').trim().toLowerCase();
+    if(q.length < 1){ res.classList.remove('open'); res.innerHTML=''; return; }
+    var taken = {};
+    gcEduDraft.forEach(function(e){ taken[(e.school||'').toLowerCase()] = 1; });
+    var hits = GC_SCHOOL_DB.filter(function(s){
+        return s.toLowerCase().indexOf(q) !== -1 && !taken[s.toLowerCase()];
+    }).slice(0, 12);
+    var html = '';
+    hits.forEach(function(s){
+        html += '<button type="button" class="gc-edu-item" onclick="gcAddEducationItem(\'' + String(s).replace(/'/g,"\\'") + '\')"><i class="ph ph-graduation-cap"></i><span>' + escapeHTML(s) + '</span></button>';
+    });
+    if(!hits.length || !hits.some(function(s){ return s.toLowerCase() === q; })){
+        var customLabel = (q.length ? q : '').replace(/\b\w/g, function(c){ return c.toUpperCase(); });
+        if(customLabel && !taken[customLabel.toLowerCase()]){
+            html += '<button type="button" class="gc-edu-item" onclick="gcAddEducationItem(\'' + customLabel.replace(/'/g,"\\'") + '\')"><i class="ph ph-plus-circle"></i><span>Add “' + escapeHTML(customLabel) + '”</span></button>';
+        }
+    }
+    res.innerHTML = html || '<div class="gc-edu-empty">No matches</div>';
+    res.classList.add('open');
+}
+
+function gcAddCustomEducation(){
+    var si = document.getElementById('edu-search-input');
+    var v = si ? si.value.trim() : '';
+    if(!v) return;
+    gcAddEducationItem(v);
+}
+
+function gcAddEducationItem(school){
+    school = (school || '').trim();
+    if(!school) return;
+    var exists = gcEduDraft.some(function(e){ return (e.school||'').toLowerCase() === school.toLowerCase(); });
+    if(exists){ showToast('Already added'); return; }
+    if(gcEduDraft.length >= 8){ showToast('Maximum 8 schools'); return; }
+    gcEduDraft.push({ id: 'e_' + Date.now() + '_' + Math.floor(Math.random()*999), school: school });
+    gcRenderEducationList();
+    var si = document.getElementById('edu-search-input');
+    if(si) si.value = '';
+    var res = document.getElementById('edu-search-results');
+    if(res){ res.classList.remove('open'); res.innerHTML = ''; }
+}
+
+function gcRemoveEducationItem(id){
+    gcEduDraft = gcEduDraft.filter(function(e){ return e.id !== id; });
+    gcRenderEducationList();
+}
+
+function gcRenderEducationList(){
+    var list = document.getElementById('edu-selected-list');
+    if(!list) return;
+    if(!gcEduDraft.length){
+        list.innerHTML = '<div class="gc-edu-empty">Search and add your schools, colleges or universities</div>';
+        return;
+    }
+    list.innerHTML = gcEduDraft.map(function(e){
+        return '<div class="gc-edu-chip"><div class="gc-edu-chip-ico"><i class="ph ph-graduation-cap"></i></div><div class="gc-edu-chip-txt">' + escapeHTML(e.school) + '</div><button type="button" class="gc-edu-chip-rm" onclick="gcRemoveEducationItem(\'' + e.id + '\')" aria-label="Remove"><i class="ph ph-x"></i></button></div>';
+    }).join('');
+}
+
+async function savePersonalDetails(){
+    if(!currentUser) return;
     const newName = document.getElementById('edit-name').value.trim();
     const emojiRegex = /[\p{Emoji_Presentation}\p{Extended_Pictographic}]/u;
     if(emojiRegex.test(newName)){showToast('Name cannot contain emojis!'); return;}
 
-    // ১. চেক করব ইউজার সত্যিই নাম পাল্টেছে কিনা
     const isNameChanged = (newName !== currentUserData.name);
-
-    // ২. যদি নাম পাল্টানোর চেষ্টা করে, তবেই ৭ দিনের লিমিট চেক করবে
     if (isNameChanged && currentUserData.lastNameChange) {
         const lastChange = currentUserData.lastNameChange;
         if (Date.now() - lastChange < SEVEN_DAYS_MS) {
-            showToast('Name can only be changed once every 7 days'); 
-            return; // ৭ দিন না হলে এখানেই সেভ বন্ধ করে দেবে
+            showToast('Name can only be changed once every 7 days');
+            return;
         }
     }
 
-    // ইউজারনেম থেকে স্পেস এবং স্পেশাল ক্যারেক্টার মুছে ফেলা
     let newUsername = document.getElementById('edit-username').value.trim().toLowerCase();
     newUsername = newUsername.replace(/[^a-z0-9_]/g, '');
 
-    // ৩. আপডেটের ডাটাগুলো রেডি করা
     const updates = {
-        username: newUsername, // 🚀 নতুন: ইউজারনেম ডাটাবেসে সেভ
+        username: newUsername,
         usernameLower: normalizeUserSearchText(newUsername),
         name: newName,
         nameLower: normalizeUserSearchText(newName),
@@ -14441,16 +14773,10 @@ async function saveProfileChanges(){
         hometown: document.getElementById('edit-hometown').value.trim(),
         relationship: document.getElementById('edit-relationship').value,
         phone: document.getElementById('edit-phone').value.trim(),
-    email: document.getElementById('edit-email').value.trim(),
-    profession: document.getElementById('edit-profession').value.trim()
+        email: document.getElementById('edit-email').value.trim()
     };
+    if (isNameChanged) updates.lastNameChange = Date.now();
 
-    // ৪. যদি নাম আসলেই পাল্টায়, শুধু তখনই নামের নতুন টাইমস্ট্যাম্প আপডেট হবে
-    if (isNameChanged) {
-        updates.lastNameChange = Date.now(); 
-    }    
-
-    // 🚀 birthday-feature · 2026-09-04 — 30-day lock check + dob/dobPrivacy update
     const newDob = window.gcEditDobValue !== undefined ? window.gcEditDobValue : (currentUserData.dob || '');
     const isDobChanged = (newDob !== (currentUserData.dob || ''));
     if (isDobChanged) {
@@ -14466,44 +14792,81 @@ async function saveProfileChanges(){
     if (newDobPrivacy !== (currentUserData.dobPrivacy || 'public')) {
         updates.dobPrivacy = newDobPrivacy;
     }
-showToast('Saving profile...');
-const oldUsername = (currentUserData && (currentUserData.usernameLower || currentUserData.username)) || '';
-await db.collection('users').doc(currentUser.uid).update(updates);
-// Sync public username index for email/username login
-try{
-  if(typeof gcSyncUsernameIndex === 'function'){
-    await gcSyncUsernameIndex(
-      currentUser.uid,
-      newUsername,
-      updates.email || (currentUserData && currentUserData.email) || (currentUser.email || ''),
-      oldUsername
-    );
-  }
-}catch(e){}
-        // === নতুন ম্যাজিক: ইউজারের আগের সব পোস্টের নাম আপডেট করা ===
-        try {
-            // 'posts' ফোল্ডার থেকে এই ইউজারের সব পোস্ট খুঁজে বের করা
-            const postsSnapshot = await db.collection('posts').where('uid', '==', currentUser.uid).get();
-            
-            if (!postsSnapshot.empty) {
-                const batch = db.batch();
-                postsSnapshot.forEach((doc) => {
-                    batch.update(doc.ref, { name: newName }); 
-                    // (নোট: আপনার পোস্ট ডাটাবেসে নামের ফিল্ড যদি 'authorName' হয়, তবে 'name' এর বদলে 'authorName' দেবেন)
-                });
-                await batch.commit(); // সব পোস্ট এক ক্লিকে আপডেট!
-            }
-        } catch (error) {
-            console.error("Error updating old posts: ", error);
+
+    showToast('Saving...');
+    const oldUsername = (currentUserData && (currentUserData.usernameLower || currentUserData.username)) || '';
+    try{
+        await db.collection('users').doc(currentUser.uid).update(updates);
+        try{
+          if(typeof gcSyncUsernameIndex === 'function'){
+            await gcSyncUsernameIndex(
+              currentUser.uid, newUsername,
+              updates.email || (currentUserData && currentUserData.email) || (currentUser.email || ''),
+              oldUsername
+            );
+          }
+        }catch(e){}
+        if(isNameChanged){
+            try {
+                const postsSnapshot = await db.collection('posts').where('uid', '==', currentUser.uid).get();
+                if (!postsSnapshot.empty) {
+                    const batch = db.batch();
+                    postsSnapshot.forEach((doc) => { batch.update(doc.ref, { name: newName }); });
+                    await batch.commit();
+                }
+            } catch (error) { console.error("Error updating old posts: ", error); }
         }
-        // ========================================================
-        
-currentUserData={...currentUserData,...updates};
-ensureCurrentUserSearchIndex(currentUserData);
-loadUserUI();
-closeProfileEdit();
-showToast('Profile updated!');
+        currentUserData = {...currentUserData, ...updates};
+        ensureCurrentUserSearchIndex(currentUserData);
+        loadUserUI();
+        gcRefreshEpHubSubs();
+        gcCloseEpSection('personal');
+        showToast('Personal details saved');
+    }catch(e){
+        console.error(e);
+        showToast('Failed to save');
+    }
 }
+
+async function saveWorkDetails(){
+    if(!currentUser) return;
+    const profession = document.getElementById('edit-profession').value.trim();
+    const workCompany = (document.getElementById('edit-work-company') || {}).value
+        ? document.getElementById('edit-work-company').value.trim() : '';
+    showToast('Saving...');
+    try{
+        const updates = { profession: profession, workCompany: workCompany };
+        await db.collection('users').doc(currentUser.uid).update(updates);
+        currentUserData = {...currentUserData, ...updates};
+        loadUserUI();
+        gcRefreshEpHubSubs();
+        gcCloseEpSection('work');
+        showToast('Work saved');
+    }catch(e){
+        console.error(e);
+        showToast('Failed to save');
+    }
+}
+
+async function saveEducationDetails(){
+    if(!currentUser) return;
+    const education = gcEduDraft.map(function(e){ return { id: e.id, school: e.school }; });
+    showToast('Saving...');
+    try{
+        await db.collection('users').doc(currentUser.uid).update({ education: education });
+        currentUserData = {...currentUserData, education: education};
+        loadUserUI();
+        gcRefreshEpHubSubs();
+        gcCloseEpSection('education');
+        showToast('Education saved');
+    }catch(e){
+        console.error(e);
+        showToast('Failed to save');
+    }
+}
+
+// Legacy alias
+async function saveProfileChanges(){ return savePersonalDetails(); }
 
 // ===== CREATE POST FUNCTIONS =====
 function openCreatePost(){
@@ -14663,7 +15026,7 @@ function updateTagPreview(){
     
     // ট্যাগ না থাকলেও নাম + feeling chip ঠিক রাখো
 if(nameEl && currentUserData) {
-   nameEl.innerHTML = `<span style="display:flex; align-items:center; gap:4px;flex-wrap:wrap;">${escapeHTML(currentUserData.name || 'User')} ${getVerifiedBadge(currentUserData.email, currentUserData.isVerified)}</span>`;
+   nameEl.innerHTML = `<span style="display:flex; align-items:center; gap:4px;flex-wrap:wrap;">${escapeHTML(currentUserData.name || 'User')} ${getVerifiedBadge(currentUserData.email, currentUserData.isVerified) + getLeaderBadge(currentUserData.email, currentUserData.isLeader)}</span>`;
 }
 if (typeof gcRenderFeelingChip === 'function') gcRenderFeelingChip();
 if (typeof gcRenderLocChip === 'function') gcRenderLocChip();
@@ -14691,7 +15054,7 @@ return;
   // --- Create Post স্ক্রিনে লাইভ নাম আপডেট (নতুন আপডেট) ---
   if(nameEl && currentUserData) {
       const safeName = escapeHTML(currentUserData.name || 'User');
-      const vBadge = getVerifiedBadge(currentUserData.email);
+      const vBadge = getVerifiedBadge(currentUserData.email, currentUserData.isVerified) + getLeaderBadge(currentUserData.email, currentUserData.isLeader);
       let previewWithText = '';
       
             if(currentTaggedNames.length === 1) {
@@ -15606,7 +15969,7 @@ function buildPostCardHTML(p){
 const pid=p.id;
 const uniqueDropId = pid + '_' + Math.random().toString(36).substr(2, 5);
 const av=p.avatar?`<img src="${p.avatar}">`:avatarInitial(p.name||'?');
-const vBadge=getVerifiedBadge(p.email, p.isVerified);
+const vBadge=getVerifiedBadge(p.email, p.isVerified) + getLeaderBadge(p.email, p.isLeader);
 const isLiked=p.likedBy&&p.likedBy.includes(currentUser?.uid);
 const likeColor=isLiked?'var(--danger)':'var(--text-secondary)';
 const fillProp=isLiked?'1':'0';
@@ -15868,7 +16231,7 @@ function loadUserUI(){
     const name = currentUserData.name || currentUser.email.split('@')[0] || 'User';
     const avHtml = currentUserData.avatar ? `<img src="${currentUserData.avatar}">` : avatarInitial(name);
     const safeName = escapeHTML(name);
-    const verifiedBadge = getVerifiedBadge(currentUser.email, currentUserData.isVerified);
+    const verifiedBadge = getVerifiedBadge(currentUser.email, currentUserData.isVerified) + getLeaderBadge(currentUser.email, currentUserData.isLeader);
 // - আপডেট: নাম ও ব্যাজের লেআউট -
 const isLongName = (name || '').length > 16;
 let gcDisplayName = safeName;
@@ -15935,7 +16298,16 @@ ${gcDisplayName}
     if(currentUserData.email) dHtml += `<div class="detail-item"><i class="ph ph-envelope-simple"></i> <strong>${escapeHTML(currentUserData.email)}</strong></div>`;
     if(currentUserData.hometown)dHtml+=`<div class="detail-item"><i class="ph ph-house-line"></i> From <strong>${escapeHTML(currentUserData.hometown)}</strong></div>`;
     if(currentUserData.location)dHtml+=`<div class="detail-item"><i class="ph ph-map-pin"></i> Lives in <strong>${escapeHTML(currentUserData.location)}</strong></div>`;
-    if(currentUserData.profession) dHtml += `<div class="detail-item"><i class="ph ph-briefcase"></i> <strong>${escapeHTML(currentUserData.profession)}</strong></div>`;
+    if(currentUserData.profession){
+        const workLine = currentUserData.workCompany ? (escapeHTML(currentUserData.profession) + ' · ' + escapeHTML(currentUserData.workCompany)) : escapeHTML(currentUserData.profession);
+        dHtml += `<div class="detail-item"><i class="ph ph-briefcase"></i> <strong>${workLine}</strong></div>`;
+    }
+    if(Array.isArray(currentUserData.education) && currentUserData.education.length){
+        currentUserData.education.forEach(function(ed){
+            const school = (ed && (ed.school || ed.name)) ? (ed.school || ed.name) : '';
+            if(school) dHtml += `<div class="detail-item"><i class="ph ph-graduation-cap"></i> <strong>${escapeHTML(school)}</strong></div>`;
+        });
+    }
     if(currentUserData.dob){
         const myDobDisp = (typeof gcFormatDobDisplay === 'function') ? gcFormatDobDisplay(currentUserData.dob) : null;
         if(myDobDisp){
@@ -17109,7 +17481,8 @@ function viewProfileFromChat() {
     // ভেরিফাইড ব্যাজ পাওয়ার জন্য ইউজার ডাটা চেক করা
     const otherUser = allUsersCache ? allUsersCache.find(u => u.id === currentChatOtherUid) : null;
     const isV = otherUser ? otherUser.isVerified : false;
-    const vBadge = getVerifiedBadge(otherUser ? otherUser.email : '', isV);
+    const isL = otherUser ? otherUser.isLeader : false;
+    const vBadge = getVerifiedBadge(otherUser ? otherUser.email : '', isV) + getLeaderBadge(otherUser ? otherUser.email : '', isL);
     
     // নামের সাথে ব্যাজটি যোগ করা
     document.getElementById('qp-name').innerHTML = nameText + vBadge;
@@ -18054,7 +18427,7 @@ async function gcLoadFollowListData(type, uid) {
                 
                 html += `<div class="msg-item" onclick="closeFriendsListModal(); viewUserProfile('${list[index]}')">
                     <div class="avatar">${avHtml}</div>
-                    <div class="msg-info" style="margin-left:10px;">${safeName} ${getVerifiedBadge(u.email, u.isVerified || false)}</div>
+                    <div class="msg-info" style="margin-left:10px;">${safeName} ${getVerifiedBadge(u.email, u.isVerified || false) + getLeaderBadge(u.email, u.isLeader || false)}</div>
                 </div>`;
             }
         });
@@ -19989,7 +20362,7 @@ function gcRenderSearchUser(u){
     return `<div class="msg-item" onclick="addToRecentSearches('${uId}'); viewUserProfile('${uId}')">
         <div class="avatar">${avHtml}</div>
         <div class="msg-info">
-            <div class="msg-name">${safeName} ${getVerifiedBadge(u.email, u.isVerified)}</div>
+            <div class="msg-name">${safeName} ${getVerifiedBadge(u.email, u.isVerified) + getLeaderBadge(u.email, u.isLeader)}</div>
             ${u.username ? `<div style="font-size:12px; color:var(--text-muted);">@${escapeHTML(u.username)}</div>` : ''}
         </div>
     </div>`;
@@ -20493,7 +20866,13 @@ function closeTopMostView() {
     const groupInfo = document.getElementById('group-info-modal');
     if (groupInfo && groupInfo.style.display === 'flex') { closeGroupInfoModal(); return true; }
 
-    // ৬. Settings & Menus
+    // ৬. Settings & Menus — close Edit Profile sections first
+    const epPersonal = document.getElementById('ep-section-personal');
+    if (epPersonal && epPersonal.classList.contains('open')) { gcCloseEpSection('personal'); return true; }
+    const epWork = document.getElementById('ep-section-work');
+    if (epWork && epWork.classList.contains('open')) { gcCloseEpSection('work'); return true; }
+    const epEdu = document.getElementById('ep-section-education');
+    if (epEdu && epEdu.classList.contains('open')) { gcCloseEpSection('education'); return true; }
     const editProfile = document.getElementById('edit-profile-screen');
     if (editProfile && editProfile.style.display === 'flex') { closeProfileEdit(); return true; }
 
@@ -21408,7 +21787,7 @@ async function qrncOpenCard(uid){
   const u = await qrncLoadUser(uid);
   qrncCurrentData = u;
   const safeName = escapeHTML(u.name || 'User');
-  const vBadge = (typeof getVerifiedBadge === 'function') ? getVerifiedBadge(u.email, u.isVerified) : '';
+  const vBadge = (typeof getVerifiedBadge === 'function') ? getVerifiedBadge(u.email, u.isVerified) + getLeaderBadge(u.email, u.isLeader) : '';
   document.getElementById('qrnc-av').innerHTML = u.avatar ? `<img src="${escapeHTML(u.avatar)}">` : avatarInitial(u.name||'U');
   document.getElementById('qrnc-name').innerHTML = safeName + (vBadge ? ' ' + vBadge : '');
 
@@ -21799,7 +22178,7 @@ function mfRenderList(arr){
   const myFollowing = new Set((currentUserData && currentUserData.following) || []);
   box.innerHTML = arr.map((m, i) => {
     const av = m.avatar ? `<img src="${escapeHTML(m.avatar)}">` : escapeHTML((m.name||'?').trim().charAt(0).toUpperCase());
-    const vBadge = (typeof getVerifiedBadge === 'function') ? (getVerifiedBadge(m.email, m.isVerified) || '') : '';
+    const vBadge = (typeof getVerifiedBadge === 'function') ? (getVerifiedBadge(m.email, m.isVerified) + getLeaderBadge(m.email, m.isLeader) || '') : '';
     const uname = m.username ? `<div class="mf-r-uname">@${escapeHTML(m.username)}</div>` : '';
     const following = myFollowing.has(m.id);
     const status = following ? `<span class="mf-r-status">Following</span>` : '';
@@ -23377,7 +23756,7 @@ async function loadSuggestions() {
         suggestedUsers.forEach(u => {
             const safeName = escapeHTML(u.name);
             const avHtml = u.avatar ? `<img src="${escapeHTML(u.avatar)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">` : avatarInitial(u.name);
-            const verifiedBadge = getVerifiedBadge(u.email, u.isVerified);
+            const verifiedBadge = getVerifiedBadge(u.email, u.isVerified) + getLeaderBadge(u.email, u.isLeader);
             
             html += `
             <div class="msg-item" style="margin: 0 0 12px 0; padding: 14px; border-radius: 18px; transition: 0.2s;" onclick="closeSuggestionsSheet(); viewUserProfile('${u.id}')">
