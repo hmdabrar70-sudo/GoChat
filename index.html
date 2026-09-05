@@ -2047,7 +2047,12 @@ overscroll-behavior:contain;
 -webkit-overflow-scrolling:touch;
 padding:16px;
 display:flex;flex-direction:column;gap:8px;
+scrollbar-width:thin;
+scrollbar-color:rgba(128,128,128,.35) transparent;
 }
+.chat-messages::-webkit-scrollbar{width:3px;height:3px;}
+.chat-messages::-webkit-scrollbar-track{background:transparent;}
+.chat-messages::-webkit-scrollbar-thumb{background:rgba(128,128,128,.35);border-radius:10px;}
 /* Messenger-style date separators between message days */
 .gc-msg-date-sep{
   display:flex;
@@ -5229,6 +5234,15 @@ body.notif-edit-mode .bottom-nav {
     pointer-events: none !important;
     /* keep layout slot empty — delete bar takes the bottom edge */
 }
+body.notif-edit-mode .topbar-actions > .topbar-btn[onclick*="search"]{
+  display:none !important;
+}
+#topbar-notif-select-all{
+  display:none;
+  padding:6px 14px; font-size:13px; border:none; background:var(--surface-2);
+  color:var(--text); height:36px; margin:0; border-radius:999px; font-weight:700; cursor:pointer; font-family:inherit;
+}
+body.notif-edit-mode #topbar-notif-select-all{ display:inline-flex; align-items:center; }
 body.notif-edit-mode #notif-selection-bar {
     display: flex !important;
 }
@@ -5690,12 +5704,13 @@ body.light-mode #page-notifications {
 .qrnc-trigger.qrnc-gold .material-symbols-outlined{ color:#3a2a00; }
 
 /* ---------- Name Card Modal ---------- */
-#qrnc-modal{ z-index:100210; }
+#qrnc-modal{ z-index:100210; align-items:stretch !important; padding:0 !important; }
 #qrnc-modal .qrnc-box{
-  width:100%; max-width:420px; margin:auto; border-radius:26px; overflow:hidden;
-  background:var(--surface); border:1px solid var(--border);
-  box-shadow:0 40px 90px -30px rgba(0,0,0,.6); position:relative;
-  animation:qrncCardIn .4s cubic-bezier(.22,1,.36,1);
+  width:100%; max-width:100%; min-height:100%; height:100%; margin:0; border-radius:0; overflow:auto;
+  background:var(--surface); border:none;
+  box-shadow:none; position:relative;
+  animation:qrncCardIn .35s cubic-bezier(.22,1,.36,1);
+  display:flex; flex-direction:column;
 }
 .qrnc-banner{
   position:relative; height:96px;
@@ -7693,6 +7708,7 @@ Edit Profile-এ পার্টনার সিলেক্ট বাটন
 <div class="topbar-actions">
     <!-- 🚀 New Edit Button for Notifications -->
     <button id="topbar-notif-edit-btn" class="btn-outline" style="display:none; padding:6px 16px; font-size:13px; border:none; background:var(--surface-2); color:var(--text); height:36px; margin:0;" onclick="toggleNotifEditMode()">Edit</button>
+    <button type="button" id="topbar-notif-select-all" onclick="selectAllNotifs()">Select All</button>
 
     <!-- Notification moved to bottom nav -->
     
@@ -7727,12 +7743,12 @@ Edit Profile-এ পার্টনার সিলেক্ট বাটন
             <i class="fi fi-rr-angle-small-right gc-hd-chev"></i>
         </div>
         <div class="gc-hd-item" id="hd-tab-friends" onclick="gcCloseHomeDrawer(); showPage('friends');">
-            <i class="fi fi-rr-users-medical"></i> Person
+            <i class="fi fi-rr-users-medical"></i> Connectors
             <span class="nav-badge" id="friends-badge-drawer" style="position:static;min-width:18px;height:18px;margin-left:6px;border:none;display:none;">0</span>
             <i class="fi fi-rr-angle-small-right gc-hd-chev"></i>
         </div>
         <div class="gc-hd-item" onclick="gcCloseHomeDrawer(); gcOpenLikedScreen();">
-            <i class="fi fi-rs-heart"></i> Liked
+            <i class="ph-bold ph-thumbs-up"></i> Liked
             <i class="fi fi-rr-angle-small-right gc-hd-chev"></i>
         </div>
         <div class="gc-hd-item" onclick="gcCloseHomeDrawer(); openSavedItems();">
@@ -8995,7 +9011,7 @@ Edit Profile-এ পার্টনার সিলেক্ট বাটন
 
 
                 <!-- 🚀 NEW: Share profile Menu Item -->
-                <div class="settings-list-item" onclick="closeMainSettingsScreen(); closeMainMenu(); openQRCodeModal();">
+                <div class="settings-list-item" onclick="openQRCodeModal();">
                     <div style="display:flex; align-items:center; gap:16px;">
                         <i class="fi fi-rr-qr"></i>
                         <span style="font-weight:600; font-size:15px;">Share profile</span>
@@ -9551,7 +9567,7 @@ Edit Profile-এ পার্টনার সিলেক্ট বাটন
      🚀 NEW FEATURE  ·  profile-qr-namecard  ·  2026-08-02
      Name Card modal + Scanner overlay
      ═══════════════════════════════════════════════════════ -->
-<div class="modal-overlay" id="qrnc-modal" style="display:none; align-items:center; padding:20px;" onclick="if(event.target===this) qrncCloseCard()">
+<div class="modal-overlay" id="qrnc-modal" style="display:none; align-items:stretch; padding:0; inset:0;" onclick="if(event.target===this) qrncCloseCard()">
   <div class="qrnc-box">
     <div class="qrnc-banner">
       <button class="qrnc-close" onclick="qrncCloseCard()"><i class="ph-bold ph-x"></i></button>
@@ -13508,6 +13524,10 @@ toggleLike(pid);
 }
 
 async function openCommentPanel(pid) {
+    // Home/feed comment → single post view (post + comments). Dedicated panel kept as fallback.
+    if(typeof openSinglePostView === 'function'){
+      try{ openSinglePostView(pid); return; }catch(e){}
+    }
     activeCommentPostId = pid;
     document.getElementById('comment-panel').classList.add('open');
     if (commentPanelListener) commentPanelListener();
@@ -15290,7 +15310,7 @@ async function loadMessages(){
             <i class="ph-fill ph-tray-arrow-down" style="font-size: 22px;"></i> Archive
             </div>
             <div class="chat-dropdown-item danger" onclick="deleteChat('${chat.id}')">
-            <i class="fi fi-rr-trash-simple" style="font-size: 22px;"></i> Delete Chat
+            <i class="fi fi-rr-trash" style="font-size: 22px;"></i> Delete Chat
             </div>
             </div>
             </div>`;
@@ -15459,7 +15479,7 @@ if(typeof gcOpenConfirm === 'function'){
   gcOpenConfirm({
     title:'Delete Chat?',
     text:'Delete this entire chat? This cannot be undone.',
-    icon:'ph-chats-teardrop',
+    icon:'fi fi-rr-trash',
     yesLabel:'Delete',
     onYes:function(){ gcDoDeleteChat(chatId); }
   });
@@ -15772,6 +15792,20 @@ async function saveProfileChanges(){ return savePersonalDetails(); }
 function openCreatePost(){
 document.getElementById('create-post-screen').classList.add('open');
 checkPostInputs();
+// Refresh composer name + verified/leader badges every open
+try{
+  var nameEl = document.getElementById('modal-composer-name');
+  var avEl = document.getElementById('modal-composer-avatar');
+  if(nameEl && typeof currentUserData !== 'undefined' && currentUserData){
+    var badges = (typeof gcResolveUserBadges === 'function')
+      ? gcResolveUserBadges(currentUser && currentUser.uid, currentUserData.email || (currentUser && currentUser.email), currentUserData.isVerified, currentUserData.isLeader)
+      : ((typeof getVerifiedBadge==='function'?getVerifiedBadge(currentUserData.email, currentUserData.isVerified):'') + (typeof getLeaderBadge==='function'?getLeaderBadge(currentUserData.email, currentUserData.isLeader):''));
+    nameEl.innerHTML = '<span style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;">' + (typeof escapeHTML==='function'?escapeHTML(currentUserData.name||'User'):(currentUserData.name||'User')) + ' ' + badges + '</span>';
+  }
+  if(avEl && currentUserData){
+    avEl.innerHTML = currentUserData.avatar ? ('<img src="'+currentUserData.avatar+'">') : (typeof avatarInitial==='function'?avatarInitial(currentUserData.name||'U'):'?');
+  }
+}catch(e){}
 // Restore location chip if a location was previously selected (merged from location wrapper)
 setTimeout(function(){ if (typeof gcRenderLocChip === 'function') gcRenderLocChip(); }, 120);
 }
@@ -16957,7 +16991,7 @@ if(p.uid === currentUser?.uid){
     } else {
         postDropdownHtml += `
         <div class="chat-dropdown-item" onclick="event.stopPropagation(); markInterested('${pid}')">
-            <i class="fi fi-rr-bookmark"></i> Interested (Save)
+            <i class="fi fi-rr-bookmark"></i> Save
         </div>`;
     }
     
@@ -17046,7 +17080,7 @@ ${generatePollHTML(p)}
 </button>
 
 <!-- 🚀 নতুন কমেন্ট বাটন -->
-<button class="post-action-btn" onclick="event.stopPropagation(); openCommentPanel('${pid}')">
+<button class="post-action-btn" onclick="event.stopPropagation(); openSinglePostView('${pid}')">
     <i class="ph-fill ph-chat-circle" style="font-size:24px;"></i>
     <span>${commentCount}</span>
 </button>
@@ -18455,7 +18489,7 @@ async function clearChatFromQP() {
 async function clearChatForMe() {
     document.getElementById('chat-delete-menu').style.display = 'none';
     if(typeof gcOpenConfirm==='function' && !window.__gcConfirmForceYes){
-      gcOpenConfirm({title:'Clear Chat?',text:'Clear this chat for yourself? Messages will be removed from your view only.',icon:'ph-broom',yesLabel:'Clear',onYes:function(){window.__gcConfirmForceYes=true;clearChatForMe();setTimeout(function(){window.__gcConfirmForceYes=false;},800);}});
+      gcOpenConfirm({title:'Clear Chat?',text:'Clear this chat for yourself? Messages will be removed from your view only.',icon:'fi fi-rr-broom',yesLabel:'Clear',onYes:function(){window.__gcConfirmForceYes=true;clearChatForMe();setTimeout(function(){window.__gcConfirmForceYes=false;},800);}});
       return;
     }
     
@@ -21955,6 +21989,20 @@ function updateNotifSelectedCount() {
     const countText = document.getElementById('notif-selected-count');
     if(countText) countText.textContent = `${selectedNotifs.length} Selected`;
 }
+
+function selectAllNotifs(){
+    if(!isNotifEditMode) return;
+    const boxes = document.querySelectorAll('.notif-checkbox');
+    selectedNotifs = [];
+    boxes.forEach(function(cb){
+        cb.style.display = 'block';
+        cb.checked = true;
+        var id = (cb.id || '').replace(/^notif-cb-/, '');
+        if(id) selectedNotifs.push(id);
+    });
+    updateNotifSelectedCount();
+}
+window.selectAllNotifs = selectAllNotifs;
 
 async function deleteSelectedNotifs() {
     if (selectedNotifs.length === 0) {
