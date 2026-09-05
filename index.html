@@ -8773,21 +8773,36 @@ Edit Profile-এ পার্টনার সিলেক্ট বাটন
     <video id="gc-call-remote-video" autoplay playsinline style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; background:#0d0d16; display:none;"></video>
     <video id="gc-call-local-video" autoplay playsinline muted style="position:absolute; bottom:110px; right:16px; width:100px; height:140px; border-radius:14px; object-fit:cover; background:#1a1a26; border:2px solid rgba(255,255,255,.3); display:none; z-index:2;"></video>
 
-    <div style="position:relative; z-index:1; text-align:center; padding-top:70px;">
+    <!-- Ringing / Connecting: center block -->
+    <div id="gc-call-center-info" style="position:relative; z-index:1; text-align:center; padding-top:70px;">
         <div class="avatar" id="gc-call-avatar" style="width:100px;height:100px; font-size:36px; margin:0 auto 16px; border:3px solid rgba(255,255,255,.2);">?</div>
         <div style="font-size:21px; font-weight:800;" id="gc-call-name">Someone</div>
         <div style="font-size:14px; opacity:.75; margin-top:6px;" id="gc-call-status">Calling…</div>
     </div>
 
-    <div style="position:absolute; bottom:40px; left:0; right:0; display:flex; justify-content:center; gap:26px; z-index:2;">
-        <div onclick="gcToggleMute()" id="gc-call-mute-btn" style="width:54px;height:54px;border-radius:50%;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;cursor:pointer;">
-            <i class="ph-bold ph-microphone" style="font-size:22px;"></i>
+    <!-- Connected: top-left corner (profile → name → timer) -->
+    <div id="gc-call-top-info" style="display:none; position:absolute; top:0; left:0; right:0; z-index:3; padding:14px 16px; padding-top:max(14px, env(safe-area-inset-top)); pointer-events:none;">
+        <div style="display:flex; align-items:center; gap:10px; max-width:85%;">
+            <div class="avatar" id="gc-call-top-avatar" style="width:42px;height:42px;font-size:16px;flex-shrink:0;border:2px solid rgba(255,255,255,.35);box-shadow:0 2px 10px rgba(0,0,0,.35);">?</div>
+            <div style="min-width:0;">
+                <div id="gc-call-top-name" style="font-size:15px;font-weight:800;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-shadow:0 1px 4px rgba(0,0,0,.55);">Someone</div>
+                <div id="gc-call-top-timer" style="font-size:12px;font-weight:600;opacity:.9;margin-top:2px;text-shadow:0 1px 3px rgba(0,0,0,.5);">00:00</div>
+            </div>
         </div>
-        <div onclick="gcEndCall()" style="width:64px;height:64px;border-radius:50%;background:#ff4d6a;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 6px 20px rgba(255,77,106,.5);">
-            <i class="ph-fill ph-phone-x" style="font-size:28px;"></i>
+    </div>
+
+    <div id="gc-call-controls" style="position:absolute; bottom:40px; left:0; right:0; display:flex; justify-content:center; align-items:center; gap:18px; z-index:2; padding-bottom:max(0px, env(safe-area-inset-bottom));">
+        <div onclick="gcToggleMute()" id="gc-call-mute-btn" title="Mute" style="width:52px;height:52px;border-radius:50%;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;cursor:pointer;">
+            <i class="fi fi-rr-microphone" style="font-size:20px;"></i>
         </div>
-        <div onclick="gcToggleSpeaker()" id="gc-call-speaker-btn" style="width:54px;height:54px;border-radius:50%;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;cursor:pointer;">
-            <i class="ph-bold ph-speaker-high" style="font-size:22px;"></i>
+        <div onclick="gcToggleCamera()" id="gc-call-camera-btn" title="Camera" style="width:52px;height:52px;border-radius:50%;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;cursor:pointer;">
+            <i class="fi fi-rr-video-camera-alt" style="font-size:20px;"></i>
+        </div>
+        <div onclick="gcEndCall()" title="End call" style="width:64px;height:64px;border-radius:50%;background:#ff4d6a;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 6px 20px rgba(255,77,106,.5);">
+            <i class="fi fi-rr-phone-slash" style="font-size:26px;"></i>
+        </div>
+        <div onclick="gcToggleSpeaker()" id="gc-call-speaker-btn" title="Speaker" style="width:52px;height:52px;border-radius:50%;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;cursor:pointer;">
+            <i class="fi fi-rr-volume" style="font-size:20px;"></i>
         </div>
     </div>
 </div>
@@ -10156,6 +10171,7 @@ let gcCallTimerInterval = null;
 let gcCallStartTs = null;
 let gcIsMuted = false;
 let gcIsSpeakerOn = true;
+let gcIsCameraOn = false;
 let gcIncomingCallData = null;
 let gcCallAnswered = false;
 
@@ -10176,38 +10192,164 @@ function gcSetupRemoteStreamHandler(){
     const remoteStream = new MediaStream();
     remoteVideo.srcObject = remoteStream;
     gcPeerConn.ontrack = function(event){
-        event.streams[0].getTracks().forEach(function(track){ remoteStream.addTrack(track); });
-        if(gcCallType === 'video') remoteVideo.style.display = 'block';
+        try{
+          (event.streams[0] || new MediaStream([event.track])).getTracks().forEach(function(tr){
+            try{ remoteStream.addTrack(tr); }catch(e){}
+          });
+        }catch(e){}
+        var isVideo = (event.track && event.track.kind === 'video') || (event.streams[0] && event.streams[0].getVideoTracks().length > 0);
+        if(isVideo || gcCallType === 'video'){
+            remoteVideo.style.display = 'block';
+            if(isVideo) gcCallType = 'video';
+        }
     };
-    if(gcCallType === 'video' && gcLocalStream){
+    if(gcIsCameraOn && gcLocalStream && localVideo){
         localVideo.srcObject = gcLocalStream;
         localVideo.style.display = 'block';
     }
 }
 
-function gcShowActiveCallUI(mode){
-    document.getElementById('gc-call-name').textContent = gcCallOtherName || 'User';
-    const avEl = document.getElementById('gc-call-avatar');
-    if(gcCallOtherAvatar){
-        avEl.innerHTML = '<img src="' + escapeHTML(gcCallOtherAvatar) + '" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">';
-    } else {
-        avEl.textContent = (gcCallOtherName || '?').charAt(0).toUpperCase();
+
+/** Handle audio→video renegotiation offers/answers from the other party */
+async function gcHandleCallDocSignals(data){
+    if(!data || !gcPeerConn) return;
+    try{
+        // Remote turned camera on / sent renegotiate offer
+        if(data.renegotiateOffer && data.renegotiateFrom && data.renegotiateFrom !== currentUser.uid){
+            var offerKey = data.renegotiateOffer.sdp;
+            if(window.__gcLastRenegoOfferSdp === offerKey) return;
+            window.__gcLastRenegoOfferSdp = offerKey;
+            await gcPeerConn.setRemoteDescription(new RTCSessionDescription(data.renegotiateOffer));
+            var answer = await gcPeerConn.createAnswer();
+            await gcPeerConn.setLocalDescription(answer);
+            await db.collection('calls').doc(gcCurrentCallId).set({
+                renegotiateAnswer: { type: answer.type, sdp: answer.sdp },
+                renegotiateAnswerFrom: currentUser.uid
+            }, { merge: true });
+            gcCallType = 'video';
+            var remoteVideo = document.getElementById('gc-call-remote-video');
+            if(remoteVideo) remoteVideo.style.display = 'block';
+        }
+        // We receive answer to our renegotiate offer
+        if(data.renegotiateAnswer && data.renegotiateAnswerFrom && data.renegotiateAnswerFrom !== currentUser.uid){
+            var ansKey = data.renegotiateAnswer.sdp;
+            if(window.__gcLastRenegoAnswerSdp === ansKey) return;
+            if(gcPeerConn.signalingState === 'have-local-offer' || gcPeerConn.signalingState === 'have-local-pranswer'){
+                window.__gcLastRenegoAnswerSdp = ansKey;
+                await gcPeerConn.setRemoteDescription(new RTCSessionDescription(data.renegotiateAnswer));
+            }
+        }
+        // Sync remote camera preference for UI
+        if(typeof data.cameraOn === 'boolean' && data.type === 'video'){
+            var remoteVideo2 = document.getElementById('gc-call-remote-video');
+            if(remoteVideo2 && remoteVideo2.srcObject) remoteVideo2.style.display = 'block';
+        }
+    }catch(e){
+        console.error('renegotiate signal error', e);
     }
-    document.getElementById('gc-call-status').textContent = mode === 'outgoing' ? 'Calling…' : 'Connecting…';
+}
+
+function gcFillCallAvatars(){
+    var name = gcCallOtherName || 'User';
+    var letter = (name || '?').charAt(0).toUpperCase();
+    var html = gcCallOtherAvatar
+      ? '<img src="' + escapeHTML(gcCallOtherAvatar) + '" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">'
+      : letter;
+    var avEl = document.getElementById('gc-call-avatar');
+    var topAv = document.getElementById('gc-call-top-avatar');
+    if(avEl){
+      if(gcCallOtherAvatar) avEl.innerHTML = html;
+      else avEl.textContent = letter;
+    }
+    if(topAv){
+      if(gcCallOtherAvatar) topAv.innerHTML = html;
+      else topAv.textContent = letter;
+    }
+    var nameEl = document.getElementById('gc-call-name');
+    var topName = document.getElementById('gc-call-top-name');
+    if(nameEl) nameEl.textContent = name;
+    if(topName) topName.textContent = name;
+}
+
+function gcShowActiveCallUI(mode){
+    gcFillCallAvatars();
+    var statusEl = document.getElementById('gc-call-status');
+    if(statusEl) statusEl.textContent = mode === 'outgoing' ? 'Calling…' : (mode === 'incoming-accepted' ? 'Connecting…' : 'Connecting…');
+    var center = document.getElementById('gc-call-center-info');
+    var top = document.getElementById('gc-call-top-info');
+    if(center) center.style.display = 'block';
+    if(top) top.style.display = 'none';
+    gcSyncCallControlIcons();
     document.getElementById('gc-call-active').style.display = 'flex';
+}
+
+/** Connected UI: hide center block, show top-left profile + name + timer */
+function gcEnterConnectedCallUI(){
+    gcFillCallAvatars();
+    var center = document.getElementById('gc-call-center-info');
+    var top = document.getElementById('gc-call-top-info');
+    if(center) center.style.display = 'none';
+    if(top) top.style.display = 'block';
+    gcSyncCallControlIcons();
+    // show local pip if camera already on
+    var localVideo = document.getElementById('gc-call-local-video');
+    if(localVideo && gcIsCameraOn && gcLocalStream){
+      localVideo.srcObject = gcLocalStream;
+      localVideo.style.display = 'block';
+    }
+}
+
+function gcSyncCallControlIcons(){
+    // mute
+    var muteBtn = document.getElementById('gc-call-mute-btn');
+    if(muteBtn){
+      muteBtn.style.background = gcIsMuted ? '#fff' : 'rgba(255,255,255,.15)';
+      var mi = muteBtn.querySelector('i');
+      if(mi){
+        mi.className = gcIsMuted ? 'fi fi-rr-microphone-slash' : 'fi fi-rr-microphone';
+        mi.style.color = gcIsMuted ? '#000' : '#fff';
+      }
+    }
+    // camera
+    var camBtn = document.getElementById('gc-call-camera-btn');
+    if(camBtn){
+      camBtn.style.background = gcIsCameraOn ? 'rgba(255,255,255,.15)' : '#fff';
+      var ci = camBtn.querySelector('i');
+      if(ci){
+        ci.className = gcIsCameraOn ? 'fi fi-rr-video-camera-alt' : 'fi fi-rr-video-slash';
+        ci.style.color = gcIsCameraOn ? '#fff' : '#000';
+      }
+    }
+    // speaker
+    var spkBtn = document.getElementById('gc-call-speaker-btn');
+    if(spkBtn){
+      spkBtn.style.background = gcIsSpeakerOn ? 'rgba(255,255,255,.15)' : '#fff';
+      var si = spkBtn.querySelector('i');
+      if(si){
+        si.className = gcIsSpeakerOn ? 'fi fi-rr-volume' : 'fi fi-rr-volume-mute';
+        si.style.color = gcIsSpeakerOn ? '#fff' : '#000';
+      }
+    }
 }
 
 function gcStartCallTimer(){
     gcCallAnswered = true;
     gcCallStartTs = Date.now();
     if(gcCallTimerInterval) clearInterval(gcCallTimerInterval);
-    gcCallTimerInterval = setInterval(function(){
+    // switch to connected top-corner layout
+    try{ gcEnterConnectedCallUI(); }catch(e){}
+    function tick(){
         const secs = Math.floor((Date.now() - gcCallStartTs) / 1000);
         const mm = String(Math.floor(secs / 60)).padStart(2, '0');
         const ss = String(secs % 60).padStart(2, '0');
+        const label = mm + ':' + ss;
         const statusEl = document.getElementById('gc-call-status');
-        if(statusEl) statusEl.textContent = mm + ':' + ss;
-    }, 1000);
+        if(statusEl) statusEl.textContent = label;
+        const topTimer = document.getElementById('gc-call-top-timer');
+        if(topTimer) topTimer.textContent = label;
+    }
+    tick();
+    gcCallTimerInterval = setInterval(tick, 1000);
 }
 
 // ---------- কল শুরু করা (Caller) ----------
@@ -10227,6 +10369,7 @@ async function gcStartCall(type){
         const avImg = avEl ? avEl.querySelector('img') : null;
         gcCallOtherAvatar = avImg ? avImg.src : '';
 
+        gcIsCameraOn = (type === 'video');
         gcLocalStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: type === 'video' ? { facingMode: 'user' } : false });
 
         gcPeerConn = new RTCPeerConnection(gcRtcConfig());
@@ -10264,6 +10407,7 @@ async function gcStartCall(type){
                 await gcPeerConn.setRemoteDescription(new RTCSessionDescription(data.answer));
                 gcStartCallTimer();
             }
+            try{ await gcHandleCallDocSignals(data); }catch(e){}
             if(data.status === 'declined'){
                 showToast(gcCallOtherName + ' declined the call');
                 gcCleanupCall();
@@ -10359,6 +10503,7 @@ async function gcAcceptCall(){
         gcCallOtherAvatar = data.callerAvatar || '';
         gcCurrentCallId = callId;
 
+        gcIsCameraOn = (data.type === 'video');
         gcLocalStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: data.type === 'video' ? { facingMode: 'user' } : false });
         gcPeerConn = new RTCPeerConnection(gcRtcConfig());
         gcLocalStream.getTracks().forEach(function(track){ gcPeerConn.addTrack(track, gcLocalStream); });
@@ -10389,9 +10534,11 @@ async function gcAcceptCall(){
             });
         });
 
-        gcCallDocUnsub = callRef.onSnapshot(function(doc){
+        gcCallDocUnsub = callRef.onSnapshot(async function(doc){
             const d = doc.data();
-            if(d && d.status === 'ended') gcCleanupCall();
+            if(!d) return;
+            try{ await gcHandleCallDocSignals(d); }catch(e){}
+            if(d.status === 'ended') gcCleanupCall();
         });
 
     }catch(e){
@@ -10413,17 +10560,85 @@ function gcToggleMute(){
     if(!gcLocalStream) return;
     gcIsMuted = !gcIsMuted;
     gcLocalStream.getAudioTracks().forEach(function(t){ t.enabled = !gcIsMuted; });
-    const btn = document.getElementById('gc-call-mute-btn');
-    btn.style.background = gcIsMuted ? '#fff' : 'rgba(255,255,255,.15)';
-    btn.querySelector('i').style.color = gcIsMuted ? '#000' : '#fff';
+    gcSyncCallControlIcons();
 }
 function gcToggleSpeaker(){
     // ব্রাউজারে earpiece/speaker সরাসরি সুইচ করার API নেই — এটা visual UX টগল
     gcIsSpeakerOn = !gcIsSpeakerOn;
-    const btn = document.getElementById('gc-call-speaker-btn');
-    btn.style.background = gcIsSpeakerOn ? 'rgba(255,255,255,.15)' : '#fff';
-    btn.querySelector('i').style.color = gcIsSpeakerOn ? '#fff' : '#000';
+    gcSyncCallControlIcons();
 }
+
+/** Camera on/off — video call toggle, or audio→video upgrade */
+async function gcToggleCamera(){
+    if(!gcCurrentCallId) return;
+    try{
+        var localVideo = document.getElementById('gc-call-local-video');
+        var remoteVideo = document.getElementById('gc-call-remote-video');
+        var hasVideo = gcLocalStream && gcLocalStream.getVideoTracks().length > 0;
+
+        if(hasVideo){
+            // toggle existing track
+            gcIsCameraOn = !gcIsCameraOn;
+            gcLocalStream.getVideoTracks().forEach(function(t){ t.enabled = gcIsCameraOn; });
+            if(localVideo){
+                if(gcIsCameraOn){
+                    localVideo.srcObject = gcLocalStream;
+                    localVideo.style.display = 'block';
+                } else {
+                    localVideo.style.display = 'none';
+                }
+            }
+            gcSyncCallControlIcons();
+            try{
+                await db.collection('calls').doc(gcCurrentCallId).set({ cameraOn: gcIsCameraOn, type: gcIsCameraOn ? 'video' : (gcCallType || 'audio') }, { merge: true });
+            }catch(e){}
+            return;
+        }
+
+        // No video track yet — request camera (audio → video)
+        showToast('Turning camera on…');
+        var vStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
+        var vTrack = vStream.getVideoTracks()[0];
+        if(!vTrack){ showToast('Camera not available'); return; }
+
+        if(!gcLocalStream){
+            gcLocalStream = vStream;
+        } else {
+            gcLocalStream.addTrack(vTrack);
+        }
+
+        if(gcPeerConn){
+            try{
+                gcPeerConn.addTrack(vTrack, gcLocalStream);
+                // Renegotiate so remote receives video
+                var offer = await gcPeerConn.createOffer();
+                await gcPeerConn.setLocalDescription(offer);
+                await db.collection('calls').doc(gcCurrentCallId).set({
+                    type: 'video',
+                    cameraOn: true,
+                    renegotiateOffer: { type: offer.type, sdp: offer.sdp },
+                    renegotiateFrom: currentUser.uid
+                }, { merge: true });
+            }catch(e){
+                console.error('addTrack/renegotiate', e);
+            }
+        }
+
+        gcCallType = 'video';
+        gcIsCameraOn = true;
+        if(localVideo){
+            localVideo.srcObject = gcLocalStream;
+            localVideo.style.display = 'block';
+        }
+        if(remoteVideo && remoteVideo.srcObject) remoteVideo.style.display = 'block';
+        gcSyncCallControlIcons();
+        showToast('Camera on');
+    }catch(e){
+        console.error('gcToggleCamera', e);
+        showToast('Camera permission denied or unavailable');
+    }
+}
+window.gcToggleCamera = gcToggleCamera;
 
 function gcEndCall(){
     if(gcCurrentCallId){
@@ -10441,15 +10656,24 @@ function gcCleanupCall(){
     if(gcCallTimerInterval){ clearInterval(gcCallTimerInterval); gcCallTimerInterval = null; }
     gcCurrentCallId = null;
     gcCallRole = null;
+    gcCallType = 'audio';
     gcCallAnswered = false;
     gcIsMuted = false;
     gcIsSpeakerOn = true;
+    gcIsCameraOn = false;
+    gcCallStartTs = null;
     const activeEl = document.getElementById('gc-call-active');
     if(activeEl) activeEl.style.display = 'none';
     const remoteVideo = document.getElementById('gc-call-remote-video');
     const localVideo = document.getElementById('gc-call-local-video');
     if(remoteVideo){ remoteVideo.srcObject = null; remoteVideo.style.display = 'none'; }
     if(localVideo){ localVideo.srcObject = null; localVideo.style.display = 'none'; }
+    var center = document.getElementById('gc-call-center-info');
+    var top = document.getElementById('gc-call-top-info');
+    if(center) center.style.display = 'block';
+    if(top) top.style.display = 'none';
+    var topTimer = document.getElementById('gc-call-top-timer');
+    if(topTimer) topTimer.textContent = '00:00';
 }
 
 function openSettingsPrivacy(){
