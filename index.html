@@ -7478,6 +7478,81 @@ Edit Profile-এ পার্টনার সিলেক্ট বাটন
 .chat-bubble .gc-fwd-label{color:inherit;opacity:.75;}
 
 </style>
+
+<style id="gc-chat-topbar-clean-2026-09-05">
+/* GoChat chat top bar cleanup — layout only; existing icon sizes remain 20px. */
+#chat-screen > .chat-topbar{
+  min-height:60px !important;
+  padding:10px 12px !important;
+  gap:10px !important;
+  box-sizing:border-box !important;
+  display:flex !important;
+  align-items:center !important;
+  width:100% !important;
+  overflow:visible !important;
+}
+#chat-screen > .chat-topbar .chat-back{
+  width:36px !important;
+  height:36px !important;
+  flex:0 0 36px !important;
+  margin:0 !important;
+}
+#chat-screen > .chat-topbar #chat-avatar{
+  width:36px !important;
+  height:36px !important;
+  flex:0 0 36px !important;
+  margin:0 !important;
+}
+#chat-screen > .chat-topbar #chat-name-display{
+  flex:1 1 auto !important;
+  min-width:0 !important;
+  margin-left:0 !important;
+  padding:0 !important;
+  overflow:hidden !important;
+  white-space:nowrap !important;
+  text-overflow:ellipsis !important;
+  line-height:1.2 !important;
+}
+#chat-screen > .chat-topbar .chat-header-actions{
+  flex:0 0 auto !important;
+  margin-left:auto !important;
+  gap:6px !important;
+  display:flex !important;
+  align-items:center !important;
+  justify-content:flex-end !important;
+  min-width:120px !important;
+}
+#chat-screen > .chat-topbar .chat-header-actions > i{
+  width:34px !important;
+  height:34px !important;
+  flex:0 0 34px !important;
+  display:inline-flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  margin:0 !important;
+  padding:0 !important;
+  font-size:20px !important;
+  line-height:1 !important;
+  cursor:pointer !important;
+}
+/* Hide verification/leader badges only inside the chat header. */
+#chat-screen > .chat-topbar #chat-name-display .verified-badge,
+#chat-screen > .chat-topbar #chat-name-display .leader-badge,
+#chat-screen > .chat-topbar #chat-name-display .gc-verified-badge,
+#chat-screen > .chat-topbar #chat-name-display .gc-leader-badge,
+#chat-screen > .chat-topbar #chat-name-display .verified-icon,
+#chat-screen > .chat-topbar #chat-name-display .leader-badge-icon,
+#chat-screen > .chat-topbar #chat-name-display [class*="verified"],
+#chat-screen > .chat-topbar #chat-name-display [class*="leader"]{
+  display:none !important;
+}
+@media (max-width:380px){
+  #chat-screen > .chat-topbar{padding-left:8px !important;padding-right:8px !important;gap:7px !important;}
+  #chat-screen > .chat-topbar .chat-header-actions{gap:2px !important;min-width:108px !important;}
+  #chat-screen > .chat-topbar .chat-header-actions > i{width:32px !important;height:32px !important;flex-basis:32px !important;}
+}
+</style>
+
 </head>
 <body>
 <!-- Splash Screen HTML -->
@@ -8494,8 +8569,8 @@ Edit Profile-এ পার্টনার সিলেক্ট বাটন
 <div class="avatar sm" id="chat-avatar" style="position:relative; cursor:pointer;" onclick="viewProfileFromChat()">?</div>
 <div class="chat-name" id="chat-name-display" style="flex:1;margin-left:8px; cursor:pointer;" onclick="viewProfileFromChat()">Chat</div>
 <div class="chat-header-actions" style="margin-left: auto; position: relative; display: flex; align-items: center; gap: 4px;">
-    <i class="ph-bold ph-phone" id="chat-voice-call-btn" onclick="gcStartCall('audio')" style="font-size:20px; cursor:pointer;"></i>
-    <i class="ph-bold ph-video-camera" id="chat-video-call-btn" onclick="gcStartCall('video')" style="font-size:20px; cursor:pointer;"></i>
+    <i class="fi fi-rr-phone-call" id="chat-voice-call-btn" onclick="gcStartCall('audio')" style="font-size:20px; cursor:pointer;"></i>
+    <i class="fi fi-rr-video-camera-alt" id="chat-video-call-btn" onclick="gcStartCall('video')" style="font-size:20px; cursor:pointer;"></i>
     <i class="ph ph-dots-three" onclick="toggleChatDeleteMenu()"></i>
     
         <div id="chat-delete-menu" class="chat-list-menu" style="top: 100%; right: 0; transform: none; display: none; width: max-content;">
@@ -14019,8 +14094,16 @@ safeText = safeText.replace(urlRegex, function(url) {
                 });
             }
 
-                       // 🚀 NEW: Shared Post rendering in chat
-            if (m.sharedPostId) {
+                       // 🚀 Call history rendering
+            if (m.isCallLog) {
+                const callIsMissed = m.callStatus === 'missed';
+                const callIsDeclined = m.callStatus === 'declined';
+                const callIsVideo = m.callType === 'video';
+                const callIcon = callIsVideo ? 'fi fi-rr-video-camera-alt' : 'fi fi-rr-phone-call';
+                const callTitle = callIsMissed ? ('Missed ' + (callIsVideo ? 'video call' : 'voice call')) : (callIsDeclined ? (callIsVideo ? 'Video call declined' : 'Voice call declined') : (callIsVideo ? 'Video call' : 'Voice call'));
+                const callMeta = callIsMissed ? ('From ' + escapeHTML(m.senderName || 'Someone')) : (callIsDeclined ? 'Call declined' : ('Duration ' + gcFormatCallDuration(m.durationSec || 0)));
+                content = `<div class="gc-call-log-wrap"><div class="gc-call-log-card ${callIsMissed?'gc-call-log-missed':''}"><div class="gc-call-log-icon"><i class="${callIcon}"></i></div><div><div class="gc-call-log-title">${callTitle}</div><div class="gc-call-log-meta">${callMeta}</div></div></div></div>`;
+            } else if (m.sharedPostId) {
                 const safeImg = m.sharedPostImg ? escapeHTML(m.sharedPostImg) : '';
                 const safeTitle = escapeHTML(m.sharedPostTitle || 'View Post');
                 
@@ -14091,7 +14174,7 @@ safeText = safeText.replace(urlRegex, function(url) {
                 const date = m.createdAt.toDate ? m.createdAt.toDate() : new Date(m.createdAt);
                 timeString = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
             }
-            let timeAndReceiptHtml = `<div style="font-size: 10px; opacity: 0.7; text-align: right; margin-top: 5px; display: flex; justify-content: flex-end; gap: 4px; align-items: center;">
+            let timeAndReceiptHtml = m.isCallLog ? '' : `<div style="font-size: 10px; opacity: 0.7; text-align: right; margin-top: 5px; display: flex; justify-content: flex-end; gap: 4px; align-items: center;">
                 <span>${timeString}</span>`;
             if(isMine){
                 if(m.read){
@@ -14153,10 +14236,11 @@ safeText = safeText.replace(urlRegex, function(url) {
             }
         } catch (e) {}
 
-        return dateSepHtml + `<div class="chat-bubble-wrapper ${isMine?'mine':'theirs'}" data-msgid="${d.id}" ontouchstart="handleMsgTouchStart('${d.id}', event)" ontouchmove="handleMsgTouchMove(event)" ontouchend="handleMsgTouchEnd('${d.id}', event)" ontouchcancel="handleMsgTouchEnd('${d.id}', event)" onmousedown="handleMsgTouchStart('${d.id}', event)" onmouseup="handleMsgTouchEnd('${d.id}', event)" onmouseleave="handleMsgTouchEnd('${d.id}', event)" oncontextmenu="event.preventDefault(); return false;" onclick="handleMsgClick('${d.id}')">
+        const callLogClass = m.isCallLog ? ' gc-call-log-message' : '';
+        return dateSepHtml + `<div class="chat-bubble-wrapper ${m.isCallLog?'gc-call-log-wrap':' '+(isMine?'mine':'theirs')}${callLogClass}" data-msgid="${d.id}" ontouchstart="handleMsgTouchStart('${d.id}', event)" ontouchmove="handleMsgTouchMove(event)" ontouchend="handleMsgTouchEnd('${d.id}', event)" ontouchcancel="handleMsgTouchEnd('${d.id}', event)" onmousedown="handleMsgTouchStart('${d.id}', event)" onmouseup="handleMsgTouchEnd('${d.id}', event)" onmouseleave="handleMsgTouchEnd('${d.id}', event)" oncontextmenu="event.preventDefault(); return false;" onclick="handleMsgClick('${d.id}')">
             <div style="display:flex; flex-direction:row; align-items:flex-end; width:100%; ${isMine?'justify-content:flex-end;':''}">
-                ${!isMine ? msgAvatarHtml : ''}
-                <div class="chat-bubble ${isMine?'mine':'theirs'}" ondblclick="showReactionPicker(event,'${d.id}')">
+                ${(!isMine && !m.isCallLog) ? msgAvatarHtml : ''}
+                <div class="chat-bubble ${isMine?'mine':'theirs'}${m.isCallLog?' gc-call-log-bubble':''}" ondblclick="showReactionPicker(event,'${d.id}')">
                     ${m.forwarded ? '<div class="gc-fwd-label"><i class="ph-bold ph-arrow-bend-double-up-right"></i> Forwarded</div>' : ''}
                     ${senderNameHtml}
                     ${replyHtml}
@@ -27931,5 +28015,266 @@ window.gcConfirmForward = gcConfirmForward;
   }
 })();
 </script>
+
+<style id="gc-call-log-style-2026-09-05">
+.gc-call-log-wrap{
+  width:100% !important;
+  display:flex !important;
+  justify-content:center !important;
+  align-items:center !important;
+  margin:8px 0 !important;
+}
+.gc-call-log-card{
+  display:flex !important;
+  align-items:center !important;
+  gap:10px !important;
+  max-width:82% !important;
+  padding:10px 14px !important;
+  border:1px solid var(--border) !important;
+  background:var(--surface) !important;
+  color:var(--text) !important;
+  border-radius:18px !important;
+  box-shadow:var(--shadow-sm) !important;
+  font-size:12px !important;
+}
+.gc-call-log-icon{
+  width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  flex:0 0 34px;background:var(--accent-glow);color:var(--accent);font-size:17px;
+}
+.gc-call-log-title{font-weight:800;font-size:13px;line-height:1.25;}
+.gc-call-log-meta{margin-top:2px;color:var(--text-muted);font-weight:600;font-size:11px;}
+.gc-call-log-missed .gc-call-log-icon{color:var(--danger);background:rgba(255,77,106,.12);}
+.gc-call-log-missed .gc-call-log-title{color:var(--danger);}
+</style>
+
+<style id="gc-call-log-bubble-reset-2026-09-05">
+.chat-bubble.gc-call-log-bubble{background:transparent !important;border:none !important;box-shadow:none !important;padding:0 !important;max-width:100% !important;color:inherit !important;}
+.chat-bubble-wrapper.gc-call-log-message{align-self:stretch !important;width:100% !important;}
+.chat-bubble-wrapper.gc-call-log-message > div{justify-content:center !important;}
+.chat-bubble-wrapper.gc-call-log-message .gc-call-log-wrap{margin:0 !important;}
+.chat-bubble-wrapper.gc-call-log-message .gc-call-log-card{pointer-events:none;}
+.chat-bubble-wrapper.gc-call-log-message .message-reactions{display:none !important;}
+</style>
+
+<script id="gc-call-history-fix-2026-09-05">
+/* ═══════════════════════════════════════════════════════
+   GoChat Call History + Missed Call Event Fix · 2026-09-05
+   - Saves accepted-call duration into the conversation.
+   - Saves missed/declined call entries.
+   - Shows missed-call toast to the CALLEE.
+   - Uses callId as message document id to prevent duplicate history rows.
+   ═══════════════════════════════════════════════════════ */
+if(typeof gcCallEventUnsub === 'undefined') var gcCallEventUnsub = null;
+
+function gcFormatCallDuration(sec){
+  sec = Math.max(0, Math.floor(Number(sec) || 0));
+  var h = Math.floor(sec / 3600);
+  var m = Math.floor((sec % 3600) / 60);
+  var s = sec % 60;
+  if(h > 0) return h + ':' + String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+  return String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+}
+
+async function gcWriteCallHistory(callId, data){
+  if(!callId || !data || !data.chatId) return;
+  var status = data.status || 'ended';
+  var durationSec = Math.max(0, Math.floor(Number(data.durationSec) || 0));
+  var isMissed = status === 'missed';
+  var isDeclined = status === 'declined';
+  var isVideo = data.type === 'video';
+  var icon = isVideo ? 'fi fi-rr-video-camera-alt' : 'fi fi-rr-phone-call';
+  var title = isMissed ? 'Missed ' + (isVideo ? 'video call' : 'voice call') :
+              isDeclined ? (isVideo ? 'Video call declined' : 'Voice call declined') :
+              (isVideo ? 'Video call' : 'Voice call');
+  var meta = isMissed ? ('From ' + (data.callerName || 'Someone')) :
+             isDeclined ? ('Call declined') : ('Duration ' + gcFormatCallDuration(durationSec));
+  var text = isMissed ? title + ' from ' + (data.callerName || 'Someone') : title + ' · ' + gcFormatCallDuration(durationSec);
+  try{
+    var ref = db.collection('chats').doc(data.chatId).collection('messages').doc(String(callId));
+    var existing = await ref.get();
+    if(existing.exists) return;
+    await ref.set({
+      uid: data.callerId || '',
+      isSystem: true,
+      isCallLog: true,
+      callId: String(callId),
+      callType: data.type || 'audio',
+      callStatus: status,
+      durationSec: durationSec,
+      text: text,
+      senderName: data.callerName || 'Someone',
+      createdAt: data.endedAt || data.createdAt || firebase.firestore.FieldValue.serverTimestamp()
+    });
+    await db.collection('chats').doc(data.chatId).set({
+      lastMsg: isMissed ? ('📞 Missed ' + (isVideo ? 'video' : 'voice') + ' call') : ('📞 ' + title + ' · ' + gcFormatCallDuration(durationSec)),
+      lastAt: firebase.firestore.FieldValue.serverTimestamp(),
+      lastSender: data.callerId || ''
+    }, {merge:true});
+  }catch(e){
+    console.error('call history error', e);
+  }
+}
+
+function gcStartCallEventListener(){
+  if(gcCallEventUnsub) { try{ gcCallEventUnsub(); }catch(e){} gcCallEventUnsub = null; }
+  if(!currentUser) return;
+  gcCallEventUnsub = db.collection('calls')
+    .where('calleeId','==',currentUser.uid)
+    .onSnapshot(function(snap){
+      snap.docChanges().forEach(function(change){
+        var d = change.doc.data() || {};
+        if(!d.chatId) return;
+        if((change.type === 'added' || change.type === 'modified') && d.status === 'missed'){
+          var createdMs = d.createdAt && d.createdAt.toMillis ? d.createdAt.toMillis() : 0;
+          if(createdMs && (Date.now() - createdMs) > 120000) return;
+          var callRef = change.doc.ref;
+          callRef.transaction(function(tx){
+            return tx.get(callRef).then(function(doc){
+              var latest = doc.data() || {};
+              if(latest.calleeNotifiedAt) return false;
+              tx.update(callRef, {calleeNotifiedAt: firebase.firestore.FieldValue.serverTimestamp()});
+              return true;
+            });
+          }).then(function(shouldNotify){
+            if(!shouldNotify) return;
+            gcWriteCallHistory(change.doc.id, d);
+            showToast('Missed ' + (d.type === 'video' ? 'video' : 'voice') + ' call from ' + (d.callerName || 'Someone'));
+          }).catch(function(e){ console.error('missed-call notify error',e); });
+        }
+      });
+    }, function(err){ console.error('call event listener error', err); });
+}
+
+/* Patch incoming-call listener once so the callee gets a real missed-call event. */
+(function gcPatchIncomingCallListener(){
+  var tries = 0;
+  var t = setInterval(function(){
+    tries++;
+    if(typeof gcListenForIncomingCalls === 'function' && !window.gcIncomingListenerPatched){
+      window.gcIncomingListenerPatched = true;
+      var original = gcListenForIncomingCalls;
+      window.gcOriginalListenForIncomingCalls = original;
+      gcListenForIncomingCalls = function(){
+        var r = window.gcOriginalListenForIncomingCalls.apply(this, arguments);
+        setTimeout(gcStartCallEventListener, 0);
+        return r;
+      };
+      clearInterval(t);
+      try{ if(currentUser) gcStartCallEventListener(); }catch(e){}
+    }
+    if(tries > 80) clearInterval(t);
+  }, 250);
+})();
+
+/* Patch call start so call document stores an explicit start time. */
+(function gcPatchCallStart(){
+  var tries=0;
+  var t=setInterval(function(){
+    tries++;
+    if(typeof gcStartCall === 'function' && !window.gcStartCallPatched){
+      window.gcStartCallPatched=true;
+      var original=gcStartCall;
+      window.gcOriginalStartCall=original;
+      gcStartCall=async function(type){
+        var before = Date.now();
+        var result = await window.gcOriginalStartCall.apply(this, arguments);
+        try{
+          if(gcCurrentCallId){
+            await db.collection('calls').doc(gcCurrentCallId).set({clientStartedAt:before}, {merge:true});
+          }
+        }catch(e){}
+        return result;
+      };
+      clearInterval(t);
+    }
+    if(tries>80) clearInterval(t);
+  },250);
+})();
+
+/* Patch gcEndCall: persist duration BEFORE the existing cleanup resets the timer. */
+(function gcPatchEndCall(){
+  var tries=0;
+  var t=setInterval(function(){
+    tries++;
+    if(typeof gcEndCall === 'function' && !window.gcEndCallPatched){
+      window.gcEndCallPatched=true;
+      var original=gcEndCall;
+      window.gcOriginalEndCall=original;
+      gcEndCall=async function(){
+        var id = gcCurrentCallId;
+        var duration = (gcCallAnswered && gcCallStartTs) ? Math.max(0, Math.floor((Date.now()-gcCallStartTs)/1000)) : 0;
+        if(id){
+          try{
+            await db.collection('calls').doc(id).set({
+              status:'ended', durationSec:duration,
+              endedAt:firebase.firestore.FieldValue.serverTimestamp()
+            }, {merge:true});
+            await gcWriteCallHistory(id, {
+              chatId:currentChatId,
+              callerId: gcCallRole === 'caller' ? currentUser.uid : gcCallOtherUid,
+              callerName: gcCallRole === 'caller' ? ((currentUserData&&currentUserData.name)||'User') : gcCallOtherName,
+              type:gcCallType, status:'ended', durationSec:duration,
+              endedAt:firebase.firestore.Timestamp.now()
+            });
+          }catch(e){ console.error('end call history error',e); }
+        }
+        return window.gcOriginalEndCall.apply(this, arguments);
+      };
+      clearInterval(t);
+    }
+    if(tries>80) clearInterval(t);
+  },250);
+})();
+
+/* Patch the caller's 30-second timeout to persist a proper missed-call record. */
+(function gcPatchMissedTimeout(){
+  var tries=0;
+  var t=setInterval(function(){
+    tries++;
+    if(typeof gcStartCall === 'function' && window.gcStartCallPatched && !window.gcMissedTimeoutPatched){
+      /* The original timeout already writes status=missed. The event listener above
+         observes that change on the callee and writes the history/toast there. */
+      window.gcMissedTimeoutPatched=true;
+      clearInterval(t);
+    }
+    if(tries>80) clearInterval(t);
+  },250);
+})();
+
+/* Patch the callee-side 'ended' snapshot so duration is rendered if caller ended the call. */
+(function gcPatchCallDocSnapshots(){
+  var tries=0;
+  var t=setInterval(function(){
+    tries++;
+    if(typeof gcAcceptCall === 'function' && !window.gcAcceptCallPatched){
+      window.gcAcceptCallPatched=true;
+      var original=gcAcceptCall;
+      window.gcOriginalAcceptCall=original;
+      gcAcceptCall=async function(){ return window.gcOriginalAcceptCall.apply(this, arguments); };
+      /* The original function's snapshot callback is left intact; caller writes
+         duration to the call document, and the dedicated listener below handles it. */
+      clearInterval(t);
+    }
+    if(tries>80) clearInterval(t);
+  },250);
+})();
+
+/* When any user is the callee, render a completed call log after an ended/declined event. */
+(function gcObserveCompletedCalls(){
+  var tries=0;
+  var t=setInterval(function(){
+    tries++;
+    if(currentUser && typeof db !== 'undefined'){
+      if(!window.gcCompletedCallObserverStarted){
+        window.gcCompletedCallObserverStarted=true;
+        gcStartCallEventListener();
+      }
+      clearInterval(t);
+    }
+    if(tries>80) clearInterval(t);
+  },500);
+})();
+</script>
+
 </body>
 </html>
