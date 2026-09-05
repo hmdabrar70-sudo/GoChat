@@ -8566,6 +8566,19 @@ Edit Profile-এ পার্টনার সিলেক্ট বাটন
     </div>
 </div>
 
+<!-- 🚀 Badge info sheet · tap verified / crown -->
+<div class="modal-overlay" id="badge-info-modal" onclick="if(event.target===this) closeBadgeInfo()" style="align-items:flex-end; z-index:100800;">
+<div class="modal-box" style="display:flex;flex-direction:column;padding:10px 20px 26px;position:relative;">
+<div class="gc-sheet-handle"></div>
+<button class="modal-close" onclick="closeBadgeInfo()" style="float:none;position:absolute;top:14px;right:16px;"><i class="ph ph-x"></i></button>
+<div style="display:flex; flex-direction:column; align-items:center; text-align:center; padding-top:6px;">
+<div id="badge-info-icon" style="width:56px;height:56px;margin-bottom:14px;"></div>
+<div id="badge-info-title" style="font-size:17px;font-weight:800;color:var(--text);margin-bottom:8px;"></div>
+<div id="badge-info-desc" style="font-size:13.5px;color:var(--text-muted);line-height:1.6;"></div>
+</div>
+</div>
+</div>
+
 <div class="modal-overlay" id="login-success-modal" style="z-index:10007;align-items:center;justify-content:center;padding:20px;">
     <div class="gc-login-ok-card" onclick="event.stopPropagation()">
         <div class="gc-login-ok-icon"><i class="ph ph-check-circle"></i></div>
@@ -9826,38 +9839,56 @@ if(h<24)return h+'h ago';
 return Math.floor(h/24)+'d ago';
 }
 
-// 🚀 অরিজিনাল Google/Twitter স্টাইল (Solid Blue, Perfectly Centered Smaller Checkmark)
+// 🚀 Badge click + own-profile crown fix · 2026-09-05
+function gcIsTruthyLeader(v){
+    return v === true || v === 1 || v === 'true' || v === '1';
+}
+function gcResolveUserBadges(uid, email, isVerified, isLeader){
+    var v = (isVerified === true || isVerified === 1 || isVerified === 'true');
+    var l = gcIsTruthyLeader(isLeader);
+    try{
+        if(uid && currentUser && uid === currentUser.uid && currentUserData){
+            if(gcIsTruthyLeader(currentUserData.isLeader)) l = true;
+            if(currentUserData.isVerified === true || currentUserData.isVerified === 1 || currentUserData.isVerified === 'true') v = true;
+            if(!email) email = currentUserData.email || (currentUser.email || '');
+        } else if(uid && typeof allUsersCache !== 'undefined' && allUsersCache){
+            var live = allUsersCache.find(function(u){ return u.id === uid; });
+            if(live){
+                if(gcIsTruthyLeader(live.isLeader)) l = true;
+                if(live.isVerified === true || live.isVerified === 1 || live.isVerified === 'true') v = true;
+                if(!email) email = live.email || '';
+            }
+        }
+    }catch(e){}
+    return getVerifiedBadge(email || '', v) + getLeaderBadge(email || '', l);
+}
+
+// 🚀 Verified badge — clickable → showBadgeInfo
 function getVerifiedBadge(email, isVerified) {
-    if (isVerified === true) {
-        return `
-        <svg class="verified-icon" viewBox="0 0 24 24" style="width: 20px; height: 20px; display: inline-flex; vertical-align: middle; margin-top: -2px; margin-left: 3px;">
-            <!-- পেছনের ব্লু খাঁজকাটা ডিজাইন (একদম সলিড কালার) -->
+    if (!(isVerified === true || isVerified === 1 || isVerified === 'true')) return '';
+    return `
+        <svg class="verified-icon" viewBox="0 0 24 24" onclick="event.stopPropagation(); showBadgeInfo('verified');" style="width: 20px; height: 20px; display: inline-flex; vertical-align: middle; margin-top: -2px; margin-left: 3px; cursor:pointer;">
             <path d="M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.998-3.918-3.998-.47 0-.92.084-1.336.25C14.818 2.415 13.51 1.5 12 1.5s-2.816.917-3.337 2.25c-.416-.165-.866-.25-1.336-.25-2.21 0-3.918 1.792-3.918 4 0 .495.084.965.238 1.4-1.273.65-2.148 2.02-2.148 3.6 0 1.46.827 2.766 2.044 3.462-.014.116-.022.234-.022.35 0 2.21 1.71 3.998 3.918 3.998.47 0 .92-.084 1.336-.25C9.182 21.585 10.49 22.5 12 22.5s2.816-.917 3.337-2.25c.416.165.866.25 1.336.25 2.21 0 3.918-1.792 3.918-4 0-.116-.008-.234-.022-.35 1.217-.696 2.044-2.002 2.044-3.462z" fill="#1DA1F2"></path>
-            <!-- ভেতরের সাদা টিক চিহ্ন (সামান্য ছোট এবং একদম মাঝখানে বসানো) -->
             <g transform="translate(2.81, 3.38) scale(0.75)">
                 <path d="M9.5 17.5l-5-5 1.5-1.5 3.5 3.5 9-9 1.5 1.5-10.5 10.5z" fill="#ffffff"></path>
             </g>
         </svg>`;
-    }
-    return '';
 }
 
-// 🚀 Community Leader ব্যাজ · একই স্ক্যালপড শেপ, কিন্তু সোনালি গ্র্যাডিয়েন্ট + মুকুট আইকন
-// যাতে ভেরিফাইড ব্যাজের সাথে গুলিয়ে না যায়, পাশাপাশি বসলেও আলাদা বোঝা যাবে
+// 🚀 Leader/Crown badge — unique gradient id (fixes missing crown when many on page)
 function getLeaderBadge(email, isLeader) {
-    if (isLeader === true) {
-        return `
-        <svg class="leader-badge-icon" viewBox="0 0 24 24" style="width: 20px; height: 20px; display: inline-flex; vertical-align: middle; margin-top: -2px; margin-left: 3px;">
+    if (!gcIsTruthyLeader(isLeader)) return '';
+    var gid = 'gcLGrad_' + Math.random().toString(36).slice(2, 10);
+    return `
+        <svg class="leader-badge-icon" viewBox="0 0 24 24" onclick="event.stopPropagation(); showBadgeInfo('leader');" style="width: 20px; height: 20px; display: inline-flex; vertical-align: middle; margin-top: -2px; margin-left: 3px; cursor:pointer;">
             <defs>
-                <linearGradient id="gcLeaderGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <linearGradient id="${gid}" x1="0%" y1="0%" x2="100%" y2="100%">
                     <stop offset="0%" stop-color="#FFE29A"></stop>
                     <stop offset="50%" stop-color="#F3AC2F"></stop>
                     <stop offset="100%" stop-color="#B9761A"></stop>
                 </linearGradient>
             </defs>
-            <!-- পেছনের সোনালি খাঁজকাটা ডিজাইন -->
-            <path d="M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.998-3.918-3.998-.47 0-.92.084-1.336.25C14.818 2.415 13.51 1.5 12 1.5s-2.816.917-3.337 2.25c-.416-.165-.866-.25-1.336-.25-2.21 0-3.918 1.792-3.918 4 0 .495.084.965.238 1.4-1.273.65-2.148 2.02-2.148 3.6 0 1.46.827 2.766 2.044 3.462-.014.116-.022.234-.022.35 0 2.21 1.71 3.998 3.918 3.998.47 0 .92-.084 1.336-.25C9.182 21.585 10.49 22.5 12 22.5s2.816-.917 3.337-2.25c.416.165.866.25 1.336.25 2.21 0 3.918-1.792 3.918-4 0-.116-.008-.234-.022-.35 1.217-.696 2.044-2.002 2.044-3.462z" fill="url(#gcLeaderGrad)"></path>
-            <!-- ভেতরের সাদা মুকুট আইকন -->
+            <path d="M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.998-3.918-3.998-.47 0-.92.084-1.336.25C14.818 2.415 13.51 1.5 12 1.5s-2.816.917-3.337 2.25c-.416-.165-.866-.25-1.336-.25-2.21 0-3.918 1.792-3.918 4 0 .495.084.965.238 1.4-1.273.65-2.148 2.02-2.148 3.6 0 1.46.827 2.766 2.044 3.462-.014.116-.022.234-.022.35 0 2.21 1.71 3.998 3.918 3.998.47 0 .92-.084 1.336-.25C9.182 21.585 10.49 22.5 12 22.5s2.816-.917 3.337-2.25c.416.165.866.25 1.336.25 2.21 0 3.918-1.792 3.918-4 0-.116-.008-.234-.022-.35 1.217-.696 2.044-2.002 2.044-3.462z" fill="url(#${gid})"></path>
             <g transform="translate(2.6, 3.2) scale(0.79)">
                 <path d="M5 7L8 11L12 6L16 11L19 7L18 16L6 16Z" fill="#ffffff"></path>
                 <circle cx="5" cy="7" r="1.15" fill="#B9761A"></circle>
@@ -9865,8 +9896,28 @@ function getLeaderBadge(email, isLeader) {
                 <circle cx="19" cy="7" r="1.15" fill="#B9761A"></circle>
             </g>
         </svg>`;
+}
+
+function showBadgeInfo(type){
+    var iconBox = document.getElementById('badge-info-icon');
+    var titleBox = document.getElementById('badge-info-title');
+    var descBox = document.getElementById('badge-info-desc');
+    if(!iconBox || !titleBox || !descBox) return;
+    if(type === 'leader'){
+        iconBox.innerHTML = getLeaderBadge('', true).replace(/width:\s*20px;\s*height:\s*20px;/, 'width: 56px; height: 56px;');
+        titleBox.textContent = 'Community Leader';
+        descBox.innerHTML = "This golden crown is reserved for GoChat admins, moderators and selected community leaders.<br><br>They help keep the community safe and guide the platform.";
+    } else {
+        iconBox.innerHTML = getVerifiedBadge('', true).replace(/width:\s*20px;\s*height:\s*20px;/, 'width: 56px; height: 56px;');
+        titleBox.textContent = 'Verified account';
+        descBox.innerHTML = 'This blue badge confirms that GoChat has verified this account.<br><br>Verified profiles are trusted members of the community.';
     }
-    return '';
+    var m = document.getElementById('badge-info-modal');
+    if(m) m.classList.add('open');
+}
+function closeBadgeInfo(){
+    var m = document.getElementById('badge-info-modal');
+    if(m) m.classList.remove('open');
 }
 
 function openSettingsPrivacy(){
@@ -15969,7 +16020,9 @@ function buildPostCardHTML(p){
 const pid=p.id;
 const uniqueDropId = pid + '_' + Math.random().toString(36).substr(2, 5);
 const av=p.avatar?`<img src="${p.avatar}">`:avatarInitial(p.name||'?');
-const vBadge=getVerifiedBadge(p.email, p.isVerified) + getLeaderBadge(p.email, p.isLeader);
+const vBadge=(typeof gcResolveUserBadges==='function')
+  ? gcResolveUserBadges(p.uid, p.email, p.isVerified, p.isLeader)
+  : (getVerifiedBadge(p.email, p.isVerified) + getLeaderBadge(p.email, p.isLeader));
 const isLiked=p.likedBy&&p.likedBy.includes(currentUser?.uid);
 const likeColor=isLiked?'var(--danger)':'var(--text-secondary)';
 const fillProp=isLiked?'1':'0';
@@ -16231,7 +16284,16 @@ function loadUserUI(){
     const name = currentUserData.name || currentUser.email.split('@')[0] || 'User';
     const avHtml = currentUserData.avatar ? `<img src="${currentUserData.avatar}">` : avatarInitial(name);
     const safeName = escapeHTML(name);
-    const verifiedBadge = getVerifiedBadge(currentUser.email, currentUserData.isVerified) + getLeaderBadge(currentUser.email, currentUserData.isLeader);
+    try{
+      if(typeof allUsersCache !== 'undefined' && allUsersCache && currentUser){
+        var _meLive = allUsersCache.find(function(u){ return u.id === currentUser.uid; });
+        if(_meLive && typeof gcIsTruthyLeader === 'function' && gcIsTruthyLeader(_meLive.isLeader)) currentUserData.isLeader = true;
+        if(_meLive && (_meLive.isVerified === true || _meLive.isVerified === 1 || _meLive.isVerified === 'true')) currentUserData.isVerified = true;
+      }
+    }catch(e){}
+    const verifiedBadge = (typeof gcResolveUserBadges === 'function')
+      ? gcResolveUserBadges(currentUser.uid, currentUserData.email || currentUser.email, currentUserData.isVerified, currentUserData.isLeader)
+      : (getVerifiedBadge(currentUser.email, currentUserData.isVerified) + getLeaderBadge(currentUser.email, currentUserData.isLeader));
 // - আপডেট: নাম ও ব্যাজের লেআউট -
 const isLongName = (name || '').length > 16;
 let gcDisplayName = safeName;
@@ -20874,6 +20936,8 @@ function closeTopMostView() {
     const epEdu = document.getElementById('ep-section-education');
     if (epEdu && epEdu.classList.contains('open')) { gcCloseEpSection('education'); return true; }
     const editProfile = document.getElementById('edit-profile-screen');
+    const badgeInfo = document.getElementById('badge-info-modal');
+    if (badgeInfo && badgeInfo.classList.contains('open')) { closeBadgeInfo(); return true; }
     if (editProfile && editProfile.style.display === 'flex') { closeProfileEdit(); return true; }
 
     const galleryScreen = document.getElementById('gallery-screen');
