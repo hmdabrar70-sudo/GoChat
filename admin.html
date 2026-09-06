@@ -56,6 +56,12 @@
 <i class="fas fa-crown w-5 text-yellow-500"></i> Elite Applications
 </button>
 
+                <button onclick="switchTab('banned')" id="tab-banned" class="w-full flex items-center gap-3 text-left py-3 px-4 rounded-xl text-gray-400 hover:bg-gray-800 hover:text-white font-semibold transition">
+                    <i class="fas fa-ban w-5 text-red-400"></i> Banned Users
+                </button>
+                <button onclick="switchTab('verified')" id="tab-verified" class="w-full flex items-center gap-3 text-left py-3 px-4 rounded-xl text-gray-400 hover:bg-gray-800 hover:text-white font-semibold transition">
+                    <i class="fas fa-check-circle w-5 text-blue-400"></i> Verified Users
+                </button>
                 <button onclick="switchTab('settings')" id="tab-settings" class="w-full flex items-center gap-3 text-left py-3 px-4 rounded-xl text-gray-400 hover:bg-gray-800 hover:text-white font-semibold transition">
                     <i class="fas fa-cogs w-5"></i> System & Settings
                 </button>
@@ -179,6 +185,31 @@
 <div id="eliteGrid" class="grid grid-cols-1 md:grid-cols-2 gap-6">
 <div class="text-center text-gray-500 py-10 col-span-full"><i class="fas fa-spinner fa-spin text-2xl"></i> Loading applications...</div>
 </div>
+</div>
+
+
+<!-- Banned Users -->
+<div id="sec-banned" class="p-8 hidden">
+<div class="flex justify-between items-center mb-8">
+<h2 class="text-3xl font-bold text-gray-800">Banned Users</h2>
+<button onclick="renderBannedUsers()" class="bg-white border border-gray-200 shadow-sm text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50 font-semibold flex items-center gap-2">
+<i class="fas fa-sync-alt text-blue-500"></i> Refresh
+</button>
+</div>
+<p class="text-sm text-gray-500 mb-4">Accounts that are currently banned. Unban restores access immediately.</p>
+<div id="bannedUsersGrid" class="grid grid-cols-1 gap-4"></div>
+</div>
+
+<!-- Verified Users -->
+<div id="sec-verified" class="p-8 hidden">
+<div class="flex justify-between items-center mb-8">
+<h2 class="text-3xl font-bold text-gray-800">Verified Users</h2>
+<button onclick="renderVerifiedUsers()" class="bg-white border border-gray-200 shadow-sm text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50 font-semibold flex items-center gap-2">
+<i class="fas fa-sync-alt text-blue-500"></i> Refresh
+</button>
+</div>
+<p class="text-sm text-gray-500 mb-4">Users with a verified badge. Unverify removes the badge from profile and posts.</p>
+<div id="verifiedUsersGrid" class="grid grid-cols-1 gap-4"></div>
 </div>
 
             <!-- B. SYSTEM & SETTINGS TAB -->
@@ -351,11 +382,14 @@ showToast("Login failed: " + (e && e.message ? e.message : "Unknown error"), "er
 
         // 🚀 TAB SWITCHER (FIXED · reports tab added · 2026-08-10)
 function switchTab(tab) {
-document.getElementById('sec-users').style.display = tab === 'users' ? 'block' : 'none';
-document.getElementById('sec-settings').style.display = tab === 'settings' ? 'block' : 'none';
-document.getElementById('sec-elite').style.display = tab === 'elite' ? 'block' : 'none';
-document.getElementById('sec-reports').style.display = tab === 'reports' ? 'block' : 'none';
-const tabs = ['users', 'settings', 'elite', 'reports'];
+['users','settings','elite','reports','banned','verified'].forEach(function(t){
+  var sec = document.getElementById('sec-' + t);
+  if(sec){
+    sec.style.display = (tab === t) ? 'block' : 'none';
+    sec.classList.toggle('hidden', tab !== t);
+  }
+});
+const tabs = ['users', 'settings', 'elite', 'reports', 'banned', 'verified'];
 tabs.forEach(t => {
 const btn = document.getElementById('tab-' + t);
 if(btn) {
@@ -365,6 +399,8 @@ btn.className = tab === t
 }
 });
 if (tab === 'elite') loadEliteApplications();
+if (tab === 'banned') renderBannedUsers();
+if (tab === 'verified') renderVerifiedUsers();
 if (tab === 'reports') renderReports();
 }
 
@@ -421,7 +457,8 @@ if (tab === 'reports') renderReports();
             const status = document.getElementById('filterStatus').value;
             
             let filtered = allUsersData.filter(u => {
-                let matchQ = (u.name || '').toLowerCase().includes(q) || (u.username || '').toLowerCase().includes(q) || u.id.includes(q) || ((u.authEmail||u.email||u.googleEmail||'')+'').toLowerCase().includes(q);
+                const qq = (q||'').trim().toLowerCase();
+                let matchQ = !qq || (u.name || '').toLowerCase().includes(qq) || (u.username || '').toLowerCase().includes(qq) || (u.id||'').toLowerCase().includes(qq) || ((u.authEmail||u.email||u.googleEmail||'')+'').toLowerCase().includes(qq);
                 let matchS = true;
                 if(status === 'active') matchS = !u.isBanned;
                 if(status === 'verified') matchS = u.isVerified === true;
@@ -432,6 +469,53 @@ if (tab === 'reports') renderReports();
             
             renderUsers(filtered);
         }
+
+        
+function renderBannedUsers() {
+    const grid = document.getElementById('bannedUsersGrid');
+    if (!grid) return;
+    const rows = (allUsersData || []).filter(u => u.isBanned === true);
+    if (!rows.length) {
+        grid.innerHTML = '<div class="text-center text-gray-500 py-10 bg-white rounded-xl border border-gray-200">No banned users.</div>';
+        return;
+    }
+    grid.innerHTML = rows.map(u => {
+        const av = u.avatar ? `<img src="${escapeHTML(u.avatar)}" class="w-12 h-12 rounded-full object-cover">` : `<div class="w-12 h-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center font-bold">${(u.name||'U')[0]}</div>`;
+        return `<div class="bg-white p-5 rounded-xl border border-red-100 flex flex-col md:flex-row justify-between items-center gap-4">
+            <div class="flex items-center gap-4 w-full md:w-auto">
+                ${av}
+                <div>
+                    <div class="font-bold text-gray-800 text-lg">${escapeHTML(u.name||'Unknown')} <span class="bg-red-100 text-red-600 px-2 py-0.5 rounded text-xs font-bold">BANNED</span></div>
+                    <div class="text-sm text-gray-500">${u.username?'@'+escapeHTML(u.username):'No username'} · ${escapeHTML(gcAdminEmail(u)||'No email')}</div>
+                    ${u.banReason?`<div class="text-xs text-red-500 mt-1">Reason: ${escapeHTML(u.banReason)}</div>`:''}
+                </div>
+            </div>
+            <button onclick="unbanUser('${u.id}')" class="px-4 py-2 rounded-lg font-bold text-sm bg-green-50 text-green-600 border border-green-200 hover:bg-green-100"><i class="fas fa-unlock"></i> Unban</button>
+        </div>`;
+    }).join('');
+}
+function renderVerifiedUsers() {
+    const grid = document.getElementById('verifiedUsersGrid');
+    if (!grid) return;
+    const rows = (allUsersData || []).filter(u => u.isVerified === true);
+    if (!rows.length) {
+        grid.innerHTML = '<div class="text-center text-gray-500 py-10 bg-white rounded-xl border border-gray-200">No verified users.</div>';
+        return;
+    }
+    grid.innerHTML = rows.map(u => {
+        const av = u.avatar ? `<img src="${escapeHTML(u.avatar)}" class="w-12 h-12 rounded-full object-cover">` : `<div class="w-12 h-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold">${(u.name||'U')[0]}</div>`;
+        return `<div class="bg-white p-5 rounded-xl border border-blue-100 flex flex-col md:flex-row justify-between items-center gap-4">
+            <div class="flex items-center gap-4 w-full md:w-auto">
+                ${av}
+                <div>
+                    <div class="font-bold text-gray-800 text-lg flex items-center gap-1">${escapeHTML(u.name||'Unknown')} <i class="fas fa-check-circle text-blue-500"></i></div>
+                    <div class="text-sm text-gray-500">${u.username?'@'+escapeHTML(u.username):'No username'} · ${escapeHTML(gcAdminEmail(u)||'No email')}</div>
+                </div>
+            </div>
+            <button onclick="toggleVerify('${u.id}', false)" class="px-4 py-2 rounded-lg font-bold text-sm bg-gray-100 text-gray-600 hover:bg-gray-200"><i class="fas fa-times"></i> Unverify</button>
+        </div>`;
+    }).join('');
+}
 
         function renderUsers(users) {
             const grid = document.getElementById('usersGrid');
@@ -457,7 +541,10 @@ if (tab === 'reports') renderReports();
                             <div class="font-bold text-gray-800 text-lg flex items-center">${escapeHTML(u.name || 'Unknown')} ${vBadge} ${lBadge} ${banLabel}</div>
                             <div class="text-sm text-gray-500">${uNameText} • <span class="font-semibold text-gray-700">${escapeHTML(gcAdminEmail(u) || 'No Email')}</span></div>
                             ${(u.email || u.authEmail) ? `<div class="text-xs text-blue-600 mt-0.5"><i class="fas fa-envelope mr-1"></i>${escapeHTML(gcAdminEmail(u))} <button type="button" class="text-blue-500 font-bold ml-1" onclick="navigator.clipboard.writeText('${escapeHTML(gcAdminEmail(u))}');showToast('Email copied','success')"><i class="fas fa-copy"></i></button></div>` : ''}
-                            <div class="text-xs text-gray-400 mt-1">ID: ${u.id}</div>
+                            <div class="text-xs text-gray-400 mt-1 flex items-center gap-2">
+                                <span title="Firebase UID — paste into search">UID: ${u.id.slice(0,8)}…</span>
+                                <button type="button" class="text-blue-500 font-bold" onclick="navigator.clipboard.writeText('${u.id}');showToast('UID copied — paste in search','success')"><i class="fas fa-copy"></i></button>
+                            </div>
                         </div>
                     </div>
                     <div class="flex flex-wrap gap-2 w-full md:w-auto">
