@@ -421,7 +421,7 @@ if (tab === 'reports') renderReports();
             const status = document.getElementById('filterStatus').value;
             
             let filtered = allUsersData.filter(u => {
-                let matchQ = (u.name || '').toLowerCase().includes(q) || (u.username || '').toLowerCase().includes(q) || u.id.includes(q) || ((u.email||u.authEmail||'')+'').toLowerCase().includes(q);
+                let matchQ = (u.name || '').toLowerCase().includes(q) || (u.username || '').toLowerCase().includes(q) || u.id.includes(q) || ((u.authEmail||u.email||u.googleEmail||'')+'').toLowerCase().includes(q);
                 let matchS = true;
                 if(status === 'active') matchS = !u.isBanned;
                 if(status === 'verified') matchS = u.isVerified === true;
@@ -455,8 +455,8 @@ if (tab === 'reports') renderReports();
                         ${av}
                         <div>
                             <div class="font-bold text-gray-800 text-lg flex items-center">${escapeHTML(u.name || 'Unknown')} ${vBadge} ${lBadge} ${banLabel}</div>
-                            <div class="text-sm text-gray-500">${uNameText} • <span class="font-semibold text-gray-700">${escapeHTML(u.email || u.authEmail || u.googleEmail || 'No Email')}</span></div>
-                            ${(u.email || u.authEmail) ? `<div class="text-xs text-blue-600 mt-0.5"><i class="fas fa-envelope mr-1"></i>${escapeHTML(u.email || u.authEmail || '')} <button type="button" class="text-blue-500 font-bold ml-1" onclick="navigator.clipboard.writeText('${escapeHTML(u.email || u.authEmail || '')}');showToast('Email copied','success')"><i class="fas fa-copy"></i></button></div>` : ''}
+                            <div class="text-sm text-gray-500">${uNameText} • <span class="font-semibold text-gray-700">${escapeHTML(gcAdminEmail(u) || 'No Email')}</span></div>
+                            ${(u.email || u.authEmail) ? `<div class="text-xs text-blue-600 mt-0.5"><i class="fas fa-envelope mr-1"></i>${escapeHTML(gcAdminEmail(u))} <button type="button" class="text-blue-500 font-bold ml-1" onclick="navigator.clipboard.writeText('${escapeHTML(gcAdminEmail(u))}');showToast('Email copied','success')"><i class="fas fa-copy"></i></button></div>` : ''}
                             <div class="text-xs text-gray-400 mt-1">ID: ${u.id}</div>
                         </div>
                     </div>
@@ -1076,6 +1076,9 @@ loadEliteApplications();
             setTimeout(() => t.className = 'toast', 3000);
         }
 
+        function gcAdminEmail(u){
+            return (u && (u.authEmail || u.email || u.googleEmail || '')) || '';
+        }
         function escapeHTML(str){ 
             return str ? String(str).replace(/[&<>"']/g, function(m){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]; }) : ''; 
         }

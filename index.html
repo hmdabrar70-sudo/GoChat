@@ -7581,6 +7581,20 @@ Edit Profile-এ পার্টনার সিলেক্ট বাটন
 .gc-fwd-label{font-size:11px;font-weight:700;color:var(--text-muted);display:flex;align-items:center;gap:4px;margin-bottom:4px;opacity:.9;}
 .chat-bubble .gc-fwd-label{color:inherit;opacity:.75;}
 
+
+.gc-call-pulse-ring{position:absolute;inset:-14px;border-radius:50%;border:2px solid rgba(167,139,250,.45);animation:gcRingPulse 2.2s ease-out infinite;pointer-events:none;}
+.gc-call-pulse-ring.r2{inset:-28px;animation-delay:.55s;opacity:.55;}
+.gc-call-pulse-ring.r3{inset:-42px;animation-delay:1.1s;opacity:.3;}
+@keyframes gcRingPulse{0%{transform:scale(.85);opacity:.9;}100%{transform:scale(1.15);opacity:0;}}
+.gc-call-av-wrap{position:relative;width:120px;height:120px;margin:0 auto 20px;}
+.gc-call-av-wrap .avatar{width:120px!important;height:120px!important;font-size:42px!important;border:3px solid rgba(255,255,255,.28)!important;position:relative;z-index:1;}
+.gc-call-wave{width:min(280px,70vw);height:36px;margin:12px auto 0;opacity:.8;}
+.gc-email-field-row{display:flex;align-items:center;gap:8px;}
+.gc-email-field-row input{flex:1;min-width:0;}
+.gc-email-privacy-btn{width:40px;height:40px;border-radius:12px;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:var(--surface-2,#f3f4f6);color:var(--text-muted);cursor:pointer;border:1px solid var(--border,rgba(0,0,0,.06));}
+#gc-email-privacy-sheet{display:none!important;position:fixed!important;inset:0!important;z-index:10050!important;}
+#gc-email-privacy-sheet.open{display:flex!important;}
+
 </style>
 
 <style id="gc-chat-topbar-clean-2026-09-05">
@@ -8374,7 +8388,16 @@ Edit Profile-এ পার্টনার সিলেক্ট বাটন
         <div class="input-group"><label>Gender</label><select id="edit-gender"><option value="">Select Gender</option><option value="Male">Male</option><option value="Female">Female</option></select></div>
         <div class="input-group"><label>Location</label><input type="text" id="edit-location"></div>
         <div class="input-group"><label>Phone</label><input type="tel" id="edit-phone"></div>
-        <div class="input-group"><label>Email</label><input type="email" id="edit-email"></div>
+        <div class="input-group">
+            <label>Email</label>
+            <div class="gc-email-field-row">
+                <input type="email" id="edit-email" placeholder="Optional on profile">
+                <div class="gc-email-privacy-btn" onclick="gcOpenEmailPrivacy()" title="Email privacy" id="gc-email-privacy-btn">
+                    <i class="fi fi-rr-angle-small-right" style="font-size:18px;"></i>
+                </div>
+            </div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:6px;" id="gc-email-privacy-hint">Visible on your profile · Public</div>
+        </div>
         <div class="input-group"><label>Home Town</label><input type="text" id="edit-hometown"></div>
         <div class="input-group"><label>Relationship</label><select id="edit-relationship"><option value="">Select Status</option><option value="Single">Single</option><option value="In a relationship">In a relationship</option><option value="Married">Married</option></select></div>
         <div class="input-group">
@@ -8850,6 +8873,26 @@ Edit Profile-এ পার্টনার সিলেক্ট বাটন
 </div>
 </div>
 
+
+<div id="gc-email-privacy-sheet" style="display:none; position:fixed; inset:0; z-index:10050; background:rgba(0,0,0,.5); align-items:flex-end; justify-content:center;" onclick="if(event.target===this)gcCloseEmailPrivacy()">
+  <div class="gc-email-privacy-card" style="width:100%; max-width:420px; background:var(--surface,#fff); border-radius:18px 18px 0 0; padding:18px 16px max(18px, env(safe-area-inset-bottom)); color:var(--text); box-shadow:0 -8px 32px rgba(0,0,0,.18);" onclick="event.stopPropagation()">
+    <div style="width:40px;height:4px;border-radius:4px;background:rgba(128,128,128,.35);margin:0 auto 14px;"></div>
+    <div style="font-weight:800;font-size:17px;margin-bottom:6px;">Email privacy</div>
+    <div style="font-size:13px;color:var(--text-muted);margin-bottom:12px;">Choose who can see your email on your profile. Your account email stays safe for admin even if you clear this field.</div>
+    <div class="gc-email-privacy-opt" style="display:flex;align-items:center;gap:12px;padding:14px 12px;border-radius:12px;cursor:pointer;font-weight:600;" onclick="gcSetEmailPrivacy('public')">
+      <i class="fi fi-rr-world" style="font-size:20px;color:var(--accent,#7c3aed);"></i>
+      <div style="flex:1"><div>Public</div><div style="font-size:12px;font-weight:500;color:var(--text-muted);">Everyone can see it on your profile</div></div>
+      <i class="fi fi-rr-check" id="gc-email-priv-check-public" style="display:none;color:var(--accent,#7c3aed);font-size:18px;"></i>
+    </div>
+    <div class="gc-email-privacy-opt" style="display:flex;align-items:center;gap:12px;padding:14px 12px;border-radius:12px;cursor:pointer;font-weight:600;" onclick="gcSetEmailPrivacy('only_me')">
+      <i class="fi fi-rr-lock" style="font-size:20px;color:var(--accent,#7c3aed);"></i>
+      <div style="flex:1"><div>Only me</div><div style="font-size:12px;font-weight:500;color:var(--text-muted);">Hidden from others on your profile</div></div>
+      <i class="fi fi-rr-check" id="gc-email-priv-check-only_me" style="display:none;color:var(--accent,#7c3aed);font-size:18px;"></i>
+    </div>
+    <button type="button" class="btn-primary" style="width:100%;margin-top:12px;border-radius:14px;" onclick="gcCloseEmailPrivacy()">Done</button>
+  </div>
+</div>
+
 <!-- 🚀 ভয়েস/ভিডিও কল সিস্টেম -->
 <!-- ইনকামিং কল (রিং হচ্ছে) -->
 <div id="gc-call-incoming" style="display:none; position:fixed; inset:0; z-index:999999; background:linear-gradient(160deg,#1b1035,#2a1750); color:#fff; flex-direction:column; align-items:center; justify-content:space-between; padding:60px 24px 50px;">
@@ -8880,10 +8923,17 @@ Edit Profile-এ পার্টনার সিলেক্ট বাটন
     <video id="gc-call-local-video" autoplay playsinline muted style="position:absolute; bottom:110px; right:16px; width:100px; height:140px; border-radius:14px; object-fit:cover; background:#1a1a26; border:2px solid rgba(255,255,255,.3); display:none; z-index:2;"></video>
 
     <!-- Ringing / Connecting: center block -->
-    <div id="gc-call-center-info" style="position:relative; z-index:1; text-align:center; padding-top:70px;">
-        <div class="avatar" id="gc-call-avatar" style="width:100px;height:100px; font-size:36px; margin:0 auto 16px; border:3px solid rgba(255,255,255,.2);">?</div>
-        <div style="font-size:21px; font-weight:800;" id="gc-call-name">Someone</div>
-        <div style="font-size:14px; opacity:.75; margin-top:6px;" id="gc-call-status">Calling…</div>
+    <div id="gc-call-center-info" style="position:relative; z-index:1; text-align:center; padding-top:64px;">
+        <div class="gc-call-brand">GoChat</div>
+        <div class="gc-call-av-wrap">
+            <div class="gc-call-pulse-ring" id="gc-call-out-ring1"></div>
+            <div class="gc-call-pulse-ring r2" id="gc-call-out-ring2"></div>
+            <div class="gc-call-pulse-ring r3" id="gc-call-out-ring3"></div>
+            <div class="avatar" id="gc-call-avatar">?</div>
+        </div>
+        <div style="font-size:22px; font-weight:800;" id="gc-call-name">Someone</div>
+        <div style="font-size:14px; opacity:.75; margin-top:8px;" id="gc-call-status">Calling…</div>
+        <div class="gc-call-wave" id="gc-call-out-wave" aria-hidden="true"></div>
     </div>
 
     <!-- Connected: top-left corner (profile → name → timer) -->
@@ -8897,18 +8947,30 @@ Edit Profile-এ পার্টনার সিলেক্ট বাটন
         </div>
     </div>
 
-    <div id="gc-call-controls" style="position:absolute; bottom:40px; left:0; right:0; display:flex; justify-content:center; align-items:center; gap:18px; z-index:2; padding-bottom:max(0px, env(safe-area-inset-bottom));">
-        <div onclick="gcToggleMute()" id="gc-call-mute-btn" title="Mute" style="width:52px;height:52px;border-radius:50%;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;cursor:pointer;">
-            <i class="fi fi-rr-microphone" style="font-size:20px;"></i>
+    <div id="gc-call-controls" style="position:absolute; bottom:40px; left:0; right:0; display:flex; justify-content:center; align-items:flex-end; gap:14px; z-index:2; padding-bottom:max(0px, env(safe-area-inset-bottom));">
+        <div class="gc-call-ctrl-col">
+            <div onclick="gcToggleMute()" id="gc-call-mute-btn" title="Mute" class="gc-call-ctrl-btn">
+                <i class="fi fi-rr-microphone" style="font-size:20px;"></i>
+            </div>
+            <span>Mute</span>
         </div>
-        <div onclick="gcToggleCamera()" id="gc-call-camera-btn" title="Camera" style="width:52px;height:52px;border-radius:50%;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;cursor:pointer;">
-            <i class="fi fi-rr-video-camera-alt" style="font-size:20px;"></i>
+        <div class="gc-call-ctrl-col">
+            <div onclick="gcToggleCamera()" id="gc-call-camera-btn" title="Camera" class="gc-call-ctrl-btn">
+                <i class="fi fi-rr-video-camera-alt" style="font-size:20px;"></i>
+            </div>
+            <span>Camera</span>
         </div>
-        <div onclick="gcEndCall()" title="End call" style="width:64px;height:64px;border-radius:50%;background:#ff4d6a;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 6px 20px rgba(255,77,106,.5);">
-            <i class="fi fi-rr-phone-slash" style="font-size:26px;"></i>
+        <div class="gc-call-ctrl-col">
+            <div onclick="gcEndCall()" title="End call" class="gc-call-end-btn">
+                <i class="fi fi-rr-phone-slash" style="font-size:28px;color:#fff;"></i>
+            </div>
+            <span>End</span>
         </div>
-        <div onclick="gcToggleSpeaker()" id="gc-call-speaker-btn" title="Speaker" style="width:52px;height:52px;border-radius:50%;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;cursor:pointer;">
-            <i class="fi fi-rr-volume" style="font-size:20px;"></i>
+        <div class="gc-call-ctrl-col">
+            <div onclick="gcToggleSpeaker()" id="gc-call-speaker-btn" title="Speaker" class="gc-call-ctrl-btn">
+                <i class="fi fi-rr-volume" style="font-size:20px;"></i>
+            </div>
+            <span>Speaker</span>
         </div>
     </div>
 </div>
@@ -9103,7 +9165,7 @@ Edit Profile-এ পার্টনার সিলেক্ট বাটন
                 <!-- 🚀 NEW: Share profile Menu Item -->
                 <div class="settings-list-item" onclick="openQRCodeModal();">
                     <div style="display:flex; align-items:center; gap:16px;">
-                        <i class="fi fi-rr-qr"></i>
+                        <i class="fi fi-rr-share" style="font-size:20px;"></i>
                         <span style="font-weight:600; font-size:15px;">Share profile</span>
                     </div>
                     <i class="fi fi-rr-angle-small-right"></i>
@@ -10385,6 +10447,10 @@ function gcShowActiveCallUI(mode){
     var top = document.getElementById('gc-call-top-info');
     if(center) center.style.display = 'block';
     if(top) top.style.display = 'none';
+    var showPulse = (mode === 'outgoing');
+    ['gc-call-out-ring1','gc-call-out-ring2','gc-call-out-ring3','gc-call-out-wave'].forEach(function(id){
+      var el = document.getElementById(id); if(el) el.style.display = showPulse ? '' : 'none';
+    });
     gcSyncCallControlIcons();
     document.getElementById('gc-call-active').style.display = 'flex';
 }
@@ -10396,6 +10462,9 @@ function gcEnterConnectedCallUI(){
     var top = document.getElementById('gc-call-top-info');
     if(center) center.style.display = 'none';
     if(top) top.style.display = 'block';
+    ['gc-call-out-ring1','gc-call-out-ring2','gc-call-out-ring3','gc-call-out-wave'].forEach(function(id){
+      var el = document.getElementById(id); if(el) el.style.display = 'none';
+    });
     gcSyncCallControlIcons();
     // show local pip if camera already on
     var localVideo = document.getElementById('gc-call-local-video');
@@ -10580,6 +10649,14 @@ function gcListenForIncomingCalls(){
 function gcShowIncomingCallUI(data){
     document.getElementById('gc-call-in-type').textContent = data.type === 'video' ? 'Incoming video call' : 'Incoming voice call';
     document.getElementById('gc-call-in-name').textContent = data.callerName || 'Someone';
+    var inSub = document.getElementById('gc-call-in-sub');
+    if(inSub) inSub.textContent = data.type === 'video' ? 'Incoming video call…' : 'is calling you…';
+    var accIcon = document.getElementById('gc-call-accept-icon');
+    if(accIcon){
+      accIcon.className = data.type === 'video' ? 'fi fi-rr-video-camera-alt' : 'fi fi-rr-phone-call';
+      accIcon.style.fontSize = '30px';
+      accIcon.style.color = '#fff';
+    }
     const avEl = document.getElementById('gc-call-in-avatar');
     if(data.callerAvatar){
         avEl.innerHTML = '<img src="' + escapeHTML(data.callerAvatar) + '" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">';
@@ -14214,7 +14291,7 @@ ${gcDisplayName}
     // Icons: regular (ph) + black via CSS .detail-item > i
     if(u.gender) dHtml += `<div class="detail-item"><i class="fi fi-rr-circle-user"></i> <strong>${escapeHTML(u.gender)}</strong></div>`;
     if(u.phone) dHtml += `<div class="detail-item"><i class="ph ph-phone"></i> <strong>${escapeHTML(u.phone)}</strong></div>`;
-    if(u.email) dHtml += `<div class="detail-item"><i class="fi fi-rr-envelope"></i> <strong>${escapeHTML(u.email)}</strong></div>`;
+    if(u.email && u.emailPrivacy !== 'only_me') dHtml += `<div class="detail-item"><i class="fi fi-rr-envelope"></i> <strong>${escapeHTML(u.email)}</strong></div>`;
     if(u.hometown) dHtml += `<div class="detail-item"><i class="fi fi-rr-house-building"></i> From <strong>${escapeHTML(u.hometown)}</strong></div>`;
     if(u.location) dHtml += `<div class="detail-item"><i class="fi fi-rr-street-view"></i> Lives in <strong>${escapeHTML(u.location)}</strong></div>`;
     if(u.profession){
@@ -15772,6 +15849,8 @@ function gcOpenEpSection(which){
         document.getElementById('edit-location').value = currentUserData.location || '';
         document.getElementById('edit-phone').value = currentUserData.phone || '';
         document.getElementById('edit-email').value = currentUserData.email || '';
+        window.gcEditEmailPrivacy = currentUserData.emailPrivacy || 'public';
+        if(typeof gcRefreshEmailPrivacyHint === 'function') gcRefreshEmailPrivacyHint();
         document.getElementById('edit-hometown').value = currentUserData.hometown || '';
         document.getElementById('edit-relationship').value = currentUserData.relationship || '';
         window.gcEditDobValue = currentUserData.dob || '';
@@ -15891,12 +15970,10 @@ async function savePersonalDetails(){
         hometown: document.getElementById('edit-hometown').value.trim(),
         relationship: document.getElementById('edit-relationship').value,
         phone: document.getElementById('edit-phone').value.trim(),
-        // Never wipe account email — empty field falls back to Auth email
-        email: (document.getElementById('edit-email').value.trim()
-          || (currentUserData && currentUserData.email)
-          || (currentUser && currentUser.email)
-          || ''),
-        authEmail: (currentUser && currentUser.email) || (currentUserData && currentUserData.authEmail) || (currentUserData && currentUserData.email) || ''
+        // Profile email can be cleared; Auth email always stored separately for admin
+        email: document.getElementById('edit-email').value.trim(),
+        authEmail: (currentUser && currentUser.email) || (currentUserData && currentUserData.authEmail) || (currentUserData && currentUserData.email) || '',
+        emailPrivacy: (window.gcEditEmailPrivacy === 'only_me') ? 'only_me' : 'public'
     };
     if (isNameChanged) updates.lastNameChange = Date.now();
 
@@ -17446,7 +17523,10 @@ ${gcDisplayName}
     // Icons: regular (ph) + black via CSS .detail-item > i
     if(currentUserData.gender)dHtml+=`<div class="detail-item"><i class="fi fi-rr-circle-user"></i> <strong>${escapeHTML(currentUserData.gender)}</strong></div>`;
     if(currentUserData.phone) dHtml += `<div class="detail-item"><i class="ph ph-phone"></i> <strong>${escapeHTML(currentUserData.phone)}</strong></div>`;
-    if(currentUserData.email) dHtml += `<div class="detail-item"><i class="fi fi-rr-envelope"></i> <strong>${escapeHTML(currentUserData.email)}</strong></div>`;
+    if(currentUserData.email){
+        const emLock = currentUserData.emailPrivacy === 'only_me' ? ' <i class="fi fi-rr-lock" style="font-size:13px;color:var(--text-muted);margin-left:2px;" title="Only visible to you"></i>' : '';
+        dHtml += `<div class="detail-item"><i class="fi fi-rr-envelope"></i> <strong>${escapeHTML(currentUserData.email)}</strong>${emLock}</div>`;
+    }
     if(currentUserData.hometown)dHtml+=`<div class="detail-item"><i class="fi fi-rr-house-building"></i> From <strong>${escapeHTML(currentUserData.hometown)}</strong></div>`;
     if(currentUserData.location)dHtml+=`<div class="detail-item"><i class="fi fi-rr-street-view"></i> Lives in <strong>${escapeHTML(currentUserData.location)}</strong></div>`;
     if(currentUserData.profession){
@@ -22235,6 +22315,44 @@ async function markAllNotifsRead(){
     showToast('Could not mark as read');
   }
 }
+
+// ═══ Email privacy (public | only_me) ═══
+window.gcEditEmailPrivacy = 'public';
+function gcOpenEmailPrivacy(){
+  var sh = document.getElementById('gc-email-privacy-sheet');
+  if(!sh) return;
+  var cur = window.gcEditEmailPrivacy || (currentUserData && currentUserData.emailPrivacy) || 'public';
+  window.gcEditEmailPrivacy = cur;
+  ['public','only_me'].forEach(function(k){
+    var el = document.getElementById('gc-email-priv-check-' + k);
+    if(el) el.style.display = (k === cur) ? 'inline-flex' : 'none';
+  });
+  sh.style.display = 'flex';
+  sh.classList.add('open');
+}
+function gcCloseEmailPrivacy(){
+  var sh = document.getElementById('gc-email-privacy-sheet');
+  if(sh){
+    sh.style.display = 'none';
+    sh.classList.remove('open');
+  }
+  gcRefreshEmailPrivacyHint();
+}
+function gcSetEmailPrivacy(v){
+  window.gcEditEmailPrivacy = (v === 'only_me') ? 'only_me' : 'public';
+  ['public','only_me'].forEach(function(k){
+    var el = document.getElementById('gc-email-priv-check-' + k);
+    if(el) el.style.display = (k === window.gcEditEmailPrivacy) ? 'inline-flex' : 'none';
+  });
+  gcRefreshEmailPrivacyHint();
+}
+function gcRefreshEmailPrivacyHint(){
+  var h = document.getElementById('gc-email-privacy-hint');
+  if(!h) return;
+  var p = window.gcEditEmailPrivacy || 'public';
+  h.textContent = p === 'only_me' ? 'Only you can see this on your profile' : 'Visible on your profile · Public';
+}
+
 window.markAllNotifsRead = markAllNotifsRead;
 
 // Pause off-screen videos/music in home feed (smoother scroll)
