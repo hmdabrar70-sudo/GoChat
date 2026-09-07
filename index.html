@@ -1134,6 +1134,14 @@ transition:transform .2s;
 .tf-plus-badge i{font-size:12px;color:#fff;line-height:1;}
 .tf-plus-badge:active{transform:scale(.85);}
 body.light-mode .tf-plus-badge{background:#000;border-color:#fff;}
+body.light-mode .tf-plus-badge i{color:#fff;}
+/* Dark mode: white bg like Create story plus */
+body:not(.light-mode) .tf-plus-badge{
+background:#f0f0f5;
+color:#0a0a0f;
+border-color:var(--surface);
+}
+body:not(.light-mode) .tf-plus-badge i{color:#0a0a0f;}
 .tf-popup{
 display:none;
 position:fixed;
@@ -1331,8 +1339,8 @@ display:flex;flex-direction:column;gap:12px;
 }
 .comment-author{font-weight:700;color:var(--text);margin-bottom:4px;font-size:14px;}
 .comment-input-bar{
-background:transparent;
-border-top:none;
+background:var(--surface);
+border-top:1px solid var(--border);
 padding:10px 12px calc(12px + env(safe-area-inset-bottom, 0px));
 display:flex;gap:8px;align-items:center;
 }
@@ -1462,9 +1470,10 @@ flex-direction:column;
 }
 .sp-comment-compose-fixed{
   margin:0; border-radius:0;
-  border:none;
+  border-top:1px solid var(--border);
+  border-left:none; border-right:none; border-bottom:none;
   padding:10px 12px calc(12px + env(safe-area-inset-bottom, 0px));
-  background:transparent;
+  background:var(--surface);
   box-shadow:none;
   flex-shrink:0;
 }
@@ -5408,14 +5417,81 @@ body.notif-edit-mode #notif-selection-bar {
     border-color: var(--text);
 }
 
-/* 🚀 profile-action-btns-restyle · 2026-09-04
-   Edit Profile / Insights / three-dot — unified pale-blue chip style.
-   rgba blue tint blends naturally: pale blue on light bg, muted blue on dark bg. */
+/* Profile action buttons — match design demo (own + other) */
 .gc-profile-action-btn{
-    background: rgba(96,165,250,0.16) !important;
-    border: 1px solid #c7cdd6 !important;
+    background: #f1f3f5 !important;
+    border: 1px solid rgba(0,0,0,0.06) !important;
     color: var(--text) !important;
+    box-shadow: none !important;
 }
+body:not(.light-mode) .gc-profile-action-btn{
+    background: #2a2a30 !important;
+    border: 1px solid rgba(255,255,255,0.08) !important;
+    color: #f0f0f5 !important;
+}
+.gc-profile-action-btn i{ color: inherit !important; }
+
+/* Other profile: Follow / Following / Message — same neutral chip */
+.gc-op-btn-follow,
+.gc-op-btn-following,
+.gc-op-btn-message{
+    background: #f1f3f5 !important;
+    border: 1px solid rgba(0,0,0,0.06) !important;
+    color: var(--text) !important;
+    box-shadow: none !important;
+}
+body:not(.light-mode) .gc-op-btn-follow,
+body:not(.light-mode) .gc-op-btn-following,
+body:not(.light-mode) .gc-op-btn-message{
+    background: #2a2a30 !important;
+    border: 1px solid rgba(255,255,255,0.08) !important;
+    color: #f0f0f5 !important;
+}
+.gc-op-btn-follow i,
+.gc-op-btn-following i,
+.gc-op-btn-message i{ color: inherit !important; }
+
+/* Other profile: Rank — surface bg + gold accent */
+.gc-op-btn-rank{
+    background: #f1f3f5 !important;
+    border: 1.5px solid #f59e0b !important;
+    color: #f59e0b !important;
+    box-shadow: none !important;
+}
+body:not(.light-mode) .gc-op-btn-rank{
+    background: #2a2a30 !important;
+    border: 1.5px solid #f59e0b !important;
+    color: #fbbf24 !important;
+}
+.gc-op-btn-rank i{ color: inherit !important; }
+
+/* Own profile actions — equal size chips */
+.gc-my-profile-actions{
+  display:flex !important;
+  align-items:stretch !important;
+  gap:8px !important;
+}
+.gc-my-profile-actions > .gc-profile-action-btn{
+  flex:1 1 0 !important;
+  min-width:0 !important;
+  min-height:42px !important;
+  padding:10px 12px !important;
+  border-radius:30px !important;
+  font-size:13px !important;
+  font-weight:700 !important;
+  display:flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  gap:6px !important;
+  box-sizing:border-box !important;
+}
+#gc-my-profile-more-btn.gc-profile-action-btn{
+  flex:0 0 48px !important;
+  min-width:48px !important;
+  width:48px !important;
+  padding:10px 0 !important;
+}
+
 
 /* 🚀 followers-following-merge · 2026-09-04 */
 /* 🚀 followers-following-fullscreen · এখন থেকে এটি পপআপ না, ফুল-স্ক্রিন পেজ */
@@ -14771,9 +14847,9 @@ ${gcDisplayName}
     if(isBlocked){
         btnHtml=`<button class="icon-btn" style="flex:1; border-radius:30px; padding:10px 0; border:1px solid var(--success); color:var(--success); background:transparent; display:flex; justify-content:center; align-items:center; gap:4px; font-size:13px; font-weight:700;" onclick="unblockUser('${uid}')"><i class="fi fi-rr-unlock" style="font-size:18px;"></i> Unblock</button>`;
     }else if(isFollowing){
-        btnHtml=`<button class="icon-btn gc-profile-action-btn" style="flex:1; border-radius:30px; padding:10px 0; display:flex; justify-content:center; align-items:center; gap:4px; font-size:13px; font-weight:700;" onclick="toggleFollow('${uid}')"><i class="fi fi-rr-delete-user" style="font-size:18px;"></i> Following</button>`;
+        btnHtml=`<button class="icon-btn gc-op-btn-following" style="flex:1; border-radius:30px; padding:10px 0; display:flex; justify-content:center; align-items:center; gap:4px; font-size:13px; font-weight:700;" onclick="toggleFollow('${uid}')"><i class="fi fi-rr-delete-user" style="font-size:18px;"></i> Following</button>`;
     }else{
-        btnHtml=`<button class="icon-btn" style="flex:1; border-radius:30px; padding:10px 0; background:#0a0a0f; color:#fff; border:none; box-shadow:none; display:flex; justify-content:center; align-items:center; gap:4px; font-size:13px; font-weight:700;" onclick="toggleFollow('${uid}')"><i class="fi fi-rr-user-add" style="font-size:18px;"></i> Follow</button>`;
+        btnHtml=`<button class="icon-btn gc-op-btn-follow" style="flex:1; border-radius:30px; padding:10px 0; display:flex; justify-content:center; align-items:center; gap:4px; font-size:13px; font-weight:700;" onclick="toggleFollow('${uid}')"><i class="fi fi-rr-user-add" style="font-size:18px;"></i> Follow</button>`;
     }
         
     const blockBtn=document.getElementById('block-user-btn');
@@ -14789,10 +14865,10 @@ ${gcDisplayName}
     document.getElementById('other-profile-btns').innerHTML=`
         <div style="display:flex; justify-content:center; gap:8px; width:100%; margin-top:16px; flex-wrap:nowrap;">
             ${btnHtml}
-            <button class="icon-btn gc-profile-action-btn" style="flex:1; border-radius:30px; padding:10px 0; display:flex; justify-content:center; align-items:center; gap:4px; font-size:13px; font-weight:700;" onclick="closeUserProfile(); openChat('${[currentUser.uid,uid].sort().join('_')}','${uid}','${safeName}','${u.avatar||''}')">
+            <button class="icon-btn gc-op-btn-message" style="flex:1; border-radius:30px; padding:10px 0; display:flex; justify-content:center; align-items:center; gap:4px; font-size:13px; font-weight:700;" onclick="closeUserProfile(); openChat('${[currentUser.uid,uid].sort().join('_')}','${uid}','${safeName}','${u.avatar||''}')">
                 <i class="ph-bold ph-chat-circle-dots" style="font-size:18px;"></i> Message
             </button>
-            <button class="icon-btn" style="flex:1; border-radius:30px; padding:10px 0; border:1px solid #f59e0b; color:#f59e0b; background:transparent; display:flex; justify-content:center; align-items:center; gap:4px; font-size:13px; font-weight:700;" onclick="openLeaderboard()">
+            <button class="icon-btn gc-op-btn-rank" style="flex:1; border-radius:30px; padding:10px 0; display:flex; justify-content:center; align-items:center; gap:4px; font-size:13px; font-weight:700;" onclick="openLeaderboard()">
                 <i class="fi fi-rr-trophy-star" style="font-size:18px;"></i> Rank
             </button>
         </div>
