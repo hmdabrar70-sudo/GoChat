@@ -2125,24 +2125,25 @@ display:flex;gap:8px;align-items:center;
 }
 .chat-input-bar input#chat-input,
 .chat-input-bar > input[type="text"]{
-flex:1;min-width:0;background:var(--surface-2);
-border:1px solid var(--border);
-border-radius:var(--radius-xl);
-padding:10px 14px;
-color:var(--text);font-size:14px;outline:none;
-transition:border-color 0.2s;
+flex:1;min-width:0;background:var(--surface)!important;
+border:1px solid var(--border)!important;
+border-radius:999px!important;
+padding:12px 16px!important;
+color:var(--text);font-size:15px;outline:none;
+transition:border-color 0.2s, box-shadow .2s;
 }
-.chat-input-bar input:focus{border-color:var(--accent);}
+.chat-input-bar input:focus{border-color:var(--border)!important;box-shadow:0 0 0 3px rgba(0,0,0,.04);}
 /* 🚀 Chat + attach button · 2026-09-05 */
 .gc-chat-plus-btn{
-  width:40px;height:40px;border-radius:50%;border:none;cursor:pointer;
-  background:var(--accent);color:#fff;flex-shrink:0;
+  width:40px;height:40px;border-radius:50%;border:1px solid var(--border)!important;cursor:pointer;
+  background:var(--surface)!important;color:var(--text)!important;flex-shrink:0;
   display:flex;align-items:center;justify-content:center;
   transition:transform .15s, background .2s;
+  box-shadow:none!important;
 }
 .gc-chat-plus-btn:active{transform:scale(.92);}
-.gc-chat-plus-btn.is-open{background:var(--text-muted);}
-.gc-chat-plus-btn i{font-size:22px;transition:transform .2s;}
+.gc-chat-plus-btn.is-open{background:var(--surface-2)!important;}
+.gc-chat-plus-btn i{font-size:20px!important;transition:transform .2s;color:var(--text)!important;}
 .gc-chat-plus-btn.is-open i{transform:rotate(45deg);}
 .gc-chat-attach-panel{
   display:none;position:absolute;left:12px;right:12px;bottom:100%;
@@ -2191,25 +2192,33 @@ transition:border-color 0.2s;
 /* Chat send — compact, gray until text ready */
 .chat-send-btn{
 width:40px;height:40px;
-background:var(--text-muted);
-border:none;border-radius:50%;
-color:#fff;
+background:var(--surface-2)!important;
+border:1px solid var(--border)!important;border-radius:50%;
+color:var(--text-muted)!important;
 display:flex;align-items:center;justify-content:center;
 cursor:pointer;
-transition:background .2s, box-shadow .2s, transform .15s, opacity .2s;
-box-shadow:none;
-opacity:.85;
+transition:background .2s, box-shadow .2s, transform .15s, opacity .2s, color .2s;
+box-shadow:none!important;
+opacity:1;
 flex-shrink:0;
 }
-.chat-send-btn i{ font-size:18px !important; }
+.chat-send-btn i{ font-size:18px !important; color:inherit!important; }
 .chat-send-btn.is-ready{
-  background:var(--gradient) !important;
-  box-shadow:var(--shadow-glow) !important;
+  background:#0a0a0f !important;
+  border-color:#0a0a0f !important;
+  color:#fff !important;
+  box-shadow:none !important;
   opacity:1;
+}
+body:not(.light-mode) .chat-send-btn.is-ready{
+  background:#f0f0f5 !important;
+  border-color:#f0f0f5 !important;
+  color:#0a0a0f !important;
 }
 .chat-send-btn:not(.is-ready){
   cursor:default;
   pointer-events:none;
+  opacity:.65;
 }
 .chat-send-btn.is-ready:hover{transform:scale(1.05);}
 .chat-send-btn.is-ready:active{transform:scale(0.95);}
@@ -7764,24 +7773,35 @@ body.light-mode .gc-email-privacy-opt.gc-email-priv-active{
 .gc-img-cell img{width:100%;height:100%;object-fit:cover;display:block;margin:0!important;border-radius:0!important;cursor:pointer;}
 .gc-img-more{position:absolute;inset:0;background:rgba(0,0,0,.55);color:#fff;font-weight:800;font-size:22px;display:flex;align-items:center;justify-content:center;pointer-events:none;}
 .chat-bubble.gc-media-only{background:transparent!important;border:none!important;box-shadow:none!important;padding:4px 0!important;color:var(--text)!important;max-width:min(78%,280px);}
-/* Design B — Selected photos card */
+/* Messenger-style multi photo pick sheet */
 #gc-chat-img-card{
   display:none;
-  margin:0 12px 8px;
-  padding:14px;
+  position:fixed;
+  left:50%;
+  transform:translateX(-50%);
+  bottom:0;
+  width:100%;
+  max-width:520px;
+  max-height:72vh;
+  z-index:100060;
+  margin:0;
+  padding:0 0 calc(12px + env(safe-area-inset-bottom,0px));
   background:var(--surface);
   border:1px solid var(--border);
-  border-radius:20px;
-  box-shadow:0 8px 28px rgba(0,0,0,.08);
+  border-bottom:none;
+  border-radius:20px 20px 0 0;
+  box-shadow:0 -8px 32px rgba(0,0,0,.18);
+  flex-direction:column;
+  overflow:hidden;
 }
-#gc-chat-img-card.open{display:block;}
-body:not(.light-mode) #gc-chat-img-card{box-shadow:0 8px 28px rgba(0,0,0,.35);}
+#gc-chat-img-card.open{display:flex;}
 .gc-chat-img-card-head{
   display:flex;align-items:center;justify-content:space-between;
-  margin-bottom:12px;
+  padding:14px 16px 10px;
+  flex-shrink:0;
 }
 .gc-chat-img-card-title{
-  font-size:15px;font-weight:800;color:var(--text);
+  font-size:17px;font-weight:800;color:var(--text);
 }
 .gc-chat-img-card-badge{
   font-size:12px;font-weight:700;color:var(--text-muted);
@@ -7790,35 +7810,93 @@ body:not(.light-mode) #gc-chat-img-card{box-shadow:0 8px 28px rgba(0,0,0,.35);}
 }
 #gc-chat-img-preview{
   display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:8px;
+  grid-template-columns:repeat(3,1fr);
+  gap:3px;
+  padding:0 3px;
+  overflow-y:auto;
+  flex:1;
+  min-height:120px;
+  -webkit-overflow-scrolling:touch;
 }
 .gc-chat-img-thumb{
   position:relative;
   aspect-ratio:1;
-  border-radius:14px;
+  border-radius:0;
   overflow:hidden;
   background:var(--surface-2);
 }
-.gc-chat-img-thumb img{width:100%;height:100%;object-fit:cover;display:block;}
+.gc-chat-img-thumb img{
+  width:100%;height:100%;object-fit:cover;display:block;
+  pointer-events:none;
+}
+.gc-chat-img-num{
+  position:absolute;top:6px;left:6px;
+  min-width:24px;height:24px;padding:0 6px;
+  border-radius:50%;
+  background:#0a0a0f;color:#fff;
+  font-size:12px;font-weight:800;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 1px 4px rgba(0,0,0,.35);
+}
+body:not(.light-mode) .gc-chat-img-num{background:#f0f0f5;color:#0a0a0f;}
 .gc-chat-img-x{
   position:absolute;top:6px;right:6px;
-  width:22px;height:22px;border-radius:50%;
+  width:24px;height:24px;border-radius:50%;
   background:rgba(0,0,0,.55);color:#fff;
   border:none;display:flex;align-items:center;justify-content:center;
-  font-size:13px;cursor:pointer;padding:0;line-height:1;
-  backdrop-filter:blur(4px);
+  font-size:14px;cursor:pointer;padding:0;line-height:1;
+  z-index:2;
+}
+.gc-chat-img-foot{
+  display:flex;align-items:center;gap:12px;
+  padding:12px 16px 4px;
+  flex-shrink:0;
+}
+.gc-chat-img-count-circle{
+  width:40px;height:40px;border-radius:50%;
+  background:var(--surface-2);border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;
+  font-weight:800;font-size:14px;color:var(--text);flex-shrink:0;
 }
 .gc-chat-img-send{
-  width:100%;margin-top:12px;border:none;border-radius:14px;
-  padding:12px 16px;font-weight:800;font-size:14px;
+  flex:1;margin:0;border:none;border-radius:999px;
+  padding:14px 16px;font-weight:800;font-size:15px;
   background:#0a0a0f;color:#fff;cursor:pointer;
   font-family:inherit;
 }
 body:not(.light-mode) .gc-chat-img-send{background:#f0f0f5;color:#0a0a0f;}
 .gc-chat-img-send:active{transform:scale(.98);}
-/* legacy meta hidden */
 .gc-chat-img-meta{display:none!important;}
+#gc-chat-img-scrim{
+  display:none;position:fixed;inset:0;z-index:100055;
+  background:rgba(0,0,0,.45);
+}
+#gc-chat-img-scrim.open{display:block;}
+
+/* Stacked album bubble in chat (Messenger-like) */
+.gc-img-stack{
+  position:relative;width:min(220px,70vw);height:220px;
+  margin:0;
+}
+.gc-img-stack .gc-img-stack-item{
+  position:absolute;inset:0;
+  border-radius:16px;overflow:hidden;
+  box-shadow:0 2px 10px rgba(0,0,0,.2);
+  background:var(--surface-2);
+  border:2px solid var(--surface);
+}
+.gc-img-stack .gc-img-stack-item img{
+  width:100%;height:100%;object-fit:cover;display:block;margin:0!important;border-radius:0!important;
+}
+.gc-img-stack .gc-img-stack-item:nth-child(1){z-index:3;transform:rotate(-2deg);}
+.gc-img-stack .gc-img-stack-item:nth-child(2){z-index:2;transform:rotate(3deg) translate(6px,4px);}
+.gc-img-stack .gc-img-stack-item:nth-child(3){z-index:1;transform:rotate(-4deg) translate(-4px,8px);}
+.gc-img-stack-count{
+  position:absolute;bottom:10px;right:10px;z-index:5;
+  background:rgba(0,0,0,.6);color:#fff;
+  font-size:12px;font-weight:800;
+  padding:4px 8px;border-radius:999px;
+}
 
 /* Design B — chat input bar polish */
 .chat-input-bar{
@@ -9058,17 +9136,21 @@ body:not(.light-mode) .chat-send-btn.is-ready{
     </div>
 </div>
 
+<div id="gc-chat-img-scrim" onclick="window.__gcChatImgQueue=[];gcRenderChatImgPreview();"></div>
 <div id="gc-chat-img-card">
   <div class="gc-chat-img-card-head">
     <span class="gc-chat-img-card-title">Selected photos</span>
     <span class="gc-chat-img-card-badge" id="gc-chat-img-count">0/10</span>
   </div>
   <div id="gc-chat-img-preview"></div>
-  <button type="button" class="gc-chat-img-send" onclick="gcSendQueuedChatImages()">Send photos</button>
+  <div class="gc-chat-img-foot">
+    <div class="gc-chat-img-count-circle" id="gc-chat-img-circle">0</div>
+    <button type="button" class="gc-chat-img-send" id="gc-chat-img-send-btn" onclick="gcSendQueuedChatImages()">Send</button>
+  </div>
 </div>
 <!-- + button -->
 <button type="button" class="gc-chat-plus-btn" id="gc-chat-plus-btn" onclick="gcToggleChatAttach()" aria-label="Attach">
-  <i class="fi fi-rr-add"></i>
+  <i class="ph-bold ph-plus" style="font-size:20px;"></i>
 </button>
 
 <!-- 📝 Text Input -->
@@ -9084,8 +9166,8 @@ body:not(.light-mode) .chat-send-btn.is-ready{
 <input type="file" id="chat-img-input" accept="image/*" multiple style="display:none;" onchange="gcQueueChatImages(this)">
 
 <!-- 📤 Send Button -->
-<button class="chat-send-btn" id="text-send-btn" type="button" onclick="sendMsg()" style="margin-left: 2px; flex-shrink:0;">
-    <i class="ph ph-paper-plane-right"></i>
+<button class="chat-send-btn" id="text-send-btn" type="button" onclick="sendMsg()" style="margin-left: 2px; flex-shrink:0;" aria-label="Send">
+    <i class="ph-bold ph-paper-plane-tilt"></i>
 </button>
 </div>
 </div>
@@ -15487,8 +15569,11 @@ function gcRemoveQueuedChatImage(idx){
 }
 function gcRenderChatImgPreview(){
   var card=document.getElementById('gc-chat-img-card');
+  var scrim=document.getElementById('gc-chat-img-scrim');
   var box=document.getElementById('gc-chat-img-preview');
   var countEl=document.getElementById('gc-chat-img-count');
+  var circle=document.getElementById('gc-chat-img-circle');
+  var sendBtn=document.getElementById('gc-chat-img-send-btn');
   var q=window.__gcChatImgQueue||[];
   if(!box) return;
   if(box._urls){ box._urls.forEach(function(u){ try{ URL.revokeObjectURL(u);}catch(e){} }); }
@@ -15496,14 +15581,22 @@ function gcRenderChatImgPreview(){
   if(!q.length){
     box.innerHTML='';
     if(card) card.classList.remove('open');
+    if(scrim) scrim.classList.remove('open');
     return;
   }
   if(card) card.classList.add('open');
+  if(scrim) scrim.classList.add('open');
   if(countEl) countEl.textContent=q.length+'/10';
+  if(circle) circle.textContent=String(q.length);
+  if(sendBtn) sendBtn.textContent = q.length===1 ? 'Send 1' : ('Send '+q.length);
   var html='';
   for(var i=0;i<q.length;i++){
     var u=URL.createObjectURL(q[i]); box._urls.push(u);
-    html+='<div class="gc-chat-img-thumb"><img src="'+u+'" alt=""><button type="button" class="gc-chat-img-x" onclick="gcRemoveQueuedChatImage('+i+')" aria-label="Remove">&times;</button></div>';
+    html+='<div class="gc-chat-img-thumb">'
+      +'<img src="'+u+'" alt="">'
+      +'<span class="gc-chat-img-num">'+(i+1)+'</span>'
+      +'<button type="button" class="gc-chat-img-x" onclick="event.stopPropagation();gcRemoveQueuedChatImage('+i+')" aria-label="Remove">&times;</button>'
+      +'</div>';
   }
   box.innerHTML=html;
 }
@@ -15552,18 +15645,24 @@ async function sendChatImage(input){
 function gcBuildChatImageGrid(urls){
   urls=(urls||[]).filter(Boolean).slice(0,10);
   if(!urls.length) return '';
-  var n=urls.length, show=n<=4?n:4;
-  var cls='gc-img-grid n'+(n===1?'1':n===2?'2':n===3?'3':(n>=5?'5':'4'));
   var gid='gimg_'+Math.random().toString(36).slice(2,9);
   if(!window.__gcImgPacks) window.__gcImgPacks={};
   window.__gcImgPacks[gid]=urls;
-  var html='<div class="'+cls+'">';
-  for(var i=0;i<show;i++){
-    var u=escapeHTML(urls[i]);
-    var more=(i===3&&n>4)?('<div class="gc-img-more">+'+(n-4)+'</div>'):'';
-    html+='<div class="gc-img-cell" onclick="event.stopPropagation();gcOpenChatImageGallery(\''+gid+'\','+i+')"><img src="'+u+'" alt="">'+more+'</div>';
+  var n=urls.length;
+  // single image
+  if(n===1){
+    var u=escapeHTML(urls[0]);
+    return '<div class="gc-img-grid n1"><div class="gc-img-cell" onclick="event.stopPropagation();gcOpenChatImageGallery(\''+gid+'\',0)"><img src="'+u+'" alt=""></div></div>';
   }
-  return html+'</div>';
+  // Messenger-like stacked album for 2+
+  var show=Math.min(3,n);
+  var html='<div class="gc-img-stack" onclick="event.stopPropagation();gcOpenChatImageGallery(\''+gid+'\',0)">';
+  for(var i=show-1;i>=0;i--){
+    html+='<div class="gc-img-stack-item"><img src="'+escapeHTML(urls[i])+'" alt=""></div>';
+  }
+  if(n>1) html+='<div class="gc-img-stack-count">'+n+' photos</div>';
+  html+='</div>';
+  return html;
 }
 function gcOpenChatImageGallery(gid, startIdx){
   var urls=(window.__gcImgPacks&&window.__gcImgPacks[gid])||[];
