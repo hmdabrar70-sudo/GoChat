@@ -608,11 +608,21 @@ body:not(.light-mode) .post-card {
 
 
 #main-settings-screen .settings-list-item > div > i:first-child,
-#privacy-settings-list .settings-list-item > div > i:first-child{
+#privacy-settings-list .settings-list-item > div > i:first-child,
+#chat-settings-screen .settings-list-item > div > i:first-child,
+#main-menu-screen .settings-list-item > div > i:first-child{
   color: var(--text) !important;
   -webkit-text-fill-color: var(--text) !important;
   background: none !important;
   font-size: 24px !important;
+  width: 28px;
+  text-align: center;
+  line-height: 1;
+}
+#chat-settings-screen .settings-list-item > i.fi-rr-angle-small-right,
+#main-menu-screen .settings-list-item > i.fi-rr-angle-small-right{
+  font-size: 18px !important;
+  color: var(--text-muted) !important;
 }
 #main-settings-screen .settings-list-item > i[class*="ph-caret"],
 #privacy-settings-list .settings-list-item > i[class*="ph-caret"]{
@@ -3017,6 +3027,43 @@ background:var(--bg);
 padding:12px 16px;
 border-bottom:1px solid var(--border);
 }
+.gc-settings-search-wrap{
+  padding:12px 16px !important;
+  border-bottom:1px solid var(--border) !important;
+  box-sizing:border-box !important;
+  width:100% !important;
+}
+#main-menu-screen .gc-settings-search-wrap,
+#main-settings-screen .gc-settings-search-wrap{
+  padding:12px 16px !important;
+}
+.gc-settings-search-wrap .search-input-wrap{
+  margin:0 !important;
+  width:100% !important;
+  height:44px !important;
+  min-height:44px !important;
+  max-height:44px !important;
+  padding:0 16px !important;
+  border-radius:999px !important;
+  background:var(--surface-2) !important;
+  border:1px solid var(--border) !important;
+  box-sizing:border-box !important;
+  display:flex !important;
+  align-items:center !important;
+  gap:10px !important;
+}
+.gc-settings-search-wrap .search-input-wrap i{
+  font-size:18px !important;
+  color:var(--text-muted) !important;
+  flex-shrink:0;
+}
+.gc-settings-search-wrap .search-input-wrap input{
+  font-size:15px !important;
+  height:100% !important;
+  padding:0 !important;
+  border:none !important;
+  background:transparent !important;
+}
 .search-input-wrap{
 display:flex;align-items:center;gap:10px;
 background:var(--surface);
@@ -5389,6 +5436,13 @@ body.notif-edit-mode .bottom-nav {
 body.notif-edit-mode .topbar-actions > .topbar-btn[onclick*="search"]{
   display:none !important;
 }
+/* Chat page: hide global search, show chat settings */
+body.messages-mode .topbar-actions > .topbar-btn[onclick*="search"]{
+  display:none !important;
+}
+#topbar-chat-settings-btn{ display:none !important; }
+body.messages-mode #topbar-chat-settings-btn{ display:flex !important; }
+
 #topbar-notif-select-all{
   display:none;
   padding:6px 14px; font-size:13px; border:none; background:var(--surface-2);
@@ -8405,6 +8459,9 @@ body:not(.light-mode) .chat-send-btn.is-ready{
         <i class="fi fi-rr-users-medical" style="font-size: 22px; color: var(--text);"></i>
     </div>
     
+    <div class="topbar-btn" id="topbar-chat-settings-btn" onclick="openChatSettingsScreen()" title="Chat settings" aria-label="Chat settings">
+        <i class="fi fi-rs-settings" style="font-size: 22px;"></i>
+    </div>
     <div class="topbar-btn" onclick="showPage('search')">
         <i class="fi fi-sr-search" style="font-size: 22px;"></i>
     </div>
@@ -9656,8 +9713,8 @@ body:not(.light-mode) .chat-send-btn.is-ready{
                 <div class="chat-name" style="font-size: 18px; font-weight: 800;">Settings & Privacy</div>
             </div>
             
-            <!-- 🚀 NEW: Settings & Privacy Search Bar -->
-            <div style="padding: 12px 16px; border-bottom: 1px solid var(--border);">
+            <!-- Settings & Privacy Search Bar -->
+            <div class="gc-settings-search-wrap">
                 <div class="search-input-wrap" style="margin:0; background: var(--surface-2);">
                     <i class="fi fi-rr-search"></i>
                     <input type="text" id="privacy-settings-search" placeholder="Search settings..." oninput="filterPrivacySettings(this.value)">
@@ -9700,27 +9757,10 @@ body:not(.light-mode) .chat-send-btn.is-ready{
                     <i class="fi fi-rr-angle-small-right"></i>
                 </div>
 
-                <div class="settings-list-item" onclick="openChatPrivacyPage()">
-                    <div style="display:flex; align-items:center; gap:16px;">
-                        <i class="fi fi-rr-comment"></i>
-                        <span style="font-weight:600; font-size:15px;">Chat Privacy</span>
-                    </div>
-                    <i class="fi fi-rr-angle-small-right"></i>
-                </div>
-
                 <div class="settings-list-item" onclick="openBlockedAccountsPage()">
                     <div style="display:flex; align-items:center; gap:16px;">
                         <i class="fi fi-rr-delete-user"></i>
                         <span style="font-weight:600; font-size:15px;">Blocked Accounts</span>
-                    </div>
-                    <i class="fi fi-rr-angle-small-right"></i>
-                </div>
-
-                <!-- 🚀 Archived Chats Moved to Settings -->
-                <div class="settings-list-item" onclick="closeMainSettingsScreen(); closeMainMenu(); showPage('messages'); document.getElementById('archived-chats').classList.add('show'); loadArchivedMessages();">
-                    <div style="display:flex; align-items:center; gap:16px;">
-                        <i class="fi fi-rr-box"></i>
-                        <span style="font-weight:600; font-size:15px;">Archived Chats</span>
                     </div>
                     <i class="fi fi-rr-angle-small-right"></i>
                 </div>
@@ -9752,8 +9792,8 @@ body:not(.light-mode) .chat-send-btn.is-ready{
             </div>
         </div>
 
-        <!-- 🚀 NEW: Settings Search Bar -->
-        <div style="padding: 12px 16px; border-bottom: 1px solid var(--border);">
+        <!-- Menu search — same size as Settings & Privacy search -->
+        <div class="gc-settings-search-wrap">
             <div class="search-input-wrap" style="margin:0; background: var(--surface-2);">
                 <i class="fi fi-rr-search"></i>
                 <input type="text" id="menu-settings-search" placeholder="Search settings..." oninput="filterMenuSettings(this.value)">
@@ -10077,6 +10117,30 @@ body:not(.light-mode) .chat-send-btn.is-ready{
                 <li>Update the app to the latest version</li>
                 <li>Clear app cache from settings</li>
             </ul>
+        </div>
+    </div>
+</div>
+
+<!-- 🚀 Chat Settings Screen (from Chats topbar) -->
+<div id="chat-settings-screen" style="display:none; position:fixed; inset:0; background:var(--bg); z-index:10006; flex-direction:column; overflow-y:auto; animation:slideUp 0.3s ease;">
+    <div class="chat-topbar" style="position:sticky; top:0; z-index:100; display:flex; align-items:center; gap:12px;">
+        <div class="chat-back" onclick="closeChatSettingsScreen()"><i class="ph-bold ph-arrow-u-up-left"></i></div>
+        <div style="font-weight:800; font-size:18px;">Chat settings</div>
+    </div>
+    <div style="padding: 20px; display:flex; flex-direction:column; gap:8px;">
+        <div class="settings-list-item" onclick="closeChatSettingsScreen(); openChatPrivacyPage();">
+            <div style="display:flex; align-items:center; gap:16px;">
+                <i class="fi fi-rr-comment"></i>
+                <span style="font-weight:600; font-size:15px;">Chat Privacy</span>
+            </div>
+            <i class="fi fi-rr-angle-small-right"></i>
+        </div>
+        <div class="settings-list-item" onclick="closeChatSettingsScreen(); showPage('messages'); try{document.getElementById('archived-chats').classList.add('show'); loadArchivedMessages();}catch(e){}">
+            <div style="display:flex; align-items:center; gap:16px;">
+                <i class="fi fi-rr-box"></i>
+                <span style="font-weight:600; font-size:15px;">Archived Chats</span>
+            </div>
+            <i class="fi fi-rr-angle-small-right"></i>
         </div>
     </div>
 </div>
@@ -10609,7 +10673,6 @@ function toggleDarkMode() {
     
     // UI আপডেট করা
     updateDarkModeUI();
-    showToast(`Dark Mode is now ${isLight ? 'OFF' : 'ON'}`);
 }
 
 function updateDarkModeUI() {
@@ -13007,15 +13070,28 @@ async function toggleFollow(targetUid) {
         });
         showToast('Following!');
         
-        // ফলো করলে নোটিফিকেশন পাঠানো
-        db.collection('notifications').add({
-            toUid: targetUid,
-            fromUid: currentUser.uid,
-            fromName: currentUserData.name,
-            type: 'follow',
-            read: false,
-            createdAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
+        // Follow notification: max once per target per 7 days (anti-spam)
+        try {
+            var map = (currentUserData && currentUserData.followNotifAt) ? currentUserData.followNotifAt : {};
+            if (typeof map !== 'object' || map === null) map = {};
+            var last = Number(map[targetUid] || 0);
+            var weekMs = 7 * 24 * 60 * 60 * 1000;
+            if (!last || (Date.now() - last) >= weekMs) {
+                await db.collection('notifications').add({
+                    toUid: targetUid,
+                    fromUid: currentUser.uid,
+                    fromName: currentUserData.name,
+                    type: 'follow',
+                    read: false,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                map[targetUid] = Date.now();
+                await db.collection('users').doc(currentUser.uid).update({ followNotifAt: map });
+                currentUserData.followNotifAt = map;
+            }
+        } catch (e) {
+            console.error('follow notif', e);
+        }
     }
     
     // বাটনগুলোর স্টেট সাথে সাথে আপডেট করার জন্য
@@ -16388,24 +16464,60 @@ loadMessages();
 var gcEduDraft = [];
 
 var GC_SCHOOL_DB = [
-  'University of Dhaka','Bangladesh University of Engineering and Technology (BUET)',
-  'University of Rajshahi','Jahangirnagar University','Chittagong University',
-  'Khulna University','Shahjalal University of Science and Technology (SUST)',
-  'Islamic University, Bangladesh','Bangladesh Agricultural University',
-  'Jagannath University','Comilla University','Barisal University',
-  'Begum Rokeya University','Noakhali Science and Technology University',
-  'Hajee Mohammad Danesh Science and Technology University',
+  /* Public universities (BD) */
+  'University of Dhaka','University of Rajshahi','University of Chittagong','Jahangirnagar University',
+  'Khulna University','Islamic University, Bangladesh','Bangladesh Agricultural University',
+  'Bangladesh University of Engineering and Technology (BUET)','BUET',
+  'Shahjalal University of Science and Technology (SUST)','SUST',
+  'Jagannath University','Comilla University','Barisal University','University of Barishal',
+  'Begum Rokeya University','Noakhali Science and Technology University (NSTU)',
+  'Hajee Mohammad Danesh Science and Technology University (HSTU)',
+  'Jashore University of Science and Technology','Pabna University of Science and Technology',
+  'Bangabandhu Sheikh Mujibur Rahman Science and Technology University',
+  'Bangabandhu Sheikh Mujib Medical University (BSMMU)',
+  'Bangladesh University of Professionals (BUP)','Bangladesh Open University',
+  'National University, Bangladesh','Open University Bangladesh',
+  'Dhaka University of Engineering and Technology (DUET)','Chittagong University of Engineering and Technology (CUET)',
+  'Khulna University of Engineering and Technology (KUET)','Rajshahi University of Engineering and Technology (RUET)',
+  'Military Institute of Science and Technology (MIST)',
+  'Sher-e-Bangla Agricultural University','Sylhet Agricultural University',
+  'Patuakhali Science and Technology University','Rangamati Science and Technology University',
+  'Bangabandhu Sheikh Mujibur Rahman Agricultural University',
+  /* Private universities */
   'North South University','BRAC University','Independent University, Bangladesh (IUB)',
   'American International University-Bangladesh (AIUB)','East West University',
   'United International University (UIU)','Daffodil International University',
-  'Ahsanullah University of Science and Technology','Stamford University Bangladesh',
-  'International Islamic University Chittagong','Premier University',
+  'Ahsanullah University of Science and Technology (AUST)','Stamford University Bangladesh',
+  'International Islamic University Chittagong (IIUC)','Premier University',
+  'University of Liberal Arts Bangladesh (ULAB)','Green University of Bangladesh',
+  'Bangladesh University of Business and Technology (BUBT)','Varendra University',
+  'Leading University','Metropolitan University','World University of Bangladesh',
+  'Southeast University','City University','Uttara University','Northern University Bangladesh',
+  'Presidency University','Primeasia University','Canadian University of Bangladesh',
+  'BGMEA University of Fashion and Technology (BUFT)','Shanto-Mariam University of Creative Technology',
+  /* Medical colleges */
   'Dhaka Medical College','Sir Salimullah Medical College','Chittagong Medical College',
-  'Rajshahi Medical College','Notre Dame College, Dhaka','Holy Cross College, Dhaka',
-  'Viqarunnisa Noon School and College','Ideal School and College','Rajuk Uttara Model College',
-  'Dhaka Residential Model College','Adamjee Cantonment College','Milestone College',
-  'Harvard University','Stanford University','MIT','Oxford University','Cambridge University',
-  'National University, Bangladesh','Open University Bangladesh'
+  'Rajshahi Medical College','Mymensingh Medical College','Sher-e-Bangla Medical College',
+  'Sylhet MAG Osmani Medical College','Rangpur Medical College','Khulna Medical College',
+  'Armed Forces Medical College','Ibrahim Medical College','Bangladesh Medical College',
+  /* Colleges & schools */
+  'Notre Dame College, Dhaka','Holy Cross College, Dhaka','Viqarunnisa Noon School and College',
+  'Ideal School and College','Rajuk Uttara Model College','Dhaka Residential Model College',
+  'Adamjee Cantonment College','Milestone College','Dhaka City College','Government Titumir College',
+  'Eden Mohila College','Begum Badrunnesa Government Girls College','Tejgaon College',
+  'Bangladesh Navy College','Cantonment Public School and College','Mirzapur Cadet College',
+  'Faujdarhat Cadet College','Jhenaidah Cadet College','Rajshahi Cadet College',
+  'Scholastica','Maple Leaf International School','International School Dhaka (ISD)',
+  'Sunbeams School','Mastermind School','Playpen School','Oxford International School',
+  'Willes Little Flower School','Motijheel Government Boys High School',
+  'Holy Cross Girls High School','Viqarunnisa Noon School','Ideal High School',
+  /* Global */
+  'Harvard University','Stanford University','Massachusetts Institute of Technology (MIT)',
+  'University of Oxford','University of Cambridge','Yale University','Princeton University',
+  'Columbia University','University of California, Berkeley','University of Toronto',
+  'National University of Singapore (NUS)','Nanyang Technological University (NTU)',
+  'University of Melbourne','University of Sydney','University of Tokyo','Peking University',
+  'Tsinghua University','Seoul National University','University of Hong Kong'
 ];
 
 function openProfileEdit(){
@@ -16495,20 +16607,41 @@ function gcFilterEducationSearch(q){
     if(q.length < 1){ res.classList.remove('open'); res.innerHTML=''; return; }
     var taken = {};
     gcEduDraft.forEach(function(e){ taken[(e.school||'').toLowerCase()] = 1; });
-    var hits = GC_SCHOOL_DB.filter(function(s){
-        return s.toLowerCase().indexOf(q) !== -1 && !taken[s.toLowerCase()];
-    }).slice(0, 12);
+    function scoreSchool(s){
+        var sl = s.toLowerCase();
+        if(taken[sl]) return -1;
+        if(sl === q) return 100;
+        if(sl.indexOf(q) === 0) return 80;
+        var words = sl.split(/[\s,()\/\-]+/);
+        for(var i=0;i<words.length;i++){ if(words[i].indexOf(q) === 0) return 70; }
+        if(sl.indexOf(q) !== -1) return 50;
+        // token match any word starts with any query token
+        var qParts = q.split(/\s+/).filter(Boolean);
+        var ok = qParts.every(function(p){ return sl.indexOf(p) !== -1; });
+        if(ok) return 40;
+        return -1;
+    }
+    var ranked = GC_SCHOOL_DB.map(function(s){ return {s:s, sc: scoreSchool(s)}; })
+      .filter(function(x){ return x.sc >= 0; })
+      .sort(function(a,b){ return b.sc - a.sc || a.s.localeCompare(b.s); })
+      .slice(0, 15);
     var html = '';
-    hits.forEach(function(s){
-        html += '<button type="button" class="gc-edu-item" onclick="gcAddEducationItem(\'' + String(s).replace(/'/g,"\\'") + '\')"><i class="ph ph-graduation-cap"></i><span>' + escapeHTML(s) + '</span></button>';
+    ranked.forEach(function(x){
+        var safe = String(x.s).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+        html += '<button type="button" class="gc-edu-item" onclick="gcAddEducationItem(\'' + safe + '\')"><i class="ph ph-graduation-cap"></i><span>' + escapeHTML(x.s) + '</span></button>';
     });
-    if(!hits.length || !hits.some(function(s){ return s.toLowerCase() === q; })){
-        var customLabel = (q.length ? q : '').replace(/\b\w/g, function(c){ return c.toUpperCase(); });
-        if(customLabel && !taken[customLabel.toLowerCase()]){
-            html += '<button type="button" class="gc-edu-item" onclick="gcAddEducationItem(\'' + customLabel.replace(/'/g,"\\'") + '\')"><i class="ph ph-plus-circle"></i><span>Add “' + escapeHTML(customLabel) + '”</span></button>';
+    // Always offer custom add for free-typed school names
+    var customLabel = (q || '').trim();
+    if(customLabel){
+        customLabel = customLabel.replace(/\s+/g,' ');
+        // mild title case for display only
+        var display = customLabel.replace(/\b([a-z])/g, function(c){ return c.toUpperCase(); });
+        if(!taken[display.toLowerCase()] && !ranked.some(function(x){ return x.s.toLowerCase() === display.toLowerCase(); })){
+            var safeC = display.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+            html = '<button type="button" class="gc-edu-item" onclick="gcAddEducationItem(\'' + safeC + '\')"><i class="ph ph-plus-circle"></i><span>Add “' + escapeHTML(display) + '”</span></button>' + html;
         }
     }
-    res.innerHTML = html || '<div class="gc-edu-empty">No matches</div>';
+    res.innerHTML = html || '<div class="gc-edu-empty">No matches — type a name and add it</div>';
     res.classList.add('open');
 }
 
@@ -21970,6 +22103,17 @@ function closeSupportPage() {
 // ==========================================
 
 // ১. পেজ ওপেন করার ফাংশন
+function openChatSettingsScreen(){
+    var el = document.getElementById('chat-settings-screen');
+    if(el) el.style.display = 'flex';
+}
+function closeChatSettingsScreen(){
+    var el = document.getElementById('chat-settings-screen');
+    if(el) el.style.display = 'none';
+}
+window.openChatSettingsScreen = openChatSettingsScreen;
+window.closeChatSettingsScreen = closeChatSettingsScreen;
+
 function openChatPrivacyPage() {
     document.getElementById('chat-privacy-screen').style.display = 'flex';
     
