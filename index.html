@@ -1916,13 +1916,21 @@ body:not(.light-mode) .detail-item > i{
 .detail-item .gc-rel-chip{margin-top:0 !important;}
 .avatar-edit-btn{
 position:absolute;bottom:2px;right:2px;
-width:28px;height:28px;background:transparent;border-radius:50%;
+width:32px;height:32px;
+background:#0a0a0f;
+border-radius:50%;
 display:flex;align-items:center;justify-content:center;
-color:var(--text);cursor:pointer;border:none;
-filter:drop-shadow(0 1px 2px rgba(0,0,0,.4));transition:transform 0.2s;
+color:#fff;cursor:pointer;
+border:3px solid var(--bg);
+box-shadow:0 2px 6px rgba(0,0,0,.2);
+transition:transform 0.2s;
 }
-.avatar-edit-btn i{color:var(--text)!important;font-size:18px!important;}
-body.light-mode .avatar-edit-btn i{color:#111!important;}
+body:not(.light-mode) .avatar-edit-btn{
+background:#f0f0f5;
+color:#0a0a0f;
+}
+.avatar-edit-btn i{color:#fff!important;font-size:16px!important;}
+body:not(.light-mode) .avatar-edit-btn i{color:#0a0a0f!important;}
 .avatar-edit-btn:hover{transform:scale(1.1);}
 .msg-item{
 display:flex;align-items:center;gap:14px;
@@ -7756,15 +7764,125 @@ body.light-mode .gc-email-privacy-opt.gc-email-priv-active{
 .gc-img-cell img{width:100%;height:100%;object-fit:cover;display:block;margin:0!important;border-radius:0!important;cursor:pointer;}
 .gc-img-more{position:absolute;inset:0;background:rgba(0,0,0,.55);color:#fff;font-weight:800;font-size:22px;display:flex;align-items:center;justify-content:center;pointer-events:none;}
 .chat-bubble.gc-media-only{background:transparent!important;border:none!important;box-shadow:none!important;padding:4px 0!important;color:var(--text)!important;max-width:min(78%,280px);}
-#gc-chat-img-preview{display:none;flex-wrap:nowrap;gap:8px;padding:8px 12px 4px;overflow-x:auto;background:var(--surface);border-top:1px solid var(--border);}
-#gc-chat-img-preview.open{display:flex;}
-.gc-chat-img-thumb{position:relative;width:64px;height:64px;border-radius:12px;overflow:hidden;flex-shrink:0;background:var(--surface-2);}
+/* Design B — Selected photos card */
+#gc-chat-img-card{
+  display:none;
+  margin:0 12px 8px;
+  padding:14px;
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:20px;
+  box-shadow:0 8px 28px rgba(0,0,0,.08);
+}
+#gc-chat-img-card.open{display:block;}
+body:not(.light-mode) #gc-chat-img-card{box-shadow:0 8px 28px rgba(0,0,0,.35);}
+.gc-chat-img-card-head{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:12px;
+}
+.gc-chat-img-card-title{
+  font-size:15px;font-weight:800;color:var(--text);
+}
+.gc-chat-img-card-badge{
+  font-size:12px;font-weight:700;color:var(--text-muted);
+  background:var(--surface-2);border:1px solid var(--border);
+  border-radius:999px;padding:4px 10px;
+}
+#gc-chat-img-preview{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+}
+.gc-chat-img-thumb{
+  position:relative;
+  aspect-ratio:1;
+  border-radius:14px;
+  overflow:hidden;
+  background:var(--surface-2);
+}
 .gc-chat-img-thumb img{width:100%;height:100%;object-fit:cover;display:block;}
-.gc-chat-img-x{position:absolute;top:2px;right:2px;width:20px;height:20px;border-radius:50%;background:rgba(0,0,0,.65);color:#fff;border:none;display:flex;align-items:center;justify-content:center;font-size:12px;cursor:pointer;padding:0;}
-.gc-chat-img-meta{display:none;align-items:center;gap:8px;padding:4px 12px 8px;font-size:12px;font-weight:700;color:var(--text-muted);background:var(--surface);}
-.gc-chat-img-meta.open{display:flex;}
-.gc-chat-img-send{margin-left:auto;border:none;border-radius:16px;padding:6px 14px;font-weight:800;font-size:12px;background:#0a0a0f;color:#fff;cursor:pointer;}
+.gc-chat-img-x{
+  position:absolute;top:6px;right:6px;
+  width:22px;height:22px;border-radius:50%;
+  background:rgba(0,0,0,.55);color:#fff;
+  border:none;display:flex;align-items:center;justify-content:center;
+  font-size:13px;cursor:pointer;padding:0;line-height:1;
+  backdrop-filter:blur(4px);
+}
+.gc-chat-img-send{
+  width:100%;margin-top:12px;border:none;border-radius:14px;
+  padding:12px 16px;font-weight:800;font-size:14px;
+  background:#0a0a0f;color:#fff;cursor:pointer;
+  font-family:inherit;
+}
 body:not(.light-mode) .gc-chat-img-send{background:#f0f0f5;color:#0a0a0f;}
+.gc-chat-img-send:active{transform:scale(.98);}
+/* legacy meta hidden */
+.gc-chat-img-meta{display:none!important;}
+
+/* Design B — chat input bar polish */
+.chat-input-bar{
+  background:var(--surface);
+  border-top:1px solid var(--border);
+  padding:10px 12px calc(10px + env(safe-area-inset-bottom, 0px));
+  display:flex;gap:10px;align-items:center;
+}
+.chat-input-bar input#chat-input,
+.chat-input-bar > input[type="text"]{
+  flex:1;min-width:0;
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:999px;
+  padding:12px 16px;
+  color:var(--text);font-size:15px;outline:none;
+  transition:border-color 0.2s, box-shadow 0.2s;
+}
+.chat-input-bar input#chat-input:focus{
+  border-color:var(--border);
+  box-shadow:0 0 0 3px rgba(0,0,0,.04);
+}
+.gc-chat-plus-btn{
+  width:40px;height:40px;border-radius:50%;
+  border:1px solid var(--border);cursor:pointer;
+  background:var(--surface);color:var(--text);flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  transition:transform .15s, background .2s;
+  box-shadow:none;
+}
+.gc-chat-plus-btn:active{transform:scale(.92);}
+.gc-chat-plus-btn.is-open{background:var(--surface-2);}
+.gc-chat-plus-btn i{font-size:20px;transition:transform .2s;color:var(--text);}
+.gc-chat-plus-btn.is-open i{transform:rotate(45deg);}
+.chat-send-btn{
+  width:40px;height:40px;
+  background:var(--surface-2);
+  border:1px solid var(--border);
+  border-radius:50%;
+  color:var(--text-muted);
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;
+  transition:background .2s, color .2s, transform .15s, opacity .2s, border-color .2s;
+  box-shadow:none;opacity:1;flex-shrink:0;
+}
+.chat-send-btn i{font-size:18px!important;}
+.chat-send-btn.is-ready{
+  background:#0a0a0f!important;
+  border-color:#0a0a0f!important;
+  color:#fff!important;
+  box-shadow:none!important;
+  opacity:1;
+}
+body:not(.light-mode) .chat-send-btn.is-ready{
+  background:#f0f0f5!important;
+  border-color:#f0f0f5!important;
+  color:#0a0a0f!important;
+}
+.chat-send-btn:not(.is-ready){
+  cursor:default;pointer-events:none;opacity:.7;
+}
+.chat-send-btn.is-ready:hover{transform:scale(1.05);}
+.chat-send-btn.is-ready:active{transform:scale(0.95);}
+
 
 </style>
 
@@ -8940,16 +9058,21 @@ body:not(.light-mode) .gc-chat-img-send{background:#f0f0f5;color:#0a0a0f;}
     </div>
 </div>
 
-<div id="gc-chat-img-preview"></div>
-<div id="gc-chat-img-meta" class="gc-chat-img-meta"><span id="gc-chat-img-count">0/10</span>
-<button type="button" class="gc-chat-img-send" onclick="gcSendQueuedChatImages()">Send photos</button></div>
+<div id="gc-chat-img-card">
+  <div class="gc-chat-img-card-head">
+    <span class="gc-chat-img-card-title">Selected photos</span>
+    <span class="gc-chat-img-card-badge" id="gc-chat-img-count">0/10</span>
+  </div>
+  <div id="gc-chat-img-preview"></div>
+  <button type="button" class="gc-chat-img-send" onclick="gcSendQueuedChatImages()">Send photos</button>
+</div>
 <!-- + button -->
 <button type="button" class="gc-chat-plus-btn" id="gc-chat-plus-btn" onclick="gcToggleChatAttach()" aria-label="Attach">
   <i class="fi fi-rr-add"></i>
 </button>
 
 <!-- 📝 Text Input -->
-<input type="text" id="chat-input" placeholder="Message..." autocomplete="off" oninput="if(currentChatId) localStorage.setItem('gochat_draft_' + currentChatId, this.value); if(typeof gcUpdateChatSendState==='function') gcUpdateChatSendState();" onkeypress="if(event.key==='Enter'){var b=document.getElementById('text-send-btn'); if(b && !b.classList.contains('is-ready')) return; sendMsg();}" style="min-width: 0; flex: 1;">
+<input type="text" id="chat-input" placeholder="Type a message..." autocomplete="off" oninput="if(currentChatId) localStorage.setItem('gochat_draft_' + currentChatId, this.value); if(typeof gcUpdateChatSendState==='function') gcUpdateChatSendState();" onkeypress="if(event.key==='Enter'){var b=document.getElementById('text-send-btn'); if(b && !b.classList.contains('is-ready')) return; sendMsg();}" style="min-width: 0; flex: 1;">
 
 <!-- Hidden native controls (triggered from + menu) -->
 <button id="voice-start-btn" type="button" onclick="startVoiceRecord()" style="display:none !important;" aria-hidden="true">
@@ -15363,20 +15486,24 @@ function gcRemoveQueuedChatImage(idx){
   var q=window.__gcChatImgQueue||[]; q.splice(idx,1); window.__gcChatImgQueue=q; gcRenderChatImgPreview();
 }
 function gcRenderChatImgPreview(){
+  var card=document.getElementById('gc-chat-img-card');
   var box=document.getElementById('gc-chat-img-preview');
-  var meta=document.getElementById('gc-chat-img-meta');
   var countEl=document.getElementById('gc-chat-img-count');
   var q=window.__gcChatImgQueue||[];
   if(!box) return;
   if(box._urls){ box._urls.forEach(function(u){ try{ URL.revokeObjectURL(u);}catch(e){} }); }
   box._urls=[];
-  if(!q.length){ box.innerHTML=''; box.classList.remove('open'); if(meta) meta.classList.remove('open'); return; }
-  box.classList.add('open'); if(meta) meta.classList.add('open');
+  if(!q.length){
+    box.innerHTML='';
+    if(card) card.classList.remove('open');
+    return;
+  }
+  if(card) card.classList.add('open');
   if(countEl) countEl.textContent=q.length+'/10';
   var html='';
   for(var i=0;i<q.length;i++){
     var u=URL.createObjectURL(q[i]); box._urls.push(u);
-    html+='<div class="gc-chat-img-thumb"><img src="'+u+'" alt=""><button type="button" class="gc-chat-img-x" onclick="gcRemoveQueuedChatImage('+i+')">&times;</button></div>';
+    html+='<div class="gc-chat-img-thumb"><img src="'+u+'" alt=""><button type="button" class="gc-chat-img-x" onclick="gcRemoveQueuedChatImage('+i+')" aria-label="Remove">&times;</button></div>';
   }
   box.innerHTML=html;
 }
