@@ -2471,11 +2471,112 @@ align-items:flex-end;justify-content:center;
   transition:border-color .15s ease, background .15s ease;
 }
 .gc-dob-privacy-option i:first-child{ font-size:22px; color:var(--accent-dark); }
-.gc-dob-priv-check{ font-size:20px; color:var(--border) !important; }
+.gc-dob-priv-check{ font-size:20px; color:var(--border) !important; display:none; }
+.gc-dob-privacy-option.gc-dob-priv-active .gc-dob-priv-check{ color:var(--accent) !important; }
 .gc-dob-privacy-option.gc-dob-priv-active{
   border-color:#7c5cff; background:rgba(124,92,255,0.08);
 }
 .gc-dob-privacy-option.gc-dob-priv-active .gc-dob-priv-check{ color:#7c5cff !important; }
+
+
+.gc-native-select-hidden{
+  position:absolute !important;
+  width:1px !important;
+  height:1px !important;
+  padding:0 !important;
+  margin:-1px !important;
+  overflow:hidden !important;
+  clip:rect(0,0,0,0) !important;
+  white-space:nowrap !important;
+  border:0 !important;
+}
+
+/* ═══ Premium profile selects · Gender / Relationship ═══ */
+.gc-profile-select-trigger{
+  width:100%;
+  min-height:50px;
+  padding:14px 16px;
+  border-radius:14px;
+  background:var(--surface) !important;
+  border:1px solid var(--border) !important;
+  box-shadow:var(--shadow-sm) !important;
+  color:var(--text);
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  cursor:pointer;
+  font-size:15px;
+  font-weight:500;
+  transition:border-color .2s, box-shadow .2s, background .2s;
+}
+.gc-profile-select-trigger:active{transform:scale(.995);}
+.gc-profile-select-trigger .gc-profile-select-value.gc-placeholder{color:var(--text-muted);}
+.gc-profile-select-trigger i{color:var(--text-muted);font-size:18px;flex-shrink:0;}
+
+#gc-profile-select-sheet{
+  display:none !important;
+  position:fixed !important;
+  inset:0 !important;
+  z-index:200100 !important;
+  background:rgba(0,0,0,.5) !important;
+  align-items:flex-end !important;
+  justify-content:center !important;
+  margin:0 !important;
+  padding:0 !important;
+  visibility:hidden !important;
+  pointer-events:none !important;
+  opacity:0 !important;
+}
+#gc-profile-select-sheet.open{
+  display:flex !important;
+  visibility:visible !important;
+  pointer-events:auto !important;
+  opacity:1 !important;
+}
+.gc-profile-select-card{
+  width:100%;
+  max-width:420px;
+  background:var(--surface,#fff);
+  border-radius:18px 18px 0 0;
+  padding:18px 16px max(18px,env(safe-area-inset-bottom));
+  color:var(--text);
+  box-shadow:0 -8px 32px rgba(0,0,0,.18);
+}
+.gc-profile-select-option{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding:14px 12px;
+  border-radius:14px;
+  cursor:pointer;
+  font-weight:600;
+  border:1.5px solid transparent;
+  margin-bottom:8px;
+  transition:background .15s,border-color .15s;
+}
+.gc-profile-select-option.gc-profile-select-active{
+  background:color-mix(in srgb,var(--accent) 12%,transparent);
+  border-color:color-mix(in srgb,var(--accent) 45%,transparent);
+}
+body.light-mode .gc-profile-select-option.gc-profile-select-active{
+  background:#f3eeff;
+  border-color:#c4b5fd;
+}
+.gc-profile-select-option > i:first-child{
+  font-size:20px;
+  color:var(--accent);
+  width:24px;
+  text-align:center;
+  flex-shrink:0;
+}
+.gc-profile-select-option .gc-profile-select-check{
+  display:none;
+  margin-left:auto;
+  color:var(--accent);
+  font-size:18px;
+}
+.gc-profile-select-option.gc-profile-select-active .gc-profile-select-check{display:inline-flex;}
 
 /* Birthday field in Edit Profile */
 .gc-dob-field-row{
@@ -8405,6 +8506,17 @@ body:not(.light-mode) .chat-send-btn.is-ready{
     </div>
 </div>
 
+<!-- Premium profile select sheet — same design as Email privacy -->
+<div class="modal-overlay" id="gc-profile-select-sheet" aria-hidden="true" onclick="if(event.target===this)gcCloseProfileSelect()">
+    <div class="gc-profile-select-card" onclick="event.stopPropagation()">
+        <div style="width:40px;height:4px;border-radius:4px;background:rgba(128,128,128,.35);margin:0 auto 14px;"></div>
+        <div id="gc-profile-select-title" style="font-weight:800;font-size:17px;margin-bottom:6px;">Select</div>
+        <div id="gc-profile-select-sub" style="font-size:13px;color:var(--text-muted);margin-bottom:12px;">Choose an option.</div>
+        <div id="gc-profile-select-options"></div>
+        <button type="button" class="btn-primary" style="width:100%;margin-top:4px;border-radius:14px;" onclick="gcCloseProfileSelect()">Done</button>
+    </div>
+</div>
+
 <!-- Birthday privacy popup — same design language as Email privacy -->
 <div class="modal-overlay" id="gc-dob-privacy-modal" style="z-index:100210; align-items:flex-end; justify-content:center;" onclick="if(event.target===this) gcCloseDobPrivacyPopup()">
     <div class="gc-dob-privacy-card" style="width:100%; max-width:420px; border-radius:18px 18px 0 0; margin:0; padding:18px 16px max(18px, env(safe-area-inset-bottom));" onclick="event.stopPropagation()">
@@ -9024,7 +9136,15 @@ body:not(.light-mode) .chat-send-btn.is-ready{
         </div>
         <div class="input-group"><label>Name</label><input type="text" id="edit-name"></div>
         <div class="input-group"><label>Bio</label><input type="text" id="edit-bio"></div>
-        <div class="input-group"><label>Gender</label><select id="edit-gender"><option value="">Select Gender</option><option value="Male">Male</option><option value="Female">Female</option></select></div>
+        <div class="input-group"><label>Gender</label>
+            <select id="edit-gender" class="gc-native-select-hidden" aria-hidden="true" tabindex="-1">
+                <option value="">Select Gender</option><option value="Male">Male</option><option value="Female">Female</option>
+            </select>
+            <div class="gc-profile-select-trigger" id="gc-gender-select-trigger" onclick="gcOpenProfileSelect('gender')" role="button" tabindex="0" aria-haspopup="dialog">
+                <span class="gc-profile-select-value gc-placeholder" id="gc-gender-select-value">Select Gender</span>
+                <i class="ph-bold ph-caret-down"></i>
+            </div>
+        </div>
         <div class="input-group"><label>Location</label><input type="text" id="edit-location"></div>
         <div class="input-group"><label>Phone</label><input type="tel" id="edit-phone"></div>
         <div class="input-group">
@@ -9038,7 +9158,15 @@ body:not(.light-mode) .chat-send-btn.is-ready{
             <div style="font-size:11px;color:var(--text-muted);margin-top:6px;" id="gc-email-privacy-hint">Visible on your profile · Public</div>
         </div>
         <div class="input-group"><label>Home Town</label><input type="text" id="edit-hometown"></div>
-        <div class="input-group"><label>Relationship</label><select id="edit-relationship"><option value="">Select Status</option><option value="Single">Single</option><option value="In a relationship">In a relationship</option><option value="Married">Married</option></select></div>
+        <div class="input-group"><label>Relationship</label>
+            <select id="edit-relationship" class="gc-native-select-hidden" aria-hidden="true" tabindex="-1">
+                <option value="">Select Status</option><option value="Single">Single</option><option value="In a relationship">In a relationship</option><option value="Married">Married</option>
+            </select>
+            <div class="gc-profile-select-trigger" id="gc-relationship-select-trigger" onclick="gcOpenProfileSelect('relationship')" role="button" tabindex="0" aria-haspopup="dialog">
+                <span class="gc-profile-select-value gc-placeholder" id="gc-relationship-select-value">Select Status</span>
+                <i class="ph-bold ph-caret-down"></i>
+            </div>
+        </div>
         <div class="input-group">
             <label>Birthday</label>
             <div class="gc-dob-field-row">
@@ -16573,6 +16701,7 @@ function gcOpenEpSection(which){
         if(typeof gcRefreshEmailPrivacyHint === 'function') gcRefreshEmailPrivacyHint();
         document.getElementById('edit-hometown').value = currentUserData.hometown || '';
         document.getElementById('edit-relationship').value = currentUserData.relationship || '';
+        if(typeof gcSyncProfileSelectFields === 'function') gcSyncProfileSelectFields();
         window.gcEditDobValue = currentUserData.dob || '';
         window.gcEditDobPrivacyValue = currentUserData.dobPrivacy || 'public';
         if(typeof gcRenderEditDobBox === 'function') gcRenderEditDobBox();
@@ -20832,12 +20961,114 @@ function gcEditBirthdayBoxClick(){
 }
 window.gcEditBirthdayBoxClick = gcEditBirthdayBoxClick;
 
+// ═══ Premium Gender / Relationship selector ═══
+window.gcProfileSelectType = '';
+
+function gcProfileSelectConfig(type){
+    if(type === 'gender'){
+        return {
+            title:'Gender',
+            sub:'Choose your gender for your profile.',
+            selectId:'edit-gender',
+            valueId:'gc-gender-select-value',
+            options:[
+                {value:'Male', label:'Male', sub:'', icon:'ph-gender-male'},
+                {value:'Female', label:'Female', sub:'', icon:'ph-gender-female'}
+            ]
+        };
+    }
+    return {
+        title:'Relationship',
+        sub:'Choose your current relationship status.',
+        selectId:'edit-relationship',
+        valueId:'gc-relationship-select-value',
+        options:[
+            {value:'Single', label:'Single', sub:'', icon:'ph-user'},
+            {value:'In a relationship', label:'In a relationship', sub:'', icon:'ph-heart'},
+            {value:'Married', label:'Married', sub:'', icon:'ph-heart-straight'}
+        ]
+    };
+}
+
+function gcSyncProfileSelectField(type){
+    var cfg = gcProfileSelectConfig(type);
+    var sel = document.getElementById(cfg.selectId);
+    var out = document.getElementById(cfg.valueId);
+    if(!sel || !out) return;
+    var value = sel.value || '';
+    var option = cfg.options.find(function(o){ return o.value === value; });
+    out.textContent = option ? option.label : (type === 'gender' ? 'Select Gender' : 'Select Status');
+    out.classList.toggle('gc-placeholder', !option);
+}
+
+function gcSyncProfileSelectFields(){
+    gcSyncProfileSelectField('gender');
+    gcSyncProfileSelectField('relationship');
+}
+window.gcSyncProfileSelectFields = gcSyncProfileSelectFields;
+
+function gcOpenProfileSelect(type){
+    var cfg = gcProfileSelectConfig(type);
+    var sheet = document.getElementById('gc-profile-select-sheet');
+    var title = document.getElementById('gc-profile-select-title');
+    var sub = document.getElementById('gc-profile-select-sub');
+    var list = document.getElementById('gc-profile-select-options');
+    var sel = document.getElementById(cfg.selectId);
+    if(!sheet || !title || !sub || !list || !sel) return;
+
+    window.gcProfileSelectType = type;
+    var current = sel.value || '';
+    title.textContent = cfg.title;
+    sub.textContent = cfg.sub;
+    list.innerHTML = cfg.options.map(function(o){
+        var active = o.value === current;
+        var safeValue = JSON.stringify(o.value);
+        return '<div class="gc-profile-select-option'+(active?' gc-profile-select-active':'')+'" onclick="gcSelectProfileOption('+safeValue+')">'
+          + '<i class="ph '+o.icon+'"></i>'
+          + '<div style="flex:1;"><div>'+escapeHTML(o.label)+'</div>'+(o.sub?'<div style="font-size:12px;font-weight:500;color:var(--text-muted);">'+escapeHTML(o.sub)+'</div>':'')+'</div>'
+          + '<i class="ph-fill ph-check gc-profile-select-check"></i>'
+          + '</div>';
+    }).join('');
+
+    sheet.classList.add('open');
+    sheet.setAttribute('aria-hidden','false');
+}
+window.gcOpenProfileSelect = gcOpenProfileSelect;
+
+function gcSelectProfileOption(value){
+    var type = window.gcProfileSelectType;
+    var cfg = gcProfileSelectConfig(type);
+    var sel = document.getElementById(cfg.selectId);
+    if(!sel) return;
+    var allowed = cfg.options.some(function(o){ return o.value === value; });
+    if(!allowed) return;
+    sel.value = value;
+    try{ sel.dispatchEvent(new Event('change',{bubbles:true})); }catch(e){}
+    gcSyncProfileSelectField(type);
+    gcOpenProfileSelect(type); // re-render so the selected check is immediately visible
+}
+window.gcSelectProfileOption = gcSelectProfileOption;
+
+function gcCloseProfileSelect(){
+    var sheet = document.getElementById('gc-profile-select-sheet');
+    if(sheet){
+        sheet.classList.remove('open');
+        sheet.setAttribute('aria-hidden','true');
+    }
+    window.gcProfileSelectType = '';
+}
+window.gcCloseProfileSelect = gcCloseProfileSelect;
+
 function gcRenderDobPrivacyUI(){
     const v = window.gcEditDobPrivacyValue || 'public';
     var cp = document.getElementById('gc-dob-priv-check-public');
     var cpr = document.getElementById('gc-dob-priv-check-private');
+    var op = document.getElementById('gc-dob-priv-public');
+    var opr = document.getElementById('gc-dob-priv-private');
     if(cp) cp.style.display = (v === 'public') ? 'inline-flex' : 'none';
     if(cpr) cpr.style.display = (v === 'private') ? 'inline-flex' : 'none';
+    if(op) op.classList.toggle('gc-dob-priv-active', v === 'public');
+    if(opr) opr.classList.toggle('gc-dob-priv-active', v === 'private');
 }
 
 function gcOpenDobPrivacyPopup(){
