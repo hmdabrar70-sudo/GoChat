@@ -10079,7 +10079,7 @@ body:not(.light-mode) .chat-send-btn.is-ready{
                 <i class="fi fi-rr-picture" style="font-size:18px;"></i> Wallpaper
             </button>
 
-            <button id="qp-private-chat-btn" class="btn-outline" onclick="togglePrivateChatFromQP()" style="margin:0; border-radius: 16px; padding: 12px; font-size: 12px; border: none; background: var(--surface-2); color: var(--text); white-space: nowrap; overflow: hidden;">
+            <button id="qp-private-chat-btn" class="btn-outline" onclick="openPrivateChatSettingsPage()" style="margin:0; border-radius: 16px; padding: 12px; font-size: 12px; border: none; background: var(--surface-2); color: var(--text); white-space: nowrap; overflow: hidden;">
                 <i class="fi fi-rr-lock" style="font-size:18px;"></i> <span id="qp-private-chat-text">Private Chat OFF</span>
             </button>
 
@@ -10093,6 +10093,52 @@ body:not(.light-mode) .chat-send-btn.is-ready{
             </button>
 
         </div>
+    </div>
+</div>
+
+<!-- 🚀 Private Chat Settings Page -->
+<div id="private-chat-settings-page" style="display:none; position:fixed; inset:0; background:var(--bg); z-index:100010; flex-direction:column; overflow-y:auto; animation:slideUp 0.28s ease;">
+    <div class="chat-topbar" style="position:sticky; top:0; z-index:20; display:flex; align-items:center; gap:12px; background:var(--surface); border-bottom:1px solid var(--border);">
+        <div class="chat-back" onclick="closePrivateChatSettingsPage()" aria-label="Back"><i class="ph-bold ph-arrow-u-up-left" style="font-size:22px;"></i></div>
+        <div class="chat-name" style="font-size:18px; font-weight:800; flex:1;">Private Chat</div>
+        <div id="private-chat-page-toggle" class="toggle-switch success" onclick="togglePrivateChatFromSettingsPage()" role="switch" aria-label="Private Chat"></div>
+    </div>
+
+    <div style="padding:28px 20px 40px; max-width:680px; width:100%; margin:0 auto; box-sizing:border-box;">
+        <div style="display:flex; justify-content:center; margin:10px 0 24px;">
+            <div style="width:96px; height:96px; border-radius:30px; background:linear-gradient(135deg,var(--accent-glow),var(--surface-2)); display:flex; align-items:center; justify-content:center; box-shadow:var(--shadow-md); border:1px solid var(--border);">
+                <i class="fi fi-rr-lock" style="font-size:48px; color:var(--accent);"></i>
+            </div>
+        </div>
+
+        <div style="text-align:center; margin-bottom:28px;">
+            <h2 style="margin:0 0 10px; font-size:25px; font-weight:850; color:var(--text);">Private Chat</h2>
+            <p style="margin:0; color:var(--text-secondary); font-size:14px; line-height:1.65;">Extra protection for your conversations and media.</p>
+        </div>
+
+        <div style="background:var(--surface); border:1px solid var(--border); border-radius:22px; padding:20px; box-shadow:var(--shadow-sm);">
+            <div style="display:flex; gap:12px; align-items:flex-start; margin-bottom:18px;">
+                <div style="width:38px; height:38px; flex:0 0 38px; border-radius:12px; background:var(--accent-glow); color:var(--accent); display:flex; align-items:center; justify-content:center;"><i class="ph-bold ph-shield-check" style="font-size:20px;"></i></div>
+                <div style="font-size:14px; line-height:1.75; color:var(--text);">
+                    <b>Dear user,</b><br>
+                    If you enable this feature, your conversations and media with this specific person will have an extra layer of protection.
+                </div>
+            </div>
+
+            <div style="height:1px; background:var(--border); margin:4px 0 18px;"></div>
+
+            <div style="font-size:14px; line-height:1.8; color:var(--text-secondary);">
+                <p style="margin:0 0 16px;">You can turn Private Chat off at any time.</p>
+                <p style="margin:0; color:var(--text);"><b>Important:</b> When you turn Private Chat off, all conversations and media with this specific person will be automatically and permanently deleted. Neither you nor the person you are chatting with will be able to view them anymore. Any media stored in the Conversation Picture section for this chat will also be automatically deleted.</p>
+            </div>
+        </div>
+
+        <div style="margin-top:16px; padding:15px 16px; border-radius:16px; background:rgba(255, 170, 0, .08); border:1px solid rgba(255, 170, 0, .22); display:flex; gap:10px; align-items:flex-start; color:var(--text-secondary); font-size:13px; line-height:1.65;">
+            <i class="ph-bold ph-warning" style="font-size:20px; color:#f0a000; flex:0 0 auto;"></i>
+            <span>Please use this feature carefully. Turning it off permanently deletes the conversation and its media.</span>
+        </div>
+
+        <div style="text-align:center; margin-top:24px; color:var(--text-muted); font-size:12px; line-height:1.6;">Thank you for using GoChat.</div>
     </div>
 </div>
 
@@ -22244,6 +22290,86 @@ async function cleanupPrivateChatsOnLoad() {
         }
     } catch (e) {
         console.error("Error cleaning private chats:", e);
+    }
+}
+
+// 🚀 Private Chat Settings Page
+function gcIsCurrentPrivateChatEnabled(){
+    return !!(currentUserData && Array.isArray(currentUserData.activePrivateChats) && currentChatId && currentUserData.activePrivateChats.includes(currentChatId));
+}
+
+function updatePrivateChatSettingsPageUI(){
+    const toggle=document.getElementById('private-chat-page-toggle');
+    if(toggle) toggle.classList.toggle('active', gcIsCurrentPrivateChatEnabled());
+}
+
+function openPrivateChatSettingsPage(){
+    const page=document.getElementById('private-chat-settings-page');
+    if(!page) return;
+    const qp=document.getElementById('quick-profile-modal');
+    if(qp) qp.classList.remove('open');
+    updatePrivateChatSettingsPageUI();
+    page.style.display='flex';
+}
+
+function closePrivateChatSettingsPage(){
+    const page=document.getElementById('private-chat-settings-page');
+    if(page) page.style.display='none';
+}
+
+async function togglePrivateChatFromSettingsPage(){
+    if(!currentChatId || !currentUser) return;
+    const isPrivate=gcIsCurrentPrivateChatEnabled();
+
+    if(isPrivate){
+        if(typeof gcOpenConfirm==='function' && !window.__gcConfirmForceYes){
+            gcOpenConfirm({
+                title:'Turn Off Private Chat?',
+                text:'Turning this off will permanently delete all messages and media in this chat for both people. This cannot be undone.',
+                icon:'ph-lock-open',
+                yesLabel:'Turn Off & Delete',
+                onYes:function(){
+                    window.__gcConfirmForceYes=true;
+                    togglePrivateChatFromSettingsPage();
+                    setTimeout(function(){window.__gcConfirmForceYes=false;},1000);
+                }
+            });
+            return;
+        }
+    }
+
+    try{
+        const messagesRef=db.collection('chats').doc(currentChatId).collection('messages');
+        const snap=await messagesRef.get();
+        const batch=db.batch();
+        snap.forEach(doc=>batch.delete(doc.ref));
+
+        if(isPrivate){
+            await batch.commit();
+            await db.collection('users').doc(currentUser.uid).update({
+                activePrivateChats: firebase.firestore.FieldValue.arrayRemove(currentChatId)
+            });
+            currentUserData.activePrivateChats=(currentUserData.activePrivateChats||[]).filter(id=>id!==currentChatId);
+            updatePrivateChatSettingsPageUI();
+            updatePrivateChatUI();
+            showToast('Private Chat OFF. All conversations and media were deleted.');
+            closePrivateChatSettingsPage();
+            if(document.getElementById('chat-screen')?.classList.contains('open')){
+                try{ closeChat(); }catch(e){}
+            }
+        }else{
+            await db.collection('users').doc(currentUser.uid).update({
+                activePrivateChats: firebase.firestore.FieldValue.arrayUnion(currentChatId)
+            });
+            currentUserData.activePrivateChats=[...(currentUserData.activePrivateChats||[]),currentChatId];
+            updatePrivateChatSettingsPageUI();
+            updatePrivateChatUI();
+            showToast('Private Chat ON');
+        }
+    }catch(e){
+        console.error('Private Chat settings update failed:',e);
+        showToast(isPrivate ? 'Failed to turn off Private Chat' : 'Failed to enable Private Chat');
+        updatePrivateChatSettingsPageUI();
     }
 }
 
