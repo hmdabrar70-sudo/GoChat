@@ -4201,26 +4201,31 @@ box-shadow: 0 4px 12px var(--accent-glow);
     background: #ffffff;
 }
 /* =========================================
-ADVANCED PRIVACY PROTECTION CSS
+ADVANCED PRIVACY PROTECTION CSS · TESTED BEHAVIOUR
 ========================================= */
-.privacy-restricted .chat-bubble {
+#chat-messages.privacy-restricted,
+#chat-messages.privacy-restricted * {
     -webkit-user-select: none !important;
     user-select: none !important;
     -webkit-touch-callout: none !important;
-    pointer-events: auto; /* ক্লিক কাজ করবে কিন্তু টেক্সট সিলেক্ট হবে না */
 }
-
-/* ইমেজের ওপর লং-প্রেস বা সেভ অপশন বন্ধ করার জন্য */
-.privacy-restricted .chat-bubble img {
+#chat-messages.privacy-restricted .chat-bubble img,
+#chat-messages.privacy-restricted .gc-img-cell img,
+#chat-messages.privacy-restricted .gc-img-stack img {
     pointer-events: none !important;
     -webkit-user-drag: none !important;
+    user-drag: none !important;
 }
-
-/* মোবাইলে কপি/শেয়ার মেনু আসা বন্ধ করতে */
-.privacy-restricted {
+#chat-messages.privacy-restricted a {
     -webkit-user-select: none !important;
     user-select: none !important;
 }
+#chat-messages.privacy-restricted .gc-img-cell,
+#chat-messages.privacy-restricted .gc-img-stack {
+    -webkit-touch-callout: none !important;
+}
+/* The web platform cannot reliably block OS-level screenshots. These rules
+   block text selection, copy/context menus and direct media-save gestures. */
 
 /* =========================================
 NESTED ACTIVITY CATEGORIES STYLES
@@ -15275,14 +15280,19 @@ function openChat(chatId, otherUid, otherName, otherAvatar){
             const chatMessagesEl = document.getElementById('chat-messages');
             const toggleBtn = document.getElementById('advanced-privacy-toggle');
             
-            if (chatMessagesEl) chatMessagesEl.classList.add('privacy-restricted');
-            if (toggleBtn) toggleBtn.classList.add('active');
+            if(typeof gcApplyAdvancedPrivacyState === 'function') gcApplyAdvancedPrivacyState(true);
+            else {
+                if (chatMessagesEl) chatMessagesEl.classList.add('privacy-restricted');
+                if (toggleBtn) toggleBtn.classList.add('active');
+            }
         } else {
-            const chatMessagesEl = document.getElementById('chat-messages');
-            const toggleBtn = document.getElementById('advanced-privacy-toggle');
-            
-            if (chatMessagesEl) chatMessagesEl.classList.remove('privacy-restricted');
-            if (toggleBtn) toggleBtn.classList.remove('active');
+            if(typeof gcApplyAdvancedPrivacyState === 'function') gcApplyAdvancedPrivacyState(false);
+            else {
+                const chatMessagesEl = document.getElementById('chat-messages');
+                const toggleBtn = document.getElementById('advanced-privacy-toggle');
+                if (chatMessagesEl) chatMessagesEl.classList.remove('privacy-restricted');
+                if (toggleBtn) toggleBtn.classList.remove('active');
+            }
         }
     });
     
@@ -15505,8 +15515,13 @@ function setupTypingIndicator(chatId, otherUid) {
     onlineUnsub = chatRef.onSnapshot(doc => {
         if (!doc.exists) return;
         const data = doc.data();
-        
-        
+
+        // Advanced Privacy is shared at chat level. If either participant enables it,
+        // every open client applies the same restriction immediately.
+        if(typeof gcApplyAdvancedPrivacyState === 'function'){
+            gcApplyAdvancedPrivacyState(data.advancedPrivacy === true);
+        }
+
         // --- 🚀 4. Group Mention Setup (Load Members) ---
         if(data.isGroup && data.members) {
             mentionData.friends = data.members.map(uid => {
@@ -15730,6 +15745,10 @@ async function replyToMessage(msgId) {
 
 
 async function copyMessageText(msgId){
+    if(typeof gcIsAdvancedPrivacyActive === 'function' && gcIsAdvancedPrivacyActive()){
+        showToast('Copy is disabled while Advanced Privacy is ON');
+        return;
+    }
     try{
         const ref = db.collection('chats').doc(currentChatId).collection('messages').doc(msgId);
         const snap = await ref.get();
@@ -17999,6 +18018,10 @@ function closeImageZoom() {
 // নতুন ফাংশন: ছবি ডাউনলোড করার জন্য (APK এবং Web উভয়ের জন্য ফিক্সড)
 async function downloadZoomedImage(event) {
     if(event) event.stopPropagation();
+    if(typeof gcIsAdvancedPrivacyActive === 'function' && gcIsAdvancedPrivacyActive()){
+        showToast('Saving media is disabled while Advanced Privacy is ON');
+        return;
+    }
     try{ gcCloseSheet(); }catch(e){}
     const menu = document.getElementById('zoom-menu');
     if(menu) menu.classList.remove('open');
@@ -19517,6 +19540,11 @@ function selectionReply(){
 }
 
 async function selectionCopy(){
+    if(typeof gcIsAdvancedPrivacyActive === 'function' && gcIsAdvancedPrivacyActive()){
+        showToast('Copy is disabled while Advanced Privacy is ON');
+        closeSelectionMode();
+        return;
+    }
     if(selectedMsgIds.length !== 1) return;
     const id = selectedMsgIds[0];
     if(typeof copyMessageText === 'function') await copyMessageText(id);
@@ -21971,6 +21999,52 @@ async function toggleAdvancedPrivacy() {
         showToast("Failed to update privacy settings");
     }
 }
+
+// ═══════════════════════════════════════════════════════════
+// ADVANCED PRIVACY · ENFORCEMENT LAYER
+// One participant can enable it; the shared chat document controls both clients.
+// Browser note: OS-level screenshots cannot be reliably blocked from JavaScript.
+// We block copy, selection, context-menu/save gestures and media download actions.
+// ═══════════════════════════════════════════════════════════
+function gcIsAdvancedPrivacyActive(){
+    const chatMessagesEl = document.getElementById('chat-messages');
+    return !!(chatMessagesEl && chatMessagesEl.classList.contains('privacy-restricted'));
+}
+window.gcIsAdvancedPrivacyActive = gcIsAdvancedPrivacyActive;
+
+function gcApplyAdvancedPrivacyState(enabled){
+    const on = !!enabled;
+    const chatMessagesEl = document.getElementById('chat-messages');
+    const toggle = document.getElementById('advanced-privacy-toggle');
+    if(chatMessagesEl) chatMessagesEl.classList.toggle('privacy-restricted', on);
+    if(toggle) toggle.classList.toggle('active', on);
+    const selectionBar = document.getElementById('selection-bottom-bar');
+    if(on && selectionBar && selectionBar.style.display !== 'none'){
+        try{ if(typeof closeSelectionMode === 'function') closeSelectionMode(); }catch(e){}
+    }
+}
+window.gcApplyAdvancedPrivacyState = gcApplyAdvancedPrivacyState;
+
+// Block copy/context-menu/drag while the current chat has Advanced Privacy ON.
+document.addEventListener('copy', function(e){
+    if(gcIsAdvancedPrivacyActive()){
+        e.preventDefault();
+        showToast('Copy is disabled while Advanced Privacy is ON');
+    }
+}, true);
+document.addEventListener('cut', function(e){
+    if(gcIsAdvancedPrivacyActive()) e.preventDefault();
+}, true);
+document.addEventListener('contextmenu', function(e){
+    if(gcIsAdvancedPrivacyActive() && e.target.closest('#chat-messages')){
+        e.preventDefault();
+        e.stopPropagation();
+    }
+}, true);
+document.addEventListener('dragstart', function(e){
+    if(gcIsAdvancedPrivacyActive() && e.target.closest('#chat-messages')) e.preventDefault();
+}, true);
+
 // ===== NESTED ACTIVITY SYSTEM DATA & LOGIC =====
 const activityCategories = {
     'happy': {
@@ -25196,9 +25270,14 @@ function gcConfigureZoomMenu(){
       '<div class="chat-dropdown-item" onclick="gcChangeCoverFromZoom(event)"><i class="fi fi-rr-camera" style="font-size:20px;"></i> Change cover photo</div>' +
       '<div class="chat-dropdown-item danger" onclick="gcRemoveCoverFromZoom(event)"><i class="fi fi-rr-trash" style="font-size:20px;"></i> Remove cover photo</div>';
   } else {
-    menu.innerHTML =
-      '<div class="chat-dropdown-item" onclick="shareZoomedImage(event)"><i class="ph-bold ph-export" style="font-size:20px;"></i> Share via...</div>' +
-      '<div class="chat-dropdown-item" onclick="downloadZoomedImage(event)"><i class="fi fi-rr-down-to-line" style="font-size:20px;"></i> Save image</div>';
+    if(kind === 'chat' && typeof gcIsAdvancedPrivacyActive === 'function' && gcIsAdvancedPrivacyActive()){
+      menu.innerHTML =
+        '<div class="chat-dropdown-item" style="opacity:.55;cursor:default;pointer-events:none;"><i class="ph-bold ph-shield-check" style="font-size:20px;"></i> Advanced Privacy ON</div>';
+    } else {
+      menu.innerHTML =
+        '<div class="chat-dropdown-item" onclick="shareZoomedImage(event)"><i class="ph-bold ph-export" style="font-size:20px;"></i> Share via...</div>' +
+        '<div class="chat-dropdown-item" onclick="downloadZoomedImage(event)"><i class="fi fi-rr-down-to-line" style="font-size:20px;"></i> Save image</div>';
+    }
   }
 }
 window.gcConfigureZoomMenu = gcConfigureZoomMenu;
@@ -25341,6 +25420,10 @@ window.openZoomActionSheet = openZoomActionSheet;
 
 async function shareZoomedImage(event){
   if(event) event.stopPropagation();
+  if(typeof gcIsAdvancedPrivacyActive === 'function' && gcIsAdvancedPrivacyActive()){
+    showToast('Sharing media is disabled while Advanced Privacy is ON');
+    return;
+  }
   try{ gcCloseSheet(); }catch(e){}
   const imgUrl = (document.getElementById('zoom-image') || {}).src || '';
   if(!imgUrl){ showToast('Nothing to share'); return; }
@@ -28021,37 +28104,37 @@ window.gcClearFeeling = gcClearFeeling;
 // 🚀 CONVERSATION MEDIA LOGIC
 // =========================================
 async function openConversationMedia() {
-    closeQuickProfile(); // আগের ছোট পপআপটি বন্ধ করবে
+    closeQuickProfile();
     if (!currentChatId) return;
 
-    // নতুন মিডিয়া পেজটি ওপেন করবে
     document.getElementById('conversation-media-screen').style.display = 'flex';
     const grid = document.getElementById('conv-media-grid');
-    
-    // লোডিং অ্যানিমেশন
     grid.innerHTML = '<div class="empty-feed" style="grid-column: 1 / -1; padding: 40px;"><i class="ph-bold ph-circle" style="animation: qrncSpin 1s linear infinite; font-size: 32px;"></i><br><div style="margin-top:10px;">Loading media...</div></div>';
 
     try {
-        // ডাটাবেস থেকে শুধু ওই চ্যাটের মেসেজগুলো নিয়ে আসবে
         const snap = await db.collection('chats').doc(currentChatId).collection('messages').orderBy('createdAt', 'desc').get();
-        
         let html = '';
         let count = 0;
         
         snap.forEach(doc => {
-            const msg = doc.data();
-            const mediaUrl = msg.imageUrl || msg.mediaUrl; // ছবিতে যে লিংকটা সেভ করা আছে
-            
-            if (mediaUrl) {
-                // ছবি পেলে সেটাকে আপনার গ্যালারি আইটেমের মতো করে বসাবে এবং ক্লিক করলে ডাউনলোড অপশনসহ জুম হবে
-                html += `<div class="gallery-item" onclick="openImageZoom('${escapeHTML(mediaUrl)}')">
-                            <img src="${escapeHTML(mediaUrl)}" alt="Media" loading="lazy">
+            const msg = doc.data() || {};
+            let urls = [];
+            if (Array.isArray(msg.images)) {
+                urls = msg.images.filter(Boolean);
+            }
+            if (!urls.length && msg.imageUrl) urls = [msg.imageUrl];
+            if (!urls.length && msg.mediaUrl) urls = [msg.mediaUrl];
+
+            urls.forEach((url, localIndex) => {
+                const safeUrl = escapeHTML(url);
+                const zoomUrls = escapeHTML(JSON.stringify(urls));
+                html += `<div class="gallery-item" onclick="gcOpenConversationMediaImage(${localIndex}, '${zoomUrls}')">
+                            <img src="${safeUrl}" alt="Media" loading="lazy" draggable="false">
                          </div>`;
                 count++;
-            }
+            });
         });
 
-        // যদি কোনো ছবি না থাকে
         if (count === 0) {
             grid.innerHTML = '<div class="empty-feed" style="grid-column: 1 / -1; padding: 60px 20px;"><i class="fi fi-rr-picture-slash" style="font-size:48px; opacity:0.3; margin-bottom:12px;"></i><br><div style="font-size:15px; font-weight:700; color:var(--text-secondary);">No media found</div></div>';
         } else {
@@ -28062,6 +28145,27 @@ async function openConversationMedia() {
         grid.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; color: var(--danger); padding: 20px;">Error loading media</div>';
     }
 }
+
+function gcOpenConversationMediaImage(index, urlsJson){
+    try{
+        const urls = JSON.parse(urlsJson || '[]').filter(Boolean);
+        if(!urls.length) return;
+        zoomImagesList = urls;
+        zoomCurrentIdx = Math.max(0, Math.min(Number(index) || 0, urls.length - 1));
+        zoomActivePostId = null;
+        window.zoomIsProfilePic = false;
+        window.zoomIsOwnMedia = false;
+        window.zoomMediaKind = 'chat';
+        if(typeof gcConfigureZoomMenu === 'function') gcConfigureZoomMenu();
+        const zm = document.getElementById('image-zoom-modal');
+        if(!zm) return;
+        zm.classList.remove('closing');
+        void zm.offsetWidth;
+        zm.classList.add('open');
+        if(typeof renderZoomImage === 'function') renderZoomImage();
+    }catch(e){ console.error(e); }
+}
+window.gcOpenConversationMediaImage = gcOpenConversationMediaImage;
 
 function closeConversationMedia() {
     document.getElementById('conversation-media-screen').style.display = 'none';
