@@ -37,7 +37,7 @@
 --success:#22c55e;
 --success-bg:rgba(34,197,94,0.1);
 --warning:#f59e0b;
---gradient:linear-gradient(135deg,#7c5cff 0%,#a78bfa 50%,#c084fc 100%);
+--gradient:linear-gradient(135deg,#252936 0%,#3b4252 50%,#596273 100%);
 --gradient-orange:linear-gradient(135deg,#ff7e67 0%,#ffb867 100%);
 --shadow-sm:0 2px 8px rgba(0,0,0,0.3);
 --shadow-md:0 4px 16px rgba(0,0,0,0.4);
@@ -76,6 +76,7 @@ body.light-mode{
 --accent-light:#b4a3ff;
 --accent-dark:#7c5cff;
 --accent-glow:rgba(157,133,255,0.25);
+--gradient:linear-gradient(135deg,#eef1f5 0%,#d9dee7 50%,#c4cad5 100%);
 --text:#1a1a2e;
 --text-secondary:#5a5a70;
 --text-muted:#8a8a9a;
@@ -4313,7 +4314,12 @@ display:block;
 খুঁজতে: Ctrl+F → "custom-vplayer"
 ========================================= */
 .gc-vplayer{position:relative;width:100%;max-height:560px;border-radius:18px;overflow:hidden;background:#000;display:flex;align-items:center;justify-content:center;}
-.gc-vplayer video{width:100%;height:auto;max-height:560px;display:block;object-fit:contain;}
+/* Tall videos are scaled down proportionally so the FULL frame remains visible.
+   No crop: portrait videos use intrinsic ratio + a feed max-height. */
+.gc-vplayer.gc-tall-video{height:auto;min-height:0;}
+.gc-vplayer.gc-tall-video video{width:auto;max-width:100%;height:auto;max-height:560px;display:block;object-fit:contain;}
+.gc-vplayer.gc-wide-video video{width:100%;height:auto;max-height:none;display:block;object-fit:contain;}
+.gc-vplayer video{display:block;}
 .gc-vp-center{display:none !important;}
 .gc-vp-center i{font-size:28px;color:#1a1a2e;margin-left:3px;}
 .gc-vp-center.hide{opacity:0;pointer-events:none;transform:translate(-50%,-50%) scale(.8);}
@@ -4433,7 +4439,7 @@ Threads-স্টাইল (আরও সুন্দর) পোস্ট রি
 .gc-ins-rank{width:26px;height:26px;border-radius:8px;background:var(--accent-glow);color:var(--accent);font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
 .gc-ins-tp-img{width:44px;height:44px;border-radius:10px;object-fit:cover;background:var(--surface-2);flex-shrink:0;display:block;}
 .gc-ins-top-post .gc-vplayer,
-.gc-ins-top-post video{width:44px !important;height:44px !important;max-width:44px !important;max-height:44px !important;border-radius:10px;object-fit:cover;flex-shrink:0;}
+.gc-ins-top-post video{width:40px !important;height:40px !important;max-width:44px !important;max-height:44px !important;border-radius:10px;object-fit:cover;flex-shrink:0;}
 .gc-ins-top-post .gc-vp-bar,
 .gc-ins-top-post .gc-vp-center{display:none !important;}
 .gc-ins-tp-vid{
@@ -4567,7 +4573,7 @@ background:rgba(0,0,0,.28);color:#fff;font-size:18px;pointer-events:none;
 .gc-un-topbar{
   display:flex;align-items:center;justify-content:center;
   padding:0;
-  padding-top:max(10px, env(safe-area-inset-top));
+  padding-top:max(14px, env(safe-area-inset-top));
   background:transparent !important;position:relative;z-index:5;
   min-height:56px;width:100%;box-sizing:border-box;
   margin:0 0 8px 0;
@@ -4576,9 +4582,9 @@ background:rgba(0,0,0,.28);color:#fff;font-size:18px;pointer-events:none;
 .gc-un-topbar .gc-un-back,
 #gc-username-screen .gc-un-back{
   position:absolute !important;
-  left:10px !important;
-  top:max(10px, env(safe-area-inset-top)) !important;
-  width:44px !important;height:44px !important;
+  left:18px !important;
+  top:max(14px, env(safe-area-inset-top)) !important;
+  width:40px !important;height:40px !important;
   border:none !important;border-radius:0 !important;
   background:transparent !important;
   background-color:transparent !important;
@@ -4612,7 +4618,7 @@ background:rgba(0,0,0,.28);color:#fff;font-size:18px;pointer-events:none;
 #gc-username-screen .gc-un-title{
   position:absolute !important;
   left:50% !important;
-  top:max(10px, env(safe-area-inset-top)) !important;
+  top:max(14px, env(safe-area-inset-top)) !important;
   transform:translateX(-50%) !important;
   height:44px;
   display:flex;align-items:center;justify-content:center;
@@ -4629,7 +4635,7 @@ background:rgba(0,0,0,.28);color:#fff;font-size:18px;pointer-events:none;
 }
 .gc-un-hero{
   position:relative;
-  background:linear-gradient(160deg, #7c5cff 0%, #9b7bff 45%, #b794f6 100%);
+  background:var(--gradient);
   padding:8px 20px 56px;
   text-align:center;
   overflow:hidden;
@@ -4715,7 +4721,7 @@ background:rgba(0,0,0,.28);color:#fff;font-size:18px;pointer-events:none;
   box-shadow:none;
 }
 .gc-un-save.is-ready{
-  background:linear-gradient(135deg,#7c5cff 0%,#a78bfa 100%);
+  background:var(--gradient);
   color:#fff;box-shadow:0 10px 28px rgba(124,92,255,.35);cursor:pointer;opacity:1;
 }
 .gc-un-save.is-ready:active{transform:scale(.98);}
@@ -8339,6 +8345,108 @@ body:not(.light-mode) .chat-send-btn.is-ready{
 .chat-send-btn.is-ready:active{transform:scale(0.95);}
 
 
+
+
+/* ═══ UI refinement · unified search + username header + education search · 2026-09-09 ═══ */
+/* Main Search and Settings & Privacy Search now share the exact same field geometry. */
+.search-container{
+  padding:12px 16px !important;
+  box-sizing:border-box !important;
+  border-bottom:1px solid var(--border) !important;
+}
+.search-container .search-input-wrap{
+  margin:0 !important;
+  width:100% !important;
+  height:44px !important;
+  min-height:44px !important;
+  max-height:44px !important;
+  padding:0 16px !important;
+  border-radius:999px !important;
+  background:var(--surface-2) !important;
+  border:1px solid var(--border) !important;
+  box-sizing:border-box !important;
+  display:flex !important;
+  align-items:center !important;
+  gap:10px !important;
+}
+.search-container .search-input-wrap i{
+  font-size:18px !important;
+  color:var(--text-muted) !important;
+  flex-shrink:0 !important;
+  line-height:1 !important;
+}
+.search-container .search-input-wrap input{
+  font-size:15px !important;
+  height:100% !important;
+  padding:0 !important;
+  border:none !important;
+  background:transparent !important;
+  color:var(--text) !important;
+  outline:none !important;
+  min-width:0 !important;
+}
+
+/* Username page: match the standard 36px back-button geometry and topbar alignment. */
+.gc-un-topbar{
+  min-height:56px !important;
+  margin:0 !important;
+  padding-top:max(0px, env(safe-area-inset-top)) !important;
+}
+#gc-username-screen .gc-un-back,
+.gc-un-topbar .gc-un-back{
+  width:36px !important;
+  height:36px !important;
+  left:16px !important;
+  top:max(10px, calc(env(safe-area-inset-top) + 10px)) !important;
+}
+#gc-username-screen .gc-un-back i,
+.gc-un-topbar .gc-un-back i,
+.gc-un-topbar .gc-un-back .ph,
+.gc-un-topbar .gc-un-back .ph-bold{
+  font-size:20px !important;
+}
+#gc-username-screen .gc-un-title,
+.gc-un-topbar .gc-un-title{
+  top:max(6px, calc(env(safe-area-inset-top) + 6px)) !important;
+  height:44px !important;
+  color:var(--text) !important;
+  text-shadow:none !important;
+}
+/* Keep username hero text readable in both themes without hard-coded purple/green text. */
+#gc-username-screen .gc-un-name,
+#gc-username-screen .gc-un-handle{
+  color:#fff !important;
+}
+
+/* Education search icon: centered precisely inside the 44px-left text inset. */
+.gc-edu-search-wrap{
+  position:relative !important;
+}
+.gc-edu-search{
+  box-sizing:border-box !important;
+  padding-left:46px !important;
+}
+.gc-edu-search-ico{
+  position:absolute !important;
+  left:16px !important;
+  top:50% !important;
+  width:20px !important;
+  height:20px !important;
+  margin:0 !important;
+  transform:translateY(-50%) !important;
+  display:flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  line-height:1 !important;
+  color:var(--text-muted) !important;
+  font-size:18px !important;
+  pointer-events:none !important;
+}
+
+/* Theme-aware text: UI text should inherit the active light/dark theme instead of
+   using the old purple/green palette. Accent/brand colors remain untouched. */
+.gc-theme-text{color:var(--text) !important;}
+.gc-theme-muted{color:var(--text-muted) !important;}
 </style>
 
 <style id="gc-chat-topbar-clean-2026-09-05">
@@ -27905,7 +28013,35 @@ gcLikeFromVideo();
 v.addEventListener('play', function(){ hideControls(); });
 v.addEventListener('pause', function(){ showControls(); });
 v.addEventListener('ended', function(){ v.gcUserPaused = false; showControls(); });
-v.addEventListener('loadedmetadata', function(){ if(dur) dur.textContent = fmt(v.duration); });
+function gcApplyFeedVideoSizing(){
+  try{
+    if(!v.videoWidth || !v.videoHeight) return;
+    const ratio = v.videoHeight / v.videoWidth;
+    const isTall = ratio > 1.05;
+    wrap.classList.toggle('gc-tall-video', isTall);
+    wrap.classList.toggle('gc-wide-video', !isTall);
+    if(isTall){
+      /* Preserve the original aspect ratio and scale the whole video down. */
+      const cap = Math.min(560, Math.max(320, window.innerHeight ? window.innerHeight * 0.68 : 560));
+      v.style.maxHeight = Math.round(cap) + 'px';
+      v.style.width = 'auto';
+      v.style.height = 'auto';
+      v.style.maxWidth = '100%';
+      v.style.objectFit = 'contain';
+    }else{
+      v.style.width = '100%';
+      v.style.height = 'auto';
+      v.style.maxHeight = 'none';
+      v.style.maxWidth = '100%';
+      v.style.objectFit = 'contain';
+    }
+  }catch(e){}
+}
+v.addEventListener('loadedmetadata', function(){
+  if(dur) dur.textContent = fmt(v.duration);
+  gcApplyFeedVideoSizing();
+});
+window.addEventListener('resize', gcApplyFeedVideoSizing);
 v.addEventListener('timeupdate', function(){
   if(cur) cur.textContent = fmt(v.currentTime);
   if(fill && v.duration) fill.style.width = (v.currentTime / v.duration * 100) + '%';
@@ -30016,3 +30152,166 @@ function gcStartCallEventListener_DISABLED(){
 
 </body>
 </html>
+<style id="gc-precise-search-theme-text-fix-2026-09-09">
+/* ============================================================
+   Precise UI correction · Search parity + Edit Profile theme text
+   ============================================================ */
+
+/* MAIN SEARCH + SETTINGS/PRIVACY SEARCH + MENU SEARCH
+   One shared geometry: same wrapper, field, icon, typography and spacing. */
+.search-container,
+.gc-settings-search-wrap{
+  padding:12px 16px !important;
+  margin:0 !important;
+  width:100% !important;
+  box-sizing:border-box !important;
+  border-bottom:1px solid var(--border) !important;
+}
+.search-container .search-input-wrap,
+.gc-settings-search-wrap .search-input-wrap{
+  width:100% !important;
+  height:44px !important;
+  min-height:44px !important;
+  max-height:44px !important;
+  margin:0 !important;
+  padding:0 16px !important;
+  display:flex !important;
+  align-items:center !important;
+  gap:10px !important;
+  box-sizing:border-box !important;
+  border:1px solid var(--border) !important;
+  border-radius:999px !important;
+  background:var(--surface-2) !important;
+}
+.search-container .search-input-wrap:focus-within,
+.gc-settings-search-wrap .search-input-wrap:focus-within{
+  border-color:var(--accent) !important;
+}
+.search-container .search-input-wrap > i,
+.gc-settings-search-wrap .search-input-wrap > i,
+.search-container .search-input-wrap > .material-symbols-outlined,
+.gc-settings-search-wrap .search-input-wrap > .material-symbols-outlined{
+  width:20px !important;
+  height:20px !important;
+  min-width:20px !important;
+  flex:0 0 20px !important;
+  display:inline-flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  margin:0 !important;
+  padding:0 !important;
+  line-height:1 !important;
+  font-size:18px !important;
+  color:var(--text-muted) !important;
+}
+.search-container .search-input-wrap input,
+.gc-settings-search-wrap .search-input-wrap input{
+  flex:1 1 auto !important;
+  min-width:0 !important;
+  width:auto !important;
+  height:100% !important;
+  margin:0 !important;
+  padding:0 !important;
+  border:0 !important;
+  outline:0 !important;
+  background:transparent !important;
+  color:var(--text) !important;
+  font-family:inherit !important;
+  font-size:15px !important;
+  line-height:44px !important;
+}
+.search-container .search-input-wrap input::placeholder,
+.gc-settings-search-wrap .search-input-wrap input::placeholder{
+  color:var(--text-muted) !important;
+  opacity:1 !important;
+}
+
+/* Username page back button: same 36px geometry and left/top alignment as
+   the standard chat/settings back buttons. */
+#gc-username-screen .gc-un-topbar,
+#gc-username-screen .gc-un-topbar{
+  min-height:56px !important;
+  height:56px !important;
+  margin:0 !important;
+  padding:0 !important;
+  position:relative !important;
+  display:flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+}
+#gc-username-screen .gc-un-back,
+.gc-un-topbar .gc-un-back{
+  left:12px !important;
+  top:10px !important;
+  width:36px !important;
+  height:36px !important;
+  min-width:36px !important;
+  min-height:36px !important;
+  padding:0 !important;
+  margin:0 !important;
+  border-radius:50% !important;
+  color:var(--text) !important;
+  filter:none !important;
+}
+#gc-username-screen .gc-un-back i,
+.gc-un-topbar .gc-un-back i,
+.gc-un-topbar .gc-un-back .ph,
+.gc-un-topbar .gc-un-back .ph-bold{
+  width:20px !important;
+  height:20px !important;
+  font-size:20px !important;
+  color:var(--text) !important;
+  display:inline-flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+}
+#gc-username-screen .gc-un-title,
+.gc-un-topbar .gc-un-title{
+  position:absolute !important;
+  inset:0 !important;
+  width:100% !important;
+  height:56px !important;
+  display:flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  padding:0 60px !important;
+  margin:0 !important;
+  top:0 !important;
+  left:0 !important;
+  transform:none !important;
+  color:var(--text) !important;
+  text-shadow:none !important;
+  box-sizing:border-box !important;
+  pointer-events:none !important;
+}
+
+/* EDIT PROFILE: keep every existing label/text, but remove the old fixed
+   accent/green-looking label color and let the active theme control it. */
+#edit-profile-screen label,
+.gc-ep-section label{
+  color:var(--text-secondary) !important;
+}
+#edit-profile-screen .gc-ep-title,
+#edit-profile-screen .gc-ep-sub,
+#edit-profile-screen .gc-ep-row,
+.gc-ep-section .gc-ep-title,
+.gc-ep-section .gc-ep-sub,
+.gc-ep-section .gc-ep-row{
+  color:var(--text) !important;
+}
+#edit-profile-screen .gc-ep-sub,
+.gc-ep-section .gc-ep-sub{
+  color:var(--text-muted) !important;
+}
+#edit-profile-screen .gc-ep-ico,
+.gc-ep-section .gc-ep-ico{
+  color:var(--text) !important;
+}
+
+/* Username validation text/input states also follow theme variables except
+   genuine success/error states. */
+#edit-profile-screen .username-status-msg,
+.gc-ep-section .username-status-msg{
+  color:var(--text-muted) !important;
+}
+</style>
