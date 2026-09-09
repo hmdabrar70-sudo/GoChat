@@ -9006,7 +9006,7 @@ body:not(.light-mode) .chat-send-btn.is-ready{
     </div>
     
     <div id="my-friends-section">
-        <div id="all-friends-list"></div>
+        <div id="all-friends-list" class="gc-suggest-grid"></div>
     </div>
 </div>
 
@@ -10776,28 +10776,17 @@ body:not(.light-mode) .chat-send-btn.is-ready{
     </div>
 </div>
 
-<!-- 🚀 Suggestions Bottom Sheet Modal -->
-<div class="gc-sheet-overlay" id="suggestions-sheet-overlay" onclick="if(event.target===this) closeSuggestionsSheet()" style="z-index: 100500;">
-    <div class="gc-sheet" style="max-height: 85vh; padding: 0; display: flex; flex-direction: column; background: var(--surface);">
-        
-        <!-- Header Section -->
-        <div style="padding: 16px 20px; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: var(--surface); z-index: 10; border-radius: 24px 24px 0 0;">
-            <div class="gc-sheet-handle" style="margin-top: 0; margin-bottom: 16px;"></div>
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <div style="font-weight: 800; font-size: 18px; color: var(--text); display: flex; align-items: center; gap: 8px;">
-                    Suggested for you
-                </div>
-                <div onclick="closeSuggestionsSheet()" style="width: 32px; height: 32px; border-radius: 50%; background: var(--surface-2); display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--text-muted); transition: 0.2s;" onmouseover="this.style.background='var(--border)'" onmouseout="this.style.background='var(--surface-2)'">
-                    <i class="ph-bold ph-x" style="font-size: 16px;"></i>
-                </div>
-            </div>
-        </div>
-
-        <!-- Suggestions List Container -->
-        <div id="suggestions-list-container" style="flex: 1; overflow-y: auto; padding: 16px 20px;">
-            <!-- লিস্ট এখানে জাভাস্ক্রিপ্ট দিয়ে লোড হবে -->
-        </div>
-        
+<!-- 🚀 Suggestions · full page (not bottom sheet) -->
+<div id="page-suggestions" class="gc-suggest-page" style="display:none;">
+    <div class="gc-suggest-page-topbar">
+        <button type="button" class="gc-suggest-page-back" onclick="closeSuggestionsSheet()" aria-label="Back">
+            <i class="ph ph-arrow-u-up-left"></i>
+        </button>
+        <div class="gc-suggest-page-title">Suggested for you</div>
+        <div style="width:36px;"></div>
+    </div>
+    <div id="suggestions-list-container" class="gc-suggest-grid">
+        <!-- cards rendered by loadSuggestions() -->
     </div>
 </div>
 
@@ -13433,6 +13422,7 @@ async function loadAllFriends() {
     const list = document.getElementById('all-friends-list');
     if (!list) return;
 
+    list.classList.add('gc-suggest-grid');
     list.innerHTML = gcModernLoader('Loading following', 'list');
 
     const following = (currentUserData && currentUserData.following) || [];
@@ -13448,20 +13438,32 @@ async function loadAllFriends() {
 
         let html = '';
         snapshots.forEach((doc, index) => {
-            if (doc.exists) {
-                const u = doc.data();
-                const safeName = escapeHTML(u.name);
-                const avHtml = u.avatar ? `<img src="${u.avatar}">` : avatarInitial(u.name);
+            if (!doc.exists) return;
+            const u = doc.data() || {};
+            const uid = following[index];
+            const safeName = escapeHTML(u.name || 'User');
+            const uname = (u.username || u.usernameLower || '').toString().replace(/^@/, '');
+            const safeUname = escapeHTML(uname);
+            const followersN = Array.isArray(u.followers) ? u.followers.length : (u.followersCount || 0);
+            const subLine = safeUname
+                ? ('@' + safeUname)
+                : (followersN + ' Follower' + (followersN === 1 ? '' : 's'));
+            const initial = (typeof avatarInitial === 'function')
+                ? avatarInitial(u.name)
+                : escapeHTML(String(u.name || '?').charAt(0).toUpperCase());
+            const avHtml = u.avatar
+                ? `<img src="${escapeHTML(u.avatar)}" alt="">`
+                : `<span class="gc-suggest-initial">${initial}</span>`;
+            const verifiedBadge = getVerifiedBadge(u.email, u.isVerified === true) + getLeaderBadge(u.email, u.isLeader === true);
 
-                html += `
-                <div class="friend-item-check" style="justify-content: space-between;">
-                    <div style="display:flex; align-items:center; gap:12px;" onclick="viewUserProfile('${following[index]}')">
-                        <div class="avatar">${avHtml}</div>
-                        <div class="msg-name">${safeName}${getVerifiedBadge(u.email, u.isVerified === true) + getLeaderBadge(u.email, u.isLeader === true)}</div>
-                    </div>
-                    <button class="btn-outline" style="padding:6px 12px; font-size:11px;" onclick="toggleFollow('${following[index]}')">Unfollow</button>
-                </div>`;
-            }
+            // Same 2-col card as Suggestions — no dismiss (X) button
+            html += `
+            <div class="gc-suggest-card" onclick="viewUserProfile('${uid}')">
+                <div class="gc-suggest-av">${avHtml}</div>
+                <div class="gc-suggest-name"><span class="gc-suggest-name-text">${safeName}</span>${verifiedBadge ? verifiedBadge : ''}</div>
+                <div class="gc-suggest-sub">${subLine}</div>
+                <button type="button" class="gc-suggest-follow is-following" onclick="event.stopPropagation(); toggleFollow('${uid}'); this.textContent='Follow'; this.classList.remove('is-following');">Unfollow</button>
+            </div>`;
         });
         list.innerHTML = html || '<div class="empty-feed">You are not following anyone yet</div>';
     } catch (e) {
@@ -26493,15 +26495,18 @@ function applyNotifFilter(filterType, btn) {
 
 // পপআপ ওপেন করার ফাংশন
 function openSuggestionsSheet() {
-    const sheet = document.getElementById('suggestions-sheet-overlay');
-    if (sheet) sheet.classList.add('open');
-    loadSuggestions(); // খোলার সাথে সাথে ডাটা লোড করবে
+    const page = document.getElementById('page-suggestions');
+    if (!page) return;
+    page.style.display = 'flex';
+    // lock body scroll while full page is open
+    try { document.body.style.overflow = 'hidden'; } catch(e) {}
+    loadSuggestions();
 }
 
-// পপআপ ক্লোজ করার ফাংশন
 function closeSuggestionsSheet() {
-    const sheet = document.getElementById('suggestions-sheet-overlay');
-    if (sheet) sheet.classList.remove('open');
+    const page = document.getElementById('page-suggestions');
+    if (page) page.style.display = 'none';
+    try { document.body.style.overflow = ''; } catch(e) {}
 }
 
 // ডাটাবেস থেকে স্মার্ট সাজেশন লোড করার অ্যালগরিদম
@@ -26551,23 +26556,33 @@ async function loadSuggestions() {
         
         let html = '';
         suggestedUsers.forEach(u => {
-            const safeName = escapeHTML(u.name);
-            const avHtml = u.avatar ? `<img src="${escapeHTML(u.avatar)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">` : avatarInitial(u.name);
+            const safeName = escapeHTML(u.name || 'User');
+            const uname = (u.username || u.usernameLower || '').toString().replace(/^@/, '');
+            const safeUname = escapeHTML(uname);
+            const followersN = Array.isArray(u.followers) ? u.followers.length : (u.followersCount || 0);
+            const subLine = safeUname
+                ? ('@' + safeUname)
+                : (followersN + ' Follower' + (followersN === 1 ? '' : 's'));
+            const initial = (typeof avatarInitial === 'function')
+                ? avatarInitial(u.name)
+                : escapeHTML(String(u.name || '?').charAt(0).toUpperCase());
+            const avHtml = u.avatar
+                ? `<img src="${escapeHTML(u.avatar)}" alt="">`
+                : `<span class="gc-suggest-initial">${initial}</span>`;
             const verifiedBadge = getVerifiedBadge(u.email, u.isVerified) + getLeaderBadge(u.email, u.isLeader);
-            
+
             html += `
-            <div class="msg-item" style="margin: 0 0 12px 0; padding: 14px; border-radius: 18px; transition: 0.2s;" onclick="closeSuggestionsSheet(); viewUserProfile('${u.id}')">
-                <div class="avatar" style="width: 46px; height: 46px; flex-shrink: 0;">${avHtml}</div>
-                <div class="msg-info" style="margin-left: 12px;">
-                    <div class="msg-name" style="font-size: 15px; font-weight: 800; color: var(--text); display: flex; align-items: center; gap: 4px;">${safeName} ${verifiedBadge}</div>
-                    <div style="font-size: 12px; color: var(--text-muted); font-weight: 600; margin-top: 3px; display: flex; align-items: center; gap: 4px;">
-                        <i class="fi fi-rr-circle-users" style="color: var(--accent-light); font-size: 14px;"></i> ${Array.isArray(u.followers) ? u.followers.length : (u.followersCount || 0)} Followers
-                    </div>
-                </div>
-                <button class="btn-primary" style="margin: 0; padding: 8px 18px; font-size: 13px; height: auto; border-radius: 20px; width: auto; box-shadow: none;" onclick="event.stopPropagation(); toggleSuggestFollow('${u.id}', this)">Follow</button>
+            <div class="gc-suggest-card" onclick="closeSuggestionsSheet(); viewUserProfile('${u.id}')">
+                <button type="button" class="gc-suggest-dismiss" onclick="event.stopPropagation(); this.closest('.gc-suggest-card').remove();" aria-label="Dismiss">
+                    <i class="ph-bold ph-x"></i>
+                </button>
+                <div class="gc-suggest-av">${avHtml}</div>
+                <div class="gc-suggest-name"><span class="gc-suggest-name-text">${safeName}</span>${verifiedBadge ? verifiedBadge : ''}</div>
+                <div class="gc-suggest-sub">${subLine}</div>
+                <button type="button" class="gc-suggest-follow" onclick="event.stopPropagation(); toggleSuggestFollow('${u.id}', this)">Follow</button>
             </div>`;
         });
-        
+
         container.innerHTML = html;
         
     } catch (error) {
@@ -26578,13 +26593,10 @@ async function loadSuggestions() {
 
 // 🚀 লাইভ ফলো বাটন আপডেট ফাংশন
 function toggleSuggestFollow(uid, btn) {
-    // ডাটাবেস আপডেট হওয়ার আগেই চোখের পলকে বাটনটি 'Following' হয়ে যাবে (Smooth UX)
+    // Instant optimistic UI
     btn.textContent = 'Following';
-    btn.className = 'btn-outline';
-    btn.style.borderColor = 'var(--border)';
-    btn.style.color = 'var(--text)';
-    btn.style.background = 'transparent';
-    btn.style.pointerEvents = 'none'; // একবার ফলো করলে ওই বাটনে আর ক্লিক করা যাবে না
+    btn.classList.add('is-following');
+    btn.style.pointerEvents = 'none';
     
     // ব্যাকগ্রাউন্ডে অরিজিনাল ফলো ফাংশনটি কল করা হলো
     toggleFollow(uid);
@@ -30547,6 +30559,285 @@ function gcStartCallEventListener_DISABLED(){
 .chat-bubble.mine .gc-msg-time-row span{
   color:#ffffff !important;
   opacity:1 !important;
+}
+</style>
+
+
+<style id="gc-suggest-grid-2026-09-10">
+/* ═══ Suggested for you · 2-per-row square cards ═══ */
+#suggestions-list-container.gc-suggest-grid,
+.gc-suggest-grid{
+  display:grid !important;
+  grid-template-columns:1fr 1fr !important;
+  gap:12px !important;
+  padding:14px 16px 24px !important;
+  box-sizing:border-box !important;
+  align-content:start !important;
+}
+.gc-suggest-card{
+  position:relative;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  text-align:center;
+  padding:18px 12px 14px;
+  border-radius:18px;
+  background:var(--surface-2);
+  border:1px solid var(--border);
+  cursor:pointer;
+  transition:transform .15s ease, box-shadow .15s ease;
+  min-width:0;
+}
+.gc-suggest-card:active{ transform:scale(0.98); }
+body.light-mode .gc-suggest-card{
+  background:#f4f5f7;
+  border-color:#e8e9ee;
+}
+body:not(.light-mode) .gc-suggest-card{
+  background:#16161f;
+  border-color:#252533;
+}
+.gc-suggest-dismiss{
+  position:absolute;
+  top:8px; right:8px;
+  width:26px; height:26px;
+  border:none; border-radius:50%;
+  background:transparent;
+  color:var(--text-muted);
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer; padding:0;
+  z-index:2;
+}
+.gc-suggest-dismiss i{ font-size:12px; }
+.gc-suggest-dismiss:active{ background:var(--border); }
+.gc-suggest-av{
+  width:72px; height:72px;
+  border-radius:50%;
+  overflow:hidden;
+  background:var(--surface);
+  display:flex; align-items:center; justify-content:center;
+  margin-bottom:12px;
+  flex-shrink:0;
+  border:1px solid var(--border);
+}
+.gc-suggest-av img{
+  width:100%; height:100%;
+  object-fit:cover;
+  border-radius:50%;
+  display:block;
+}
+.gc-suggest-initial{
+  width:100%; height:100%;
+  display:flex; align-items:center; justify-content:center;
+  font-size:26px; font-weight:800;
+  color:var(--text);
+  background:var(--surface);
+  border-radius:50%;
+}
+/* colored initials variety */
+.gc-suggest-card:nth-child(5n+1) .gc-suggest-initial{ background:#3b82f6; color:#fff; }
+.gc-suggest-card:nth-child(5n+2) .gc-suggest-initial{ background:#f59e0b; color:#0a0a0f; }
+.gc-suggest-card:nth-child(5n+3) .gc-suggest-initial{ background:#ef4444; color:#fff; }
+.gc-suggest-card:nth-child(5n+4) .gc-suggest-initial{ background:#10b981; color:#fff; }
+.gc-suggest-card:nth-child(5n+5) .gc-suggest-initial{ background:#8b5cf6; color:#fff; }
+body.light-mode .gc-suggest-card:nth-child(5n+1) .gc-suggest-initial{ background:#dbeafe; color:#1e40af; }
+body.light-mode .gc-suggest-card:nth-child(5n+2) .gc-suggest-initial{ background:#ffedd5; color:#9a3412; }
+body.light-mode .gc-suggest-card:nth-child(5n+3) .gc-suggest-initial{ background:#e5e7eb; color:#374151; }
+body.light-mode .gc-suggest-card:nth-child(5n+4) .gc-suggest-initial{ background:#d1fae5; color:#065f46; }
+body.light-mode .gc-suggest-card:nth-child(5n+5) .gc-suggest-initial{ background:#ede9fe; color:#5b21b6; }
+
+.gc-suggest-name{
+  font-size:14px;
+  font-weight:800;
+  color:var(--text);
+  line-height:1.25;
+  max-width:100%;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  padding:0 4px;
+  margin-bottom:4px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:4px;
+}
+.gc-suggest-name img,
+.gc-suggest-name svg,
+.gc-suggest-name i{
+  flex-shrink:0;
+}
+.gc-suggest-sub{
+  font-size:12px;
+  font-weight:600;
+  color:var(--text-muted);
+  line-height:1.2;
+  max-width:100%;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  margin-bottom:14px;
+  padding:0 4px;
+}
+.gc-suggest-follow{
+  width:100%;
+  border:none;
+  border-radius:22px;
+  padding:10px 12px;
+  font-size:13px;
+  font-weight:800;
+  font-family:inherit;
+  cursor:pointer;
+  transition:transform .12s ease, opacity .12s ease;
+}
+.gc-suggest-follow:active{ transform:scale(0.97); }
+/* Light: black button / Dark: white button */
+body.light-mode .gc-suggest-follow{
+  background:#0a0a0f;
+  color:#ffffff;
+}
+body:not(.light-mode) .gc-suggest-follow{
+  background:#ffffff;
+  color:#0a0a0f;
+}
+.gc-suggest-follow.is-following,
+button.is-following.gc-suggest-follow{
+  background:transparent !important;
+  color:var(--text) !important;
+  border:1.5px solid var(--border) !important;
+  pointer-events:none;
+}
+/* empty / loading state should span full grid */
+.gc-suggest-grid > .empty-feed,
+.gc-suggest-grid > div[style*="text-align:center"]{
+  grid-column:1 / -1;
+}
+</style>
+
+
+<style id="gc-following-grid-2026-09-10">
+/* Following list uses same grid cards as Suggestions (no dismiss X) */
+#all-friends-list.gc-suggest-grid{
+  display:grid !important;
+  grid-template-columns:1fr 1fr !important;
+  gap:12px !important;
+  padding:4px 16px 24px !important;
+  box-sizing:border-box !important;
+  align-content:start !important;
+}
+#all-friends-list .gc-suggest-follow.is-following{
+  background:transparent !important;
+  color:var(--text) !important;
+  border:1.5px solid var(--border) !important;
+  pointer-events:auto !important; /* allow unfollow */
+}
+#all-friends-list .empty-feed,
+#all-friends-list > div[style*="text-align:center"]{
+  grid-column:1 / -1;
+}
+#my-friends-section{
+  padding-bottom:20px;
+}
+</style>
+
+
+<style id="gc-suggest-page-ellipsis-2026-09-10">
+/* Full-page Suggestions (premium, not sheet-over-list) */
+.gc-suggest-page{
+  position:fixed !important;
+  inset:0 !important;
+  z-index:100500 !important;
+  display:none;
+  flex-direction:column !important;
+  background:var(--bg) !important;
+  max-width:520px;
+  margin:0 auto;
+  width:100%;
+  animation:gcSuggestPageIn .28s cubic-bezier(.22,1,.36,1) both;
+}
+@keyframes gcSuggestPageIn{
+  from{ opacity:0; transform:translateX(18px); }
+  to{ opacity:1; transform:translateX(0); }
+}
+.gc-suggest-page-topbar{
+  position:sticky;
+  top:0;
+  z-index:20;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  min-height:56px;
+  padding:8px 12px;
+  padding-top:max(8px, env(safe-area-inset-top));
+  background:var(--bg);
+  border-bottom:1px solid var(--border);
+  box-sizing:border-box;
+}
+.gc-suggest-page-back{
+  width:36px; height:36px;
+  border:none; border-radius:50%;
+  background:var(--surface-2);
+  color:var(--text);
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer; padding:0;
+}
+.gc-suggest-page-back i{ font-size:18px; }
+.gc-suggest-page-title{
+  font-size:17px;
+  font-weight:800;
+  color:var(--text);
+  text-align:center;
+  flex:1;
+  min-width:0;
+}
+.gc-suggest-page .gc-suggest-grid{
+  flex:1;
+  overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
+  padding:14px 16px calc(24px + env(safe-area-inset-bottom)) !important;
+}
+
+/* Name truncation: start stays, end becomes … (message-list style) */
+.gc-suggest-name{
+  display:flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  gap:4px !important;
+  width:100% !important;
+  max-width:100% !important;
+  min-width:0 !important;
+  box-sizing:border-box !important;
+  padding:0 6px !important;
+  margin-bottom:4px !important;
+  overflow:hidden !important;
+}
+.gc-suggest-name-text{
+  display:block !important;
+  min-width:0 !important;
+  max-width:100% !important;
+  overflow:hidden !important;
+  text-overflow:ellipsis !important;
+  white-space:nowrap !important;
+  font-size:14px !important;
+  font-weight:800 !important;
+  color:var(--text) !important;
+  line-height:1.25 !important;
+  text-align:center !important;
+}
+/* badge stays visible, never shrinks */
+.gc-suggest-name > img,
+.gc-suggest-name > svg,
+.gc-suggest-name > i,
+.gc-suggest-name > span:not(.gc-suggest-name-text){
+  flex-shrink:0 !important;
+}
+.gc-suggest-sub{
+  max-width:100% !important;
+  min-width:0 !important;
+  overflow:hidden !important;
+  text-overflow:ellipsis !important;
+  white-space:nowrap !important;
+  padding:0 6px !important;
 }
 </style>
 
