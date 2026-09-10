@@ -10502,21 +10502,28 @@ body:not(.light-mode) .chat-send-btn.is-ready{
     </div>
 </div>
 
-<div class="modal-overlay" id="following-privacy-modal" style="z-index: 100000; align-items: flex-end;" onclick="if(event.target===this) closeFollowingPrivacy()">
-    <div class="modal-box" style="margin-top:auto; border-radius: 24px 24px 0 0; padding:24px 20px; position:relative;">
-        <button type="button" onclick="closeFollowingPrivacy()" aria-label="Close" style="position:absolute;top:16px;right:16px;width:36px;height:36px;border:none;border-radius:50%;background:var(--surface-2);color:var(--text);display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:2;">
-            <i class="ph-bold ph-x" style="font-size:18px;"></i>
-        </button>
-        <div class="modal-title" style="margin-bottom:10px; padding-right:40px;">Following list</div>
-        <p style="font-size:14px; color:var(--text-secondary); margin-bottom:20px;">Who can see your following list?</p>
-        
-        <div class="setting-item" onclick="setFollowingPrivacy('everyone')" style="justify-content:space-between;">
-            Everyone <input type="radio" name="privacy" id="priv-everyone" style="width:18px;height:18px;">
+<div class="modal-overlay" id="following-privacy-modal" style="z-index:100210; align-items:flex-end; justify-content:center;" onclick="if(event.target===this) closeFollowingPrivacy()">
+    <div class="gc-dob-privacy-card" style="width:100%; max-width:420px; border-radius:18px 18px 0 0; margin:0; padding:18px 16px max(18px, env(safe-area-inset-bottom));" onclick="event.stopPropagation()">
+        <div style="width:40px;height:4px;border-radius:4px;background:rgba(128,128,128,.35);margin:0 auto 14px;"></div>
+        <div style="font-weight:800; font-size:17px; margin-bottom:4px;">Following list privacy</div>
+        <div style="font-size:13px; color:var(--text-muted); margin-bottom:14px;">Choose who can see your following list.</div>
+        <div class="gc-dob-privacy-option" id="gc-fl-priv-everyone" onclick="gcSelectFollowingPrivacy('everyone')">
+            <i class="fi fi-rr-globe" style="font-size:20px;color:var(--accent);"></i>
+            <div style="flex:1;">
+                <div style="font-weight:700; font-size:14.5px;">Public</div>
+                <div style="font-size:12.5px; color:var(--text-muted);">Everyone can see your following list</div>
+            </div>
+            <i class="fi fi-rr-check gc-dob-priv-check" id="gc-fl-priv-check-everyone" style="color:var(--accent);font-size:18px;"></i>
         </div>
-        <div class="setting-item" onclick="setFollowingPrivacy('onlyme')" style="justify-content:space-between;">
-            Only you <input type="radio" name="privacy" id="priv-onlyme" style="width:18px;height:18px;">
+        <div class="gc-dob-privacy-option" id="gc-fl-priv-onlyme" onclick="gcSelectFollowingPrivacy('onlyme')">
+            <i class="fi fi-rr-lock" style="font-size:20px;color:var(--accent);"></i>
+            <div style="flex:1;">
+                <div style="font-weight:700; font-size:14.5px;">Private</div>
+                <div style="font-size:12.5px; color:var(--text-muted);">Only you can see it — others see mutuals only</div>
+            </div>
+            <i class="fi fi-rr-check gc-dob-priv-check" id="gc-fl-priv-check-onlyme" style="color:var(--accent);font-size:18px;"></i>
         </div>
-        <p style="font-size:12px; color:var(--text-muted); margin-top:20px;">If you select "Only you", other users will only see mutual person.</p>
+        <button class="btn-primary" style="width:100%; margin-top:12px; border-radius:14px;" onclick="gcSaveFollowingPrivacy()">Done</button>
     </div>
 </div>
 
@@ -10780,7 +10787,7 @@ body:not(.light-mode) .chat-send-btn.is-ready{
 <div id="page-suggestions" class="gc-suggest-page" style="display:none;">
     <div class="gc-suggest-page-topbar">
         <button type="button" class="gc-suggest-page-back" onclick="closeSuggestionsSheet()" aria-label="Back">
-            <i class="ph ph-arrow-u-up-left"></i>
+            <i class="ph-bold ph-arrow-u-up-left"></i>
         </button>
         <div class="gc-suggest-page-title">Suggested for you</div>
         <div style="width:36px;"></div>
@@ -11249,13 +11256,22 @@ function avatarInitial(name){return name?name[0].toUpperCase():'?';}
 function getRelativeTime(ts){
 if(!ts)return'Just now';
 const ms=ts.toMillis?ts.toMillis():(ts.seconds?ts.seconds*1000:ts);
+const d=new Date(ms);
+if(isNaN(d.getTime()))return'Just now';
 const diff=Date.now()-ms;
 const m=Math.floor(diff/60000);
 const h=Math.floor(diff/3600000);
 if(m<1)return'Just now';
 if(m<60)return m+'m ago';
 if(h<24)return h+'h ago';
-return Math.floor(h/24)+'d ago';
+// 24h+ → calendar date (e.g. Aug 28 · Sep 10, 2025)
+const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const day=d.getDate();
+const mon=months[d.getMonth()];
+const year=d.getFullYear();
+const thisYear=(new Date()).getFullYear();
+if(year===thisYear) return mon+' '+day;
+return mon+' '+day+', '+year;
 }
 
 // 🚀 Badge click + own-profile crown fix · 2026-09-05
@@ -21035,18 +21051,52 @@ function closeFollowingPrivacy() {
     if (m) m.classList.remove('open');
 }
 window.closeFollowingPrivacy = closeFollowingPrivacy;
-function openFollowingPrivacy() {
-    document.getElementById('following-privacy-modal').classList.add('open');
-    const mode = currentUserData.followingPrivacy || 'everyone';
-    document.getElementById('priv-everyone').checked = (mode === 'everyone');
-    document.getElementById('priv-onlyme').checked = (mode === 'onlyme');
+
+function gcRenderFollowingPrivacyUI(){
+    const v = window.gcEditFollowingPrivacyValue || 'everyone';
+    const opE = document.getElementById('gc-fl-priv-everyone');
+    const opO = document.getElementById('gc-fl-priv-onlyme');
+    const cE = document.getElementById('gc-fl-priv-check-everyone');
+    const cO = document.getElementById('gc-fl-priv-check-onlyme');
+    if(opE) opE.classList.toggle('gc-dob-priv-active', v === 'everyone');
+    if(opO) opO.classList.toggle('gc-dob-priv-active', v === 'onlyme');
+    if(cE) cE.style.display = (v === 'everyone') ? 'inline-flex' : 'none';
+    if(cO) cO.style.display = (v === 'onlyme') ? 'inline-flex' : 'none';
 }
 
+function gcSelectFollowingPrivacy(mode){
+    window.gcEditFollowingPrivacyValue = mode;
+    gcRenderFollowingPrivacyUI();
+}
+window.gcSelectFollowingPrivacy = gcSelectFollowingPrivacy;
+
+function openFollowingPrivacy() {
+    window.gcEditFollowingPrivacyValue = (currentUserData && currentUserData.followingPrivacy) || 'everyone';
+    gcRenderFollowingPrivacyUI();
+    const m = document.getElementById('following-privacy-modal');
+    if (m) m.classList.add('open');
+}
+
+async function gcSaveFollowingPrivacy() {
+    const mode = window.gcEditFollowingPrivacyValue || 'everyone';
+    try{
+        if(currentUser){
+            await db.collection('users').doc(currentUser.uid).update({ followingPrivacy: mode });
+            if(currentUserData) currentUserData.followingPrivacy = mode;
+        }
+        showToast('Privacy updated!');
+    }catch(e){
+        console.error(e);
+        showToast('Failed to update privacy');
+    }
+    closeFollowingPrivacy();
+}
+window.gcSaveFollowingPrivacy = gcSaveFollowingPrivacy;
+
+// keep legacy name working
 async function setFollowingPrivacy(mode) {
-    await db.collection('users').doc(currentUser.uid).update({ followingPrivacy: mode });
-    currentUserData.followingPrivacy = mode;
-    document.getElementById('following-privacy-modal').classList.remove('open');
-    showToast("Privacy updated!");
+    window.gcEditFollowingPrivacyValue = mode;
+    await gcSaveFollowingPrivacy();
 }
 // ===== GALLERY SYSTEM LOGIC =====
 let isGalleryEditMode = false;
@@ -30776,12 +30826,17 @@ button.is-following.gc-suggest-follow{
 .gc-suggest-page-back{
   width:36px; height:36px;
   border:none; border-radius:50%;
-  background:var(--surface-2);
+  background:transparent !important;
   color:var(--text);
   display:flex; align-items:center; justify-content:center;
   cursor:pointer; padding:0;
+  box-shadow:none !important;
 }
-.gc-suggest-page-back i{ font-size:18px; }
+.gc-suggest-page-back i{ font-size:22px; line-height:1; }
+.gc-suggest-page-topbar{
+  padding-left:8px !important;
+  padding-right:12px !important;
+}
 .gc-suggest-page-title{
   font-size:17px;
   font-weight:800;
