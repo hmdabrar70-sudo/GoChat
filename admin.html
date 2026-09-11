@@ -282,43 +282,48 @@
                 </div>
 
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <!-- POST BOOST -->
+                                        <!-- POST BOOST -->
                     <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
                         <h3 class="text-lg font-bold text-gray-800 mb-1"><i class="fas fa-newspaper text-blue-500 mr-2"></i>Post engagement</h3>
-                        <p class="text-xs text-gray-500 mb-4">Set likes / shares counters. Optionally inject dummy comments into the post array.</p>
-                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Post ID</label>
-                        <input id="test-post-id" type="text" placeholder="Firestore post document id" class="w-full border border-gray-200 rounded-xl px-3 py-2.5 mb-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
-                        <button type="button" onclick="testLoadPost()" class="mb-4 text-sm font-semibold text-blue-600 hover:underline">Load current values</button>
-                        <div id="test-post-meta" class="text-xs text-gray-500 mb-3 min-h-[1.25rem]"></div>
+                        <p class="text-xs text-gray-500 mb-3">Select a post from the list, set likes / comments / shares, then Apply. No need to copy post IDs.</p>
+                        <div class="flex items-center justify-between mb-2">
+                            <label class="block text-xs font-bold text-gray-500 uppercase">Posts</label>
+                            <button type="button" onclick="testLoadPostsList()" class="text-xs font-bold text-blue-600 hover:underline">Refresh list</button>
+                        </div>
+                        <div id="test-posts-list" class="max-h-56 overflow-y-auto border border-gray-200 rounded-xl mb-3 divide-y divide-gray-100 bg-gray-50">
+                            <div class="text-center text-gray-400 text-xs py-6">Open this tab or click Refresh to load posts…</div>
+                        </div>
+                        <input type="hidden" id="test-post-id" value="">
+                        <div id="test-post-meta" class="text-xs text-gray-600 mb-3 min-h-[1.25rem] font-medium"></div>
                         <div class="grid grid-cols-3 gap-3 mb-4">
                             <div>
                                 <label class="block text-xs font-bold text-gray-500 mb-1">Likes</label>
                                 <input id="test-likes" type="number" min="0" value="0" class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none">
                             </div>
                             <div>
+                                <label class="block text-xs font-bold text-gray-500 mb-1">Comments</label>
+                                <input id="test-comments-add" type="number" min="0" value="0" class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none" title="Target total comments (injects dummy if needed)">
+                            </div>
+                            <div>
                                 <label class="block text-xs font-bold text-gray-500 mb-1">Shares</label>
                                 <input id="test-shares" type="number" min="0" value="0" class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none">
                             </div>
-                            <div>
-                                <label class="block text-xs font-bold text-gray-500 mb-1">Add comments</label>
-                                <input id="test-comments-add" type="number" min="0" value="0" class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none" title="How many dummy comments to append">
-                            </div>
                         </div>
-                        <div class="flex flex-wrap gap-2">
-                            <button type="button" onclick="testApplyPostEngagement()" class="bg-blue-600 text-white px-4 py-2.5 rounded-xl text-sm font-bold hover:bg-blue-700">Apply likes & shares</button>
-                            <button type="button" onclick="testInjectComments()" class="bg-indigo-600 text-white px-4 py-2.5 rounded-xl text-sm font-bold hover:bg-indigo-700">Inject comments</button>
+                        <div class="flex flex-wrap gap-2 mb-2">
+                            <button type="button" onclick="testApplyPostEngagement()" class="bg-blue-600 text-white px-4 py-2.5 rounded-xl text-sm font-bold hover:bg-blue-700">Apply to selected post</button>
                         </div>
-                        <div class="mt-3 flex flex-wrap gap-2">
+                        <div class="mt-1 flex flex-wrap gap-2">
                             <button type="button" onclick="testPresetPost(999)" class="text-xs bg-gray-100 px-3 py-1.5 rounded-lg font-semibold">999</button>
                             <button type="button" onclick="testPresetPost(12500)" class="text-xs bg-gray-100 px-3 py-1.5 rounded-lg font-semibold">12.5K</button>
+                            <button type="button" onclick="testPresetPost(150000)" class="text-xs bg-gray-100 px-3 py-1.5 rounded-lg font-semibold">150K</button>
                             <button type="button" onclick="testPresetPost(1500000)" class="text-xs bg-gray-100 px-3 py-1.5 rounded-lg font-semibold">1.5M</button>
                         </div>
                     </div>
 
-                    <!-- PROFILE BOOST -->
+<!-- PROFILE BOOST -->
                     <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
                         <h3 class="text-lg font-bold text-gray-800 mb-1"><i class="fas fa-user-friends text-emerald-500 mr-2"></i>Profile followers / following</h3>
-                        <p class="text-xs text-gray-500 mb-4">Sets array length using synthetic UIDs (<code>t_0</code>…). Max 20,000 per apply for safety.</p>
+                        <p class="text-xs text-gray-500 mb-4">Sets <code>followersCount</code> / <code>followingCount</code> (unlimited — e.g. 1,000,000). UI shows these counts without bloating the user document.</p>
                         <label class="block text-xs font-bold text-gray-500 uppercase mb-1">User ID or username</label>
                         <input id="test-user-key" type="text" placeholder="uid or username" class="w-full border border-gray-200 rounded-xl px-3 py-2.5 mb-3 text-sm outline-none">
                         <button type="button" onclick="testLoadUser()" class="mb-4 text-sm font-semibold text-emerald-600 hover:underline">Load current values</button>
@@ -338,6 +343,7 @@
                             <button type="button" onclick="testPresetProfile(100)" class="text-xs bg-gray-100 px-3 py-1.5 rounded-lg font-semibold">100</button>
                             <button type="button" onclick="testPresetProfile(1000)" class="text-xs bg-gray-100 px-3 py-1.5 rounded-lg font-semibold">1K</button>
                             <button type="button" onclick="testPresetProfile(10000)" class="text-xs bg-gray-100 px-3 py-1.5 rounded-lg font-semibold">10K</button>
+                            <button type="button" onclick="testPresetProfile(1000000)" class="text-xs bg-gray-100 px-3 py-1.5 rounded-lg font-semibold">1M</button>
                         </div>
                     </div>
 
@@ -503,7 +509,7 @@ if (tab === 'elite') loadEliteApplications();
 if (tab === 'banned') renderBannedUsers();
 if (tab === 'verified') renderVerifiedUsers();
 if (tab === 'reports') renderReports();
-if (tab === 'testing') testLabLog('Testing Lab open. Admin tools only.');
+if (tab === 'testing') { testLabLog('Testing Lab open. Admin tools only.'); try{ testLoadPostsList(); }catch(e){} }
 }
 
         // 🚀 FEATURE 1 & 2: LOAD & FILTER USERS
@@ -1284,77 +1290,134 @@ function testLabLog(msg){
 }
 function testPresetPost(n){
   document.getElementById('test-likes').value = n;
+  document.getElementById('test-comments-add').value = Math.max(0, Math.floor(n * 0.04));
   document.getElementById('test-shares').value = Math.max(0, Math.floor(n * 0.08));
 }
 function testPresetProfile(n){
   document.getElementById('test-followers').value = n;
   document.getElementById('test-following').value = Math.min(n, Math.floor(n * 0.3));
 }
-async function testLoadPost(){
-  var id = (document.getElementById('test-post-id').value || '').trim();
-  if(!id){ testLabLog('Enter a post id'); return; }
+function testEsc(s){
+  return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function testPostCaption(p){
+  var t = (p.title || p.caption || p.text || '').toString().replace(/\s+/g,' ').trim();
+  if(!t && (p.imgUrl || (p.imgUrls && p.imgUrls[0]))) t = '[Photo/Video]';
+  if(!t) t = '(no caption)';
+  if(t.length > 72) t = t.slice(0, 72) + '…';
+  return t;
+}
+async function testLoadPostsList(){
+  var box = document.getElementById('test-posts-list');
+  if(!box) return;
+  box.innerHTML = '<div class="text-center text-gray-400 text-xs py-6"><i class="fas fa-spinner fa-spin"></i> Loading posts…</div>';
+  try{
+    var snap = await db.collection('posts').get();
+    var rows = [];
+    snap.forEach(function(doc){ rows.push({ id: doc.id, data: doc.data() || {} }); });
+    rows.sort(function(a,b){
+      var ta = a.data.createdAt && a.data.createdAt.toMillis ? a.data.createdAt.toMillis() : (a.data.createdAt || 0);
+      var tb = b.data.createdAt && b.data.createdAt.toMillis ? b.data.createdAt.toMillis() : (b.data.createdAt || 0);
+      return (tb||0) - (ta||0);
+    });
+    if(!rows.length){
+      box.innerHTML = '<div class="text-center text-gray-400 text-xs py-6">No posts found.</div>';
+      testLabLog('No posts in collection');
+      return;
+    }
+    box.innerHTML = rows.map(function(r){
+      var p = r.data;
+      var likes = typeof p.likes === 'number' ? p.likes : (Array.isArray(p.likedBy) ? p.likedBy.length : 0);
+      var comments = Array.isArray(p.comments) ? p.comments.length : (p.commentCount || 0);
+      var shares = typeof p.shares === 'number' ? p.shares : (p.shareCount || 0);
+      var name = p.name || p.userName || p.uid || 'User';
+      return '<button type="button" class="w-full text-left px-3 py-2.5 hover:bg-blue-50 transition test-post-row" data-pid="'+testEsc(r.id)+'" onclick="testSelectPost(\''+String(r.id).replace(/'/g,"\\'")+'\')">'
+        + '<div class="text-sm font-semibold text-gray-800 truncate">'+testEsc(testPostCaption(p))+'</div>'
+        + '<div class="text-[11px] text-gray-500 mt-0.5 flex flex-wrap gap-x-2">'
+        + '<span>'+testEsc(name)+'</span>'
+        + '<span>❤ '+likes+'</span><span>💬 '+comments+'</span><span>↗ '+shares+'</span>'
+        + '</div></button>';
+    }).join('');
+    testLabLog('Loaded ' + rows.length + ' posts');
+  }catch(e){
+    box.innerHTML = '<div class="text-center text-red-500 text-xs py-6">Failed to load posts</div>';
+    testLabLog('Load posts error: ' + (e.message || e));
+  }
+}
+async function testSelectPost(id){
+  document.getElementById('test-post-id').value = id;
+  document.querySelectorAll('.test-post-row').forEach(function(btn){
+    btn.classList.toggle('bg-blue-100', btn.getAttribute('data-pid') === id);
+    btn.classList.toggle('ring-1', btn.getAttribute('data-pid') === id);
+    btn.classList.toggle('ring-blue-400', btn.getAttribute('data-pid') === id);
+  });
   try{
     var doc = await db.collection('posts').doc(id).get();
     if(!doc.exists){ testLabLog('Post not found: ' + id); return; }
     var p = doc.data() || {};
     var likes = typeof p.likes === 'number' ? p.likes : (Array.isArray(p.likedBy) ? p.likedBy.length : 0);
-    var shares = typeof p.shares === 'number' ? p.shares : 0;
-    var comments = Array.isArray(p.comments) ? p.comments.length : 0;
+    var shares = typeof p.shares === 'number' ? p.shares : (p.shareCount || 0);
+    var comments = Array.isArray(p.comments) ? p.comments.length : (p.commentCount || 0);
     document.getElementById('test-likes').value = likes;
     document.getElementById('test-shares').value = shares;
-    document.getElementById('test-post-meta').textContent = 'Author uid: ' + (p.uid || '—') + ' · comments in array: ' + comments + ' · title: ' + ((p.title || '').slice(0, 60));
-    testLabLog('Loaded post ' + id + ' · likes=' + likes + ' shares=' + shares + ' comments=' + comments);
-  }catch(e){ testLabLog('Load post error: ' + (e.message || e)); }
+    document.getElementById('test-comments-add').value = comments;
+    document.getElementById('test-post-meta').textContent = 'Selected: ' + testPostCaption(p) + ' · id ' + id.slice(0, 10) + '…';
+    testLabLog('Selected post ' + id + ' · L' + likes + ' C' + comments + ' S' + shares);
+  }catch(e){ testLabLog('Select error: ' + (e.message || e)); }
 }
 async function testApplyPostEngagement(){
   var id = (document.getElementById('test-post-id').value || '').trim();
-  if(!id){ testLabLog('Enter a post id'); return; }
+  if(!id){ testLabLog('Select a post from the list first'); return; }
   var likes = Math.max(0, parseInt(document.getElementById('test-likes').value, 10) || 0);
   var shares = Math.max(0, parseInt(document.getElementById('test-shares').value, 10) || 0);
-  try{
-    // Keep likedBy empty so numeric likes wins in UI helpers that prefer array length
-    await db.collection('posts').doc(id).update({
-      likes: likes,
-      likedBy: [],
-      shares: shares,
-      shareCount: shares
-    });
-    testLabLog('Updated post ' + id + ' → likes=' + likes + ' shares=' + shares);
-  }catch(e){ testLabLog('Apply post error: ' + (e.message || e)); }
-}
-async function testInjectComments(){
-  var id = (document.getElementById('test-post-id').value || '').trim();
-  if(!id){ testLabLog('Enter a post id'); return; }
-  var n = Math.max(0, parseInt(document.getElementById('test-comments-add').value, 10) || 0);
-  if(n > 500){ testLabLog('Max 500 comments per batch (Firestore doc size)'); n = 500; }
-  if(!n){ testLabLog('Set “Add comments” > 0'); return; }
+  var targetComments = Math.max(0, parseInt(document.getElementById('test-comments-add').value, 10) || 0);
   try{
     var ref = db.collection('posts').doc(id);
     var doc = await ref.get();
     if(!doc.exists){ testLabLog('Post not found'); return; }
-    var comments = Array.isArray(doc.data().comments) ? doc.data().comments.slice() : [];
-    var now = Date.now();
-    for(var i = 0; i < n; i++){
-      comments.push({
-        uid: 't_commenter_' + i,
-        name: 'Test User ' + i,
-        text: 'Test comment #' + (comments.length + 1) + ' for UI stress.',
-        createdAt: now + i,
-        likes: [],
-        isTest: true
-      });
+    var p = doc.data() || {};
+    var comments = Array.isArray(p.comments) ? p.comments.slice() : [];
+    // Keep a small sample of real comments + pad with dummies so list still opens,
+    // but store commentCount for large totals (UI prefers length — we pad up to 200 max in array)
+    var MAX_ARR = 200;
+    if(targetComments > comments.length){
+      var need = Math.min(MAX_ARR, targetComments) - comments.length;
+      if(need < 0) need = 0;
+      var now = Date.now();
+      for(var i = 0; i < need; i++){
+        comments.push({
+          uid: 't_commenter_' + i,
+          name: 'Test User ' + (i + 1),
+          text: 'Test comment #' + (comments.length + 1),
+          createdAt: now + i,
+          likes: [],
+          isTest: true
+        });
+      }
+    } else if(targetComments < comments.length && targetComments >= 0){
+      // Only trim pure test comments if reducing
+      var real = comments.filter(function(c){ return !c || !c.isTest; });
+      var tests = comments.filter(function(c){ return c && c.isTest; });
+      if(real.length >= targetComments) comments = real.slice(0, targetComments);
+      else comments = real.concat(tests.slice(0, Math.max(0, targetComments - real.length)));
     }
-    await ref.update({ comments: comments });
-    testLabLog('Injected ' + n + ' comments → total ' + comments.length);
-    document.getElementById('test-post-meta').textContent = 'comments in array: ' + comments.length;
-  }catch(e){ testLabLog('Inject comments error: ' + (e.message || e)); }
+    await ref.update({
+      likes: likes,
+      likedBy: [],
+      shares: shares,
+      shareCount: shares,
+      comments: comments,
+      commentCount: targetComments
+    });
+    testLabLog('Applied → likes=' + likes + ' comments=' + targetComments + ' (array ' + comments.length + ') shares=' + shares);
+    try{ testLoadPostsList(); }catch(e2){}
+  }catch(e){ testLabLog('Apply post error: ' + (e.message || e)); }
 }
 async function testResolveUserId(key){
   key = (key || '').trim();
   if(!key) return null;
   var direct = await db.collection('users').doc(key).get();
   if(direct.exists) return key;
-  // username index
   try{
     var un = await db.collection('usernames').doc(key.toLowerCase()).get();
     if(un.exists && un.data() && un.data().uid) return un.data().uid;
@@ -1365,20 +1428,14 @@ async function testResolveUserId(key){
   if(!q.empty) return q.docs[0].id;
   return null;
 }
-function testBuildSynthIds(n, prefix){
-  n = Math.max(0, Math.min(20000, n|0));
-  var arr = [];
-  for(var i = 0; i < n; i++) arr.push(prefix + i);
-  return arr;
-}
 async function testLoadUser(){
   var key = document.getElementById('test-user-key').value;
   var uid = await testResolveUserId(key);
   if(!uid){ testLabLog('User not found: ' + key); return; }
   var doc = await db.collection('users').doc(uid).get();
   var u = doc.data() || {};
-  var fo = Array.isArray(u.followers) ? u.followers.length : 0;
-  var fi = Array.isArray(u.following) ? u.following.length : 0;
+  var fo = Math.max(Array.isArray(u.followers) ? u.followers.length : 0, typeof u.followersCount === 'number' ? u.followersCount : 0);
+  var fi = Math.max(Array.isArray(u.following) ? u.following.length : 0, typeof u.followingCount === 'number' ? u.followingCount : 0);
   document.getElementById('test-followers').value = fo;
   document.getElementById('test-following').value = fi;
   document.getElementById('test-user-meta').textContent = 'uid: ' + uid + ' · name: ' + (u.name || '—') + ' · @' + (u.username || '—');
@@ -1391,28 +1448,13 @@ async function testApplyProfileStats(){
   if(!uid){ testLabLog('User not found'); return; }
   var fo = Math.max(0, parseInt(document.getElementById('test-followers').value, 10) || 0);
   var fi = Math.max(0, parseInt(document.getElementById('test-following').value, 10) || 0);
-  if(fo > 20000 || fi > 20000){ testLabLog('Cap is 20,000 per field per apply'); return; }
+  // Unlimited numeric counts — no synthetic 1M-length arrays (Firestore 1MB limit)
   try{
-    // Preserve real non-synthetic ids, then pad with t_* 
-    var doc = await db.collection('users').doc(uid).get();
-    var u = doc.data() || {};
-    function mergeCount(existing, target, prefix){
-      existing = Array.isArray(existing) ? existing.filter(function(x){ return x && String(x).indexOf('t_') !== 0; }) : [];
-      var need = Math.max(0, target - existing.length);
-      return existing.concat(testBuildSynthIds(need, prefix));
-    }
-    var followers = mergeCount(u.followers, fo, 't_fo_');
-    var following = mergeCount(u.following, fi, 't_fi_');
-    // trim if target smaller
-    if(followers.length > fo) followers = followers.slice(0, fo);
-    if(following.length > fi) following = following.slice(0, fi);
     await db.collection('users').doc(uid).update({
-      followers: followers,
-      following: following,
-      followersCount: followers.length,
-      followingCount: following.length
+      followersCount: fo,
+      followingCount: fi
     });
-    testLabLog('Updated ' + uid + ' → followers=' + followers.length + ' following=' + following.length);
+    testLabLog('Updated ' + uid + ' → followersCount=' + fo + ' followingCount=' + fi + ' (unlimited numeric)');
   }catch(e){ testLabLog('Profile apply error: ' + (e.message || e)); }
 }
 async function testInjectMessages(){
@@ -1426,7 +1468,6 @@ async function testInjectMessages(){
     var chatRef = db.collection('chats').doc(chatId);
     var chatDoc = await chatRef.get();
     if(!chatDoc.exists){
-      // create minimal chat shell so messages can be read in app
       var parts = chatId.split('_');
       await chatRef.set({
         users: parts.length >= 2 ? parts : [sender],

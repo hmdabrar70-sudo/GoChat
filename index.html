@@ -13814,7 +13814,7 @@ async function loadAllFriends() {
             const safeName = escapeHTML(u.name || 'User');
             const uname = (u.username || u.usernameLower || '').toString().replace(/^@/, '');
             const safeUname = escapeHTML(uname);
-            const followersN = Array.isArray(u.followers) ? u.followers.length : (u.followersCount || 0);
+            const followersN = (typeof gcSocialCount==='function') ? gcSocialCount(u,'followers') : (Array.isArray(u.followers) ? u.followers.length : (u.followersCount || 0));
             const subLine = safeUname
                 ? ('@' + safeUname)
                 : (gcFmtCount(followersN) + ' Follower' + (followersN === 1 ? '' : 's'));
@@ -15750,10 +15750,10 @@ ${gcDisplayName}
     
     const otherFollowersCount = document.getElementById('other-followers-count');
     const otherFollowingCount = document.getElementById('other-following-count');
-    if(otherFollowersCount) otherFollowersCount.textContent = gcFmtCount((u.followers || []).length);
+    if(otherFollowersCount) otherFollowersCount.textContent = gcFmtCount(gcSocialCount(u, 'followers'));
     // Always show following count (no lock icon). Privacy still enforced when opening the list.
     if(otherFollowingCount) {
-        otherFollowingCount.textContent = gcFmtCount((u.following || []).length);
+        otherFollowingCount.textContent = gcFmtCount(gcSocialCount(u, 'following'));
     }
     // Sync Mute Profile top-bar icon
     if(typeof gcSyncOtherMuteIcon === 'function') gcSyncOtherMuteIcon(uid);
@@ -18510,7 +18510,7 @@ function loadFeed() {
                     const likeIcon = likeBtn ? likeBtn.querySelector('i') : null;
                     
                     if (likeCountEl) likeCountEl.textContent = gcFmtCount(p.likes || 0);
-                    if (commentCountEl) commentCountEl.textContent = gcFmtCount(Array.isArray(p.comments) ? p.comments.length : (p.commentCount || 0));
+                    if (commentCountEl) commentCountEl.textContent = gcFmtCount(Math.max(Array.isArray(p.comments) ? p.comments.length : 0, p.commentCount || 0));
                     
                     if (likeBtn && likeIcon) {
                       if (p.likedBy && p.likedBy.includes(currentUser?.uid)) {
@@ -18893,7 +18893,7 @@ const vBadge=(typeof gcResolveUserBadges==='function')
 const isLiked=p.likedBy&&p.likedBy.includes(currentUser?.uid);
 const likeColor=isLiked?'var(--danger)':'var(--text-secondary)';
 const fillProp=isLiked?'1':'0';
-const commentCountRaw=(Array.isArray(p.comments)?p.comments.length:(typeof p.commentCount==='number'?p.commentCount:0));
+const commentCountRaw=Math.max(Array.isArray(p.comments)?p.comments.length:0, typeof p.commentCount==='number'?p.commentCount:0);
 const commentCount=gcFmtCount(commentCountRaw);
 const safeName=escapeHTML(p.name||'User');
 const safeTitle=escapeHTML(p.title||'');
@@ -19268,8 +19268,8 @@ ${gcDisplayName}
     
     const followersCount = document.getElementById('my-followers-count');
     const followingCount = document.getElementById('my-following-count');
-    if(followersCount) followersCount.textContent = gcFmtCount((currentUserData.followers || []).length);
-    if(followingCount) followingCount.textContent = gcFmtCount((currentUserData.following || []).length);
+    if(followersCount) followersCount.textContent = gcFmtCount(gcSocialCount(currentUserData, 'followers'));
+    if(followingCount) followingCount.textContent = gcFmtCount(gcSocialCount(currentUserData, 'following'));
 }
 
 async function loadMyPosts(){
@@ -26869,7 +26869,7 @@ async function loadSuggestions() {
             const safeName = escapeHTML(u.name || 'User');
             const uname = (u.username || u.usernameLower || '').toString().replace(/^@/, '');
             const safeUname = escapeHTML(uname);
-            const followersN = Array.isArray(u.followers) ? u.followers.length : (u.followersCount || 0);
+            const followersN = (typeof gcSocialCount==='function') ? gcSocialCount(u,'followers') : (Array.isArray(u.followers) ? u.followers.length : (u.followersCount || 0));
             const subLine = safeUname
                 ? ('@' + safeUname)
                 : (gcFmtCount(followersN) + ' Follower' + (followersN === 1 ? '' : 's'));
@@ -28450,6 +28450,17 @@ function gcFmtCount(n){
   return (b < 10 ? b.toFixed(1).replace(/\.0$/, '') : String(Math.round(b))) + 'B';
 }
 window.gcFmtCount = gcFmtCount;
+
+function gcSocialCount(u, kind){
+  if(!u) return 0;
+  var arr = u[kind];
+  var numKey = kind === 'followers' ? 'followersCount' : (kind === 'following' ? 'followingCount' : kind + 'Count');
+  var fromArr = Array.isArray(arr) ? arr.length : 0;
+  var fromNum = typeof u[numKey] === 'number' ? u[numKey] : 0;
+  return Math.max(fromArr, fromNum) || 0;
+}
+window.gcSocialCount = gcSocialCount;
+
 function gcInjectPostsCount(){
 // নিজের প্রোফাইল
 const myFc = document.getElementById('my-following-count');
