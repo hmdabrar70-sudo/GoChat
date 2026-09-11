@@ -20,17 +20,34 @@
 </head>
 <body>
 
-    <!-- 1. LOGIN SCREEN -->
+    <!-- 1. LOGIN SCREEN · email + password -->
     <div id="loginScreen" class="min-h-screen flex items-center justify-center bg-gray-900 absolute inset-0 z-50">
         <div class="bg-white p-10 rounded-2xl shadow-2xl max-w-md w-full text-center">
             <div class="w-20 h-20 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl">
                 <i class="fas fa-shield-alt"></i>
             </div>
             <h2 class="text-3xl font-bold text-gray-800 mb-2">GoChat Admin</h2>
-            <p class="text-gray-500 mb-8">Sign in with authorized Gmail</p>
-            <button onclick="loginWithGoogle()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-xl transition flex items-center justify-center gap-3">
-                <i class="fab fa-google"></i> Login with Gmail
-            </button>
+            <p class="text-gray-500 mb-6">Sign in with email &amp; password</p>
+            <form id="adminLoginForm" onsubmit="event.preventDefault(); loginWithEmail();" class="text-left space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1.5">Email</label>
+                    <input id="adminLoginEmail" type="email" autocomplete="username" required
+                        class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-blue-500"
+                        placeholder="admin@email.com" value="hbmabrar@gmail.com">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1.5">Password</label>
+                    <input id="adminLoginPassword" type="password" autocomplete="current-password" required
+                        class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-blue-500"
+                        placeholder="••••••••">
+                </div>
+                <p id="adminLoginError" class="text-sm text-red-500 font-medium hidden"></p>
+                <button type="submit" id="adminLoginBtn"
+                    class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-xl transition flex items-center justify-center gap-2">
+                    <i class="fas fa-sign-in-alt"></i> Login
+                </button>
+            </form>
+            <p class="text-xs text-gray-400 mt-5 leading-relaxed">Only the authorized admin email can access this panel. Enable <strong>Email/Password</strong> in Firebase Authentication if needed.</p>
         </div>
     </div>
 
@@ -322,10 +339,7 @@
         const auth = firebase.auth();
         const db = firebase.firestore();
         // 🚀 FIX: Redirect ফলব্যাক থেকে ফিরলে রেজাল্ট প্রসেস + এরর হলে টোস্ট
-auth.getRedirectResult().catch(function (e) {
-if (e && e.code) showToast("Redirect login failed: " + e.message, "error");
-});
-        let allUsersData = [];
+let allUsersData = [];
 
         // 🚀 ADMIN AUTHENTICATION
         const ADMIN_EMAIL = "hbmabrar@gmail.com"; 
@@ -357,26 +371,38 @@ startReportsListener();
             }
         });
 
-        // 🚀 FIX · google-login-popup · 2026-08-08
-// signInWithRedirect এখন storage-partitioned ব্রাউজারে ফেল করে ("missing initial state")
-// তাই Popup প্রাইমারি + Redirect শুধু ফলব্যাক হিসেবে
-function loginWithGoogle() {
-const provider = new firebase.auth.GoogleAuthProvider();
-provider.setCustomParameters({ prompt: 'select_account' });
-auth.signInWithPopup(provider).then(() => {
-// লগইন সাকসেস — onAuthStateChanged নিজেই এডমিন প্যানেল দেখাবে
-}).catch(function (e) {
-console.error("Popup login error:", e);
-// পপআপ ব্লক/সাপোর্ট না হলে তবেই redirect ফলব্যাক
-if (e && (e.code === 'auth/popup-blocked' || e.code === 'auth/operation-not-supported-in-this-environment')) {
-auth.signInWithRedirect(provider).catch(function (e2) { showToast(e2.message, "error"); });
-} else if (e && e.code === 'auth/cancelled-popup-request') {
-showToast("Popup cancelled. Please try again.", "error");
-} else {
-showToast("Login failed: " + (e && e.message ? e.message : "Unknown error"), "error");
+        // Email + password admin login (no Google popup)
+function loginWithEmail() {
+  var emailEl = document.getElementById('adminLoginEmail');
+  var passEl = document.getElementById('adminLoginPassword');
+  var errEl = document.getElementById('adminLoginError');
+  var btn = document.getElementById('adminLoginBtn');
+  var email = (emailEl && emailEl.value || '').trim();
+  var password = passEl && passEl.value || '';
+  if (errEl) { errEl.classList.add('hidden'); errEl.textContent = ''; }
+  if (!email || !password) {
+    if (errEl) { errEl.textContent = 'Email and password required'; errEl.classList.remove('hidden'); }
+    return;
+  }
+  if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Signing in…'; }
+  auth.signInWithEmailAndPassword(email, password).then(function () {
+    // onAuthStateChanged handles panel
+  }).catch(function (e) {
+    console.error('Email login error:', e);
+    var msg = (e && e.message) ? e.message : 'Login failed';
+    if (e && e.code === 'auth/user-not-found') msg = 'No account found for this email';
+    else if (e && e.code === 'auth/wrong-password') msg = 'Wrong password';
+    else if (e && e.code === 'auth/invalid-credential') msg = 'Invalid email or password';
+    else if (e && e.code === 'auth/invalid-email') msg = 'Invalid email address';
+    else if (e && e.code === 'auth/too-many-requests') msg = 'Too many attempts. Try again later';
+    else if (e && e.code === 'auth/operation-not-allowed') msg = 'Email/Password sign-in is disabled in Firebase Console';
+    if (errEl) { errEl.textContent = msg; errEl.classList.remove('hidden'); }
+    showToast(msg, 'error');
+  }).finally(function () {
+    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Login'; }
+  });
 }
-});
-}
+window.loginWithEmail = loginWithEmail;
 
         function logoutAdmin() {
             auth.signOut().then(() => {
