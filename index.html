@@ -9679,20 +9679,6 @@ body.friends-mode .nav-capsule {
   flex-shrink:0 !important;
 }
 
-
-/* Compact social counts — Facebook-style K/M stays readable */
-#my-followers-count, #my-following-count, #my-posts-count,
-#other-followers-count, #other-following-count, #other-posts-count{
-  font-variant-numeric: tabular-nums;
-  letter-spacing: -0.02em;
-  font-weight: 800 !important;
-  font-size: 17px !important;
-  line-height: 1.1 !important;
-}
-.profile-stats b, .gc-profile-sheet b[id$="-count"]{
-  font-variant-numeric: tabular-nums;
-}
-
 </style>
 
 </head>
@@ -13817,7 +13803,7 @@ async function loadAllFriends() {
             const followersN = (typeof gcSocialCount==='function') ? gcSocialCount(u,'followers') : (Array.isArray(u.followers) ? u.followers.length : (u.followersCount || 0));
             const subLine = safeUname
                 ? ('@' + safeUname)
-                : (gcFmtCount(followersN) + ' Follower' + (followersN === 1 ? '' : 's'));
+                : (followersN + ' Follower' + (followersN === 1 ? '' : 's'));
             const initial = (typeof avatarInitial === 'function')
                 ? avatarInitial(u.name)
                 : escapeHTML(String(u.name || '?').charAt(0).toUpperCase());
@@ -15148,10 +15134,14 @@ async function toggleLike(pid) {
     likeButtons.forEach(btn => {
         const icon = btn.querySelector('i');
         const countSpan = btn.querySelector('span');
-        currentLikes = parseInt((countSpan && countSpan.innerText) || '0', 10) || 0;
+        // Prefer data-raw-count; never parseInt("18.9K") → 18 (glitch)
+        if (countSpan) {
+            var rawAttr = countSpan.getAttribute('data-raw-count');
+            if (rawAttr != null && rawAttr !== '') currentLikes = parseInt(rawAttr, 10) || 0;
+            else currentLikes = (typeof gcParseCountText === 'function') ? gcParseCountText(countSpan.innerText) : (parseInt(countSpan.innerText, 10) || 0);
+        } else currentLikes = 0;
         isCurrentlyLiked = btn.classList.contains('liked');
 
-        // restart animations
         btn.classList.remove('just-liked');
         if (countSpan) {
             countSpan.classList.remove('like-count', 'anim-up', 'anim-down');
@@ -15163,7 +15153,9 @@ async function toggleLike(pid) {
             btn.classList.remove('liked');
             if (icon) icon.className = 'ph-light ph-thumbs-up';
             if (countSpan) {
-                countSpan.innerText = Math.max(0, currentLikes - 1);
+                var nextDown = Math.max(0, currentLikes - 1);
+                countSpan.setAttribute('data-raw-count', String(nextDown));
+                countSpan.innerText = (typeof gcFmtCount === 'function') ? gcFmtCount(nextDown) : String(nextDown);
                 countSpan.classList.add('anim-down');
             }
         } else {
@@ -15174,7 +15166,9 @@ async function toggleLike(pid) {
             }
             btn.classList.add('just-liked');
             if (countSpan) {
-                countSpan.innerText = currentLikes + 1;
+                var nextUp = currentLikes + 1;
+                countSpan.setAttribute('data-raw-count', String(nextUp));
+                countSpan.innerText = (typeof gcFmtCount === 'function') ? gcFmtCount(nextUp) : String(nextUp);
                 countSpan.classList.add('anim-up');
             }
             setTimeout(function(){ btn.classList.remove('just-liked'); }, 500);
@@ -15187,12 +15181,12 @@ async function toggleLike(pid) {
         if (zBtn) {
             const zIcon = zBtn.querySelector('i');
             const zSpan = zBtn.querySelector('span');
-            let zLikes = parseInt((zSpan && zSpan.innerText) || '0', 10) || 0;
+            let zLikes = (zSpan && zSpan.getAttribute('data-raw-count') != null) ? (parseInt(zSpan.getAttribute('data-raw-count'),10)||0) : ((typeof gcParseCountText==='function') ? gcParseCountText(zSpan && zSpan.innerText) : (parseInt((zSpan && zSpan.innerText)||'0',10)||0));
             
             if (zIcon && zIcon.classList.contains('ph-fill')) {
-                zBtn.innerHTML = `<i class="ph-light ph-thumbs-up" style="color:#fff; font-size:24px; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));"></i> <span class="like-count anim-down" style="font-size:14px; font-weight:800; color:#fff; text-shadow:0 1px 3px rgba(0,0,0,0.6);">${Math.max(0, zLikes - 1)}</span>`;
+                zBtn.innerHTML = `<i class="ph-light ph-thumbs-up" style="color:#fff; font-size:24px; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));"></i> <span class="like-count anim-down" style="font-size:14px; font-weight:800; color:#fff; text-shadow:0 1px 3px rgba(0,0,0,0.6);">${(typeof gcFmtCount==='function'?gcFmtCount(Math.max(0,zLikes-1)):Math.max(0,zLikes-1))}</span>`;
             } else {
-                zBtn.innerHTML = `<i class="ph-light ph-thumbs-up" style="color:#1DA1F2; font-size:24px; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));"></i> <span class="like-count anim-up" style="font-size:14px; font-weight:800; color:#fff; text-shadow:0 1px 3px rgba(0,0,0,0.6);">${zLikes + 1}</span>`;
+                zBtn.innerHTML = `<i class="ph-light ph-thumbs-up" style="color:#1DA1F2; font-size:24px; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));"></i> <span class="like-count anim-up" style="font-size:14px; font-weight:800; color:#fff; text-shadow:0 1px 3px rgba(0,0,0,0.6);">${(typeof gcFmtCount==='function'?gcFmtCount(zLikes+1):(zLikes+1))}</span>`;
             }
         }
     }
@@ -18094,6 +18088,8 @@ async function openSinglePostView(pid) {
     if (!allUsersCache) { try { await fetchAllUsers(); } catch(e){} }
 
     try {
+        window.__spLastContentKey = null;
+        window.__spLastPid = pid;
         singlePostUnsub = db.collection('posts').doc(pid).onSnapshot(function(doc){
             if (!doc.exists) {
                 container.innerHTML = '<div class="empty-feed">Post not found</div>';
@@ -18101,10 +18097,71 @@ async function openSinglePostView(pid) {
             }
             const data = doc.data() || {};
             const comments = data.comments || [];
-            const countLabel = comments.length === 1 ? '1 comment' : (gcFmtCount(comments.length) + ' comments');
-            // Preserve scroll position when snapshot re-renders
-            const prevScroll = container.scrollTop;
-            // Post card + inline comments (no need to open comment panel)
+            const __cTot = (typeof gcCommentTotal==='function') ? gcCommentTotal(data || {comments:comments}) : comments.length;
+            const countLabel = __cTot === 1 ? '1 comment' : (gcFmtCount(__cTot) + ' comments');
+            const contentKey = [
+              data.title || '',
+              data.videoUrl || '',
+              data.imgUrl || '',
+              (Array.isArray(data.imgUrls) ? data.imgUrls.join('|') : ''),
+              data.bgColor || '',
+              data.activityType || data.activity || '',
+              data.feeling || '',
+              data.withFriends ? JSON.stringify(data.withFriends) : '',
+              !!data.isPinned
+            ].join('::');
+            const existingCard = container.querySelector('.post-card');
+            const canSoft = existingCard && window.__spLastPid === pid && window.__spLastContentKey === contentKey;
+
+            if (canSoft) {
+              // Soft update: counts + comments only — never destroy <video> (stops jump/reload)
+              try {
+                var likesN = (typeof data.likes === 'number') ? data.likes : ((data.likedBy && data.likedBy.length) || 0);
+                var sharesN = (typeof data.shares === 'number') ? data.shares : (data.shareCount || 0);
+                var isLiked = !!(currentUser && data.likedBy && data.likedBy.indexOf(currentUser.uid) !== -1);
+                var likeBtn = container.querySelector('.post-action-btn[data-action="like"]');
+                if (likeBtn) {
+                  likeBtn.classList.toggle('liked', isLiked);
+                  var likeSpan = likeBtn.querySelector('[data-count="likes"]') || likeBtn.querySelector('span');
+                  if (likeSpan) {
+                    likeSpan.setAttribute('data-raw-count', String(likesN));
+                    likeSpan.textContent = (typeof gcFmtCount === 'function') ? gcFmtCount(likesN) : String(likesN);
+                  }
+                  var likeIcon = likeBtn.querySelector('i');
+                  if (likeIcon) likeIcon.className = 'ph-light ph-thumbs-up';
+                }
+                var cBtn = container.querySelector('.post-action-btn[data-action="comment"]');
+                if (cBtn) {
+                  var cSpan = cBtn.querySelector('[data-count="comments"]') || cBtn.querySelector('span');
+                  if (cSpan) {
+                    cSpan.setAttribute('data-raw-count', String(__cTot));
+                    cSpan.textContent = (typeof gcFmtCount === 'function') ? gcFmtCount(__cTot) : String(__cTot);
+                  }
+                }
+                var sSpan = container.querySelector('[data-count="shares"]');
+                if (sSpan) {
+                  sSpan.setAttribute('data-raw-count', String(sharesN));
+                  sSpan.textContent = (typeof gcFmtCount === 'function') ? gcFmtCount(sharesN) : String(sharesN);
+                }
+                var spCount = container.querySelector('.sp-comments-count');
+                if (spCount) spCount.textContent = countLabel;
+                var spList = container.querySelector('.sp-comments-list');
+                if (spList && typeof gcBuildInlineCommentsHTML === 'function') {
+                  // Only rebuild comment list HTML — media stays intact
+                  var softScroll = container.scrollTop;
+                  spList.innerHTML = gcBuildInlineCommentsHTML(pid, comments);
+                  try { container.scrollTop = softScroll; } catch(e2){}
+                }
+              } catch (eSoft) {
+                console.warn('sp soft update', eSoft);
+              }
+              return;
+            }
+
+            // Full render (first load or post content changed)
+            window.__spLastContentKey = contentKey;
+            window.__spLastPid = pid;
+            var fullScroll = container.scrollTop;
             container.innerHTML =
                 buildPostCardHTML({id: doc.id, ...data})
                 + '<div class="sp-comments-wrap">'
@@ -18114,7 +18171,7 @@ async function openSinglePostView(pid) {
                 +   '</div>'
                 +   '<div class="sp-comments-list">' + gcBuildInlineCommentsHTML(pid, comments) + '</div>'
                 + '</div>';
-            try { container.scrollTop = prevScroll; } catch(e){}
+            try { container.scrollTop = fullScroll; } catch(e){}
         });
     } catch(e) {
         container.innerHTML = '<div class="empty-feed">Error loading post</div>';
@@ -18509,8 +18566,8 @@ function loadFeed() {
                     const commentCountEl = commentBtn ? (commentBtn.querySelector('[data-count="comments"]') || commentBtn.querySelector('span')) : null;
                     const likeIcon = likeBtn ? likeBtn.querySelector('i') : null;
                     
-                    if (likeCountEl) likeCountEl.textContent = gcFmtCount(p.likes || 0);
-                    if (commentCountEl) commentCountEl.textContent = gcFmtCount(Math.max(Array.isArray(p.comments) ? p.comments.length : 0, p.commentCount || 0));
+                    if (likeCountEl) { likeCountEl.setAttribute('data-raw-count', String(p.likes || 0)); likeCountEl.textContent = gcFmtCount(p.likes || 0); }
+                    if (commentCountEl) { var __ct = Math.max(Array.isArray(p.comments)?p.comments.length:0, p.commentCount||0); commentCountEl.setAttribute('data-raw-count', String(__ct)); commentCountEl.textContent = gcFmtCount(__ct); }
                     
                     if (likeBtn && likeIcon) {
                       if (p.likedBy && p.likedBy.includes(currentUser?.uid)) {
@@ -18524,7 +18581,7 @@ function loadFeed() {
                 } else {
                     const likeCountEl = existingCard.querySelector('[data-count="likes"]') || existingCard.querySelector('.grid-post-overlay > div:nth-child(2)');
                     if(likeCountEl) {
-                        likeCountEl.innerHTML = `<i class="${p.likedBy && p.likedBy.includes(currentUser?.uid) ? 'ph-light' : 'ph-light'} ph-thumbs-up" style="font-size:15px; ${p.likedBy && p.likedBy.includes(currentUser?.uid) ? 'color:var(--danger);' : ''}"></i> ${gcFmtCount(p.likes || 0)}`;
+                        likeCountEl.innerHTML = `<i class="${p.likedBy && p.likedBy.includes(currentUser?.uid) ? 'ph-fill' : 'ph-bold'} ph-thumbs-up" style="font-size:15px; ${p.likedBy && p.likedBy.includes(currentUser?.uid) ? 'color:var(--danger);' : ''}"></i> ${gcFmtCount(p.likes || 0)}`;
                     }
                 }
             } else {
@@ -18738,13 +18795,13 @@ function listenToZoomPostData(pid) {
             const data = doc.data();
             const isLiked = data.likedBy && currentUser && data.likedBy.includes(currentUser.uid);
             const likeCount = data.likes || 0;
-            const commentCount = data.comments ? data.comments.length : 0;
+            const commentCount = (typeof gcCommentTotal === 'function') ? gcCommentTotal(data) : (data.comments ? data.comments.length : 0);
             
             const likeBtn = document.getElementById('zoom-like-btn');
             const commentBtn = document.getElementById('zoom-comment-btn');
             
-            const formattedLikes = typeof gcFmtCount === 'function' ? gcFmtCount(likeCount) : likeCount;
-            const formattedComments = typeof gcFmtCount === 'function' ? gcFmtCount(commentCount) : commentCount;
+            const formattedLikes = typeof formatLBNum === 'function' ? formatLBNum(likeCount) : likeCount;
+            const formattedComments = typeof formatLBNum === 'function' ? formatLBNum(commentCount) : commentCount;
             
             if(likeBtn) {
                 likeBtn.innerHTML = isLiked 
@@ -19060,20 +19117,20 @@ ${generatePollHTML(p)}
 <div class="post-actions">
 <!-- 🚀 বাটনগুলোতে event.stopPropagation() দেওয়া হলো -->
 <button class="post-action-btn ${isLiked ? 'liked' : ''}" data-action="like" onclick="event.stopPropagation(); toggleLike('${pid}')">
-    <i class="ph-light ph-thumbs-up" style="font-size:24px;${isLiked?'color:var(--accent);':''}"></i>
-    <span data-count="likes" style="font-size:14px;">${gcFmtCount(typeof p.likes==='number'?p.likes:(p.likedBy&&p.likedBy.length)||0)}</span>
+    <i class="${isLiked ? 'ph-fill' : 'ph-bold'} ph-thumbs-up" style="font-size:24px;"></i>
+    <span data-count="likes" data-raw-count="${typeof p.likes==='number'?p.likes:(p.likedBy&&p.likedBy.length)||0}" style="font-size:14px;">${gcFmtCount(typeof p.likes==='number'?p.likes:(p.likedBy&&p.likedBy.length)||0)}</span>
 </button>
 
 <!-- 🚀 নতুন কমেন্ট বাটন -->
 <button class="post-action-btn" data-action="comment" onclick="event.stopPropagation(); openSinglePostView('${pid}')">
     <i class="ph-light ph-chat-circle" style="font-size:24px;"></i>
-    <span data-count="comments">${commentCount}</span>
+    <span data-count="comments" data-raw-count="${typeof commentCountRaw!=='undefined'?commentCountRaw:commentCount}">${commentCount}</span>
 </button>
 
 <!-- 🚀 নতুন শেয়ার বাটন (শেয়ার কাউন্ট সহ) -->
 <button class="post-action-btn" onclick="event.stopPropagation(); openShareModal('${pid}', '${safeTitleForAttr}', '${imgUrls[0] || ''}')">
 <i class="ph-light ph-paper-plane-tilt" style="font-size:24px;"></i>
-<span data-count="shares" style="font-size:14px;">${gcFmtCount(p.shares || p.shareCount || 0)}</span>
+<span style="font-size:14px;">${p.shares || 0}</span>
 </button>
 </div>
 </div>`;
@@ -20766,7 +20823,7 @@ async function deleteComment(pid, idx) {
             }
             const spCount = document.querySelector('#single-post-container .sp-comments-count');
             if (spCount) {
-                spCount.textContent = comments.length === 1 ? '1 comment' : (gcFmtCount(comments.length) + ' comments');
+                spCount.textContent = comments.length === 1 ? '1 comment' : (comments.length + ' comments');
             }
         }
     } catch (e) {}
@@ -26872,7 +26929,7 @@ async function loadSuggestions() {
             const followersN = (typeof gcSocialCount==='function') ? gcSocialCount(u,'followers') : (Array.isArray(u.followers) ? u.followers.length : (u.followersCount || 0));
             const subLine = safeUname
                 ? ('@' + safeUname)
-                : (gcFmtCount(followersN) + ' Follower' + (followersN === 1 ? '' : 's'));
+                : (followersN + ' Follower' + (followersN === 1 ? '' : 's'));
             const initial = (typeof avatarInitial === 'function')
                 ? avatarInitial(u.name)
                 : escapeHTML(String(u.name || '?').charAt(0).toUpperCase());
@@ -27372,7 +27429,7 @@ html += '<div class="gc-ins-sec"><h4><i class="ph-light ph-trophy"></i>Top Posts
 if(!top.length) html += '<div style="font-size:12px;color:var(--text-muted);">No posts yet — publish something!</div>';
 top.forEach(function(p, i){
 const img = (p.imgUrls && p.imgUrls[0]) || p.videoUrl || '';
-html += '<div class="gc-ins-top-post" onclick="gcCloseInsights(); openSinglePostView(\'' + p.id + '\')"><div class="gc-ins-rank">' + (i + 1) + '</div>' + gcMediaThumb(img, 'gc-ins-tp-img') + '<div class="gc-ins-tp-txt">' + escapeHTML(p.title || '(no caption)') + '</div><div class="gc-ins-tp-num"><i class="ph-light ph-heart" style="color:var(--danger);font-size:12px;"></i>' + gcFmtCount(gcCount(p.likes)) + '</div></div>';
+html += '<div class="gc-ins-top-post" onclick="gcCloseInsights(); openSinglePostView(\'' + p.id + '\')"><div class="gc-ins-rank">' + (i + 1) + '</div>' + gcMediaThumb(img, 'gc-ins-tp-img') + '<div class="gc-ins-tp-txt">' + escapeHTML(p.title || '(no caption)') + '</div><div class="gc-ins-tp-num"><i class="ph-light ph-heart" style="color:var(--danger);font-size:12px;"></i>' + gcCount(p.likes) + '</div></div>';
 });
 html += '</div>';
 html += '<div class="gc-ins-sec"><h4><i class="ph-light ph-chart-pie"></i>Content Mix</h4>' + gcBarRow('Photos', pho, posts.length) + gcBarRow('Videos', vid, posts.length) + gcBarRow('Status', txt, posts.length) + '</div>';
@@ -28450,6 +28507,28 @@ function gcFmtCount(n){
   return (b < 10 ? b.toFixed(1).replace(/\.0$/, '') : String(Math.round(b))) + 'B';
 }
 window.gcFmtCount = gcFmtCount;
+
+function gcParseCountText(t){
+  t = String(t == null ? '' : t).trim().toUpperCase().replace(/,/g, '');
+  if(!t) return 0;
+  var m = t.match(/^([\d.]+)\s*([KMB])?/);
+  if(!m) return parseInt(t, 10) || 0;
+  var n = parseFloat(m[1]);
+  if(!isFinite(n)) return 0;
+  if(m[2] === 'K') return Math.round(n * 1000);
+  if(m[2] === 'M') return Math.round(n * 1000000);
+  if(m[2] === 'B') return Math.round(n * 1000000000);
+  return Math.round(n);
+}
+window.gcParseCountText = gcParseCountText;
+function gcCommentTotal(p){
+  if(!p) return 0;
+  var fromArr = Array.isArray(p.comments) ? p.comments.length : 0;
+  var fromNum = typeof p.commentCount === 'number' ? p.commentCount : 0;
+  return Math.max(fromArr, fromNum) || 0;
+}
+window.gcCommentTotal = gcCommentTotal;
+
 
 function gcSocialCount(u, kind){
   if(!u) return 0;
