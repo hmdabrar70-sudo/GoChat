@@ -4088,6 +4088,11 @@ body.gc-splash-handoff .page.active{
 .post-action-btn.liked i {
     color: #1DA1F2 !important;
 }
+/* Liked = filled thumb; unliked = light outline — same icon family everywhere */
+.post-action-btn:not(.liked) i.ph-thumbs-up {
+    font-weight: normal;
+}
+
 /* Only animate on user action, not on page load */
 .post-action-btn.just-liked i {
     animation: twitterHeartPop 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
@@ -15161,7 +15166,7 @@ async function toggleLike(pid) {
         } else {
             btn.classList.add('liked');
             if (icon) {
-                icon.className = 'ph-light ph-thumbs-up';
+                icon.className = 'ph-fill ph-thumbs-up';
                 void icon.offsetWidth;
             }
             btn.classList.add('just-liked');
@@ -15186,7 +15191,7 @@ async function toggleLike(pid) {
             if (zIcon && zIcon.classList.contains('ph-fill')) {
                 zBtn.innerHTML = `<i class="ph-light ph-thumbs-up" style="color:#fff; font-size:24px; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));"></i> <span class="like-count anim-down" style="font-size:14px; font-weight:800; color:#fff; text-shadow:0 1px 3px rgba(0,0,0,0.6);">${(typeof gcFmtCount==='function'?gcFmtCount(Math.max(0,zLikes-1)):Math.max(0,zLikes-1))}</span>`;
             } else {
-                zBtn.innerHTML = `<i class="ph-light ph-thumbs-up" style="color:#1DA1F2; font-size:24px; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));"></i> <span class="like-count anim-up" style="font-size:14px; font-weight:800; color:#fff; text-shadow:0 1px 3px rgba(0,0,0,0.6);">${(typeof gcFmtCount==='function'?gcFmtCount(zLikes+1):(zLikes+1))}</span>`;
+                zBtn.innerHTML = `<i class="ph-fill ph-thumbs-up" style="color:#1DA1F2; font-size:24px; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));"></i> <span class="like-count anim-up" style="font-size:14px; font-weight:800; color:#fff; text-shadow:0 1px 3px rgba(0,0,0,0.6);">${(typeof gcFmtCount==='function'?gcFmtCount(zLikes+1):(zLikes+1))}</span>`;
             }
         }
     }
@@ -15831,14 +15836,21 @@ ${gcDisplayName}
     const isPrivate = (u.isPrivate === true);
 
     if (isPrivate && !isOwnProfile) {
-        document.getElementById('other-user-posts-list').innerHTML = `
-            <div style="text-align:center; padding: 60px 20px; color: var(--text-muted);">
-                <i class="ph-light ph-lock" style="font-size: 60px; margin-bottom:15px; opacity:0.5; color: var(--text-secondary);"></i>
-                <h3 style="margin-bottom: 5px; color: var(--text);">This account is private</h3>
-                <p style="font-size:14px;">Only the account owner can see their posts.</p>
-            </div>
-        `;
+        var _opl = document.getElementById('other-user-posts-list');
+        if (_opl) {
+          _opl.setAttribute('data-private-locked', '1');
+          _opl.innerHTML = ''
+            + '<div class="gc-private-lock" style="text-align:center; padding: 60px 20px; color: var(--text-muted);">'
+            +   '<i class="ph-light ph-lock" style="font-size: 60px; margin-bottom:15px; opacity:0.5; color: var(--text-secondary);"></i>'
+            +   '<h3 style="margin-bottom: 5px; color: var(--text);">This account is private</h3>'
+            +   '<p style="font-size:14px;">Only the account owner can see their posts.</p>'
+            + '</div>';
+        }
+        window.__otherProfilePrivateLocked = true;
     } else {
+        var _opl2 = document.getElementById('other-user-posts-list');
+        if (_opl2) _opl2.removeAttribute('data-private-locked');
+        window.__otherProfilePrivateLocked = false;
         // প্রাইভেট না হলে আগের মতোই ছবিগুলো লোড করবে
         loadOtherUserPosts(uid);
     }    
@@ -17685,7 +17697,17 @@ async function savePersonalDetails(){
     showToast('Saving...');
     const oldUsername = (currentUserData && (currentUserData.usernameLower || currentUserData.username)) || '';
     try{
-        await db.collection('users').doc(currentUser.uid).update(updates);
+        var uref = db.collection('users').doc(currentUser.uid);
+        try {
+          await uref.update(updates);
+        } catch (upErr) {
+          // After fresh wipe the user doc may not exist yet → create with merge
+          if (upErr && (upErr.code === 'not-found' || String(upErr.message||'').indexOf('No document') !== -1)) {
+            await uref.set(Object.assign({ uid: currentUser.uid, createdAt: Date.now() }, updates), { merge: true });
+          } else {
+            throw upErr;
+          }
+        }
         try{
           if(typeof gcSyncUsernameIndex === 'function'){
             await gcSyncUsernameIndex(
@@ -18128,7 +18150,7 @@ async function openSinglePostView(pid) {
                     likeSpan.textContent = (typeof gcFmtCount === 'function') ? gcFmtCount(likesN) : String(likesN);
                   }
                   var likeIcon = likeBtn.querySelector('i');
-                  if (likeIcon) likeIcon.className = 'ph-light ph-thumbs-up';
+                  if (likeIcon) likeIcon.className = isLiked ? 'ph-fill ph-thumbs-up' : 'ph-light ph-thumbs-up';
                 }
                 var cBtn = container.querySelector('.post-action-btn[data-action="comment"]');
                 if (cBtn) {
@@ -18572,7 +18594,7 @@ function loadFeed() {
                     if (likeBtn && likeIcon) {
                       if (p.likedBy && p.likedBy.includes(currentUser?.uid)) {
                           likeBtn.classList.add('liked');
-                          likeIcon.className = 'ph-light ph-thumbs-up';
+                          likeIcon.className = 'ph-fill ph-thumbs-up';
                       } else {
                           likeBtn.classList.remove('liked');
                           likeIcon.className = 'ph-light ph-thumbs-up';
@@ -18581,7 +18603,7 @@ function loadFeed() {
                 } else {
                     const likeCountEl = existingCard.querySelector('[data-count="likes"]') || existingCard.querySelector('.grid-post-overlay > div:nth-child(2)');
                     if(likeCountEl) {
-                        likeCountEl.innerHTML = `<i class="${p.likedBy && p.likedBy.includes(currentUser?.uid) ? 'ph-fill' : 'ph-bold'} ph-thumbs-up" style="font-size:15px; ${p.likedBy && p.likedBy.includes(currentUser?.uid) ? 'color:var(--danger);' : ''}"></i> ${gcFmtCount(p.likes || 0)}`;
+                        likeCountEl.innerHTML = `<i class="ph-light ph-thumbs-up" style="font-size:15px; ${p.likedBy && p.likedBy.includes(currentUser?.uid) ? 'color:#1DA1F2;' : ''}"></i> ${gcFmtCount(p.likes || 0)}`;
                     }
                 }
             } else {
@@ -18805,7 +18827,7 @@ function listenToZoomPostData(pid) {
             
             if(likeBtn) {
                 likeBtn.innerHTML = isLiked 
-                    ? `<i class="ph-light ph-thumbs-up" style="color:#1DA1F2; font-size:24px; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));"></i> <span style="font-size:14px; font-weight:800; color:#fff; text-shadow:0 1px 3px rgba(0,0,0,0.6);">${formattedLikes}</span>` 
+                    ? `<i class="ph-fill ph-thumbs-up" style="color:#1DA1F2; font-size:24px; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));"></i> <span style="font-size:14px; font-weight:800; color:#fff; text-shadow:0 1px 3px rgba(0,0,0,0.6);">${formattedLikes}</span>` 
                     : `<i class="ph-light ph-thumbs-up" style="color:#fff; font-size:24px; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));"></i> <span style="font-size:14px; font-weight:800; color:#fff; text-shadow:0 1px 3px rgba(0,0,0,0.6);">${formattedLikes}</span>`;
             }
             if(commentBtn) {
@@ -19117,7 +19139,7 @@ ${generatePollHTML(p)}
 <div class="post-actions">
 <!-- 🚀 বাটনগুলোতে event.stopPropagation() দেওয়া হলো -->
 <button class="post-action-btn ${isLiked ? 'liked' : ''}" data-action="like" onclick="event.stopPropagation(); toggleLike('${pid}')">
-    <i class="${isLiked ? 'ph-fill' : 'ph-bold'} ph-thumbs-up" style="font-size:24px;"></i>
+    <i class="${isLiked ? 'ph-fill' : 'ph-light'} ph-thumbs-up" style="font-size:24px;"></i>
     <span data-count="likes" data-raw-count="${typeof p.likes==='number'?p.likes:(p.likedBy&&p.likedBy.length)||0}" style="font-size:14px;">${gcFmtCount(typeof p.likes==='number'?p.likes:(p.likedBy&&p.likedBy.length)||0)}</span>
 </button>
 
@@ -26760,6 +26782,34 @@ function applyProfileFilter(filterType, profileType, clickedElement) {
       const otherBtns = document.getElementById('other-profile-btns');
       if(otherBtns) otherBtns.style.display = 'flex';
     }catch(e){}
+
+    // Private other-profile: keep only lock message — never show No videos/photos/status under it
+    var isPrivLocked = (profileType === 'other') && (
+      listContainer.getAttribute('data-private-locked') === '1' ||
+      window.__otherProfilePrivateLocked === true
+    );
+    if (isPrivLocked) {
+      Array.from(listContainer.children).forEach(function(node){
+        if (node.classList && (
+          node.classList.contains('op-filter-empty') ||
+          node.classList.contains('gc-profile-empty') ||
+          node.classList.contains('empty-feed') ||
+          node.classList.contains('grid-post-item') ||
+          node.classList.contains('post-card')
+        )) {
+          node.remove();
+        }
+      });
+      if (!listContainer.querySelector('.gc-private-lock')) {
+        listContainer.innerHTML = ''
+          + '<div class="gc-private-lock" style="text-align:center; padding: 60px 20px; color: var(--text-muted);">'
+          +   '<i class="ph-light ph-lock" style="font-size: 60px; margin-bottom:15px; opacity:0.5; color: var(--text-secondary);"></i>'
+          +   '<h3 style="margin-bottom: 5px; color: var(--text);">This account is private</h3>'
+          +   '<p style="font-size:14px;">Only the account owner can see their posts.</p>'
+          + '</div>';
+      }
+      return;
+    }
 
     // Empty state for Media / Gallery / Status — single instance only (no double icons)
     Array.from(listContainer.children).forEach(function(n){
