@@ -781,6 +781,40 @@ body:not(.light-mode) .post-card {
     padding:18px 18px 14px;border-bottom:1px solid var(--border);
 }
 .gc-hd-title{font-weight:800;font-size:18px;color:var(--text);}
+
+/* ═══ Explore drawer · quick actions (Saved / Liked / Settings) ═══ */
+.gc-hd-quick{
+  display:flex;
+  gap:10px;
+  padding:14px 16px 6px;
+  flex-shrink:0;
+}
+.gc-hd-quick-btn{
+  flex:1;
+  height:48px;
+  border:none;
+  border-radius:14px;
+  background:var(--surface-2);
+  color:var(--text);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+  transition: transform .15s ease, background .15s ease;
+}
+.gc-hd-quick-btn i{
+  font-size:22px;
+  color:var(--text);
+  -webkit-text-fill-color:var(--text);
+}
+.gc-hd-quick-btn:active{
+  transform:scale(.96);
+  background:var(--border-light);
+}
+body.light-mode .gc-hd-quick-btn{
+  background:#f0f2f5;
+}
+
 .gc-hd-close{
     width:36px;height:36px;border-radius:50%;border:none;cursor:pointer;
     background:var(--surface-2);color:var(--text);display:flex;align-items:center;justify-content:center;
@@ -8549,6 +8583,56 @@ body:not(.light-mode) .chat-send-btn.is-ready{
 .gc-wp-tile:active{ transform: scale(.96); }
 .gc-wp-tile.selected{ border-color: var(--text); box-shadow: 0 0 0 2px var(--text); }
 
+
+/* ═══ Search page topbar · title + back (no logo / no search icon) ═══ */
+body.search-mode .topbar-logo,
+body.search-mode #topbar-logo-main{
+  display:none !important;
+  visibility:hidden !important;
+  pointer-events:none !important;
+  width:0 !important;
+  min-width:0 !important;
+  overflow:hidden !important;
+  position:static !important;
+  transform:none !important;
+}
+body.search-mode .topbar-actions > .topbar-btn[onclick*="search"],
+body.search-mode .topbar-actions > .topbar-btn[onclick*="showPage('search')"]{
+  display:none !important;
+}
+body.search-mode #topbar-search-back{
+  display:flex !important;
+}
+body.search-mode #topbar-search-title{
+  display:block !important;
+}
+body.search-mode .topbar{
+  justify-content:flex-start !important;
+  gap:0;
+}
+body.search-mode .topbar-left{
+  min-width:auto !important;
+  flex:1 1 auto !important;
+  display:flex !important;
+  align-items:center !important;
+  gap:4px;
+  z-index:3;
+}
+body.search-mode .topbar-actions{
+  margin-left:auto !important;
+  flex:0 0 auto !important;
+  min-width:0;
+}
+.topbar-search-title{
+  font-family:'Inter', sans-serif !important;
+  font-weight:900 !important;
+  font-size:26px !important;
+  color:var(--text) !important;
+  letter-spacing:-0.5px !important;
+  line-height:1.1;
+  padding-left:2px;
+}
+
 </style>
 
 <style id="gc-consolidated-patches">
@@ -9888,6 +9972,10 @@ body.friends-mode .nav-capsule {
     <div class="topbar-btn" id="topbar-friends-back" onclick="showPage('feed')" style="display:none;" title="Back">
         <i class="ph-light ph-arrow-u-up-left" style="font-size: 22px;"></i>
     </div>
+    <div class="topbar-btn" id="topbar-search-back" onclick="showPage('feed')" style="display:none;" title="Back">
+        <i class="ph-light ph-arrow-u-up-left" style="font-size: 22px;"></i>
+    </div>
+    <div id="topbar-search-title" class="topbar-search-title" style="display:none;">Search</div>
 </div>
 <!-- Friends-mode tabs: Following List | Suggestions (plain text, no capsule) -->
 <div id="topbar-friends-tabs" class="topbar-friends-tabs" style="display:none;" role="tablist" aria-label="Friends tabs">
@@ -9923,6 +10011,17 @@ body.friends-mode .nav-capsule {
         <div class="gc-hd-title">Explore</div>
         <button type="button" class="gc-hd-close" onclick="gcCloseHomeDrawer()" aria-label="Close"><i class="ph-light ph-x"></i></button>
     </div>
+    <div class="gc-hd-quick">
+        <button type="button" class="gc-hd-quick-btn" onclick="gcCloseHomeDrawer(); openSavedItems();" title="Saved">
+            <i class="ph-light ph-bookmark-simple"></i>
+        </button>
+        <button type="button" class="gc-hd-quick-btn" onclick="gcCloseHomeDrawer(); gcOpenLikedScreen();" title="Liked">
+            <i class="ph-light ph-thumbs-up"></i>
+        </button>
+        <button type="button" class="gc-hd-quick-btn" onclick="gcCloseHomeDrawer(); openMainSettingsScreen();" title="Settings & Privacy">
+            <i class="ph-light ph-gear"></i>
+        </button>
+    </div>
     <div class="gc-hd-list">
         <div class="gc-hd-item" id="hd-tab-foryou" onclick="gcCloseHomeDrawer(); setFeedTab('foryou');">
             <i class="ph-light ph-star"></i> For You
@@ -9939,14 +10038,6 @@ body.friends-mode .nav-capsule {
         <div class="gc-hd-item" id="hd-tab-friends" onclick="gcCloseHomeDrawer(); showPage('friends');">
             <i class="ph-light ph-users-three"></i> Connectors
             <span class="nav-badge" id="friends-badge-drawer" style="position:static;min-width:18px;height:18px;margin-left:6px;border:none;display:none;">0</span>
-            <i class="ph-light ph-caret-right gc-hd-chev"></i>
-        </div>
-        <div class="gc-hd-item" onclick="gcCloseHomeDrawer(); gcOpenLikedScreen();">
-            <i class="ph-light ph-thumbs-up"></i> Liked
-            <i class="ph-light ph-caret-right gc-hd-chev"></i>
-        </div>
-        <div class="gc-hd-item" onclick="gcCloseHomeDrawer(); openSavedItems();">
-            <i class="ph-light ph-bookmark-simple"></i> Saved
             <i class="ph-light ph-caret-right gc-hd-chev"></i>
         </div>
     </div>
@@ -13524,11 +13615,14 @@ if(storyUnsub)storyUnsub();
 });
 // নতুন মেইন মেনু ওপেন এবং ক্লোজ করার লজিক
 function openMainMenu() {
-    document.getElementById('main-menu-screen').style.display = 'flex';
-    // 🚀 মেনু ওপেন হলে সব সুইচের স্টেট আপডেট করে দেবে
+    var menu = document.getElementById('main-menu-screen');
+    if (menu) menu.style.display = 'flex';
+    // Settings is nested inside Menu — keep it closed so Menu list is visible
+    var ms = document.getElementById('main-settings-screen');
+    if (ms) ms.style.display = 'none';
     if (typeof updatePrivateAccountUI === 'function') updatePrivateAccountUI();
     if (typeof updateMessageSoundUI === 'function') updateMessageSoundUI();
-    if (typeof updateDarkModeUI === 'function') updateDarkModeUI(); // ডার্ক মোড আপডেট
+    if (typeof updateDarkModeUI === 'function') updateDarkModeUI();
 }
 
 function gcOpenHomeDrawer(){
@@ -13551,9 +13645,11 @@ function closeMainMenu() {
 
 // সেটিংসের নতুন পেজ ওপেন এবং ক্লোজ করার লজিক
 function openMainSettingsScreen() {
-    document.getElementById('main-settings-screen').style.display = 'flex';
-    
-    // মডাল ওপেন হলে সুইচগুলোর স্টেট (On/Off) আপডেট করে দেবে
+    // Settings screen lives inside main-menu-screen — parent must be visible
+    var menu = document.getElementById('main-menu-screen');
+    if (menu) menu.style.display = 'flex';
+    var ms = document.getElementById('main-settings-screen');
+    if (ms) ms.style.display = 'flex';
     if (typeof updatePrivateAccountUI === 'function') updatePrivateAccountUI();
     if (typeof updateMessageSoundUI === 'function') updateMessageSoundUI();
     if (typeof updateDarkModeUI === 'function') updateDarkModeUI();
@@ -13591,7 +13687,7 @@ function showPage(page) {
 
     // 🚀 Topbar Dynamic Logic (লোগো ও নোটিফিকেশন হাইড/শো করার ম্যাজিক)
     const topbarLogo = document.querySelector('.topbar-logo');
-    document.body.classList.remove('messages-mode', 'notifications-mode', 'home-sky-mode', 'profile-mode', 'friends-mode');
+    document.body.classList.remove('messages-mode', 'notifications-mode', 'home-sky-mode', 'profile-mode', 'friends-mode', 'search-mode');
 
     if (page === 'feed') {
         document.body.classList.add('home-sky-mode');
@@ -13622,6 +13718,23 @@ function showPage(page) {
             if (_bn2) _bn2.classList.remove('nav-hidden-bottom');
           }
         } catch(e) {}
+    }
+
+    // Search: left back + "Search" title; hide logo + search icon
+    var searchBack = document.getElementById('topbar-search-back');
+    var searchTitle = document.getElementById('topbar-search-title');
+    if (page === 'search') {
+        document.body.classList.add('search-mode');
+        if (searchBack) searchBack.style.display = 'flex';
+        if (searchTitle) searchTitle.style.display = 'block';
+        gcCloseHomeDrawer();
+        try {
+          var _si = document.getElementById('search-input');
+          if (_si) setTimeout(function(){ try{ _si.focus(); }catch(e){} }, 180);
+        } catch(e) {}
+    } else {
+        if (searchBack) searchBack.style.display = 'none';
+        if (searchTitle) searchTitle.style.display = 'none';
     }
 
     if (page === 'messages') {
