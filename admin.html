@@ -357,7 +357,7 @@ startReportsListener();
             }
         });
 
-        // Google popup admin login (authorized email only — checked in onAuthStateChanged)
+        // Google login — popup first, redirect fallback (mobile browsers often block popups)
 function loginWithGoogle() {
   var errEl = document.getElementById('adminLoginError');
   var btn = document.getElementById('adminGoogleLoginBtn');
@@ -365,22 +365,48 @@ function loginWithGoogle() {
   if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Signing in…'; }
   var provider = new firebase.auth.GoogleAuthProvider();
   provider.setCustomParameters({ prompt: 'select_account' });
-  auth.signInWithPopup(provider).then(function () {
-    // onAuthStateChanged handles panel / unauthorized sign-out
-  }).catch(function (e) {
+
+  function fail(e) {
     console.error('Google login error:', e);
     var msg = (e && e.message) ? e.message : 'Login failed';
     if (e && e.code === 'auth/popup-closed-by-user') msg = 'Sign-in popup was closed';
-    else if (e && e.code === 'auth/popup-blocked') msg = 'Popup blocked — allow popups for this site';
-    else if (e && e.code === 'auth/unauthorized-domain') msg = 'Domain not authorized in Firebase Console';
+    else if (e && e.code === 'auth/popup-blocked') msg = 'Popup blocked — trying redirect…';
+    else if (e && e.code === 'auth/unauthorized-domain') msg = 'Add this domain in Firebase → Authentication → Settings → Authorized domains';
     else if (e && e.code === 'auth/operation-not-allowed') msg = 'Google sign-in is disabled in Firebase Console';
     if (errEl) { errEl.textContent = msg; errEl.classList.remove('hidden'); }
     if (typeof showToast === 'function') showToast(msg, 'error');
-  }).finally(function () {
     if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fab fa-google"></i> Login with Gmail'; }
+  }
+
+  auth.signInWithPopup(provider).then(function () {
+    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fab fa-google"></i> Login with Gmail'; }
+  }).catch(function (e) {
+    // Mobile / in-app browsers: popup often fails → redirect
+    var code = e && e.code;
+    if (code === 'auth/popup-blocked' || code === 'auth/popup-closed-by-user' || code === 'auth/cancelled-popup-request' || /mobile|android|iphone/i.test(navigator.userAgent || '')) {
+      if (errEl) { errEl.textContent = 'Redirecting to Google…'; errEl.classList.remove('hidden'); }
+      auth.signInWithRedirect(provider).catch(fail);
+      return;
+    }
+    fail(e);
   });
 }
 window.loginWithGoogle = loginWithGoogle;
+
+// Complete redirect sign-in when returning from Google
+auth.getRedirectResult().then(function (result) {
+  // onAuthStateChanged opens panel if admin email matches
+  if (result && result.user) {
+    console.log('Admin redirect login OK', result.user.email);
+  }
+}).catch(function (e) {
+  console.error('Redirect result error:', e);
+  var errEl = document.getElementById('adminLoginError');
+  if (errEl && e) {
+    errEl.textContent = e.message || 'Redirect login failed';
+    errEl.classList.remove('hidden');
+  }
+});
 
         function logoutAdmin() {
             auth.signOut().then(() => {
@@ -390,27 +416,26 @@ window.loginWithGoogle = loginWithGoogle;
 
         // 🚀 TAB SWITCHER (FIXED · reports tab added · 2026-08-10)
 function switchTab(tab) {
-['users','settings','elite','reports','banned','verified'].forEach(function(t){
-  var sec = document.getElementById('sec-' + t);
-  if(sec){
-    sec.style.display = (tab === t) ? 'block' : 'none';
-    sec.classList.toggle('hidden', tab !== t);
-  }
-});
-const tabs = ['users', 'settings', 'elite', 'reports', 'banned', 'verified'];
-tabs.forEach(t => {
-const btn = document.getElementById('tab-' + t);
-if(btn) {
-btn.className = tab === t
-? 'w-full flex items-center gap-3 text-left py-3 px-4 rounded-xl bg-blue-600 text-white font-semibold transition'
-: 'w-full flex items-center gap-3 text-left py-3 px-4 rounded-xl text-gray-400 hover:bg-gray-800 hover:text-white font-semibold transition';
-}
-});
-if (tab === 'elite') loadEliteApplications();
-if (tab === 'banned') renderBannedUsers();
-if (tab === 'verified') renderVerifiedUsers();
-if (tab === 'reports') renderReports();
-catch(e){} }
+  ['users','settings','elite','reports','banned','verified'].forEach(function(t){
+    var sec = document.getElementById('sec-' + t);
+    if(sec){
+      sec.style.display = (tab === t) ? 'block' : 'none';
+      sec.classList.toggle('hidden', tab !== t);
+    }
+  });
+  var tabs = ['users', 'settings', 'elite', 'reports', 'banned', 'verified'];
+  tabs.forEach(function(t){
+    var btn = document.getElementById('tab-' + t);
+    if(btn) {
+      btn.className = tab === t
+        ? 'w-full flex items-center gap-3 text-left py-3 px-4 rounded-xl bg-blue-600 text-white font-semibold transition'
+        : 'w-full flex items-center gap-3 text-left py-3 px-4 rounded-xl text-gray-400 hover:bg-gray-800 hover:text-white font-semibold transition';
+    }
+  });
+  if (tab === 'elite') loadEliteApplications();
+  if (tab === 'banned') renderBannedUsers();
+  if (tab === 'verified') renderVerifiedUsers();
+  if (tab === 'reports') renderReports();
 }
 
         // 🚀 FEATURE 1 & 2: LOAD & FILTER USERS
