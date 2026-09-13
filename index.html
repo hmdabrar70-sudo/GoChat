@@ -8738,8 +8738,28 @@ i.ph.ph-dots-three{
 
 /* Messages list · clean rows (no capsule cards) */
 #msg-list{ padding:0; background:var(--bg); }
-#msg-list .msg-item.unread-chat{ background:transparent; }
 #msg-list .msg-item.highlight{ background:var(--surface-2); }
+/* Keep classic unread cues (bold + left accent + soft wash) */
+#msg-list .msg-item.unread-chat{
+  background: linear-gradient(to right, var(--accent-glow), transparent) !important;
+  border-left: 3px solid var(--accent) !important;
+  border-bottom: 1px solid var(--border) !important;
+  border-radius: 0 !important;
+  margin: 0 !important;
+  box-shadow: none !important;
+}
+#msg-list .msg-item.unread-chat .msg-name{
+  font-weight: 900 !important;
+  color: var(--text) !important;
+}
+#msg-list .msg-item.unread-chat .msg-preview{
+  font-weight: 700 !important;
+  color: var(--text) !important;
+}
+#msg-list .msg-item.unread-chat .msg-time{
+  color: var(--accent) !important;
+  font-weight: 700 !important;
+}
 
 
 /* Followers / Following · capsule rows (independent of chat list) */
@@ -8798,10 +8818,23 @@ i.ph.ph-dots-three{
   position: relative;
   z-index: 3 !important;
 }
+/* Keep action buttons above blur — do NOT force position:relative (breaks absolute top bar) */
 .image-zoom-modal.cover-blur-mode > div:not(.zoom-blur-bg){
-  position: relative;
-  z-index: 4;
+  z-index: 10005;
 }
+#zoom-menu-wrap,
+.image-zoom-modal .image-zoom-close{
+  color: #fff !important;
+  z-index: 10006 !important;
+}
+#zoom-menu-wrap .image-zoom-close i,
+#zoom-menu-wrap i.ph-dots-three{
+  color: #fff !important;
+  font-size: 22px !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
 
 </style>
 
@@ -11233,8 +11266,8 @@ body.friends-mode .nav-capsule {
     <!-- 🚀 Top Right Actions (Smaller Size) -->
     <div style="position:absolute; top:20px; right:20px; display:flex; gap:10px; z-index:10005;">
         <div id="zoom-menu-wrap" style="position:relative;">
-            <button class="image-zoom-close" style="position:static; width:34px; height:34px; background:rgba(0,0,0,0.5);" onclick="event.stopPropagation(); openZoomActionSheet(event)">
-                <i class="ph ph-dots-three"></i>
+            <button class="image-zoom-close" style="position:static; width:34px; height:34px; background:rgba(0,0,0,0.45); color:#fff;" onclick="event.stopPropagation(); openZoomActionSheet(event)" aria-label="More">
+                <i class="ph ph-dots-three" style="color:#fff;font-size:22px;"></i>
             </button>
             <!-- hidden source items — opened via Threads-style gc-sheet -->
             <div id="zoom-menu" class="post-dropdown-menu" style="display:none !important;" aria-hidden="true">
@@ -19115,11 +19148,14 @@ function openImageZoom(url, postId = null, isProfilePic = false, isOwnMedia = fa
     const kind = window.zoomMediaKind;
     const own = !!window.zoomIsOwnMedia;
     if (zoomMenuWrap) {
+        // Own profile/cover: show ⋮ menu; others: hide (privacy)
         if (kind === 'profile' || kind === 'cover') {
-            zoomMenuWrap.style.display = own ? '' : 'none';
+            zoomMenuWrap.style.display = own ? 'block' : 'none';
         } else {
-            zoomMenuWrap.style.display = '';
+            zoomMenuWrap.style.display = 'block';
         }
+        zoomMenuWrap.style.visibility = 'visible';
+        zoomMenuWrap.style.opacity = '1';
     }
     if (typeof gcConfigureZoomMenu === 'function') gcConfigureZoomMenu();
     const zoomMenu = document.getElementById('zoom-menu');
