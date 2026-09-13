@@ -8663,6 +8663,76 @@ i.ph.ph-dots-three{
   justify-content: center;
 }
 
+
+/* ═══ Messages page · chat search bar ═══ */
+.gc-msg-search-wrap{
+  padding: 10px 16px 8px !important;
+  box-sizing: border-box !important;
+  width: 100% !important;
+  background: var(--bg);
+}
+.gc-msg-search-wrap .search-input-wrap{
+  margin: 0 !important;
+  width: 100% !important;
+  height: 44px !important;
+  min-height: 44px !important;
+  max-height: 44px !important;
+  padding: 0 16px !important;
+  border-radius: 999px !important;
+  background: var(--surface-2) !important;
+  border: 1px solid var(--border) !important;
+  box-sizing: border-box !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  position: relative !important;
+}
+.gc-msg-search-wrap .search-input-wrap input{
+  flex: 1 !important;
+  min-width: 0 !important;
+  border: none !important;
+  background: transparent !important;
+  outline: none !important;
+  font-size: 15px !important;
+  font-family: inherit !important;
+  color: var(--text) !important;
+  padding-right: 36px !important;
+}
+.gc-msg-search-wrap .search-input-wrap > i.ph-magnifying-glass,
+.gc-msg-search-wrap .search-input-wrap > i[class*="magnifying"]{
+  color: var(--text-muted) !important;
+  font-size: 18px !important;
+  flex-shrink: 0 !important;
+}
+#msg-search-clear.search-clear-btn{
+  right: 8px !important;
+}
+
+/* ═══ Explore drawer · smoother open/close ═══ */
+#gc-home-drawer-mask{
+  display: block !important;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity .4s ease, visibility .4s ease;
+  background: rgba(0,0,0,0.42);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+#gc-home-drawer-mask.open{
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+#gc-home-drawer{
+  transition: transform .45s cubic-bezier(0.32, 0.72, 0, 1) !important;
+  will-change: transform;
+  transform: translate3d(-105%, 0, 0);
+}
+#gc-home-drawer.open{
+  transform: translate3d(0, 0, 0) !important;
+}
+
 </style>
 
 <style id="gc-consolidated-patches">
@@ -10134,6 +10204,15 @@ body.friends-mode .nav-capsule {
     <i class="ph-light ph-x" style="cursor:pointer; font-size:16px; color:var(--text-muted);" onclick="document.getElementById('archived-chats').classList.remove('show');"></i>
 </div>
 <div id="archived-msg-list"></div>
+</div>
+<div class="gc-msg-search-wrap">
+  <div class="search-input-wrap" style="position:relative;">
+    <i class="ph-light ph-magnifying-glass"></i>
+    <input type="text" id="msg-search-input" placeholder="Search chats..." oninput="gcFilterChatList(this.value)" autocomplete="off" autocapitalize="none" spellcheck="false">
+    <button type="button" id="msg-search-clear" class="search-clear-btn" onclick="gcClearChatSearch()" aria-label="Clear search">
+      <i class="ph-light ph-x" style="font-size:16px;"></i>
+    </button>
+  </div>
 </div>
 <div id="msg-list"></div>
 </div>
@@ -13660,7 +13739,10 @@ function gcOpenHomeDrawer(){
     const m = document.getElementById('gc-home-drawer-mask');
     if (!d || !m) return;
     m.classList.add('open');
-    requestAnimationFrame(function(){ d.classList.add('open'); });
+    // double rAF so browser paints mask first → smoother slide
+    requestAnimationFrame(function(){
+      requestAnimationFrame(function(){ d.classList.add('open'); });
+    });
 }
 function gcCloseHomeDrawer(){
     const d = document.getElementById('gc-home-drawer');
@@ -17276,6 +17358,7 @@ async function loadMessages(){
     const chatDocsMap = new Map(); // chatId -> { id, data }
 
     function gcRenderChatListFromMap(){
+        window.__gcRerenderChatList = gcRenderChatListFromMap;
         if(!currentUser) return;
         const mutedChats = currentUserData?.mutedChats || [];
         const pinnedChats = currentUserData?.pinnedChats || [];
@@ -17334,6 +17417,17 @@ async function loadMessages(){
             badge.textContent = unreadCount;
             badge.style.display = unreadCount > 0 ? 'flex' : 'none';
         }
+
+        // Chat search filter (min 3 chars · only names already in chat list)
+        try {
+          window.__gcAllChatsCache = chats.slice();
+          var _q = (window.__gcChatSearchQ || '').trim().toLowerCase();
+          if (_q.length >= 3) {
+            chats = chats.filter(function(c){
+              return ((c.otherName || '') + '').toLowerCase().indexOf(_q) !== -1;
+            });
+          }
+        } catch(_e){}
 
         // ৫. HTML রেন্ডারিং (নতুন আনরিড ডিজাইনসহ)
         let html = '';
@@ -17423,7 +17517,9 @@ async function loadMessages(){
             </div>`;
         });
         
-        list.innerHTML = html || '<div class="empty-feed">No messages yet</div>';
+        list.innerHTML = html || ((window.__gcChatSearchQ||'').trim().length >= 3
+          ? '<div class="empty-feed">No chats found</div>'
+          : '<div class="empty-feed">No messages yet</div>');
     }
 
     function gcOnChatSnap(snap){
@@ -30784,6 +30880,38 @@ async function gcConfirmForward(){
 }
 window.gcConfirmForward = gcConfirmForward;
 
+
+
+// ═══ Messages · search chats (min 3 chars, list only) ═══
+window.__gcChatSearchQ = window.__gcChatSearchQ || '';
+function gcFilterChatList(val){
+  window.__gcChatSearchQ = (val || '');
+  var btn = document.getElementById('msg-search-clear');
+  if(btn){
+    if(window.__gcChatSearchQ.length > 0) btn.classList.add('show');
+    else btn.classList.remove('show');
+  }
+  // Re-render from last snapshot map if available
+  try {
+    if (typeof window.__gcRerenderChatList === 'function') {
+      window.__gcRerenderChatList();
+    }
+  } catch(e){}
+}
+function gcClearChatSearch(){
+  var input = document.getElementById('msg-search-input');
+  if(input){ input.value = ''; }
+  window.__gcChatSearchQ = '';
+  var btn = document.getElementById('msg-search-clear');
+  if(btn) btn.classList.remove('show');
+  try {
+    if (typeof window.__gcRerenderChatList === 'function') {
+      window.__gcRerenderChatList();
+    }
+  } catch(e){}
+}
+window.gcFilterChatList = gcFilterChatList;
+window.gcClearChatSearch = gcClearChatSearch;
 
 // GoChat: Light mode is the default for new installs/first visits.
 // Keep an explicit user preference if they previously selected Dark Mode.
