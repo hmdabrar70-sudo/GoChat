@@ -10743,6 +10743,33 @@ body:not(.light-mode) .sp-comment-compose button.is-ready{
 .gc-reply-compose-row button.gc-reply-send i{ font-size: 16px; color: #0a1a12; }
 .gc-c-btn.gc-reply-link{ color: var(--text-muted); }
 
+
+/* User search page · same Elite gradient as other search bars */
+#page-search .search-input-wrap,
+#page-search .search-container .search-input-wrap,
+.search-container .search-input-wrap{
+  background: linear-gradient(135deg, #c1f600 0%, #8fd400 42%, #00545f 100%) !important;
+  border: none !important;
+  box-shadow: 0 4px 14px rgba(193, 246, 0, 0.22) !important;
+}
+#page-search .search-input-wrap i,
+.search-container .search-input-wrap i{
+  color: rgba(10, 26, 18, 0.75) !important;
+}
+#page-search .search-input-wrap input,
+#page-search #search-input,
+.search-container #search-input{
+  color: #0a1a12 !important;
+  background: transparent !important;
+  -webkit-text-fill-color: #0a1a12 !important;
+}
+#page-search .search-input-wrap input::placeholder,
+#page-search #search-input::placeholder{
+  color: rgba(10, 26, 18, 0.5) !important;
+  -webkit-text-fill-color: rgba(10, 26, 18, 0.5) !important;
+  opacity: 1 !important;
+}
+
 </style>
 
 </head>
@@ -10961,7 +10988,7 @@ body:not(.light-mode) .sp-comment-compose button.is-ready{
             <i class="ph-light ph-caret-right gc-hd-chev"></i>
         </div>
         <div class="gc-hd-item" onclick="gcOpenPersonalInfoFromDrawer();">
-            <i class="ph-light ph-identification-card"></i> Personal information
+            <i class="ph-light ph-identification-card"></i> Personal details
             <i class="ph-light ph-caret-right gc-hd-chev"></i>
         </div>
         <div class="gc-hd-item" onclick="gcCloseHomeDrawer(); gcComingSoon('Advertise');">
@@ -12140,7 +12167,7 @@ body:not(.light-mode) .sp-comment-compose button.is-ready{
     <div class="gc-settings-search-wrap">
         <div class="search-input-wrap" style="margin:0; background: var(--surface-2);">
             <i class="ph-light ph-magnifying-glass"></i>
-            <input type="text" id="menu-settings-search" placeholder="Search Items..." oninput="filterMenuSettings(this.value)">
+            <input type="text" id="menu-settings-search" placeholder="Search settings..." oninput="filterMenuSettings(this.value)">
         </div>
     </div>
     
@@ -12236,7 +12263,7 @@ body:not(.light-mode) .sp-comment-compose button.is-ready{
 <div class="settings-list-item mi-done" onclick="closeMainMenu(); gcPayOpen();">
 <div style="display:flex; align-items:center; gap:16px;">
 <i class="ph-light ph-crown"></i>
-<span style="font-weight:800; font-size:16px; background: linear-gradient(to right, #FFD700, #FDB931); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Verification</span>
+<span style="font-weight:800; font-size:16px; background: linear-gradient(to right, #FFD700, #FDB931); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Elite GoChat</span>
 </div>
 <i class="ph-light ph-caret-right"></i>
 </div>
@@ -17036,26 +17063,54 @@ ${gcDisplayName}
     // (প্রাইভেসি ফিল্টার/লক ঠিকমতো সিমুলেট করার জন্য)
     const isOwnProfile = (currentUser && currentUser.uid === uid) && !window.gcViewAsMode;
     const isPrivate = (u.isPrivate === true);
+    const _followers = Array.isArray(u.followers) ? u.followers : [];
+    const isFollower = !!(currentUser && _followers.indexOf(currentUser.uid) !== -1);
+    const profileLocked = isPrivate && !isOwnProfile && !isFollower;
+    window.__otherProfilePrivateLocked = !!profileLocked;
+    window.__otherProfileUid = uid;
 
-    if (isPrivate && !isOwnProfile) {
+    if (profileLocked) {
         var _opl = document.getElementById('other-user-posts-list');
         if (_opl) {
           _opl.setAttribute('data-private-locked', '1');
           _opl.innerHTML = ''
-            + '<div class="gc-private-lock" style="text-align:center; padding: 60px 20px; color: var(--text-muted);">'
-            +   '<i class="ph-light ph-lock" style="font-size: 60px; margin-bottom:15px; opacity:0.5; color: var(--text-secondary);"></i>'
-            +   '<h3 style="margin-bottom: 5px; color: var(--text);">This account is private</h3>'
-            +   '<p style="font-size:14px;">Only the account owner can see their posts.</p>'
+            + '<div class="gc-private-lock" style="text-align:center; padding: 48px 20px; color: var(--text-muted);">'
+            +   '<i class="ph-light ph-lock-key" style="font-size: 52px; margin-bottom:14px; opacity:0.55; color: var(--text-secondary);"></i>'
+            +   '<h3 style="margin-bottom: 6px; color: var(--text); font-size:17px;">This account is private</h3>'
+            +   '<p style="font-size:13.5px;line-height:1.45;max-width:280px;margin:0 auto;">Follow this account to see their posts, personal details, and more.</p>'
             + '</div>';
         }
-        window.__otherProfilePrivateLocked = true;
+        var _pdw = document.getElementById('other-profile-details-wrapper');
+        if (_pdw) { _pdw.style.display = 'none'; _pdw.setAttribute('data-private-hidden','1'); }
+        var _piChevron = document.getElementById('other-pi-chevron');
+        if (_piChevron) { _piChevron.style.display = 'none'; }
+        ['other-user-media-list','other-user-gallery-list','other-user-status-list'].forEach(function(id){
+          var el = document.getElementById(id);
+          if(el){ el.setAttribute('data-private-locked','1'); el.innerHTML = ''; }
+        });
     } else {
         var _opl2 = document.getElementById('other-user-posts-list');
         if (_opl2) _opl2.removeAttribute('data-private-locked');
-        window.__otherProfilePrivateLocked = false;
-        // প্রাইভেট না হলে আগের মতোই ছবিগুলো লোড করবে
-        loadOtherUserPosts(uid);
-    }    
+        var _pdw2 = document.getElementById('other-profile-details-wrapper');
+        if (_pdw2) _pdw2.removeAttribute('data-private-hidden');
+        var _piChevron2 = document.getElementById('other-pi-chevron');
+        if (_piChevron2) _piChevron2.style.display = '';
+        if (!isOwnProfile) loadOtherUserPosts(uid);
+    }
+
+    try{
+      var msgBtn = document.querySelector('#other-profile-btns .gc-op-btn-message');
+      if(msgBtn){
+        if(profileLocked){
+          msgBtn.disabled = true;
+          msgBtn.style.opacity = '0.45';
+          msgBtn.style.pointerEvents = 'none';
+          msgBtn.setAttribute('title', 'Follow to message');
+          msgBtn.onclick = function(e){ e.preventDefault(); e.stopPropagation(); showToast('Follow this private account to send a message'); };
+        }
+      }
+    }catch(e){}
+    
 
     // 🚀 view-as-feature · 2026-09-05 — Follow/Message/Rank-এর বদলে "প্রিভিউ মোড" ব্যানার
     if (window.gcViewAsMode && currentUser && uid === currentUser.uid) {
@@ -17101,56 +17156,12 @@ window.gcExitViewAs = gcExitViewAs;
 // খুঁজতে: Ctrl+F → "personal-info-drawer-link"
 function gcOpenPersonalInfoFromDrawer(){
     if(typeof gcCloseHomeDrawer === 'function') gcCloseHomeDrawer();
-    showPage('profile');
+    if(typeof openProfileEdit === 'function') openProfileEdit();
     setTimeout(function(){
-        const wrapper = document.getElementById('profile-details-wrapper');
-        const chevron = document.getElementById('my-pi-chevron');
-        if(wrapper && (wrapper.style.display === 'none' || wrapper.style.display === '')){
-            wrapper.style.display = 'block';
-            if(chevron) chevron.style.transform = 'rotate(180deg)';
-        }
-        if(wrapper && wrapper.scrollIntoView){
-            wrapper.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
-    }, 260);
-}
-window.gcOpenPersonalInfoFromDrawer = gcOpenPersonalInfoFromDrawer;
-
-async function blockCurrentUser(){
-if(!currentOtherProfileUid)return;
-const uid = currentOtherProfileUid;
-if(typeof gcOpenConfirm === 'function'){
-  gcOpenConfirm({
-    title:'Block User?',
-    text:'They will no longer be able to message or interact with you.',
-    icon:'ph-light ph-prohibit',
-    yesLabel:'Block',
-    onYes:function(){ gcDoBlockUser(uid); }
-  });
-  return;
-}
-return gcDoBlockUser(uid);
-}
-async function gcDoBlockUser(uid){
-await db.collection('users').doc(currentUser.uid).update({
-blockedUsers:firebase.firestore.FieldValue.arrayUnion(uid)
-});
-showToast('User blocked');
-closeAllDropdowns();
-viewUserProfile(uid);
+        if(typeof gcOpenEpSection === 'function') gcOpenEpSection('personal');
+    }, 60);
 }
 
-async function unblockUser(uid){
-await db.collection('users').doc(currentUser.uid).update({
-blockedUsers:firebase.firestore.FieldValue.arrayRemove(uid)
-});
-showToast('User unblocked');
-viewUserProfile(uid);
-}
-
-// ===== CHAT FUNCTIONS =====
-
-// ═══ FEATURE: chat date separators (Messenger-style) ═══
 function gcFormatChatDateLabel(date){
   try{
     if(!date || isNaN(date.getTime())) return '';
@@ -17192,6 +17203,19 @@ function gcBuildMsgDateSep(createdAt){
 }
 
 function openChat(chatId, otherUid, otherName, otherAvatar){
+    // Private account: non-followers cannot message
+    try{
+      if(otherUid && currentUser && otherUid !== currentUser.uid && typeof allUsersCache !== 'undefined' && allUsersCache){
+        var _tu = allUsersCache.find(function(x){ return x.id === otherUid; });
+        if(_tu && _tu.isPrivate === true){
+          var _fl = Array.isArray(_tu.followers) ? _tu.followers : [];
+          if(_fl.indexOf(currentUser.uid) === -1){
+            showToast('This account is private. Follow to message.');
+            return;
+          }
+        }
+      }
+    }catch(e){}
     currentChatId=chatId;
     currentChatOtherUid=otherUid;
     document.getElementById('chat-screen').classList.add('open');
@@ -29595,7 +29619,7 @@ setTimeout(function(){ p.remove(); }, 380);
 
 // ═══════════════════════════════════════════════════════
 // 🚀 elite-payment-system · 2026-08-11 (Fresh Build)
-// bKash payment-based GoChat Verification subscription
+// bKash payment-based Elite GoChat subscription
 // ═══════════════════════════════════════════════════════
 const GC_ELITE_PLANS = [
 {id:'m1', name:'1 Month', days:30, price:100, tag:''},
@@ -29614,7 +29638,7 @@ ov.id = 'gc-pay-overlay';
 ov.className = 'gc-pay-overlay';
 document.body.appendChild(ov);
 }
-ov.innerHTML = '<div class="gc-pay-box"><div class="gc-pay-head"><div class="gc-pay-brand"><i class="ph-light ph-crown" style="font-size:22px;color:#f59e0b;"></i> GoChat Verification</div><button class="gc-pay-close" onclick="gcPayClose()"><i class="ph-light ph-x"></i></button></div><div class="gc-pay-rail"><i></i></div><div id="gc-pay-body" class="gc-pay-body"></div></div>';
+ov.innerHTML = '<div class="gc-pay-box"><div class="gc-pay-head"><div class="gc-pay-brand"><i class="ph-light ph-crown" style="font-size:22px;color:#f59e0b;"></i> Elite GoChat</div><button class="gc-pay-close" onclick="gcPayClose()"><i class="ph-light ph-x"></i></button></div><div class="gc-pay-rail"><i></i></div><div id="gc-pay-body" class="gc-pay-body"></div></div>';
 ov.classList.add('open');
 gcPayCheckPending();
 }
