@@ -6,6 +6,11 @@
 <title>GoChat V2</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <script src="https://unpkg.com/@phosphor-icons/web"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging-compat.js"></script>
+
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative&display=swap" rel="stylesheet">
 
@@ -1609,16 +1614,16 @@ body:not(.light-mode) .sp-comment-compose button{
 .comment-input-bar .chat-send-btn{ width:40px !important; height:40px !important; }
 .sp-comment-compose button i{ font-size:18px !important; color:inherit!important; }
 .sp-comment-compose button.is-ready{
-  background:#0a0a0f !important;
-  border-color:#0a0a0f !important;
-  color:#fff !important;
-  box-shadow:none!important;
+  background:#c1f600 !important;
+  border-color:transparent !important;
+  color:#0a1a12 !important;
+  box-shadow:0 3px 12px rgba(193,246,0,.35)!important;
   opacity:1;
 }
 body:not(.light-mode) .sp-comment-compose button.is-ready{
-  background:#f0f0f5 !important;
-  border-color:#f0f0f5 !important;
-  color:#0a0a0f !important;
+  background:#c1f600 !important;
+  border-color:transparent !important;
+  color:#0a1a12 !important;
 }
 .sp-comment-compose button:not(.is-ready){
   pointer-events:none; cursor:default;
@@ -4022,28 +4027,116 @@ body.gc-splash-handoff .page.active{
 }
 
 /* --- Colored Post Background Styles --- */
-.bg-color-picker {
+/* Create Post · Style sheet (Facebook-style bottom sheet) — #bg-color-picker only */
+#bg-color-picker.bg-color-picker {
     display: none;
-    padding: 12px 20px;
-    background: var(--surface-2);
-    border-top: 1px solid var(--border);
+    position: fixed;
+    left: 50%;
+    transform: translateX(-50%) translateY(110%);
+    bottom: 0;
+    width: 100%;
+    max-width: 520px;
+    z-index: 10050;
+    background: var(--surface);
+    border-radius: 20px 20px 0 0;
+    box-shadow: 0 -8px 32px rgba(0,0,0,0.18);
+    padding: 0 0 max(12px, env(safe-area-inset-bottom));
+    flex-direction: column;
+    gap: 0;
+    overflow: hidden;
+    transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+}
+#bg-color-picker.bg-color-picker.show {
+    display: flex;
+    transform: translateX(-50%) translateY(0);
+}
+/* Story text bg strip keeps simple horizontal row */
+.bg-color-picker:not(#bg-color-picker){
+    display: flex;
+    padding: 12px 16px;
     gap: 12px;
     overflow-x: auto;
-    white-space: nowrap;
-    scrollbar-width: none; /* Firefox */
+    flex-wrap: nowrap;
 }
-.bg-color-picker::-webkit-scrollbar { display: none; } /* Chrome/Safari */
-.bg-color-picker.show { display: flex; animation: slideUp 0.3s ease; }
-
-.color-circle {
-    width: 36px; height: 36px; border-radius: 8px; /* ফেসবুকের মতো চারকোনা-গোলাকার */
-    cursor: pointer; flex-shrink: 0;
+.bg-style-handle {
+    width: 40px;
+    height: 4px;
+    border-radius: 4px;
+    background: var(--border);
+    margin: 10px auto 6px;
+    flex-shrink: 0;
+}
+.bg-style-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 16px 12px;
+    flex-shrink: 0;
+}
+.bg-style-head h3 {
+    margin: 0;
+    font-size: 17px;
+    font-weight: 800;
+    color: var(--text);
+}
+.bg-style-head button {
+    border: none;
+    background: transparent;
+    color: var(--text);
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 22px;
+}
+.bg-style-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 10px;
+    padding: 4px 16px 16px;
+    max-height: 42vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+}
+#bg-color-picker .color-circle {
+    width: 100%;
+    aspect-ratio: 1;
+    border-radius: 14px;
+    cursor: pointer;
+    flex-shrink: 0;
     border: 2px solid transparent;
-    transition: transform 0.2s;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    transition: transform 0.15s, border-color 0.15s;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+    box-sizing: border-box;
 }
-.color-circle:hover { transform: scale(1.1); }
-.color-circle.selected { border: 2px solid var(--text); transform: scale(1.1); }
+#bg-color-picker .color-circle:active { transform: scale(0.96); }
+#bg-color-picker .color-circle.selected {
+    border: 3px solid var(--text);
+    box-shadow: 0 0 0 2px var(--surface), 0 2px 8px rgba(0,0,0,0.15);
+}
+/* generic small circles (story strip etc.) */
+.bg-color-picker:not(#bg-color-picker) .color-circle {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    flex-shrink: 0;
+    border: 2px solid transparent;
+    cursor: pointer;
+}
+.bg-color-picker:not(#bg-color-picker) .color-circle.selected {
+    border: 2px solid var(--text);
+}
+.bg-style-mask {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.35);
+    z-index: 10040;
+}
+.bg-style-mask.show { display: block; }
 
 /* ফিডে রঙিন পোস্ট দেখানোর ডিজাইন */
 .colored-post-bg {
@@ -4282,14 +4375,16 @@ box-shadow: 0 4px 12px var(--accent-glow);
 .toggle-switch::after {
     content: '';
     position: absolute;
-    top: 2px;
+    top: 50%;
     left: 2px;
     width: 18px;
     height: 18px;
+    margin: 0;
     background: var(--text-muted);
     border-radius: 50%;
-    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), background 0.3s ease;
+    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), background 0.3s ease, left 0.3s ease;
     box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    transform: translateY(-50%);
 }
 /* Active (ON) State */
 .toggle-switch.active {
@@ -4297,8 +4392,8 @@ box-shadow: 0 4px 12px var(--accent-glow);
     border-color: var(--accent);
 }
 .toggle-switch.active::after {
-    transform: translateX(20px);
-    background: var(--bg); /* monochrome contrast */
+    transform: translateY(-50%) translateX(20px);
+    background: #fff;
 }
 /* =========================================
 ADVANCED PRIVACY PROTECTION CSS · TESTED BEHAVIOUR
@@ -4911,11 +5006,11 @@ background:rgba(0,0,0,.28);color:#fff;font-size:18px;pointer-events:none;
 .gc-pay-mini-perks i{font-size:28px !important;line-height:1;color:#1DA1F2;}
 .gc-pay-mini-perks i.ph-fill.ph-fire{color:#f97316;}
 .gc-pay-mini-perks i.ph-bold.ph-headset{color:var(--accent);}
-.gc-pay-cta{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:15px;border:none;border-radius:16px;background:linear-gradient(135deg,#fbbf24,#d97706);color:#2a1a00;font-weight:800;font-size:15px;cursor:pointer;}
+.gc-pay-cta{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:15px;border:none;border-radius:16px;background:linear-gradient(135deg,#c1f600,#00545f);color:#0a1a12;font-weight:800;font-size:15px;cursor:pointer;}
 .gc-pay-h{font-size:17px;font-weight:800;color:var(--text);margin:0;}
 .gc-plan-card{position:relative;background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:16px 18px;cursor:pointer;transition:.2s;}
 .gc-plan-card.gc-plan-sel{border-color:#e8c074;box-shadow:0 0 0 1px #e8c074,0 10px 26px -12px rgba(232,192,116,.5);}
-.gc-plan-tag{position:absolute;top:-9px;right:14px;background:linear-gradient(135deg,#fbbf24,#d97706);color:#2a1a00;font-size:10px;font-weight:900;padding:3px 10px;border-radius:20px;letter-spacing:.5px;}
+.gc-plan-tag{position:absolute;top:-9px;right:14px;background:linear-gradient(135deg,#c1f600,#00545f);color:#0a1a12;font-size:10px;font-weight:900;padding:3px 10px;border-radius:20px;letter-spacing:.5px;}
 .gc-plan-name{font-size:13px;font-weight:800;color:var(--text-muted);}
 .gc-plan-price{font-size:26px;font-weight:900;color:var(--text);}
 .gc-plan-per{font-size:11px;color:var(--text-muted);}
@@ -8999,6 +9094,264 @@ i.ph.ph-dots-three{
 .gc-pay-title{ margin-top:6px !important; }
 .gc-pay-mini-perks{ margin: 16px 0 8px; }
 
+
+/* Menu · Settings · Explore · no trailing carets */
+#main-menu-screen .settings-list-item > i.ph-caret-right,
+#main-menu-screen .settings-list-item > i[class*="ph-caret"],
+#main-settings-screen .settings-list-item > i.ph-caret-right,
+#main-settings-screen .settings-list-item > i[class*="ph-caret"],
+#settings-privacy-screen .settings-list-item > i.ph-caret-right,
+#settings-privacy-screen .settings-list-item > i[class*="ph-caret"],
+#gc-home-drawer .gc-hd-chev,
+#gc-home-drawer .gc-hd-item > i.ph-caret-right,
+#gc-home-drawer .gc-hd-item > i[class*="ph-caret"]{
+  display: none !important;
+}
+
+
+/* Own image-only messages · no cyan bubble behind photo */
+.chat-bubble.mine.gc-media-only{
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  padding: 0 !important;
+  box-shadow: none !important;
+  border: none !important;
+  max-width: min(78%, 280px) !important;
+}
+.chat-bubble.mine.gc-media-only img{
+  margin: 0 !important;
+  border-radius: 16px !important;
+  display: block;
+  max-width: 100%;
+}
+.chat-bubble.theirs.gc-media-only{
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+}
+.chat-bubble.theirs.gc-media-only img{
+  margin: 0 !important;
+  border-radius: 16px !important;
+}
+
+
+/* Chat media · theme-aware timestamp (not white-on-white / random grays) */
+.chat-bubble.gc-media-only .gc-msg-time-row,
+.chat-bubble.mine.gc-media-only .gc-msg-time-row,
+.chat-bubble.theirs.gc-media-only .gc-msg-time-row{
+  color: var(--text-muted) !important;
+  opacity: 1 !important;
+  margin-top: 6px !important;
+  background: transparent !important;
+}
+.chat-bubble.gc-media-only .gc-msg-time-row span,
+.chat-bubble.gc-media-only .gc-msg-time-row i.ph-check{
+  color: var(--text-muted) !important;
+}
+/* Text bubbles keep high-contrast time on cyan */
+.chat-bubble.mine:not(.gc-media-only) .gc-msg-time-row{
+  color: rgba(255,255,255,0.95) !important;
+  opacity: 1 !important;
+}
+.chat-bubble.theirs:not(.gc-media-only) .gc-msg-time-row{
+  color: var(--text-muted) !important;
+  opacity: 1 !important;
+}
+
+
+/* Elite payment · breathing room */
+.gc-pay-body{
+  padding: 12px 20px 20px !important;
+}
+.gc-pay-screen{
+  gap: 0 !important;
+}
+.gc-pay-scroll{
+  display: flex;
+  flex-direction: column;
+  gap: 18px !important;
+  padding-bottom: 20px !important;
+}
+.gc-pay-sum{
+  margin: 4px 0 8px !important;
+  padding: 14px 16px !important;
+}
+.gc-bkash-card{
+  margin: 4px 0 !important;
+  padding: 16px !important;
+}
+.gc-pay-steps{
+  margin: 6px 0 !important;
+  padding: 14px 16px !important;
+  display: flex;
+  flex-direction: column;
+  gap: 10px !important;
+}
+.gc-pay-field{
+  margin: 4px 0 10px !important;
+}
+.gc-pay-field label{
+  margin-bottom: 8px !important;
+}
+.gc-pay-field input{
+  padding: 14px 16px !important;
+  margin-bottom: 0 !important;
+}
+.gc-pay-h{
+  margin: 4px 0 12px !important;
+  font-size: 20px !important;
+}
+.gc-pay-foot{
+  padding-top: 16px !important;
+}
+
+
+/* Create Post · audience chip next to more menu */
+.gc-audience-chip{
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  line-height: 1;
+}
+.gc-audience-chip i{ font-size: 16px; color: var(--text-muted); }
+.gc-audience-chip:active{ opacity: .75; }
+.post-time .gc-aud-ico{
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-left: 2px;
+  vertical-align: -1px;
+}
+
+
+/* Light mode · media timestamp must be readable on white canvas */
+body.light-mode .chat-bubble.gc-media-only .gc-msg-time-row,
+body.light-mode .chat-bubble.mine.gc-media-only .gc-msg-time-row,
+body.light-mode .chat-bubble.theirs.gc-media-only .gc-msg-time-row,
+body.light-mode .chat-bubble.gc-media-only .gc-msg-time-row span,
+body.light-mode .chat-bubble.gc-media-only .gc-msg-time-row i{
+  color: #5a5a70 !important;
+  opacity: 1 !important;
+  font-weight: 600 !important;
+}
+body:not(.light-mode) .chat-bubble.gc-media-only .gc-msg-time-row,
+body:not(.light-mode) .chat-bubble.gc-media-only .gc-msg-time-row span,
+body:not(.light-mode) .chat-bubble.gc-media-only .gc-msg-time-row i{
+  color: #a0a0b5 !important;
+  opacity: 1 !important;
+}
+/* Time row sits outside photo edge for clarity */
+.chat-bubble.gc-media-only .gc-msg-time-row{
+  margin-top: 6px !important;
+  padding: 0 2px !important;
+  text-shadow: none !important;
+}
+
+
+/* Create Post + Story · enabled CTA (palette mix) */
+.compose-btn:not(:disabled),
+#modal-post-btn:not(:disabled){
+  background: linear-gradient(135deg, #c1f600 0%, #8fd400 40%, #00545f 100%) !important;
+  color: #0a1a12 !important;
+  border: none !important;
+  box-shadow: 0 4px 14px rgba(193, 246, 0, 0.35) !important;
+}
+body:not(.light-mode) .compose-btn:not(:disabled),
+body:not(.light-mode) #modal-post-btn:not(:disabled){
+  background: linear-gradient(135deg, #ecffb6 0%, #c1f600 45%, #00545f 100%) !important;
+  color: #0a1a12 !important;
+}
+.compose-btn:disabled,
+#modal-post-btn:disabled{
+  opacity: 0.45 !important;
+  background: var(--surface-2) !important;
+  color: var(--text-muted) !important;
+  box-shadow: none !important;
+}
+.gc-sp-btn-post{
+  background: linear-gradient(135deg, #c1f600 0%, #8fd400 40%, #00545f 100%) !important;
+  color: #0a1a12 !important;
+  box-shadow: 0 4px 16px rgba(193, 246, 0, 0.3) !important;
+  border: none !important;
+}
+.gc-sp-btn-post:disabled{
+  opacity: 0.55 !important;
+  pointer-events: none;
+}
+
+
+/* ═══ Global · palette CTA / ON (smooth, no square bands) ═══ */
+:root{
+  --gc-palette-solid: #c1f600;
+  --gc-palette-mid: #8fd400;
+  --gc-palette-deep: #00545f;
+  --gc-palette: linear-gradient(135deg, #c1f600 0%, #8fd400 45%, #00545f 100%);
+  --gc-palette-text: #0a1a12;
+}
+/* Toggles · soft horizontal blend (fits pill shape) */
+.toggle-switch.active{
+  background: #c1f600 !important; background-image: none !important;
+  border-color: rgba(0,0,0,0.06) !important;
+}
+.toggle-switch.active::after{
+  background: #ffffff !important;
+  box-shadow: 0 2px 6px rgba(0,0,0,.22) !important;
+}
+/* Small circular send buttons · solid (no square gradient split) */
+.chat-send-btn.is-ready,
+#comment-panel-send-btn.is-ready,
+#text-send-btn.is-ready,
+.comment-input-bar .chat-send-btn.is-ready,
+.sp-comment-compose button.is-ready,
+body:not(.light-mode) .chat-send-btn.is-ready,
+body:not(.light-mode) #comment-panel-send-btn.is-ready,
+body:not(.light-mode) #text-send-btn.is-ready,
+body:not(.light-mode) .comment-input-bar .chat-send-btn.is-ready,
+body:not(.light-mode) .sp-comment-compose button.is-ready{
+  background: var(--gc-palette-solid) !important;
+  background-image: none !important;
+  border-color: transparent !important;
+  color: var(--gc-palette-text) !important;
+  box-shadow: 0 3px 12px rgba(193, 246, 0, 0.4) !important;
+  border-radius: 50% !important;
+}
+.chat-send-btn.is-ready i,
+#comment-panel-send-btn.is-ready i,
+#text-send-btn.is-ready i,
+.sp-comment-compose button.is-ready i{
+  color: var(--gc-palette-text) !important;
+}
+/* Story reply send · solid circle */
+.sv-reply-send{
+  background: var(--gc-palette-solid) !important;
+  background-image: none !important;
+  color: var(--gc-palette-text) !important;
+  border: none !important;
+  border-radius: 50% !important;
+  box-shadow: 0 3px 12px rgba(193, 246, 0, 0.35) !important;
+}
+.sv-reply-send i{ color: var(--gc-palette-text) !important; }
+/* Large CTAs keep full mix gradient */
+.gc-pay-cta,
+button.gc-pay-cta,
+.compose-btn:not(:disabled),
+#modal-post-btn:not(:disabled),
+.gc-sp-btn-post{
+  background: var(--gc-palette) !important;
+  color: var(--gc-palette-text) !important;
+  border: none !important;
+  box-shadow: 0 4px 16px rgba(193, 246, 0, 0.3) !important;
+}
+
 </style>
 
 <style id="gc-consolidated-patches">
@@ -10189,6 +10542,70 @@ body.friends-mode .nav-capsule {
   flex-shrink:0 !important;
 }
 
+
+/* FINAL · send/toggle palette polish */
+.toggle-switch.active{
+  background: #c1f600 !important; background-image: none !important;
+  border-color: rgba(0,0,0,0.06) !important;
+  border-width: 2px !important;
+  border-style: solid !important;
+}
+.toggle-switch.active::after{
+  top: 50% !important;
+  transform: translateY(-50%) translateX(20px) !important;
+  background: #fff !important;
+}
+.toggle-switch::after{
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+}
+.toggle-switch.active::after{
+  transform: translateY(-50%) translateX(20px) !important;
+}
+.chat-send-btn.is-ready,
+#comment-panel-send-btn.is-ready,
+#text-send-btn.is-ready,
+.comment-input-bar .chat-send-btn.is-ready,
+.sp-comment-compose button.is-ready,
+.sp-comment-compose-fixed button.is-ready,
+body:not(.light-mode) .chat-send-btn.is-ready,
+body:not(.light-mode) #comment-panel-send-btn.is-ready,
+body:not(.light-mode) #text-send-btn.is-ready,
+body:not(.light-mode) .comment-input-bar .chat-send-btn.is-ready,
+body:not(.light-mode) .sp-comment-compose button.is-ready{
+  background: #c1f600 !important;
+  background-image: none !important;
+  border: none !important;
+  color: #0a1a12 !important;
+  box-shadow: 0 3px 12px rgba(193,246,0,.4) !important;
+}
+.chat-send-btn.is-ready i,
+#comment-panel-send-btn.is-ready i,
+#text-send-btn.is-ready i,
+.sp-comment-compose button.is-ready i{
+  color: #0a1a12 !important;
+}
+.sv-reply-send{
+  background: #c1f600 !important;
+  background-image: none !important;
+  color: #0a1a12 !important;
+  border-radius: 50% !important;
+}
+.sv-reply-send i{ color:#0a1a12 !important; }
+
+
+/* Toggle ON · solid like send button (no square gradient) */
+.toggle-switch.active{
+  background: #c1f600 !important;
+  background-image: none !important;
+  border-color: rgba(0,0,0,0.06) !important;
+}
+.toggle-switch.active::after{
+  background: #ffffff !important;
+  top: 50% !important;
+  transform: translateY(-50%) translateX(20px) !important;
+}
+
 </style>
 
 </head>
@@ -10985,6 +11402,8 @@ body.friends-mode .nav-capsule {
     </label>
     <input type="file" id="post-img-input" accept="image/*" multiple style="display:none" onchange="previewImages(this)">
 
+
+
     <!-- ➕ More Menu Button (No Color) -->
     <div style="cursor:pointer; color:var(--text-muted); display: flex; align-items: center; justify-content: center; transition:0.2s; position: relative;" onclick="document.getElementById('compose-more-menu').classList.toggle('open'); event.stopPropagation();" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text-muted)'">
         <i class="ph ph-dots-three-circle" style="font-size:26px;"></i>
@@ -11020,6 +11439,13 @@ body.friends-mode .nav-capsule {
             
         </div>
     </div>
+
+    <!-- Audience · Public / Followers -->
+    <button type="button" class="gc-audience-chip" id="gc-audience-chip" onclick="event.stopPropagation(); gcOpenAudienceSheet();">
+      <i class="ph-light ph-globe-hemisphere-east" id="gc-audience-chip-ico"></i>
+      <span id="gc-audience-chip-label">Public</span>
+    </button>
+
 </div>
 
 <!-- 📊 Poll Creator UI -->
@@ -11050,8 +11476,12 @@ body.friends-mode .nav-capsule {
 </div>
 <div class="compose-img-grid" id="compose-img-grid"></div>
 </div>
-</div> <div class="bg-color-picker" id="bg-color-picker">
-    <div class="color-circle selected" style="background: var(--surface); border: 2px solid var(--border);" onclick="selectPostBg('default', this)"></div>
+</div> <div class="bg-style-mask" id="bg-style-mask" onclick="toggleColorPicker()"></div>
+<div class="bg-color-picker" id="bg-color-picker">
+  <div class="bg-style-handle"></div>
+  <div class="bg-style-head"><h3>Style</h3><button type="button" onclick="toggleColorPicker()" aria-label="Done"><i class="ph-light ph-check"></i></button></div>
+  <div class="bg-style-grid">
+<div class="color-circle selected" style="background: var(--surface); border: 2px solid var(--border);" onclick="selectPostBg('default', this)"></div>
     <div class="color-circle" style="background: linear-gradient(45deg, #ff9a9e 0%, #fecfef 99%, #fecfef 100%);" onclick="selectPostBg('linear-gradient(45deg, #ff9a9e 0%, #fecfef 99%, #fecfef 100%)', this)"></div>
     <div class="color-circle" style="background: linear-gradient(120deg, #a1c4fd 0%, #c2e9fb 100%);" onclick="selectPostBg('linear-gradient(120deg, #a1c4fd 0%, #c2e9fb 100%)', this)"></div>
     <div class="color-circle" style="background: linear-gradient(to right, #4facfe 0%, #00f2fe 100%);" onclick="selectPostBg('linear-gradient(to right, #4facfe 0%, #00f2fe 100%)', this)"></div>
@@ -11071,6 +11501,7 @@ body.friends-mode .nav-capsule {
     <div class="color-circle" style="background: #2196f3;" onclick="selectPostBg('#2196f3', this)"></div>
     <div class="color-circle" style="background: #9c27b0;" onclick="selectPostBg('#9c27b0', this)"></div>
     <div class="color-circle" style="background: #ff5722;" onclick="selectPostBg('#ff5722', this)"></div>
+  </div>
 </div>
 </div>
 </div>
@@ -11245,7 +11676,7 @@ body.friends-mode .nav-capsule {
     <span>Voice</span>
   </button>
   <button type="button" class="gc-chat-attach-item" onclick="event.stopPropagation(); gcChatAttachAction('quick')">
-    <div class="gc-chat-attach-ico" style="background:linear-gradient(135deg,#fbbf24,#f59e0b);"><i class="ph-light ph-lightning"></i></div>
+    <div class="gc-chat-attach-ico" style="background:linear-gradient(135deg,#c1f600,#00545f);"><i class="ph-light ph-lightning"></i></div>
     <span>Quick</span>
   </button>
 </div>
@@ -12230,10 +12661,6 @@ body.friends-mode .nav-capsule {
     </div>
   </div>
 </div>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging-compat.js"></script>
 <script>
 // Blocked Accounts পেজ ওপেন এবং ক্লোজ করার জাভাস্ক্রিপ্ট
 function openBlockedAccountsPage() {
@@ -12423,6 +12850,11 @@ const SKELETON_HTML = `
 
 
 // ===== FIREBASE INIT =====
+if (typeof firebase === 'undefined') {
+  console.error('Firebase SDK failed to load. Check internet connection.');
+  document.body.innerHTML = '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;font-family:system-ui,sans-serif;background:#0a0a0f;color:#f0f0f5;text-align:center;"><div style="max-width:320px;"><div style="font-size:40px;margin-bottom:12px;">📡</div><div style="font-size:18px;font-weight:800;margin-bottom:8px;">Connection needed</div><div style="font-size:14px;opacity:.75;line-height:1.5;">Firebase could not load. Open this file with internet on, or use the hosted app link (Vercel). Local offline preview cannot reach Google CDN.</div></div></div>';
+  throw new Error('firebase is not defined');
+}
 firebase.initializeApp({
 apiKey:"AIzaSyAnKueAHG8cw6O-Hy8U9fgGzH4fDMYQBy8",
 authDomain:"gochat-3efa3.firebaseapp.com",
@@ -16772,7 +17204,8 @@ safeText = safeText.replace(urlRegex, function(url) {
                 const date = m.createdAt.toDate ? m.createdAt.toDate() : new Date(m.createdAt);
                 timeString = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
             }
-            let timeAndReceiptHtml = `<div class="gc-msg-time-row" style="font-size: 10px; text-align: right; margin-top: 5px; display: flex; justify-content: flex-end; gap: 4px; align-items: center;${isMine?' color:#fff; opacity:1;':' opacity:0.7;'}">
+            const _isMediaOnly = ((((m.images&&m.images.length)||m.imageUrl)&&!m.text)||m.sharedPostId);
+            let timeAndReceiptHtml = `<div class="gc-msg-time-row" style="font-size: 10px; text-align: right; margin-top: 5px; display: flex; justify-content: flex-end; gap: 4px; align-items: center;">
                 <span>${timeString}</span>`;
             if(isMine){
                 if(m.read){
@@ -16837,7 +17270,7 @@ safeText = safeText.replace(urlRegex, function(url) {
         return dateSepHtml + `<div class="chat-bubble-wrapper ${isMine?'mine':'theirs'}" data-msgid="${d.id}" ontouchstart="handleMsgTouchStart('${d.id}', event)" ontouchmove="handleMsgTouchMove(event)" ontouchend="handleMsgTouchEnd('${d.id}', event)" ontouchcancel="handleMsgTouchEnd('${d.id}', event)" onmousedown="handleMsgTouchStart('${d.id}', event)" onmouseup="handleMsgTouchEnd('${d.id}', event)" onmouseleave="handleMsgTouchEnd('${d.id}', event)" oncontextmenu="event.preventDefault(); return false;" onclick="handleMsgClick('${d.id}')">
             <div style="display:flex; flex-direction:row; align-items:flex-end; width:100%; ${isMine?'justify-content:flex-end;':''}">
                 ${!isMine ? msgAvatarHtml : ''}
-                <div class="chat-bubble ${isMine?'mine':'theirs'}${(((m.images&&m.images.length)||m.imageUrl)&&!m.text)||m.sharedPostId?' gc-media-only':''}${m.audioUrl?' gc-voice-bubble':''}" ${isMine?'style="background:#00BFFF !important;background-color:#00BFFF !important;background-image:none !important;"':''} ondblclick="showReactionPicker(event,'${d.id}')">
+                <div class="chat-bubble ${isMine?'mine':'theirs'}${(((m.images&&m.images.length)||m.imageUrl)&&!m.text)||m.sharedPostId?' gc-media-only':''}${m.audioUrl?' gc-voice-bubble':''}" ${(isMine && !((((m.images&&m.images.length)||m.imageUrl)&&!m.text)||m.sharedPostId))?'style="background:#00BFFF !important;background-color:#00BFFF !important;background-image:none !important;"':''} ondblclick="showReactionPicker(event,'${d.id}')">
                     ${m.forwarded ? '<div class="gc-fwd-label"><i class="ph-light ph-arrow-bend-double-up-right"></i> Forwarded</div>' : ''}
                     ${senderNameHtml}
                     ${replyHtml}
@@ -19080,6 +19513,7 @@ imgUrls.push(url);
         const expireAt=new Date(Date.now()+ONE_YEAR_MS);
                 const newPostRef = await db.collection('posts').add({ hashtags: gcExtractHashtags((document.getElementById('post-title') || {}).value || ''), musicUrl: (window.currentPostMusic ? window.currentPostMusic.url : ''), musicName: (window.currentPostMusic ? window.currentPostMusic.name : ''),
             replyPrivacy: (window.currentPostReplyPrivacy || 'everyone'),
+            audience: (window.currentPostAudience || 'public'),
             location: (window.currentPostLocation ? window.currentPostLocation.name : ''),
             uid: currentUser.uid,
             bgColor: currentPostBgColor,
@@ -19121,6 +19555,8 @@ imgUrls.push(url);
         }
 
         currentPostBgColor = 'default';
+        window.currentPostAudience = 'public';
+        try{ gcSyncAudienceChip(); }catch(e){}
         isPollActive = false;
 
         // Reset composer state
@@ -19156,6 +19592,24 @@ function loadFeed() {
 
         const mutedList = currentUserData?.mutedFeedUsers || [];
         postsData = postsData.filter(p => !mutedList.includes(p.uid));
+
+        // Audience: followers-only posts visible to author + people who follow the author
+        postsData = postsData.filter(function(p){
+          if(!p.audience || p.audience === 'public') return true;
+          if(p.audience === 'followers'){
+            if(!currentUser) return false;
+            if(p.uid === currentUser.uid) return true;
+            try{
+              var author = (typeof allUsersCache !== 'undefined' && allUsersCache)
+                ? allUsersCache.find(function(u){ return u.id === p.uid; }) : null;
+              var followers = (author && author.followers) || [];
+              if(followers.indexOf(currentUser.uid) !== -1) return true;
+              // fallback: if I'm following them, still show only when they follow me — strict followers
+              return false;
+            }catch(e){ return false; }
+          }
+          return true;
+        });
 
         if (currentFeedTab === 'following') { 
             postsData = postsData.filter(p => currentUserData?.following?.includes(p.uid) || p.uid === currentUser?.uid);
@@ -19752,7 +20206,7 @@ ${activityHtml}
 ${withText}
 ${p.location ? `<span class="gc-post-loc"><i class="ph-light ph-map-pin"></i>${escapeHTML(p.location)}</span>` : ''}
 </div>
-<div class="post-time">${getRelativeTime(p.createdAt)}${pinnedBadge}</div>
+<div class="post-time">${getRelativeTime(p.createdAt)}${(p.audience==='followers')?' <i class="ph-light ph-users gc-aud-ico" title="Followers"></i>':' <i class="ph-light ph-globe-hemisphere-east gc-aud-ico" title="Public"></i>'}${pinnedBadge}</div>
 </div>
 ${postDropdownHtml}
 </div>
@@ -21962,8 +22416,20 @@ async function downloadCurrentStory(event) {
 let currentPostBgColor = 'default';
 
 function toggleColorPicker() {
-    document.getElementById('bg-color-picker').classList.toggle('show');
+    var p = document.getElementById('bg-color-picker');
+    var m = document.getElementById('bg-style-mask');
+    if(!p) return;
+    var open = !p.classList.contains('show');
+    p.classList.toggle('show', open);
+    if(m) m.classList.toggle('show', open);
 }
+function closeColorPicker(){
+    var p = document.getElementById('bg-color-picker');
+    var m = document.getElementById('bg-style-mask');
+    if(p) p.classList.remove('show');
+    if(m) m.classList.remove('show');
+}
+
 
 function selectPostBg(color, element) {
     currentPostBgColor = color;
@@ -21972,6 +22438,7 @@ function selectPostBg(color, element) {
     const circles = document.querySelectorAll('.color-circle');
     circles.forEach(c => c.classList.remove('selected'));
     if (element) element.classList.add('selected');
+    try{ closeColorPicker(); }catch(e){}
     
     const textarea = document.getElementById('post-title');
     if (color === 'default') {
@@ -27920,23 +28387,52 @@ const pc = Math.round(cnt / Math.max(1, tot) * 100);
 return '<div class="gc-ins-bar-row"><div class="nm">' + nm + '</div><div class="tr"><div class="fl" style="width:' + pc + '%"></div></div><div class="pc">' + pc + '%</div></div>';
 }
 function gcSvgLine(pts, w, h){
-if(pts.length < 2) return '<div style="font-size:12px;color:var(--text-muted);text-align:center;padding:20px 0;">Not enough data yet — check back tomorrow!</div>';
+if(!pts || pts.length < 2) return '<div style="font-size:12px;color:var(--text-muted);text-align:center;padding:20px 0;">Not enough data yet — check back tomorrow!</div>';
 const vals = pts.map(function(p){ return p.v; });
 const min = Math.min.apply(null, vals), max = Math.max.apply(null, vals);
 const flat = (max === min);
 const span = flat ? 1 : (max - min);
-const step = w / (pts.length - 1);
+const padT = 28, padB = 22, padX = 8;
+const chartH = h - padT - padB;
+const chartW = w - padX * 2;
+const step = chartW / (pts.length - 1);
 const co = pts.map(function(p, i){
-const y = flat ? (h / 2) : (h - ((p.v - min) / span) * (h - 44) - 26);
-return [i * step, y];
+const y = flat ? (padT + chartH / 2) : (padT + chartH - ((p.v - min) / span) * chartH);
+return [padX + i * step, y];
 });
+// Smooth-ish polyline
 const path = co.map(function(c, i){ return (i ? 'L' : 'M') + c[0].toFixed(1) + ',' + c[1].toFixed(1); }).join(' ');
-const lastC = co[co.length - 1];
+const lastC = co[co.length - 1], firstC = co[0];
+const delta = vals[vals.length - 1] - vals[0];
+const deltaTxt = (delta > 0 ? '+' : '') + delta;
 let dots = '';
-co.forEach(function(c){ dots += '<circle cx="' + c[0].toFixed(1) + '" cy="' + c[1].toFixed(1) + '" r="2.5" fill="var(--accent)" opacity=".55"/>'; });
-const lbl = '<text x="2" y="' + (co[0][1] - 10).toFixed(1) + '" font-size="10" font-weight="800" fill="#8a8a9a">' + vals[0] + '</text>' +
-'<text x="' + (w - 2) + '" y="' + (lastC[1] - 10).toFixed(1) + '" font-size="11" font-weight="800" fill="var(--accent)" text-anchor="end">' + vals[vals.length - 1] + '</text>';
-return '<svg viewBox="0 0 ' + w + ' ' + h + '" style="width:100%;height:130px;"><defs><linearGradient id="gcInsG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--accent)" stop-opacity=".35"/><stop offset="1" stop-color="var(--accent)" stop-opacity="0"/></linearGradient></defs><path d="' + path + ' L' + w + ',' + h + ' L0,' + h + ' Z" fill="url(#gcInsG)"/><path d="' + path + '" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round"/>' + dots + '<circle cx="' + lastC[0] + '" cy="' + lastC[1] + '" r="4.5" fill="var(--accent)" stroke="#fff" stroke-width="1.5"/>' + lbl + '</svg>';
+co.forEach(function(c, i){
+  const r = (i === co.length - 1) ? 4.5 : 2.8;
+  const op = (i === co.length - 1) ? 1 : 0.5;
+  dots += '<circle cx="' + c[0].toFixed(1) + '" cy="' + c[1].toFixed(1) + '" r="' + r + '" fill="var(--accent)" opacity="' + op + '"/>';
+});
+// End peak ring
+dots += '<circle cx="' + lastC[0] + '" cy="' + lastC[1] + '" r="7" fill="none" stroke="var(--accent)" stroke-width="1.5" opacity=".35"/>';
+const lbl = '<text x="' + firstC[0] + '" y="' + (firstC[1] - 12).toFixed(1) + '" font-size="10" font-weight="800" fill="#8a8a9a">' + vals[0] + '</text>' +
+'<text x="' + lastC[0] + '" y="' + (lastC[1] - 12).toFixed(1) + '" font-size="12" font-weight="800" fill="var(--accent)" text-anchor="end">' + vals[vals.length - 1] + '</text>';
+// Day ticks: first / mid / last
+const mid = Math.floor(co.length / 2);
+const dayLbl = function(i){
+  const p = pts[i];
+  if(p && p.label) return p.label;
+  return (i === 0) ? 'Start' : (i === co.length - 1) ? 'Now' : '';
+};
+const ticks = [0, mid, co.length - 1].filter(function(v, i, a){ return a.indexOf(v) === i; });
+let tickTxt = '';
+ticks.forEach(function(i){
+  const c = co[i];
+  const t = dayLbl(i);
+  if(!t) return;
+  tickTxt += '<text x="' + c[0].toFixed(1) + '" y="' + (h - 6) + '" font-size="9" font-weight="600" fill="#8a8a9a" text-anchor="middle">' + t + '</text>';
+});
+const area = path + ' L' + lastC[0].toFixed(1) + ',' + (h - padB + 4) + ' L' + firstC[0].toFixed(1) + ',' + (h - padB + 4) + ' Z';
+const badge = '<text x="' + (w - 4) + '" y="14" font-size="10" font-weight="800" fill="' + (delta >= 0 ? '#16a34a' : '#dc2626') + '" text-anchor="end">' + deltaTxt + ' in period</text>';
+return '<svg viewBox="0 0 ' + w + ' ' + h + '" style="width:100%;height:150px;"><defs><linearGradient id="gcInsG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--accent)" stop-opacity=".28"/><stop offset="1" stop-color="var(--accent)" stop-opacity="0"/></linearGradient></defs><path d="' + area + '" fill="url(#gcInsG)"/><path d="' + path + '" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>' + dots + lbl + tickTxt + badge + '</svg>';
 }
 function gcSvgBars(vals, w, h){
 if(!vals.length) return '';
@@ -28048,10 +28544,6 @@ html += '<div class="gc-ins-top-post" onclick="gcCloseInsights(); openSinglePost
 });
 html += '</div>';
 html += '<div class="gc-ins-sec"><h4><i class="ph-light ph-chart-pie"></i>Content Mix</h4>' + gcBarRow('Photos', pho, posts.length) + gcBarRow('Videos', vid, posts.length) + gcBarRow('Status', txt, posts.length) + '</div>';
-html += '<div class="gc-ins-sec"><h4><i class="ph-light ph-users-three"></i>Audience</h4>' + gcBarRow('Male', gM, gM + gF + gO) + gcBarRow('Female', gF, gM + gF + gO) + gcBarRow('Other', gO, gM + gF + gO);
-if(topLocs.length){ html += '<div style="margin-top:8px;font-size:12px;font-weight:800;color:var(--text-muted);">TOP LOCATIONS</div>'; topLocs.forEach(function(l){ html += '<div class="gc-ins-bar-row" style="margin-top:6px;"><div class="nm" style="width:auto;flex:1;display:flex;align-items:center;gap:6px;"><i class="ph-light ph-map-pin" style="font-size:14px;color:var(--accent);flex-shrink:0;"></i> ' + escapeHTML(l) + '</div><div class="pc" style="width:auto;">' + locs[l] + '</div></div>'; }); }
-html += '</div>';
-html += '<div class="gc-ins-sec"><h4><i class="ph-light ph-clock-afternoon"></i>Best Time to Post</h4><div style="font-size:16px;font-weight:800;color:var(--accent);">' + bestTxt + '</div><div style="font-size:12px;color:var(--text-muted);margin-top:4px;">The more active, the more familiar.</div></div>';
 html += '<div class="gc-ins-sec"><h4><i class="ph-light ph-calendar-check"></i>Weekly Report</h4><div class="gc-ins-bar-row"><div class="nm" style="width:auto;">Engagement this week</div><div class="pc" style="width:auto;font-size:14px;font-weight:800;color:var(--text);">' + w1 + '</div></div><div class="delta ' + (wPct >= 0 ? 'up' : 'down') + '" style="font-size:13px;font-weight:800;">' + (wPct >= 0 ? '↑' : '↓') + ' ' + Math.abs(wPct) + '% vs last week</div></div>';
 body.innerHTML = html;
 }
@@ -31304,6 +31796,74 @@ function gcCloseSheetSafe(){
   try{ if(typeof gcCloseSheet==='function') gcCloseSheet(); }catch(e){}
   try{ if(typeof closeAllDropdowns==='function') closeAllDropdowns(); }catch(e){}
 }
+
+// ═══ Create Post · audience (public | followers) ═══
+window.currentPostAudience = window.currentPostAudience || 'public';
+function gcSyncAudienceChip(){
+  var a = window.currentPostAudience || 'public';
+  var lab = document.getElementById('gc-audience-chip-label');
+  var ico = document.getElementById('gc-audience-chip-ico');
+  if(lab) lab.textContent = (a === 'followers') ? 'Followers' : 'Public';
+  if(ico){
+    ico.className = (a === 'followers')
+      ? 'ph-light ph-users'
+      : 'ph-light ph-globe-hemisphere-east';
+  }
+}
+function gcOpenAudienceSheet(){
+  var sheet = document.getElementById('gc-audience-sheet');
+  if(!sheet){
+    sheet = document.createElement('div');
+    sheet.id = 'gc-audience-sheet';
+    sheet.className = 'gc-sheet-mask';
+    sheet.onclick = function(e){ if(e.target === sheet) gcCloseAudienceSheet(); };
+    sheet.innerHTML = ''
+      + '<div class="gc-sheet-box" onclick="event.stopPropagation()">'
+      + '<div class="gc-sheet-handle" data-gc-sheet-handle></div>'
+      + '<div class="gc-sheet-title">Who can see this post?</div>'
+      + '<div class="gc-sheet-item" data-aud="public" onclick="gcPickAudience(\'public\')">'
+      + '<i class="ph-light ph-globe-hemisphere-east"></i><span>Public</span>'
+      + '<i class="ph-light ph-check gc-aud-check" style="margin-left:auto;opacity:0;"></i></div>'
+      + '<div class="gc-sheet-item" data-aud="followers" onclick="gcPickAudience(\'followers\')">'
+      + '<i class="ph-light ph-users"></i><span>People who follow you</span>'
+      + '<i class="ph-light ph-check gc-aud-check" style="margin-left:auto;opacity:0;"></i></div>'
+      + '</div>';
+    document.body.appendChild(sheet);
+    if(!document.getElementById('gc-aud-sheet-css')){
+      var st = document.createElement('style');
+      st.id = 'gc-aud-sheet-css';
+      st.textContent = '#gc-audience-sheet.gc-sheet-mask{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:100080;align-items:flex-end;justify-content:center;}'
+        + '#gc-audience-sheet.gc-sheet-mask.open{display:flex;}'
+        + '#gc-audience-sheet .gc-sheet-box{width:100%;max-width:520px;background:var(--surface);border-radius:20px 20px 0 0;padding:8px 0 max(16px,env(safe-area-inset-bottom));}'
+        + '#gc-audience-sheet .gc-sheet-handle{width:40px;height:4px;border-radius:4px;background:var(--border);margin:8px auto 12px;}'
+        + '#gc-audience-sheet .gc-sheet-title{font-size:16px;font-weight:800;padding:4px 20px 12px;color:var(--text);}'
+        + '#gc-audience-sheet .gc-sheet-item{display:flex;align-items:center;gap:14px;padding:14px 20px;font-size:15px;font-weight:600;color:var(--text);cursor:pointer;}'
+        + '#gc-audience-sheet .gc-sheet-item:active{background:var(--surface-2);}'
+        + '#gc-audience-sheet .gc-sheet-item > i:first-child{font-size:22px;color:var(--text);width:28px;text-align:center;}'
+        + '#gc-audience-sheet .gc-sheet-item.selected .gc-aud-check{opacity:1 !important;color:var(--text);}';
+      document.head.appendChild(st);
+    }
+  }
+  var cur = window.currentPostAudience || 'public';
+  sheet.querySelectorAll('.gc-sheet-item').forEach(function(el){
+    el.classList.toggle('selected', el.getAttribute('data-aud') === cur);
+  });
+  sheet.classList.add('open');
+}
+function gcCloseAudienceSheet(){
+  var sheet = document.getElementById('gc-audience-sheet');
+  if(sheet) sheet.classList.remove('open');
+}
+function gcPickAudience(a){
+  window.currentPostAudience = (a === 'followers') ? 'followers' : 'public';
+  gcSyncAudienceChip();
+  gcCloseAudienceSheet();
+}
+window.gcOpenAudienceSheet = gcOpenAudienceSheet;
+window.gcCloseAudienceSheet = gcCloseAudienceSheet;
+window.gcPickAudience = gcPickAudience;
+window.gcSyncAudienceChip = gcSyncAudienceChip;
+
 window.gcComingSoon = gcComingSoon;
 window.gcCloseSheetSafe = gcCloseSheetSafe;
 
