@@ -302,12 +302,17 @@ position:relative; z-index:10;
   display:flex;
   align-items:center;
   justify-content:center;
-  width:88px;
-  height:88px;
-  margin:0 auto 18px;
+  width:108px;
+  height:108px;
+  margin:0 auto 20px;
   flex-shrink:0;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.28)) drop-shadow(0 6px 14px rgba(0,0,0,0.18));
 }
-.auth-logo .gc-app-logo{ width:88px; height:88px; }
+.auth-logo .gc-app-logo{
+  width:108px;
+  height:108px;
+  filter: drop-shadow(0 1px 2px rgba(255,255,255,0.35));
+}
 .topbar-logo{
   display:flex;
   align-items:center;
@@ -4203,6 +4208,52 @@ body.gc-splash-handoff .page.active{
         transform: translate(-50%, -50%) scale(1.15);
     }
 }
+
+/* Like count · Physics Fall & Drop */
+@keyframes gcCountFallOut {
+    0%   { transform: translateY(0) rotate(0deg) scale(1); opacity: 1; }
+    100% { transform: translateY(110%) rotate(-12deg) scale(0.75); opacity: 0; }
+}
+@keyframes gcCountDropIn {
+    0%   { transform: translateY(-130%) scale(0.7); opacity: 0; }
+    55%  { transform: translateY(14%) scale(1.08); opacity: 1; }
+    72%  { transform: translateY(-6%) scale(0.98); }
+    88%  { transform: translateY(3%) scale(1.02); }
+    100% { transform: translateY(0) scale(1); opacity: 1; }
+}
+@keyframes gcLikeIconPop {
+    0%   { transform: scale(1); }
+    35%  { transform: scale(1.25); }
+    60%  { transform: scale(0.92); }
+    100% { transform: scale(1); }
+}
+.like-count-slot{
+    position: relative;
+    display: inline-block;
+    min-width: 1.1em;
+    height: 1.15em;
+    line-height: 1.15em;
+    vertical-align: middle;
+    overflow: hidden;
+}
+.like-count-slot .like-count-num{
+    display: inline-block;
+    transform-origin: center center;
+}
+.like-count-slot .like-count-num.is-falling{
+    position: absolute;
+    left: 0; top: 0;
+    animation: gcCountFallOut 0.38s cubic-bezier(0.55, 0.06, 0.68, 0.19) forwards;
+    pointer-events: none;
+}
+.like-count-slot .like-count-num.is-dropping{
+    animation: gcCountDropIn 0.48s cubic-bezier(0.22, 1.15, 0.36, 1) both;
+}
+.post-action-btn i.gc-like-pop,
+#sv-react-btn.gc-like-pop{
+    animation: gcLikeIconPop 0.4s cubic-bezier(0.22, 1.15, 0.36, 1) both;
+}
+
 @keyframes likeCountPop {
     0% { transform: translateY(6px); opacity: 0.3; }
     55% { transform: translateY(-3px); opacity: 1; }
@@ -5779,6 +5830,97 @@ body.notif-edit-mode #notif-selection-bar {
     color: var(--bg);
     border-color: var(--text);
 }
+
+/* Notifications · sliding pill tabs (transitions.dev style) */
+:root {
+  --tabs-dur: 250ms;
+  --tabs-ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+.t-tabs {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px;
+  border-radius: 48px;
+  background: var(--surface-2);
+}
+.t-tab {
+  position: relative;
+  appearance: none;
+  -webkit-appearance: none;
+  border: 0 !important;
+  background: transparent !important;
+  height: 34px;
+  padding: 4px 14px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-radius: 48px;
+  z-index: 1;
+  font-size: 13px;
+  font-weight: 700;
+  font-family: inherit;
+  transition: color var(--tabs-dur) var(--tabs-ease);
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+}
+.t-tab:not([aria-selected="true"]):hover,
+.t-tab[aria-selected="true"],
+.t-tab.act-tab.active {
+  color: var(--text) !important;
+  background: transparent !important;
+}
+/* Override old pill filled active style when inside t-tabs */
+.t-tabs .act-tab.active {
+  background: transparent !important;
+  color: var(--text) !important;
+  border-color: transparent !important;
+}
+.t-tabs-pill {
+  position: absolute;
+  top: 3px;
+  left: 0;
+  height: 34px;
+  width: 0;
+  background: var(--surface);
+  border-radius: 48px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  transform: translateX(0);
+  transition:
+    transform var(--tabs-dur) var(--tabs-ease),
+    width     var(--tabs-dur) var(--tabs-ease);
+  will-change: transform, width;
+  z-index: 0;
+  pointer-events: none;
+}
+body:not(.light-mode) .t-tabs {
+  background: var(--surface-2);
+}
+body:not(.light-mode) .t-tabs-pill {
+  background: #1c1c28;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.35);
+}
+body.light-mode .t-tabs {
+  background: #f1f1f1;
+}
+body.light-mode .t-tabs-pill {
+  background: #ffffff;
+}
+@media (prefers-reduced-motion: reduce) {
+  .t-tabs-pill, .t-tab { transition: none !important; }
+}
+/* counts stay readable on sliding tabs */
+.t-tabs .act-tab .notif-tab-count{
+  background: var(--border);
+  color: var(--text);
+}
+.t-tabs .act-tab.active .notif-tab-count{
+  background: var(--border);
+  color: var(--text);
+}
+
 
 /* Profile action buttons — match design demo (own + other) */
 .gc-profile-action-btn{
@@ -11163,9 +11305,12 @@ body:not(.light-mode) .sp-comment-compose button.is-ready{
     
     <!-- 🚀 Threads Style Notification Filter Tabs -->
     <div class="activity-tabs-wrapper" style="border-bottom: 1px solid var(--border); position: sticky; top: 58px; z-index: 90;">
-        <div class="act-tab active" data-filter="all" onclick="applyNotifFilter('all', this)">All<span class="notif-tab-count" id="notif-count-all" style="display:none;">0</span></div>
-        <div class="act-tab" data-filter="tag" onclick="applyNotifFilter('tag', this)">Mentions<span class="notif-tab-count" id="notif-count-tag" style="display:none;">0</span></div>
-        <div class="act-tab" data-filter="follow" onclick="applyNotifFilter('follow', this)">Follows<span class="notif-tab-count" id="notif-count-follow" style="display:none;">0</span></div>
+        <div class="t-tabs" id="notif-t-tabs" role="tablist">
+            <span class="t-tabs-pill" id="notif-t-pill" aria-hidden="true"></span>
+            <button type="button" class="t-tab act-tab active" role="tab" aria-selected="true" data-filter="all" onclick="applyNotifFilter('all', this)">All<span class="notif-tab-count" id="notif-count-all" style="display:none;">0</span></button>
+            <button type="button" class="t-tab act-tab" role="tab" aria-selected="false" data-filter="tag" onclick="applyNotifFilter('tag', this)">Mentions<span class="notif-tab-count" id="notif-count-tag" style="display:none;">0</span></button>
+            <button type="button" class="t-tab act-tab" role="tab" aria-selected="false" data-filter="follow" onclick="applyNotifFilter('follow', this)">Follows<span class="notif-tab-count" id="notif-count-follow" style="display:none;">0</span></button>
+        </div>
     </div>
     
     <div id="notifications-list"><div class="empty-feed">No notifications yet</div></div>
@@ -12182,7 +12327,7 @@ body:not(.light-mode) .sp-comment-compose button.is-ready{
         <div style="display:flex; align-items:center; gap:6px; cursor:pointer;" onclick="if(zoomActivePostId) toggleLike(zoomActivePostId);">
             <span id="zoom-like-btn" style="display:flex; align-items:center; gap:6px; color:#fff;">
                 <i class="ph-light ph-thumbs-up" style="font-size:24px; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));"></i>
-                <span style="font-size:14px; font-weight:800; text-shadow:0 1px 3px rgba(0,0,0,0.6);">0</span>
+                <span class="like-count like-count-slot" data-raw-count="0" style="font-size:14px; font-weight:800; color:#fff; text-shadow:0 1px 3px rgba(0,0,0,0.6);"><span class="like-count-num">0</span></span>
             </span>
         </div>
         
@@ -14657,6 +14802,7 @@ function showPage(page) {
     } else if (page === 'notifications') {
         document.body.classList.add('notifications-mode');
         if (topbarLogo) topbarLogo.innerHTML = 'Notifications';
+        setTimeout(function(){ try{ gcInitNotifTabPill(); }catch(e){} }, 30);
         gcCloseHomeDrawer();
     } else {
         if (topbarLogo) {
@@ -16036,8 +16182,8 @@ async function reactToCurrentStory(){
         await ref.update({reacts:firebase.firestore.FieldValue.arrayRemove(currentUser.uid)});
         s.reacts=s.reacts.filter(id=>id!==currentUser.uid);
         
-        if(reactBtn){ reactBtn.style.color='#fff'; reactBtn.className='ph-light ph-thumbs-up'; }
-        if(reactCountDisplay) reactCountDisplay.textContent = s.reacts.length;
+        if(reactBtn){ reactBtn.style.color='#fff'; reactBtn.className='ph-light ph-thumbs-up'; gcLikeIconPhysics(reactBtn); }
+        if(reactCountDisplay) gcPhysicsLikeCount(reactCountDisplay, s.reacts.length);
         try{ if(typeof gcRefreshStoryFloat==='function') gcRefreshStoryFloat(); }catch(e){}
     }else{
         // রিয়্যাক্ট এড করার লজিক — NO notification for story likes
@@ -16045,8 +16191,8 @@ async function reactToCurrentStory(){
         if(!s.reacts)s.reacts=[];
         s.reacts.push(currentUser.uid);
         
-        if(reactBtn){ reactBtn.style.color='#1DA1F2'; reactBtn.className='ph-fill ph-thumbs-up'; }
-        if(reactCountDisplay) reactCountDisplay.textContent = s.reacts.length;
+        if(reactBtn){ reactBtn.style.color='#1DA1F2'; reactBtn.className='ph-fill ph-thumbs-up'; gcLikeIconPhysics(reactBtn); }
+        if(reactCountDisplay) gcPhysicsLikeCount(reactCountDisplay, s.reacts.length);
         try{ if(typeof gcRefreshStoryFloat==='function') gcRefreshStoryFloat(); }catch(e){}
         /* intentionally no db.collection('notifications').add — story likes stay silent */
     }
@@ -16232,15 +16378,88 @@ window.gcPaintStoryPendingInList = gcPaintStoryPendingInList;
 
 // ===== POSTS AND LIKE LOGIC =====
 // 🚀 সুপার ফাস্ট লাইক সিস্টেম (Optimistic UI Update) + Spam Notification Fix
+function gcPhysicsLikeCount(countSpan, nextNum){
+  if(!countSpan) return;
+  var nextText = (typeof gcFmtCount === 'function') ? gcFmtCount(nextNum) : String(nextNum);
+  countSpan.setAttribute('data-raw-count', String(nextNum));
+
+  var slot = countSpan;
+  if(!slot.classList.contains('like-count-slot')){
+    slot.classList.add('like-count-slot');
+  }
+  var oldNum = slot.querySelector('.like-count-num');
+  var oldText = '';
+  if(oldNum){
+    oldText = oldNum.textContent;
+  } else {
+    oldText = (slot.textContent || '').trim();
+    slot.textContent = '';
+    oldNum = document.createElement('span');
+    oldNum.className = 'like-count-num';
+    oldNum.textContent = oldText;
+    slot.appendChild(oldNum);
+  }
+
+  if(String(oldText) === String(nextText)){
+    oldNum.textContent = nextText;
+    return;
+  }
+
+  var falling = oldNum;
+  falling.classList.remove('is-dropping');
+  falling.classList.add('is-falling');
+
+  var incoming = document.createElement('span');
+  incoming.className = 'like-count-num is-dropping';
+  incoming.textContent = nextText;
+  slot.appendChild(incoming);
+
+  var done = false;
+  function finish(){
+    if(done) return;
+    done = true;
+    try{
+      if(falling && falling.parentNode) falling.parentNode.removeChild(falling);
+      incoming.classList.remove('is-dropping');
+      var nums = slot.querySelectorAll('.like-count-num');
+      for(var i=0;i<nums.length;i++){
+        if(nums[i] !== incoming) try{ nums[i].remove(); }catch(e){}
+      }
+    }catch(e){}
+  }
+  incoming.addEventListener('animationend', finish);
+  setTimeout(finish, 520);
+}
+
+function gcLikeIconPhysics(icon){
+  if(!icon) return;
+  icon.classList.remove('gc-like-pop');
+  void icon.offsetWidth;
+  icon.classList.add('gc-like-pop');
+  setTimeout(function(){ try{ icon.classList.remove('gc-like-pop'); }catch(e){} }, 450);
+}
+window.gcPhysicsLikeCount = gcPhysicsLikeCount;
+window.gcLikeIconPhysics = gcLikeIconPhysics;
+
 async function toggleLike(pid) {
     if (!currentUser || !checkRateLimit()) return;
 
     // ১. হোম ফিডে লাইক আপডেট + X-style pop animation
-    const likeButtons = document.querySelectorAll(`button[onclick*="toggleLike('${pid}')"]`);
+    var likeButtons = Array.prototype.slice.call(
+      document.querySelectorAll(`button[onclick*="toggleLike('${pid}')"], button[onclick*="toggleLike(\`${pid}\`)"]`)
+    );
+    try {
+      var spC = document.getElementById('single-post-container');
+      if (spC) {
+        var spLike = spC.querySelector('.post-action-btn[data-action="like"]');
+        if (spLike && likeButtons.indexOf(spLike) < 0) likeButtons.push(spLike);
+      }
+    } catch(e){}
+
     let isCurrentlyLiked = false;
     let currentLikes = 0;
 
-    likeButtons.forEach(btn => {
+    likeButtons.forEach(function(btn) {
         const icon = btn.querySelector('i');
         const countSpan = btn.querySelector('span');
         // Prefer data-raw-count; never parseInt("18.9K") → 18 (glitch)
@@ -16253,8 +16472,7 @@ async function toggleLike(pid) {
 
         btn.classList.remove('just-liked');
         if (countSpan) {
-            countSpan.classList.remove('like-count', 'anim-up', 'anim-down');
-            void countSpan.offsetWidth;
+            countSpan.classList.remove('anim-up', 'anim-down');
             countSpan.classList.add('like-count');
         }
 
@@ -16263,10 +16481,9 @@ async function toggleLike(pid) {
             if (icon) icon.className = 'ph-light ph-thumbs-up';
             if (countSpan) {
                 var nextDown = Math.max(0, currentLikes - 1);
-                countSpan.setAttribute('data-raw-count', String(nextDown));
-                countSpan.innerText = (typeof gcFmtCount === 'function') ? gcFmtCount(nextDown) : String(nextDown);
-                countSpan.classList.add('anim-down');
+                gcPhysicsLikeCount(countSpan, nextDown);
             }
+            if (icon) gcLikeIconPhysics(icon);
         } else {
             btn.classList.add('liked');
             if (icon) {
@@ -16276,10 +16493,9 @@ async function toggleLike(pid) {
             btn.classList.add('just-liked');
             if (countSpan) {
                 var nextUp = currentLikes + 1;
-                countSpan.setAttribute('data-raw-count', String(nextUp));
-                countSpan.innerText = (typeof gcFmtCount === 'function') ? gcFmtCount(nextUp) : String(nextUp);
-                countSpan.classList.add('anim-up');
+                gcPhysicsLikeCount(countSpan, nextUp);
             }
+            if (icon) gcLikeIconPhysics(icon);
             setTimeout(function(){ btn.classList.remove('just-liked'); }, 500);
         }
     });
@@ -16288,14 +16504,25 @@ async function toggleLike(pid) {
     if (typeof zoomActivePostId !== 'undefined' && zoomActivePostId === pid) {
         const zBtn = document.getElementById('zoom-like-btn');
         if (zBtn) {
-            const zIcon = zBtn.querySelector('i');
-            const zSpan = zBtn.querySelector('span');
-            let zLikes = (zSpan && zSpan.getAttribute('data-raw-count') != null) ? (parseInt(zSpan.getAttribute('data-raw-count'),10)||0) : ((typeof gcParseCountText==='function') ? gcParseCountText(zSpan && zSpan.innerText) : (parseInt((zSpan && zSpan.innerText)||'0',10)||0));
-            
-            if (zIcon && zIcon.classList.contains('ph-fill')) {
-                zBtn.innerHTML = `<i class="ph-light ph-thumbs-up" style="color:#fff; font-size:24px; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));"></i> <span class="like-count anim-down" style="font-size:14px; font-weight:800; color:#fff; text-shadow:0 1px 3px rgba(0,0,0,0.6);">${(typeof gcFmtCount==='function'?gcFmtCount(Math.max(0,zLikes-1)):Math.max(0,zLikes-1))}</span>`;
+            var zIcon = zBtn.querySelector('i');
+            var zSpan = zBtn.querySelector('span.like-count, span[data-raw-count], span');
+            // Prefer nested count span (not the outer zoom-like-btn itself)
+            if (zSpan && zSpan.id === 'zoom-like-btn') zSpan = zBtn.querySelector('span.like-count') || zBtn.querySelectorAll('span')[1] || null;
+            var zLikes = 0;
+            if (zSpan) {
+                var zr = zSpan.getAttribute('data-raw-count');
+                if (zr != null && zr !== '') zLikes = parseInt(zr, 10) || 0;
+                else zLikes = (typeof gcParseCountText === 'function') ? gcParseCountText(zSpan.innerText) : (parseInt(zSpan.innerText, 10) || 0);
+            }
+            var wasLiked = !!(zIcon && zIcon.classList.contains('ph-fill'));
+            if (wasLiked) {
+                if (zIcon) { zIcon.className = 'ph-light ph-thumbs-up'; zIcon.style.color = '#fff'; }
+                if (zSpan) gcPhysicsLikeCount(zSpan, Math.max(0, zLikes - 1));
+                if (zIcon) gcLikeIconPhysics(zIcon);
             } else {
-                zBtn.innerHTML = `<i class="ph-fill ph-thumbs-up" style="color:#1DA1F2; font-size:24px; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));"></i> <span class="like-count anim-up" style="font-size:14px; font-weight:800; color:#fff; text-shadow:0 1px 3px rgba(0,0,0,0.6);">${(typeof gcFmtCount==='function'?gcFmtCount(zLikes+1):(zLikes+1))}</span>`;
+                if (zIcon) { zIcon.className = 'ph-fill ph-thumbs-up'; zIcon.style.color = '#1DA1F2'; }
+                if (zSpan) gcPhysicsLikeCount(zSpan, zLikes + 1);
+                if (zIcon) gcLikeIconPhysics(zIcon);
             }
         }
     }
@@ -19387,8 +19614,17 @@ async function openSinglePostView(pid) {
                   likeBtn.classList.toggle('liked', isLiked);
                   var likeSpan = likeBtn.querySelector('[data-count="likes"]') || likeBtn.querySelector('span');
                   if (likeSpan) {
+                    var prevRaw = parseInt(likeSpan.getAttribute('data-raw-count') || '', 10);
+                    if (isNaN(prevRaw)) prevRaw = (typeof gcParseCountText === 'function') ? gcParseCountText(likeSpan.innerText) : 0;
                     likeSpan.setAttribute('data-raw-count', String(likesN));
-                    likeSpan.textContent = (typeof gcFmtCount === 'function') ? gcFmtCount(likesN) : String(likesN);
+                    // Skip overwrite while Physics Fall & Drop is playing
+                    var animating = !!(likeSpan.querySelector && likeSpan.querySelector('.is-falling, .is-dropping'));
+                    if (!animating) {
+                      var numEl = likeSpan.querySelector('.like-count-num');
+                      var fmt = (typeof gcFmtCount === 'function') ? gcFmtCount(likesN) : String(likesN);
+                      if (numEl) numEl.textContent = fmt;
+                      else likeSpan.textContent = fmt;
+                    }
                   }
                   var likeIcon = likeBtn.querySelector('i');
                   if (likeIcon) likeIcon.className = isLiked ? 'ph-fill ph-thumbs-up' : 'ph-light ph-thumbs-up';
@@ -19852,7 +20088,16 @@ function loadFeed() {
                     const commentCountEl = commentBtn ? (commentBtn.querySelector('[data-count="comments"]') || commentBtn.querySelector('span')) : null;
                     const likeIcon = likeBtn ? likeBtn.querySelector('i') : null;
                     
-                    if (likeCountEl) { likeCountEl.setAttribute('data-raw-count', String(p.likes || 0)); likeCountEl.textContent = gcFmtCount(p.likes || 0); }
+                    if (likeCountEl) {
+                      likeCountEl.setAttribute('data-raw-count', String(p.likes || 0));
+                      var __animating = !!(likeCountEl.querySelector && likeCountEl.querySelector('.is-falling, .is-dropping'));
+                      if (!__animating) {
+                        var __num = likeCountEl.querySelector('.like-count-num');
+                        var __fmt = gcFmtCount(p.likes || 0);
+                        if (__num) __num.textContent = __fmt;
+                        else likeCountEl.textContent = __fmt;
+                      }
+                    }
                     if (commentCountEl) { var __ct = Math.max(Array.isArray(p.comments)?p.comments.length:0, p.commentCount||0); commentCountEl.setAttribute('data-raw-count', String(__ct)); commentCountEl.textContent = gcFmtCount(__ct); }
                     
                     if (likeBtn && likeIcon) {
@@ -20109,9 +20354,11 @@ function listenToZoomPostData(pid) {
             const formattedComments = typeof formatLBNum === 'function' ? formatLBNum(commentCount) : commentCount;
             
             if(likeBtn) {
+                var __zlRaw = (typeof likeCount === 'number') ? likeCount : (parseInt(likeCount,10)||0);
+                var __zlFmt = (typeof gcFmtCount === 'function') ? gcFmtCount(__zlRaw) : formattedLikes;
                 likeBtn.innerHTML = isLiked 
-                    ? `<i class="ph-fill ph-thumbs-up" style="color:#1DA1F2; font-size:24px; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));"></i> <span style="font-size:14px; font-weight:800; color:#fff; text-shadow:0 1px 3px rgba(0,0,0,0.6);">${formattedLikes}</span>` 
-                    : `<i class="ph-light ph-thumbs-up" style="color:#fff; font-size:24px; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));"></i> <span style="font-size:14px; font-weight:800; color:#fff; text-shadow:0 1px 3px rgba(0,0,0,0.6);">${formattedLikes}</span>`;
+                    ? `<i class="ph-fill ph-thumbs-up" style="color:#1DA1F2; font-size:24px; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));"></i> <span class="like-count like-count-slot" data-raw-count="${__zlRaw}" style="font-size:14px; font-weight:800; color:#fff; text-shadow:0 1px 3px rgba(0,0,0,0.6);"><span class="like-count-num">${__zlFmt}</span></span>` 
+                    : `<i class="ph-light ph-thumbs-up" style="color:#fff; font-size:24px; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));"></i> <span class="like-count like-count-slot" data-raw-count="${__zlRaw}" style="font-size:14px; font-weight:800; color:#fff; text-shadow:0 1px 3px rgba(0,0,0,0.6);"><span class="like-count-num">${__zlFmt}</span></span>`;
             }
             if(commentBtn) {
                 commentBtn.innerHTML = `<i class="ph-light ph-chat-circle" style="color:#fff; font-size:24px; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));"></i> <span style="font-size:14px; font-weight:800; color:#fff; text-shadow:0 1px 3px rgba(0,0,0,0.6);">${formattedComments}</span>`;
@@ -28051,11 +28298,44 @@ window.applyProfileFilter = applyProfileFilter;
 // ==========================================
 // 🚀 NOTIFICATIONS FILTER LOGIC 
 // ==========================================
+
+function gcMoveNotifTabPill(tabEl, animate){
+  try{
+    var bar = document.getElementById('notif-t-tabs');
+    var pill = document.getElementById('notif-t-pill');
+    if(!bar || !pill || !tabEl) return;
+    if(animate === false){
+      pill.style.transition = 'none';
+    }
+    pill.style.transform = 'translateX(' + tabEl.offsetLeft + 'px)';
+    pill.style.width = tabEl.offsetWidth + 'px';
+    if(animate === false){
+      void pill.offsetWidth; // reflow
+      pill.style.transition = '';
+    }
+  }catch(e){}
+}
+function gcInitNotifTabPill(){
+  try{
+    var active = document.querySelector('#notif-t-tabs .act-tab.active') || document.querySelector('#notif-t-tabs .t-tab[aria-selected="true"]');
+    if(active) gcMoveNotifTabPill(active, false);
+  }catch(e){}
+}
+window.gcMoveNotifTabPill = gcMoveNotifTabPill;
+window.gcInitNotifTabPill = gcInitNotifTabPill;
+try{ window.addEventListener('resize', function(){ if(document.body.classList.contains('notifications-mode')) gcInitNotifTabPill(); }); }catch(e){}
+
 function applyNotifFilter(filterType, btn) {
-    // ট্যাবের ডিজাইন আপডেট করা
-    const tabs = btn.parentElement.querySelectorAll('.act-tab');
-    tabs.forEach(t => t.classList.remove('active'));
+    // ট্যাবের ডিজাইন আপডেট করা + sliding pill
+    const root = btn.closest('.t-tabs') || btn.parentElement;
+    const tabs = root.querySelectorAll('.act-tab');
+    tabs.forEach(t => {
+      t.classList.remove('active');
+      t.setAttribute('aria-selected', 'false');
+    });
     btn.classList.add('active');
+    btn.setAttribute('aria-selected', 'true');
+    gcMoveNotifTabPill(btn, true);
 
     // আইটেমগুলো ফিল্টার করা
     const items = document.querySelectorAll('#notifications-list .notif-item');
@@ -31591,6 +31871,91 @@ function gcRefreshStoryFloat(){
   } else if(countEl){
     countEl.onclick = null;
   }
+}
+
+
+async function gcOpenStoryLikers(){
+  try{
+    if(!activeStoryGroup || currentStoryIndex >= activeStoryGroup.length) return;
+    var s = activeStoryGroup[currentStoryIndex];
+    if(!s || !currentUser) return;
+    if(s.uid !== currentUser.uid) return; // only own story
+    var reacts = (s.reacts && s.reacts.length) ? s.reacts.slice() : [];
+    if(!reacts.length) return;
+
+    var sheet = document.getElementById('sv-likers-sheet');
+    if(!sheet){
+      sheet = document.createElement('div');
+      sheet.id = 'sv-likers-sheet';
+      sheet.onclick = function(e){ if(e.target === sheet) gcCloseStoryLikers(); };
+      sheet.innerHTML = ''
+        + '<div class="sv-likers-box" onclick="event.stopPropagation()">'
+        + '<div class="sv-likers-head"><h3 id="sv-likers-title">Likes</h3>'
+        + '<button type="button" onclick="gcCloseStoryLikers()" aria-label="Close"><i class="ph-light ph-x"></i></button></div>'
+        + '<div class="sv-likers-list" id="sv-likers-list"></div></div>';
+      document.body.appendChild(sheet);
+    }
+    var title = document.getElementById('sv-likers-title');
+    if(title) title.textContent = reacts.length + (reacts.length === 1 ? ' Like' : ' Likes');
+    var listEl = document.getElementById('sv-likers-list');
+    if(!listEl) return;
+
+    // Pause story while sheet open
+    try{ if(typeof pauseStoryForReply === 'function') pauseStoryForReply(); }catch(e){}
+
+    listEl.innerHTML = '<div style="text-align:center;padding:16px;color:var(--text-muted);">Loading…</div>';
+    sheet.classList.add('open');
+
+    var showIds = reacts.slice(0, 50);
+    var remaining = Math.max(0, reacts.length - showIds.length);
+    var rows = [];
+    var needFetch = [];
+    showIds.forEach(function(uid){
+      var m = gcStoryLikerMeta(uid);
+      if(m.photo || (m.name && m.name !== 'User')) rows.push(m);
+      else { rows.push(m); needFetch.push(uid); }
+    });
+    // Enrich missing from Firestore
+    if(needFetch.length && typeof db !== 'undefined'){
+      try{
+        var fetches = needFetch.map(function(uid){
+          return db.collection('users').doc(uid).get().then(function(doc){
+            if(!doc.exists) return { uid: uid, name: 'User', photo: '' };
+            var d = doc.data() || {};
+            return { uid: uid, name: d.name || d.displayName || 'User', photo: d.avatar || d.photoURL || d.profilePic || d.photo || '' };
+          }).catch(function(){ return { uid: uid, name: 'User', photo: '' }; });
+        });
+        var fetched = await Promise.all(fetches);
+        var map = {};
+        fetched.forEach(function(m){ map[m.uid] = m; });
+        rows = showIds.map(function(uid){ return map[uid] || gcStoryLikerMeta(uid); });
+      }catch(e){}
+    }
+
+    var html = '';
+    rows.forEach(function(m){
+      var av = m.photo
+        ? '<img src="'+escapeHTML(m.photo)+'" alt="" onerror="this.parentNode.textContent=\''+escapeHTML((m.name||'U').charAt(0))+ '\'">'
+        : escapeHTML((m.name||'U').charAt(0).toUpperCase());
+      html += '<div class="sv-liker-row">'
+        + '<div class="av">'+av+'</div>'
+        + '<div class="nm">'+escapeHTML(m.name||'User')+'</div></div>';
+    });
+    if(remaining > 0){
+      html += '<div class="sv-likers-more">and '+remaining+' more</div>';
+    }
+    if(!rows.length){
+      html = '<div class="sv-likers-more">No likes yet</div>';
+    }
+    listEl.innerHTML = html;
+  }catch(e){
+    console.error('gcOpenStoryLikers', e);
+  }
+}
+function gcCloseStoryLikers(){
+  var sheet = document.getElementById('sv-likers-sheet');
+  if(sheet) sheet.classList.remove('open');
+  try{ if(typeof resumeStoryAfterReply==='function') resumeStoryAfterReply(); }catch(e){}
 }
 
 window.gcRefreshStoryFloat = gcRefreshStoryFloat;
