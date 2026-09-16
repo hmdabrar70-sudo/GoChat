@@ -330,6 +330,22 @@ position:relative; z-index:10;
   margin:0 auto;
 }
 .splash-logo .gc-app-logo{ width:120px; height:120px; }
+
+/* Brand logo only on home feed (not profile / other pages) */
+body.profile-mode #topbar-logo-main,
+body.profile-mode .topbar-logo .gc-app-logo,
+body.search-mode #topbar-logo-main .gc-app-logo,
+body.friends-mode #topbar-logo-main .gc-app-logo{
+  display:none !important;
+}
+body.profile-mode #topbar-logo-main{
+  visibility:hidden !important;
+  width:0 !important;
+  min-width:0 !important;
+  overflow:hidden !important;
+  pointer-events:none !important;
+}
+
 /* When topbar shows text titles (Chats / Notifications), hide any leftover svg sizing issues */
 body.messages-mode .topbar-logo .gc-app-logo,
 body.notifications-mode .topbar-logo .gc-app-logo{ display:none; }
@@ -14645,10 +14661,15 @@ function showPage(page) {
     } else {
         if (topbarLogo) {
             topbarLogo.removeAttribute('onclick');
-            try {
-              var tpl = document.getElementById('gc-logo-template');
-              topbarLogo.innerHTML = tpl ? tpl.innerHTML : '';
-            } catch(e){ topbarLogo.innerHTML = ''; }
+            // Logo only on home feed — not profile / other pages
+            if (page === 'feed' || page === 'home') {
+              try {
+                var tpl = document.getElementById('gc-logo-template');
+                topbarLogo.innerHTML = tpl ? tpl.innerHTML : '';
+              } catch(e){ topbarLogo.innerHTML = ''; }
+            } else {
+              topbarLogo.innerHTML = '';
+            }
             // Ensure drawer btn stays in topbar-left (not inside logo)
             const drawerBtn = document.getElementById('home-drawer-btn');
             if (drawerBtn && page === 'feed') {
@@ -15316,6 +15337,28 @@ function gcOpenStoryMediaPreview(input){
 }
 window.gcOpenStoryMediaPreview = gcOpenStoryMediaPreview;
 
+
+function gcToggleStoryPreviewMute(){
+  try{
+    var v = document.getElementById('gc-sp-video');
+    var btn = document.getElementById('gc-sp-mute-btn');
+    if(!v) return;
+    v.muted = !v.muted;
+    if(btn){
+      btn.innerHTML = v.muted
+        ? '<i class="ph-light ph-speaker-slash" style="font-size:20px;"></i>'
+        : '<i class="ph-light ph-speaker-high" style="font-size:20px;"></i>';
+      btn.setAttribute('aria-label', v.muted ? 'Unmute' : 'Mute');
+    }
+    // try play after unmute (mobile browsers)
+    if(!v.muted){
+      var p = v.play();
+      if(p && typeof p.catch === 'function') p.catch(function(){});
+    }
+  }catch(e){ console.warn('story preview mute', e); }
+}
+window.gcToggleStoryPreviewMute = gcToggleStoryPreviewMute;
+
 function gcShowStoryPreviewFile(file){
   if(!file) return;
   const isVideo = !!(file.type && file.type.startsWith('video/'));
@@ -15807,11 +15850,9 @@ function renderCurrentStory(){
 
     const reactBtn=document.getElementById('sv-react-btn');
     if(s.reacts&&s.reacts.includes(currentUser.uid)){
-        reactBtn.style.color='#60a5fa';
-        reactBtn.className='ph-light ph-thumbs-up';
+        if(reactBtn){ reactBtn.style.color='#1DA1F2'; reactBtn.className='ph-fill ph-thumbs-up'; }
     }else{
-        reactBtn.style.color='#fff';
-        reactBtn.className='ph-light ph-thumbs-up';
+        if(reactBtn){ reactBtn.style.color='#fff'; reactBtn.className='ph-light ph-thumbs-up'; }
     }
 
     const mediaCont = document.getElementById('sv-media-container');
@@ -15995,19 +16036,17 @@ async function reactToCurrentStory(){
         await ref.update({reacts:firebase.firestore.FieldValue.arrayRemove(currentUser.uid)});
         s.reacts=s.reacts.filter(id=>id!==currentUser.uid);
         
-        reactBtn.style.color='#fff';
-        reactBtn.className='ph-light ph-thumbs-up';
-        reactCountDisplay.textContent = s.reacts.length;
-        try{ if(typeof gcRefreshStoryFloat==='function') gcRefreshStoryFloat(); }catch(e){} // কাউন্ট আপডেট
+        if(reactBtn){ reactBtn.style.color='#fff'; reactBtn.className='ph-light ph-thumbs-up'; }
+        if(reactCountDisplay) reactCountDisplay.textContent = s.reacts.length;
+        try{ if(typeof gcRefreshStoryFloat==='function') gcRefreshStoryFloat(); }catch(e){}
     }else{
         // রিয়্যাক্ট এড করার লজিক — NO notification for story likes
         await ref.update({reacts:firebase.firestore.FieldValue.arrayUnion(currentUser.uid)});
         if(!s.reacts)s.reacts=[];
         s.reacts.push(currentUser.uid);
         
-        reactBtn.style.color='#60a5fa';
-        reactBtn.className='ph-light ph-thumbs-up';
-        reactCountDisplay.textContent = s.reacts.length;
+        if(reactBtn){ reactBtn.style.color='#1DA1F2'; reactBtn.className='ph-fill ph-thumbs-up'; }
+        if(reactCountDisplay) reactCountDisplay.textContent = s.reacts.length;
         try{ if(typeof gcRefreshStoryFloat==='function') gcRefreshStoryFloat(); }catch(e){}
         /* intentionally no db.collection('notifications').add — story likes stay silent */
     }
@@ -31508,8 +31547,17 @@ function gcRefreshStoryFloat(){
   var box = document.getElementById('sv-float-likes');
   var countEl = document.getElementById('sv-react-count');
   if(countEl){
+    countEl.textContent = String(reacts.length);
     if(isOwn && reacts.length > 0) countEl.classList.add('clickable-count');
     else countEl.classList.remove('clickable-count');
+  }
+  /* Hide floating avatar stack (feature removed) */
+  if(box){
+    box.innerHTML = '';
+    box.classList.remove('clickable');
+    box.onclick = null;
+    box.ontouchend = null;
+    box.style.display = 'none';
   }
   /* Wire like-count / icon hit area */
   var likeHit = document.getElementById('sv-like-hit');
@@ -31519,7 +31567,6 @@ function gcRefreshStoryFloat(){
     likeHit.onclick = function(e){
       e.stopPropagation();
       e.preventDefault();
-      /* own story + has likes → open list; else toggle like */
       if(isOwn && reacts.length > 0){
         gcOpenStoryLikers();
       } else if(typeof reactToCurrentStory === 'function'){
@@ -31534,141 +31581,16 @@ function gcRefreshStoryFloat(){
       if(typeof reactToCurrentStory === 'function') reactToCurrentStory();
     };
   }
-  if(!isOwn || reacts.length === 0 || !box) return;
-  box.classList.add('clickable');
-  function openLikers(e){
-    if(e){ e.stopPropagation(); e.preventDefault(); }
-    gcOpenStoryLikers();
+  /* Own story: tapping the count opens likers list */
+  if(countEl && isOwn && reacts.length > 0){
+    countEl.onclick = function(e){
+      e.stopPropagation();
+      e.preventDefault();
+      gcOpenStoryLikers();
+    };
+  } else if(countEl){
+    countEl.onclick = null;
   }
-  box.onclick = openLikers;
-  box.ontouchend = function(e){
-    e.stopPropagation();
-    e.preventDefault();
-    openLikers(e);
-  };
-  /* unique only, max 10 avatars in the float cycle */
-  var seen = {};
-  var list = [];
-  for(var i=0;i<reacts.length;i++){
-    var id = reacts[i];
-    if(!id || seen[id]) continue;
-    seen[id] = 1;
-    list.push(id);
-    if(list.length >= 10) break;
-  }
-  if(!list.length) return;
-  /* light shuffle */
-  for(var j=list.length-1;j>0;j--){
-    var k = Math.floor(Math.random()*(j+1));
-    var t = list[j]; list[j]=list[k]; list[k]=t;
-  }
-  gcStoryFloatIdx = 0;
-  var lastUid = null;
-  function tick(){
-    if(!document.getElementById('story-viewer') || !document.getElementById('story-viewer').classList.contains('open')){
-      gcStopStoryFloat(); return;
-    }
-    if(!activeStoryGroup || activeStoryGroup[currentStoryIndex] !== s){
-      gcStopStoryFloat(); return;
-    }
-    if(!list.length) return;
-    var uid = list[gcStoryFloatIdx % list.length];
-    /* avoid same user twice in a row when list > 1 */
-    if(list.length > 1 && uid === lastUid){
-      gcStoryFloatIdx++;
-      uid = list[gcStoryFloatIdx % list.length];
-    }
-    lastUid = uid;
-    gcStoryFloatIdx++;
-    gcSpawnStoryFloatAv(gcStoryLikerMeta(uid));
-  }
-  tick();
-  gcStoryFloatTimer = setInterval(tick, 850);
-}
-
-async function gcOpenStoryLikers(){
-  if(!activeStoryGroup || currentStoryIndex >= activeStoryGroup.length) return;
-  var s = activeStoryGroup[currentStoryIndex];
-  if(!s || !currentUser) return;
-  if(s.uid !== currentUser.uid){
-    if(typeof showToast==='function') showToast('Only the story owner can see likers');
-    return;
-  }
-  var reacts = (s.reacts && s.reacts.length) ? s.reacts.slice() : [];
-  if(!reacts.length){ if(typeof showToast==='function') showToast('No likes yet'); return; }
-  try{ if(typeof pauseStoryProgress==='function') pauseStoryProgress(); }catch(e){}
-  try{ if(typeof pauseStoryForReply==='function') pauseStoryForReply(); }catch(e){}
-
-  var total = reacts.length;
-  var showIds = reacts.slice(0, 100);
-  var remaining = total - showIds.length;
-
-  var sheet = document.getElementById('sv-likers-sheet');
-  if(!sheet){
-    sheet = document.createElement('div');
-    sheet.id = 'sv-likers-sheet';
-    sheet.onclick = function(e){ if(e.target === sheet) gcCloseStoryLikers(); };
-    sheet.innerHTML = '<div class="sv-likers-box" onclick="event.stopPropagation()"><div class="sv-likers-head"><h3 id="sv-likers-title">Likes</h3><button type="button" onclick="gcCloseStoryLikers()" aria-label="Close"><i class="ph-light ph-x"></i></button></div><div class="sv-likers-list" id="sv-likers-list"></div></div>';
-    document.body.appendChild(sheet);
-  }
-  document.getElementById('sv-likers-title').textContent = total + (total === 1 ? ' Like' : ' Likes');
-  var listEl = document.getElementById('sv-likers-list');
-  listEl.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-muted);">Loading…</div>';
-  sheet.classList.add('open');
-
-  // Resolve users (cache first, then batch fetch missing)
-  var rows = [];
-  var missing = [];
-  showIds.forEach(function(uid){
-    var m = gcStoryLikerMeta(uid);
-    if(m.photo || (m.name && m.name !== 'User')) rows.push(m);
-    else missing.push(uid);
-  });
-  if(missing.length && typeof db !== 'undefined'){
-    // fetch up to 20 missing (Firestore get limit practicality)
-    var fetches = missing.slice(0, 40).map(function(uid){
-      return db.collection('users').doc(uid).get().then(function(doc){
-        if(!doc.exists) return { uid: uid, name: 'User', photo: '' };
-        var d = doc.data() || {};
-        return { uid: uid, name: d.name || d.displayName || 'User', photo: d.avatar || d.photoURL || d.profilePic || d.photo || '' };
-      }).catch(function(){ return { uid: uid, name: 'User', photo: '' }; });
-    });
-    try{
-      var fetched = await Promise.all(fetches);
-      rows = [];
-      var map = {};
-      fetched.forEach(function(m){ map[m.uid] = m; });
-      showIds.forEach(function(uid){
-        if(map[uid]) rows.push(map[uid]);
-        else rows.push(gcStoryLikerMeta(uid));
-      });
-    }catch(e){}
-  } else {
-    rows = showIds.map(gcStoryLikerMeta);
-  }
-
-  var html = '';
-  rows.forEach(function(m){
-    var av = m.photo
-      ? '<img src="'+escapeHTML(m.photo)+'" alt="" onerror="this.parentNode.textContent=\''+escapeHTML((m.name||'U').charAt(0))+ '\'">'
-      : escapeHTML((m.name||'U').charAt(0).toUpperCase());
-    html += '<div class="sv-liker-row">'
-      + '<div class="av">'+av+'</div>'
-      + '<div class="nm">'+escapeHTML(m.name)+'</div></div>';
-  });
-  if(remaining > 0){
-    html += '<div class="sv-likers-more">and '+remaining+' more</div>';
-  }
-  if(!rows.length){
-    html = '<div class="sv-likers-more">No likes yet</div>';
-  }
-  listEl.innerHTML = html;
-}
-
-function gcCloseStoryLikers(){
-  var sheet = document.getElementById('sv-likers-sheet');
-  if(sheet) sheet.classList.remove('open');
-  try{ if(typeof resumeStoryAfterReply==='function') resumeStoryAfterReply(); }catch(e){}
 }
 
 window.gcRefreshStoryFloat = gcRefreshStoryFloat;
