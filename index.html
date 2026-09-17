@@ -5285,6 +5285,67 @@ background:rgba(0,0,0,.28);color:#fff;font-size:18px;pointer-events:none;
     border-radius: 20px;
     outline: none;
 }
+
+/* ═══ In-image download blur overlay (demo #4 style) ═══ */
+.gc-dl-overlay{
+  position:absolute; inset:0; z-index:10080;
+  display:flex; align-items:center; justify-content:center;
+  background:rgba(255,255,255,0.18);
+  backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px);
+  opacity:0; visibility:hidden; pointer-events:none;
+  transition:opacity .28s ease, visibility .28s ease;
+  border-radius:inherit;
+}
+.gc-dl-overlay.show{
+  opacity:1; visibility:visible; pointer-events:auto;
+}
+.gc-dl-overlay.gc-dl-dark{
+  background:rgba(0,0,0,0.42);
+}
+.gc-dl-inner{
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:10px; color:#111; text-align:center;
+  transform:scale(.92); opacity:0;
+  transition:transform .28s cubic-bezier(.22,1,.36,1), opacity .28s ease;
+}
+.gc-dl-overlay.show .gc-dl-inner{
+  transform:scale(1); opacity:1;
+}
+.gc-dl-overlay.gc-dl-dark .gc-dl-inner{ color:#fff; }
+.gc-dl-spin{
+  width:36px; height:36px; border-radius:50%;
+  border:3px solid rgba(0,0,0,0.15);
+  border-top-color:#111;
+  animation:gcDlSpin .7s linear infinite;
+}
+.gc-dl-overlay.gc-dl-dark .gc-dl-spin{
+  border-color:rgba(255,255,255,0.22);
+  border-top-color:#fff;
+}
+@keyframes gcDlSpin{ to{ transform:rotate(360deg); } }
+.gc-dl-pct{
+  font-size:15px; font-weight:700; letter-spacing:0.02em;
+  min-height:22px; line-height:22px;
+}
+.gc-dl-done{
+  display:none; flex-direction:column; align-items:center; gap:8px;
+}
+.gc-dl-done .gc-dl-check{
+  width:40px; height:40px; border-radius:50%;
+  background:#111; color:#fff;
+  display:flex; align-items:center; justify-content:center;
+  font-size:22px;
+}
+.gc-dl-overlay.gc-dl-dark .gc-dl-done .gc-dl-check{
+  background:#fff; color:#111;
+}
+.gc-dl-done span{
+  font-size:15px; font-weight:700;
+}
+.gc-dl-overlay.is-done .gc-dl-spin,
+.gc-dl-overlay.is-done .gc-dl-pct{ display:none; }
+.gc-dl-overlay.is-done .gc-dl-done{ display:flex; }
+
 /* Custom voice bubble — no native 3-dot / download / extra chrome */
 .gc-voice-player{
     display:flex; align-items:center; gap:10px;
@@ -11726,7 +11787,15 @@ body:not(.light-mode) .sp-comment-compose button.is-ready{
 
 </div>
 
-<div class="story-viewer-modal" id="story-viewer">
+<div class="story-viewer-modal" id="story-viewer" style="position:relative;">
+<div id="gc-dl-overlay-story" class="gc-dl-overlay gc-dl-dark" aria-hidden="true">
+  <div class="gc-dl-inner">
+    <div class="gc-dl-spin"></div>
+    <div class="gc-dl-pct">0%</div>
+    <div class="gc-dl-done"><div class="gc-dl-check"><i class="ph-bold ph-check"></i></div><span>Saved</span></div>
+  </div>
+</div>
+
 <div class="story-progress-bar" id="story-progress-bar"></div>
 <div class="story-header">
 <div style="display:flex;align-items:center;gap:10px;color:#fff;">
@@ -12475,6 +12544,15 @@ body:not(.light-mode) .sp-comment-compose button.is-ready{
     </div>
 
     <img id="zoom-image" src="" onclick="event.stopPropagation()" style="transition: transform 0.2s ease;">
+
+    <div id="gc-dl-overlay-zoom" class="gc-dl-overlay gc-dl-dark" aria-hidden="true">
+      <div class="gc-dl-inner">
+        <div class="gc-dl-spin"></div>
+        <div class="gc-dl-pct">0%</div>
+        <div class="gc-dl-done"><div class="gc-dl-check"><i class="ph-bold ph-check"></i></div><span>Saved</span></div>
+      </div>
+    </div>
+
     
         <!-- 🚀 Floating Bottom Action Bar (Smaller Size) -->
     <div id="zoom-bottom-bar" style="position:absolute; bottom:0; left:0; right:0; padding:30px 24px calc(20px + env(safe-area-inset-bottom)); background:linear-gradient(transparent, rgba(0,0,0,0.85)); display:none; justify-content:space-around; align-items:center; z-index:10005;" onclick="event.stopPropagation()">
@@ -20722,51 +20800,143 @@ function closeImageZoom() {
 }
 
 // নতুন ফাংশন: ছবি ডাউনলোড করার জন্য (APK এবং Web উভয়ের জন্য ফিক্সড)
+
+/* ═══ In-image download overlay helpers ═══ */
+function gcDlGetOverlay(which){
+  return document.getElementById(which === 'story' ? 'gc-dl-overlay-story' : 'gc-dl-overlay-zoom');
+}
+function gcDlShow(which){
+  var el = gcDlGetOverlay(which);
+  if(!el) return;
+  el.classList.remove('is-done');
+  var pct = el.querySelector('.gc-dl-pct');
+  if(pct) pct.textContent = '0%';
+  el.classList.add('show');
+  el.setAttribute('aria-hidden','false');
+}
+function gcDlProgress(which, n){
+  var el = gcDlGetOverlay(which);
+  if(!el) return;
+  var pct = el.querySelector('.gc-dl-pct');
+  if(pct) pct.textContent = Math.max(0, Math.min(100, Math.round(n))) + '%';
+}
+function gcDlSaved(which){
+  var el = gcDlGetOverlay(which);
+  if(!el) return;
+  gcDlProgress(which, 100);
+  el.classList.add('is-done');
+  setTimeout(function(){ gcDlHide(which); }, 1100);
+}
+function gcDlHide(which){
+  var el = gcDlGetOverlay(which);
+  if(!el) return;
+  el.classList.remove('show');
+  el.classList.remove('is-done');
+  el.setAttribute('aria-hidden','true');
+}
+async function gcFetchBlobWithProgress(url, onProgress){
+  // Prefer real progress via ReadableStream; fall back to simulated
+  var res = await fetch(url, { mode: 'cors', credentials: 'omit', cache: 'no-store' });
+  if(!res.ok) throw new Error('HTTP ' + res.status);
+  var total = parseInt(res.headers.get('content-length') || '0', 10);
+  if(!res.body || !res.body.getReader){
+    if(onProgress) onProgress(50);
+    var blob = await res.blob();
+    if(onProgress) onProgress(100);
+    return blob;
+  }
+  var reader = res.body.getReader();
+  var chunks = [];
+  var received = 0;
+  var sim = 0;
+  while(true){
+    var step = await reader.read();
+    if(step.done) break;
+    chunks.push(step.value);
+    received += step.value.length;
+    if(total > 0){
+      if(onProgress) onProgress(Math.min(99, (received / total) * 100));
+    } else {
+      sim = Math.min(90, sim + 8);
+      if(onProgress) onProgress(sim);
+    }
+  }
+  if(onProgress) onProgress(100);
+  return new Blob(chunks, { type: res.headers.get('content-type') || 'application/octet-stream' });
+}
+function gcTriggerBlobDownload(blob, filename){
+  var blobUrl = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.style.display = 'none';
+  a.href = blobUrl;
+  a.download = filename || ('GoChat_' + Date.now() + '.jpg');
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(function(){
+    try{ URL.revokeObjectURL(blobUrl); }catch(e){}
+    try{ a.remove(); }catch(e){}
+  }, 1500);
+}
+async function gcDownloadMedia(url, opts){
+  opts = opts || {};
+  var which = opts.which || 'zoom';
+  var filename = opts.filename || ('GoChat_' + Date.now() + '.jpg');
+  if(!url) return;
+  if(typeof gcIsAdvancedPrivacyActive === 'function' && gcIsAdvancedPrivacyActive()){
+    showToast('Saving media is disabled while Advanced Privacy is ON');
+    return;
+  }
+  gcDlShow(which);
+  gcDlProgress(which, 2);
+  try{
+    // Strip fl_attachment for clean fetch; re-add only for fallback navigation
+    var fetchUrl = url;
+    if(fetchUrl.indexOf('fl_attachment') !== -1){
+      fetchUrl = fetchUrl.replace(/\/upload\/fl_attachment:[^/]+\//, '/upload/');
+    }
+    var blob = await gcFetchBlobWithProgress(fetchUrl, function(p){ gcDlProgress(which, p); });
+    gcTriggerBlobDownload(blob, filename);
+    gcDlSaved(which);
+  } catch(err){
+    console.warn('gcDownloadMedia fetch failed, fallback', err);
+    // Fallback: Cloudinary attachment redirect (may leave page in some WebViews)
+    try{
+      var fallback = url;
+      if(fallback.indexOf('cloudinary.com') !== -1 && fallback.indexOf('fl_attachment') === -1){
+        fallback = fallback.replace('/upload/', '/upload/fl_attachment:GoChat_Photo/');
+      }
+      // Still show Saved UX — browser/WebView will handle actual save
+      gcDlProgress(which, 100);
+      gcDlSaved(which);
+      setTimeout(function(){
+        var a = document.createElement('a');
+        a.href = fallback;
+        a.download = filename;
+        a.target = '_blank';
+        a.rel = 'noopener';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      }, 200);
+    } catch(e2){
+      gcDlHide(which);
+      showToast('Download failed');
+    }
+  }
+}
+
 async function downloadZoomedImage(event) {
     if(event) event.stopPropagation();
-    if(typeof gcIsAdvancedPrivacyActive === 'function' && gcIsAdvancedPrivacyActive()){
-        showToast('Saving media is disabled while Advanced Privacy is ON');
-        return;
-    }
     try{ gcCloseSheet(); }catch(e){}
     const menu = document.getElementById('zoom-menu');
     if(menu) menu.classList.remove('open');
-    
-    let imgUrl = document.getElementById('zoom-image').src;
+    const imgEl = document.getElementById('zoom-image');
+    let imgUrl = imgEl && imgEl.src;
     if(!imgUrl) return;
-
-    showToast("Starting download...");
-
-    // APK (WebView) ফিক্স: Cloudinary-এর লিংকে fl_attachment যোগ করা
-    // এটি সার্ভার থেকে সরাসরি ফাইল ডাউনলোডের নির্দেশ দেয়, যা অ্যাপ খুব সহজেই ধরতে পারে।
-    if (imgUrl.includes('cloudinary.com')) {
-        if (!imgUrl.includes('fl_attachment')) {
-            imgUrl = imgUrl.replace('/upload/', '/upload/fl_attachment:GoChat_Photo/');
-        }
-        // WebView-তে ডাউনলোড ট্রিগার করার সবচেয়ে বিশ্বস্ত উপায়
-        window.location.href = imgUrl;
-        return;
-    }
-
-    // Cloudinary ছাড়া অন্য কোনো লিংক হলে সাধারণ ব্রাউজারের নিয়ম (Blob) কাজ করবে
-    try {
-        const response = await fetch(imgUrl);
-        const blob = await response.blob();
-        const blobUrl = window.URL.createObjectURL(blob);
-        
-        const a = document.createElement('a');
-        a.style.display = 'none';
-        a.href = blobUrl;
-        a.download = 'GoChat_Image_' + Date.now() + '.jpg';
-        document.body.appendChild(a);
-        a.click();
-        
-        window.URL.revokeObjectURL(blobUrl);
-        document.body.removeChild(a);
-    } catch (e) {
-        // একদম শেষে কোনো কারণে ফেইল করলে লিংকে নিয়ে যাবে
-        window.open(imgUrl, '_blank');
-    }
+    await gcDownloadMedia(imgUrl, {
+      which: 'zoom',
+      filename: 'GoChat_Image_' + Date.now() + '.jpg'
+    });
 }
 
 
@@ -23094,46 +23264,20 @@ function markNotInterested(pid, element) {
 // স্টোরি ডাউনলোড করার ফাংশন
 async function downloadCurrentStory(event) {
     if(event) event.stopPropagation();
-    
     const menu = document.getElementById('story-menu');
     if(menu) menu.classList.remove('open');
-    
     if(!activeStoryGroup || currentStoryIndex >= activeStoryGroup.length) return;
-    
     const s = activeStoryGroup[currentStoryIndex];
     let mediaUrl = s.mediaUrl;
     if(!mediaUrl) return;
-
-    showToast("Starting download...");
-
-    if (mediaUrl.includes('cloudinary.com')) {
-        if (!mediaUrl.includes('fl_attachment')) {
-            mediaUrl = mediaUrl.replace('/upload/', '/upload/fl_attachment:GoChat_Story/');
-        }
-        window.location.href = mediaUrl;
-        return;
-    }
-
-    try {
-        const response = await fetch(mediaUrl);
-        const blob = await response.blob();
-        const blobUrl = window.URL.createObjectURL(blob);
-        
-        const a = document.createElement('a');
-        a.style.display = 'none';
-        a.href = blobUrl;
-        
-        const ext = s.isVideo ? '.mp4' : '.jpg';
-        a.download = 'GoChat_Story_' + Date.now() + ext;
-        
-        document.body.appendChild(a);
-        a.click();
-        
-        window.URL.revokeObjectURL(blobUrl);
-        document.body.removeChild(a);
-    } catch (e) {
-        window.open(mediaUrl, '_blank');
-    }
+    // Pause story auto-advance while downloading
+    try{ if(typeof pauseStoryProgress === 'function') pauseStoryProgress(); }catch(e){}
+    try{ if(window.storyTimer) { clearTimeout(window.storyTimer); window.storyTimer = null; } }catch(e){}
+    const ext = s.isVideo ? '.mp4' : '.jpg';
+    await gcDownloadMedia(mediaUrl, {
+      which: 'story',
+      filename: 'GoChat_Story_' + Date.now() + ext
+    });
 }
 // --- Colored Post Logic ---
 let currentPostBgColor = 'default';
