@@ -6440,18 +6440,22 @@ body:not(.light-mode) .act-tab.active .notif-tab-count{
   left: 0;
   right: 0;
   z-index: 60;
-  height: 52px;
-  min-height: 52px;
-  padding: 0 6px;
+  /* Tighter top — back sits closer to status bar */
+  height: calc(40px + env(safe-area-inset-top, 0px));
+  min-height: calc(40px + env(safe-area-inset-top, 0px));
+  padding: 0 4px;
   padding-top: env(safe-area-inset-top, 0px);
-  height: calc(52px + env(safe-area-inset-top, 0px));
-  min-height: calc(52px + env(safe-area-inset-top, 0px));
   display: flex;
   align-items: center;
   box-sizing: border-box;
   background: transparent;
   border: none;
   box-shadow: none;
+  margin-bottom: 0;
+}
+.auth-reg-topbar .auth-reg-back{
+  margin-top: 0;
+  align-self: center;
 }
 .auth-reg-back{
   width: 36px;
@@ -6511,7 +6515,6 @@ html.dark .auth-reg-back,
 #registration-steps .auth-input-group{
   margin-bottom: 14px !important;
 }
-#registration-steps 
 /* ===== Feed upload status (between stories & posts) ===== */
 .gc-upload-status{
   display:none;
@@ -6617,25 +6620,6 @@ html.dark .auth-reg-back,
   padding: 0 !important;
   width: 100% !important;
   max-width: 100% !important;
-}
-
-.btn-auth-primary{
-  margin-top:auto !important;
-  margin-bottom:8px !important;
-}
-#auth-screen.auth-register-mode{
-  align-items:flex-start !important;
-  justify-content:flex-start !important;
-}
-#auth-screen.auth-register-mode .auth-box{
-  padding-top:0 !important;
-  width:100% !important;
-  max-width:100% !important;
-}
-
-.btn-auth-primary{
-  margin-top:auto !important;
-  margin-bottom:8px !important;
 }
 
 .btn-auth-primary{
@@ -20327,7 +20311,8 @@ if(__hasMedia){
         } else {
           showToast('Posted!');
         }
-        try{ if(typeof gcShowPostedBar === 'function' && !__hasMedia) gcShowPostedBar(); }catch(e){}
+        /* Bottom "Posted · View" bar (Threads-style) — keep for all successful posts */
+        try{ if(typeof gcShowPostedBar === 'function') gcShowPostedBar(); }catch(e){}
         awardPoints(currentUser.uid, 20);
     }catch(e){
       if(typeof __hasMedia !== 'undefined' && __hasMedia){
