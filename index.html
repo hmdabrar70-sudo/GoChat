@@ -17095,7 +17095,7 @@ function gcBuildOneCommentHTML(pid, c, idx, where){
         +   '</div>'
         +   '<div class="gc-c-reply-meta">'
         +     (rTime ? '<span class="gc-c-time">' + rTime + '</span>' : '')
-        +     '<span class="gc-c-btn gc-reply-link" onclick="event.stopPropagation();replyToNestedReply(\'' + pid + '\',' + idx + ',\'' + String(r.name||'User').replace(/'/g,'') + '\')"><i class="ph-light ph-arrow-bend-up-left" style="font-size:13px;"></i> Reply</span>'
+        +     '<span class="gc-c-btn gc-reply-link" onclick="event.stopPropagation();replyToNestedReply(\'' + pid + '\',' + idx + ',\'' + String(r.name||'User').replace(/'/g,'') + '\')">Reply</span>'
 +     '<button type="button" class="gc-c-more-btn" title="Options" onclick="event.stopPropagation();showReplyActions(\'' + pid + '\',' + idx + ',' + fullIdx + ',\'' + (r.uid || '') + '\')"><i class="ph ph-dots-three" style="font-size:16px;"></i></button>'
         +   '</div>'
         + '</div></div>';
@@ -17123,7 +17123,7 @@ function gcBuildOneCommentHTML(pid, c, idx, where){
     +   '<div class="gc-c-meta">'
     +     (timeLabel ? '<span class="gc-c-time">' + timeLabel + '</span>' : '')
     +     '<span class="gc-c-btn' + (liked ? ' liked' : '') + '" onclick="event.stopPropagation();gcToggleCommentLike(\'' + pid + '\',' + idx + ')"><i class="' + (liked ? 'ph-fill' : 'ph-bold') + ' ph-heart" style="font-size:14px;"></i>' + (likeCount ? likeCount : '') + '</span>'
-    +     '<span class="gc-c-btn gc-reply-link" title="Reply" onclick="event.stopPropagation();' + replyClick + '"><i class="ph-light ph-arrow-bend-up-left" style="font-size:14px;"></i> Reply</span>'
+    +     '<span class="gc-c-btn gc-reply-link" title="Reply" onclick="event.stopPropagation();' + replyClick + '">Reply</span>'
     +     '<button type="button" class="gc-c-more-btn" title="Options" onclick="event.stopPropagation();showCommentActions(\'' + pid + '\',' + idx + ',\'' + c.uid + '\')"><i class="ph ph-dots-three" style="font-size:16px;"></i></button>'
     +   '</div>'
     +   repliesHtml
@@ -19855,8 +19855,21 @@ function gcBuildInlineCommentsHTML(pid, comments){
 async function openSinglePostView(pid) {
     try{ if(typeof gcMusicStopAll === 'function') gcMusicStopAll(); }catch(e){}
     const screen = document.getElementById('single-post-screen');
-    if(screen) screen.classList.add('open');
     const container = document.getElementById('single-post-container');
+    // Already open on this post → do not rebuild (prevents like/count jump on repeated comment clicks)
+    if (screen && screen.classList.contains('open') && container && window.__spLastPid === pid && container.querySelector('.post-card')) {
+      activeCommentPostId = pid;
+      try {
+        var head = container.querySelector('.sp-comments-wrap, .sp-comments-head');
+        if (head && head.scrollIntoView) head.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } catch(e){}
+      try {
+        var inp = document.getElementById('sp-comment-input');
+        if (inp) setTimeout(function(){ try{ inp.focus(); }catch(e){} }, 50);
+      } catch(e){}
+      return;
+    }
+    if(screen) screen.classList.add('open');
     if(!container) return;
     container.innerHTML = (typeof SKELETON_HTML !== 'undefined') ? SKELETON_HTML : '<div class="loading" style="padding:24px;text-align:center;">Loading...</div>';
     activeCommentPostId = pid;
@@ -19922,7 +19935,10 @@ async function openSinglePostView(pid) {
                     }
                   }
                   var likeIcon = likeBtn.querySelector('i');
-                  if (likeIcon) likeIcon.className = isLiked ? 'ph-fill ph-thumbs-up' : 'ph-light ph-thumbs-up';
+                  if (likeIcon) {
+                    var want = isLiked ? 'ph-fill ph-thumbs-up' : 'ph-light ph-thumbs-up';
+                    if (likeIcon.className !== want) likeIcon.className = want;
+                  }
                 }
                 var cBtn = container.querySelector('.post-action-btn[data-action="comment"]');
                 if (cBtn) {
@@ -19960,7 +19976,7 @@ async function openSinglePostView(pid) {
                 buildPostCardHTML({id: doc.id, ...data})
                 + '<div class="sp-comments-wrap">'
                 +   '<div class="sp-comments-head">'
-                +     '<div class="sp-comments-title"><i class="ph-light ph-chat-circle" style="font-size:16px;margin-right:6px;vertical-align:-2px;opacity:.7;"></i>Comments</div>'
+                +     '<div class="sp-comments-title">Comments</div>'
                 +     '<div class="sp-comments-count">' + countLabel + '</div>'
                 +   '</div>'
                 +   '<div class="sp-comments-list">' + gcBuildInlineCommentsHTML(pid, comments) + '</div>'
