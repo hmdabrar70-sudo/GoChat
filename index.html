@@ -4177,51 +4177,10 @@ body.gc-splash-handoff .page.active{
     65% { transform: scale(0.9); }
     100% { transform: scale(1); }
 }
-@keyframes sparkBurst {
-    0% {
-        box-shadow: 0 0 0 0 transparent;
-        opacity: 1;
-        transform: translate(-50%, -50%) scale(0.3);
-    }
-    45% {
-        box-shadow:
-            0 -18px 0 -1px #f91880,
-            14px -12px 0 -1px #ff7a00,
-            18px 6px 0 -1px #f91880,
-            10px 18px 0 -1px #ff7a00,
-            -10px 18px 0 -1px #f91880,
-            -18px 6px 0 -1px #ff7a00,
-            -14px -12px 0 -1px #f91880,
-            0 0 0 10px rgba(249,24,128,0.12);
-        opacity: 1;
-        transform: translate(-50%, -50%) scale(1);
-    }
-    100% {
-        box-shadow:
-            0 -28px 0 -4px transparent,
-            22px -20px 0 -4px transparent,
-            28px 8px 0 -4px transparent,
-            14px 28px 0 -4px transparent,
-            -14px 28px 0 -4px transparent,
-            -28px 8px 0 -4px transparent,
-            -22px -20px 0 -4px transparent,
-            0 0 0 18px transparent;
-        opacity: 0;
-        transform: translate(-50%, -50%) scale(1.15);
-    }
-}
+/* @keyframes sparkBurst removed */
 
 
-/* Like count animation DISABLED — no jump on feed/profile nav */
-.like-count-slot{ position:relative; display:inline-block; overflow:visible!important; }
-.like-count-num,
-.like-count-num.is-falling,
-.like-count-num.is-dropping{
-  animation:none!important;
-  transform:none!important;
-  opacity:1!important;
-  position:static!important;
-}
+
 /* Like count · Physics Fall & Drop */
 @keyframes gcCountFallOut {
     0%   { transform: translateY(0) rotate(0deg) scale(1); opacity: 1; }
@@ -4292,21 +4251,8 @@ body.gc-splash-handoff .page.active{
 }
 
 /* Only animate on user action, not on page load */
-.post-action-btn.just-liked i {
-    animation: twitterHeartPop 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
-}
-.post-action-btn.just-liked::before {
-    content: '';
-    position: absolute;
-    left: 50%;
-    top: 42%;
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    pointer-events: none;
-    z-index: 2;
-    animation: sparkBurst 0.55s ease-out forwards;
-}
+/* just-liked pop + spark removed */
+
 .post-action-btn .like-count.anim-up {
     display: inline-block;
     animation: likeCountPop 0.35s ease-out both;
@@ -4415,18 +4361,8 @@ box-shadow: 0 4px 12px var(--accent-glow);
 }
 
 /* ৫. লাইক করার পর স্পার্ক (বাবল) ইফেক্ট ট্রিগার করা */
-.post-action-btn.liked::before {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 12px; /* হার্ট আইকনের ঠিক মাঝখানে সেট করা */
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    transform: translate(-50%, -50%);
-    animation: sparkBurst 0.5s ease-out forwards;
-    pointer-events: none; /* স্পার্কের ওপর যেন ক্লিক না লাগে */
-}
+/* liked::before sparkBurst removed — no pink glow */
+
 /* =========================================
    TIKTOK STYLE TOGGLE SWITCH
    ========================================= */
@@ -5057,7 +4993,7 @@ background:rgba(0,0,0,.28);color:#fff;font-size:18px;pointer-events:none;
 .gc-pay-box{width:100%;max-width:none;max-height:none;height:100%;height:100dvh;overflow-y:auto;background:var(--bg);border:none;border-radius:0;box-shadow:none;}
 .gc-pay-head{display:flex;align-items:center;justify-content:space-between;padding:18px 22px 12px;}
 .gc-pay-brand{display:flex;align-items:center;gap:8px;font-weight:800;font-size:17px;color:#e8c074;}
-.gc-pay-close{background:var(--surface-2);border:none;width:32px;height:32px;border-radius:50%;color:var(--text-muted);display:flex;align-items:center;justify-content:center;cursor:pointer;}
+.gc-pay-close{background:transparent;border:none;width:36px;height:36px;border-radius:50%;color:var(--text-muted);display:flex;align-items:center;justify-content:center;cursor:pointer;}
 .gc-pay-rail{height:3px;background:rgba(232,192,116,.12);}
 .gc-pay-rail i{display:block;height:100%;width:40%;background:linear-gradient(90deg,#fbbf24,#d97706,#fbbf24);background-size:200% 100%;animation:gcPayFoil 5s linear infinite;}
 @keyframes gcPayFoil{0%{background-position:0% 0;}100%{background-position:200% 0;}}
@@ -16687,24 +16623,57 @@ window.gcPaintStoryPendingInList = gcPaintStoryPendingInList;
 // ===== POSTS AND LIKE LOGIC =====
 // 🚀 সুপার ফাস্ট লাইক সিস্টেম (Optimistic UI Update) + Spam Notification Fix
 function gcPhysicsLikeCount(countSpan, nextNum){
-  /* Count animation removed — instant update only (no jump/fall) */
   if(!countSpan) return;
   var nextText = (typeof gcFmtCount === 'function') ? gcFmtCount(nextNum) : String(nextNum);
   countSpan.setAttribute('data-raw-count', String(nextNum));
-  var numEl = countSpan.querySelector('.like-count-num');
-  if(numEl){
-    numEl.classList.remove('is-falling', 'is-dropping');
-    numEl.style.animation = 'none';
-    numEl.style.transform = 'none';
-    numEl.style.opacity = '1';
-    numEl.textContent = nextText;
-    var nums = countSpan.querySelectorAll('.like-count-num');
-    for(var ii=0; ii<nums.length; ii++){
-      if(nums[ii] !== numEl){ try{ nums[ii].remove(); }catch(e){} }
-    }
-  } else {
-    countSpan.textContent = nextText;
+
+  var slot = countSpan;
+  if(!slot.classList.contains('like-count-slot')){
+    slot.classList.add('like-count-slot');
   }
+  var oldNum = slot.querySelector('.like-count-num');
+  var oldText = '';
+  if(oldNum){
+    oldText = oldNum.textContent;
+  } else {
+    oldText = (slot.textContent || '').trim();
+    slot.textContent = '';
+    oldNum = document.createElement('span');
+    oldNum.className = 'like-count-num';
+    oldNum.textContent = oldText || nextText;
+    slot.appendChild(oldNum);
+  }
+
+  if(String(oldText) === String(nextText)){
+    oldNum.textContent = nextText;
+    return;
+  }
+
+  var falling = oldNum;
+  falling.classList.remove('is-dropping');
+  falling.classList.add('is-falling');
+
+  var incoming = document.createElement('span');
+  incoming.className = 'like-count-num is-dropping';
+  incoming.textContent = nextText;
+  slot.appendChild(incoming);
+
+  var done = false;
+  function finish(){
+    if(done) return;
+    done = true;
+    try{
+      if(falling && falling.parentNode) falling.parentNode.removeChild(falling);
+      incoming.classList.remove('is-dropping');
+      var nums = slot.querySelectorAll('.like-count-num');
+      for(var ii=0; ii<nums.length; ii++){
+        if(nums[ii] !== incoming) try{ nums[ii].remove(); }catch(e){}
+      }
+      incoming.textContent = nextText;
+    }catch(e){}
+  }
+  try{ incoming.addEventListener('animationend', finish); }catch(e){}
+  setTimeout(finish, 520);
 }
 
 function gcLikeIconPhysics(icon){
@@ -16746,7 +16715,7 @@ async function toggleLike(pid) {
         } else currentLikes = 0;
         isCurrentlyLiked = btn.classList.contains('liked');
 
-        btn.classList.remove('just-liked');
+        /* just-liked removed */
         if (countSpan) {
             countSpan.classList.remove('anim-up', 'anim-down');
             countSpan.classList.add('like-count');
@@ -16766,13 +16735,13 @@ async function toggleLike(pid) {
                 icon.className = 'ph-fill ph-thumbs-up';
                 void icon.offsetWidth;
             }
-            btn.classList.add('just-liked');
+            /* just-liked removed */
             if (countSpan) {
                 var nextUp = currentLikes + 1;
                 gcPhysicsLikeCount(countSpan, nextUp);
             }
             if (icon) gcLikeIconPhysics(icon);
-            setTimeout(function(){ btn.classList.remove('just-liked'); }, 500);
+            setTimeout(function(){ /* just-liked removed */ }, 500);
         }
     });
     
@@ -30205,7 +30174,7 @@ ov.id = 'gc-pay-overlay';
 ov.className = 'gc-pay-overlay';
 document.body.appendChild(ov);
 }
-ov.innerHTML = '<div class="gc-pay-box"><div class="gc-pay-head"><div class="gc-pay-brand">Verify your profile</div><button class="gc-pay-close" onclick="gcPayClose()"><i class="ph-light ph-x"></i></button></div><div class="gc-pay-rail"><i></i></div><div id="gc-pay-body" class="gc-pay-body"></div></div>';
+ov.innerHTML = '<div class="gc-pay-box"><div class="gc-pay-head"><div class="gc-pay-brand">Verify your profile</div><button type="button" class="gc-pay-close" id="gc-pay-back-btn" onclick="gcPayBack()" aria-label="Back"><i class="ph-light ph-arrow-left"></i></button></div><div class="gc-pay-rail"><i></i></div><div id="gc-pay-body" class="gc-pay-body"></div></div>';
 ov.classList.add('open');
 gcPayCheckPending();
 }
@@ -30213,7 +30182,29 @@ function gcPayClose(){
 const ov = document.getElementById('gc-pay-overlay');
 if(ov) ov.classList.remove('open');
 if(gcPayUnsub){ gcPayUnsub(); gcPayUnsub = null; }
+window.__gcPayStack = [];
 }
+function gcPayBack(){
+  var stack = window.__gcPayStack || [];
+  if(stack.length <= 1){
+    gcPayClose();
+    return;
+  }
+  stack.pop();
+  window.__gcPayStack = stack;
+  var prev = stack[stack.length - 1];
+  if(prev === 'landing'){ try{ gcPayShowLanding(true); }catch(e){ gcPayClose(); } }
+  else if(prev === 'plans'){ try{ gcPayShowPlans(true); }catch(e){ gcPayClose(); } }
+  else if(prev === 'payment'){ try{ gcPayShowPayment(true); }catch(e){ gcPayClose(); } }
+  else { gcPayClose(); }
+}
+window.gcPayBack = gcPayBack;
+function gcPayPushScreen(name){
+  if(!window.__gcPayStack) window.__gcPayStack = [];
+  var s = window.__gcPayStack;
+  if(s[s.length-1] !== name) s.push(name);
+}
+
 async function gcPayCheckPending(){
 try{
 const snap = await db.collection('elitePayments').where('uid','==',currentUser.uid).get();
@@ -30226,7 +30217,10 @@ if(latest && latest.status === 'rejected'){ gcPayShowRejected(latest.rejectReaso
 gcPayShowLanding();
 }catch(e){ gcPayShowLanding(); }
 }
-function gcPayShowLanding(){
+function gcPayShowLanding(fromBack){
+if(!fromBack){ window.__gcPayStack = ['landing']; }
+else { window.__gcPayStack = ['landing']; }
+
 const badgeSvg = '<svg viewBox="0 0 24 24" aria-hidden="true" width="20" height="20"><defs><linearGradient id="gcPayVGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#c1f600"/><stop offset="55%" stop-color="#2a9a6a"/><stop offset="100%" stop-color="#00545f"/></linearGradient></defs><path d="M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.998-3.918-3.998-.47 0-.92.084-1.336.25C14.818 2.415 13.51 1.5 12 1.5s-2.816.917-3.337 2.25c-.416-.165-.866-.25-1.336-.25-2.21 0-3.918 1.792-3.918 4 0 .495.084.965.238 1.4-1.273.65-2.148 2.02-2.148 3.6 0 1.46.827 2.766 2.044 3.462-.014.116-.022.234-.022.35 0 2.21 1.71 3.998 3.918 3.998.47 0 .92-.084 1.336-.25C9.182 21.585 10.49 22.5 12 22.5s2.816-.917 3.337-2.25c.416.165.866.25 1.336.25 2.21 0 3.918-1.792 3.918-4 0-.116-.008-.234-.022-.35 1.217-.696 2.044-2.002 2.044-3.462z" fill="url(#gcPayVGrad)"></path><g transform="translate(2.81, 3.38) scale(0.75)"><path d="M9.5 17.5l-5-5 1.5-1.5 3.5 3.5 9-9 1.5 1.5-10.5 10.5z" fill="#ffffff"></path></g></svg>';
 const perkVerified = '<svg class="gc-pay-perk-verified" viewBox="0 0 24 24" width="28" height="28"><defs><linearGradient id="gcPayVGrad2" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#c1f600"/><stop offset="55%" stop-color="#2a9a6a"/><stop offset="100%" stop-color="#00545f"/></linearGradient></defs><path d="M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.998-3.918-3.998-.47 0-.92.084-1.336.25C14.818 2.415 13.51 1.5 12 1.5s-2.816.917-3.337 2.25c-.416-.165-.866-.25-1.336-.25-2.21 0-3.918 1.792-3.918 4 0 .495.084.965.238 1.4-1.273.65-2.148 2.02-2.148 3.6 0 1.46.827 2.766 2.044 3.462-.014.116-.022.234-.022.35 0 2.21 1.71 3.998 3.918 3.998.47 0 .92-.084 1.336-.25C9.182 21.585 10.49 22.5 12 22.5s2.816-.917 3.337-2.25c.416.165.866.25 1.336.25 2.21 0 3.918-1.792 3.918-4 0-.116-.008-.234-.022-.35 1.217-.696 2.044-2.002 2.044-3.462z" fill="url(#gcPayVGrad2)"></path><g transform="translate(2.81, 3.38) scale(0.75)"><path d="M9.5 17.5l-5-5 1.5-1.5 3.5 3.5 9-9 1.5 1.5-10.5 10.5z" fill="#ffffff"></path></g></svg>';
 
@@ -30261,7 +30255,9 @@ At the same time, your profile will be considered verified.</p>
   </div>
 </div>`;
 }
-function gcPayShowPlans(){
+function gcPayShowPlans(fromBack){
+if(!fromBack) gcPayPushScreen('plans');
+
 gcPayPlan = null;
 document.getElementById('gc-pay-body').innerHTML = '<div class="gc-pay-screen"><div class="gc-pay-scroll"><h3 class="gc-pay-h">Select a Plan</h3>' +
 GC_ELITE_PLANS.map(p => `
@@ -30283,7 +30279,9 @@ if(el) el.classList.toggle('gc-plan-sel', p.id === id);
 const nx = document.getElementById('gc-plan-next');
 if(nx){ nx.style.opacity = '1'; nx.style.pointerEvents = 'auto'; }
 }
-function gcPayShowPayment(){
+function gcPayShowPayment(fromBack){
+if(!fromBack) gcPayPushScreen('payment');
+
 if(!gcPayPlan) return;
 const hasUsername = !!(currentUserData && currentUserData.username && currentUserData.username.trim() !== '');
 document.getElementById('gc-pay-body').innerHTML = `
@@ -30369,6 +30367,8 @@ gcPayShowStatus(ref.id);
 }catch(e){ showToast('❌ Failed to submit. Try again.'); }
 }
 function gcPayShowStatus(docId){
+if(window.__gcPayStack) gcPayPushScreen("status");
+
 document.getElementById('gc-pay-body').innerHTML = '<div class="gc-pay-screen gc-pay-center"><div class="gc-status-chip pending">⏳ PAYMENT UNDER REVIEW</div><p class="gc-pay-sub">Your payment is being verified. Usually activated within 1 hour.</p><div class="gc-pay-spinner"></div></div>';
 if(gcPayUnsub) gcPayUnsub();
 gcPayUnsub = db.collection('elitePayments').doc(docId).onSnapshot(d => {
@@ -30379,10 +30379,14 @@ else if(s === 'rejected') gcPayShowRejected(d.data().rejectReason || '');
 });
 }
 function gcPayShowApproved(){
+if(window.__gcPayStack) gcPayPushScreen("approved");
+
 if(gcPayUnsub){ gcPayUnsub(); gcPayUnsub = null; }
 document.getElementById('gc-pay-body').innerHTML = '<div class="gc-pay-screen"><div class="gc-pay-scroll gc-pay-center"><div class="gc-ceremony">👑</div><h2 class="gc-pay-title">Welcome to Elite!</h2><p class="gc-pay-sub">You are verified. The blue badge now shows next to your name on GoChat.</p></div><div class="gc-pay-foot"><button class="gc-pay-cta" onclick="gcPayClose()">Done</button></div></div>';
 }
 function gcPayShowRejected(reason){
+if(window.__gcPayStack) gcPayPushScreen("rejected");
+
 if(gcPayUnsub){ gcPayUnsub(); gcPayUnsub = null; }
 document.getElementById('gc-pay-body').innerHTML = '<div class="gc-pay-screen"><div class="gc-pay-scroll gc-pay-center"><div class="gc-status-chip rejected">❌ PAYMENT REJECTED</div><p class="gc-pay-sub">' + escapeHTML(reason || 'We could not verify that payment. Double-check the TrxID and try again.') + '</p></div><div class="gc-pay-foot"><button class="gc-pay-cta" onclick="gcPayShowPlans()">Try Again</button></div></div>';
 }
