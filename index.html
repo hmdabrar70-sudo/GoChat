@@ -874,7 +874,8 @@ body.light-mode .gc-hd-quick-btn{
 
 .gc-hd-close{
     width:36px;height:36px;border-radius:50%;border:none;cursor:pointer;
-    background:var(--surface-2);color:var(--text);display:flex;align-items:center;justify-content:center;
+    background:transparent;color:var(--text);display:flex;align-items:center;justify-content:center;
+    box-shadow:none;
 }
 .gc-hd-list{padding:10px 12px 24px;overflow-y:auto;flex:1;}
 .gc-hd-item{
@@ -1730,7 +1731,8 @@ opacity:0.3;
   box-sizing:border-box;
   grid-column: 1 / -1;
 }
-.gc-profile-empty-icon{
+.gc-profile-empty-icon{display:none!important;}
+.gc-profile-empty-icon-legacy{
   width:88px;
   height:88px;
   border-radius:50%;
@@ -4209,6 +4211,17 @@ body.gc-splash-handoff .page.active{
     }
 }
 
+
+/* Like count animation DISABLED — no jump on feed/profile nav */
+.like-count-slot{ position:relative; display:inline-block; overflow:visible!important; }
+.like-count-num,
+.like-count-num.is-falling,
+.like-count-num.is-dropping{
+  animation:none!important;
+  transform:none!important;
+  opacity:1!important;
+  position:static!important;
+}
 /* Like count · Physics Fall & Drop */
 @keyframes gcCountFallOut {
     0%   { transform: translateY(0) rotate(0deg) scale(1); opacity: 1; }
@@ -16674,56 +16687,24 @@ window.gcPaintStoryPendingInList = gcPaintStoryPendingInList;
 // ===== POSTS AND LIKE LOGIC =====
 // 🚀 সুপার ফাস্ট লাইক সিস্টেম (Optimistic UI Update) + Spam Notification Fix
 function gcPhysicsLikeCount(countSpan, nextNum){
+  /* Count animation removed — instant update only (no jump/fall) */
   if(!countSpan) return;
   var nextText = (typeof gcFmtCount === 'function') ? gcFmtCount(nextNum) : String(nextNum);
   countSpan.setAttribute('data-raw-count', String(nextNum));
-
-  var slot = countSpan;
-  if(!slot.classList.contains('like-count-slot')){
-    slot.classList.add('like-count-slot');
-  }
-  var oldNum = slot.querySelector('.like-count-num');
-  var oldText = '';
-  if(oldNum){
-    oldText = oldNum.textContent;
+  var numEl = countSpan.querySelector('.like-count-num');
+  if(numEl){
+    numEl.classList.remove('is-falling', 'is-dropping');
+    numEl.style.animation = 'none';
+    numEl.style.transform = 'none';
+    numEl.style.opacity = '1';
+    numEl.textContent = nextText;
+    var nums = countSpan.querySelectorAll('.like-count-num');
+    for(var ii=0; ii<nums.length; ii++){
+      if(nums[ii] !== numEl){ try{ nums[ii].remove(); }catch(e){} }
+    }
   } else {
-    oldText = (slot.textContent || '').trim();
-    slot.textContent = '';
-    oldNum = document.createElement('span');
-    oldNum.className = 'like-count-num';
-    oldNum.textContent = oldText;
-    slot.appendChild(oldNum);
+    countSpan.textContent = nextText;
   }
-
-  if(String(oldText) === String(nextText)){
-    oldNum.textContent = nextText;
-    return;
-  }
-
-  var falling = oldNum;
-  falling.classList.remove('is-dropping');
-  falling.classList.add('is-falling');
-
-  var incoming = document.createElement('span');
-  incoming.className = 'like-count-num is-dropping';
-  incoming.textContent = nextText;
-  slot.appendChild(incoming);
-
-  var done = false;
-  function finish(){
-    if(done) return;
-    done = true;
-    try{
-      if(falling && falling.parentNode) falling.parentNode.removeChild(falling);
-      incoming.classList.remove('is-dropping');
-      var nums = slot.querySelectorAll('.like-count-num');
-      for(var i=0;i<nums.length;i++){
-        if(nums[i] !== incoming) try{ nums[i].remove(); }catch(e){}
-      }
-    }catch(e){}
-  }
-  incoming.addEventListener('animationend', finish);
-  setTimeout(finish, 520);
 }
 
 function gcLikeIconPhysics(icon){
@@ -28643,15 +28624,14 @@ function applyProfileFilter(filterType, profileType, clickedElement) {
 // Beautiful empty state for profile Media / Gallery / Status tabs
 function gcProfileEmptyHTML(kind){
   const map = {
-    media:  { icon: 'ph-light ph-video-camera', title: 'No videos yet',  sub: 'Videos will show up here' },
-    gallery:{ icon: 'ph-light ph-images',       title: 'No photos yet',  sub: 'Photos will show up here' },
-    status: { icon: 'ph-light ph-text-aa',      title: 'No status yet',  sub: 'Text posts will show up here' },
-    all:    { icon: 'ph-light ph-images',title: 'No posts yet',   sub: 'Posts will show up here' }
+    media:  { title: 'No videos yet',  sub: 'Videos will show up here' },
+    gallery:{ title: 'No photos yet',  sub: 'Photos will show up here' },
+    status: { title: 'No status yet',  sub: 'Text posts will show up here' },
+    all:    { title: 'No posts yet',   sub: 'Posts will show up here' }
   };
   const m = map[kind] || map.all;
   return ''
     + '<div class="gc-profile-empty">'
-    +   '<div class="gc-profile-empty-icon"><i class="' + m.icon + '"></i></div>'
     +   '<div class="gc-profile-empty-title">' + m.title + '</div>'
     +   '<div class="gc-profile-empty-sub">' + m.sub + '</div>'
     + '</div>';
@@ -29573,7 +29553,7 @@ ov.onclick = function(e){ if(e.target === ov) ov.classList.remove('open'); };
 document.body.appendChild(ov);
 }
 const list = gcGetAccounts();
-let html = '<div class="gc-sw-sheet"><div class="gc-sw-handle"></div><div class="gc-sw-title">Switch Account</div><div class="gc-sw-sub">To quickly change accounts without a password</div>';
+let html = '<div class="gc-sw-sheet"><div class="gc-sw-handle"></div><div class="gc-sw-title">Switch Account</div>';
 list.forEach(function(a){
 const active = currentUser && a.uid === currentUser.uid;
 const av = a.avatar ? '<img class="gc-sw-av" src="' + escapeHTML(a.avatar) + '">' : '<div class="gc-sw-av-init">' + escapeHTML((a.name || 'U').charAt(0).toUpperCase()) + '</div>';
@@ -29584,7 +29564,7 @@ html += '<div class="gc-sw-row' + (active ? ' active' : '') + '" onclick="' + (a
 if(list.length < GC_MAX_ACCOUNTS){
 html += '<div class="gc-sw-add" onclick="gcOpenAddAccount()"><i class="ph-light ph-plus"></i> Add Account</div>';
 }
-html += '<div class="gc-sw-note"><i class="ph-light ph-lock-simple" style="font-size:12px;margin-right:4px;vertical-align:-1px;"></i>Accounts are stored securely on this device only.</div></div>';
+html += '</div>';
 ov.innerHTML = html;
 ov.classList.add('open');
 }
