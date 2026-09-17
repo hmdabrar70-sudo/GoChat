@@ -20834,124 +20834,8 @@ function gcDlHide(which){
   el.classList.remove('is-done');
   el.setAttribute('aria-hidden','true');
 }
-
-/** Detect Android WebView / APK wrapper (third-party converters). */
-function gcIsLikelyWebView(){
-  try{
-    var ua = navigator.userAgent || '';
-    // Explicit WebView token (Android)
-    if (/; wv\)/i.test(ua) || /\bwv\b/i.test(ua)) return true;
-    // Common native bridges injected by APK wrappers
-    if (window.Android || window.AndroidInterface || window.AndroidWebView) return true;
-    if (window.webView || window.WebView || window.ReactNativeWebView) return true;
-    if (window.flutter_inappwebview || window.webkit && window.webkit.messageHandlers) {
-      // iOS WKWebView / Flutter — treat as constrained webview
-      if (/iPhone|iPad|iPod/i.test(ua) && !(/Safari\//.test(ua) && /Version\//.test(ua))) return true;
-    }
-    // Android without standard Chrome markers often = WebView
-    if (/Android/i.test(ua)) {
-      // Chrome real browser has "Chrome/xx" and usually not "; wv)"
-      // Many wrappers still expose Chrome in UA but lack full download support
-      if (!/Chrome\//i.test(ua) && !/Firefox\//i.test(ua)) return true;
-      // Standalone display mode (TWA / installed) — prefer WebView path
-      if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) return true;
-      if (window.navigator.standalone === true) return true;
-    }
-  }catch(e){}
-  return false;
-}
-
-function gcCloudinaryAttachmentUrl(url, filename){
-  if(!url || url.indexOf('cloudinary.com') === -1) return url;
-  var baseName = (filename || 'GoChat_Photo').replace(/\.[a-z0-9]+$/i, '').replace(/[^a-zA-Z0-9_-]/g, '_') || 'GoChat_Photo';
-  // strip existing fl_attachment
-  var out = url.replace(/\/upload\/fl_attachment:[^/]+\//, '/upload/');
-  if (out.indexOf('/upload/') !== -1 && out.indexOf('fl_attachment') === -1) {
-    out = out.replace('/upload/', '/upload/fl_attachment:' + baseName + '/');
-  }
-  return out;
-}
-
-function gcTriggerBlobDownload(blob, filename){
-  try{
-    var blobUrl = URL.createObjectURL(blob);
-    var a = document.createElement('a');
-    a.style.display = 'none';
-    a.href = blobUrl;
-    a.download = filename || ('GoChat_' + Date.now() + '.jpg');
-    a.setAttribute('download', a.download);
-    document.body.appendChild(a);
-    a.click();
-    setTimeout(function(){
-      try{ URL.revokeObjectURL(blobUrl); }catch(e){}
-      try{ a.remove(); }catch(e){}
-    }, 2000);
-    return true;
-  }catch(e){
-    return false;
-  }
-}
-
-/** Data-URL anchor — some WebViews accept this better than blob: */
-function gcTriggerDataUrlDownload(blob, filename){
-  return new Promise(function(resolve){
-    try{
-      var reader = new FileReader();
-      reader.onload = function(){
-        try{
-          var a = document.createElement('a');
-          a.style.display = 'none';
-          a.href = reader.result;
-          a.download = filename || ('GoChat_' + Date.now() + '.jpg');
-          document.body.appendChild(a);
-          a.click();
-          setTimeout(function(){ try{ a.remove(); }catch(e){} }, 2000);
-          resolve(true);
-        }catch(e){ resolve(false); }
-      };
-      reader.onerror = function(){ resolve(false); };
-      // Skip huge files (>12MB) to avoid memory issues
-      if (blob.size > 12 * 1024 * 1024) { resolve(false); return; }
-      reader.readAsDataURL(blob);
-    }catch(e){ resolve(false); }
-  });
-}
-
-/**
- * WebView / APK-safe download:
- * 1) Cloudinary fl_attachment via hidden iframe (triggers onDownloadStart in many wrappers)
- * 2) Same URL via <a download> with real https URL (not blob)
- * 3) Last resort: window.open
- * Does NOT navigate the main page away.
- */
-function gcWebViewSafeDownload(url, filename){
-  var target = gcCloudinaryAttachmentUrl(url, filename);
-  try{
-    // Hidden iframe — preferred for APK WebViews that listen to subresource/nav downloads
-    var iframe = document.createElement('iframe');
-    iframe.style.cssText = 'position:fixed;width:0;height:0;border:0;left:-9999px;top:-9999px;opacity:0;pointer-events:none;';
-    iframe.setAttribute('aria-hidden','true');
-    iframe.src = target;
-    document.body.appendChild(iframe);
-    setTimeout(function(){ try{ iframe.remove(); }catch(e){} }, 8000);
-  }catch(e){}
-
-  try{
-    var a = document.createElement('a');
-    a.style.display = 'none';
-    a.href = target;
-    a.download = filename || 'GoChat_Photo.jpg';
-    a.setAttribute('download', a.download);
-    a.rel = 'noopener';
-    // Some wrappers need target=_blank to fire download intent
-    a.target = '_blank';
-    document.body.appendChild(a);
-    a.click();
-    setTimeout(function(){ try{ a.remove(); }catch(e){} }, 2000);
-  }catch(e){}
-}
-
 async function gcFetchBlobWithProgress(url, onProgress){
+  // Prefer real progress via ReadableStream; fall back to simulated
   var res = await fetch(url, { mode: 'cors', credentials: 'omit', cache: 'no-store' });
   if(!res.ok) throw new Error('HTTP ' + res.status);
   var total = parseInt(res.headers.get('content-length') || '0', 10);
@@ -20980,11 +20864,19 @@ async function gcFetchBlobWithProgress(url, onProgress){
   if(onProgress) onProgress(100);
   return new Blob(chunks, { type: res.headers.get('content-type') || 'application/octet-stream' });
 }
-
-/**
- * Hybrid download: works in Chrome browser AND typical APK WebView wrappers.
- * UI overlay always runs; actual file save uses the best path per environment.
- */
+function gcTriggerBlobDownload(blob, filename){
+  var blobUrl = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.style.display = 'none';
+  a.href = blobUrl;
+  a.download = filename || ('GoChat_' + Date.now() + '.jpg');
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(function(){
+    try{ URL.revokeObjectURL(blobUrl); }catch(e){}
+    try{ a.remove(); }catch(e){}
+  }, 1500);
+}
 async function gcDownloadMedia(url, opts){
   opts = opts || {};
   var which = opts.which || 'zoom';
@@ -20995,62 +20887,38 @@ async function gcDownloadMedia(url, opts){
     return;
   }
   gcDlShow(which);
-  gcDlProgress(which, 3);
-
-  var fetchUrl = url;
-  if(fetchUrl.indexOf('fl_attachment') !== -1){
-    fetchUrl = fetchUrl.replace(/\/upload\/fl_attachment:[^/]+\//, '/upload/');
-  }
-
-  var inWebView = gcIsLikelyWebView();
-
-  // Simulated progress while network works (WebView path may not expose stream progress)
-  var progTimer = null;
-  var fake = 3;
-  if(inWebView){
-    progTimer = setInterval(function(){
-      fake = Math.min(88, fake + 7 + Math.random() * 6);
-      gcDlProgress(which, fake);
-    }, 180);
-  }
-
+  gcDlProgress(which, 2);
   try{
-    if(inWebView){
-      // APK / WebView: do NOT rely on blob: URLs — they almost never save to gallery
-      // Fire attachment/iframe download immediately, keep UI feedback
-      gcWebViewSafeDownload(url, filename);
-      // Also try fetch→dataURL as extra chance (small images)
-      try{
-        var blobWv = await gcFetchBlobWithProgress(fetchUrl, function(p){
-          if(!progTimer) gcDlProgress(which, p);
-        });
-        await gcTriggerDataUrlDownload(blobWv, filename);
-      }catch(eFetch){
-        // ignore — iframe/anchor path already fired
-      }
-      if(progTimer){ clearInterval(progTimer); progTimer = null; }
-      gcDlProgress(which, 100);
-      gcDlSaved(which);
-      return;
+    // Strip fl_attachment for clean fetch; re-add only for fallback navigation
+    var fetchUrl = url;
+    if(fetchUrl.indexOf('fl_attachment') !== -1){
+      fetchUrl = fetchUrl.replace(/\/upload\/fl_attachment:[^/]+\//, '/upload/');
     }
-
-    // Desktop / Chrome mobile browser path
     var blob = await gcFetchBlobWithProgress(fetchUrl, function(p){ gcDlProgress(which, p); });
     gcTriggerBlobDownload(blob, filename);
-    // Extra safety: also fire Cloudinary attachment in background (helps some in-app browsers)
-    if(url.indexOf('cloudinary.com') !== -1){
-      try{ gcWebViewSafeDownload(url, filename); }catch(e){}
-    }
     gcDlSaved(which);
   } catch(err){
-    console.warn('gcDownloadMedia error', err);
-    if(progTimer){ clearInterval(progTimer); progTimer = null; }
-    // Last resort for any environment
+    console.warn('gcDownloadMedia fetch failed, fallback', err);
+    // Fallback: Cloudinary attachment redirect (may leave page in some WebViews)
     try{
-      gcWebViewSafeDownload(url, filename);
+      var fallback = url;
+      if(fallback.indexOf('cloudinary.com') !== -1 && fallback.indexOf('fl_attachment') === -1){
+        fallback = fallback.replace('/upload/', '/upload/fl_attachment:GoChat_Photo/');
+      }
+      // Still show Saved UX — browser/WebView will handle actual save
       gcDlProgress(which, 100);
       gcDlSaved(which);
-    }catch(e2){
+      setTimeout(function(){
+        var a = document.createElement('a');
+        a.href = fallback;
+        a.download = filename;
+        a.target = '_blank';
+        a.rel = 'noopener';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      }, 200);
+    } catch(e2){
       gcDlHide(which);
       showToast('Download failed');
     }
