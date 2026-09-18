@@ -194,15 +194,31 @@ html,body{overscroll-behavior:none;}
 
 
 /* ═══ FEATURE: profile · other content tabs (Media / Gallery / Status) ═══ */
+
+/* Other profile · no divider under sticky topbar */
+#page-other-profile > .chat-topbar{
+  border-bottom: none !important;
+  box-shadow: none !important;
+}
+#page-other-profile > .chat-topbar::after,
+#page-other-profile > .chat-topbar::before{
+  display: none !important;
+  content: none !important;
+}
+
 .other-profile-content-tabs{
   display:flex; width:100%;
 }
-.other-profile-content-tabs .op-tab{
+.other-profile-content-tabs .op-tab,
+#my-profile-tabs .op-tab,
+#other-profile-tabs .op-tab{
   flex:1;
   background:transparent;
   border:none;
-  border-top:2px solid transparent;
-  margin-top:-1px;
+  border-top:none !important;
+  border-bottom:2px solid transparent;
+  margin-top:0;
+  margin-bottom:-1px;
   padding:12px 8px;
   font-size:14px;
   font-weight:700;
@@ -211,10 +227,28 @@ html,body{overscroll-behavior:none;}
   font-family:inherit;
   transition:color .2s, border-color .2s;
 }
-.other-profile-content-tabs .op-tab.active{
+.other-profile-content-tabs .op-tab.active,
+#my-profile-tabs .op-tab.active,
+#other-profile-tabs .op-tab.active{
   color:var(--text);
-  border-top-color:var(--text);
+  border-top-color:transparent !important;
+  border-bottom-color:var(--text);
 }
+/* Single separator under profile content tabs (light + dark) */
+.other-profile-content-tabs,
+#my-profile-tabs,
+#other-profile-tabs{
+  border-top:none !important;
+  border-bottom:1px solid var(--border) !important;
+  box-shadow:none !important;
+}
+body:not(.light-mode) .other-profile-content-tabs,
+body:not(.light-mode) #my-profile-tabs,
+body:not(.light-mode) #other-profile-tabs{
+  border-bottom:1px solid var(--border) !important;
+  box-shadow:none !important;
+}
+
 .other-profile-content-tabs .op-tab:active{ opacity:.75; }
 
 
@@ -6083,23 +6117,20 @@ body:not(.light-mode) .gc-op-btn-rank{
     -webkit-overflow-scrolling:touch;
 }
 .gc-fl-tabs{
-    display:flex; gap:0;
-    border-bottom:1px solid var(--border);
-    padding:0 16px;
+    display:flex;
+    justify-content:flex-start;
+    align-items:center;
+    border-bottom:none;
+    padding:10px 16px 12px;
     flex-shrink:0;
+    background:var(--bg);
 }
-.gc-fl-tab{
-    flex:1; text-align:center;
-    padding:12px 8px 10px;
-    font-size:14.5px; font-weight:700;
-    color:var(--text-muted);
-    cursor:pointer;
-    border-bottom:2.5px solid transparent;
-    transition:color .2s ease, border-color .2s ease;
+.gc-fl-tabs .t-tabs{
+    /* reuse notification sliding-pill tabs */
 }
-.gc-fl-tab.active{
-    color:var(--text);
-    border-bottom-color:var(--accent);
+.gc-fl-tab.active,
+#gc-fl-tabs .t-tab.active{
+    color:var(--text) !important;
 }
 
 .activity-item-card {
@@ -12467,8 +12498,11 @@ body:not(.light-mode) .sp-comment-compose button.is-ready{
 </div>
 <!-- 🚀 followers-following-merge · 2026-09-04 — একই স্ক্রিনে দুই ট্যাব -->
 <div class="gc-fl-tabs" id="gc-fl-tabs">
-    <div class="gc-fl-tab" id="gc-fl-tab-followers" onclick="gcSwitchFollowTab('followers')">Followers</div>
-    <div class="gc-fl-tab" id="gc-fl-tab-following" onclick="gcSwitchFollowTab('following')">Following</div>
+    <div class="t-tabs" id="fl-t-tabs" role="tablist">
+        <span class="t-tabs-pill" id="fl-t-pill" aria-hidden="true"></span>
+        <button type="button" class="t-tab act-tab" role="tab" aria-selected="false" id="gc-fl-tab-followers" data-fl="followers" onclick="gcSwitchFollowTab('followers')">Followers</button>
+        <button type="button" class="t-tab act-tab" role="tab" aria-selected="false" id="gc-fl-tab-following" data-fl="following" onclick="gcSwitchFollowTab('following')">Following</button>
+    </div>
 </div>
 <div id="friends-list-container" class="gc-fl-body"></div>
 </div>
@@ -12776,13 +12810,6 @@ body:not(.light-mode) .sp-comment-compose button.is-ready{
                 </div>
                 
 
-                <div class="settings-list-item" onclick="toggleDarkMode()">
-                    <div style="display:flex; align-items:center; gap:16px;">
-                        <i class="ph-light ph-moon-stars"></i>
-                        <span style="font-weight:600; font-size:15px;">Dark Mode</span>
-                    </div>
-                    <div id="dark-mode-toggle" class="toggle-switch"></div>
-                </div>
             </div>
         </div>
 
@@ -12831,7 +12858,34 @@ body:not(.light-mode) .sp-comment-compose button.is-ready{
             </div>
             <i class="ph-light ph-caret-right"></i>
         </div>
+        
+        <!-- About us · Coming soon -->
+        <div class="settings-list-item" onclick="if(typeof gcComingSoon==='function'){gcComingSoon('About us');}else{showToast('About us — Coming soon');}">
+            <div style="display:flex; align-items:center; gap:16px;">
+                <i class="ph-light ph-info"></i>
+                <span style="font-weight:600; font-size:15px;">About us</span>
+            </div>
+            <i class="ph-light ph-caret-right"></i>
+        </div>
 
+        <!-- 🔥Language · Coming soon -->
+        <div class="settings-list-item" onclick="if(typeof gcComingSoon==='function'){gcComingSoon('Language');}else{showToast('Language — Coming soon');}">
+            <div style="display:flex; align-items:center; gap:16px;">
+                <i class="ph-light ph-globe"></i>
+                <span style="font-weight:600; font-size:15px;">Language</span>
+            </div>
+            <i class="ph-light ph-caret-right"></i>
+        </div>
+
+<!-- 🔥Dark Mode · moved from Settings & Privacy to main menu -->
+        <div class="settings-list-item" onclick="toggleDarkMode()">
+            <div style="display:flex; align-items:center; gap:16px;">
+                <i class="ph-light ph-moon-stars"></i>
+                <span style="font-weight:600; font-size:15px;">Dark Mode</span>
+            </div>
+            <div id="dark-mode-toggle" class="toggle-switch"></div>
+        </div>
+        
         <!-- 🚀 Switch Account — wired to gcOpenSwitchSheet -->
         <div class="settings-list-item" onclick="if(typeof gcOpenSwitchSheet==='function'){gcOpenSwitchSheet();}else{showToast('Switch Account unavailable');}">
             <div style="display:flex; align-items:center; gap:16px;">
@@ -14584,7 +14638,7 @@ try{
   }
 }catch(e){ console.warn('username index auto-sync failed', e); }
 
-// 🚀 ডাটাবেস লোড হয়ে গেলে টাইমার ক্যানসেল করে সাথে সাথেই স্প্ল্যাশ সরিয়ে দেবে
+// ?? ডাটাবেস লোড হয়ে গেলে টাইমার ক্যানসেল করে সাথে সাথেই স্প্ল্যাশ সরিয়ে দেবে
 clearTimeout(splashFallbackTimer);
 removeSplash();
 cleanupPrivateChatsOnLoad(); 
@@ -23463,11 +23517,38 @@ async function openFollowList(type, uid) {
 function gcRenderFollowTabsUI(activeType){
     const fTab = document.getElementById('gc-fl-tab-followers');
     const gTab = document.getElementById('gc-fl-tab-following');
-    if(fTab) fTab.classList.toggle('active', activeType === 'followers');
-    if(gTab) gTab.classList.toggle('active', activeType === 'following');
+    if(fTab){
+      fTab.classList.toggle('active', activeType === 'followers');
+      fTab.setAttribute('aria-selected', activeType === 'followers' ? 'true' : 'false');
+    }
+    if(gTab){
+      gTab.classList.toggle('active', activeType === 'following');
+      gTab.setAttribute('aria-selected', activeType === 'following' ? 'true' : 'false');
+    }
     const title = document.getElementById('gc-fl-head-title');
     if(title) title.textContent = activeType === 'following' ? 'Following' : 'Followers';
+    var activeBtn = activeType === 'following' ? gTab : fTab;
+    if(activeBtn && typeof gcMoveFlTabPill === 'function'){
+      requestAnimationFrame(function(){ gcMoveFlTabPill(activeBtn, true); });
+    }
 }
+function gcMoveFlTabPill(tabEl, animate){
+  try{
+    var bar = document.getElementById('fl-t-tabs');
+    var pill = document.getElementById('fl-t-pill');
+    if(!bar || !pill || !tabEl) return;
+    if(animate === false){
+      pill.style.transition = 'none';
+    }
+    pill.style.transform = 'translateX(' + tabEl.offsetLeft + 'px)';
+    pill.style.width = tabEl.offsetWidth + 'px';
+    if(animate === false){
+      void pill.offsetWidth;
+      pill.style.transition = '';
+    }
+  }catch(e){}
+}
+window.gcMoveFlTabPill = gcMoveFlTabPill;
 
 async function gcSwitchFollowTab(type){
     if(!gcFollowListUid) return;
