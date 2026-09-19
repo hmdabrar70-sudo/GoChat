@@ -11156,7 +11156,31 @@ body:not(.light-mode) .sp-comment-compose button.is-ready{
 /* Hugeicons compatibility for remaining icon replacements */
 .hgi{display:inline-flex;align-items:center;justify-content:center;line-height:1;vertical-align:middle;flex-shrink:0;box-sizing:border-box;}
 </style>
-<style>/* Hugeicons compatibility for v3 remaining icon replacements */ .hgi{display:inline-flex;align-items:center;justify-content:center;line-height:1;vertical-align:middle;flex-shrink:0;box-sizing:border-box;}</style>
+<style>/* Hugeicons compatibility for v3 remaining icon replacements */ .hgi{display:inline-flex;align-items:center;justify-content:center;line-height:1;vertical-align:middle;flex-shrink:0;box-sizing:border-box;}
+/* Language picker */
+.gc-lang-opt {
+  display:flex; align-items:center; gap:14px;
+  padding:14px 16px; border-radius:14px;
+  background:var(--surface); border:1.5px solid var(--border);
+  cursor:pointer; transition:border-color .15s, background .15s;
+}
+.gc-lang-opt.active {
+  border-color: #1DA1F2;
+  background: color-mix(in srgb, #1DA1F2 8%, var(--surface));
+}
+.gc-lang-opt .gc-lang-flag { font-size:22px; line-height:1; width:28px; text-align:center; }
+.gc-lang-opt .gc-lang-name { flex:1; font-weight:600; font-size:15px; color:var(--text); }
+.gc-lang-opt .gc-lang-native { font-size:12px; color:var(--text-secondary); font-weight:500; }
+.gc-lang-opt .gc-lang-check {
+  width:22px; height:22px; border-radius:50%;
+  border:2px solid var(--border); display:flex; align-items:center; justify-content:center;
+  flex-shrink:0;
+}
+.gc-lang-opt.active .gc-lang-check {
+  border-color:#1DA1F2; background:#1DA1F2; color:#fff;
+}
+
+</style>
 </head>
 <body>
 <!-- Splash Screen HTML -->
@@ -12858,7 +12882,16 @@ body:not(.light-mode) .sp-comment-compose button.is-ready{
             </div>
             <i class="ph-light ph-caret-right"></i>
         </div>
-        
+
+        <!-- Dark Mode · moved from Settings & Privacy to main menu -->
+        <div class="settings-list-item" onclick="toggleDarkMode()">
+            <div style="display:flex; align-items:center; gap:16px;">
+                <i class="ph-light ph-moon-stars"></i>
+                <span style="font-weight:600; font-size:15px;">Dark Mode</span>
+            </div>
+            <div id="dark-mode-toggle" class="toggle-switch"></div>
+        </div>
+
         <!-- About us · Coming soon -->
         <div class="settings-list-item" onclick="if(typeof gcComingSoon==='function'){gcComingSoon('About us');}else{showToast('About us — Coming soon');}">
             <div style="display:flex; align-items:center; gap:16px;">
@@ -12868,8 +12901,8 @@ body:not(.light-mode) .sp-comment-compose button.is-ready{
             <i class="ph-light ph-caret-right"></i>
         </div>
 
-        <!-- 🔥Language · Coming soon -->
-        <div class="settings-list-item" onclick="if(typeof gcComingSoon==='function'){gcComingSoon('Language');}else{showToast('Language — Coming soon');}">
+        <!-- Language -->
+        <div class="settings-list-item" onclick="if(typeof closeMainMenu==='function')closeMainMenu();if(typeof openLanguagePage==='function'){openLanguagePage();}else{showToast('Language');}">
             <div style="display:flex; align-items:center; gap:16px;">
                 <i class="ph-light ph-globe"></i>
                 <span style="font-weight:600; font-size:15px;">Language</span>
@@ -12877,15 +12910,6 @@ body:not(.light-mode) .sp-comment-compose button.is-ready{
             <i class="ph-light ph-caret-right"></i>
         </div>
 
-<!-- 🔥Dark Mode · moved from Settings & Privacy to main menu -->
-        <div class="settings-list-item" onclick="toggleDarkMode()">
-            <div style="display:flex; align-items:center; gap:16px;">
-                <i class="ph-light ph-moon-stars"></i>
-                <span style="font-weight:600; font-size:15px;">Dark Mode</span>
-            </div>
-            <div id="dark-mode-toggle" class="toggle-switch"></div>
-        </div>
-        
         <!-- 🚀 Switch Account — wired to gcOpenSwitchSheet -->
         <div class="settings-list-item" onclick="if(typeof gcOpenSwitchSheet==='function'){gcOpenSwitchSheet();}else{showToast('Switch Account unavailable');}">
             <div style="display:flex; align-items:center; gap:16px;">
@@ -14638,7 +14662,7 @@ try{
   }
 }catch(e){ console.warn('username index auto-sync failed', e); }
 
-// ?? ডাটাবেস লোড হয়ে গেলে টাইমার ক্যানসেল করে সাথে সাথেই স্প্ল্যাশ সরিয়ে দেবে
+// 🚀 ডাটাবেস লোড হয়ে গেলে টাইমার ক্যানসেল করে সাথে সাথেই স্প্ল্যাশ সরিয়ে দেবে
 clearTimeout(splashFallbackTimer);
 removeSplash();
 cleanupPrivateChatsOnLoad(); 
@@ -14865,7 +14889,7 @@ notifUnsub = db.collection('notifications').where('toUid', '==', user.uid).onSna
 
     function gcNotifTypeMeta(t){
       t = t || '';
-      if(t === 'like') return {cls:'like', icon:'hgi hgi-stroke hgi-standard hgi-hands-clapping'};
+      if(t === 'like') return {cls:'like', icon:'ph-fill ph-thumbs-up'};
       if(t === 'comment') return {cls:'comment', icon:'hgi hgi-stroke hgi-standard hgi-bubble-chat'};
       if(t === 'follow' || t === 'friend_request' || t === 'request_accepted') return {cls:'follow', icon:'hgi hgi-stroke hgi-standard hgi-user-add-02'};
       if(t === 'tag') return {cls:'tag', icon:'ph-light ph-at'};
@@ -16929,7 +16953,7 @@ async function toggleLike(pid) {
 
         if (isCurrentlyLiked) {
             btn.classList.remove('liked');
-            if (icon) icon.className = 'hgi hgi-stroke hgi-standard hgi-hands-clapping';
+            if (icon) icon.className = 'ph-light ph-thumbs-up';
             if (countSpan) {
                 var nextDown = Math.max(0, currentLikes - 1);
                 gcPhysicsLikeCount(countSpan, nextDown);
@@ -16938,7 +16962,7 @@ async function toggleLike(pid) {
         } else {
             btn.classList.add('liked');
             if (icon) {
-                icon.className = 'hgi hgi-stroke hgi-standard hgi-hands-clapping';
+                icon.className = 'ph-fill ph-thumbs-up';
                 void icon.offsetWidth;
             }
             /* just-liked removed */
@@ -16967,11 +16991,11 @@ async function toggleLike(pid) {
             }
             var wasLiked = !!(zIcon && zIcon.classList.contains('ph-fill'));
             if (wasLiked) {
-                if (zIcon) { zIcon.className = 'hgi hgi-stroke hgi-standard hgi-hands-clapping'; zIcon.style.color = '#fff'; }
+                if (zIcon) { zIcon.className = 'ph-light ph-thumbs-up'; zIcon.style.color = '#fff'; }
                 if (zSpan) gcPhysicsLikeCount(zSpan, Math.max(0, zLikes - 1));
                 if (zIcon) gcLikeIconPhysics(zIcon);
             } else {
-                if (zIcon) { zIcon.className = 'hgi hgi-stroke hgi-standard hgi-hands-clapping'; zIcon.style.color = '#1DA1F2'; }
+                if (zIcon) { zIcon.className = 'ph-fill ph-thumbs-up'; zIcon.style.color = '#1DA1F2'; }
                 if (zSpan) gcPhysicsLikeCount(zSpan, zLikes + 1);
                 if (zIcon) gcLikeIconPhysics(zIcon);
             }
@@ -20092,7 +20116,7 @@ async function openSinglePostView(pid) {
                   }
                   var likeIcon = likeBtn.querySelector('i');
                   if (likeIcon) {
-                    var want = isLiked ? 'hgi hgi-stroke hgi-standard hgi-hands-clapping' : 'hgi hgi-stroke hgi-standard hgi-hands-clapping';
+                    var want = isLiked ? 'ph-fill ph-thumbs-up' : 'ph-light ph-thumbs-up';
                     if (likeIcon.className !== want) likeIcon.className = want;
                   }
                 }
@@ -20605,16 +20629,18 @@ function loadFeed() {
                     if (likeBtn && likeIcon) {
                       if (p.likedBy && p.likedBy.includes(currentUser?.uid)) {
                           likeBtn.classList.add('liked');
-                          likeIcon.className = 'hgi hgi-stroke hgi-standard hgi-hands-clapping';
+                          likeIcon.className = 'ph-fill ph-thumbs-up';
+                          likeIcon.style.fontSize = '24px';
                       } else {
                           likeBtn.classList.remove('liked');
-                          likeIcon.className = 'hgi hgi-stroke hgi-standard hgi-hands-clapping';
+                          likeIcon.className = 'ph-light ph-thumbs-up';
+                          likeIcon.style.fontSize = '24px';
                       }
                     }
                 } else {
                     const likeCountEl = existingCard.querySelector('[data-count="likes"]') || existingCard.querySelector('.grid-post-overlay > div:nth-child(2)');
                     if(likeCountEl) {
-                        likeCountEl.innerHTML = `<i class="hgi hgi-stroke hgi-standard hgi-hands-clapping" style="font-size:15px; ${p.likedBy && p.likedBy.includes(currentUser?.uid) ? 'color:#1DA1F2;' : ''}"></i> ${gcFmtCount(p.likes || 0)}`;
+                        likeCountEl.innerHTML = `<i class="${p.likedBy && p.likedBy.includes(currentUser?.uid) ? 'ph-fill' : 'ph-light'} ph-thumbs-up" style="font-size:15px; ${p.likedBy && p.likedBy.includes(currentUser?.uid) ? 'color:#1DA1F2;' : ''}"></i> ${gcFmtCount(p.likes || 0)}`;
                     }
                 }
             } else {
@@ -33033,6 +33059,414 @@ window.gcCloseSheetSafe = gcCloseSheetSafe;
     document.body.classList.add('light-mode');
   }
 })();
+
+
+/* ========== LANGUAGE SYSTEM ========== */
+window.__gcLang = localStorage.getItem('gc-lang') || 'en';
+window.__gcLangDict = {
+  en: {
+    language: 'Language',
+    language_hint: 'Choose your preferred language',
+    home: 'Home',
+    notifications: 'Notifications',
+    messages: 'Messages',
+    profile: 'Profile',
+    search: 'Search',
+    settings: 'Settings & Privacy',
+    dark_mode: 'Dark Mode',
+    light_mode: 'Light Mode',
+    switch_account: 'Switch Account',
+    about_us: 'About us',
+    coming_soon: 'Coming soon',
+    followers: 'Followers',
+    following: 'Following',
+    edit_profile: 'Edit Profile',
+    logout: 'Log out',
+    post: 'Post',
+    comment: 'Comment',
+    share: 'Share',
+    like: 'Like',
+    save: 'Save',
+    cancel: 'Cancel',
+    done: 'Done',
+    next: 'Next',
+    back: 'Back',
+    create_story: 'Create story',
+    no_posts: 'No posts yet',
+    refreshing: 'Refreshing...',
+    menu: 'Menu',
+    leaderboard: 'Leaderboard',
+    support: 'Support',
+    personal_details: 'Personal Details',
+    privacy: 'Privacy',
+    account: 'Account',
+    saved: 'Saved',
+    suggested: 'Suggested for you',
+    all: 'All',
+    mentions: 'Mentions',
+    follows: 'Follows',
+    public: 'Public',
+    only_followers: 'Only followers',
+    lang_saved: 'Language updated'
+  },
+  bn: {
+    language: 'ভাষা',
+    language_hint: 'আপনার পছন্দের ভাষা বেছে নিন',
+    home: 'হোম',
+    notifications: 'নোটিফিকেশন',
+    messages: 'মেসেজ',
+    profile: 'প্রোফাইল',
+    search: 'সার্চ',
+    settings: 'সেটিংস ও প্রাইভেসি',
+    dark_mode: 'ডার্ক মোড',
+    light_mode: 'লাইট মোড',
+    switch_account: 'অ্যাকাউন্ট পরিবর্তন',
+    about_us: 'আমাদের সম্পর্কে',
+    coming_soon: 'শীঘ্রই আসছে',
+    followers: 'ফলোয়ার',
+    following: 'ফলোয়িং',
+    edit_profile: 'প্রোফাইল এডিট',
+    logout: 'লগ আউট',
+    post: 'পোস্ট',
+    comment: 'কমেন্ট',
+    share: 'শেয়ার',
+    like: 'লাইক',
+    save: 'সেভ',
+    cancel: 'বাতিল',
+    done: 'হয়ে গেছে',
+    next: 'পরবর্তী',
+    back: 'পিছনে',
+    create_story: 'স্টোরি তৈরি',
+    no_posts: 'এখনো কোনো পোস্ট নেই',
+    refreshing: 'রিফ্রেশ হচ্ছে...',
+    menu: 'মেনু',
+    leaderboard: 'লিডারবোর্ড',
+    support: 'সাপোর্ট',
+    personal_details: 'পার্সোনাল ডিটেইলস',
+    privacy: 'প্রাইভেসি',
+    account: 'অ্যাকাউন্ট',
+    saved: 'সেভ করা',
+    suggested: 'আপনার জন্য সাজেস্ট',
+    all: 'সব',
+    mentions: 'মেনশন',
+    follows: 'ফলো',
+    public: 'পাবলিক',
+    only_followers: 'শুধু ফলোয়াররা',
+    lang_saved: 'ভাষা আপডেট হয়েছে'
+  },
+  hi: {
+    language: 'भाषा',
+    language_hint: 'अपनी पसंदीदा भाषा चुनें',
+    home: 'होम',
+    notifications: 'सूचनाएँ',
+    messages: 'संदेश',
+    profile: 'प्रोफ़ाइल',
+    search: 'खोज',
+    settings: 'सेटिंग्स और गोपनीयता',
+    dark_mode: 'डार्क मोड',
+    light_mode: 'लाइट मोड',
+    switch_account: 'अकाउंट बदलें',
+    about_us: 'हमारे बारे में',
+    coming_soon: 'जल्द आ रहा है',
+    followers: 'फ़ॉलोअर्स',
+    following: 'फ़ॉलोइंग',
+    edit_profile: 'प्रोफ़ाइल संपादित करें',
+    logout: 'लॉग आउट',
+    post: 'पोस्ट',
+    comment: 'कमेंट',
+    share: 'शेयर',
+    like: 'लाइक',
+    save: 'सेव',
+    cancel: 'रद्द',
+    done: 'हो गया',
+    next: 'आगे',
+    back: 'पीछे',
+    create_story: 'स्टोरी बनाएँ',
+    no_posts: 'अभी कोई पोस्ट नहीं',
+    refreshing: 'रिफ्रेश हो रहा है...',
+    menu: 'मेनू',
+    leaderboard: 'लीडरबोर्ड',
+    support: 'सहायता',
+    personal_details: 'व्यक्तिगत विवरण',
+    privacy: 'गोपनीयता',
+    account: 'अकाउंट',
+    saved: 'सेव्ड',
+    suggested: 'आपके लिए सुझाव',
+    all: 'सभी',
+    mentions: 'मेंशन',
+    follows: 'फ़ॉलो',
+    public: 'पब्लिक',
+    only_followers: 'केवल फ़ॉलोअर्स',
+    lang_saved: 'भाषा अपडेट हो गई'
+  },
+  ur: {
+    language: 'زبان',
+    language_hint: 'اپنی پسندیدہ زبان منتخب کریں',
+    home: 'ہوم',
+    notifications: 'نوٹیفیکیشنز',
+    messages: 'میسیجز',
+    profile: 'پروفائل',
+    search: 'تلاش',
+    settings: 'سیٹنگز اور پرائیویسی',
+    dark_mode: 'ڈارک موڈ',
+    light_mode: 'لائٹ موڈ',
+    switch_account: 'اکاؤنٹ تبدیل کریں',
+    about_us: 'ہمارے بارے میں',
+    coming_soon: 'جلد آرہا ہے',
+    followers: 'فالوورز',
+    following: 'فالوئنگ',
+    edit_profile: 'پروفائل ایڈٹ',
+    logout: 'لاگ آؤٹ',
+    post: 'پوسٹ',
+    comment: 'کمنٹ',
+    share: 'شیئر',
+    like: 'لائک',
+    save: 'محفوظ',
+    cancel: 'منسوخ',
+    done: 'ہو گیا',
+    next: 'اگلا',
+    back: 'پیچھے',
+    create_story: 'اسٹوری بنائیں',
+    no_posts: 'ابھی کوئی پوسٹ نہیں',
+    refreshing: 'ریفریش ہو رہا ہے...',
+    menu: 'مینو',
+    leaderboard: 'لیڈر بورڈ',
+    support: 'سپورٹ',
+    personal_details: 'ذاتی تفصیلات',
+    privacy: 'پرائیویسی',
+    account: 'اکاؤنٹ',
+    saved: 'محفوظ شدہ',
+    suggested: 'آپ کے لیے تجاویز',
+    all: 'سب',
+    mentions: 'مینشن',
+    follows: 'فالو',
+    public: 'پبلک',
+    only_followers: 'صرف فالوورز',
+    lang_saved: 'زبان اپ ڈیٹ ہو گئی'
+  },
+  ar: {
+    language: 'اللغة',
+    language_hint: 'اختر لغتك المفضلة',
+    home: 'الرئيسية',
+    notifications: 'الإشعارات',
+    messages: 'الرسائل',
+    profile: 'الملف الشخصي',
+    search: 'بحث',
+    settings: 'الإعدادات والخصوصية',
+    dark_mode: 'الوضع الداكن',
+    light_mode: 'الوضع الفاتح',
+    switch_account: 'تبديل الحساب',
+    about_us: 'من نحن',
+    coming_soon: 'قريبًا',
+    followers: 'المتابعون',
+    following: 'يتابع',
+    edit_profile: 'تعديل الملف',
+    logout: 'تسجيل الخروج',
+    post: 'منشور',
+    comment: 'تعليق',
+    share: 'مشاركة',
+    like: 'إعجاب',
+    save: 'حفظ',
+    cancel: 'إلغاء',
+    done: 'تم',
+    next: 'التالي',
+    back: 'رجوع',
+    create_story: 'إنشاء قصة',
+    no_posts: 'لا توجد منشورات بعد',
+    refreshing: 'جارٍ التحديث...',
+    menu: 'القائمة',
+    leaderboard: 'لوحة المتصدرين',
+    support: 'الدعم',
+    personal_details: 'التفاصيل الشخصية',
+    privacy: 'الخصوصية',
+    account: 'الحساب',
+    saved: 'المحفوظات',
+    suggested: 'مقترح لك',
+    all: 'الكل',
+    mentions: 'الإشارات',
+    follows: 'المتابعات',
+    public: 'عام',
+    only_followers: 'المتابعون فقط',
+    lang_saved: 'تم تحديث اللغة'
+  }
+};
+
+window.__gcLangMeta = [
+  { code: 'en', name: 'English', native: 'English', flag: '🇬🇧' },
+  { code: 'bn', name: 'Bangla', native: 'বাংলা', flag: '🇧🇩' },
+  { code: 'hi', name: 'Hindi', native: 'हिन्दी', flag: '🇮🇳' },
+  { code: 'ur', name: 'Urdu', native: 'اردو', flag: '🇵🇰' },
+  { code: 'ar', name: 'Arabic', native: 'العربية', flag: '🇸🇦' }
+];
+
+function gcT(key) {
+  var lang = window.__gcLang || 'en';
+  var dict = (window.__gcLangDict && window.__gcLangDict[lang]) || window.__gcLangDict.en;
+  if (dict && dict[key] != null) return dict[key];
+  if (window.__gcLangDict.en && window.__gcLangDict.en[key] != null) return window.__gcLangDict.en[key];
+  return key;
+}
+
+function openLanguagePage() {
+  if (typeof showPage === 'function') {
+    showPage('language');
+  } else {
+    var page = document.getElementById('page-language');
+    if (!page) return;
+    document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); });
+    page.classList.add('active');
+  }
+  gcRenderLangList();
+  try { window.scrollTo(0, 0); } catch(e) {}
+}
+
+function closeLanguagePage() {
+  var page = document.getElementById('page-language');
+  if (page) page.classList.remove('active');
+  // Back to feed + reopen main menu
+  if (typeof showPage === 'function') {
+    try { showPage('feed'); } catch(e) {}
+  }
+  if (typeof openMainMenu === 'function') {
+    try { setTimeout(openMainMenu, 50); return; } catch(e) {}
+  }
+  if (typeof showMainMenu === 'function') {
+    try { setTimeout(showMainMenu, 50); return; } catch(e) {}
+  }
+}
+
+function gcRenderLangList() {
+  var list = document.getElementById('gc-lang-list');
+  if (!list) return;
+  var cur = window.__gcLang || 'en';
+  list.innerHTML = (window.__gcLangMeta || []).map(function(L) {
+    var active = L.code === cur ? ' active' : '';
+    var check = L.code === cur
+      ? '<div class="gc-lang-check"><i class="ph-bold ph-check" style="font-size:12px;"></i></div>'
+      : '<div class="gc-lang-check"></div>';
+    return '<div class="gc-lang-opt' + active + '" onclick="gcSetLanguage(\'' + L.code + '\')">' +
+      '<span class="gc-lang-flag">' + L.flag + '</span>' +
+      '<div style="flex:1;min-width:0;">' +
+        '<div class="gc-lang-name">' + L.name + '</div>' +
+        '<div class="gc-lang-native">' + L.native + '</div>' +
+      '</div>' + check +
+    '</div>';
+  }).join('');
+}
+
+function gcSetLanguage(code) {
+  if (!window.__gcLangDict[code]) code = 'en';
+  window.__gcLang = code;
+  try { localStorage.setItem('gc-lang', code); } catch(e) {}
+  // RTL for Arabic / Urdu
+  try {
+    if (code === 'ar' || code === 'ur') {
+      document.documentElement.setAttribute('dir', 'rtl');
+      document.body.setAttribute('dir', 'rtl');
+    } else {
+      document.documentElement.setAttribute('dir', 'ltr');
+      document.body.setAttribute('dir', 'ltr');
+    }
+  } catch(e) {}
+  gcApplyLanguage();
+  gcRenderLangList();
+  if (typeof showToast === 'function') showToast(gcT('lang_saved'));
+}
+
+function gcApplyLanguage() {
+  // data-i18n attributes
+  document.querySelectorAll('[data-i18n]').forEach(function(el) {
+    var key = el.getAttribute('data-i18n');
+    if (!key) return;
+    var val = gcT(key);
+    if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
+      el.setAttribute('placeholder', val);
+    } else {
+      el.textContent = val;
+    }
+  });
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(function(el) {
+    var key = el.getAttribute('data-i18n-placeholder');
+    if (key) el.setAttribute('placeholder', gcT(key));
+  });
+
+  // Known static labels by text match (menu / settings)
+  var map = [
+    { sel: '.settings-list-item span', pairs: [
+      ['Settings & Privacy', 'settings'],
+      ['Dark Mode', 'dark_mode'],
+      ['Light Mode', 'light_mode'],
+      ['Switch Account', 'switch_account'],
+      ['About us', 'about_us'],
+      ['Language', 'language'],
+      ['Leaderboard', 'leaderboard'],
+      ['Support', 'support']
+    ]},
+  ];
+  // Soft text replace for common menu items (only exact match)
+  try {
+    document.querySelectorAll('.settings-list-item span, .menu-item span, .nav-label').forEach(function(el) {
+      var t = (el.textContent || '').trim();
+      var dict = window.__gcLangDict[window.__gcLang] || window.__gcLangDict.en;
+      var en = window.__gcLangDict.en;
+      // find key whose English equals current or any known
+      Object.keys(en).forEach(function(k) {
+        if (en[k] === t || (dict[k] && dict[k] === t)) {
+          el.textContent = gcT(k);
+        }
+      });
+    });
+  } catch(e) {}
+
+  // Refresh toast string used by refreshFeed
+  try {
+    if (typeof window.__gcRefreshToastKey === 'undefined') window.__gcRefreshToastKey = true;
+  } catch(e) {}
+}
+
+// Apply on load
+(function() {
+  try {
+    var saved = localStorage.getItem('gc-lang') || 'en';
+    window.__gcLang = saved;
+    if (saved === 'ar' || saved === 'ur') {
+      document.documentElement.setAttribute('dir', 'rtl');
+      document.body && document.body.setAttribute('dir', 'rtl');
+    }
+    // defer apply until DOM ready-ish
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', function(){ setTimeout(gcApplyLanguage, 50); });
+    } else {
+      setTimeout(gcApplyLanguage, 100);
+    }
+  } catch(e) {}
+})();
+
+// Patch refreshFeed toast to use i18n
+(function() {
+  var _rf = window.refreshFeed;
+  if (typeof _rf === 'function') {
+    window.refreshFeed = function() {
+      if (typeof showToast === 'function') showToast(gcT('refreshing'));
+      if (typeof loadFeed === 'function') loadFeed();
+      if (typeof loadStories === 'function') loadStories();
+    };
+  }
+})();
+
 </script>
+
+<!-- ========== LANGUAGE PAGE ========== -->
+<div id="page-language" class="page" style="flex-direction:column; background:var(--bg); min-height:100%;">
+  <div class="chat-topbar" style="position:sticky;top:0;z-index:20;background:var(--bg);border-bottom:none;">
+    <button type="button" class="icon-btn" onclick="closeLanguagePage()" aria-label="Back" style="background:transparent;border:none;padding:8px;">
+      <i class="ph-light ph-arrow-left" style="font-size:22px;color:var(--text);"></i>
+    </button>
+    <div style="flex:1;font-weight:700;font-size:17px;color:var(--text);" data-i18n="language">Language</div>
+  </div>
+  <div style="padding:12px 16px 8px;color:var(--text-secondary);font-size:13px;" data-i18n="language_hint">Choose your preferred language</div>
+  <div id="gc-lang-list" style="padding:4px 12px 24px;display:flex;flex-direction:column;gap:8px;"></div>
+</div>
+
 </body>
 </html>
