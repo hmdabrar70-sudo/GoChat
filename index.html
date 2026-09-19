@@ -4748,47 +4748,73 @@ Liked Posts পেজ (মেনুর ওভারলে)
 .gc-liked-screen{position:fixed;inset:0;background:var(--bg);z-index:100660;display:none;flex-direction:column;}
 .gc-liked-screen.open{display:flex;}
 
-/* ═══ Shorts · video feed · preserve original aspect ratio (no crop) ═══ */
+/* ═══ Shorts · Classic Standard / Reels-style realistic layout ═══ */
 .gc-shorts-screen{
   position:fixed; inset:0; z-index:100700;
   background:#000; display:none; flex-direction:column;
-  color:#fff;
+  color:#fff; overflow:hidden;
 }
 .gc-shorts-screen.open{ display:flex; }
+
 .gc-shorts-head{
-  position:absolute; top:0; left:0; right:0; z-index:5;
-  display:flex; align-items:center; gap:10px;
-  padding:10px 12px; padding-top:max(10px, env(safe-area-inset-top));
-  background:linear-gradient(to bottom, rgba(0,0,0,.55), transparent);
+  position:absolute; top:0; left:0; right:0; z-index:8;
+  height:74px;
+  display:grid; grid-template-columns:52px minmax(0,1fr) 52px;
+  align-items:center;
+  padding:calc(8px + env(safe-area-inset-top)) 12px 8px;
+  background:linear-gradient(to bottom,rgba(0,0,0,.62),rgba(0,0,0,.18),transparent);
   pointer-events:none;
 }
 .gc-shorts-head > *{ pointer-events:auto; }
-.gc-shorts-back{
-  width:40px; height:40px; border:none; border-radius:50%;
-  background:rgba(255,255,255,.12); color:#fff;
-  display:flex; align-items:center; justify-content:center; cursor:pointer;
-}
+
 .gc-shorts-title{
-  font-size:17px; font-weight:800; letter-spacing:.2px;
+  grid-column:2;
+  justify-self:center;
+  font-size:20px; line-height:1;
+  font-weight:800; letter-spacing:.1px;
+  color:#fff;
+  white-space:nowrap;
+  text-shadow:0 1px 5px rgba(0,0,0,.55);
 }
+.gc-shorts-back{
+  grid-column:1;
+  grid-row:1;
+  justify-self:start;
+  width:44px; height:44px;
+  border:1px solid rgba(255,255,255,.10);
+  border-radius:50%;
+  background:rgba(0,0,0,.38);
+  color:#fff;
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer;
+  box-shadow:0 2px 10px rgba(0,0,0,.25);
+  backdrop-filter:blur(5px);
+  -webkit-backdrop-filter:blur(5px);
+}
+.gc-shorts-back i{ font-size:24px !important; }
+
+.gc-shorts-author{
+  display:none !important;
+}
+
 .gc-shorts-feed{
-  flex:1; overflow-y:scroll; scroll-snap-type:y mandatory;
+  flex:1; width:100%;
+  overflow-y:scroll; scroll-snap-type:y mandatory;
   -webkit-overflow-scrolling:touch; scrollbar-width:none;
 }
 .gc-shorts-feed::-webkit-scrollbar{ display:none; }
+
 .gc-short-item{
   position:relative; width:100%; height:100%;
   min-height:100%; scroll-snap-align:start; scroll-snap-stop:always;
   background:#000; overflow:hidden;
+  isolation:isolate;
 }
 .gc-short-item video{
   position:absolute;
-  left:50%;
-  top:50%;
-  width:auto;
-  height:auto;
-  max-width:100%;
-  max-height:68vh;
+  left:50%; top:50%;
+  width:auto; height:auto;
+  max-width:100%; max-height:100%;
   transform:translate(-50%,-50%);
   object-fit:contain;
   background:#000;
@@ -4796,87 +4822,136 @@ Liked Posts পেজ (মেনুর ওভারলে)
   display:block;
 }
 .gc-short-item.gc-short-tall-video video{
-  width:auto;
-  height:auto;
-  max-width:100%;
-  max-height:68vh;
+  width:auto; height:auto;
+  max-width:100%; max-height:100%;
 }
-.gc-short-item.gc-short-wide-video video{
-  width:100%;
-  height:auto;
-  max-width:100%;
-  max-height:none;
-}
+.gc-short-item.gc-short-wide-video video,
 .gc-short-item.gc-short-square-video video{
-  width:100%;
-  height:auto;
-  max-width:100%;
-  max-height:none;
+  width:100%; height:auto;
+  max-width:100%; max-height:100%;
 }
+
 .gc-short-overlay{
   position:absolute; inset:0; z-index:2;
   pointer-events:none;
-  background:linear-gradient(to top, rgba(0,0,0,.72) 0%, rgba(0,0,0,.15) 35%, transparent 55%),
-              linear-gradient(to bottom, rgba(0,0,0,.4) 0%, transparent 18%);
+  background:
+    linear-gradient(to top,rgba(0,0,0,.84) 0%,rgba(0,0,0,.50) 18%,rgba(0,0,0,.12) 38%,transparent 54%),
+    linear-gradient(to bottom,rgba(0,0,0,.46) 0%,rgba(0,0,0,.12) 18%,transparent 31%);
 }
+
+/* Creator row — bottom-left, as in the Classic Standard reference. */
 .gc-short-top{
-  position:absolute; top:max(56px, calc(env(safe-area-inset-top) + 48px));
-  left:14px; right:72px; z-index:3;
-  display:flex; align-items:center; gap:10px;
+  position:absolute;
+  left:14px;
+  right:82px;
+  bottom:max(76px,calc(env(safe-area-inset-bottom) + 62px));
+  z-index:5;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  min-width:0;
   pointer-events:auto;
 }
 .gc-short-av{
-  width:40px; height:40px; border-radius:50%;
-  object-fit:cover; background:rgba(255,255,255,.15);
-  border:2px solid rgba(255,255,255,.35); flex-shrink:0;
+  width:44px; height:44px; flex:0 0 44px;
+  border-radius:50%;
+  object-fit:cover;
+  background:rgba(255,255,255,.12);
+  border:2px solid rgba(255,255,255,.92);
+  box-shadow:0 2px 8px rgba(0,0,0,.30);
 }
 .gc-short-av-fallback{
-  width:40px; height:40px; border-radius:50%;
+  width:44px; height:44px; flex:0 0 44px;
+  border-radius:50%;
   background:linear-gradient(135deg,#ff7e67,#ffb867);
   display:flex; align-items:center; justify-content:center;
-  font-weight:800; font-size:14px; color:#fff; flex-shrink:0;
-  border:2px solid rgba(255,255,255,.35);
+  font-weight:800; font-size:15px; color:#fff;
+  border:2px solid rgba(255,255,255,.92);
+  box-shadow:0 2px 8px rgba(0,0,0,.30);
 }
-.gc-short-meta{ min-width:0; }
+.gc-short-meta{
+  min-width:0;
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+}
 .gc-short-name{
-  font-size:14px; font-weight:800; color:#fff;
+  font-size:16px; line-height:1.25;
+  font-weight:800; color:#fff;
   white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  text-shadow:0 1px 4px rgba(0,0,0,.55);
 }
-.gc-short-time{ font-size:11px; color:rgba(255,255,255,.7); margin-top:1px; }
+.gc-short-name > span{
+  vertical-align:middle;
+}
+.gc-short-time{
+  font-size:12px; line-height:1.2;
+  color:rgba(255,255,255,.78);
+  margin-top:2px;
+  text-shadow:0 1px 3px rgba(0,0,0,.45);
+}
+
 .gc-short-bottom{
-  position:absolute; left:14px; right:72px;
-  bottom:max(20px, env(safe-area-inset-bottom));
-  z-index:3; pointer-events:auto;
+  position:absolute;
+  left:14px; right:82px;
+  bottom:max(20px,env(safe-area-inset-bottom));
+  z-index:5;
+  pointer-events:auto;
 }
 .gc-short-caption{
-  font-size:14px; font-weight:600; line-height:1.4; color:#fff;
-  max-height:4.2em; overflow:hidden;
-  text-shadow:0 1px 3px rgba(0,0,0,.45);
+  font-size:15px; font-weight:500; line-height:1.38;
+  color:#fff;
+  max-height:4.14em; overflow:hidden;
+  text-shadow:0 1px 4px rgba(0,0,0,.55);
   white-space:pre-wrap; word-break:break-word;
 }
+
 .gc-short-actions{
-  position:absolute; right:10px;
-  bottom:max(28px, calc(env(safe-area-inset-bottom) + 12px));
-  z-index:4; display:flex; flex-direction:column; align-items:center; gap:18px;
+  position:absolute;
+  right:12px;
+  bottom:max(22px,calc(env(safe-area-inset-bottom) + 8px));
+  z-index:6;
+  display:flex; flex-direction:column; align-items:center;
+  gap:22px;
   pointer-events:auto;
 }
 .gc-short-act{
+  min-width:46px;
   border:none; background:transparent; color:#fff;
   display:flex; flex-direction:column; align-items:center; gap:4px;
-  cursor:pointer; padding:0; font-family:inherit;
+  cursor:pointer; padding:0;
+  font-family:inherit;
+  filter:drop-shadow(0 1px 4px rgba(0,0,0,.55));
 }
-.gc-short-act i{ font-size:28px; filter:drop-shadow(0 1px 3px rgba(0,0,0,.5)); }
+.gc-short-act i{
+  font-size:31px;
+  line-height:1;
+}
 .gc-short-act span{
-  font-size:11px; font-weight:700;
-  text-shadow:0 1px 2px rgba(0,0,0,.5);
+  font-size:12px; line-height:1;
+  font-weight:700;
+  text-shadow:0 1px 3px rgba(0,0,0,.55);
 }
 .gc-short-act.liked i{ color:#1DA1F2; }
+
 .gc-shorts-empty{
   height:100%; display:flex; flex-direction:column;
   align-items:center; justify-content:center; gap:10px;
   color:rgba(255,255,255,.65); text-align:center; padding:24px;
 }
 .gc-shorts-empty i{ font-size:42px; opacity:.7; }
+
+/* Small screens: keep the reference composition without crowding the creator row. */
+@media (max-width:380px){
+  .gc-shorts-title{ font-size:18px; }
+  .gc-shorts-back{ width:42px; height:42px; }
+  .gc-short-top{ left:12px; right:72px; bottom:max(72px,calc(env(safe-area-inset-bottom) + 58px)); }
+  .gc-short-av,.gc-short-av-fallback{ width:40px; height:40px; flex-basis:40px; }
+  .gc-short-name{ font-size:15px; }
+  .gc-short-caption{ font-size:14px; }
+  .gc-short-actions{ right:9px; gap:19px; }
+}
 
 .gc-lk-head{display:flex;align-items:center;gap:12px;padding:14px 16px;background:var(--surface);border-bottom:1px solid var(--border);}
 .gc-lk-title{font-size:18px;font-weight:800;color:var(--text);display:flex;align-items:center;gap:8px;}
@@ -30225,7 +30300,7 @@ function gcEnsureShortsScreen(){
   scr.className = 'gc-shorts-screen';
   scr.innerHTML = ''
     + '<div class="gc-shorts-head">'
-    +   '<button type="button" class="gc-shorts-back" onclick="gcCloseShorts()" aria-label="Back"><i class="ph-light ph-arrow-left" style="font-size:20px;"></i></button>'
+    +   '<button type="button" class="gc-shorts-back" onclick="gcCloseShorts()" aria-label="Back"><i class="ph-light ph-arrow-left"></i></button>'
     +   '<div class="gc-shorts-title">Shorts</div>'
     + '</div>'
     + '<div class="gc-shorts-feed" id="gc-shorts-feed"></div>';
@@ -30257,6 +30332,11 @@ function gcApplyShortVideoSizing(video, item){
     video.style.objectFit = 'contain';
   }catch(e){}
 }
+function gcUpdateShortsHeader(item){
+  /* Classic Standard layout keeps the active creator row on the Short itself.
+     Retained as a compatibility hook for the existing observer. */
+  return;
+}
 function gcPauseAllShorts(except){
   try{
     document.querySelectorAll('#gc-shorts-feed video').forEach(function(v){
@@ -30274,6 +30354,7 @@ function gcBindShortsObserver(){
       var video = en.target.querySelector('video');
       if(!video) return;
       if(en.isIntersecting && en.intersectionRatio >= 0.6){
+        gcUpdateShortsHeader(en.target);
         gcPauseAllShorts(video);
         try{
           video.muted = !!window.gcGlobalMuted;
@@ -30305,6 +30386,24 @@ function gcRenderShortsList(posts){
     var name = p.name || 'User';
     var av = p.avatar || '';
     var title = p.title || '';
+    var shortVerified = (p.isVerified === true || p.isVerified === 1 || p.isVerified === 'true');
+    var shortLeader = gcIsTruthyLeader(p.isLeader);
+    var shortEmail = p.email || '';
+    try{
+      if(typeof allUsersCache !== 'undefined' && allUsersCache){
+        var shortLive = allUsersCache.find(function(u){ return u && u.id === p.uid; });
+        if(shortLive){
+          if(shortLive.isVerified === true || shortLive.isVerified === 1 || shortLive.isVerified === 'true') shortVerified = true;
+          if(gcIsTruthyLeader(shortLive.isLeader)) shortLeader = true;
+          if(!shortEmail) shortEmail = shortLive.email || '';
+          if(!av) av = shortLive.avatar || '';
+          if(!name || name === 'User') name = shortLive.name || name;
+        }
+      }
+    }catch(e){}
+    var shortBadge = (typeof gcResolveUserBadges === 'function')
+      ? gcResolveUserBadges(p.uid, shortEmail, shortVerified, shortLeader)
+      : (getVerifiedBadge(shortEmail, shortVerified) + getLeaderBadge(shortEmail, shortLeader));
     var likes = (typeof p.likes === 'number') ? p.likes : ((p.likedBy && p.likedBy.length) || 0);
     var comments = Math.max(Array.isArray(p.comments) ? p.comments.length : 0, p.commentCount || 0);
     var shares = p.shares || 0;
@@ -30316,13 +30415,13 @@ function gcRenderShortsList(posts){
     var fmtL = (typeof gcFmtCount === 'function') ? gcFmtCount(likes) : String(likes);
     var fmtC = (typeof gcFmtCount === 'function') ? gcFmtCount(comments) : String(comments);
     var fmtS = (typeof gcFmtCount === 'function') ? gcFmtCount(shares) : String(shares);
-    html += '<div class="gc-short-item" data-post-id="'+escapeHTML(pid)+'">'
+    html += '<div class="gc-short-item" data-post-id="'+escapeHTML(pid)+'" data-short-author-uid="'+escapeHTML(p.uid||'')+'">'
       + '<video src="'+escapeHTML(vurl)+'" playsinline webkit-playsinline loop preload="metadata" '
       + (window.gcGlobalMuted !== false ? 'muted' : '') + '></video>'
       + '<div class="gc-short-overlay"></div>'
-      + '<div class="gc-short-top" onclick="event.stopPropagation(); if(typeof viewUserProfile===\'function\') viewUserProfile(\''+escapeHTML(p.uid||'')+'\');">'
+      + '<div class="gc-short-top">'
       + avHtml
-      + '<div class="gc-short-meta"><div class="gc-short-name">'+escapeHTML(name)+'</div>'
+      + '<div class="gc-short-meta"><div class="gc-short-name">'+escapeHTML(name)+' <span style="display:inline-flex;align-items:center;vertical-align:middle;">'+shortBadge+'</span></div>'
       + (timeL ? '<div class="gc-short-time">'+escapeHTML(timeL)+'</div>' : '')
       + '</div></div>'
       + (title ? '<div class="gc-short-bottom"><div class="gc-short-caption">'+escapeHTML(title)+'</div></div>' : '')
@@ -30337,6 +30436,8 @@ function gcRenderShortsList(posts){
   });
   feed.innerHTML = html || '<div class="gc-shorts-empty"><i class="ph-light ph-film-strip"></i><div style="font-weight:700;">No Shorts yet</div></div>';
   // tap video to toggle mute/play
+  var firstShort = feed.querySelector('.gc-short-item');
+  if(firstShort) gcUpdateShortsHeader(firstShort);
   feed.querySelectorAll('.gc-short-item').forEach(function(item){
     var v = item.querySelector('video');
     if(!v) return;
@@ -30344,6 +30445,14 @@ function gcRenderShortsList(posts){
       gcApplyShortVideoSizing(v, item);
     });
     if(v.readyState >= 1) gcApplyShortVideoSizing(v, item);
+    var creatorRow = item.querySelector('.gc-short-top');
+    if(creatorRow){
+      creatorRow.addEventListener('click', function(e){
+        e.stopPropagation();
+        var uid = item.getAttribute('data-short-author-uid') || '';
+        if(uid && typeof viewUserProfile === 'function') viewUserProfile(uid);
+      });
+    }
     item.addEventListener('click', function(e){
       if(e.target.closest('.gc-short-act, .gc-short-top, .gc-shorts-back, button')) return;
       try{
@@ -30353,6 +30462,28 @@ function gcRenderShortsList(posts){
     });
   });
   gcBindShortsObserver();
+  // If the post snapshot does not contain badge data, resolve only the affected
+  // author documents so the Shorts UI still shows verified badges without
+  // forcing a full users-collection download.
+  feed.querySelectorAll('.gc-short-item[data-short-author-uid]').forEach(function(item){
+    var uid = item.getAttribute('data-short-author-uid');
+    if(!uid || typeof db === 'undefined') return;
+    var nameEl = item.querySelector('.gc-short-name');
+    if(!nameEl || nameEl.querySelector('.verified-icon')) return;
+    db.collection('users').doc(uid).get().then(function(doc){
+      if(!doc.exists) return;
+      var ud = doc.data() || {};
+      var verified = ud.isVerified === true || ud.isVerified === 1 || ud.isVerified === 'true';
+      if(!verified) return;
+      var leader = gcIsTruthyLeader(ud.isLeader);
+      var badge = (typeof gcResolveUserBadges === 'function')
+        ? gcResolveUserBadges(uid, ud.email || '', true, leader)
+        : getVerifiedBadge(ud.email || '', true);
+      if(!badge) return;
+      var text = escapeHTML(ud.name || (nameEl.childNodes[0] ? nameEl.childNodes[0].textContent : 'User'));
+      nameEl.innerHTML = text + ' <span style="display:inline-flex;align-items:center;vertical-align:middle;">' + badge + '</span>';
+    }).catch(function(){});
+  });
 }
 async function gcLoadShorts(){
   var feed = document.getElementById('gc-shorts-feed');
