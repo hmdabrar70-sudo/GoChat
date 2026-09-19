@@ -4844,7 +4844,8 @@ Liked Posts পেজ (মেনুর ওভারলে)
   position:absolute;
   left:14px;
   right:82px;
-  bottom:max(76px,calc(env(safe-area-inset-bottom) + 62px));
+  /* Keep creator row clearly separated from the caption/title below. */
+  bottom:max(112px,calc(env(safe-area-inset-bottom) + 98px));
   z-index:5;
   display:flex;
   align-items:center;
@@ -4946,11 +4947,246 @@ Liked Posts পেজ (মেনুর ওভারলে)
 @media (max-width:380px){
   .gc-shorts-title{ font-size:18px; }
   .gc-shorts-back{ width:42px; height:42px; }
-  .gc-short-top{ left:12px; right:72px; bottom:max(72px,calc(env(safe-area-inset-bottom) + 58px)); }
+  .gc-short-top{ left:12px; right:72px; bottom:max(106px,calc(env(safe-area-inset-bottom) + 92px)); }
   .gc-short-av,.gc-short-av-fallback{ width:40px; height:40px; flex-basis:40px; }
   .gc-short-name{ font-size:15px; }
   .gc-short-caption{ font-size:14px; }
   .gc-short-actions{ right:9px; gap:19px; }
+}
+
+
+/* ═══ Shorts Comments · dedicated overlay · shared post data, isolated UI ═══ */
+.gc-short-comments-screen{
+  position:fixed; inset:0; z-index:100920;
+  display:none; align-items:stretch; justify-content:flex-end;
+  flex-direction:column;
+  background:rgba(0,0,0,.46);
+  color:#fff;
+  -webkit-backdrop-filter:blur(1.5px);
+  backdrop-filter:blur(1.5px);
+}
+.gc-short-comments-screen.open{display:flex;}
+.gc-short-comments-panel{
+  width:100%; max-height:min(58vh,760px);
+  min-height:330px;
+  display:flex; flex-direction:column;
+  overflow:hidden;
+  background:linear-gradient(180deg,rgba(30,29,35,.985),rgba(18,18,23,.99));
+  border:1px solid rgba(255,255,255,.08);
+  border-bottom:0;
+  border-radius:28px 28px 0 0;
+  box-shadow:0 -16px 40px rgba(0,0,0,.38);
+  animation:gcShortCommentSheetIn .22s ease-out;
+}
+@keyframes gcShortCommentSheetIn{
+  from{transform:translateY(18px);opacity:.65;}
+  to{transform:translateY(0);opacity:1;}
+}
+.gc-short-comments-head{
+  flex:0 0 auto;
+  height:62px;
+  display:flex; align-items:center;
+  justify-content:space-between;
+  padding:6px 16px 5px 20px;
+  border-bottom:1px solid rgba(255,255,255,.08);
+}
+.gc-short-comments-title{
+  display:flex; align-items:baseline; gap:9px;
+  min-width:0;
+}
+.gc-short-comments-title strong{
+  font-size:19px; line-height:1.1; font-weight:800; color:#fff;
+}
+.gc-short-comments-count{
+  font-size:14px; font-weight:600;
+  color:rgba(255,255,255,.48);
+}
+.gc-short-comments-close{
+  width:40px; height:40px; flex:0 0 40px;
+  border:0; border-radius:50%;
+  background:rgba(255,255,255,.075);
+  color:#fff;
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer;
+}
+.gc-short-comments-close:active{transform:scale(.96);}
+.gc-short-comments-close i{font-size:21px !important;}
+.gc-short-comments-list{
+  flex:1 1 auto; min-height:0;
+  overflow-y:auto; overscroll-behavior:contain;
+  -webkit-overflow-scrolling:touch;
+  scrollbar-width:none;
+  padding:12px 16px 18px;
+}
+.gc-short-comments-list::-webkit-scrollbar{display:none;}
+.gc-short-comment{
+  display:flex; align-items:flex-start; gap:12px;
+  padding:11px 4px 10px;
+}
+.gc-short-comment-avatar{
+  width:42px; height:42px; flex:0 0 42px;
+  border-radius:50%; overflow:hidden;
+  display:flex; align-items:center; justify-content:center;
+  background:#5d6470; color:#fff;
+  font-size:14px; font-weight:700;
+  border:0;
+  pointer-events:none;
+  user-select:none;
+}
+.gc-short-comment-avatar img{
+  width:100%; height:100%; display:block; object-fit:cover;
+  pointer-events:none;
+}
+.gc-short-comment-main{
+  flex:1 1 auto; min-width:0;
+  position:relative;
+  padding-right:38px;
+}
+.gc-short-comment-headline{
+  display:flex; align-items:baseline; gap:8px;
+  min-width:0; margin-top:1px;
+}
+.gc-short-comment-name{
+  font-size:16px; line-height:1.25;
+  font-weight:800; color:#f7f7f8;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.gc-short-comment-time{
+  font-size:13px; line-height:1.2;
+  color:rgba(255,255,255,.42);
+  white-space:nowrap;
+}
+.gc-short-comment-text{
+  margin-top:5px;
+  font-size:17px; line-height:1.38;
+  color:#f2f2f3;
+  white-space:pre-wrap; word-break:break-word;
+}
+.gc-short-comment-image{
+  display:block; width:auto; max-width:250px; max-height:180px;
+  margin-top:8px; border-radius:12px; object-fit:cover;
+}
+.gc-short-comment-like{
+  position:absolute; top:1px; right:0;
+  min-width:28px; padding:0;
+  border:0; background:transparent; color:rgba(255,255,255,.62);
+  display:flex; flex-direction:column; align-items:center; gap:2px;
+  cursor:pointer;
+}
+.gc-short-comment-like i{font-size:22px; line-height:1;}
+.gc-short-comment-like span{font-size:12px; line-height:1; font-weight:700;}
+.gc-short-comment-like.liked{color:#fff;}
+.gc-short-comment-actions{
+  display:flex; align-items:center; gap:16px;
+  margin-top:8px;
+}
+.gc-short-comment-reply{
+  border:0; background:transparent; color:rgba(255,255,255,.48);
+  font-size:13px; font-weight:700; padding:0; cursor:pointer;
+}
+.gc-short-comment-replies{
+  margin:7px 0 2px 18px;
+  padding-left:18px;
+  border-left:2px solid rgba(255,255,255,.10);
+}
+.gc-short-reply{
+  display:flex; align-items:flex-start; gap:9px;
+  padding:9px 0;
+}
+.gc-short-comment-avatar-small{
+  width:32px; height:32px; flex-basis:32px; font-size:11px;
+}
+.gc-short-reply .gc-short-comment-main{padding-right:0;}
+.gc-short-reply .gc-short-comment-name{font-size:14px;}
+.gc-short-reply .gc-short-comment-time{font-size:12px;}
+.gc-short-reply .gc-short-comment-text{font-size:15px; margin-top:4px;}
+.gc-short-reply-compose{
+  margin:5px 0 8px 54px;
+  display:flex; align-items:center; gap:8px;
+}
+.gc-short-reply-compose input{
+  flex:1; min-width:0; height:40px;
+  border:1px solid rgba(255,255,255,.09);
+  border-radius:20px;
+  background:rgba(255,255,255,.07);
+  color:#fff; outline:none;
+  padding:0 14px; font-size:14px;
+}
+.gc-short-reply-compose input::placeholder{color:rgba(255,255,255,.42);}
+.gc-short-reply-compose button{
+  width:40px; height:40px; flex:0 0 40px;
+  border:0; border-radius:50%;
+  background:rgba(255,255,255,.09); color:rgba(255,255,255,.45);
+  display:flex; align-items:center; justify-content:center;
+}
+.gc-short-reply-compose button.ready{background:#fff;color:#111;}
+.gc-short-comments-empty{
+  min-height:190px;
+  display:flex; align-items:center; justify-content:center;
+  text-align:center; color:rgba(255,255,255,.42);
+  font-size:15px; padding:24px;
+}
+.gc-short-comments-composer{
+  flex:0 0 auto;
+  display:flex; align-items:center; gap:10px;
+  padding:10px 14px calc(11px + env(safe-area-inset-bottom));
+  border-top:1px solid rgba(255,255,255,.07);
+  background:rgba(14,14,18,.98);
+}
+.gc-short-composer-avatar{
+  width:42px; height:42px; flex:0 0 42px;
+  border-radius:50%; overflow:hidden;
+  display:flex; align-items:center; justify-content:center;
+  background:#5d6470; color:#fff; font-weight:700;
+  pointer-events:none; user-select:none;
+}
+.gc-short-composer-avatar img{
+  width:100%; height:100%; object-fit:cover; display:block; pointer-events:none;
+}
+.gc-short-comments-input-wrap{
+  flex:1; min-width:0; height:46px;
+  display:flex; align-items:center;
+  border-radius:24px;
+  background:#25242b;
+  border:1px solid rgba(255,255,255,.05);
+  padding-left:17px; padding-right:5px;
+}
+.gc-short-comments-input{
+  flex:1; min-width:0;
+  height:100%; border:0; outline:none;
+  background:transparent; color:#fff;
+  font-size:16px;
+}
+.gc-short-comments-input::placeholder{color:rgba(255,255,255,.40);}
+.gc-short-comments-send{
+  width:40px; height:40px; flex:0 0 40px;
+  border:1px solid rgba(255,255,255,.10); border-radius:50%;
+  background:rgba(30,30,36,.82); color:rgba(255,255,255,.42);
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer;
+  box-shadow:none;
+  transition:background .2s, color .2s, border-color .2s, transform .15s;
+}
+.gc-short-comments-send i{font-size:18px !important; color:inherit;}
+.gc-short-comments-send.ready{
+  background:#f0f0f5;
+  border-color:#f0f0f5;
+  color:#0a0a0f;
+}
+.gc-short-comments-send:active{transform:scale(.95);}
+.gc-short-comments-send:disabled{cursor:default;}
+@media (max-width:380px){
+  .gc-short-comments-panel{max-height:68vh;}
+  .gc-short-comments-head{height:58px;padding:5px 14px 4px 18px;}
+  .gc-short-comments-title strong{font-size:18px;}
+  .gc-short-comments-close{width:38px;height:38px;flex-basis:38px;}
+  .gc-short-comments-close i{font-size:20px !important;}
+  .gc-short-comment{gap:10px;padding-left:1px;padding-right:1px;}
+  .gc-short-comment-avatar{width:40px;height:40px;flex-basis:40px;}
+  .gc-short-comment-text{font-size:16px;}
+  .gc-short-comments-composer{gap:8px;padding-left:10px;padding-right:10px;}
+  .gc-short-composer-avatar{width:40px;height:40px;flex-basis:40px;}
+  .gc-short-comments-input{font-size:15px;}
 }
 
 .gc-lk-head{display:flex;align-items:center;gap:12px;padding:14px 16px;background:var(--surface);border-bottom:1px solid var(--border);}
@@ -15103,7 +15339,7 @@ notifUnsub = db.collection('notifications').where('toUid', '==', user.uid).onSna
 
         var onClickAction = "db.collection('notifications').doc('"+data.id+"').update({read:true});";
         if (isAnn) {
-            var safeMsg = String(data.message || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\n/g, '\\n').replace(/\r/g, '');
+        var safeMsg = String(data.message || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\n/g, '\\n').replace(/\r/g, '');
             onClickAction += " openOfficialNotice('"+safeMsg+"');";
         } else if (data.postId && data.type === 'comment') {
             onClickAction += " openSinglePostView('"+data.postId+"');";
@@ -30428,7 +30664,7 @@ function gcRenderShortsList(posts){
       + '<div class="gc-short-actions">'
       + '<button type="button" class="gc-short-act'+(isLiked?' liked':'')+'" data-s-act="like" onclick="event.stopPropagation(); toggleLike(\''+escapeHTML(pid)+'\');">'
       + '<i class="ph-light ph-thumbs-up"></i><span data-s-likes data-raw="'+likes+'">'+fmtL+'</span></button>'
-      + '<button type="button" class="gc-short-act" data-s-act="comment" onclick="event.stopPropagation(); openCommentPanel(\''+escapeHTML(pid)+'\');">'
+      + '<button type="button" class="gc-short-act" data-s-act="comment" onclick="event.stopPropagation(); gcOpenShortsComments(\''+escapeHTML(pid)+'\');">'
       + '<i class="ph-light ph-chat-circle"></i><span data-s-comments>'+fmtC+'</span></button>'
       + '<button type="button" class="gc-short-act" data-s-act="share" onclick="event.stopPropagation(); if(typeof openShareModal===\'function\') openShareModal(\''+escapeHTML(pid)+'\',\''+escapeHTML((title||'').replace(/'/g,''))+'\',\''+escapeHTML(vurl)+'\');">'
       + '<i class="ph-light ph-paper-plane-tilt"></i><span data-s-shares>'+fmtS+'</span></button>'
@@ -30450,7 +30686,11 @@ function gcRenderShortsList(posts){
       creatorRow.addEventListener('click', function(e){
         e.stopPropagation();
         var uid = item.getAttribute('data-short-author-uid') || '';
-        if(uid && typeof viewUserProfile === 'function') viewUserProfile(uid);
+        if(!uid || typeof viewUserProfile !== 'function') return;
+        /* Shorts is a full-screen layer. Close it before opening the creator
+           profile so the profile cannot remain hidden underneath Shorts. */
+        try{ if(typeof gcCloseShorts === 'function') gcCloseShorts(); }catch(err){}
+        try{ viewUserProfile(uid); }catch(err){}
       });
     }
     item.addEventListener('click', function(e){
@@ -30511,6 +30751,415 @@ window.addEventListener('resize', function(){
     });
   }catch(e){}
 });
+
+/* ═══ Shorts Comments · dedicated sheet backed by the same post.comments array ═══ */
+window.__gcShortsCommentPostId = null;
+window.__gcShortsCommentUnsub = null;
+window.__gcShortsCommentResumeVideo = null;
+
+function gcShortsCommentUser(uid, comment){
+  var u = null;
+  try{
+    if(uid && typeof allUsersCache !== 'undefined' && allUsersCache){
+      u = allUsersCache.find(function(x){ return x && x.id === uid; }) || null;
+    }
+  }catch(e){}
+  if(!u && currentUser && uid === currentUser.uid) u = currentUserData || {};
+  return u || {};
+}
+
+function gcShortsCommentAvatarHTML(uid, name, comment, small){
+  var u = gcShortsCommentUser(uid, comment);
+  var av = (u && u.avatar) || (comment && comment.avatar) || '';
+  var sizeClass = small ? 'gc-short-comment-avatar-small' : '';
+  if(av){
+    return '<div class="gc-short-comment-avatar '+sizeClass+'"><img src="'+escapeHTML(av)+'" alt="" draggable="false"></div>';
+  }
+  return '<div class="gc-short-comment-avatar '+sizeClass+'">'+escapeHTML(avatarInitial(name))+'</div>';
+}
+
+function gcShortsCommentBadgeHTML(uid, comment){
+  try{
+    var u = gcShortsCommentUser(uid, comment);
+    var verified = !!(u && (u.isVerified === true || u.isVerified === 1 || u.isVerified === 'true'));
+    if(!verified && comment && (comment.isVerified === true || comment.isVerified === 1 || comment.isVerified === 'true')) verified = true;
+    return getVerifiedBadge((u && u.email) || '', verified);
+  }catch(e){ return ''; }
+}
+
+function gcShortsCommentTextHTML(text){
+  return escapeHTML(text || '');
+}
+
+function gcShortsCommentReplyBoxId(pid, idx){
+  return 'gc-short-reply-' + String(pid).replace(/[^a-zA-Z0-9_-]/g,'') + '-' + idx;
+}
+
+function gcShortsCommentRenderReply(pid, cIdx, r, rIdx){
+  r = r || {};
+  var rName = r.name || 'User';
+  var rTime = gcCommentTimeLabel(r);
+  var badge = gcShortsCommentBadgeHTML(r.uid, r);
+  var avatar = gcShortsCommentAvatarHTML(r.uid, rName, r, true);
+  return '<div class="gc-short-reply">'
+    + avatar
+    + '<div class="gc-short-comment-main">'
+    +   '<div class="gc-short-comment-headline"><span class="gc-short-comment-name">'+escapeHTML(rName)+'</span>'+badge+(rTime?'<span class="gc-short-comment-time">'+escapeHTML(rTime)+'</span>':'')+'</div>'
+    +   '<div class="gc-short-comment-text">'+gcShortsCommentTextHTML(r.text)+'</div>'
+    + '</div></div>';
+}
+
+function gcShortsCommentRenderOne(pid, c, idx){
+  c = c || {};
+  var name = c.name || 'User';
+  var timeLabel = gcCommentTimeLabel(c);
+  var badge = gcShortsCommentBadgeHTML(c.uid, c);
+  var avatar = gcShortsCommentAvatarHTML(c.uid, name, c, false);
+  var likes = gcCommentLikesArr(c);
+  var liked = !!(currentUser && likes.indexOf(currentUser.uid) !== -1);
+  var likeCount = likes.length;
+  var replies = Array.isArray(c.replies) ? c.replies : [];
+  var repliesHTML = '';
+  if(replies.length){
+    var visible = replies.slice(0, 2);
+    repliesHTML = '<div class="gc-short-comment-replies">'
+      + visible.map(function(r, rIdx){ return gcShortsCommentRenderReply(pid, idx, r, rIdx); }).join('')
+      + (replies.length > 2
+        ? '<button type="button" class="gc-short-comment-reply" style="margin:2px 0 8px 41px;" onclick="event.stopPropagation();gcShortsCommentToggleReplies(\''+escapeHTML(pid)+'\','+idx+')">View '+(replies.length-2)+' more replies</button>'
+        : '')
+      + '</div>';
+  }
+  var imageHTML = c.imageUrl
+    ? '<img class="gc-short-comment-image" src="'+escapeHTML(c.imageUrl)+'" alt="" onclick="event.stopPropagation();openImageZoom(\''+escapeHTML(c.imageUrl)+'\')">'
+    : '';
+  return '<div class="gc-short-comment" id="gc-short-comment-'+String(pid).replace(/[^a-zA-Z0-9_-]/g,'')+'-'+idx+'">'
+    + avatar
+    + '<div class="gc-short-comment-main">'
+    +   '<div class="gc-short-comment-headline"><span class="gc-short-comment-name">'+escapeHTML(name)+'</span>'+badge+(timeLabel?'<span class="gc-short-comment-time">'+escapeHTML(timeLabel)+'</span>':'')+'</div>'
+    +   '<div class="gc-short-comment-text">'+gcShortsCommentTextHTML(c.text)+'</div>'
+    +   imageHTML
+    +   '<div class="gc-short-comment-actions"><button type="button" class="gc-short-comment-reply" onclick="event.stopPropagation();gcShortsCommentReplyBox(\''+escapeHTML(pid)+'\','+idx+',\''+escapeHTML(String(name||'User').replace(/'/g,''))+'\')">Reply</button></div>'
+    +   repliesHTML
+    +   '<div id="'+gcShortsCommentReplyBoxId(pid,idx)+'"></div>'
+    +   '<button type="button" class="gc-short-comment-like'+(liked?' liked':'')+'" onclick="event.stopPropagation();gcShortsToggleCommentLike(\''+escapeHTML(pid)+'\','+idx+')" aria-label="Like comment"><i class="'+(liked?'ph-fill':'ph-light')+' ph-heart"></i><span>'+gcFmtCount(likeCount)+'</span></button>'
+    + '</div></div>';
+}
+
+function gcShortsCommentResolveBadges(pid, comments){
+  try{
+    if(typeof db === 'undefined') return;
+    var list = Array.isArray(comments) ? comments : [];
+    var ids = [];
+    list.forEach(function(c){
+      if(c && c.uid) ids.push(c.uid);
+      (Array.isArray(c && c.replies) ? c.replies : []).forEach(function(r){
+        if(r && r.uid) ids.push(r.uid);
+      });
+    });
+    ids = Array.from(new Set(ids));
+    var missing = ids.filter(function(uid){
+      try{
+        return !(allUsersCache && allUsersCache.some(function(u){ return u && u.id === uid; }));
+      }catch(e){ return true; }
+    });
+    if(!missing.length) return;
+    Promise.all(missing.map(function(uid){
+      return db.collection('users').doc(uid).get().then(function(doc){
+        if(doc.exists){
+          var u = doc.data() || {};
+          u.id = uid;
+          try{
+            if(typeof allUsersCache !== 'undefined' && Array.isArray(allUsersCache)){
+              var exists = allUsersCache.some(function(x){ return x && x.id === uid; });
+              if(!exists) allUsersCache.push(u);
+            }
+          }catch(e){}
+        }
+      }).catch(function(){});
+    })).then(function(){
+      if(window.__gcShortsCommentPostId === pid){
+        var host=document.getElementById('gc-short-comments-list');
+        if(host) gcShortsCommentRenderList(pid, list);
+      }
+    });
+  }catch(e){}
+}
+
+function gcShortsCommentRenderList(pid, comments){
+  var list = Array.isArray(comments) ? comments : [];
+  var host = document.getElementById('gc-short-comments-list');
+  if(!host) return;
+  if(!list.length){
+    host.innerHTML = '<div class="gc-short-comments-empty">No comments yet. Be the first!</div>';
+    return;
+  }
+  var mapped = list.map(function(c,i){ return Object.assign({}, c, {originalIndex:i}); });
+  mapped.sort(function(a,b){
+    var ta = a.time || (a.createdAt && a.createdAt.toMillis ? a.createdAt.toMillis() : 0) || 0;
+    var tb = b.time || (b.createdAt && b.createdAt.toMillis ? b.createdAt.toMillis() : 0) || 0;
+    return tb - ta;
+  });
+  host.innerHTML = mapped.map(function(c){ return gcShortsCommentRenderOne(pid,c,c.originalIndex); }).join('');
+  gcShortsCommentResolveBadges(pid, list);
+}
+
+function gcShortsUpdateCommentCount(pid, count){
+  try{
+    document.querySelectorAll('#gc-shorts-feed .gc-short-item[data-post-id="'+CSS.escape(pid)+'"] [data-s-comments]').forEach(function(el){
+      el.textContent = gcFmtCount(count || 0);
+    });
+  }catch(e){
+    try{
+      var item = document.querySelector('#gc-shorts-feed .gc-short-item[data-post-id="'+pid+'"]');
+      var el = item && item.querySelector('[data-s-comments]');
+      if(el) el.textContent = gcFmtCount(count || 0);
+    }catch(err){}
+  }
+}
+
+function gcShortsCommentBuildComposerAvatar(){
+  var av = (currentUserData && currentUserData.avatar) || '';
+  var name = (currentUserData && currentUserData.name) || 'Me';
+  return av
+    ? '<div class="gc-short-composer-avatar"><img src="'+escapeHTML(av)+'" alt="" draggable="false"></div>'
+    : '<div class="gc-short-composer-avatar">'+escapeHTML(avatarInitial(name))+'</div>';
+}
+
+function gcEnsureShortsCommentsScreen(){
+  var scr = document.getElementById('gc-short-comments-screen');
+  if(scr) return scr;
+  scr = document.createElement('div');
+  scr.id = 'gc-short-comments-screen';
+  scr.className = 'gc-short-comments-screen';
+  scr.innerHTML =
+      '<div class="gc-short-comments-panel" onclick="event.stopPropagation()">'
+    +   '<div class="gc-short-comments-head">'
+    +     '<div class="gc-short-comments-title"><strong>Comments</strong><span class="gc-short-comments-count" id="gc-short-comments-count">0</span></div>'
+    +     '<button type="button" class="gc-short-comments-close" onclick="event.stopPropagation();gcCloseShortsComments()" aria-label="Close comments"><i class="ph-light ph-x"></i></button>'
+    +   '</div>'
+    +   '<div class="gc-short-comments-list" id="gc-short-comments-list"></div>'
+    +   '<div class="gc-short-comments-composer">'
+    +     gcShortsCommentBuildComposerAvatar()
+    +     '<div class="gc-short-comments-input-wrap">'
+    +       '<input id="gc-short-comments-input" class="gc-short-comments-input" type="text" maxlength="500" autocomplete="off" placeholder="Add a comment..." oninput="gcShortsCommentSyncSend()" onkeypress="if(event.key===\'Enter\'){event.preventDefault();gcShortsCommentSend();}">'
+    +       '<button type="button" id="gc-short-comments-send" class="gc-short-comments-send" onclick="gcShortsCommentSend()" aria-label="Send"><i class="ph-light ph-paper-plane-tilt"></i></button>'
+    +     '</div>'
+    +   '</div>'
+    + '</div>';
+  scr.addEventListener('click', function(e){
+    if(e.target === scr) gcCloseShortsComments();
+  });
+  document.body.appendChild(scr);
+  return scr;
+}
+
+function gcShortsCommentSyncSend(){
+  var input = document.getElementById('gc-short-comments-input');
+  var btn = document.getElementById('gc-short-comments-send');
+  if(!btn) return;
+  var ready = !!(input && input.value.trim());
+  btn.classList.toggle('ready', ready);
+}
+
+function gcShortsCommentReplyBox(pid, idx, name){
+  if(!currentUser){ showToast('Login first!'); return; }
+  var id = gcShortsCommentReplyBoxId(pid,idx);
+  var box = document.getElementById(id);
+  if(!box) return;
+  if(box.innerHTML.trim()){
+    box.innerHTML = '';
+    return;
+  }
+  box.innerHTML =
+      '<div class="gc-short-reply-compose" onclick="event.stopPropagation()">'
+    +   '<input id="'+id+'-input" type="text" maxlength="500" placeholder="Reply to '+escapeHTML(name||'User')+'..." oninput="gcShortsReplySync(\''+id+'\')" onkeypress="if(event.key===\'Enter\'){event.preventDefault();gcShortsSubmitReply(\''+escapeHTML(pid)+'\','+idx+',\''+id+'\');}">'
+    +   '<button type="button" id="'+id+'-send" onclick="event.stopPropagation();gcShortsSubmitReply(\''+escapeHTML(pid)+'\','+idx+',\''+id+'\')" aria-label="Send reply"><i class="ph-light ph-paper-plane-tilt"></i></button>'
+    + '</div>';
+  setTimeout(function(){
+    var inp=document.getElementById(id+'-input');
+    if(inp) inp.focus();
+  },40);
+}
+
+function gcShortsReplySync(id){
+  var inp=document.getElementById(id+'-input');
+  var btn=document.getElementById(id+'-send');
+  if(btn) btn.classList.toggle('ready',!!(inp && inp.value.trim()));
+}
+
+async function gcShortsToggleCommentLike(pid, idx){
+  if(!currentUser || !pid) return;
+  if(typeof checkRateLimit === 'function' && !checkRateLimit()) return;
+  try{
+    var ref=db.collection('posts').doc(pid);
+    var snap=await ref.get();
+    if(!snap.exists) return;
+    var comments=(snap.data().comments||[]).slice();
+    if(!comments[idx]) return;
+    var likes=gcCommentLikesArr(comments[idx]).slice();
+    var pos=likes.indexOf(currentUser.uid);
+    if(pos===-1) likes.push(currentUser.uid); else likes.splice(pos,1);
+    comments[idx].likes=likes;
+    await ref.update({comments:comments});
+  }catch(e){
+    console.error('gcShortsToggleCommentLike',e);
+    showToast('Could not like comment');
+  }
+}
+
+async function gcShortsCommentSend(){
+  if(!currentUser || !window.__gcShortsCommentPostId) return;
+  var input=document.getElementById('gc-short-comments-input');
+  var btn=document.getElementById('gc-short-comments-send');
+  var text=(input && input.value || '').trim();
+  if(!text) return;
+  if(btn) btn.disabled=true;
+  try{
+    var pid=window.__gcShortsCommentPostId;
+    var ref=db.collection('posts').doc(pid);
+    var snap=await ref.get();
+    if(!snap.exists){ showToast('Post not found'); return; }
+    var data=snap.data()||{};
+    var comments=Array.isArray(data.comments)?data.comments.slice():[];
+    comments.push({
+      uid:currentUser.uid,
+      name:(currentUserData&&currentUserData.name)||'User',
+      text:text,
+      imageUrl:null,
+      time:Date.now(),
+      replies:[]
+    });
+    await ref.update({comments:comments});
+    if(data.uid && data.uid!==currentUser.uid){
+      try{ gcRollupNotify(data.uid,'comment',pid); }catch(e){}
+      try{ awardPoints(data.uid,5); }catch(e){}
+    }
+    if(input) input.value='';
+    gcShortsCommentSyncSend();
+    showToast('Comment added!');
+  }catch(e){
+    console.error('gcShortsCommentSend',e);
+    showToast('Error adding comment');
+  }finally{
+    if(btn) btn.disabled=false;
+    gcShortsCommentSyncSend();
+  }
+}
+
+async function gcShortsSubmitReply(pid, idx, boxId){
+  if(!currentUser){ showToast('Login first!'); return; }
+  var input=document.getElementById(boxId+'-input');
+  var btn=document.getElementById(boxId+'-send');
+  var txt=(input && input.value || '').trim();
+  if(!txt) return;
+  if(btn) btn.disabled=true;
+  try{
+    var ref=db.collection('posts').doc(pid);
+    var snap=await ref.get();
+    if(!snap.exists){ showToast('Post not found'); return; }
+    var comments=(snap.data().comments||[]).slice();
+    if(!comments[idx]){ showToast('Comment not found'); return; }
+    if(!Array.isArray(comments[idx].replies)) comments[idx].replies=[];
+    comments[idx].replies.push({
+      uid:currentUser.uid,
+      name:(currentUserData&&currentUserData.name)||'User',
+      avatar:(currentUserData&&currentUserData.avatar)||'',
+      text:txt,
+      time:Date.now()
+    });
+    await ref.update({comments:comments});
+    var postData=snap.data()||{};
+    if(postData.uid && postData.uid!==currentUser.uid){
+      try{ awardPoints(postData.uid,10); }catch(e){}
+    }
+    showToast('Reply sent');
+  }catch(e){
+    console.error('gcShortsSubmitReply',e);
+    showToast('Could not send reply');
+    if(btn) btn.disabled=false;
+  }
+}
+
+async function gcShortsCommentToggleReplies(pid, idx){
+  /* Kept intentionally lightweight: fetch the canonical post data and replace
+     the visible list so all comments/replies remain sourced from one document. */
+  try{
+    var ref=db.collection('posts').doc(pid);
+    var snap=await ref.get();
+    if(!snap.exists) return;
+    var comments=snap.data().comments||[];
+    var c=comments[idx];
+    if(!c || !Array.isArray(c.replies)) return;
+    var host=document.getElementById('gc-short-comments-list');
+    if(!host) return;
+    var original=window.__gcShortsExpandedReplies || {};
+    original[pid+'_'+idx]=true;
+    window.__gcShortsExpandedReplies=original;
+    gcShortsCommentRenderList(pid,comments);
+    /* Render all replies for the expanded comment by replacing its reply block. */
+    var safeId=String(pid).replace(/[^a-zA-Z0-9_-]/g,'');
+    var row=document.getElementById('gc-short-comment-'+safeId+'-'+idx);
+    if(row){
+      var wrap=row.querySelector('.gc-short-comment-replies');
+      if(wrap){
+        wrap.innerHTML=c.replies.map(function(r,rIdx){return gcShortsCommentRenderReply(pid,idx,r,rIdx);}).join('');
+      }
+    }
+  }catch(e){}
+}
+
+function gcOpenShortsComments(pid){
+  if(!pid) return;
+  if(!currentUser){ showToast('Login first!'); return; }
+  var scr=gcEnsureShortsCommentsScreen();
+  var countEl=document.getElementById('gc-short-comments-count');
+  var input=document.getElementById('gc-short-comments-input');
+  if(window.__gcShortsCommentUnsub){ try{window.__gcShortsCommentUnsub();}catch(e){} window.__gcShortsCommentUnsub=null; }
+  window.__gcShortsCommentPostId=pid;
+  if(countEl) countEl.textContent='0';
+  if(input) input.value='';
+  gcShortsCommentSyncSend();
+  /* Pause only the active Short while its comment sheet is open. */
+  window.__gcShortsCommentResumeVideo=null;
+  try{
+    var active=document.querySelector('#gc-shorts-feed .gc-short-item video:not([data-gc-no-resume])');
+    if(active && !active.paused){
+      window.__gcShortsCommentResumeVideo=active;
+      active.pause();
+    }
+  }catch(e){}
+  scr.classList.add('open');
+  try{
+    window.__gcShortsCommentUnsub=db.collection('posts').doc(pid).onSnapshot(function(doc){
+      if(window.__gcShortsCommentPostId!==pid) return;
+      var comments=doc.exists && Array.isArray(doc.data().comments) ? doc.data().comments : [];
+      if(countEl) countEl.textContent=String(comments.length);
+      gcShortsUpdateCommentCount(pid,comments.length);
+      gcShortsCommentRenderList(pid,comments);
+    });
+  }catch(e){
+    console.error('gcOpenShortsComments',e);
+  }
+}
+
+function gcCloseShortsComments(){
+  var scr=document.getElementById('gc-short-comments-screen');
+  if(window.__gcShortsCommentUnsub){ try{window.__gcShortsCommentUnsub();}catch(e){} window.__gcShortsCommentUnsub=null; }
+  var resume=window.__gcShortsCommentResumeVideo;
+  window.__gcShortsCommentPostId=null;
+  window.__gcShortsCommentResumeVideo=null;
+  if(scr) scr.classList.remove('open');
+  /* Resume only if Shorts is still open and the same video remains visible. */
+  try{
+    var shorts=document.getElementById('gc-shorts-screen');
+    if(resume && shorts && shorts.classList.contains('open') && resume.isConnected){
+      resume.muted=!!window.gcGlobalMuted;
+      var play=resume.play();
+      if(play && play.catch) play.catch(function(){});
+    }
+  }catch(e){}
+}
+
 function gcOpenShorts(){
   try{ if(typeof gcCloseHomeDrawer==='function') gcCloseHomeDrawer(); }catch(e){}
   var scr = gcEnsureShortsScreen();
@@ -30519,6 +31168,7 @@ function gcOpenShorts(){
   gcLoadShorts();
 }
 function gcCloseShorts(){
+  try{ if(typeof gcCloseShortsComments === 'function') gcCloseShortsComments(); }catch(e){}
   var scr = document.getElementById('gc-shorts-screen');
   if(scr) scr.classList.remove('open');
   gcPauseAllShorts(null);
@@ -33488,6 +34138,84 @@ window.gcSyncAudienceChip = gcSyncAudienceChip;
 
 window.gcComingSoon = gcComingSoon;
 window.gcCloseSheetSafe = gcCloseSheetSafe;
+
+// ═══════════════════════════════════════════════════════
+// 🚀 Update · global-video-page-lifecycle · 2026-09-20
+// Stop every app video whenever the user leaves the current video view.
+// This is intentionally centralized so Feed/Profile/other pages stay consistent.
+// ═══════════════════════════════════════════════════════
+(function(){
+  if(window.__gcGlobalVideoLifecycleV1) return;
+  window.__gcGlobalVideoLifecycleV1 = true;
+
+  window.gcPauseAllAppVideos = function(muteToo){
+    try{
+      document.querySelectorAll('video').forEach(function(v){
+        try{
+          if(!v.paused) v.pause();
+          v.gcUserPaused = false;
+          if(muteToo) v.muted = true;
+        }catch(e){}
+      });
+      // Keep every known player-level mute button in sync after navigation.
+      document.querySelectorAll('.gc-vp-mute').forEach(function(btn){
+        try{
+          var wrap = btn.closest('.gc-vplayer');
+          var v = wrap && wrap.querySelector('video');
+          if(v) btn.innerHTML = v.muted
+            ? '<i class="ph-light ph-speaker-slash"></i>'
+            : '<i class="ph-light ph-speaker-high"></i>';
+        }catch(e){}
+      });
+    }catch(e){}
+  };
+
+  // The normal page switch already has video handling, but this final wrapper
+  // guarantees that later feature wrappers cannot accidentally bypass it.
+  if(typeof window.showPage === 'function' && !window.__gcGlobalVideoShowPageWrapped){
+    window.__gcGlobalVideoShowPageWrapped = true;
+    var _showPage = window.showPage;
+    window.showPage = function(page){
+      try{ window.gcPauseAllAppVideos(true); }catch(e){}
+      return _showPage.apply(this, arguments);
+    };
+  }
+
+  // Full-screen/overlay destinations that do not use showPage().
+  function wrapVideoStop(name){
+    try{
+      if(typeof window[name] !== 'function' || window['__gcVideoStopWrap_'+name]) return;
+      window['__gcVideoStopWrap_'+name] = true;
+      var original = window[name];
+      window[name] = function(){
+        try{ window.gcPauseAllAppVideos(true); }catch(e){}
+        return original.apply(this, arguments);
+      };
+    }catch(e){}
+  }
+
+  [
+    'openMainMenu',
+    'openMainSettingsScreen',
+    'openSettingsPrivacy',
+    'gcOpenHomeDrawer',
+    'openProfileEdit',
+    'openChat',
+    'viewUserProfile',
+    'openSinglePostView'
+  ].forEach(wrapVideoStop);
+
+  // Opening Shorts is also a navigation event: stop any Feed/Profile player
+  // before Shorts starts its own active video.
+  if(typeof window.gcOpenShorts === 'function' && !window.__gcVideoStopWrap_gcOpenShorts){
+    window.__gcVideoStopWrap_gcOpenShorts = true;
+    var _openShorts = window.gcOpenShorts;
+    window.gcOpenShorts = function(){
+      try{ window.gcPauseAllAppVideos(true); }catch(e){}
+      return _openShorts.apply(this, arguments);
+    };
+  }
+})();
 
 // GoChat: Light mode is the default for new installs/first visits.
 // Keep an explicit user preference if they previously selected Dark Mode.
