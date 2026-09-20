@@ -14018,8 +14018,8 @@ const GC_POST_IMG_TARGET = 180 * 1024;      /* ~100–200 KB */
 const GC_AVATAR_IMG_TARGET = 200 * 1024;
 const GC_STORY_IMG_MAX = 1.5 * 1024 * 1024; /* ≤ 1.5 MB */
 const GC_VIDEO_MAX_BYTES = 10 * 1024 * 1024; /* ≤ 10 MB · testing limit */
-const GC_POST_VIDEO_MAX_SEC = 30;
-const GC_STORY_VIDEO_MAX_SEC = 40;
+const GC_POST_VIDEO_MAX_SEC = 60;
+const GC_STORY_VIDEO_MAX_SEC = 60;
 
 function gcLoadImageEl(file){
   return new Promise(function(resolve, reject){
@@ -16565,7 +16565,7 @@ async function gcUploadStoryFile(file, localPreview, isVideo){
     if(typeof gcClearStoryPendingUI === 'function') gcClearStoryPendingUI();
     const msg = (e && e.message) ? String(e.message) : '';
     if(msg === 'IMG_TOO_LARGE') showToast('Story image must be under 5MB!');
-    else if(msg.indexOf('VID_TOO_LONG') === 0) showToast('Story video must be under 40 seconds!');
+    else if(msg.indexOf('VID_TOO_LONG') === 0) showToast('Story video must be under 60 seconds!');
     else if(msg === 'VID_TOO_LARGE') showToast('Story video must be under 2MB. Trim or compress it.');
     else if(msg === 'UNSUPPORTED') showToast('Unsupported file type');
     else showToast('Network error.');
@@ -17579,22 +17579,45 @@ async function toggleLike(pid) {
 }
 
 function handleDoubleTap(pid,event){
-const post=event.currentTarget;
-const heart=post.querySelector('.double-tap-heart');
-if(!heart)return;
-heart.classList.remove('show');
-void heart.offsetWidth;
-heart.classList.add('show');
-const ref=db.collection('posts').doc(pid);
-ref.get().then(doc=>{
-if(doc.exists){
-const p=doc.data();
-const likedBy=p.likedBy||[];
-if(!likedBy.includes(currentUser.uid)){
-toggleLike(pid);
+if(!pid || !currentUser) return;
+try{
+  var post = (event && event.currentTarget) || null;
+  if(!post || !post.querySelector){
+    post = document.querySelector('.post-media-wrap[ondblclick*="' + pid + '"]')
+      || document.querySelector('[data-post-id="' + pid + '"] .post-media-wrap')
+      || document.querySelector('[data-post-id="' + pid + '"]')
+      || document.querySelector('.gc-short-item[data-post-id="' + pid + '"]');
+  }
+  if(post){
+    var heart = post.querySelector('.double-tap-heart');
+    if(!heart){
+      heart = document.createElement('i');
+      heart.className = 'ph-light ph-thumbs-up double-tap-heart';
+      try{
+        var cs = window.getComputedStyle(post);
+        if(cs.position === 'static') post.style.position = 'relative';
+      }catch(e){}
+      post.appendChild(heart);
+    }
+    heart.classList.remove('show');
+    void heart.offsetWidth;
+    heart.classList.add('show');
+  }
+}catch(e){}
+try{
+  const ref = db.collection('posts').doc(pid);
+  ref.get().then(function(doc){
+    if(doc.exists){
+      const p = doc.data() || {};
+      const likedBy = p.likedBy || [];
+      if(!likedBy.includes(currentUser.uid)){
+        if(typeof toggleLike === 'function') toggleLike(pid);
+      }
+    }
+  }).catch(function(){});
+}catch(e){
+  try{ if(typeof toggleLike === 'function') toggleLike(pid); }catch(err){}
 }
-}
-});
 }
 
 async function openCommentPanel(pid) {
@@ -20242,6 +20265,12 @@ async function saveProfileChanges(){ return savePersonalDetails(); }
 
 // ===== CREATE POST FUNCTIONS =====
 function openCreatePost(){
+try{ if(typeof window.gcPauseAllAppVideos==='function') window.gcPauseAllAppVideos(true); }catch(e){}
+try{
+  document.querySelectorAll('video').forEach(function(v){
+    try{ if(!v.paused) v.pause(); v.muted = true; }catch(err){}
+  });
+}catch(e){}
 document.getElementById('create-post-screen').classList.add('open');
 checkPostInputs();
 // Refresh composer name + verified/leader badges every open
@@ -29491,7 +29520,7 @@ composeImages.push({file: prepared, preview: URL.createObjectURL(prepared), isVi
 renderComposeImageGrid(); checkPostInputs();
 }catch(e){
 const msg = (e && e.message) ? String(e.message) : '';
-if(msg.indexOf('VID_TOO_LONG') === 0) showToast('Video must be under 30 seconds!');
+if(msg.indexOf('VID_TOO_LONG') === 0) showToast('Video must be under 60 seconds!');
 else if(msg === 'VID_TOO_LARGE') showToast('Video must be under 10MB. Use a shorter/lower-quality clip.');
 else showToast('Invalid video file');
 }
@@ -30971,13 +31000,51 @@ function gcRenderShortsList(posts){
         try{ viewUserProfile(uid); }catch(err){}
       });
     }
-    item.addEventListener('click', function(e){
-      if(e.target.closest('.gc-short-act, .gc-short-top, .gc-shorts-back, button')) return;
-      try{
-        if(v.paused){ v.play().catch(function(){}); }
-        else { v.pause(); }
-      }catch(err){}
-    });
+    ;(function(item, v){
+      var lastTap = 0;
+      var tapTimer = null;
+      function likeShort(){
+        var pid = item.getAttribute('data-post-id');
+        if(!pid) return;
+        try{
+          if(typeof handleDoubleTap === 'function') handleDoubleTap(pid, { currentTarget: item });
+          else if(typeof toggleLike === 'function') toggleLike(pid);
+        }catch(err){}
+      }
+      function togglePlay(){
+        try{
+          if(v.paused){ v.play().catch(function(){}); }
+          else { v.pause(); }
+        }catch(err){}
+      }
+      item.addEventListener('click', function(e){
+        if(e.target.closest('.gc-short-act, .gc-short-top, .gc-shorts-back, button')) return;
+        var now = Date.now();
+        if(now - lastTap < 280){
+          lastTap = 0;
+          if(tapTimer){ clearTimeout(tapTimer); tapTimer = null; }
+          likeShort();
+          return;
+        }
+        lastTap = now;
+        if(tapTimer) clearTimeout(tapTimer);
+        tapTimer = setTimeout(function(){
+          tapTimer = null;
+          if(lastTap && Date.now() - lastTap >= 260){
+            lastTap = 0;
+            togglePlay();
+          }
+        }, 280);
+      });
+      item.addEventListener('dblclick', function(e){
+        if(e.target.closest('.gc-short-act, .gc-short-top, .gc-shorts-back, button')) return;
+        e.preventDefault();
+        e.stopPropagation();
+        lastTap = 0;
+        if(tapTimer){ clearTimeout(tapTimer); tapTimer = null; }
+        likeShort();
+      });
+    })(item, v);
   });
   gcBindShortsObserver();
   // If the post snapshot does not contain badge data, resolve only the affected
@@ -32447,9 +32514,11 @@ if(m) pid = m[1];
 }
 if(!pid) return;
 try{
-if(typeof handleDoubleTap === 'function') handleDoubleTap(pid);
+if(typeof handleDoubleTap === 'function') handleDoubleTap(pid, { currentTarget: (mediaWrap || wrap || document.body) });
 else if(typeof toggleLike === 'function') toggleLike(pid);
-}catch(e){}
+}catch(e){
+try{ if(typeof toggleLike === 'function') toggleLike(pid); }catch(err){}
+}
 }
 v.addEventListener('click', function(e){
 e.stopPropagation();
@@ -34480,7 +34549,9 @@ window.gcCloseSheetSafe = gcCloseSheetSafe;
     'openProfileEdit',
     'openChat',
     'viewUserProfile',
-    'openSinglePostView'
+    'openSinglePostView',
+    'openCreatePost',
+    'closeCreatePost'
   ].forEach(wrapVideoStop);
 
   // Opening Shorts is also a navigation event: stop any Feed/Profile player
