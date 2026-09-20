@@ -6991,6 +6991,117 @@ html.dark .auth-reg-back,
 #registration-steps .auth-input-group{
   margin-bottom: 14px !important;
 }
+
+/* ═══ Registration Step 3 · Profile photo onboarding ═══ */
+#registration-steps #step-3{
+  display:none;
+  flex-direction:column;
+  align-items:center;
+  text-align:center;
+  min-height:min(68vh,560px);
+  padding-top:8px;
+}
+.gc-reg-avatar-title{
+  margin-top:4px;
+  font-size:24px;
+  line-height:1.15;
+  font-weight:850;
+  letter-spacing:-.45px;
+  color:#111827;
+}
+.gc-reg-avatar-sub{
+  margin:9px auto 24px;
+  max-width:310px;
+  font-size:13.5px;
+  line-height:1.5;
+  font-weight:600;
+  color:#6b7280;
+}
+.gc-reg-avatar-frame{
+  width:174px;
+  height:174px;
+  border-radius:50%;
+  padding:5px;
+  background:linear-gradient(135deg,#c1f600 0%,#8fd400 42%,#00545f 100%);
+  box-shadow:0 18px 42px -18px rgba(0,84,95,.5);
+  margin:0 auto 18px;
+  box-sizing:border-box;
+  position:relative;
+}
+.gc-reg-avatar-inner{
+  width:100%;
+  height:100%;
+  border-radius:50%;
+  overflow:hidden;
+  background:rgba(255,255,255,.7);
+  border:4px solid rgba(255,255,255,.92);
+  box-sizing:border-box;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:#6b7280;
+}
+.gc-reg-avatar-inner img{
+  width:100%;height:100%;object-fit:cover;display:block;
+}
+.gc-reg-avatar-placeholder{
+  width:100%;height:100%;display:flex;align-items:center;justify-content:center;
+  flex-direction:column;gap:8px;color:#8a8a98;
+}
+.gc-reg-avatar-placeholder i{font-size:42px;}
+.gc-reg-avatar-placeholder span{font-size:11px;font-weight:800;letter-spacing:.4px;}
+.gc-reg-avatar-camera{
+  position:absolute;
+  right:2px;
+  bottom:2px;
+  width:46px;
+  height:46px;
+  border:3px solid #fff;
+  border-radius:50%;
+  background:#111827;
+  color:#fff;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+  box-shadow:0 8px 18px rgba(0,0,0,.22);
+  z-index:4;
+  transition:transform .18s ease,background .18s ease;
+}
+.gc-reg-avatar-camera i{font-size:21px;line-height:1;}
+.gc-reg-avatar-camera:active{transform:scale(.94);background:#0b1220;}
+.gc-reg-avatar-save{
+  margin-top:10px;
+  width:100%;
+  border:none;
+  border-radius:999px;
+  padding:15px 18px;
+  background:#111827;
+  color:#fff;
+  font-size:15px;
+  font-weight:800;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  cursor:pointer;
+}
+.gc-reg-avatar-save:disabled{opacity:.5;cursor:not-allowed;}
+.gc-reg-avatar-saved{
+  margin-top:10px;
+  min-height:20px;
+  font-size:12.5px;
+  font-weight:800;
+  color:#006b59;
+}
+@media(max-width:480px){
+  #registration-steps #step-3{min-height:min(70vh,540px);}
+  .gc-reg-avatar-title{font-size:22px;}
+  .gc-reg-avatar-frame{width:158px;height:158px;}
+}
+body.dark-mode .gc-reg-avatar-title, html.dark .gc-reg-avatar-title, .dark .gc-reg-avatar-title{color:#f4f4f7;}
+body.dark-mode .gc-reg-avatar-sub, html.dark .gc-reg-avatar-sub, .dark .gc-reg-avatar-sub{color:#a5a5b4;}
+body.dark-mode .gc-reg-avatar-inner, html.dark .gc-reg-avatar-inner, .dark .gc-reg-avatar-inner{background:#181820;border-color:rgba(255,255,255,.12);}
+body.dark-mode .gc-reg-avatar-pick, html.dark .gc-reg-avatar-pick, .dark .gc-reg-avatar-pick{background:rgba(193,246,0,.1);color:#c1f600;}
+body.dark-mode .gc-reg-avatar-save, html.dark .gc-reg-avatar-save, .dark .gc-reg-avatar-save{background:#f4f4f7;color:#111827;}
+body.dark-mode .gc-reg-avatar-saved, html.dark .gc-reg-avatar-saved, .dark .gc-reg-avatar-saved{color:#7ce0c8;}
 /* ===== Feed upload status (between stories & posts) ===== */
 .gc-upload-status{
   display:none;
@@ -11740,7 +11851,31 @@ body:not(.light-mode) .sp-comment-compose button.is-ready{
                     <i class="ph-light ph-password lx-field-ico"></i>
                     <input type="password" id="reg-confirm" placeholder="Confirm Password" autocomplete="new-password">
                 </div>
-                <button class="btn-auth-primary" onclick="completeRegistration()">Let's go</button>
+                <button class="btn-auth-primary" onclick="goToStep3()">Next</button>
+            </div>
+            <div id="step-3" class="auth-reg-body" style="display:none;">
+                <div class="gc-reg-avatar-title">Create your profile photo</div>
+                <div class="gc-reg-avatar-sub">Add a profile photo so people can recognize you on GoChat. This step is required to finish creating your account.</div>
+
+                <div class="gc-reg-avatar-frame">
+                    <div class="gc-reg-avatar-inner" id="gc-reg-avatar-preview">
+                        <div class="gc-reg-avatar-placeholder" id="gc-reg-avatar-placeholder">
+                            <i class="ph-light ph-user-circle"></i>
+                            <span>PROFILE PHOTO</span>
+                        </div>
+                    </div>
+                    <button type="button" class="gc-reg-avatar-camera" aria-label="Choose profile photo" onclick="document.getElementById('gc-reg-avatar-input').click()">
+                        <i class="ph-light ph-camera"></i>
+                    </button>
+                </div>
+
+                <input type="file" id="gc-reg-avatar-input" accept="image/*" style="display:none" onchange="gcRegAvatarPicked(this)">
+                <button type="button" class="gc-reg-avatar-save" id="gc-reg-avatar-save" onclick="gcRegSaveAvatar()" disabled>
+                    <i class="ph-light ph-check"></i> Save photo
+                </button>
+                <div class="gc-reg-avatar-saved" id="gc-reg-avatar-saved"></div>
+
+                <button type="button" class="btn-auth-primary" id="gc-reg-lets-go" onclick="completeRegistration()" disabled>Let's Go</button>
             </div>
         </div>
         <div id="auth-msg" class="auth-msg"></div>
@@ -24287,8 +24422,11 @@ function showRegister() {
     // ensure step-1 visible
     var s1 = document.getElementById('step-1');
     var s2 = document.getElementById('step-2');
+    var s3 = document.getElementById('step-3');
     if (s1) s1.style.display = 'flex';
     if (s2) s2.style.display = 'none';
+    if (s3) s3.style.display = 'none';
+    if (typeof gcResetRegistrationAvatar === 'function') gcResetRegistrationAvatar();
     var bk = document.getElementById('auth-reg-back-btn');
     if (bk) bk.setAttribute('onclick', 'backToLogin()');
 }
@@ -24726,71 +24864,188 @@ function goToStep2() {
     }
     document.getElementById('step-1').style.display = 'none';
     document.getElementById('step-2').style.display = 'flex';
+    document.getElementById('step-3').style.display = 'none';
     var bk = document.getElementById('auth-reg-back-btn');
     if (bk) bk.setAttribute('onclick', 'goToStep1()');
 }
 
 function goToStep1() {
     document.getElementById('step-2').style.display = 'none';
+    document.getElementById('step-3').style.display = 'none';
     document.getElementById('step-1').style.display = 'flex';
     var bk = document.getElementById('auth-reg-back-btn');
     if (bk) bk.setAttribute('onclick', 'backToLogin()');
 }
 window.goToStep1 = goToStep1;
 
+function goToStep3(){
+    const pass = (document.getElementById('reg-pass').value || '');
+    const confirmPass = (document.getElementById('reg-confirm').value || '');
+    if(!pass || !confirmPass){ showToast('Please enter your password and confirmation.'); return; }
+    if(pass !== confirmPass){ showToast("Passwords don't match!"); return; }
+    if(pass.length < 6){ showToast('Password must be 6+ chars!'); return; }
+    document.getElementById('step-1').style.display = 'none';
+    document.getElementById('step-2').style.display = 'none';
+    document.getElementById('step-3').style.display = 'flex';
+    var bk = document.getElementById('auth-reg-back-btn');
+    if (bk) bk.setAttribute('onclick', 'goToStep2()');
+}
+window.goToStep3 = goToStep3;
+
+function gcResetRegistrationAvatar(){
+    try{
+        if(window.gcRegAvatarObjectUrl){ URL.revokeObjectURL(window.gcRegAvatarObjectUrl); }
+    }catch(e){}
+    window.gcRegAvatarObjectUrl = null;
+    window.gcRegAvatarFile = null;
+    window.gcRegAvatarUrl = '';
+    window.gcRegAvatarSaved = false;
+    var input = document.getElementById('gc-reg-avatar-input');
+    var preview = document.getElementById('gc-reg-avatar-preview');
+    var save = document.getElementById('gc-reg-avatar-save');
+    var saved = document.getElementById('gc-reg-avatar-saved');
+    if(input) input.value = '';
+    if(preview) preview.innerHTML = '<div class="gc-reg-avatar-placeholder" id="gc-reg-avatar-placeholder"><i class="ph-light ph-user-circle"></i><span>PROFILE PHOTO</span></div>';
+    if(save){ save.disabled = true; save.innerHTML = '<i class="ph-light ph-check"></i> Save photo'; }
+    if(saved) saved.textContent = '';
+    var finalBtn = document.getElementById('gc-reg-lets-go');
+    if(finalBtn){ finalBtn.disabled = true; finalBtn.innerHTML = "Let's Go"; }
+}
+window.gcResetRegistrationAvatar = gcResetRegistrationAvatar;
+
+function gcRegAvatarPicked(input){
+    const file = input && input.files && input.files[0];
+    if(!file) return;
+    if(!file.type || file.type.indexOf('image/') !== 0){
+        showToast('Please choose an image file.');
+        input.value = '';
+        return;
+    }
+    if(file.size > 12 * 1024 * 1024){
+        showToast('Image is too large (max 12MB).');
+        input.value = '';
+        return;
+    }
+    try{ if(window.gcRegAvatarObjectUrl) URL.revokeObjectURL(window.gcRegAvatarObjectUrl); }catch(e){}
+    window.gcRegAvatarFile = file;
+    window.gcRegAvatarSaved = false;
+    window.gcRegAvatarUrl = '';
+    window.gcRegAvatarObjectUrl = URL.createObjectURL(file);
+    const preview = document.getElementById('gc-reg-avatar-preview');
+    if(preview) preview.innerHTML = '<img src="' + window.gcRegAvatarObjectUrl + '" alt="Profile photo preview">';
+    const save = document.getElementById('gc-reg-avatar-save');
+    const saved = document.getElementById('gc-reg-avatar-saved');
+    if(save){ save.disabled = false; save.innerHTML = '<i class="ph-light ph-check"></i> Save photo'; }
+    if(saved) saved.textContent = '';
+    input.value = '';
+}
+window.gcRegAvatarPicked = gcRegAvatarPicked;
+
+async function gcRegSaveAvatar(){
+    const file = window.gcRegAvatarFile;
+    if(!file){ showToast('Choose a profile photo first.'); return; }
+    const btn = document.getElementById('gc-reg-avatar-save');
+    const saved = document.getElementById('gc-reg-avatar-saved');
+    if(btn){ btn.disabled = true; btn.innerHTML = '<i class="ph-light ph-spinner-gap" style="animation:spin 1s linear infinite"></i> Saving…'; }
+    try{
+        const prepared = await gcPrepareMediaFile(file, 'avatar');
+        const url = await uploadToCloudinary(prepared, false);
+        if(!url) throw new Error('No URL returned');
+        window.gcRegAvatarUrl = url;
+        window.gcRegAvatarSaved = true;
+        window.gcRegAvatarFile = null;
+        if(saved) saved.textContent = '✓ Profile photo saved';
+        if(btn){ btn.innerHTML = '<i class="ph-light ph-check-circle"></i> Photo saved'; btn.disabled = true; }
+        const finalBtn = document.getElementById('gc-reg-lets-go');
+        if(finalBtn){ finalBtn.disabled = false; }
+        showToast('Profile photo saved');
+    }catch(e){
+        console.error('Registration avatar save failed:', e);
+        if(btn){ btn.disabled = false; btn.innerHTML = '<i class="ph-light ph-check"></i> Save photo'; }
+        if(e && e.message === 'IMG_TOO_LARGE') showToast('Profile photo must be under 5MB after selection.');
+        else showToast('Could not save profile photo. Try again.');
+    }
+}
+window.gcRegSaveAvatar = gcRegSaveAvatar;
+
+
 async function completeRegistration() {
-    const fname = document.getElementById('reg-fname').value.trim();
-    const email = document.getElementById('reg-email').value.trim();
+    const fname = (document.getElementById('reg-fname').value || '').trim();
+    const email = (document.getElementById('reg-email').value || '').trim();
     const pass = document.getElementById('reg-pass').value;
     const confirmPass = document.getElementById('reg-confirm').value;
     const uname = gcNormalizeRegUsername((document.getElementById('reg-username') || {}).value);
 
-    if (pass !== confirmPass) { showToast("Passwords don't match!"); return; }
-    if (pass.length < 6) { showToast("Password must be 6+ chars!"); return; }
-    if(!uname || uname.length < 3 || !window.gcRegUsernameOk){
-        showToast("Username error. Go back and fix username.");
+    if(!fname || !email || !uname || !window.gcRegDob){
+        showToast('Please complete the previous steps first.');
         return;
     }
-    if(!window.gcRegDob){
-        showToast("Please select your birthday");
-        document.getElementById('step-2').style.display = 'none';
-        document.getElementById('step-1').style.display = 'block';
+    if(!window.gcRegAvatarSaved || !window.gcRegAvatarUrl){
+        showToast('Please select and save a profile photo to continue.');
+        return;
+    }
+    if(pass !== confirmPass){ showToast("Passwords don't match!"); return; }
+    if(pass.length < 6){ showToast('Password must be 6+ chars!'); return; }
+    if(!window.gcRegUsernameOk || window.gcRegUsernameValue !== uname){
+        showToast('Username error. Go back and fix username.');
         return;
     }
 
-    // Final availability check before create
+    // Final availability check before creating the Firebase account.
     try{
         const taken = await db.collection('usernames').doc(uname).get();
         if(taken.exists){
-            showToast("This username is already taken");
-            document.getElementById('step-2').style.display = 'none';
-            document.getElementById('step-1').style.display = 'block';
+            showToast('This username is already taken');
+            document.getElementById('step-3').style.display = 'none';
+            document.getElementById('step-1').style.display = 'flex';
+            var bk0 = document.getElementById('auth-reg-back-btn');
+            if(bk0) bk0.setAttribute('onclick', 'backToLogin()');
             gcSetRegUsernameUI('bad', 'This username is already taken');
             window.gcRegUsernameOk = false;
             return;
         }
     }catch(e){}
 
-    showToast("Creating account...");
-    try {
-        const result = await auth.createUserWithEmailAndPassword(email, pass);
-        const user = result.user;
-        const fullName = fname;
+    const finalBtn = document.getElementById('gc-reg-lets-go');
+    if(finalBtn){ finalBtn.disabled = true; finalBtn.innerHTML = '<i class="ph-light ph-spinner-gap" style="animation:spin 1s linear infinite"></i> Creating account…'; }
+    showToast('Creating your GoChat account…');
 
-        await db.collection('users').doc(user.uid).set({
+    let user = null;
+    try {
+        // The Firebase account is intentionally created only here — after the final onboarding step.
+        const result = await auth.createUserWithEmailAndPassword(email, pass);
+        user = result.user;
+        const fullName = fname;
+        const avatarUrl = window.gcRegAvatarUrl || '';
+
+        const userPayload = {
+            uid: user.uid,
             name: fullName,
             nameLower: normalizeUserSearchText(fullName),
             username: uname,
             usernameLower: uname,
             email: user.email,
-            avatar: '', bio: '', friends: [], followers: [], following: [],
+            authEmail: user.email || email,
+            avatar: avatarUrl,
+            coverPhoto: '',
+            bio: '',
+            location: '', hometown: '', relationship: '', gender: '',
+            friends: [], followers: [], following: [],
+            sentRequests: [], receivedRequests: [], blockedUsers: [],
+            mutedChats: [], pinnedChats: [], archivedChats: [],
             dob: window.gcRegDob,
             dobPrivacy: 'public',
             dobLastChanged: Date.now(),
+            onboardingComplete: true,
+            profileSetupComplete: true,
             createdAt: firebase.firestore.FieldValue.serverTimestamp(),
             welcomeSent: false
-        });
-        // Public index for username login
+        };
+
+        // If the optional profile photo was saved before account creation, it is already a stable Cloudinary URL.
+        // The user document is created immediately so a brand-new account can never have a missing profile record.
+        await db.collection('users').doc(user.uid).set(userPayload, { merge: true });
+
         try{
             if(typeof gcSyncUsernameIndex === 'function'){
                 await gcSyncUsernameIndex(user.uid, uname, user.email || email, '');
@@ -24802,13 +25057,36 @@ async function completeRegistration() {
                     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
                 });
             }
-        }catch(e){ console.warn('username index write failed', e); }
-        sendWelcomeMessage(user.uid, fullName);
-        showToast("Account created successfully!");
+        }catch(e){ console.warn('username index write failed:', e); }
+
+        try{ sendWelcomeMessage(user.uid, fullName); }catch(e){}
+        showToast('Account created successfully!');
+
+        // Clean up registration-only state.
+        try{ if(window.gcRegAvatarObjectUrl) URL.revokeObjectURL(window.gcRegAvatarObjectUrl); }catch(e){}
+        window.gcRegAvatarObjectUrl = null;
+        window.gcRegAvatarFile = null;
+        window.gcRegAvatarUrl = '';
+        window.gcRegAvatarSaved = false;
     } catch (e) {
-        showToast("Error: " + e.message);
+        console.error('Final registration failed:', e);
+        const code = e && e.code ? e.code : '';
+        if(code === 'auth/email-already-in-use'){
+            showToast('An account with this email already exists. Try logging in instead.');
+        } else if(code === 'auth/weak-password'){
+            showToast('Please choose a stronger password (at least 6 characters).');
+        } else if(code === 'auth/invalid-email'){
+            showToast('Please enter a valid email address.');
+        } else if(code === 'permission-denied'){
+            showToast('Account created, but profile setup could not be saved. Please reopen the app.');
+        } else {
+            showToast('We could not complete account creation. Please try again.');
+        }
+    } finally {
+        if(finalBtn){ finalBtn.disabled = false; finalBtn.innerHTML = "Let's Go"; }
     }
 }
+
 // ===== TEXT STORY LOGIC =====
 let currentTextStoryBg = 'linear-gradient(135deg, var(--accent) 0%, var(--accent-light) 100%)';
 
