@@ -635,19 +635,20 @@ font-weight:700;border:2px solid var(--surface);
 /* Pinned post indicator */
 .gc-pinned-badge{
     display:inline-flex;align-items:center;gap:4px;
-    margin-left:8px;padding:2px 8px;
-    border-radius:20px;
+    margin-left:8px;padding:0;
+    border-radius:0;
     font-size:11px;font-weight:700;
     letter-spacing:0.2px;
-    color:var(--accent);
-    background:var(--accent-glow);
-    border:1px solid var(--accent-glow);
+    color:var(--text-muted);
+    background:transparent;
+    border:none;
     vertical-align:middle;
 }
-.gc-pinned-badge i{font-size:12px;}
+.gc-pinned-badge i{font-size:12px;color:var(--text-muted);}
 body.light-mode .gc-pinned-badge{
-    background:var(--accent-glow);
-    border-color:var(--accent-glow);
+    background:transparent;
+    border:none;
+    color:var(--text-muted);
 }
 .post-card.is-pinned{
     box-shadow:0 0 0 1px var(--accent-glow), var(--shadow-sm);
@@ -1488,6 +1489,24 @@ display:flex;flex-direction:column;gap:12px;
     align-items: flex-start;
 }
 .comment-author{font-weight:700;color:var(--text);margin-bottom:4px;font-size:14px;}
+
+/* Comment composer · own profile avatar (replaces photo attach) */
+.gc-comment-composer-avatar{
+  width:36px;height:36px;border-radius:50%;flex-shrink:0;
+  overflow:hidden;background:var(--surface-2);
+  display:flex;align-items:center;justify-content:center;
+  font-weight:800;font-size:13px;color:var(--text-muted);
+}
+.gc-comment-composer-avatar img{
+  width:100%;height:100%;object-fit:cover;display:block;
+}
+.comment-input-bar label[for="comment-img-input"],
+.sp-comment-img-btn,
+#comment-img-input,
+#sp-comment-img-input,
+#comment-image-preview,
+#sp-comment-image-preview{ display:none !important; }
+
 .comment-input-bar{
 background:var(--surface);
 border-top:none;
@@ -10307,6 +10326,7 @@ button.gc-pay-cta,
   border: none !important;
   box-shadow: 0 4px 16px rgba(193, 246, 0, 0.3) !important;
 }
+
 </style>
 
 <style id="gc-consolidated-patches">
@@ -12010,7 +12030,9 @@ body:not(.light-mode) .sp-comment-compose button.is-ready{
 }
 .gc-priv-delete-btn:active{ opacity: 0.88; transform: scale(0.98); }
 .gc-priv-delete-btn i{ font-size: 18px; }
+
 </style>
+
 </head>
 <body>
 <!-- Splash Screen HTML -->
@@ -13202,18 +13224,9 @@ body:not(.light-mode) .sp-comment-compose button.is-ready{
 <div class="single-post-content" id="single-post-container"></div>
 <!-- Fixed comment composer (always visible in single view) -->
 <div id="sp-fixed-compose" class="sp-comment-compose sp-comment-compose-fixed" style="display:none;">
-  <label for="sp-comment-img-input" class="sp-comment-img-btn" title="Add photo" style="cursor:pointer;display:flex;align-items:center;justify-content:center;width:40px;height:40px;flex-shrink:0;">
-    <i class="ph-light ph-image" style="font-size:18px;"></i>
-  </label>
-  <input type="file" id="sp-comment-img-input" accept="image/*" style="display:none" onchange="if(typeof previewSpCommentImage==='function') previewSpCommentImage(this); if(typeof gcUpdateSpCommentSendState==='function') gcUpdateSpCommentSendState();">
+  <div id="sp-composer-avatar" class="gc-comment-composer-avatar" aria-hidden="true"></div>
   <input type="text" id="sp-comment-input" placeholder="Write a comment..." autocomplete="off" oninput="if(typeof gcUpdateSpCommentSendState==='function') gcUpdateSpCommentSendState();" onkeypress="if(event.key==='Enter'){event.preventDefault(); var b=document.querySelector('#sp-fixed-compose button'); if(b && !b.classList.contains('is-ready')) return; gcSendSinglePostComment();}">
   <button type="button" onclick="gcSendSinglePostComment()" aria-label="Send"><i class="ph-light ph-paper-plane-right"></i></button>
-</div>
-<div id="sp-comment-image-preview" style="display:none;padding:8px 14px;background:var(--surface);border-top:1px solid var(--border);">
-  <div style="position:relative;display:inline-block;">
-    <img id="sp-comment-preview-img" src="" style="max-height:72px;border-radius:8px;border:1px solid var(--border);">
-    <button type="button" onclick="if(typeof removeSpCommentImage==='function') removeSpCommentImage()" style="position:absolute;top:-6px;right:-6px;background:rgba(0,0,0,.7);color:#fff;border:none;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;cursor:pointer;"><i class="ph-light ph-x"></i></button>
-  </div>
 </div>
 </div>
 
@@ -13226,23 +13239,10 @@ body:not(.light-mode) .sp-comment-compose button.is-ready{
 </div>
 <div id="comment-list" class="comment-list"></div>
 
-<!-- 🚀 NEW: Comment Image Preview Container -->
-<div id="comment-image-preview" style="display:none; padding:10px 16px; background:var(--surface); border-top:1px solid var(--border); position:relative;">
-    <div style="position:relative; display:inline-block;">
-        <img id="comment-preview-img" src="" style="max-height:80px; border-radius:8px; border:1px solid var(--border);">
-        <button onclick="removeCommentImage()" style="position:absolute; top:-5px; right:-5px; background:rgba(0,0,0,0.7); color:#fff; border:none; border-radius:50%; width:22px; height:22px; display:flex; align-items:center; justify-content:center; cursor:pointer;">
-            <i class="ph-light ph-x"></i>
-        </button>
-    </div>
-</div>
+<!-- comment image preview removed -->
 
 <div class="comment-input-bar">
-    <!-- 🚀 NEW: Image Upload Button for Comments -->
-    <label for="comment-img-input" style="cursor:pointer;">
-        <i class="ph-light ph-image"></i>
-    </label>
-    <input type="file" id="comment-img-input" accept="image/*" style="display:none" onchange="previewCommentImage(this); if(typeof gcUpdateCommentSendState==='function') gcUpdateCommentSendState();">
-    
+    <div id="comment-composer-avatar" class="gc-comment-composer-avatar" aria-hidden="true"></div>
     <input type="text" id="comment-panel-input" placeholder="Write a comment..." oninput="if(typeof gcUpdateCommentSendState==='function') gcUpdateCommentSendState();" onkeypress="if(event.key==='Enter'){ if(typeof gcUpdateCommentSendState==='function' && !document.getElementById('comment-panel-send-btn').classList.contains('is-ready')) return; sendCommentWithImage(); }">
     <button class="chat-send-btn" id="comment-panel-send-btn" onclick="sendCommentWithImage()" aria-label="Send">
         <i class="ph-light ph-paper-plane-right"></i>
@@ -18023,6 +18023,7 @@ async function openCommentPanel(pid) {
     }
     activeCommentPostId = pid;
     document.getElementById('comment-panel').classList.add('open');
+    try{ if(typeof gcFillCommentComposerAvatars==='function') gcFillCommentComposerAvatars(); }catch(e){}
     if (commentPanelListener) commentPanelListener();
 
     // Unlock comment bar + apply reply privacy restriction (merged from reply-privacy wrapper)
@@ -21003,6 +21004,8 @@ async function openSinglePostView(pid) {
         compose.style.display = 'flex';
         const inp = document.getElementById('sp-comment-input');
         if(inp){ inp.value = ''; inp.disabled = false; }
+        try{ if(typeof gcFillCommentComposerAvatars==='function') gcFillCommentComposerAvatars(); }catch(e){}
+        if(typeof gcUpdateSpCommentSendState==='function') gcUpdateSpCommentSendState();
     }
 
     if (singlePostUnsub) { try { singlePostUnsub(); } catch(e){} singlePostUnsub = null; }
@@ -21113,6 +21116,8 @@ async function openSinglePostView(pid) {
 window.openSinglePostView = openSinglePostView;
 
 async function gcSendSinglePostComment(){
+    try{ window.spCommentImageFile = null; }catch(e){}
+    try{ if(typeof gcFillCommentComposerAvatars==='function') gcFillCommentComposerAvatars(); }catch(e){}
     const inp = document.getElementById('sp-comment-input');
     if(!inp) return;
     const txt = (inp.value || '').trim();
@@ -27025,6 +27030,13 @@ function gcRenderSearchUser(u){
     </div>`;
 }
 
+
+window.findPeople = function(){
+  try{
+    if(typeof window.searchUsers === 'function') return window.searchUsers();
+  }catch(e){ console.error(e); }
+};
+
 window.searchUsers = async function() {
     clearTimeout(searchTimeout);
 
@@ -27043,7 +27055,7 @@ window.searchUsers = async function() {
 
     // অল্প অক্ষরে কোনো Firestore read নয়।
     if(q.length < 2){
-        res.innerHTML = '<div class="empty-feed">Type the full name to search</div>';
+        res.innerHTML = '<div class="empty-feed">Type at least 2 characters</div>';
         return;
     }
 
@@ -27114,10 +27126,31 @@ window.searchUsers = async function() {
 
             if(requestId !== gcSearchRequestId) return;
 
+            // Soft match via cache (prefix / contains) when exact index miss
+            if(Object.keys(resultMap).length === 0){
+              try{
+                if(typeof fetchAllUsers === 'function') await fetchAllUsers();
+              }catch(e){}
+              try{
+                var cache = (typeof allUsersCache !== 'undefined' && allUsersCache) ? allUsersCache : [];
+                var ql = q.toLowerCase();
+                cache.forEach(function(u){
+                  if(!u || !u.id) return;
+                  var n = String(u.name || u.nameLower || '').toLowerCase();
+                  var un = String(u.username || u.usernameLower || '').toLowerCase();
+                  if((n && (n.indexOf(ql) === 0 || n.indexOf(ql) !== -1)) ||
+                     (un && (un.indexOf(ql) === 0 || un.indexOf(ql) !== -1))){
+                    resultMap[u.id] = u.id ? u : u;
+                    if(!resultMap[u.id].id) resultMap[u.id].id = u.id;
+                  }
+                });
+              }catch(e){ console.warn('cache search', e); }
+            }
+
             const users = Object.values(resultMap).slice(0, 20);
             res.innerHTML = users.length
                 ? users.map(gcRenderSearchUser).join('')
-                : '<div class="empty-feed">No exact match found</div>';
+                : '<div class="empty-feed">No users found</div>';
 
         } catch(e) {
             console.error('Exact user search failed:', e);
@@ -28625,28 +28658,49 @@ document.addEventListener('keydown', (e) => {
 // =========================================
 // 🚀 COMMENT IMAGE UPLOAD SYSTEM
 // =========================================
+
+function gcFillCommentComposerAvatars(){
+  try{
+    var name = (currentUserData && currentUserData.name) || 'U';
+    var av = (currentUserData && currentUserData.avatar) || '';
+    var initial = (name.charAt(0) || 'U').toUpperCase();
+    function paint(el){
+      if(!el) return;
+      if(av){
+        el.innerHTML = '<img src="'+escapeHTML(av)+'" alt="" onerror="this.remove();this.parentNode.textContent=\''+initial+'\';">';
+      } else {
+        el.textContent = initial;
+      }
+    }
+    paint(document.getElementById('comment-composer-avatar'));
+    paint(document.getElementById('sp-composer-avatar'));
+  }catch(e){}
+}
+window.gcFillCommentComposerAvatars = gcFillCommentComposerAvatars;
+// Comment photo upload permanently disabled
+window.selectedCommentImage = null;
+window.spCommentImageFile = null;
+window.previewCommentImage = function(){ try{ showToast('Photo comments are disabled'); }catch(e){} };
+window.previewSpCommentImage = function(){ try{ showToast('Photo comments are disabled'); }catch(e){} };
+window.removeCommentImage = function(){ window.selectedCommentImage = null; };
+window.removeSpCommentImage = function(){ window.spCommentImageFile = null; };
+
 let selectedCommentImage = null;
 
 // ছবি সিলেক্ট করলে প্রিভিউ দেখাবে
 function previewCommentImage(input) {
-    const file = input.files[0];
-    if (file) {
-        selectedCommentImage = file;
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            document.getElementById('comment-preview-img').src = e.target.result;
-            document.getElementById('comment-image-preview').style.display = 'block';
-        }
-        reader.readAsDataURL(file);
-    }
+    /* Photo comments disabled */
+    try{ if(input) input.value = ''; }catch(e){}
+    selectedCommentImage = null;
 }
 
 // ক্রস বাটনে ক্লিক করলে ছবি রিমুভ হবে
 function removeCommentImage() {
     selectedCommentImage = null;
-    document.getElementById('comment-img-input').value = '';
-    document.getElementById('comment-image-preview').style.display = 'none';
-    document.getElementById('comment-preview-img').src = '';
+    try{
+      var inp = document.getElementById('comment-img-input');
+      if(inp) inp.value = '';
+    }catch(e){}
     if(typeof gcUpdateCommentSendState === 'function') gcUpdateCommentSendState();
 }
 
@@ -28675,8 +28729,7 @@ function gcUpdateCommentSendState(){
     const btn = document.getElementById('comment-panel-send-btn');
     if(!btn) return;
     const hasText = !!(input && input.value.trim().length);
-    const hasImg = !!(typeof selectedCommentImage !== 'undefined' && selectedCommentImage);
-    if(hasText || hasImg) btn.classList.add('is-ready');
+    if(hasText) btn.classList.add('is-ready');
     else btn.classList.remove('is-ready');
   }catch(e){}
 }
@@ -28689,8 +28742,7 @@ function gcUpdateSpCommentSendState(){
     const btn = compose ? compose.querySelector('button') : null;
     if(!btn) return;
     const hasText = !!(input && input.value.trim().length);
-    const hasImg = !!(window.spCommentImageFile);
-    if(hasText || hasImg) btn.classList.add('is-ready');
+    if(hasText) btn.classList.add('is-ready');
     else btn.classList.remove('is-ready');
   }catch(e){}
 }
@@ -28704,31 +28756,16 @@ async function sendCommentWithImage() {
     const btnEl = document.getElementById('comment-panel-send-btn');
     
     // টেক্সট বা ছবি অন্তত একটা থাকতে হবে
-    if (!text && !selectedCommentImage) return; 
+    if (!text) return; 
     
     btnEl.disabled = true;
     btnEl.innerHTML = '<i class="ph-light ph-circle" style="font-size:20px; animation:spin 1s linear infinite;"></i>';
     
-    let imageUrl = null;
-    if (selectedCommentImage) {
-        showToast("Uploading image...");
-        try {
-            // আপনার আগের তৈরি করা Cloudinary আপলোড ফাংশন ব্যবহার করা হলো
-            imageUrl = await uploadToCloudinary(selectedCommentImage, false);
-        } catch(e) {
-            showToast("Failed to upload image");
-            btnEl.disabled = false;
-            btnEl.innerHTML = '<i class="ph-light ph-paper-plane-right"></i>';
-    if(typeof gcUpdateCommentSendState === 'function') gcUpdateCommentSendState();
-            return;
-        }
-    }
-    
+    // Photo comments disabled — text only
     const newComment = {
         uid: currentUser.uid,
         name: currentUserData.name,
         text: text,
-        imageUrl: imageUrl, // 🚀 ডাটাবেসে ছবির লিংক সেভ হবে
         time: Date.now(),
         replies: []
     };
@@ -35006,7 +35043,9 @@ window.gcCloseSheetSafe = gcCloseSheetSafe;
     document.body.classList.add('light-mode');
   }
 })();
+</script>
 
+<script>
 /* GoChat PWA — service worker register */
 (function(){
   if (!('serviceWorker' in navigator)) return;
@@ -35017,5 +35056,6 @@ window.gcCloseSheetSafe = gcCloseSheetSafe;
   });
 })();
 </script>
+
 </body>
 </html>
