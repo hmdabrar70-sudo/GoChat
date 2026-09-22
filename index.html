@@ -27646,102 +27646,223 @@ async function uploadAndSendVoice(audioBlob) {
 
 // ==========================================
 // 🚀 SMART BACK BUTTON & HISTORY MANAGER
+// Android/WebView/Appilix: hardware Back closes top overlay first,
+// only exits app on double-back while on home feed.
 // ==========================================
 let backPressTimer = null;
 
-// শুরুতে একটা ডামি হিস্ট্রি পুশ করে রাখা হলো
-history.pushState({ page: 'gochat_home' }, "", window.location.href);
+function gcEnsureHistoryTrap(){
+  try{
+    history.pushState({ page: 'gochat_home' }, '', window.location.href);
+  }catch(e){}
+}
 
-window.addEventListener('popstate', function(event) {
-    // যদি কোনো স্ক্রিন বা মডাল ওপেন থাকে, তবে সেটা ক্লোজ হবে
+// Keep one dummy history entry so the first Back is interceptable
+gcEnsureHistoryTrap();
+
+window.addEventListener('popstate', function(){
+  try{
     if (closeTopMostView()) {
-        // বের হওয়া ঠেকাতে আবার হিস্ট্রি পুশ করে দেওয়া হলো
-        history.pushState({ page: 'gochat_home' }, "", window.location.href);
-    } else {
-        // যদি ইউজার মেইন ফিডে থাকে, তখন ডাবল ট্যাপ এক্সিট লজিক
-        if (backPressTimer) {
-            clearTimeout(backPressTimer);
-            // দ্বিতীয়বার চাপলে সত্যি বের হয়ে যাবে (ইতিমধ্যেই popstate হয়ে এক ধাপ পিছনে গেছে)
-        } else {
-            showToast("Press back again to exit");
-            // ভুল করে বের হওয়া ঠেকাতে আবার পুশ করা হলো
-            history.pushState({ page: 'gochat_home' }, "", window.location.href);
-            backPressTimer = setTimeout(() => {
-                backPressTimer = null;
-            }, 2000);
-        }
+      gcEnsureHistoryTrap();
+      return;
     }
+    // On home feed: require double-back to exit
+    if (backPressTimer) {
+      clearTimeout(backPressTimer);
+      backPressTimer = null;
+      // Second back within window → allow real exit (do NOT re-push)
+      return;
+    }
+    if (typeof showToast === 'function') showToast('Press back again to exit');
+    gcEnsureHistoryTrap();
+    backPressTimer = setTimeout(function(){ backPressTimer = null; }, 2000);
+  }catch(e){
+    try{ gcEnsureHistoryTrap(); }catch(err){}
+  }
 });
 
-// ?? এই ফাংশনটি চেক করবে স্ক্রিনে এই মুহূর্তে কী ওপেন আছে এবং সবচেয়ে ওপরের জিনিসটা বন্ধ করবে
+/** Close the topmost open UI layer. Return true if something was closed. */
 function closeTopMostView() {
-    // ১. Full Screen Image Zoom
-    const imageZoom = document.getElementById('image-zoom-modal');
-    if (imageZoom && imageZoom.classList.contains('open')) { closeImageZoom(); return true; }
-
-    // ২. Story Viewer
-    const storyViewer = document.getElementById('story-viewer');
-    if (storyViewer && storyViewer.classList.contains('open')) { closeStory(); return true; }
-
-    // ৪. Bottom Sheets / Action Modals
-    const deleteSheet = document.getElementById('delete-sheet-modal');
-    if (deleteSheet && deleteSheet.classList.contains('open')) { closeDeleteSheet(); return true; }
-    
-    const qpModal = document.getElementById('quick-profile-modal');
-    if (qpModal && qpModal.classList.contains('open')) { closeQuickProfile(); return true; }
-
-    const wpModal = document.getElementById('wallpaper-modal');
-    if (wpModal && wpModal.classList.contains('open')) { closeWallpaperPicker(); return true; }
-    
-    // ৫. Sub Screens (Chat, Profile, Post etc)
-    const commentPanel = document.getElementById('comment-panel');
-    if (commentPanel && commentPanel.classList.contains('open')) { closeCommentPanel(); return true; }
-
-    const singlePost = document.getElementById('single-post-screen');
-    if (singlePost && singlePost.classList.contains('open')) { closeSinglePost(); return true; }
-
-    const chatScreen = document.getElementById('chat-screen');
-    if (chatScreen && chatScreen.classList.contains('open')) { closeChat(); return true; }
-
-    const otherProfile = document.getElementById('page-other-profile');
-    if (otherProfile && otherProfile.classList.contains('open')) { closeUserProfile(); return true; }
-
-    const createPost = document.getElementById('create-post-screen');
-    if (createPost && createPost.classList.contains('open')) { closeCreatePost(); return true; }
-
-    const groupInfo = document.getElementById('group-info-modal');
-    if (groupInfo && groupInfo.style.display === 'flex') { closeGroupInfoModal(); return true; }
-
-    // ৬. Settings & Menus — close Edit Profile sections first
-    const epPersonal = document.getElementById('ep-section-personal');
-    if (epPersonal && epPersonal.classList.contains('open')) { gcCloseEpSection('personal'); return true; }
-    const epWork = document.getElementById('ep-section-work');
-    if (epWork && epWork.classList.contains('open')) { gcCloseEpSection('work'); return true; }
-    const epEdu = document.getElementById('ep-section-education');
-    if (epEdu && epEdu.classList.contains('open')) { gcCloseEpSection('education'); return true; }
-    const editProfile = document.getElementById('edit-profile-screen');
-    const badgeInfo = document.getElementById('badge-info-modal');
-    if (badgeInfo && badgeInfo.classList.contains('open')) { closeBadgeInfo(); return true; }
-    if (editProfile && editProfile.style.display === 'flex') { closeProfileEdit(); return true; }
-
-    const galleryScreen = document.getElementById('gallery-screen');
-    if (galleryScreen && galleryScreen.style.display === 'flex') { closeGallery(); return true; }
-
-    const mainSettings = document.getElementById('main-settings-screen');
-    if (mainSettings && mainSettings.style.display === 'flex') { closeMainSettingsScreen(); return true; }
-
-    const mainMenu = document.getElementById('main-menu-screen');
-    if (mainMenu && mainMenu.style.display === 'flex') { closeMainMenu(); return true; }
-
-    // ৭. Bottom Navigation Pages (Back to Feed)
-    const feedPage = document.getElementById('page-feed');
-    if (feedPage && !feedPage.classList.contains('active')) {
-        showPage('feed'); return true;
-    }
-
-    // কিছু ওপেন না থাকলে false রিটার্ন করবে (অর্থাৎ ইউজার মেইন ফিডে আছে)
+  function hasOpen(el){
+    if(!el) return false;
+    if(el.classList && el.classList.contains('open')) return true;
+    try{
+      var d = (el.style && el.style.display) || '';
+      if(d === 'flex' || d === 'block') return true;
+    }catch(e){}
     return false;
+  }
+  function call(fnName){
+    try{
+      if(typeof window[fnName] === 'function'){ window[fnName](); return true; }
+    }catch(e){}
+    return false;
+  }
+
+  // 1) Full-screen media / stories
+  var imageZoom = document.getElementById('image-zoom-modal');
+  if(hasOpen(imageZoom) && call('closeImageZoom')) return true;
+
+  var storyViewer = document.getElementById('story-viewer');
+  if(hasOpen(storyViewer) && call('closeStory')) return true;
+
+  var storyPreview = document.querySelector('.gc-story-preview-mask.open');
+  if(storyPreview){
+    storyPreview.classList.remove('open');
+    return true;
+  }
+
+  // 2) Shorts comments then Shorts itself
+  var shortsComments = document.getElementById('gc-shorts-comments') || document.querySelector('.gc-short-comments-screen.open, #gc-shorts-comments-screen.open');
+  if(shortsComments && (hasOpen(shortsComments) || shortsComments.classList.contains('open'))){
+    if(call('gcCloseShortsComments')) return true;
+    shortsComments.classList.remove('open');
+    return true;
+  }
+
+  var shorts = document.getElementById('gc-shorts-screen');
+  if(hasOpen(shorts) && call('gcCloseShorts')) return true;
+
+  // 3) Sheets / small modals (top layer)
+  if(call && document.getElementById('gc-audience-sheet') && document.getElementById('gc-audience-sheet').classList.contains('open')){
+    if(call('gcCloseAudienceSheet')) return true;
+  }
+  var fwd = document.getElementById('gc-fwd-sheet');
+  if(fwd && fwd.classList.contains('open') && call('gcCloseForwardSheet')) return true;
+
+  var drawerMask = document.getElementById('gc-home-drawer-mask');
+  if(drawerMask && (drawerMask.classList.contains('open') || getComputedStyle(drawerMask).display !== 'none')){
+    if(call('gcCloseHomeDrawer')) return true;
+  }
+
+  var deleteSheet = document.getElementById('delete-sheet-modal');
+  if(hasOpen(deleteSheet) && call('closeDeleteSheet')) return true;
+
+  var qpModal = document.getElementById('quick-profile-modal');
+  if(hasOpen(qpModal) && call('closeQuickProfile')) return true;
+
+  var wpModal = document.getElementById('wallpaper-modal');
+  if(hasOpen(wpModal) && call('closeWallpaperPicker')) return true;
+
+  var badgeInfo = document.getElementById('badge-info-modal');
+  if(hasOpen(badgeInfo) && call('closeBadgeInfo')) return true;
+
+  var groupInfo = document.getElementById('group-info-modal');
+  if(hasOpen(groupInfo) && call('closeGroupInfoModal')) return true;
+
+  // Generic open sheet masks
+  var anySheet = document.querySelector('.gc-sheet-mask.open, #gc-email-privacy-sheet.open, #gc-dob-privacy-modal.open, #gc-profile-select-sheet.open');
+  if(anySheet){
+    if(anySheet.id === 'gc-email-privacy-sheet' && call('gcCloseEmailPrivacy')) return true;
+    if(anySheet.id === 'gc-dob-privacy-modal' && call('gcCloseDobPrivacyPopup')) return true;
+    if(anySheet.id === 'gc-profile-select-sheet' && call('gcCloseProfileSelect')) return true;
+    anySheet.classList.remove('open');
+    return true;
+  }
+
+  // 4) Comment / single post / chat / other profile / create
+  var commentPanel = document.getElementById('comment-panel');
+  if(hasOpen(commentPanel) && call('closeCommentPanel')) return true;
+
+  var singlePost = document.getElementById('single-post-screen');
+  if(hasOpen(singlePost) && call('closeSinglePost')) return true;
+
+  var chatScreen = document.getElementById('chat-screen');
+  if(hasOpen(chatScreen) && call('closeChat')) return true;
+
+  var otherProfile = document.getElementById('page-other-profile');
+  if(hasOpen(otherProfile) && call('closeUserProfile')) return true;
+
+  var createPost = document.getElementById('create-post-screen');
+  if(hasOpen(createPost) && call('closeCreatePost')) return true;
+
+  // 5) Feature screens (liked, requests, insights, trending, pay, etc.)
+  var liked = document.getElementById('gc-liked-screen');
+  if(hasOpen(liked) && call('gcCloseLikedScreen')) return true;
+
+  var fr = document.getElementById('gc-fr-screen');
+  if(hasOpen(fr) && call('gcCloseFollowRequests')) return true;
+
+  var ins = document.getElementById('gc-ins-screen');
+  if(hasOpen(ins) && call('gcCloseInsights')) return true;
+
+  var trend = document.getElementById('gc-trending-screen');
+  if(hasOpen(trend) && call('gcCloseTrending')) return true;
+
+  var friendsList = document.getElementById('friends-list-modal');
+  if(hasOpen(friendsList) && call('closeFriendsListModal')) return true;
+
+  var pay = document.getElementById('gc-pay-screen') || document.querySelector('.gc-pay-overlay.open, #gc-pay-overlay.open');
+  if(pay && hasOpen(pay) && call('gcPayClose')) return true;
+  if(pay && pay.classList && pay.classList.contains('open') && call('gcPayBack')) return true;
+
+  var loc = document.getElementById('gc-loc-screen');
+  if(hasOpen(loc)){
+    loc.classList.remove('open');
+    return true;
+  }
+
+  // 6) Privacy sub-pages → then Settings & Privacy → Edit profile sections
+  var privKeys = ['contact', 'private', 'danger'];
+  for(var pi = 0; pi < privKeys.length; pi++){
+    var pEl = document.getElementById('gc-priv-page-' + privKeys[pi]);
+    if(pEl && pEl.classList.contains('open')){
+      try{ if(typeof gcClosePrivPage === 'function') gcClosePrivPage(privKeys[pi]); }catch(e){}
+      return true;
+    }
+  }
+
+  var about = document.getElementById('gc-about-screen');
+  if(about && about.classList.contains('open') && call('gcCloseAboutUs')) return true;
+
+  var epPersonal = document.getElementById('ep-section-personal');
+  if(epPersonal && epPersonal.classList.contains('open')){ try{ gcCloseEpSection('personal'); }catch(e){} return true; }
+  var epWork = document.getElementById('ep-section-work');
+  if(epWork && epWork.classList.contains('open')){ try{ gcCloseEpSection('work'); }catch(e){} return true; }
+  var epEdu = document.getElementById('ep-section-education');
+  if(epEdu && epEdu.classList.contains('open')){ try{ gcCloseEpSection('education'); }catch(e){} return true; }
+
+  var editProfile = document.getElementById('edit-profile-screen');
+  if(hasOpen(editProfile) && call('closeProfileEdit')) return true;
+
+  var galleryScreen = document.getElementById('gallery-screen');
+  if(hasOpen(galleryScreen) && call('closeGallery')) return true;
+
+  var settingsPrivacy = document.getElementById('settings-privacy-screen');
+  if(hasOpen(settingsPrivacy) && call('closeSettingsPrivacy')) return true;
+
+  var mainSettings = document.getElementById('main-settings-screen');
+  if(hasOpen(mainSettings) && call('closeMainSettingsScreen')) return true;
+
+  var mainMenu = document.getElementById('main-menu-screen');
+  if(hasOpen(mainMenu) && call('closeMainMenu')) return true;
+
+  // Chat settings sub-screens if present
+  if(call('closeChatPrivacyPage')){
+    var cps = document.getElementById('chat-privacy-screen') || document.getElementById('chat-settings-screen');
+    if(cps && hasOpen(cps)) return true;
+  }
+  var chatSettings = document.getElementById('chat-settings-screen');
+  if(hasOpen(chatSettings) && call('closeChatSettingsScreen')) return true;
+
+  // 7) Body modes & bottom-nav pages → home feed
+  if(document.body.classList.contains('search-mode') ||
+     document.body.classList.contains('friends-mode') ||
+     document.body.classList.contains('messages-mode') ||
+     document.body.classList.contains('notifications-mode') ||
+     document.body.classList.contains('profile-mode')){
+    if(typeof showPage === 'function'){ showPage('feed'); return true; }
+  }
+
+  var feedPage = document.getElementById('page-feed');
+  if(feedPage && !feedPage.classList.contains('active')){
+    if(typeof showPage === 'function'){ showPage('feed'); return true; }
+  }
+
+  return false;
 }
+window.closeTopMostView = closeTopMostView;
+
 // ==========================================
 // 🚀 Settings & Privacy Search Function
 // ==========================================
