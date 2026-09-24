@@ -1243,23 +1243,23 @@ body:not(.light-mode) .post-card {
   position:fixed;
   z-index:100090;
   display:flex;
-  gap:10px;
+  gap:8px;
   align-items:center;
-  background:rgba(255,255,255,0.96);
-  backdrop-filter:blur(14px);
-  -webkit-backdrop-filter:blur(14px);
-  padding:10px 14px;
-  border-radius:50px;
-  box-shadow:0 10px 32px rgba(0,0,0,0.18), 0 0 0 1px rgba(0,0,0,0.06);
+  background:rgba(255,255,255,0.97);
+  backdrop-filter:blur(16px) saturate(1.2);
+  -webkit-backdrop-filter:blur(16px) saturate(1.2);
+  padding:8px 12px;
+  border-radius:999px;
+  box-shadow:0 12px 40px rgba(0,0,0,0.16), 0 0 0 1px rgba(0,0,0,0.05);
   opacity:0;
-  transform:translateY(12px) scale(0.92);
+  transform:translateY(14px) scale(0.88);
   pointer-events:none;
-  transition:opacity .22s cubic-bezier(.22,1,.36,1), transform .22s cubic-bezier(.22,1,.36,1);
+  transition:opacity .24s cubic-bezier(.22,1,.36,1), transform .28s cubic-bezier(.34,1.4,.48,1);
   will-change:transform,opacity;
 }
 body:not(.light-mode) .gc-react-popup{
-  background:rgba(28,28,36,0.96);
-  box-shadow:0 10px 32px rgba(0,0,0,0.45), 0 0 0 1px rgba(255,255,255,0.08);
+  background:rgba(30,30,38,0.97);
+  box-shadow:0 12px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.07);
 }
 .gc-react-popup.open{
   opacity:1;
@@ -1267,8 +1267,8 @@ body:not(.light-mode) .gc-react-popup{
   pointer-events:auto;
 }
 .gc-react-popup .gc-react-item{
-  width:42px;
-  height:42px;
+  width:44px;
+  height:44px;
   border:none;
   background:transparent;
   padding:0;
@@ -1277,22 +1277,22 @@ body:not(.light-mode) .gc-react-popup{
   display:flex;
   align-items:center;
   justify-content:center;
-  transition:transform .18s cubic-bezier(.22,1,.36,1);
+  transition:transform .2s cubic-bezier(.34,1.4,.48,1);
   -webkit-tap-highlight-color:transparent;
 }
 .gc-react-popup .gc-react-item:hover,
 .gc-react-popup .gc-react-item:focus{
-  transform:scale(1.28) translateY(-6px);
+  transform:scale(1.32) translateY(-8px);
   outline:none;
 }
 .gc-react-popup .gc-react-item:active{
-  transform:scale(1.12) translateY(-2px);
+  transform:scale(1.1) translateY(-2px);
 }
 .gc-react-popup .gc-react-item svg{
   width:40px;
   height:40px;
   display:block;
-  filter:drop-shadow(0 3px 6px rgba(0,0,0,0.12));
+  filter:drop-shadow(0 3px 8px rgba(0,0,0,0.14));
   pointer-events:none;
 }
 .post-action-btn .gc-react-mini,
@@ -14005,9 +14005,10 @@ body:not(.light-mode) .sp-comment-compose button.is-ready{
         <!-- 🚀 Floating Bottom Action Bar (Smaller Size) -->
     <div id="zoom-bottom-bar" style="position:absolute; bottom:0; left:0; right:0; padding:30px 24px calc(20px + env(safe-area-inset-bottom)); background:linear-gradient(transparent, rgba(0,0,0,0.85)); display:none; justify-content:space-around; align-items:center; z-index:10005;" onclick="event.stopPropagation()">
         
-        <!-- 🚀 Like Button (feed-এর সাথে মিল রেখে ph-thumbs-up আইকন — listenToZoomPostData() রিয়েল-টাইমে liked/unliked স্টেট বসাবে) -->
-        <div style="display:flex; align-items:center; gap:6px; cursor:pointer;" onclick="if(zoomActivePostId) toggleLike(zoomActivePostId);">
-            <span id="zoom-like-btn" style="display:flex; align-items:center; gap:6px; color:#fff;">
+        <!-- 🚀 Like Button — hold-to-react + short-tap (same as feed) -->
+        <div style="display:flex; align-items:center; gap:6px; cursor:pointer;" data-gc-like-btn
+             onclick="(function(el){ if(el.getAttribute('data-gc-react-hold')==='1'){ el.removeAttribute('data-gc-react-hold'); return; } if(zoomActivePostId) toggleLike(zoomActivePostId); })(this.querySelector('#zoom-like-btn')||this);">
+            <span id="zoom-like-btn" data-gc-like-btn style="display:flex; align-items:center; gap:6px; color:#fff;">
                 <i class="ph-light ph-thumbs-up" style="font-size:24px; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));"></i>
                 <span class="like-count like-count-slot" data-raw-count="0" style="font-size:14px; font-weight:800; color:#fff; text-shadow:0 1px 3px rgba(0,0,0,0.6);"><span class="like-count-num">0</span></span>
             </span>
@@ -18310,148 +18311,118 @@ window.gcLikeIconPhysics = gcLikeIconPhysics;
 
 async function toggleLike(pid) {
     if (!currentUser || !checkRateLimit()) return;
+    window.__gcLikeBusy = window.__gcLikeBusy || {};
+    if (window.__gcLikeBusy[pid]) return;
+    window.__gcLikeBusy[pid] = true;
 
-    // ১. হোম ফিডে লাইক আপডেট + X-style pop animation
-    var likeButtons = Array.prototype.slice.call(
-      document.querySelectorAll(`button[onclick*="toggleLike('${pid}')"], button[onclick*="toggleLike(\`${pid}\`)"]`)
-    );
     try {
-      var spC = document.getElementById('single-post-container');
-      if (spC) {
-        var spLike = spC.querySelector('.post-action-btn[data-action="like"]');
-        if (spLike && likeButtons.indexOf(spLike) < 0) likeButtons.push(spLike);
+      // Single source of truth from DOM (first reliable button)
+      var probe = document.querySelector(
+        '.post-card[data-post-id="'+pid+'"] .post-action-btn[data-action="like"],'+
+        '#single-post-container .post-action-btn[data-action="like"],'+
+        '.gc-short-item[data-post-id="'+pid+'"] .gc-short-act[data-s-act="like"]'
+      );
+      var isCurrentlyLiked = !!(probe && (probe.classList.contains('liked') || probe.getAttribute('data-my-react')));
+      var currentLikes = 0;
+      if (probe) {
+        var cs = probe.querySelector('[data-count="likes"], [data-s-likes], span[data-raw-count]');
+        if (cs) {
+          var rawAttr = cs.getAttribute('data-raw-count') || cs.getAttribute('data-raw');
+          if (rawAttr != null && rawAttr !== '') currentLikes = parseInt(rawAttr, 10) || 0;
+          else currentLikes = (typeof gcParseCountText === 'function') ? gcParseCountText(cs.innerText) : (parseInt(cs.innerText, 10) || 0);
+        }
       }
-    } catch(e){}
 
-    let isCurrentlyLiked = false;
-    let currentLikes = 0;
+      var nextLiked = !isCurrentlyLiked;
+      var nextCount = nextLiked ? (currentLikes + 1) : Math.max(0, currentLikes - 1);
+      var nextReact = nextLiked ? 'like' : null;
 
-    likeButtons.forEach(function(btn) {
-        const icon = btn.querySelector('i');
-        const countSpan = btn.querySelector('span');
-        // Prefer data-raw-count; never parseInt("18.9K") → 18 (glitch)
-        if (countSpan) {
-            var rawAttr = countSpan.getAttribute('data-raw-count');
-            if (rawAttr != null && rawAttr !== '') currentLikes = parseInt(rawAttr, 10) || 0;
-            else currentLikes = (typeof gcParseCountText === 'function') ? gcParseCountText(countSpan.innerText) : (parseInt(countSpan.innerText, 10) || 0);
-        } else currentLikes = 0;
-        isCurrentlyLiked = btn.classList.contains('liked');
+      // Optimistic UI once across all views
+      if (typeof gcSyncEngagementUI === 'function') {
+        gcSyncEngagementUI(pid, { liked: nextLiked, count: nextCount, reaction: nextReact, animate: true });
+      }
 
-        /* just-liked removed */
-        if (countSpan) {
-            countSpan.classList.remove('anim-up', 'anim-down');
-            countSpan.classList.add('like-count');
+      const ref = db.collection('posts').doc(pid);
+      const doc = await ref.get();
+      if (!doc.exists) return;
+
+      const p = doc.data() || {};
+      let likedBy = Array.isArray(p.likedBy) ? p.likedBy.slice() : [];
+      let likes = (typeof p.likes === 'number') ? p.likes : likedBy.length;
+      var reactions = (p.reactions && typeof p.reactions === 'object') ? Object.assign({}, p.reactions) : {};
+      var serverHad = likedBy.indexOf(currentUser.uid) !== -1;
+
+      // Align with server truth if optimistic guess was wrong
+      if (serverHad === nextLiked) {
+        // Already in desired state on server — just resync UI
+        var r0 = reactions[currentUser.uid] || (serverHad ? 'like' : null);
+        if (typeof gcSyncEngagementUI === 'function') {
+          gcSyncEngagementUI(pid, { liked: serverHad, count: likes, reaction: r0, animate: false });
         }
+        return;
+      }
 
-        if (isCurrentlyLiked) {
-            btn.classList.remove('liked');
-            if (icon) icon.className = 'ph-light ph-thumbs-up';
-            if (countSpan) {
-                var nextDown = Math.max(0, currentLikes - 1);
-                gcPhysicsLikeCount(countSpan, nextDown);
-            }
-            if (icon) gcLikeIconPhysics(icon);
-        } else {
-            btn.classList.add('liked');
-            if (icon) {
-                icon.className = 'ph-fill ph-thumbs-up';
-                void icon.offsetWidth;
-            }
-            /* just-liked removed */
-            if (countSpan) {
-                var nextUp = currentLikes + 1;
-                gcPhysicsLikeCount(countSpan, nextUp);
-            }
-            if (icon) gcLikeIconPhysics(icon);
-            setTimeout(function(){ /* just-liked removed */ }, 500);
+      if (serverHad) {
+        likedBy = likedBy.filter(function(id){ return id !== currentUser.uid; });
+        likes = Math.max(0, likes - 1);
+        try { delete reactions[currentUser.uid]; } catch(e){}
+        if (p.uid !== currentUser.uid) {
+          try {
+            db.collection('notifications').doc(currentUser.uid + '_like_' + pid).delete().catch(function(){});
+          } catch(e){}
         }
-    });
-    
-    // 🚀 ২. ফুল-স্ক্রিন জুম মডাল
-    if (typeof zoomActivePostId !== 'undefined' && zoomActivePostId === pid) {
-        const zBtn = document.getElementById('zoom-like-btn');
-        if (zBtn) {
-            var zIcon = zBtn.querySelector('i');
-            var zSpan = zBtn.querySelector('span.like-count, span[data-raw-count], span');
-            // Prefer nested count span (not the outer zoom-like-btn itself)
-            if (zSpan && zSpan.id === 'zoom-like-btn') zSpan = zBtn.querySelector('span.like-count') || zBtn.querySelectorAll('span')[1] || null;
-            var zLikes = 0;
-            if (zSpan) {
-                var zr = zSpan.getAttribute('data-raw-count');
-                if (zr != null && zr !== '') zLikes = parseInt(zr, 10) || 0;
-                else zLikes = (typeof gcParseCountText === 'function') ? gcParseCountText(zSpan.innerText) : (parseInt(zSpan.innerText, 10) || 0);
-            }
-            var wasLiked = !!(zIcon && zIcon.classList.contains('ph-fill'));
-            if (wasLiked) {
-                if (zIcon) { zIcon.className = 'ph-light ph-thumbs-up'; zIcon.style.color = '#fff'; }
-                if (zSpan) gcPhysicsLikeCount(zSpan, Math.max(0, zLikes - 1));
-                if (zIcon) gcLikeIconPhysics(zIcon);
-            } else {
-                if (zIcon) { zIcon.className = 'ph-fill ph-thumbs-up'; zIcon.style.color = '#1DA1F2'; }
-                if (zSpan) gcPhysicsLikeCount(zSpan, zLikes + 1);
-                if (zIcon) gcLikeIconPhysics(zIcon);
-            }
-        }
-    }
-
-    // ৩. ব্যাকগ্রাউন্ডে ডাটাবেস আপডেট হবে
-    const ref = db.collection('posts').doc(pid);
-    const doc = await ref.get();
-    
-    if (doc.exists) {
-        const p = doc.data();
-        let likedBy = p.likedBy || [];
-        let likes = p.likes || 0;
-        
-        var reactions = (p.reactions && typeof p.reactions === 'object') ? Object.assign({}, p.reactions) : {};
-        if (likedBy.includes(currentUser.uid)) {
-            likedBy = likedBy.filter(id => id !== currentUser.uid);
-            likes = Math.max(0, likes - 1);
-            try{ delete reactions[currentUser.uid]; }catch(e){}
-            // Remove deterministic + rollup like notifications on unlike
-            if (p.uid !== currentUser.uid) {
-                try {
-                    var n1 = db.collection('notifications').doc(currentUser.uid + '_like_' + pid);
-                    n1.delete().catch(function(){});
-                    var n2 = db.collection('notifications').doc(p.uid + '_rup_like_' + pid);
-                    // Only delete rollup if this user was sole actor — safer: soft-skip; full rebuild costly
-                } catch(e){}
-            }
-        } else {
-            likedBy.push(currentUser.uid);
-            likes++;
-            reactions[currentUser.uid] = 'like';
-            
-            if (p.uid !== currentUser.uid) {
-                const notifId = currentUser.uid + '_like_' + pid;
-                const notifRef = db.collection('notifications').doc(notifId);
-                var postImage = '';
-                try{
-                  if(Array.isArray(p.imageUrls) && p.imageUrls[0]) postImage = p.imageUrls[0];
-                  else if(p.imageUrl) postImage = p.imageUrl;
-                  else if(Array.isArray(p.mediaUrls) && p.mediaUrls[0]) postImage = p.mediaUrls[0];
-                  else if(p.mediaUrl) postImage = p.mediaUrl;
-                  else if(p.thumb || p.thumbnail || p.poster || p.videoThumb) postImage = (p.thumb||p.thumbnail||p.poster||p.videoThumb);
-                  else if(Array.isArray(p.images) && p.images[0]) postImage = (typeof p.images[0]==='string' ? p.images[0] : (p.images[0].url||''));
-                }catch(e){}
-                notifRef.get().then(docSnap => {
-                    if (!docSnap.exists) {
-                        notifRef.set({
-                            toUid: p.uid, 
-                            fromUid: currentUser.uid,
-                            fromName: currentUserData.name,
-                            type: 'like', 
-                            postId: pid,
-                            postImage: postImage || '',
-                            read: false,
-                            createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                        });
-                        awardPoints(p.uid, 5);
-                    }
+      } else {
+        likedBy.push(currentUser.uid);
+        likes = likes + 1;
+        reactions[currentUser.uid] = 'like';
+        if (p.uid !== currentUser.uid) {
+          try {
+            const notifId = currentUser.uid + '_like_' + pid;
+            const notifRef = db.collection('notifications').doc(notifId);
+            var postImage = '';
+            try {
+              if (Array.isArray(p.imageUrls) && p.imageUrls[0]) postImage = p.imageUrls[0];
+              else if (p.imageUrl) postImage = p.imageUrl;
+              else if (Array.isArray(p.mediaUrls) && p.mediaUrls[0]) postImage = p.mediaUrls[0];
+              else if (p.mediaUrl) postImage = p.mediaUrl;
+              else if (p.thumb || p.thumbnail || p.poster || p.videoThumb) postImage = (p.thumb||p.thumbnail||p.poster||p.videoThumb);
+              else if (Array.isArray(p.images) && p.images[0]) postImage = (typeof p.images[0]==='string' ? p.images[0] : (p.images[0].url||''));
+            } catch(e){}
+            notifRef.get().then(function(docSnap){
+              if (!docSnap.exists) {
+                notifRef.set({
+                  toUid: p.uid,
+                  fromUid: currentUser.uid,
+                  fromName: (currentUserData && currentUserData.name) || 'User',
+                  type: 'like',
+                  postId: pid,
+                  postImage: postImage || '',
+                  read: false,
+                  createdAt: firebase.firestore.FieldValue.serverTimestamp()
                 });
-            }
+                if (typeof awardPoints === 'function') awardPoints(p.uid, 5);
+              }
+            });
+          } catch(e){}
         }
-        await ref.update({ likes, likedBy, reactions });
+      }
+
+      await ref.update({ likes: likes, likedBy: likedBy, reactions: reactions });
+
+      // Final authoritative UI (no second animation)
+      var finalReact = reactions[currentUser.uid] || null;
+      if (typeof gcSyncEngagementUI === 'function') {
+        gcSyncEngagementUI(pid, {
+          liked: likedBy.indexOf(currentUser.uid) !== -1,
+          count: likes,
+          reaction: finalReact,
+          animate: false
+        });
+      }
+    } catch (err) {
+      console.error('toggleLike', err);
+    } finally {
+      try { window.__gcLikeBusy[pid] = false; } catch(e){}
     }
 }
 
@@ -21549,28 +21520,33 @@ async function openSinglePostView(pid) {
                 var likesN = (typeof data.likes === 'number') ? data.likes : ((data.likedBy && data.likedBy.length) || 0);
                 var sharesN = (typeof data.shares === 'number') ? data.shares : (data.shareCount || 0);
                 var isLiked = !!(currentUser && data.likedBy && data.likedBy.indexOf(currentUser.uid) !== -1);
+                var myReact = (currentUser && data.reactions && data.reactions[currentUser.uid]) || null;
+                if (typeof gcSyncEngagementUI === 'function') {
+                  var animating = !!(container.querySelector && container.querySelector('.is-falling, .is-dropping'));
+                  if (!animating && !(window.__gcLikeBusy && window.__gcLikeBusy[pid])) {
+                    gcSyncEngagementUI(pid, {
+                      liked: isLiked,
+                      count: likesN,
+                      reaction: myReact,
+                      animate: false
+                    });
+                  }
+                } else {
                 var likeBtn = container.querySelector('.post-action-btn[data-action="like"]');
                 if (likeBtn) {
                   likeBtn.classList.toggle('liked', isLiked);
                   var likeSpan = likeBtn.querySelector('[data-count="likes"]') || likeBtn.querySelector('span');
                   if (likeSpan) {
-                    var prevRaw = parseInt(likeSpan.getAttribute('data-raw-count') || '', 10);
-                    if (isNaN(prevRaw)) prevRaw = (typeof gcParseCountText === 'function') ? gcParseCountText(likeSpan.innerText) : 0;
                     likeSpan.setAttribute('data-raw-count', String(likesN));
-                    // Skip overwrite while Physics Fall & Drop is playing
-                    var animating = !!(likeSpan.querySelector && likeSpan.querySelector('.is-falling, .is-dropping'));
-                    if (!animating) {
+                    var animating2 = !!(likeSpan.querySelector && likeSpan.querySelector('.is-falling, .is-dropping'));
+                    if (!animating2) {
                       var numEl = likeSpan.querySelector('.like-count-num');
                       var fmt = (typeof gcFmtCount === 'function') ? gcFmtCount(likesN) : String(likesN);
                       if (numEl) numEl.textContent = fmt;
                       else likeSpan.textContent = fmt;
                     }
                   }
-                  var likeIcon = likeBtn.querySelector('i');
-                  if (likeIcon) {
-                    var want = isLiked ? 'ph-fill ph-thumbs-up' : 'ph-light ph-thumbs-up';
-                    if (likeIcon.className !== want) likeIcon.className = want;
-                  }
+                }
                 }
                 var cBtn = container.querySelector('.post-action-btn[data-action="comment"]');
                 if (cBtn) {
@@ -22068,25 +22044,36 @@ function loadFeed() {
                     const commentCountEl = commentBtn ? (commentBtn.querySelector('[data-count="comments"]') || commentBtn.querySelector('span')) : null;
                     const likeIcon = likeBtn ? likeBtn.querySelector('i') : null;
                     
-                    if (likeCountEl) {
+                    if (commentCountEl) { var __ct = Math.max(Array.isArray(p.comments)?p.comments.length:0, p.commentCount||0); commentCountEl.setAttribute('data-raw-count', String(__ct)); commentCountEl.textContent = gcFmtCount(__ct); }
+                    if (typeof gcSyncEngagementUI === 'function' && p.id) {
+                      var __animating = !!(likeCountEl && likeCountEl.querySelector && likeCountEl.querySelector('.is-falling, .is-dropping'));
+                      if (!__animating && !(window.__gcLikeBusy && window.__gcLikeBusy[p.id])) {
+                        var __liked = !!(p.likedBy && currentUser && p.likedBy.includes(currentUser.uid));
+                        var __react = (currentUser && p.reactions && p.reactions[currentUser.uid]) || null;
+                        gcSyncEngagementUI(p.id, {
+                          liked: __liked,
+                          count: (typeof p.likes === 'number') ? p.likes : ((p.likedBy && p.likedBy.length) || 0),
+                          reaction: __react,
+                          animate: false
+                        });
+                      }
+                    } else if (likeCountEl) {
                       likeCountEl.setAttribute('data-raw-count', String(p.likes || 0));
-                      var __animating = !!(likeCountEl.querySelector && likeCountEl.querySelector('.is-falling, .is-dropping'));
-                      if (!__animating) {
+                      var __animating2 = !!(likeCountEl.querySelector && likeCountEl.querySelector('.is-falling, .is-dropping'));
+                      if (!__animating2) {
                         var __num = likeCountEl.querySelector('.like-count-num');
                         var __fmt = gcFmtCount(p.likes || 0);
                         if (__num) __num.textContent = __fmt;
                         else likeCountEl.textContent = __fmt;
                       }
-                    }
-                    if (commentCountEl) { var __ct = Math.max(Array.isArray(p.comments)?p.comments.length:0, p.commentCount||0); commentCountEl.setAttribute('data-raw-count', String(__ct)); commentCountEl.textContent = gcFmtCount(__ct); }
-                    
-                    if (likeBtn && likeIcon) {
-                      if (p.likedBy && p.likedBy.includes(currentUser?.uid)) {
-                          likeBtn.classList.add('liked');
-                          likeIcon.className = 'ph-fill ph-thumbs-up';
-                      } else {
-                          likeBtn.classList.remove('liked');
-                          likeIcon.className = 'ph-light ph-thumbs-up';
+                      if (likeBtn && likeIcon) {
+                        if (p.likedBy && p.likedBy.includes(currentUser?.uid)) {
+                            likeBtn.classList.add('liked');
+                            likeIcon.className = 'ph-fill ph-thumbs-up';
+                        } else {
+                            likeBtn.classList.remove('liked');
+                            likeIcon.className = 'ph-light ph-thumbs-up';
+                        }
                       }
                     }
                 } else {
@@ -22326,16 +22313,25 @@ function listenToZoomPostData(pid) {
             const isLiked = data.likedBy && currentUser && data.likedBy.includes(currentUser.uid);
             const likeCount = data.likes || 0;
             const commentCount = (typeof gcCommentTotal === 'function') ? gcCommentTotal(data) : (data.comments ? data.comments.length : 0);
+            const myReact = (currentUser && data.reactions && data.reactions[currentUser.uid]) || null;
             
             const likeBtn = document.getElementById('zoom-like-btn');
             const commentBtn = document.getElementById('zoom-comment-btn');
             
-            const formattedLikes = typeof formatLBNum === 'function' ? formatLBNum(likeCount) : likeCount;
             const formattedComments = typeof formatLBNum === 'function' ? formatLBNum(commentCount) : commentCount;
             
-            if(likeBtn) {
+            if(likeBtn && typeof gcSyncEngagementUI === 'function') {
+                if (!(window.__gcLikeBusy && window.__gcLikeBusy[pid])) {
+                  gcSyncEngagementUI(pid, {
+                    liked: !!isLiked,
+                    count: likeCount,
+                    reaction: myReact,
+                    animate: false
+                  });
+                }
+            } else if(likeBtn) {
                 var __zlRaw = (typeof likeCount === 'number') ? likeCount : (parseInt(likeCount,10)||0);
-                var __zlFmt = (typeof gcFmtCount === 'function') ? gcFmtCount(__zlRaw) : formattedLikes;
+                var __zlFmt = (typeof gcFmtCount === 'function') ? gcFmtCount(__zlRaw) : __zlRaw;
                 likeBtn.innerHTML = isLiked 
                     ? `<i class="ph-fill ph-thumbs-up" style="color:#1DA1F2; font-size:24px; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));"></i> <span class="like-count like-count-slot" data-raw-count="${__zlRaw}" style="font-size:14px; font-weight:800; color:#fff; text-shadow:0 1px 3px rgba(0,0,0,0.6);"><span class="like-count-num">${__zlFmt}</span></span>` 
                     : `<i class="ph-light ph-thumbs-up" style="color:#fff; font-size:24px; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));"></i> <span class="like-count like-count-slot" data-raw-count="${__zlRaw}" style="font-size:14px; font-weight:800; color:#fff; text-shadow:0 1px 3px rgba(0,0,0,0.6);"><span class="like-count-num">${__zlFmt}</span></span>`;
@@ -22582,9 +22578,10 @@ const vBadge=(typeof gcResolveUserBadges==='function')
   : gcCombineBadges(getVerifiedBadge(p.email, p.isVerified), getLeaderBadge(p.email, p.isLeader, true));
 const isLiked=p.likedBy&&p.likedBy.includes(currentUser?.uid);
 const myReactType=(p.reactions&&currentUser&&p.reactions[currentUser.uid])||null;
-const likeIconHtml=(myReactType&&typeof gcReactSvg==='function'&&gcReactSvg(myReactType,true))
+// SVG only for non-default reactions (haha/wow/sad/angry/dislike). Plain "like" keeps filled thumb.
+const likeIconHtml=(myReactType && myReactType !== 'like' && typeof gcReactSvg==='function' && gcReactSvg(myReactType,true))
   ? gcReactSvg(myReactType,true)
-  : `<i class="${isLiked ? 'ph-fill' : 'ph-light'} ph-thumbs-up" style="font-size:24px;"></i>`;
+  : `<i class="${isLiked || myReactType ? 'ph-fill' : 'ph-light'} ph-thumbs-up" style="font-size:24px;"></i>`;
 const likeColor=isLiked?'var(--danger)':'var(--text-secondary)';
 const fillProp=isLiked?'1':'0';
 const commentCountRaw=Math.max(Array.isArray(p.comments)?p.comments.length:0, typeof p.commentCount==='number'?p.commentCount:0);
@@ -31904,6 +31901,10 @@ function gcRenderShortsList(posts){
     var comments = Math.max(Array.isArray(p.comments) ? p.comments.length : 0, p.commentCount || 0);
     var shares = p.shares || 0;
     var isLiked = !!(currentUser && p.likedBy && p.likedBy.indexOf(currentUser.uid) !== -1);
+    var myReact = (currentUser && p.reactions && p.reactions[currentUser.uid]) || null;
+    var shortLikeIcon = (myReact && myReact !== 'like' && typeof gcReactSvg === 'function' && gcReactSvg(myReact, true))
+      ? gcReactSvg(myReact, true)
+      : '<i class="'+(isLiked || myReact ? 'ph-fill' : 'ph-light')+' ph-thumbs-up"></i>';
     var timeL = gcShortTimeLabel(p.createdAt);
     var avHtml = av
       ? '<img class="gc-short-av" src="'+escapeHTML(av)+'" alt="" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\';"><div class="gc-short-av-fallback" style="display:none;">'+escapeHTML((name||'U').charAt(0).toUpperCase())+'</div>'
@@ -31929,8 +31930,8 @@ function gcRenderShortsList(posts){
       + '</div>'
       + '<div class="gc-short-actions">'
       +   '<button type="button" class="gc-short-av-btn" data-s-profile="1" aria-label="Profile">'+avHtml+'</button>'
-      +   '<button type="button" class="gc-short-act'+(isLiked?' liked':'')+'" data-s-act="like" onclick="event.stopPropagation(); toggleLike(\''+escapeHTML(pid)+'\');">'
-      +   '<i class="ph-light ph-thumbs-up"></i><span data-s-likes data-raw="'+likes+'">'+fmtL+'</span></button>'
+      +   '<button type="button" class="gc-short-act'+(isLiked || myReact ? ' liked' : '')+'" data-s-act="like"'+(myReact ? ' data-my-react="'+escapeHTML(myReact)+'"' : '')+' onclick="event.stopPropagation(); if(this.getAttribute(\'data-gc-react-hold\')===\'1\'){this.removeAttribute(\'data-gc-react-hold\');return;} toggleLike(\''+escapeHTML(pid)+'\');">'
+      +   shortLikeIcon+'<span data-s-likes data-raw="'+likes+'" data-raw-count="'+likes+'">'+fmtL+'</span></button>'
       +   '<button type="button" class="gc-short-act" data-s-act="comment" onclick="event.stopPropagation(); gcOpenShortsComments(\''+escapeHTML(pid)+'\');">'
       +   '<i class="ph-light ph-chat-circle"></i><span data-s-comments>'+fmtC+'</span></button>'
       +   '<button type="button" class="gc-short-act" data-s-act="share" onclick="event.stopPropagation(); if(typeof openShareModal===\'function\') openShareModal(\''+escapeHTML(pid)+'\',\''+escapeHTML((title||'').replace(/'/g,''))+'\',\''+escapeHTML(vurl)+'\');">'
@@ -35562,13 +35563,13 @@ window.gcComingSoon = gcComingSoon;
 window.gcCloseSheetSafe = gcCloseSheetSafe;
 
 // ═══════════════════════════════════════════════════════
-// 🚀 Hold-to-react · custom SVG reactions (not system emoji)
-// Long-press like → picker · tap reaction → save
-// Short tap on like still uses toggleLike() as before
+// 🚀 Hold-to-react · custom SVG reactions (v2 · stable counts)
+// Long-press → picker · short tap → toggleLike
+// One UI sync path for feed / single / shorts / zoom
 // ═══════════════════════════════════════════════════════
 (function(){
-  if(window.__gcHoldReactV1) return;
-  window.__gcHoldReactV1 = true;
+  if(window.__gcHoldReactV2) return;
+  window.__gcHoldReactV2 = true;
 
   var GC_REACT_TYPES = ['like','dislike','haha','wow','sad','angry'];
   var GC_REACT_SVG = {
@@ -35579,15 +35580,160 @@ window.gcCloseSheetSafe = gcCloseSheetSafe;
     sad: '<svg class="gc-react-mini" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="24" cy="24" r="24" fill="#F7B125"/><path d="M14 18C15 16 17 16 18 18" stroke="#333" stroke-width="3" stroke-linecap="round"/><path d="M34 18C33 16 31 16 30 18" stroke="#333" stroke-width="3" stroke-linecap="round"/><path d="M18 30C18 30 21 26 24 26C27 26 30 30 30 30" stroke="#333" stroke-width="3" stroke-linecap="round"/><path d="M16 22V26" stroke="#4A90E2" stroke-width="3" stroke-linecap="round"/></svg>',
     angry: '<svg class="gc-react-mini" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="24" cy="24" r="24" fill="#E41E3F"/><path d="M13 16L19 20" stroke="white" stroke-width="3" stroke-linecap="round"/><path d="M35 16L29 20" stroke="white" stroke-width="3" stroke-linecap="round"/><circle cx="17" cy="23" r="2" fill="white"/><circle cx="31" cy="23" r="2" fill="white"/><path d="M18 32C18 32 21 28 24 28C27 28 30 32 30 32" stroke="white" stroke-width="3" stroke-linecap="round"/></svg>'
   };
-  // Larger SVGs for the popup (same art, no class)
   var GC_REACT_SVG_POP = {};
   Object.keys(GC_REACT_SVG).forEach(function(k){
     GC_REACT_SVG_POP[k] = GC_REACT_SVG[k].replace('class="gc-react-mini"','');
   });
 
+  window.gcReactSvg = function(type, mini){
+    if(!type || !GC_REACT_SVG[type]) return '';
+    return mini ? GC_REACT_SVG[type] : GC_REACT_SVG_POP[type];
+  };
+
+  function collectLikeButtons(pid){
+    var list = [];
+    var seen = {};
+    function add(node){
+      if(!node || seen[node]) return;
+      seen[node] = true;
+      list.push(node);
+    }
+    document.querySelectorAll(
+      '.post-card[data-post-id="'+pid+'"] .post-action-btn[data-action="like"],'+
+      '#single-post-container .post-action-btn[data-action="like"],'+
+      '.gc-short-item[data-post-id="'+pid+'"] .gc-short-act[data-s-act="like"]'
+    ).forEach(add);
+    var z = document.getElementById('zoom-like-btn');
+    if(z && typeof zoomActivePostId !== 'undefined' && zoomActivePostId === pid) add(z);
+    return list;
+  }
+
+  function setCountOnSpan(span, count, animate){
+    if(!span) return;
+    var n = Math.max(0, parseInt(count, 10) || 0);
+    var prevRaw = span.getAttribute('data-raw-count') || span.getAttribute('data-raw');
+    var prevN = prevRaw != null ? (parseInt(prevRaw, 10) || 0) : -1;
+    span.setAttribute('data-raw-count', String(n));
+    if(span.hasAttribute('data-raw')) span.setAttribute('data-raw', String(n));
+    span.classList.add('like-count');
+    // Skip visual rewrite when count unchanged and no animation requested (stops 1↔2 flicker)
+    if(!animate && prevN === n){
+      var hasFalling = !!(span.querySelector && span.querySelector('.is-falling, .is-dropping'));
+      if(!hasFalling) return;
+    }
+    if(animate && typeof gcPhysicsLikeCount === 'function'){
+      gcPhysicsLikeCount(span, n);
+    } else {
+      var fmt = (typeof gcFmtCount === 'function') ? gcFmtCount(n) : String(n);
+      var num = span.querySelector('.like-count-num');
+      if(num){
+        // Clear leftover animation nodes
+        span.querySelectorAll('.like-count-num').forEach(function(el, i){
+          if(i === 0){ el.className = 'like-count-num'; el.textContent = fmt; }
+          else try{ el.remove(); }catch(e){}
+        });
+      } else {
+        span.textContent = fmt;
+      }
+    }
+  }
+
+  function iconHtmlFor(reaction, liked, zoomStyle){
+    if(reaction && GC_REACT_SVG[reaction]) return GC_REACT_SVG[reaction];
+    if(zoomStyle){
+      if(liked) return '<i class="ph-fill ph-thumbs-up" style="color:#1DA1F2; font-size:24px; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));"></i>';
+      return '<i class="ph-light ph-thumbs-up" style="color:#fff; font-size:24px; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));"></i>';
+    }
+    if(liked) return '<i class="ph-fill ph-thumbs-up" style="font-size:24px;"></i>';
+    return '<i class="ph-light ph-thumbs-up" style="font-size:24px;"></i>';
+  }
+
+  // Unified UI for all surfaces (feed / single / shorts / zoom)
+  // Rule: plain "like" → filled thumb · other reactions → colored SVG circle
+  // Soft-updates never flip icon type for the same reaction (no flicker / lost icon)
+  window.gcSyncEngagementUI = function(pid, opts){
+    if(!pid || !opts) return;
+    var liked = !!opts.liked;
+    var count = Math.max(0, parseInt(opts.count, 10) || 0);
+    var reaction = opts.reaction || null;
+    // SVG only for non-default reactions; "like" always uses thumb icon
+    var useSvg = !!(reaction && reaction !== 'like' && GC_REACT_SVG[reaction]);
+    var animate = !!opts.animate;
+    var btns = collectLikeButtons(pid);
+    btns.forEach(function(btn){
+      try{
+        var isZoom = (btn.id === 'zoom-like-btn');
+        var isShort = btn.classList.contains('gc-short-act');
+        // Preserve existing count node (and its data-raw-count) if possible
+        var span = btn.querySelector('[data-count="likes"], [data-s-likes], span.like-count, span[data-raw-count]');
+        if(!span){
+          span = document.createElement('span');
+          if(isShort){ span.setAttribute('data-s-likes',''); span.setAttribute('data-raw', String(count)); }
+          else span.setAttribute('data-count','likes');
+          span.className = 'like-count';
+        } else {
+          span = span.cloneNode(true);
+        }
+        setCountOnSpan(span, count, animate);
+        if(isZoom){
+          span.className = 'like-count like-count-slot';
+          span.style.cssText = 'font-size:14px; font-weight:800; color:#fff; text-shadow:0 1px 3px rgba(0,0,0,0.6);';
+        } else if(!isShort){
+          span.style.fontSize = span.style.fontSize || '14px';
+        }
+        var wantLiked = liked || !!reaction;
+        var prevReact = btn.getAttribute('data-my-react') || null;
+        var prevLiked = btn.classList.contains('liked');
+        var needIconSwap = (prevReact !== (reaction || null)) || (prevLiked !== wantLiked) || animate;
+        // Only rebuild icon HTML when reaction/liked state actually changed (or animating)
+        if(needIconSwap){
+          var ico;
+          if(useSvg) ico = GC_REACT_SVG[reaction];
+          else ico = iconHtmlFor(null, wantLiked, isZoom);
+          btn.classList.toggle('liked', wantLiked);
+          if(reaction) btn.setAttribute('data-my-react', reaction);
+          else btn.removeAttribute('data-my-react');
+          btn.innerHTML = ico + span.outerHTML;
+          if(animate){
+            var ic = btn.querySelector('i, svg');
+            if(ic && typeof gcLikeIconPhysics === 'function') gcLikeIconPhysics(ic);
+          }
+        } else {
+          // Same reaction state — only refresh the count span in place
+          btn.classList.toggle('liked', wantLiked);
+          var liveSpan = btn.querySelector('[data-count="likes"], [data-s-likes], span.like-count, span[data-raw-count]');
+          if(liveSpan) setCountOnSpan(liveSpan, count, false);
+          else {
+            // rare: count span missing — full rebuild
+            var ico2 = useSvg ? GC_REACT_SVG[reaction] : iconHtmlFor(null, wantLiked, isZoom);
+            btn.innerHTML = ico2 + span.outerHTML;
+          }
+        }
+      }catch(e){}
+    });
+  };
+
+  window.gcApplyReactionUI = function(pid, type){
+    // Back-compat wrapper — preserves current count, only swaps icon/state
+    var probe = document.querySelector(
+      '.post-card[data-post-id="'+pid+'"] .post-action-btn[data-action="like"] [data-count="likes"],'+
+      '#single-post-container .post-action-btn[data-action="like"] [data-count="likes"],'+
+      '.gc-short-item[data-post-id="'+pid+'"] .gc-short-act[data-s-act="like"] [data-s-likes]'
+    );
+    var count = 0;
+    if(probe){
+      var r = probe.getAttribute('data-raw-count') || probe.getAttribute('data-raw');
+      count = r != null ? (parseInt(r,10)||0) : 0;
+    }
+    gcSyncEngagementUI(pid, {
+      liked: !!type,
+      count: count,
+      reaction: type || null,
+      animate: false
+    });
+  };
+
   var pressTimer = null;
-  var pressPid = null;
-  var pressOpened = false;
   var popupEl = null;
 
   function ensurePopup(){
@@ -35618,22 +35764,21 @@ window.gcCloseSheetSafe = gcCloseSheetSafe;
 
   function closePopup(){
     if(popupEl) popupEl.classList.remove('open');
-    pressOpened = false;
-    pressPid = null;
   }
 
   function openPopupNear(btn, pid){
     var el = ensurePopup();
     el.setAttribute('data-pid', pid);
     var r = btn.getBoundingClientRect();
-    var pw = 280; // approx
+    var pw = Math.min(300, window.innerWidth - 16);
     var left = Math.max(8, Math.min(window.innerWidth - pw - 8, r.left + r.width/2 - pw/2));
-    var top = r.top - 64;
-    if(top < 8) top = r.bottom + 8;
+    var top = r.top - 72;
+    if(top < 8) top = r.bottom + 12;
     el.style.left = left + 'px';
     el.style.top = top + 'px';
     el.classList.add('open');
-    pressOpened = true;
+    // Subtle haptic when picker appears (supported devices only)
+    try{ if(navigator.vibrate) navigator.vibrate(12); }catch(e){}
   }
 
   function findLikeBtn(target){
@@ -35649,6 +35794,11 @@ window.gcCloseSheetSafe = gcCloseSheetSafe;
     var m = oc.match(/toggleLike\(['"]([^'"]+)['"]\)/);
     if(m) return m[1];
     if(typeof zoomActivePostId !== 'undefined' && zoomActivePostId) return zoomActivePostId;
+    // single post screen
+    try{
+      var sp = document.querySelector('#single-post-container .post-card[data-post-id]');
+      if(sp) return sp.getAttribute('data-post-id');
+    }catch(e){}
     return null;
   }
 
@@ -35657,18 +35807,14 @@ window.gcCloseSheetSafe = gcCloseSheetSafe;
     if(!btn) return;
     var pid = pidFromBtn(btn);
     if(!pid || !currentUser) return;
-    pressPid = pid;
-    pressOpened = false;
     clearTimeout(pressTimer);
     pressTimer = setTimeout(function(){
       pressTimer = null;
       openPopupNear(btn, pid);
-      // prevent the upcoming click from toggling like
       btn.setAttribute('data-gc-react-hold','1');
-      setTimeout(function(){ try{ btn.removeAttribute('data-gc-react-hold'); }catch(err){} }, 600);
+      setTimeout(function(){ try{ btn.removeAttribute('data-gc-react-hold'); }catch(err){} }, 700);
     }, 480);
   }
-
   function onPressEnd(){
     clearTimeout(pressTimer);
     pressTimer = null;
@@ -35681,7 +35827,6 @@ window.gcCloseSheetSafe = gcCloseSheetSafe;
   document.addEventListener('touchend', onPressEnd, true);
   document.addEventListener('touchcancel', onPressEnd, true);
 
-  // Block click if long-press just opened picker
   document.addEventListener('click', function(e){
     var btn = findLikeBtn(e.target);
     if(btn && btn.getAttribute('data-gc-react-hold') === '1'){
@@ -35691,43 +35836,18 @@ window.gcCloseSheetSafe = gcCloseSheetSafe;
       btn.removeAttribute('data-gc-react-hold');
       return;
     }
-    if(popupEl && popupEl.classList.contains('open')){
-      if(!popupEl.contains(e.target)) closePopup();
+    if(popupEl && popupEl.classList.contains('open') && !popupEl.contains(e.target)){
+      closePopup();
     }
   }, true);
-
-  window.gcReactSvg = function(type, mini){
-    if(!type || !GC_REACT_SVG[type]) return '';
-    return mini ? GC_REACT_SVG[type] : GC_REACT_SVG_POP[type];
-  };
-
-  window.gcApplyReactionUI = function(pid, type){
-    // Update all like buttons for this post to show the reaction icon (or default thumb)
-    try{
-      var nodes = document.querySelectorAll(
-        '.post-card[data-post-id="'+pid+'"] .post-action-btn[data-action="like"],'+
-        '.gc-short-item[data-post-id="'+pid+'"] .gc-short-act[data-s-act="like"]'
-      );
-      nodes.forEach(function(btn){
-        var span = btn.querySelector('span[data-count], span[data-s-likes], span.like-count, span');
-        var countHtml = span ? span.outerHTML : '';
-        if(type && GC_REACT_SVG[type]){
-          btn.classList.add('liked');
-          btn.setAttribute('data-my-react', type);
-          btn.innerHTML = GC_REACT_SVG[type] + (countHtml || '');
-        } else {
-          btn.classList.remove('liked');
-          btn.removeAttribute('data-my-react');
-          btn.innerHTML = '<i class="ph-light ph-thumbs-up" style="font-size:24px;"></i>' + (countHtml || '');
-        }
-      });
-    }catch(e){}
-  };
 
   window.gcPickReaction = async function(pid, type){
     if(!currentUser || !pid || !type) return;
     if(GC_REACT_TYPES.indexOf(type) === -1) return;
     if(typeof checkRateLimit === 'function' && !checkRateLimit()) return;
+    window.__gcLikeBusy = window.__gcLikeBusy || {};
+    if(window.__gcLikeBusy[pid]) return;
+    window.__gcLikeBusy[pid] = true;
     try{
       var ref = db.collection('posts').doc(pid);
       var doc = await ref.get();
@@ -35740,7 +35860,7 @@ window.gcCloseSheetSafe = gcCloseSheetSafe;
       var prev = reactions[uid] || null;
       var wasInLiked = likedBy.indexOf(uid) !== -1;
 
-      // Same reaction again → remove
+      // Same reaction again → remove engagement
       if(prev === type){
         delete reactions[uid];
         if(wasInLiked){
@@ -35748,49 +35868,37 @@ window.gcCloseSheetSafe = gcCloseSheetSafe;
           likes = Math.max(0, likes - 1);
         }
         await ref.update({ likes: likes, likedBy: likedBy, reactions: reactions });
-        gcApplyReactionUI(pid, null);
-        // sync count spans
-        try{
-          document.querySelectorAll('.post-card[data-post-id="'+pid+'"] [data-count="likes"], .post-card[data-post-id="'+pid+'"] .post-action-btn[data-action="like"] span').forEach(function(s){
-            if(s.getAttribute && s.getAttribute('data-count')==='likes'){
-              s.setAttribute('data-raw-count', String(likes));
-              s.textContent = (typeof gcFmtCount==='function') ? gcFmtCount(likes) : String(likes);
-            }
-          });
-        }catch(e){}
+        gcSyncEngagementUI(pid, { liked: false, count: likes, reaction: null, animate: true });
         return;
       }
 
+      // Switch or new reaction — count only bumps if newly engaging
       reactions[uid] = type;
+      var countChanged = false;
       if(!wasInLiked){
         likedBy.push(uid);
         likes = likes + 1;
+        countChanged = true;
       }
       await ref.update({ likes: likes, likedBy: likedBy, reactions: reactions });
-      gcApplyReactionUI(pid, type);
-      try{
-        document.querySelectorAll('.post-card[data-post-id="'+pid+'"] [data-count="likes"]').forEach(function(s){
-          s.setAttribute('data-raw-count', String(likes));
-          s.textContent = (typeof gcFmtCount==='function') ? gcFmtCount(likes) : String(likes);
-        });
-      }catch(e){}
+      gcSyncEngagementUI(pid, {
+        liked: true,
+        count: likes,
+        reaction: type,
+        fromPicker: true,
+        animate: countChanged
+      });
 
-      // Notification only when newly engaging (not switching reaction)
       if(!wasInLiked && p.uid && p.uid !== uid){
         try{
-          var notifId = uid + '_like_' + pid;
-          var notifRef = db.collection('notifications').doc(notifId);
+          var notifRef = db.collection('notifications').doc(uid + '_like_' + pid);
           notifRef.get().then(function(snap){
             if(!snap.exists){
               notifRef.set({
-                toUid: p.uid,
-                fromUid: uid,
+                toUid: p.uid, fromUid: uid,
                 fromName: (currentUserData && currentUserData.name) || 'User',
-                type: 'like',
-                reaction: type,
-                postId: pid,
-                postImage: '',
-                read: false,
+                type: 'like', reaction: type, postId: pid,
+                postImage: '', read: false,
                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
               });
             }
@@ -35800,15 +35908,17 @@ window.gcCloseSheetSafe = gcCloseSheetSafe;
     }catch(err){
       console.error('gcPickReaction', err);
       if(typeof showToast==='function') showToast('Could not save reaction');
+    }finally{
+      try{ window.__gcLikeBusy[pid] = false; }catch(e){}
     }
   };
 
-  // When rendering posts, surface existing reaction on the like button
   window.gcReactionIconHtml = function(p){
     try{
       if(!currentUser || !p || !p.reactions) return null;
       var t = p.reactions[currentUser.uid];
-      if(t && GC_REACT_SVG[t]) return GC_REACT_SVG[t];
+      // Only non-default reactions get the colored SVG; plain like stays as filled thumb
+      if(t && t !== 'like' && GC_REACT_SVG[t]) return GC_REACT_SVG[t];
     }catch(e){}
     return null;
   };
