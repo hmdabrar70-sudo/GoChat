@@ -1237,6 +1237,72 @@ body:not(.light-mode) .post-card {
 লাইক/কমেন্ট/শেয়ার বাটন এখন কাছাকাছি কমপ্যাক্ট গ্রুপে
 খুঁজতে: Ctrl+F → "compact-action-buttons"
 ========================================= */
+
+/* ═══ Hold-to-react picker (custom SVG, not system emoji) ═══ */
+.gc-react-popup{
+  position:fixed;
+  z-index:100090;
+  display:flex;
+  gap:10px;
+  align-items:center;
+  background:rgba(255,255,255,0.96);
+  backdrop-filter:blur(14px);
+  -webkit-backdrop-filter:blur(14px);
+  padding:10px 14px;
+  border-radius:50px;
+  box-shadow:0 10px 32px rgba(0,0,0,0.18), 0 0 0 1px rgba(0,0,0,0.06);
+  opacity:0;
+  transform:translateY(12px) scale(0.92);
+  pointer-events:none;
+  transition:opacity .22s cubic-bezier(.22,1,.36,1), transform .22s cubic-bezier(.22,1,.36,1);
+  will-change:transform,opacity;
+}
+body:not(.light-mode) .gc-react-popup{
+  background:rgba(28,28,36,0.96);
+  box-shadow:0 10px 32px rgba(0,0,0,0.45), 0 0 0 1px rgba(255,255,255,0.08);
+}
+.gc-react-popup.open{
+  opacity:1;
+  transform:translateY(0) scale(1);
+  pointer-events:auto;
+}
+.gc-react-popup .gc-react-item{
+  width:42px;
+  height:42px;
+  border:none;
+  background:transparent;
+  padding:0;
+  cursor:pointer;
+  border-radius:50%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  transition:transform .18s cubic-bezier(.22,1,.36,1);
+  -webkit-tap-highlight-color:transparent;
+}
+.gc-react-popup .gc-react-item:hover,
+.gc-react-popup .gc-react-item:focus{
+  transform:scale(1.28) translateY(-6px);
+  outline:none;
+}
+.gc-react-popup .gc-react-item:active{
+  transform:scale(1.12) translateY(-2px);
+}
+.gc-react-popup .gc-react-item svg{
+  width:40px;
+  height:40px;
+  display:block;
+  filter:drop-shadow(0 3px 6px rgba(0,0,0,0.12));
+  pointer-events:none;
+}
+.post-action-btn .gc-react-mini,
+.gc-short-act .gc-react-mini{
+  width:24px;
+  height:24px;
+  display:block;
+  flex-shrink:0;
+}
+
 .post-actions {
 display: flex;
 gap: 8px;
@@ -18337,9 +18403,11 @@ async function toggleLike(pid) {
         let likedBy = p.likedBy || [];
         let likes = p.likes || 0;
         
+        var reactions = (p.reactions && typeof p.reactions === 'object') ? Object.assign({}, p.reactions) : {};
         if (likedBy.includes(currentUser.uid)) {
             likedBy = likedBy.filter(id => id !== currentUser.uid);
             likes = Math.max(0, likes - 1);
+            try{ delete reactions[currentUser.uid]; }catch(e){}
             // Remove deterministic + rollup like notifications on unlike
             if (p.uid !== currentUser.uid) {
                 try {
@@ -18352,6 +18420,7 @@ async function toggleLike(pid) {
         } else {
             likedBy.push(currentUser.uid);
             likes++;
+            reactions[currentUser.uid] = 'like';
             
             if (p.uid !== currentUser.uid) {
                 const notifId = currentUser.uid + '_like_' + pid;
@@ -18382,7 +18451,7 @@ async function toggleLike(pid) {
                 });
             }
         }
-        await ref.update({ likes, likedBy });
+        await ref.update({ likes, likedBy, reactions });
     }
 }
 
@@ -22512,6 +22581,10 @@ const vBadge=(typeof gcResolveUserBadges==='function')
   ? gcResolveUserBadges(p.uid, p.email, p.isVerified, p.isLeader, true)
   : gcCombineBadges(getVerifiedBadge(p.email, p.isVerified), getLeaderBadge(p.email, p.isLeader, true));
 const isLiked=p.likedBy&&p.likedBy.includes(currentUser?.uid);
+const myReactType=(p.reactions&&currentUser&&p.reactions[currentUser.uid])||null;
+const likeIconHtml=(myReactType&&typeof gcReactSvg==='function'&&gcReactSvg(myReactType,true))
+  ? gcReactSvg(myReactType,true)
+  : `<i class="${isLiked ? 'ph-fill' : 'ph-light'} ph-thumbs-up" style="font-size:24px;"></i>`;
 const likeColor=isLiked?'var(--danger)':'var(--text-secondary)';
 const fillProp=isLiked?'1':'0';
 const commentCountRaw=Math.max(Array.isArray(p.comments)?p.comments.length:0, typeof p.commentCount==='number'?p.commentCount:0);
@@ -22679,8 +22752,8 @@ ${mediaHtml}
 ${generatePollHTML(p)}
 <div class="post-actions">
 <!-- 🚀 বাটনগুলোতে event.stopPropagation() দেওয়া হলো -->
-<button class="post-action-btn ${isLiked ? 'liked' : ''}" data-action="like" onclick="event.stopPropagation(); toggleLike('${pid}')">
-    <i class="${isLiked ? 'ph-fill' : 'ph-light'} ph-thumbs-up" style="font-size:24px;"></i>
+<button class="post-action-btn ${isLiked || myReactType ? 'liked' : ''}" data-action="like"${myReactType?` data-my-react="${myReactType}"`:''} onclick="event.stopPropagation(); if(this.getAttribute('data-gc-react-hold')==='1'){this.removeAttribute('data-gc-react-hold');return;} toggleLike('${pid}')">
+    ${likeIconHtml}
     <span data-count="likes" data-raw-count="${typeof p.likes==='number'?p.likes:(p.likedBy&&p.likedBy.length)||0}" style="font-size:14px;">${gcFmtCount(typeof p.likes==='number'?p.likes:(p.likedBy&&p.likedBy.length)||0)}</span>
 </button>
 
@@ -35487,6 +35560,259 @@ window.gcSyncAudienceChip = gcSyncAudienceChip;
 
 window.gcComingSoon = gcComingSoon;
 window.gcCloseSheetSafe = gcCloseSheetSafe;
+
+// ═══════════════════════════════════════════════════════
+// 🚀 Hold-to-react · custom SVG reactions (not system emoji)
+// Long-press like → picker · tap reaction → save
+// Short tap on like still uses toggleLike() as before
+// ═══════════════════════════════════════════════════════
+(function(){
+  if(window.__gcHoldReactV1) return;
+  window.__gcHoldReactV1 = true;
+
+  var GC_REACT_TYPES = ['like','dislike','haha','wow','sad','angry'];
+  var GC_REACT_SVG = {
+    like: '<svg class="gc-react-mini" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="24" cy="24" r="24" fill="#1877F2"/><path d="M34 22H27.1L28.3 16.3C28.4 15.1 27.5 14 26.3 14H24L18 20V34H32.2C33.3 34 34.2 33.3 34.4 32.2L36 24.2C36.2 23 35.2 22 34 22Z" fill="white"/><path d="M16 20H12V34H16V20Z" fill="white"/></svg>',
+    dislike: '<svg class="gc-react-mini" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="24" cy="24" r="24" fill="#E41E3F"/><path d="M14 26H20.9L19.7 31.7C19.6 32.9 20.5 34 21.7 34H24L30 28V14H15.8C14.7 14 13.8 14.7 13.6 15.8L12 23.8C11.8 25 12.8 26 14 26Z" fill="white"/><path d="M32 28H36V14H32V28Z" fill="white"/></svg>',
+    haha: '<svg class="gc-react-mini" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="24" cy="24" r="24" fill="#F7B125"/><path d="M13 18C15 16 17 18 17 18" stroke="#333" stroke-width="3" stroke-linecap="round"/><path d="M35 18C33 16 31 18 31 18" stroke="#333" stroke-width="3" stroke-linecap="round"/><path d="M16 26C16 26 20 32 24 32C28 32 32 26 32 26" stroke="#333" stroke-width="3" stroke-linecap="round" fill="#333"/></svg>',
+    wow: '<svg class="gc-react-mini" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="24" cy="24" r="24" fill="#F7B125"/><circle cx="16" cy="18" r="3" fill="#333"/><circle cx="32" cy="18" r="3" fill="#333"/><ellipse cx="24" cy="28" rx="4" ry="6" stroke="#333" stroke-width="3" fill="#333"/></svg>',
+    sad: '<svg class="gc-react-mini" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="24" cy="24" r="24" fill="#F7B125"/><path d="M14 18C15 16 17 16 18 18" stroke="#333" stroke-width="3" stroke-linecap="round"/><path d="M34 18C33 16 31 16 30 18" stroke="#333" stroke-width="3" stroke-linecap="round"/><path d="M18 30C18 30 21 26 24 26C27 26 30 30 30 30" stroke="#333" stroke-width="3" stroke-linecap="round"/><path d="M16 22V26" stroke="#4A90E2" stroke-width="3" stroke-linecap="round"/></svg>',
+    angry: '<svg class="gc-react-mini" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="24" cy="24" r="24" fill="#E41E3F"/><path d="M13 16L19 20" stroke="white" stroke-width="3" stroke-linecap="round"/><path d="M35 16L29 20" stroke="white" stroke-width="3" stroke-linecap="round"/><circle cx="17" cy="23" r="2" fill="white"/><circle cx="31" cy="23" r="2" fill="white"/><path d="M18 32C18 32 21 28 24 28C27 28 30 32 30 32" stroke="white" stroke-width="3" stroke-linecap="round"/></svg>'
+  };
+  // Larger SVGs for the popup (same art, no class)
+  var GC_REACT_SVG_POP = {};
+  Object.keys(GC_REACT_SVG).forEach(function(k){
+    GC_REACT_SVG_POP[k] = GC_REACT_SVG[k].replace('class="gc-react-mini"','');
+  });
+
+  var pressTimer = null;
+  var pressPid = null;
+  var pressOpened = false;
+  var popupEl = null;
+
+  function ensurePopup(){
+    if(popupEl && document.body.contains(popupEl)) return popupEl;
+    popupEl = document.createElement('div');
+    popupEl.id = 'gc-react-popup';
+    popupEl.className = 'gc-react-popup';
+    popupEl.setAttribute('role','listbox');
+    popupEl.setAttribute('aria-label','Reactions');
+    var html = '';
+    GC_REACT_TYPES.forEach(function(t){
+      html += '<button type="button" class="gc-react-item" data-react="'+t+'" aria-label="'+t+'">'+GC_REACT_SVG_POP[t]+'</button>';
+    });
+    popupEl.innerHTML = html;
+    popupEl.addEventListener('click', function(e){
+      var btn = e.target.closest('.gc-react-item');
+      if(!btn) return;
+      e.preventDefault();
+      e.stopPropagation();
+      var type = btn.getAttribute('data-react');
+      var pid = popupEl.getAttribute('data-pid');
+      if(pid && type) gcPickReaction(pid, type);
+      closePopup();
+    });
+    document.body.appendChild(popupEl);
+    return popupEl;
+  }
+
+  function closePopup(){
+    if(popupEl) popupEl.classList.remove('open');
+    pressOpened = false;
+    pressPid = null;
+  }
+
+  function openPopupNear(btn, pid){
+    var el = ensurePopup();
+    el.setAttribute('data-pid', pid);
+    var r = btn.getBoundingClientRect();
+    var pw = 280; // approx
+    var left = Math.max(8, Math.min(window.innerWidth - pw - 8, r.left + r.width/2 - pw/2));
+    var top = r.top - 64;
+    if(top < 8) top = r.bottom + 8;
+    el.style.left = left + 'px';
+    el.style.top = top + 'px';
+    el.classList.add('open');
+    pressOpened = true;
+  }
+
+  function findLikeBtn(target){
+    if(!target || !target.closest) return null;
+    return target.closest('.post-action-btn[data-action="like"], .gc-short-act[data-s-act="like"], #zoom-like-btn, [data-gc-like-btn]');
+  }
+
+  function pidFromBtn(btn){
+    if(!btn) return null;
+    var card = btn.closest('[data-post-id]');
+    if(card) return card.getAttribute('data-post-id');
+    var oc = btn.getAttribute('onclick') || '';
+    var m = oc.match(/toggleLike\(['"]([^'"]+)['"]\)/);
+    if(m) return m[1];
+    if(typeof zoomActivePostId !== 'undefined' && zoomActivePostId) return zoomActivePostId;
+    return null;
+  }
+
+  function onPressStart(e){
+    var btn = findLikeBtn(e.target);
+    if(!btn) return;
+    var pid = pidFromBtn(btn);
+    if(!pid || !currentUser) return;
+    pressPid = pid;
+    pressOpened = false;
+    clearTimeout(pressTimer);
+    pressTimer = setTimeout(function(){
+      pressTimer = null;
+      openPopupNear(btn, pid);
+      // prevent the upcoming click from toggling like
+      btn.setAttribute('data-gc-react-hold','1');
+      setTimeout(function(){ try{ btn.removeAttribute('data-gc-react-hold'); }catch(err){} }, 600);
+    }, 480);
+  }
+
+  function onPressEnd(){
+    clearTimeout(pressTimer);
+    pressTimer = null;
+  }
+
+  document.addEventListener('mousedown', onPressStart, true);
+  document.addEventListener('touchstart', onPressStart, {capture:true, passive:true});
+  document.addEventListener('mouseup', onPressEnd, true);
+  document.addEventListener('mouseleave', onPressEnd, true);
+  document.addEventListener('touchend', onPressEnd, true);
+  document.addEventListener('touchcancel', onPressEnd, true);
+
+  // Block click if long-press just opened picker
+  document.addEventListener('click', function(e){
+    var btn = findLikeBtn(e.target);
+    if(btn && btn.getAttribute('data-gc-react-hold') === '1'){
+      e.preventDefault();
+      e.stopPropagation();
+      try{ e.stopImmediatePropagation(); }catch(err){}
+      btn.removeAttribute('data-gc-react-hold');
+      return;
+    }
+    if(popupEl && popupEl.classList.contains('open')){
+      if(!popupEl.contains(e.target)) closePopup();
+    }
+  }, true);
+
+  window.gcReactSvg = function(type, mini){
+    if(!type || !GC_REACT_SVG[type]) return '';
+    return mini ? GC_REACT_SVG[type] : GC_REACT_SVG_POP[type];
+  };
+
+  window.gcApplyReactionUI = function(pid, type){
+    // Update all like buttons for this post to show the reaction icon (or default thumb)
+    try{
+      var nodes = document.querySelectorAll(
+        '.post-card[data-post-id="'+pid+'"] .post-action-btn[data-action="like"],'+
+        '.gc-short-item[data-post-id="'+pid+'"] .gc-short-act[data-s-act="like"]'
+      );
+      nodes.forEach(function(btn){
+        var span = btn.querySelector('span[data-count], span[data-s-likes], span.like-count, span');
+        var countHtml = span ? span.outerHTML : '';
+        if(type && GC_REACT_SVG[type]){
+          btn.classList.add('liked');
+          btn.setAttribute('data-my-react', type);
+          btn.innerHTML = GC_REACT_SVG[type] + (countHtml || '');
+        } else {
+          btn.classList.remove('liked');
+          btn.removeAttribute('data-my-react');
+          btn.innerHTML = '<i class="ph-light ph-thumbs-up" style="font-size:24px;"></i>' + (countHtml || '');
+        }
+      });
+    }catch(e){}
+  };
+
+  window.gcPickReaction = async function(pid, type){
+    if(!currentUser || !pid || !type) return;
+    if(GC_REACT_TYPES.indexOf(type) === -1) return;
+    if(typeof checkRateLimit === 'function' && !checkRateLimit()) return;
+    try{
+      var ref = db.collection('posts').doc(pid);
+      var doc = await ref.get();
+      if(!doc.exists) return;
+      var p = doc.data() || {};
+      var likedBy = Array.isArray(p.likedBy) ? p.likedBy.slice() : [];
+      var likes = typeof p.likes === 'number' ? p.likes : likedBy.length;
+      var reactions = (p.reactions && typeof p.reactions === 'object') ? Object.assign({}, p.reactions) : {};
+      var uid = currentUser.uid;
+      var prev = reactions[uid] || null;
+      var wasInLiked = likedBy.indexOf(uid) !== -1;
+
+      // Same reaction again → remove
+      if(prev === type){
+        delete reactions[uid];
+        if(wasInLiked){
+          likedBy = likedBy.filter(function(id){ return id !== uid; });
+          likes = Math.max(0, likes - 1);
+        }
+        await ref.update({ likes: likes, likedBy: likedBy, reactions: reactions });
+        gcApplyReactionUI(pid, null);
+        // sync count spans
+        try{
+          document.querySelectorAll('.post-card[data-post-id="'+pid+'"] [data-count="likes"], .post-card[data-post-id="'+pid+'"] .post-action-btn[data-action="like"] span').forEach(function(s){
+            if(s.getAttribute && s.getAttribute('data-count')==='likes'){
+              s.setAttribute('data-raw-count', String(likes));
+              s.textContent = (typeof gcFmtCount==='function') ? gcFmtCount(likes) : String(likes);
+            }
+          });
+        }catch(e){}
+        return;
+      }
+
+      reactions[uid] = type;
+      if(!wasInLiked){
+        likedBy.push(uid);
+        likes = likes + 1;
+      }
+      await ref.update({ likes: likes, likedBy: likedBy, reactions: reactions });
+      gcApplyReactionUI(pid, type);
+      try{
+        document.querySelectorAll('.post-card[data-post-id="'+pid+'"] [data-count="likes"]').forEach(function(s){
+          s.setAttribute('data-raw-count', String(likes));
+          s.textContent = (typeof gcFmtCount==='function') ? gcFmtCount(likes) : String(likes);
+        });
+      }catch(e){}
+
+      // Notification only when newly engaging (not switching reaction)
+      if(!wasInLiked && p.uid && p.uid !== uid){
+        try{
+          var notifId = uid + '_like_' + pid;
+          var notifRef = db.collection('notifications').doc(notifId);
+          notifRef.get().then(function(snap){
+            if(!snap.exists){
+              notifRef.set({
+                toUid: p.uid,
+                fromUid: uid,
+                fromName: (currentUserData && currentUserData.name) || 'User',
+                type: 'like',
+                reaction: type,
+                postId: pid,
+                postImage: '',
+                read: false,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+              });
+            }
+          });
+        }catch(e){}
+      }
+    }catch(err){
+      console.error('gcPickReaction', err);
+      if(typeof showToast==='function') showToast('Could not save reaction');
+    }
+  };
+
+  // When rendering posts, surface existing reaction on the like button
+  window.gcReactionIconHtml = function(p){
+    try{
+      if(!currentUser || !p || !p.reactions) return null;
+      var t = p.reactions[currentUser.uid];
+      if(t && GC_REACT_SVG[t]) return GC_REACT_SVG[t];
+    }catch(e){}
+    return null;
+  };
+})();
 
 // ═══════════════════════════════════════════════════════
 // 🚀 Update · global-video-page-lifecycle · 2026-09-20
