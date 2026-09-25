@@ -6994,25 +6994,59 @@ body:not(.light-mode) .gc-op-btn-rank{
     padding:8px 16px 20px;
     -webkit-overflow-scrolling:touch;
 }
+/* Followers / Following · same sliding-pill design as Notifications */
 .gc-fl-tabs{
-    display:flex; gap:0;
-    border-bottom:1px solid var(--border);
-    padding:0 16px;
+    display:flex;
+    justify-content:flex-start;
+    align-items:center;
+    border-bottom:none;
+    padding:10px 16px 8px;
     flex-shrink:0;
+    background:var(--bg);
 }
-.gc-fl-tab{
-    flex:1; text-align:center;
-    padding:12px 8px 10px;
-    font-size:14.5px; font-weight:700;
-    color:var(--text-muted);
+.gc-fl-tabs.t-tabs{
+    position:relative;
+    display:inline-flex;
+    align-items:center;
+    gap:3px;
+    padding:3px;
+    margin:10px 16px 8px;
+    border-radius:48px;
+    background:var(--surface-2);
+    border-bottom:none;
+    width:auto;
+    max-width:calc(100% - 32px);
+}
+.gc-fl-tabs .gc-fl-tab,
+.gc-fl-tabs .t-tab{
+    position:relative;
+    appearance:none;
+    -webkit-appearance:none;
+    flex:0 0 auto;
+    border:0 !important;
+    background:transparent !important;
+    height:34px;
+    padding:4px 16px;
+    font-size:13px;
+    font-weight:700;
+    font-family:inherit;
+    color:var(--text-secondary);
     cursor:pointer;
-    border-bottom:2.5px solid transparent;
-    transition:color .2s ease, border-color .2s ease;
+    border-radius:48px;
+    z-index:1;
+    white-space:nowrap;
+    text-align:center;
+    transition:color var(--tabs-dur, 250ms) var(--tabs-ease, cubic-bezier(0.22, 1, 0.36, 1));
 }
-.gc-fl-tab.active{
-    color:var(--text);
-    border-bottom-color:var(--accent);
+.gc-fl-tabs .gc-fl-tab.active,
+.gc-fl-tabs .t-tab[aria-selected="true"],
+.gc-fl-tabs .t-tab.act-tab.active{
+    color:var(--text) !important;
+    background:transparent !important;
+    border-bottom:none !important;
 }
+body.light-mode .gc-fl-tabs.t-tabs{ background:#f1f1f1; }
+body:not(.light-mode) .gc-fl-tabs.t-tabs{ background:var(--surface-2); }
 
 .activity-item-card {
     display: flex;
@@ -12362,9 +12396,6 @@ body:not(.light-mode) .sp-comment-compose button.is-ready{
   line-height: 1.5;
 }
 
-
-
-
 .gc-privacy-body{
   padding: 8px 20px 32px;
   flex: 1;
@@ -14048,9 +14079,10 @@ body:not(.light-mode) .sp-comment-compose button.is-ready{
 <div class="gc-fl-head-title" id="gc-fl-head-title">Followers</div>
 </div>
 <!-- 🚀 followers-following-merge · 2026-09-04 — একই স্ক্রিনে দুই ট্যাব -->
-<div class="gc-fl-tabs" id="gc-fl-tabs">
-    <div class="gc-fl-tab" id="gc-fl-tab-followers" onclick="gcSwitchFollowTab('followers')">Followers</div>
-    <div class="gc-fl-tab" id="gc-fl-tab-following" onclick="gcSwitchFollowTab('following')">Following</div>
+<div class="gc-fl-tabs t-tabs" id="gc-fl-tabs" role="tablist">
+    <span class="t-tabs-pill" id="gc-fl-t-pill" aria-hidden="true"></span>
+    <button type="button" class="gc-fl-tab t-tab act-tab active" role="tab" aria-selected="true" id="gc-fl-tab-followers" data-type="followers" onclick="gcSwitchFollowTab('followers')">Followers</button>
+    <button type="button" class="gc-fl-tab t-tab act-tab" role="tab" aria-selected="false" id="gc-fl-tab-following" data-type="following" onclick="gcSwitchFollowTab('following')">Following</button>
 </div>
 <div id="friends-list-container" class="gc-fl-body"></div>
 </div>
@@ -19337,12 +19369,20 @@ ${gcDisplayName}
         const otherDobDisp = (typeof gcFormatDobDisplay === 'function') ? gcFormatDobDisplay(u.dob) : null;
         if(otherDobDisp) dHtml += `<div class="detail-item"><i class="ph-light ph-cake"></i> <strong>${escapeHTML(otherDobDisp)}</strong></div>`;
     }
-    if (u.createdAt) {
-        const joinedDate = u.createdAt.toDate ? u.createdAt.toDate() : new Date(u.createdAt);
-        const month = joinedDate.toLocaleString('default', { month: 'long' });
-        const year = joinedDate.getFullYear();
-        dHtml += `<div class="detail-item"><i class="ph-light ph-clock"></i> Joined <strong>${month} ${year}</strong></div>`;
-    }
+    (function(){
+        var raw = u.createdAt || u.joinedAt || null;
+        var joinedDate = null;
+        try{
+          if(raw && typeof raw.toDate === 'function') joinedDate = raw.toDate();
+          else if(raw && typeof raw.seconds === 'number') joinedDate = new Date(raw.seconds * 1000);
+          else if(raw) joinedDate = new Date(raw);
+        }catch(e){ joinedDate = null; }
+        if(joinedDate && !isNaN(joinedDate.getTime())){
+          var month = joinedDate.toLocaleString('default', { month: 'long' });
+          var year = joinedDate.getFullYear();
+          dHtml += '<div class="detail-item"><i class="ph-light ph-clock"></i> Joined <strong>'+month+' '+year+'</strong></div>';
+        }
+    })();
     if(u.relationship){
         let partnerChip = '';
         if(u.partnerStatus === 'confirmed' && u.partnerUid){
@@ -23272,12 +23312,23 @@ ${gcDisplayName}
             dHtml += `<div class="detail-item"><i class="ph-light ph-cake"></i> <strong>${escapeHTML(myDobDisp)}</strong>${privLockIcon}</div>`;
         }
     }
-    if (currentUserData.createdAt) {
-        const joinedDate = currentUserData.createdAt.toDate ? currentUserData.createdAt.toDate() : new Date(currentUserData.createdAt);
-        const month = joinedDate.toLocaleString('default', { month: 'long' });
-        const year = joinedDate.getFullYear();
-        dHtml += `<div class="detail-item"><i class="ph-light ph-clock"></i> Joined <strong>${month} ${year}</strong></div>`;
-    }
+    (function(){
+        var raw = currentUserData.createdAt || currentUserData.joinedAt || null;
+        var joinedDate = null;
+        try{
+          if(raw && typeof raw.toDate === 'function') joinedDate = raw.toDate();
+          else if(raw && typeof raw.seconds === 'number') joinedDate = new Date(raw.seconds * 1000);
+          else if(raw) joinedDate = new Date(raw);
+          if((!joinedDate || isNaN(joinedDate.getTime())) && currentUser && currentUser.metadata && currentUser.metadata.creationTime){
+            joinedDate = new Date(currentUser.metadata.creationTime);
+          }
+        }catch(e){ joinedDate = null; }
+        if(joinedDate && !isNaN(joinedDate.getTime())){
+          var month = joinedDate.toLocaleString('default', { month: 'long' });
+          var year = joinedDate.getFullYear();
+          dHtml += '<div class="detail-item"><i class="ph-light ph-clock"></i> Joined <strong>'+month+' '+year+'</strong></div>';
+        }
+    })();
     if(currentUserData.relationship){
         let partnerChip = '';
         if(currentUserData.partnerStatus === 'confirmed' && currentUserData.partnerUid){
@@ -25321,20 +25372,48 @@ async function openFollowList(type, uid) {
     gcFollowListUid = uid;
     const modal = document.getElementById('friends-list-modal');
     const tabs = document.getElementById('gc-fl-tabs');
-    if (tabs) tabs.style.display = 'flex';
+    if (tabs) tabs.style.display = 'inline-flex';
     modal.classList.add('open');
     gcRenderFollowTabsUI(type);
+    // settle pill after open (no jump)
+    requestAnimationFrame(function(){
+      var active = document.querySelector('#gc-fl-tabs .gc-fl-tab.active') || document.getElementById('gc-fl-tab-followers');
+      if(typeof gcMoveFlTabPill === 'function') gcMoveFlTabPill(active, false);
+    });
     await gcLoadFollowListData(type, uid);
 }
 
+function gcMoveFlTabPill(tabEl, animate){
+  try{
+    var root = document.getElementById('gc-fl-tabs');
+    var pill = document.getElementById('gc-fl-t-pill');
+    if(!root || !pill || !tabEl) return;
+    if(animate === false) pill.style.transition = 'none';
+    else pill.style.transition = '';
+    pill.style.transform = 'translateX(' + tabEl.offsetLeft + 'px)';
+    pill.style.width = tabEl.offsetWidth + 'px';
+    if(animate === false){
+      void pill.offsetWidth;
+      pill.style.transition = '';
+    }
+  }catch(e){}
+}
 function gcRenderFollowTabsUI(activeType){
     const fTab = document.getElementById('gc-fl-tab-followers');
     const gTab = document.getElementById('gc-fl-tab-following');
-    if(fTab) fTab.classList.toggle('active', activeType === 'followers');
-    if(gTab) gTab.classList.toggle('active', activeType === 'following');
+    [fTab, gTab].forEach(function(t){
+      if(!t) return;
+      var on = (t.getAttribute('data-type') === activeType);
+      t.classList.toggle('active', on);
+      t.setAttribute('aria-selected', on ? 'true' : 'false');
+    });
     const title = document.getElementById('gc-fl-head-title');
     if(title) title.textContent = activeType === 'following' ? 'Following' : 'Followers';
+    var active = activeType === 'following' ? gTab : fTab;
+    // next frame so layout is ready for pill measurement
+    requestAnimationFrame(function(){ gcMoveFlTabPill(active, true); });
 }
+window.gcMoveFlTabPill = gcMoveFlTabPill;
 
 async function gcSwitchFollowTab(type){
     if(!gcFollowListUid) return;
