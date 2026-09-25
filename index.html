@@ -1314,6 +1314,164 @@ body:not(.light-mode) .gc-react-popup{
   flex-shrink:0;
 }
 
+
+/* ═══ FEATURE: reaction summary (Facebook-style stacked icons) ═══ */
+.gc-react-summary{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  cursor:pointer;
+  padding:4px 8px 4px 4px;
+  border-radius:999px;
+  background:transparent;
+  border:none;
+  font-family:inherit;
+  color:var(--text);
+  -webkit-tap-highlight-color:transparent;
+  pointer-events:auto;
+}
+.gc-react-summary:active{ opacity:.75; }
+.gc-react-summary-icons{
+  display:inline-flex;
+  align-items:center;
+  direction:ltr;
+}
+.gc-react-summary-icons .gc-react-sum-ico{
+  width:22px;
+  height:22px;
+  border-radius:50%;
+  border:2px solid var(--surface);
+  box-sizing:content-box;
+  margin-left:-6px;
+  display:block;
+  flex-shrink:0;
+  background:var(--surface);
+}
+.gc-react-summary-icons .gc-react-sum-ico:first-child{
+  margin-left:0;
+  z-index:2;
+}
+.gc-react-summary-icons .gc-react-sum-ico:nth-child(2){ z-index:1; }
+.gc-react-summary-count{
+  font-size:14px;
+  font-weight:700;
+  color:var(--text-secondary);
+  letter-spacing:0.01em;
+}
+.gc-react-summary:empty,
+.gc-react-summary[data-count="0"]{ display:none !important; }
+
+
+/* ═══ FEATURE: reaction breakdown sheet (counts only, no user list) ═══ */
+.gc-react-sheet-mask{
+  display:none;
+  position:fixed;
+  inset:0;
+  z-index:100100;
+  background:rgba(0,0,0,0.45);
+  align-items:flex-end;
+  justify-content:center;
+}
+.gc-react-sheet-mask.open{ display:flex; }
+.gc-react-sheet{
+  width:100%;
+  max-width:520px;
+  max-height:78vh;
+  background:var(--surface);
+  border-radius:20px 20px 0 0;
+  box-shadow:0 -8px 32px rgba(0,0,0,0.2);
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+  animation:gcReactSheetUp .28s cubic-bezier(.22,1,.36,1);
+}
+@keyframes gcReactSheetUp{
+  from{ transform:translateY(40px); opacity:0; }
+  to{ transform:translateY(0); opacity:1; }
+}
+.gc-react-sheet-head{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:14px 16px 10px;
+  border-bottom:1px solid var(--border);
+  flex-shrink:0;
+}
+.gc-react-sheet-head .gc-rs-title{
+  flex:1;
+  font-size:16px;
+  font-weight:800;
+  color:var(--text);
+}
+.gc-react-sheet-head .gc-rs-close{
+  width:36px;height:36px;border-radius:50%;
+  border:none;background:var(--surface-2);color:var(--text);
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;font-size:18px;
+}
+.gc-react-sheet-filter-btn{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:8px 12px;border-radius:999px;
+  border:1px solid var(--border);background:var(--surface-2);
+  color:var(--text);font-weight:700;font-size:13px;
+  font-family:inherit;cursor:pointer;
+}
+.gc-react-sheet-filter-btn i{ font-size:14px; color:var(--text-muted); }
+.gc-react-sheet-body{
+  flex:1; overflow-y:auto; padding:8px 0 24px;
+  -webkit-overflow-scrolling:touch;
+}
+.gc-react-sheet-row{
+  display:flex;align-items:center;gap:14px;
+  padding:12px 18px;
+}
+.gc-react-sheet-row svg{
+  width:36px;height:36px;flex-shrink:0;
+  filter:drop-shadow(0 2px 6px rgba(0,0,0,0.12));
+}
+.gc-react-sheet-row .gc-rs-label{
+  flex:1;font-size:15px;font-weight:700;color:var(--text);
+  text-transform:capitalize;
+}
+.gc-react-sheet-row .gc-rs-count{
+  font-size:15px;font-weight:800;color:var(--text-secondary);
+}
+.gc-react-sheet-empty{
+  padding:40px 20px;text-align:center;
+  color:var(--text-muted);font-weight:600;font-size:14px;
+}
+
+
+/* Filter popup (like Facebook All reactions) */
+.gc-react-filter-pop{
+  position:absolute;
+  top:52px; left:16px;
+  z-index:5;
+  min-width:180px;
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:14px;
+  box-shadow:var(--shadow-lg);
+  padding:6px;
+  display:none;
+}
+.gc-react-filter-pop.open{ display:block; }
+.gc-react-filter-item{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 12px;border-radius:10px;
+  cursor:pointer;font-size:14px;font-weight:700;
+  color:var(--text);background:transparent;border:none;
+  width:100%;text-align:left;font-family:inherit;
+}
+.gc-react-filter-item:hover,
+.gc-react-filter-item:active{ background:var(--surface-2); }
+.gc-react-filter-item.active{ background:var(--accent-glow); }
+.gc-react-filter-item svg{ width:22px;height:22px;flex-shrink:0; }
+.gc-react-filter-item .gc-rf-num{
+  margin-left:auto;color:var(--text-muted);font-weight:800;
+}
+.gc-react-sheet-head{ position:relative; }
+
 /* Hold-to-react: lock scroll/select on the like control so first-hold always works */
 .post-action-btn[data-action="like"],
 .gc-short-act[data-s-act="like"],
@@ -1946,7 +2104,9 @@ body.light-mode .gc-profile-empty-icon{
   overflow: visible;
 }
 
-/* Cover block in document flow */
+/* Cover block in document flow
+   Target crop ratio from design reference: 1280 × 948
+   Scales with screen width so cover never looks cropped/broken. */
 .gc-cover-wrap{
   position: relative;
   width: 100%;
@@ -1958,7 +2118,10 @@ body.light-mode .gc-profile-empty-icon{
 }
 .profile-header.gc-has-cover .gc-cover-wrap,
 .profile-header.gc-cover-loading .gc-cover-wrap{
-  height: 200px;
+  height: auto;
+  aspect-ratio: 1280 / 820;
+  min-height: 200px;
+  max-height: 340px;
   pointer-events: auto;
   overflow: hidden;
 }
@@ -2068,7 +2231,7 @@ body.profile-mode:has(#my-profile-header.gc-has-cover) .topbar-btn .material-sym
 }
 /* Design-1: sheet overlaps cover, big rounded top */
 .profile-header.gc-has-cover .gc-profile-sheet{
-  margin-top: -48px;
+  margin-top: -56px;
   border-radius: 28px 28px 0 0;
   padding-top: 0;
   box-shadow: 0 -8px 28px rgba(0,0,0,.06);
@@ -8360,11 +8523,20 @@ body:not(.light-mode) .post-card {
     margin-left: 44px !important; /* আইকনের সাথে ভিজ্যুয়াল ব্যালেন্স */
     width: calc(100% - 44px) !important;
     justify-content: flex-start !important;
-    gap: 8px !important;
+    gap: 6px !important;
     padding: 0 !important;
     pointer-events: none; /* empty space next to share won't capture taps */
     align-items: center !important;
+    flex-wrap: wrap !important;
 }
+.post-card .post-actions .gc-react-summary {
+    pointer-events: auto !important;
+    margin-left: auto !important;
+    margin-right: 0 !important;
+    flex-shrink: 0 !important;
+    align-self: center !important;
+}
+.gc-react-summary-count{ display:none !important; }
 .post-card .post-actions .post-action-btn {
     pointer-events: auto; /* only real buttons remain tappable */
 }
@@ -12302,6 +12474,33 @@ body:not(.light-mode) .sp-comment-compose button.is-ready{
 }
 .gc-priv-delete-btn:active{ opacity: 0.88; transform: scale(0.98); }
 .gc-priv-delete-btn i{ font-size: 18px; }
+
+/* Splash loading dots (user knows app is loading) */
+.sp-loading-dots{
+  position: absolute;
+  left: 50%;
+  bottom: 18%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  z-index: 5;
+}
+.sp-loading-dots span{
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #22c55e;
+  opacity: 0.35;
+  animation: spDotPulse 1.2s ease-in-out infinite;
+}
+.sp-loading-dots span:nth-child(1){ animation-delay: 0s; }
+.sp-loading-dots span:nth-child(2){ animation-delay: 0.2s; }
+.sp-loading-dots span:nth-child(3){ animation-delay: 0.4s; }
+@keyframes spDotPulse{
+  0%, 80%, 100%{ opacity: 0.3; transform: scale(0.85); }
+  40%{ opacity: 1; transform: scale(1.15); }
+}
 </style>
 </head>
 <body>
@@ -12343,6 +12542,9 @@ body:not(.light-mode) .sp-comment-compose button.is-ready{
 <path transform="translate(0,0)" fill="url(#gcSplashG2)" d="M 1253.33 950.092 C 1279.11 949.747 1304.89 949.708 1330.66 949.973 C 1341.74 950.035 1365.35 949.643 1375.51 950.884 C 1371.06 951.821 1368.24 951.533 1365.77 954.423 C 1359.94 988.948 1378.69 1033.63 1371.55 1069.9 C 1371.2 1071.66 1377.1 1138.99 1376.62 1138.11 C 1385.69 1146.17 1404.79 1135.24 1406.05 1145.33 C 1406.6 1149.75 1396.75 1170.34 1393.95 1175.03 L 1392.61 1174.78 C 1395.51 1167.66 1404.8 1149.66 1403.49 1143.77 C 1394.05 1140.35 1298.75 1142.62 1279.36 1141.97 C 1282.02 1139.8 1282.3 1140.59 1286.73 1140.5 C 1279.15 1114.91 1283.12 1098.35 1283.87 1073.08 C 1284.1 1064.05 1281.43 1052.08 1281.85 1043.41 C 1282.85 1022.95 1278.15 1007.08 1273.49 987.38 C 1270.99 976.819 1270.32 962.557 1264.94 952.936 C 1261.88 951.059 1258.73 951.624 1254.19 950.342 L 1253.33 950.092 z"/>
 <path transform="translate(0,0)" fill="url(#gcSplashG1)" d="M 790.198 428.637 C 799.786 426.205 813.125 419.488 822.886 415.768 C 903.516 385.039 990.803 372.514 1076.86 377.272 C 1100.8 378.612 1141.23 377.598 1148.07 406.515 C 1148.87 409.798 1149.16 412.878 1148.61 416.209 C 1140.26 466.679 1130.85 517.017 1122.1 567.426 C 1121.36 571.679 1118.7 578.964 1116.63 582.552 C 1112.51 589.613 1105.68 594.687 1097.73 596.602 C 1087.4 599.128 1069.9 598.243 1058.88 598.158 C 1038.27 598 1020.29 597.383 999.679 599.422 C 877.518 611.5 767.558 678.699 701.087 781.902 C 688.61 801.681 682.848 815.182 672.296 834.092 C 670.791 825.505 678.224 807.16 676.884 797.011 C 676.935 797.393 676.843 793.256 676.848 793.415 C 673.415 793.537 668.968 793.53 665.657 794.042 C 661.069 787.975 658.053 785.408 652.369 780.246 C 651.958 780.264 647.323 780.469 647.323 780.469 C 633.446 771.853 619.117 761.808 603.543 756.702 C 596.96 754.544 593.297 763.347 587.919 764.742 C 584.608 765.638 570.112 766.004 566.492 764.8 C 565.697 764.535 565.115 762.604 564.823 761.707 C 545.288 764.795 522.02 767.173 504.419 776.138 C 498.21 779.301 484.993 803.066 476.349 798.008 C 465.452 791.631 462.318 794.732 453.469 803.044 C 450.132 814.258 446.504 825.551 443.233 836.735 C 439.035 851.089 441.211 864.719 429.283 875.766 L 428.66 876.328 C 431.447 859.209 438.326 834.131 443.388 817.495 C 474.149 717.764 529.501 627.373 604.349 554.639 L 611.881 547.52 C 663.576 499.475 710.981 466.817 774.866 436.22 C 780.527 433.653 784.764 431.651 790.198 428.637 z"/>
 </svg></div>
+    <div class="sp-loading-dots" aria-label="Loading">
+      <span></span><span></span><span></span>
+    </div>
 </div>
 
 <div id="auth-screen">
@@ -22722,7 +22924,7 @@ mediaHtml=`<div class="post-media-wrap" ondblclick="event.stopPropagation(); han
 </div>`;
 }
 
-let postDropdownHtml = `<div class="post-more-wrap" style="position:relative;margin-left:auto;align-self:center;flex-shrink:0;">
+let postDropdownHtml = `<div class="post-more-wrap" style="position:relative;margin-left:auto;flex-shrink:0;">
 <button type="button" class="post-more-btn more-btn" onclick="event.stopPropagation();togglePostDropdown('post-drop-${uniqueDropId}')" aria-label="More" style="cursor:pointer;padding:4px;width:32px;height:32px;border-radius:50%;border:none;background:transparent;color:var(--text-muted);display:flex;align-items:center;justify-content:center;">
 <i class="ph ph-dots-three" style="font-size:22px;"></i>
 </button>
@@ -22763,6 +22965,50 @@ postDropdownHtml += `<div class="chat-dropdown-item danger" onclick="event.stopP
 }
 postDropdownHtml += `</div></div>`;
 
+// Top reaction icons for summary (Facebook-style, our SVG designs)
+let reactSummaryHtml = '';
+(function(){
+  try{
+    var map = (p.reactions && typeof p.reactions === 'object') ? p.reactions : {};
+    var tallies = {};
+    Object.keys(map).forEach(function(uid){
+      var t = map[uid];
+      if(!t) return;
+      tallies[t] = (tallies[t] || 0) + 1;
+    });
+    // Also count plain likes in likedBy that have no reaction type (legacy)
+    var likedBy = Array.isArray(p.likedBy) ? p.likedBy : [];
+    likedBy.forEach(function(uid){
+      if(!map[uid]) tallies['like'] = (tallies['like'] || 0) + 1;
+    });
+    var total = Object.keys(tallies).reduce(function(s,k){ return s + tallies[k]; }, 0);
+    if(total <= 0){ reactSummaryHtml = ''; return; }
+    // Sort by count desc, take top 2
+    var order = ['like','love','haha','wow','sad','angry','dislike'];
+    var sorted = Object.keys(tallies).sort(function(a,b){
+      var d = tallies[b] - tallies[a];
+      if(d !== 0) return d;
+      return order.indexOf(a) - order.indexOf(b);
+    }).slice(0, 2);
+    var icons = '';
+    sorted.forEach(function(t){
+      var svg = (typeof gcReactSvg === 'function' && gcReactSvg(t, true)) || '';
+      if(!svg && t === 'like'){
+        svg = '<svg class="gc-react-mini" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="24" cy="24" r="24" fill="#1877F2"/><path d="M34 22H27.1L28.3 16.3C28.4 15.1 27.5 14 26.3 14H24L18 20V34H32.2C33.3 34 34.2 33.3 34.4 32.2L36 24.2C36.2 23 35.2 22 34 22Z" fill="white"/><path d="M16 20H12V34H16V20Z" fill="white"/></svg>';
+      }
+      if(svg){
+        svg = svg.replace('class="gc-react-mini"', 'class="gc-react-sum-ico"');
+        icons += svg;
+      }
+    });
+    if(!icons){ reactSummaryHtml = ''; return; }
+    reactSummaryHtml = '<button type="button" class="gc-react-summary" data-count="'+total+'" data-pid="'+pid+'" onclick="event.stopPropagation(); if(typeof gcOpenReactBreakdown===\'function\') gcOpenReactBreakdown(\''+pid+'\');" aria-label="View reactions">'
+      + '<span class="gc-react-summary-icons">'+icons+'</span>'
+      + '</button>';
+  }catch(e){ reactSummaryHtml = ''; }
+})();
+
+
     // 🚀 NEW FEATURE · threads-style-follow · Update #1
 const isMePost = (p.uid === currentUser?.uid);
 const isAlreadyFollowing = currentUserData?.following?.includes(p.uid);
@@ -22802,6 +23048,7 @@ ${p.location ? `<span class="gc-post-loc"><i class="ph-light ph-map-pin"></i>${e
 </div>
 <div class="post-time">${getRelativeTime(p.createdAt)}${(p.audience==='followers')?' <i class="ph-light ph-users gc-aud-ico" title="Followers"></i>':' <i class="ph-light ph-globe-hemisphere-east gc-aud-ico" title="Public"></i>'}${pinnedBadge}</div>
 </div>
+${postDropdownHtml}
 </div>
 ${p.title ? (() => {
     let processedTitle = escapeHTML(p.title || '');
@@ -22851,7 +23098,7 @@ ${generatePollHTML(p)}
 <i class="ph-light ph-paper-plane-tilt" style="font-size:24px;"></i>
 <span style="font-size:14px;">${p.shares || 0}</span>
 </button>
-${postDropdownHtml}
+${reactSummaryHtml}
 </div>
 </div>`;
 }
@@ -36159,6 +36406,205 @@ window.gcCloseSheetSafe = gcCloseSheetSafe;
       if(t && t !== 'like' && GC_REACT_SVG[t]) return GC_REACT_SVG[t];
     }catch(e){}
     return null;
+  };
+})();
+
+
+// ═══════════════════════════════════════════════════════
+// 🚀 FEATURE · reaction-breakdown-sheet (counts only, no user IDs)
+// Facebook-style summary → filterable reaction totals
+// ═══════════════════════════════════════════════════════
+(function(){
+  if(window.__gcReactBreakdownV1) return;
+  window.__gcReactBreakdownV1 = true;
+
+  var LABELS = {
+    like: 'Like',
+    love: 'Love',
+    haha: 'Haha',
+    wow: 'Wow',
+    sad: 'Sad',
+    angry: 'Angry',
+    dislike: 'Dislike'
+  };
+  var ORDER = ['like','love','haha','wow','sad','angry','dislike'];
+  var activeFilter = 'all';
+  var cachedTallies = {};
+  var cachedTotal = 0;
+
+  function tallyFromPost(p){
+    var map = (p && p.reactions && typeof p.reactions === 'object') ? p.reactions : {};
+    var tallies = {};
+    Object.keys(map).forEach(function(uid){
+      var t = map[uid];
+      if(!t) return;
+      tallies[t] = (tallies[t] || 0) + 1;
+    });
+    var likedBy = (p && Array.isArray(p.likedBy)) ? p.likedBy : [];
+    likedBy.forEach(function(uid){
+      if(!map[uid]) tallies['like'] = (tallies['like'] || 0) + 1;
+    });
+    return tallies;
+  }
+
+  function ensureSheet(){
+    var mask = document.getElementById('gc-react-sheet-mask');
+    if(mask) return mask;
+    mask = document.createElement('div');
+    mask.id = 'gc-react-sheet-mask';
+    mask.className = 'gc-react-sheet-mask';
+    mask.innerHTML = ''
+      + '<div class="gc-react-sheet" role="dialog" aria-label="Reactions">'
+      +   '<div class="gc-react-sheet-head">'
+      +     '<button type="button" class="gc-react-sheet-filter-btn" id="gc-rs-filter-btn">'
+      +       '<span id="gc-rs-filter-label">All reactions</span>'
+      +       '<i class="ph-bold ph-caret-down"></i>'
+      +     '</button>'
+      +     '<div class="gc-rs-title"></div>'
+      +     '<button type="button" class="gc-rs-close" id="gc-rs-close" aria-label="Close"><i class="ph ph-x"></i></button>'
+      +     '<div class="gc-react-filter-pop" id="gc-rs-filter-pop"></div>'
+      +   '</div>'
+      +   '<div class="gc-react-sheet-body" id="gc-rs-body"></div>'
+      + '</div>';
+    document.body.appendChild(mask);
+
+    mask.addEventListener('click', function(e){
+      if(e.target === mask) closeSheet();
+    });
+    document.getElementById('gc-rs-close').addEventListener('click', function(e){
+      e.stopPropagation();
+      closeSheet();
+    });
+    document.getElementById('gc-rs-filter-btn').addEventListener('click', function(e){
+      e.stopPropagation();
+      var pop = document.getElementById('gc-rs-filter-pop');
+      if(!pop) return;
+      pop.classList.toggle('open');
+    });
+    document.addEventListener('click', function(e){
+      var pop = document.getElementById('gc-rs-filter-pop');
+      if(!pop || !pop.classList.contains('open')) return;
+      if(pop.contains(e.target) || (e.target.closest && e.target.closest('#gc-rs-filter-btn'))) return;
+      pop.classList.remove('open');
+    }, true);
+    return mask;
+  }
+
+  function svgFor(type){
+    if(typeof gcReactSvg === 'function'){
+      var s = gcReactSvg(type, false);
+      if(s) return s;
+    }
+    return '';
+  }
+
+  function renderBody(){
+    var body = document.getElementById('gc-rs-body');
+    if(!body) return;
+    var rows = [];
+    var types = activeFilter === 'all'
+      ? ORDER.filter(function(t){ return (cachedTallies[t] || 0) > 0; })
+      : (cachedTallies[activeFilter] ? [activeFilter] : []);
+
+    if(!types.length){
+      body.innerHTML = '<div class="gc-react-sheet-empty">No reactions yet</div>';
+      return;
+    }
+    types.forEach(function(t){
+      var n = cachedTallies[t] || 0;
+      var ico = svgFor(t);
+      rows.push(
+        '<div class="gc-react-sheet-row" data-type="'+t+'">'
+        + (ico || '')
+        + '<span class="gc-rs-label">'+(LABELS[t]||t)+'</span>'
+        + '<span class="gc-rs-count">'+((typeof gcFmtCount==='function')?gcFmtCount(n):n)+'</span>'
+        + '</div>'
+      );
+    });
+    body.innerHTML = rows.join('');
+  }
+
+  function renderFilterPop(){
+    var pop = document.getElementById('gc-rs-filter-pop');
+    if(!pop) return;
+    var items = [];
+    items.push(
+      '<button type="button" class="gc-react-filter-item'+(activeFilter==='all'?' active':'')+'" data-f="all">'
+      + '<span>All reactions</span>'
+      + '<span class="gc-rf-num">'+((typeof gcFmtCount==='function')?gcFmtCount(cachedTotal):cachedTotal)+'</span>'
+      + '</button>'
+    );
+    ORDER.forEach(function(t){
+      var n = cachedTallies[t] || 0;
+      if(n <= 0) return;
+      var ico = svgFor(t);
+      items.push(
+        '<button type="button" class="gc-react-filter-item'+(activeFilter===t?' active':'')+'" data-f="'+t+'">'
+        + (ico || '')
+        + '<span>'+(LABELS[t]||t)+'</span>'
+        + '<span class="gc-rf-num">'+((typeof gcFmtCount==='function')?gcFmtCount(n):n)+'</span>'
+        + '</button>'
+      );
+    });
+    pop.innerHTML = items.join('');
+    pop.querySelectorAll('.gc-react-filter-item').forEach(function(btn){
+      btn.addEventListener('click', function(e){
+        e.stopPropagation();
+        activeFilter = btn.getAttribute('data-f') || 'all';
+        var label = document.getElementById('gc-rs-filter-label');
+        if(label){
+          label.textContent = activeFilter === 'all' ? 'All reactions' : (LABELS[activeFilter] || activeFilter);
+        }
+        pop.classList.remove('open');
+        renderBody();
+        renderFilterPop();
+      });
+    });
+  }
+
+  function closeSheet(){
+    var mask = document.getElementById('gc-react-sheet-mask');
+    if(mask) mask.classList.remove('open');
+    var pop = document.getElementById('gc-rs-filter-pop');
+    if(pop) pop.classList.remove('open');
+  }
+
+  window.gcCloseReactBreakdown = closeSheet;
+
+  window.gcOpenReactBreakdown = async function(pid){
+    if(!pid) return;
+    ensureSheet();
+    activeFilter = 'all';
+    cachedTallies = {};
+    cachedTotal = 0;
+
+    var label = document.getElementById('gc-rs-filter-label');
+    if(label) label.textContent = 'All reactions';
+
+    // Prefer live Firestore data
+    try{
+      var doc = await db.collection('posts').doc(pid).get();
+      if(doc.exists){
+        var _pd = doc.data() || {};
+        _pd.id = pid;
+        cachedTallies = tallyFromPost(_pd);
+      }
+    }catch(e){}
+
+    // Fallback: probe any in-memory cache / DOM post card data attributes
+    if(!Object.keys(cachedTallies).length){
+      try{
+        if(window.__gcShortsPosts && window.__gcShortsPosts[pid]){
+          cachedTallies = tallyFromPost(window.__gcShortsPosts[pid]);
+        }
+      }catch(e){}
+    }
+
+    cachedTotal = Object.keys(cachedTallies).reduce(function(s,k){ return s + (cachedTallies[k]||0); }, 0);
+    renderBody();
+    renderFilterPop();
+    var mask = document.getElementById('gc-react-sheet-mask');
+    if(mask) mask.classList.add('open');
   };
 })();
 
