@@ -2104,26 +2104,21 @@ body.light-mode .gc-profile-empty-icon{
   overflow: visible;
 }
 
-/* Cover block in document flow
-   Target crop ratio from design reference: 1280 × 948
-   Scales with screen width so cover never looks cropped/broken. */
+/* Cover block — ALWAYS reserved (photo optional)
+   Same aspect ratio whether cover image exists or not.
+   Empty state keeps a soft placeholder so layout never jumps. */
 .gc-cover-wrap{
   position: relative;
   width: 100%;
   max-width: 100%;
-  height: 0;
-  overflow: hidden;
-  flex-shrink: 0;
-  pointer-events: none;
-}
-.profile-header.gc-has-cover .gc-cover-wrap,
-.profile-header.gc-cover-loading .gc-cover-wrap{
   height: auto;
   aspect-ratio: 1280 / 820;
   min-height: 200px;
   max-height: 340px;
-  pointer-events: auto;
   overflow: hidden;
+  flex-shrink: 0;
+  pointer-events: auto;
+  background: var(--surface-2);
 }
 .gc-cover-img{
   position: absolute;
@@ -2134,6 +2129,14 @@ body.light-mode .gc-profile-empty-icon{
   background-position: center center;
   background-repeat: no-repeat;
   background-color: var(--surface-2);
+}
+/* Soft placeholder when no cover photo is set */
+.profile-header:not(.gc-has-cover) .gc-cover-img{
+  background-image: none !important;
+  background: linear-gradient(160deg, var(--surface-2) 0%, var(--border-light) 55%, var(--surface-2) 100%);
+}
+body:not(.light-mode) .profile-header:not(.gc-has-cover) .gc-cover-img{
+  background: linear-gradient(160deg, #14141c 0%, #1c1c28 55%, #12121a 100%);
 }
 .gc-cover-fade{
   position: absolute;
@@ -2229,14 +2232,20 @@ body.profile-mode:has(#my-profile-header.gc-has-cover) .topbar-btn .material-sym
   box-shadow: none;
   overflow: visible;
 }
-/* Design-1: sheet overlaps cover, big rounded top */
-.profile-header.gc-has-cover .gc-profile-sheet{
+/* Design-1: sheet always overlaps cover area (photo optional)
+   Same spacing whether cover image is set or not — layout never jumps. */
+.profile-header .gc-profile-sheet,
+.profile-header.gc-has-cover .gc-profile-sheet,
+.profile-header:not(.gc-has-cover) .gc-profile-sheet{
   margin-top: -56px;
   border-radius: 28px 28px 0 0;
+  padding: 0 16px 12px;
   padding-top: 0;
   box-shadow: 0 -8px 28px rgba(0,0,0,.06);
 }
-.profile-header.gc-has-cover .profile-main-row{
+.profile-header .profile-main-row,
+.profile-header.gc-has-cover .profile-main-row,
+.profile-header:not(.gc-has-cover) .profile-main-row{
   margin-top: 0;
   padding-top: 0;
   align-items: flex-end;
@@ -2244,47 +2253,40 @@ body.profile-mode:has(#my-profile-header.gc-has-cover) .topbar-btn .material-sym
   transform: translateY(-36px);
   margin-bottom: -22px;
 }
-.profile-header.gc-has-cover .profile-avatar{
+.profile-header .profile-avatar,
+.profile-header.gc-has-cover .profile-avatar,
+.profile-header:not(.gc-has-cover) .profile-avatar{
   width: 96px;
   height: 96px;
   border: 4px solid var(--bg);
   box-shadow: 0 2px 14px rgba(0,0,0,.16);
 }
-.profile-header.gc-has-cover .profile-stats-row{
+.profile-header .profile-stats-row,
+.profile-header.gc-has-cover .profile-stats-row,
+.profile-header:not(.gc-has-cover) .profile-stats-row{
   padding-top: 14px;
   padding-bottom: 2px;
 }
-
-/* No cover: clean classic profile (pre-cover-feature look) */
-.profile-header:not(.gc-has-cover){
-  padding-top: 12px;
-}
-.profile-header:not(.gc-has-cover) .gc-profile-sheet{
-  padding: 8px 16px 12px;
-}
-.profile-header:not(.gc-has-cover) .profile-main-row{
-  margin-top: 4px;
-  margin-bottom: 6px;
-  gap: 16px;
-  align-items: center;
-  transform: none;
-}
-.profile-header:not(.gc-has-cover) .profile-avatar{
-  width: 92px;
-  height: 92px;
-  border: 3px solid var(--bg);
-  box-shadow: 0 2px 10px rgba(0,0,0,.08);
-}
-.profile-header:not(.gc-has-cover) .profile-stats-row{
-  padding-top: 4px;
-  padding-bottom: 2px;
-}
+.profile-header .profile-name-block,
 .profile-header:not(.gc-has-cover) .profile-name-block{
+  margin-top: 8px;
+}
+.profile-header .profile-bio,
+.profile-header:not(.gc-has-cover) .profile-bio{
   margin-top: 6px;
 }
+.profile-header .profile-btns,
+.profile-header .gc-my-profile-actions,
+.profile-header #other-profile-btns,
 .profile-header:not(.gc-has-cover) .profile-btns,
-.profile-header:not(.gc-has-cover) .gc-my-profile-actions{
-  margin-top: 14px !important;
+.profile-header:not(.gc-has-cover) .gc-my-profile-actions,
+.profile-header:not(.gc-has-cover) #other-profile-btns{
+  margin-top: 22px !important;
+  margin-bottom: 8px !important;
+}
+/* No extra top padding when cover area is always present */
+.profile-header:not(.gc-has-cover){
+  padding-top: 0;
 }
 
 /* Action buttons never clip */
@@ -2332,14 +2334,14 @@ cursor:pointer;
 background:var(--border);
 }
 .profile-avatar{
-width:92px;height:92px;
+width:96px;height:96px;
 border-radius:50%;
 background:var(--gradient);
 display:flex;align-items:center;justify-content:center;
 font-size:34px;font-weight:800;color:#fff;
 overflow:hidden;
-border:3px solid var(--bg);
-box-shadow:var(--shadow-md);
+border:4px solid var(--bg);
+box-shadow:0 2px 14px rgba(0,0,0,.16);
 }
 .profile-avatar-wrap.has-story .profile-avatar{
 box-shadow:none;
@@ -2363,7 +2365,8 @@ letter-spacing:-0.2px;
 .profile-stat .profile-stat-label{
 font-size:12px;font-weight:600;color:var(--text-secondary);line-height:1.2;
 }
-.profile-name-block{width:100%;margin-top:2px;}
+.profile-name-block{width:100%;margin-top:8px;}
+.profile-header.gc-has-cover .profile-name-block{ margin-top: 8px; }
 .profile-info-col{display:flex;flex-direction:column;gap:4px;flex:1;}
 .profile-name{
 font-size:20px;
@@ -4124,11 +4127,25 @@ box-shadow:0 6px 14px -4px var(--accent-glow);
 ========================================= */
 #splash-screen{
 position:fixed;inset:0;
+top:0;left:0;right:0;bottom:0;
+width:100%;height:100%;
+min-height:100vh;min-height:100dvh;min-height:-webkit-fill-available;
 background:
 radial-gradient(120% 90% at 50% 110%, rgba(184,134,47,.12) 0%, transparent 55%),
 radial-gradient(ellipse at center, #12100a 0%, #070503 60%, #000000 100%);
 display:flex;justify-content:center;align-items:center;
 z-index:999999;transition:opacity .6s ease;overflow:hidden;
+/* kill any light bleed / hairline at bottom edge */
+box-shadow:0 0 0 100vmax #070503;
+-webkit-backface-visibility:hidden;
+backface-visibility:hidden;
+}
+/* Hide legacy gold loader bar (was a thin line near bottom) */
+.sp-loader{ display:none !important; }
+/* While splash is visible, force dark canvas so no white edge shows */
+html:has(#splash-screen:not(.gc-splash-hidden):not(.gc-splash-hiding)),
+body:has(#splash-screen:not(.gc-splash-hidden):not(.gc-splash-hiding)){
+  background:#070503 !important;
 }
 /* ঘূর্ণায়মান গোল্ডেন অরোরা */
 #splash-screen::before{
@@ -6994,31 +7011,27 @@ body:not(.light-mode) .gc-op-btn-rank{
     padding:8px 16px 20px;
     -webkit-overflow-scrolling:touch;
 }
-/* Followers / Following · same sliding-pill design as Notifications */
-.gc-fl-tabs{
-    display:flex;
-    justify-content:flex-start;
-    align-items:center;
-    border-bottom:none;
-    padding:10px 16px 8px;
-    flex-shrink:0;
-    background:var(--bg);
-}
-.gc-fl-tabs.t-tabs{
+/* Followers / Following · compact centered sliding pill (hugs buttons only) */
+#gc-fl-tabs.gc-fl-tabs.t-tabs{
     position:relative;
-    display:inline-flex;
+    display:inline-flex !important;
     align-items:center;
+    justify-content:center;
+    align-self:center;          /* center in flex column parent */
     gap:3px;
     padding:3px;
-    margin:10px 16px 8px;
+    margin:10px auto 8px !important;
     border-radius:48px;
     background:var(--surface-2);
+    border:none;
     border-bottom:none;
-    width:auto;
-    max-width:calc(100% - 32px);
+    width:max-content !important;
+    max-width:max-content !important;
+    flex-shrink:0;
+    box-sizing:border-box;
 }
-.gc-fl-tabs .gc-fl-tab,
-.gc-fl-tabs .t-tab{
+#gc-fl-tabs .gc-fl-tab,
+#gc-fl-tabs .t-tab{
     position:relative;
     appearance:none;
     -webkit-appearance:none;
@@ -7038,15 +7051,15 @@ body:not(.light-mode) .gc-op-btn-rank{
     text-align:center;
     transition:color var(--tabs-dur, 250ms) var(--tabs-ease, cubic-bezier(0.22, 1, 0.36, 1));
 }
-.gc-fl-tabs .gc-fl-tab.active,
-.gc-fl-tabs .t-tab[aria-selected="true"],
-.gc-fl-tabs .t-tab.act-tab.active{
+#gc-fl-tabs .gc-fl-tab.active,
+#gc-fl-tabs .t-tab[aria-selected="true"],
+#gc-fl-tabs .t-tab.act-tab.active{
     color:var(--text) !important;
     background:transparent !important;
     border-bottom:none !important;
 }
-body.light-mode .gc-fl-tabs.t-tabs{ background:#f1f1f1; }
-body:not(.light-mode) .gc-fl-tabs.t-tabs{ background:var(--surface-2); }
+body.light-mode #gc-fl-tabs.t-tabs{ background:#f1f1f1; }
+body:not(.light-mode) #gc-fl-tabs.t-tabs{ background:var(--surface-2); }
 
 .activity-item-card {
     display: flex;
@@ -19370,14 +19383,19 @@ ${gcDisplayName}
         if(otherDobDisp) dHtml += `<div class="detail-item"><i class="ph-light ph-cake"></i> <strong>${escapeHTML(otherDobDisp)}</strong></div>`;
     }
     (function(){
-        var raw = u.createdAt || u.joinedAt || null;
+        // Join date for OTHER profiles — same robust parser as own profile
+        var raw = u.createdAt || u.joinedAt || u.created_at || u.joinDate || null;
         var joinedDate = null;
         try{
           if(raw && typeof raw.toDate === 'function') joinedDate = raw.toDate();
+          else if(raw && typeof raw.toMillis === 'function') joinedDate = new Date(raw.toMillis());
           else if(raw && typeof raw.seconds === 'number') joinedDate = new Date(raw.seconds * 1000);
-          else if(raw) joinedDate = new Date(raw);
+          else if(raw && typeof raw._seconds === 'number') joinedDate = new Date(raw._seconds * 1000);
+          else if(typeof raw === 'number') joinedDate = new Date(raw < 1e12 ? raw * 1000 : raw);
+          else if(typeof raw === 'string' && raw) joinedDate = new Date(raw);
+          else if(raw instanceof Date) joinedDate = raw;
         }catch(e){ joinedDate = null; }
-        if(joinedDate && !isNaN(joinedDate.getTime())){
+        if(joinedDate && !isNaN(joinedDate.getTime()) && joinedDate.getFullYear() > 2000){
           var month = joinedDate.toLocaleString('default', { month: 'long' });
           var year = joinedDate.getFullYear();
           dHtml += '<div class="detail-item"><i class="ph-light ph-clock"></i> Joined <strong>'+month+' '+year+'</strong></div>';
@@ -23313,17 +23331,21 @@ ${gcDisplayName}
         }
     }
     (function(){
-        var raw = currentUserData.createdAt || currentUserData.joinedAt || null;
+        var raw = currentUserData.createdAt || currentUserData.joinedAt || currentUserData.created_at || currentUserData.joinDate || null;
         var joinedDate = null;
         try{
           if(raw && typeof raw.toDate === 'function') joinedDate = raw.toDate();
+          else if(raw && typeof raw.toMillis === 'function') joinedDate = new Date(raw.toMillis());
           else if(raw && typeof raw.seconds === 'number') joinedDate = new Date(raw.seconds * 1000);
-          else if(raw) joinedDate = new Date(raw);
+          else if(raw && typeof raw._seconds === 'number') joinedDate = new Date(raw._seconds * 1000);
+          else if(typeof raw === 'number') joinedDate = new Date(raw < 1e12 ? raw * 1000 : raw);
+          else if(typeof raw === 'string' && raw) joinedDate = new Date(raw);
+          else if(raw instanceof Date) joinedDate = raw;
           if((!joinedDate || isNaN(joinedDate.getTime())) && currentUser && currentUser.metadata && currentUser.metadata.creationTime){
             joinedDate = new Date(currentUser.metadata.creationTime);
           }
         }catch(e){ joinedDate = null; }
-        if(joinedDate && !isNaN(joinedDate.getTime())){
+        if(joinedDate && !isNaN(joinedDate.getTime()) && joinedDate.getFullYear() > 2000){
           var month = joinedDate.toLocaleString('default', { month: 'long' });
           var year = joinedDate.getFullYear();
           dHtml += '<div class="detail-item"><i class="ph-light ph-clock"></i> Joined <strong>'+month+' '+year+'</strong></div>';
@@ -25372,7 +25394,7 @@ async function openFollowList(type, uid) {
     gcFollowListUid = uid;
     const modal = document.getElementById('friends-list-modal');
     const tabs = document.getElementById('gc-fl-tabs');
-    if (tabs) tabs.style.display = 'inline-flex';
+    if (tabs){ tabs.style.display = 'inline-flex'; tabs.style.width = 'max-content'; tabs.style.alignSelf = 'center'; tabs.style.marginLeft = 'auto'; tabs.style.marginRight = 'auto'; }
     modal.classList.add('open');
     gcRenderFollowTabsUI(type);
     // settle pill after open (no jump)
@@ -28608,8 +28630,6 @@ window.selectAllNotifs = selectAllNotifs;
 // ═══════════════════════════════════════════════════════
 // 🚀 notif-pro · mark-all + swipe-delete · 2026-09-06
 // ( Notification দেখা হয়েছে বাটন যোগ করা হয়েছে। ) 
-
-
 // ═══════════════════════════════════════════════════════
 async function markAllNotifsRead(){
   if(!currentUser) return;
