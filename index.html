@@ -457,6 +457,7 @@ body.notifications-mode .topbar-actions {
 
 body.light-mode .topbar{background:var(--surface) !important;}
 body:not(.light-mode) .topbar{background:var(--surface) !important;}
+.topbar-btn > svg{display:block;width:24px;height:24px;}
 .topbar-btn{
 width:40px;height:40px;
 border-radius:50%;
@@ -5395,9 +5396,11 @@ Liked Posts পেজ (মেনুর ওভারলে)
   margin-top:8px;
 }
 .gc-short-comment-reply{
-  border:0; background:transparent; color:rgba(255,255,255,.48);
-  font-size:13px; font-weight:700; padding:0; cursor:pointer;
+  border:0; background:transparent; color:rgba(255,255,255,.72);
+  font-size:13px; font-weight:700; padding:4px 0; cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
 }
+.gc-short-comment-reply:active{ opacity:.7; }
 .gc-short-comment-replies{
   margin:7px 0 2px 18px;
   padding-left:18px;
@@ -12709,12 +12712,12 @@ body:not(.light-mode) .sp-comment-compose button.is-ready{
 <div id="app-screen">
 <div class="topbar">
 <div class="topbar-left">
-    <span id="home-drawer-btn" onclick="event.stopPropagation(); gcOpenHomeDrawer();" style="display:none;align-items:center;justify-content:center;width:36px;height:36px;border-radius:50%;cursor:pointer;" title="Menu">
-        <i class="ph-light ph-list" style="font-size:24px;color:var(--text);-webkit-text-fill-color:var(--text);background:none;"></i>
+    <span id="home-drawer-btn" onclick="event.stopPropagation(); gcOpenHomeDrawer();" style="display:none;align-items:center;justify-content:center;width:36px;height:36px;border-radius:50%;cursor:pointer;color:var(--text);" title="Menu">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9h16M4 15h16"/></svg>
     </span>
     <!-- Profile menu — হোম ফিড মেনু যে পজিশনে (বাম পাশে) -->
-    <div class="topbar-btn" id="topbar-settings-btn" onclick="openMainMenu()" style="display:none;">
-        <i class="ph-light ph-list" style="font-size: 24px;"></i>
+    <div class="topbar-btn" id="topbar-settings-btn" onclick="openMainMenu()" style="display:none;color:var(--text);">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9h16M4 15h16"/></svg>
     </div>
     <!-- Following list back — same icon as profile/other back buttons -->
     <div class="topbar-btn" id="topbar-friends-back" onclick="showPage('feed')" style="display:none;" title="Back">
@@ -12830,8 +12833,8 @@ body:not(.light-mode) .sp-comment-compose button.is-ready{
         <i class="ph-light ph-x" style="font-size:22px;"></i>
     </button>
     <div id="gc-msg-select-count" style="display:none;font-weight:800;font-size:16px;color:var(--text);margin-right:auto;padding-left:4px;">0 selected</div>
-    <div class="topbar-btn" onclick="showPage('search')">
-        <i class="ph-light ph-magnifying-glass" style="font-size: 22px;"></i>
+    <div class="topbar-btn" onclick="showPage('search')" style="color:var(--text);">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
     </div>
 </div>
 </div>
@@ -18667,7 +18670,7 @@ async function toggleLike(pid) {
         likedBy = likedBy.filter(function(id){ return id !== currentUser.uid; });
         likes = Math.max(0, likes - 1);
         try { delete reactions[currentUser.uid]; } catch(e){}
-        if (p.uid !== currentUser.uid) {
+        if ((p.uid || p.userId || p.ownerId) && (p.uid || p.userId || p.ownerId) !== currentUser.uid) {
           try {
             db.collection('notifications').doc(currentUser.uid + '_like_' + pid).delete().catch(function(){});
           } catch(e){}
@@ -18676,36 +18679,36 @@ async function toggleLike(pid) {
         likedBy.push(currentUser.uid);
         likes = likes + 1;
         reactions[currentUser.uid] = 'like';
-        if (p.uid !== currentUser.uid) {
+        var __ownerUid = p.uid || p.userId || p.ownerId || '';
+        if (__ownerUid && __ownerUid !== currentUser.uid) {
           try {
             const notifId = currentUser.uid + '_like_' + pid;
             const notifRef = db.collection('notifications').doc(notifId);
             var postImage = '';
             try {
-              if (Array.isArray(p.imageUrls) && p.imageUrls[0]) postImage = p.imageUrls[0];
+              if (Array.isArray(p.imgUrls) && p.imgUrls[0]) postImage = p.imgUrls[0];
+              else if (Array.isArray(p.imageUrls) && p.imageUrls[0]) postImage = p.imageUrls[0];
+              else if (p.imgUrl) postImage = p.imgUrl;
               else if (p.imageUrl) postImage = p.imageUrl;
               else if (Array.isArray(p.mediaUrls) && p.mediaUrls[0]) postImage = p.mediaUrls[0];
               else if (p.mediaUrl) postImage = p.mediaUrl;
               else if (p.thumb || p.thumbnail || p.poster || p.videoThumb) postImage = (p.thumb||p.thumbnail||p.poster||p.videoThumb);
               else if (Array.isArray(p.images) && p.images[0]) postImage = (typeof p.images[0]==='string' ? p.images[0] : (p.images[0].url||''));
             } catch(e){}
-            notifRef.get().then(function(docSnap){
-              if (!docSnap.exists) {
-                notifRef.set({
-                  toUid: p.uid,
-                  fromUid: currentUser.uid,
-                  fromName: (currentUserData && currentUserData.name) || 'User',
-                  type: 'like',
-                  reaction: 'like',
-                  postId: pid,
-                  postImage: postImage || '',
-                  read: false,
-                  createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
-                if (typeof awardPoints === 'function') awardPoints(p.uid, 5);
-              }
-            });
-          } catch(e){}
+            notifRef.set({
+              toUid: __ownerUid,
+              fromUid: currentUser.uid,
+              fromName: (currentUserData && currentUserData.name) || 'User',
+              type: 'like',
+              reaction: 'like',
+              postId: pid,
+              postImage: postImage || '',
+              read: false,
+              createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            }, { merge: true }).then(function(){
+              if (typeof awardPoints === 'function') awardPoints(__ownerUid, 5);
+            }).catch(function(err){ console.warn('like notif', err); });
+          } catch(e){ console.warn('like notif', e); }
         }
       }
 
@@ -22072,8 +22075,9 @@ async function gcSendSinglePostComment(){
         await ref.update({ comments: comments });
         inp.value = '';
         if(typeof removeSpCommentImage === 'function') removeSpCommentImage();
-        if(snap.data().uid && snap.data().uid !== currentUser.uid && typeof gcRollupNotify === 'function'){
-            gcRollupNotify(snap.data().uid, 'comment', activeCommentPostId);
+        var __spOwner = (snap.data().uid || snap.data().userId || '');
+        if(__spOwner && __spOwner !== currentUser.uid && typeof gcRollupNotify === 'function'){
+            gcRollupNotify(__spOwner, 'comment', activeCommentPostId);
         }
     } catch(e){
         console.error(e);
@@ -29691,9 +29695,10 @@ async function sendCommentWithImage() {
             await ref.update({ comments });
             
             // নোটিফিকেশন পাঠানো (🚀 Update #105: রোল-আপ)
-if (docSnap.data().uid !== currentUser.uid) {
-gcRollupNotify(docSnap.data().uid, 'comment', activeCommentPostId);
-awardPoints(docSnap.data().uid, 5);
+var __cOwner = docSnap.data().uid || docSnap.data().userId || '';
+if (__cOwner && __cOwner !== currentUser.uid) {
+gcRollupNotify(__cOwner, 'comment', activeCommentPostId);
+awardPoints(__cOwner, 5);
 }
         }
         
@@ -32561,11 +32566,13 @@ function gcShortsCommentRenderReply(pid, cIdx, r, rIdx){
   var rTime = gcCommentTimeLabel(r);
   var badge = gcShortsCommentBadgeHTML(r.uid, r);
   var avatar = gcShortsCommentAvatarHTML(r.uid, rName, r, true);
+  var safeName = escapeHTML(String(rName||'User').replace(/'/g,''));
   return '<div class="gc-short-reply">'
     + avatar
     + '<div class="gc-short-comment-main">'
     +   '<div class="gc-short-comment-headline"><span class="gc-short-comment-name">'+escapeHTML(rName)+'</span>'+badge+(rTime?'<span class="gc-short-comment-time">'+escapeHTML(rTime)+'</span>':'')+'</div>'
     +   '<div class="gc-short-comment-text">'+gcShortsCommentTextHTML(r.text)+'</div>'
+    +   '<div class="gc-short-comment-actions"><button type="button" class="gc-short-comment-reply" onclick="event.stopPropagation();gcShortsCommentReplyBox(\''+escapeHTML(pid)+'\','+cIdx+',\''+safeName+'\')">Reply</button></div>'
     + '</div></div>';
 }
 
@@ -32790,9 +32797,10 @@ async function gcShortsCommentSend(){
       replies:[]
     });
     await ref.update({comments:comments});
-    if(data.uid && data.uid!==currentUser.uid){
-      try{ gcRollupNotify(data.uid,'comment',pid); }catch(e){}
-      try{ awardPoints(data.uid,5); }catch(e){}
+    var __sOwner = data.uid || data.userId || '';
+    if(__sOwner && __sOwner!==currentUser.uid){
+      try{ gcRollupNotify(__sOwner,'comment',pid); }catch(e){}
+      try{ awardPoints(__sOwner,5); }catch(e){}
     }
     if(input) input.value='';
     gcShortsCommentSyncSend();
@@ -32829,8 +32837,10 @@ async function gcShortsSubmitReply(pid, idx, boxId){
     });
     await ref.update({comments:comments});
     var postData=snap.data()||{};
-    if(postData.uid && postData.uid!==currentUser.uid){
-      try{ awardPoints(postData.uid,10); }catch(e){}
+    var __rOwner = postData.uid || postData.userId || '';
+    if(__rOwner && __rOwner!==currentUser.uid){
+      try{ if(typeof gcRollupNotify==='function') gcRollupNotify(__rOwner,'comment',pid); }catch(e){}
+      try{ awardPoints(__rOwner,10); }catch(e){}
     }
     showToast('Reply sent');
   }catch(e){
@@ -34961,7 +34971,9 @@ try{
     var pSnap = await db.collection('posts').doc(postId).get();
     if(pSnap.exists){
       var pd = pSnap.data() || {};
-      var img = (Array.isArray(pd.imageUrls) && pd.imageUrls[0]) ? pd.imageUrls[0] : (pd.imageUrl || '');
+      var img = (Array.isArray(pd.imgUrls) && pd.imgUrls[0]) ? pd.imgUrls[0]
+        : (Array.isArray(pd.imageUrls) && pd.imageUrls[0]) ? pd.imageUrls[0]
+        : (pd.imgUrl || pd.imageUrl || '');
       if(img) rollupPayload.postImage = img;
     }
   }
@@ -35980,27 +35992,17 @@ window.gcCloseSheetSafe = gcCloseSheetSafe;
         animate: countChanged
       });
 
-      if(!wasInLiked && p.uid && p.uid !== uid){
+      var __own = p.uid || p.userId || p.ownerId || '';
+      if(__own && __own !== uid){
         try{
           var notifRef = db.collection('notifications').doc(uid + '_like_' + pid);
-          notifRef.get().then(function(snap){
-            if(!snap.exists){
-              notifRef.set({
-                toUid: p.uid, fromUid: uid,
-                fromName: (currentUserData && currentUserData.name) || 'User',
-                type: 'like', reaction: type, postId: pid,
-                postImage: '', read: false,
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
-              });
-            } else {
-              notifRef.update({
-                reaction: type,
-                fromName: (currentUserData && currentUserData.name) || 'User',
-                read: false,
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
-              }).catch(function(){});
-            }
-          });
+          notifRef.set({
+            toUid: __own, fromUid: uid,
+            fromName: (currentUserData && currentUserData.name) || 'User',
+            type: 'like', reaction: type, postId: pid,
+            postImage: '', read: false,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+          }, { merge: true }).catch(function(err){ console.warn('react notif', err); });
         }catch(e){}
       }
     }catch(err){
