@@ -10751,6 +10751,61 @@ button.gc-pay-cta,
 
 
 /* GoChat chat top bar cleanup — layout only; existing icon sizes remain 20px. */
+#chat-screen > .chat-topbar .gc-chat-header-identity{
+  flex:1 1 auto !important;
+  min-width:0 !important;
+  margin-left:0 !important;
+  padding:0 !important;
+  display:flex !important;
+  flex-direction:column !important;
+  align-items:flex-start !important;
+  justify-content:center !important;
+  gap:2px !important;
+  cursor:pointer !important;
+  overflow:hidden !important;
+}
+
+.gc-chat-active-status{
+  min-height:12px;
+  max-width:100%;
+  display:flex;
+  align-items:center;
+  gap:5px;
+  color:var(--text-muted);
+  font-size:10.5px;
+  font-weight:650;
+  line-height:1.1;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  opacity:.96;
+}
+.gc-chat-active-status.is-online{ color:#22c55e; }
+.gc-chat-active-status .gc-active-dot{
+  width:7px;
+  height:7px;
+  border-radius:50%;
+  background:#22c55e;
+  box-shadow:0 0 0 3px rgba(34,197,94,.13);
+  flex:0 0 7px;
+}
+.gc-chat-active-status .gc-active-dot.offline{
+  width:6px;height:6px;flex-basis:6px;
+  background:var(--text-muted);
+  box-shadow:none;
+}
+.gc-chat-list-active-dot{
+  display:inline-block;
+  width:7px;
+  height:7px;
+  flex:0 0 7px;
+  margin-left:4px;
+  border-radius:50%;
+  background:#22c55e;
+  box-shadow:0 0 0 3px rgba(34,197,94,.12);
+  vertical-align:middle;
+}
+
 #chat-screen > .chat-topbar{
   min-height:60px !important;
   padding:10px 12px !important;
@@ -13437,14 +13492,17 @@ l-137 -640 -193 -3 -193 -2 4 22 c2 13 67 314 144 671 l139 647 192 0 193 0
       </div>
       <i class="ph-light ph-caret-right gc-priv-caret"></i>
     </div>
-
-    <div class="gc-priv-menu-item" onclick="if(typeof gcComingSoon==='function') gcComingSoon('Online status'); else showToast('Online status — Coming soon');">
+    <div class="gc-priv-menu-item" onclick="gcOpenPrivPage('active')">
       <div class="gc-priv-menu-left">
         <i class="ph-light ph-circle"></i>
         <div>
-          <div class="gc-priv-menu-title">Online status</div>
-          <div class="gc-priv-menu-desc">Control who sees when you are active</div>
+          <div class="gc-priv-menu-title">Active Status</div>
+          <div class="gc-priv-menu-desc">Control who can see when you are active</div>
         </div>
+      </div>
+      <div id="privacy-active-status-toggle" class="toggle-switch" aria-label="Active Status"></div>
+    </div>
+
       </div>
       <span class="gc-priv-soon">Coming soon</span>
     </div>
@@ -13508,6 +13566,29 @@ l-137 -640 -193 -3 -193 -2 4 22 c2 13 67 314 144 671 l139 647 192 0 193 0
         <div id="private-account-toggle" class="toggle-switch" onclick="event.stopPropagation(); togglePrivateAccount();"></div>
       </div>
       <p class="gc-priv-help-text">If you keep your account private, only your followers will be able to see your posts, and your posts will be safe or hidden from other users who don&apos;t follow you.</p>
+    </div>
+  </div>
+</div>
+
+<!-- Privacy · Active Status sub-page -->
+<div id="gc-priv-page-active" class="gc-priv-subpage" aria-hidden="true">
+  <div class="chat-topbar">
+    <div class="chat-back" onclick="gcClosePrivPage('active')"><i class="ph-light ph-arrow-left"></i></div>
+    <div class="chat-name">Active Status</div>
+  </div>
+  <div class="gc-privacy-body">
+    <div class="gc-priv-block gc-priv-private-clean">
+      <div class="gc-priv-row gc-priv-row-flat" onclick="toggleActiveStatus()">
+        <div class="gc-priv-row-left">
+          <i class="ph-light ph-circle"></i>
+          <div>
+            <div class="gc-priv-row-title">Show Active Status</div>
+            <div class="gc-priv-row-sub">Let people you chat with see when you are active or recently active.</div>
+          </div>
+        </div>
+        <div id="active-status-toggle" class="toggle-switch" onclick="event.stopPropagation(); toggleActiveStatus();"></div>
+      </div>
+      <p class="gc-priv-help-text">When Active Status is off, your online and last-active status is hidden from other users, and you will also stop seeing their Active Status in chats.</p>
     </div>
   </div>
 </div>
@@ -14012,7 +14093,10 @@ l-137 -640 -193 -3 -193 -2 4 22 c2 13 67 314 144 671 l139 647 192 0 193 0
 <div class="chat-topbar">
 <div class="chat-back" onclick="closeChat()"><i class="ph-light ph-arrow-left"></i></div>
 <div class="avatar sm" id="chat-avatar" style="position:relative; cursor:pointer;" onclick="viewProfileFromChat()">?</div>
-<div class="chat-name" id="chat-name-display" style="flex:1;margin-left:8px; cursor:pointer;" onclick="viewProfileFromChat()">Chat</div>
+<div class="gc-chat-header-identity" id="gc-chat-header-identity" onclick="viewProfileFromChat()">
+<div class="chat-name" id="chat-name-display">Chat</div>
+<div id="chat-active-status" class="gc-chat-active-status" aria-live="polite"></div>
+</div>
 <div class="chat-header-actions" style="margin-left: auto; position: relative; display: flex; align-items: center; gap: 4px;">
 
     <i class="ph ph-dots-three" onclick="toggleChatDeleteMenu()"></i>
@@ -15356,6 +15440,7 @@ db.settings({ experimentalForceLongPolling: true });
 // ===== STATE VARIABLES =====
 let currentUser=null,currentUserData=null,currentChatId=null,currentChatOtherUid=null;
 let feedUnsub=null,chatUnsub=null,notifUnsub=null,storyUnsub=null,onlineUnsub=null;
+let gcActiveStatusHeartbeat=null, gcActiveStatusVisibilityBound=false, gcActiveStatusOtherUnsub=null, gcActiveStatusTicker=null, gcActiveStatusUid=null, gcActiveStatusOtherData=null;
 let activeCommentPostId=null,commentPanelListener=null;
 let currentFeedTab='foryou';
 let currentTaggedFriends=[];
@@ -16138,6 +16223,7 @@ location:'',hometown:'',relationship:'',gender:'',
 friends:[],sentRequests:[],receivedRequests:[],
 blockedUsers:[],mutedChats:[],pinnedChats:[],archivedChats:[],
 online:true,
+showActiveStatus:true,
 points: 0,
 lastSeen:firebase.firestore.FieldValue.serverTimestamp(),
 createdAt:firebase.firestore.FieldValue.serverTimestamp(),
@@ -16265,6 +16351,196 @@ else showToast("Failed to delete account. Please try again.");
 }
 }
 
+// ═══════════════════════════════════════════════════════════
+// 🚀 ACTIVE STATUS / PRESENCE SYSTEM
+// Firestore heartbeat + visibility handling. Active Status is privacy-controlled.
+// ═══════════════════════════════════════════════════════════
+function gcPresenceToMs(value){
+  try{
+    if(!value) return 0;
+    if(typeof value.toMillis === 'function') return value.toMillis();
+    if(value.seconds) return Number(value.seconds) * 1000;
+    if(typeof value === 'number') return value;
+    var d = new Date(value);
+    return isNaN(d.getTime()) ? 0 : d.getTime();
+  }catch(e){ return 0; }
+}
+
+function gcFormatActiveTime(value){
+  var t = gcPresenceToMs(value);
+  if(!t) return 'Recently active';
+  var diff = Math.max(0, Date.now() - t);
+  if(diff < 60000) return 'Active just now';
+  if(diff < 3600000) return 'Active ' + Math.max(1, Math.floor(diff / 60000)) + 'm ago';
+  if(diff < 86400000) return 'Active ' + Math.max(1, Math.floor(diff / 3600000)) + 'h ago';
+  var days = Math.floor(diff / 86400000);
+  if(days === 1) return 'Active yesterday';
+  if(days < 7) return 'Active ' + days + 'd ago';
+  try{
+    return 'Active ' + new Date(t).toLocaleDateString([], {month:'short', day:'numeric'});
+  }catch(e){ return 'Recently active'; }
+}
+
+function gcIsPresenceFresh(data){
+  if(!data || data.showActiveStatus === false || data.online !== true) return false;
+  var t = gcPresenceToMs(data.lastSeen);
+  // Heartbeat is written every ~25s. A 90s grace period prevents stale "online" states.
+  return !!t && (Date.now() - t < 90000);
+}
+
+function gcRenderActiveStatusUI(data){
+  var el = document.getElementById('chat-active-status');
+  if(!el) return;
+  if(!data || data.__isGroup || !currentUserData || currentUserData.showActiveStatus === false || data.showActiveStatus === false){
+    el.innerHTML = '';
+    el.style.display = 'none';
+    return;
+  }
+  el.style.display = 'flex';
+  if(gcIsPresenceFresh(data)){
+    el.classList.add('is-online');
+    el.innerHTML = '<span class="gc-active-dot" aria-hidden="true"></span><span>Active now</span>';
+  }else{
+    el.classList.remove('is-online');
+    var text = gcFormatActiveTime(data.lastSeen);
+    el.innerHTML = '<span class="gc-active-dot offline" aria-hidden="true"></span><span>' + escapeHTML(text) + '</span>';
+  }
+}
+
+function gcStopActiveStatusOtherListener(){
+  if(gcActiveStatusOtherUnsub){ try{ gcActiveStatusOtherUnsub(); }catch(e){} }
+  gcActiveStatusOtherUnsub = null;
+  gcActiveStatusOtherData = null;
+  if(gcActiveStatusTicker){ clearInterval(gcActiveStatusTicker); gcActiveStatusTicker = null; }
+  var el = document.getElementById('chat-active-status');
+  if(el){ el.innerHTML=''; el.style.display='none'; }
+}
+
+function gcStartActiveStatusOtherListener(uid){
+  gcStopActiveStatusOtherListener();
+  if(!uid || uid === 'group' || !currentUser || !currentUserData || currentUserData.showActiveStatus === false) return;
+  gcActiveStatusOtherUnsub = db.collection('users').doc(uid).onSnapshot(function(doc){
+    if(!doc.exists) return;
+    var data = doc.data() || {};
+    data.__isGroup = false;
+    gcActiveStatusOtherData = data;
+    gcRenderActiveStatusUI(data);
+  }, function(){
+    gcRenderActiveStatusUI(null);
+  });
+  gcActiveStatusTicker = setInterval(function(){
+    // Re-render from the last known user snapshot so "Active 1m ago" ages naturally.
+    if(!currentChatOtherUid || currentChatOtherUid !== uid) return;
+    try{
+      if(gcActiveStatusOtherData) gcRenderActiveStatusUI(gcActiveStatusOtherData);
+    }catch(e){}
+  }, 15000);
+}
+
+async function gcWriteOwnPresence(isOnline){
+  if(!currentUser) return;
+  var enabled = !currentUserData || currentUserData.showActiveStatus !== false;
+  var online = !!isOnline && enabled && document.visibilityState !== 'hidden';
+  try{
+    await db.collection('users').doc(currentUser.uid).update({
+      online: online,
+      lastSeen: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    if(currentUserData){ currentUserData.online = online; }
+  }catch(e){ console.warn('active status update failed', e); }
+}
+
+function gcStopActivePresence(){
+  if(gcActiveStatusHeartbeat){ clearInterval(gcActiveStatusHeartbeat); gcActiveStatusHeartbeat=null; }
+  if(gcActiveStatusVisibilityBound){
+    document.removeEventListener('visibilitychange', gcHandleActiveStatusVisibility, false);
+    window.removeEventListener('focus', gcHandleActiveStatusFocus, false);
+    window.removeEventListener('blur', gcHandleActiveStatusBlur, false);
+    gcActiveStatusVisibilityBound=false;
+  }
+  gcActiveStatusUid=null;
+}
+
+function gcHandleActiveStatusVisibility(){
+  if(!currentUser) return;
+  if(document.visibilityState === 'visible') gcWriteOwnPresence(true);
+  else gcWriteOwnPresence(false);
+}
+function gcHandleActiveStatusFocus(){ if(currentUser && document.visibilityState === 'visible') gcWriteOwnPresence(true); }
+function gcHandleActiveStatusBlur(){ if(currentUser) gcWriteOwnPresence(false); }
+
+function gcStartActivePresence(){
+  if(!currentUser) return;
+  gcStopActivePresence();
+  gcActiveStatusUid=currentUser.uid;
+  if(currentUserData && currentUserData.showActiveStatus === false){
+    gcWriteOwnPresence(false);
+    return;
+  }
+  gcWriteOwnPresence(true);
+  gcActiveStatusHeartbeat=setInterval(function(){
+    if(!currentUser || gcActiveStatusUid !== currentUser.uid) return;
+    gcWriteOwnPresence(document.visibilityState === 'visible');
+  }, 25000);
+  if(!gcActiveStatusVisibilityBound){
+    document.addEventListener('visibilitychange', gcHandleActiveStatusVisibility, false);
+    window.addEventListener('focus', gcHandleActiveStatusFocus, false);
+    window.addEventListener('blur', gcHandleActiveStatusBlur, false);
+    gcActiveStatusVisibilityBound=true;
+  }
+}
+
+async function gcEnsureActiveStatusPreference(){
+  if(!currentUser) return;
+  if(typeof currentUserData.showActiveStatus === 'undefined'){
+    currentUserData.showActiveStatus = true;
+    try{
+      await db.collection('users').doc(currentUser.uid).set({showActiveStatus:true}, {merge:true});
+    }catch(e){ console.warn('active status preference init failed', e); }
+  }
+}
+
+async function toggleActiveStatus(){
+  if(!currentUser) return;
+  var enabled = currentUserData.showActiveStatus !== false;
+  var next = !enabled;
+  try{
+    await db.collection('users').doc(currentUser.uid).update({
+      showActiveStatus: next,
+      online: next,
+      lastSeen: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    currentUserData.showActiveStatus = next;
+    currentUserData.online = next;
+    updateActiveStatusUI();
+    if(next) gcStartActivePresence(); else gcStopActivePresence();
+    if(!next) gcStopActiveStatusOtherListener();
+    else if(currentChatOtherUid && currentChatOtherUid !== 'group') gcStartActiveStatusOtherListener(currentChatOtherUid);
+    showToast('Active Status is now ' + (next ? 'ON' : 'OFF'));
+  }catch(e){
+    console.error('toggleActiveStatus', e);
+    showToast('Could not update Active Status');
+  }
+}
+
+function updateActiveStatusUI(){
+  var on = !!currentUserData && currentUserData.showActiveStatus !== false;
+  ['active-status-toggle','privacy-active-status-toggle'].forEach(function(id){
+    var el=document.getElementById(id);
+    if(el) el.classList.toggle('active', on);
+  });
+}
+
+function gcMarkPresenceOffline(){
+  try{
+    if(currentUser && currentUserData && currentUserData.showActiveStatus !== false){
+      db.collection('users').doc(currentUser.uid).update({online:false,lastSeen:firebase.firestore.FieldValue.serverTimestamp()}).catch(function(){});
+    }
+  }catch(e){}
+}
+
+window.addEventListener('pagehide', gcMarkPresenceOffline, false);
+
 // ===== AUTH STATE LISTENER =====
 auth.onAuthStateChanged(async(user)=>{
 
@@ -16372,6 +16648,10 @@ try{
 }catch(e){}
 
 }catch(e){currentUserData={name:user.email.split('@')[0],email:user.email};}
+
+await gcEnsureActiveStatusPreference();
+updateActiveStatusUI();
+gcStartActivePresence();
 
 // 🚀 ভয়েস/ভিডিও কল — লগইন করা মাত্রই ইনকামিং কল লিসেনার চালু হবে
 try{ if(typeof gcListenForIncomingCalls === 'function') gcListenForIncomingCalls(); }catch(e){ console.warn('call listener init failed', e); }
@@ -16526,6 +16806,9 @@ loadUserUI(); loadFeed(); loadMessages(); loadStories(); cleanupExpiredPosts(); 
 db.collection('users').doc(user.uid).onSnapshot(doc=>{
 if(doc.exists){
 currentUserData=doc.data();
+updateActiveStatusUI();
+if(currentUserData.showActiveStatus !== false && !gcActiveStatusHeartbeat) gcStartActivePresence();
+if(currentUserData.showActiveStatus === false && gcActiveStatusHeartbeat) gcStopActivePresence();
 
 try{
   if(currentUser && currentUser.uid && currentUserData){
@@ -19753,6 +20036,11 @@ function openChat(chatId, otherUid, otherName, otherAvatar){
     }
 
     
+    // Live Active Status in the message header. Groups do not expose member presence here.
+    if(otherUid && otherUid !== 'group') gcStartActiveStatusOtherListener(otherUid);
+    else gcStopActiveStatusOtherListener();
+
+
     setupTypingIndicator(chatId, otherUid);
         
     // 🚀 Check and Apply Advanced Privacy on Chat Load
@@ -20926,6 +21214,8 @@ async function loadMessages(){
             
             const chatUser = allUsersCache ? allUsersCache.find(u => u.id === chat.otherUid) : null;
             const chatVBadge = (!chat.isGroup && chatUser) ? getVerifiedBadge(chatUser.email || '', chatUser.isVerified === true) + getLeaderBadge(chatUser.email || '', chatUser.isLeader === true) : '';
+            const chatActiveDot = (!chat.isGroup && currentUserData && currentUserData.showActiveStatus !== false && chatUser && chatUser.showActiveStatus !== false && gcIsPresenceFresh(chatUser))
+              ? '<span class="gc-chat-list-active-dot" aria-label="Active now"></span>' : '';
 
             // Relative time (12m / 2h / 3d)
             var timeLabel = (typeof gcChatListTime === 'function') ? gcChatListTime(chat.data.lastAt) : '';
@@ -20949,7 +21239,7 @@ async function loadMessages(){
             <div class="avatar" style="position:relative;">${avHtml}</div>
             <div class="msg-info" style="flex:1;min-width:0;">
             <div class="msg-top-row" style="display:flex;align-items:center;justify-content:space-between;gap:10px;min-width:0;width:100%;">
-              <div class="msg-name" style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-bottom:0;flex:1;">${pinIcon}${muteIcon}${escapeHTML(chat.otherName)}${chatVBadge}</div>
+              <div class="msg-name" style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-bottom:0;flex:1;">${pinIcon}${muteIcon}${escapeHTML(chat.otherName)}${chatVBadge}${chatActiveDot}</div>
               ${timeLabel ? '<div class="msg-time" style="flex-shrink:0;">'+timeLabel+'</div>' : ''}
             </div>
             <div class="msg-bottom-row" style="display:flex;align-items:center;justify-content:space-between;gap:10px;min-width:0;width:100%;margin-top:3px;">
