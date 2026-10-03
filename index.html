@@ -1309,7 +1309,7 @@ body:not(.light-mode) .post-card {
 /* ═══ Hold-to-react picker (custom SVG, not system emoji) ═══ */
 .gc-react-popup{
   position:fixed;
-  z-index:100090;
+  z-index:100900;
   display:flex;
   gap:8px;
   align-items:center;
@@ -1320,18 +1320,42 @@ body:not(.light-mode) .post-card {
   border-radius:999px;
   box-shadow:0 12px 40px rgba(0,0,0,0.16), 0 0 0 1px rgba(0,0,0,0.05);
   opacity:0;
-  transform:translateY(14px) scale(0.88);
+  transform:scale(0.88);
   pointer-events:none;
   transition:opacity .24s cubic-bezier(.22,1,.36,1), transform .28s cubic-bezier(.34,1.4,.48,1);
   will-change:transform,opacity;
+  box-sizing:border-box;
+  max-width:calc(100vw - 16px);
+  white-space:nowrap;
+  /* keep icons from crushing together on narrow phones */
+  overflow-x:auto;
+  -webkit-overflow-scrolling:touch;
+  scrollbar-width:none;
 }
+.gc-react-popup::-webkit-scrollbar{ display:none; height:0; }
+@media (max-width:420px){
+  .gc-react-popup{
+    gap:7px;
+    padding:8px 10px;
+  }
+  .gc-react-popup .gc-react-item{
+    width:42px;
+    height:42px;
+    flex:0 0 42px;
+  }
+  .gc-react-popup .gc-react-item svg{
+    width:38px;
+    height:38px;
+  }
+}
+
 body:not(.light-mode) .gc-react-popup{
   background:rgba(30,30,38,0.97);
   box-shadow:0 12px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.07);
 }
 .gc-react-popup.open{
   opacity:1;
-  transform:translateY(0) scale(1);
+  transform:scale(1);
   pointer-events:auto;
 }
 .gc-react-popup .gc-react-item{
@@ -5255,6 +5279,20 @@ Liked Posts পেজ (মেনুর ওভারলে)
   text-shadow:0 1px 3px rgba(0,0,0,.55);
 }
 .gc-short-act.liked i{ color:#1DA1F2; }
+/* Shorts like/reaction state — keep the selected state unmistakably visible */
+.gc-short-act[data-s-act="like"].liked .gc-act-ico{
+  color:#1DA1F2 !important;
+  filter:drop-shadow(0 2px 5px rgba(29,161,242,.38));
+}
+.gc-short-act[data-s-act="like"].liked{
+  color:#1DA1F2;
+}
+.gc-short-act[data-s-act="like"] .gc-act-ico{
+  transition:transform .18s cubic-bezier(.34,1.56,.64,1), color .18s ease, filter .18s ease;
+}
+.gc-short-act[data-s-act="like"].gc-short-like-pop .gc-act-ico{
+  transform:scale(1.18);
+}
 
 /* legacy hooks (unused after TikTok layout) */
 .gc-short-top{ display:none !important; }
@@ -19087,6 +19125,20 @@ async function toggleLike(pid) {
     }
 }
 
+// ═══ Shorts engagement bridge · same Like/Unlike behavior as Home Feed ═══
+// Shorts uses the exact same Firestore post engagement model as the Home Feed.
+// This explicit bridge keeps the Shorts action button independent from any
+// stale inline handler while preserving the shared reaction/count system.
+async function gcShortToggleLike(pid){
+  if(!pid || !currentUser) return;
+  try{
+    await toggleLike(pid);
+  }catch(e){
+    console.error('gcShortToggleLike', e);
+  }
+}
+window.gcShortToggleLike = gcShortToggleLike;
+
 function gcSyncShortsCache(pid, likes, likedBy, reactions){
   try{
     if(!window.__gcShortsPosts || !pid) return;
@@ -32722,7 +32774,7 @@ function gcRenderShortsList(posts){
       + '</div>'
       + '<div class="gc-short-actions">'
       +   '<button type="button" class="gc-short-av-btn" data-s-profile="1" aria-label="Profile">'+avHtml+'</button>'
-      +   '<button type="button" class="gc-short-act'+(isLiked || myReact ? ' liked' : '')+'" data-s-act="like"'+(myReact ? ' data-my-react="'+escapeHTML(myReact)+'"' : '')+' onclick="event.stopPropagation(); if(this.getAttribute(\'data-gc-react-hold\')===\'1\'){this.removeAttribute(\'data-gc-react-hold\');return;} toggleLike(\''+escapeHTML(pid)+'\');">'
+      +   '<button type="button" class="gc-short-act'+(isLiked || myReact ? ' liked' : '')+'" data-s-act="like"'+(myReact ? ' data-my-react="'+escapeHTML(myReact)+'"' : '')+' onclick="event.stopPropagation(); if(this.getAttribute(\'data-gc-react-hold\')===\'1\'){this.removeAttribute(\'data-gc-react-hold\');return;} gcShortToggleLike(\''+escapeHTML(pid)+'\');">'
       +   shortLikeIcon+'<span data-s-likes data-raw="'+likes+'" data-raw-count="'+likes+'">'+fmtL+'</span></button>'
       +   '<button type="button" class="gc-short-act" data-s-act="comment" onclick="event.stopPropagation(); gcOpenShortsComments(\''+escapeHTML(pid)+'\');">'
       +   (typeof gcActionSvg==='function'?gcActionSvg('comment',24):'<i class="ph-light ph-chat-circle"></i>')+'<span data-s-comments>'+fmtC+'</span></button>'
@@ -36049,6 +36101,40 @@ window.gcCloseSheetSafe = gcCloseSheetSafe;
     return '<i class="ph-light ph-thumbs-up" style="font-size:24px;"></i>';
   }
 
+  // Shorts has its own vertical action stack, so keep a dedicated painter in
+  // addition to the shared engagement sync. This prevents a Shorts renderer or
+  // soft refresh from immediately replacing the selected reaction icon.
+  function gcPaintShortReaction(pid, reaction, liked, count){
+    if(!pid) return;
+    try{
+      document.querySelectorAll('.gc-short-item[data-post-id=\"'+pid+'\"] .gc-short-act[data-s-act=\"like\"]').forEach(function(btn){
+        var span = btn.querySelector('[data-s-likes], [data-raw-count]');
+        var n = Math.max(0, parseInt(count,10) || 0);
+        var useReaction = !!(reaction && reaction !== 'like' && GC_REACT_SVG[reaction]);
+        var ico = useReaction ? GC_REACT_SVG[reaction] : iconHtmlFor(null, !!liked || !!reaction, false);
+        btn.classList.toggle('liked', !!liked || !!reaction);
+        if(reaction) btn.setAttribute('data-my-react', reaction); else btn.removeAttribute('data-my-react');
+        if(span){
+          span.setAttribute('data-s-raw', String(n));
+          span.setAttribute('data-raw', String(n));
+          span.setAttribute('data-raw-count', String(n));
+          span.textContent = (typeof gcFmtCount === 'function') ? gcFmtCount(n) : String(n);
+        }
+        if(span) btn.innerHTML = ico + span.outerHTML;
+        else btn.innerHTML = ico + '<span data-s-likes data-raw="'+n+'" data-raw-count="'+n+'">'+((typeof gcFmtCount === 'function') ? gcFmtCount(n) : String(n))+'</span>';
+        var ic = btn.querySelector('i, svg');
+        if(ic && (reaction || liked)){
+          try{ ic.classList.remove('gc-short-like-pop'); }catch(e){}
+          btn.classList.remove('gc-short-like-pop');
+          void btn.offsetWidth;
+          btn.classList.add('gc-short-like-pop');
+          setTimeout(function(){ try{ btn.classList.remove('gc-short-like-pop'); }catch(e){} }, 420);
+        }
+      });
+    }catch(e){ console.warn('gcPaintShortReaction', e); }
+  }
+  window.gcPaintShortReaction = gcPaintShortReaction;
+
   // Unified UI for all surfaces (feed / single / shorts / zoom)
   // Rule: plain "like" → filled thumb · other reactions → colored SVG circle
   // Soft-updates never flip icon type for the same reaction (no flicker / lost icon)
@@ -36098,6 +36184,12 @@ window.gcCloseSheetSafe = gcCloseSheetSafe;
           if(animate){
             var ic = btn.querySelector('i, svg');
             if(ic && typeof gcLikeIconPhysics === 'function') gcLikeIconPhysics(ic);
+            if(isShort){
+              btn.classList.remove('gc-short-like-pop');
+              void btn.offsetWidth;
+              btn.classList.add('gc-short-like-pop');
+              setTimeout(function(){ try{ btn.classList.remove('gc-short-like-pop'); }catch(e){} }, 420);
+            }
           }
         } else {
           // Same reaction state — only refresh the count span in place
@@ -36112,6 +36204,14 @@ window.gcCloseSheetSafe = gcCloseSheetSafe;
         }
       }catch(e){}
     });
+    // Final direct Shorts pass: the visible Shorts control must reflect the
+    // reaction immediately, even if its renderer has recently refreshed.
+    if(document.getElementById('gc-shorts-screen')){
+      try{ gcPaintShortReaction(pid, reaction, liked, count); }catch(e){}
+      setTimeout(function(){
+        try{ gcPaintShortReaction(pid, reaction, liked, count); }catch(e){}
+      }, 40);
+    }
   };
 
   window.gcApplyReactionUI = function(pid, type){
@@ -36176,15 +36276,29 @@ window.gcCloseSheetSafe = gcCloseSheetSafe;
   function openPopupNear(btn, pid){
     var el = ensurePopup();
     el.setAttribute('data-pid', pid);
-    var r = btn.getBoundingClientRect();
-    // 7 reactions × 44px + gaps + padding ≈ 360px
-    var pw = Math.min(360, window.innerWidth - 16);
-    var left = Math.max(8, Math.min(window.innerWidth - pw - 8, r.left + r.width/2 - pw/2));
-    var top = r.top - 72;
-    if(top < 8) top = r.bottom + 12;
-    el.style.left = left + 'px';
-    el.style.top = top + 'px';
+    // Position the picker above the pressed reaction button, then clamp the
+    // final rectangle inside the visible viewport so no reaction is clipped.
     el.style.width = 'auto';
+    el.style.maxWidth = 'calc(100vw - 16px)';
+    el.classList.remove('open');
+
+    var r = btn.getBoundingClientRect();
+    var margin = 8;
+    var gap = 12;
+    var pw = el.offsetWidth || Math.min(360, window.innerWidth - (margin * 2));
+    var ph = el.offsetHeight || 60;
+
+    // Prefer the popup centered over the pressed button.
+    var left = r.left + (r.width / 2) - (pw / 2);
+    left = Math.max(margin, Math.min(window.innerWidth - pw - margin, left));
+
+    // Prefer above the button; if there is not enough room, place it below.
+    var top = r.top - ph - gap;
+    if(top < margin) top = r.bottom + gap;
+    top = Math.max(margin, Math.min(window.innerHeight - ph - margin, top));
+
+    el.style.left = Math.round(left) + 'px';
+    el.style.top = Math.round(top) + 'px';
     el.classList.add('open');
     // Subtle haptic when picker appears (supported devices only)
     try{ if(navigator.vibrate) navigator.vibrate(12); }catch(e){}
@@ -36281,6 +36395,55 @@ window.gcCloseSheetSafe = gcCloseSheetSafe;
   document.addEventListener('touchend', onPressEnd, true);
   document.addEventListener('touchcancel', onPressEnd, true);
 
+  // Shorts pointer fallback: some mobile WebViews do not reliably deliver the
+  // touch/mouse sequence used above. Pointer events make long-press reliable
+  // without changing normal tap-to-like behavior.
+  var gcShortPointerTimer = null;
+  var gcShortPointerBtn = null;
+  var gcShortPointerX = 0;
+  var gcShortPointerY = 0;
+  var GC_SHORT_POINTER_HOLD = 380;
+  var GC_SHORT_POINTER_MOVE = 14;
+
+  function gcShortPointerCancel(){
+    if(gcShortPointerTimer){ clearTimeout(gcShortPointerTimer); gcShortPointerTimer = null; }
+    gcShortPointerBtn = null;
+  }
+
+  document.addEventListener('pointerdown', function(e){
+    var btn = e.target && e.target.closest ? e.target.closest('.gc-short-item .gc-short-act[data-s-act="like"]') : null;
+    if(!btn || !currentUser) return;
+    if(e.pointerType === 'mouse' && e.button !== 0) return;
+    var pid = pidFromBtn(btn);
+    if(!pid) return;
+    gcShortPointerCancel();
+    gcShortPointerBtn = btn;
+    gcShortPointerX = e.clientX || 0;
+    gcShortPointerY = e.clientY || 0;
+    gcShortPointerTimer = setTimeout(function(){
+      gcShortPointerTimer = null;
+      if(!gcShortPointerBtn) return;
+      holdOpened = true;
+      holdActiveBtn = gcShortPointerBtn;
+      openPopupNear(gcShortPointerBtn, pid);
+      gcShortPointerBtn.setAttribute('data-gc-react-hold','1');
+    }, GC_SHORT_POINTER_HOLD);
+  }, true);
+
+  document.addEventListener('pointermove', function(e){
+    if(!gcShortPointerTimer || !gcShortPointerBtn) return;
+    var dx = (e.clientX || 0) - gcShortPointerX;
+    var dy = (e.clientY || 0) - gcShortPointerY;
+    if((dx * dx + dy * dy) > (GC_SHORT_POINTER_MOVE * GC_SHORT_POINTER_MOVE)){
+      gcShortPointerCancel();
+    }
+  }, true);
+
+  document.addEventListener('pointerup', function(){
+    if(gcShortPointerTimer) gcShortPointerCancel();
+  }, true);
+  document.addEventListener('pointercancel', gcShortPointerCancel, true);
+
   // Outside tap/click → close reaction picker (works on mobile + desktop)
   function dismissPopupIfOutside(e){
     if(!popupEl || !popupEl.classList.contains('open')) return;
@@ -36339,6 +36502,7 @@ window.gcCloseSheetSafe = gcCloseSheetSafe;
         await ref.update({ likes: likes, likedBy: likedBy, reactions: reactions });
         try{ if(typeof gcSyncShortsCache === 'function') gcSyncShortsCache(pid, likes, likedBy, reactions); }catch(e){}
         gcSyncEngagementUI(pid, { liked: false, count: likes, reaction: null, animate: true });
+        try{ if(typeof gcPaintShortReaction === 'function') gcPaintShortReaction(pid, null, false, likes); }catch(e){}
         return;
       }
 
@@ -36359,6 +36523,7 @@ window.gcCloseSheetSafe = gcCloseSheetSafe;
         fromPicker: true,
         animate: countChanged
       });
+      try{ if(typeof gcPaintShortReaction === 'function') gcPaintShortReaction(pid, type, true, likes); }catch(e){}
 
       var __own = p.uid || p.userId || p.ownerId || '';
       if(__own && __own !== uid){
