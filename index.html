@@ -205,17 +205,22 @@ html,body{overscroll-behavior:none;}
 }
 .other-profile-content-tabs .op-tab{
   flex:1;
+  min-width:0;
   background:transparent;
   border:none;
   border-top:2px solid transparent;
   margin-top:-1px;
-  padding:12px 8px;
-  font-size:14px;
+  padding:12px 4px;
+  font-size:12px;
   font-weight:700;
   color:var(--text-muted);
   cursor:pointer;
   font-family:inherit;
   transition:color .2s, border-color .2s;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  text-align:center;
 }
 .other-profile-content-tabs .op-tab.active{
   color:var(--text);
@@ -1605,6 +1610,12 @@ border: none;
 .post-action-btn.liked .material-symbols-outlined { font-variation-settings: 'FILL' 1; }
 
 body.light-mode .post-action-btn.liked { background: transparent; }
+
+.post-action-btn[data-action="repost"].reposted,
+.post-action-btn.reposted{ color:#16a34a; }
+.post-action-btn[data-action="repost"].reposted .gc-act-ico,
+.post-action-btn.reposted .gc-act-ico{ color:#16a34a; fill:#16a34a; }
+
 
 /* =========================================
 🚀 NEW FEATURE · threads-style-follow · 2026-08-06 (Update #1)
@@ -6501,8 +6512,11 @@ body.gc-cm-open #app-screen{padding-bottom:100px;}
 .gc-adv-topbar,.gc-cm-topbar,.gc-cm-create-topbar{
   flex:0 0 auto;height:56px;display:flex;align-items:center;gap:10px;
   padding:8px 14px;padding-top:max(8px,env(safe-area-inset-top));
-  background:var(--surface);border-bottom:1px solid var(--border);box-sizing:border-box;
+  background:var(--surface);border-bottom:none;box-sizing:border-box;
   position:relative;
+}
+.gc-adv-topbar{
+  border-bottom:1px solid var(--border);
 }
 .gc-adv-back,.gc-cm-back,.gc-cm-create-back{
   width:40px;height:40px;border:0;border-radius:50%;background:transparent;color:var(--text);
@@ -6581,11 +6595,19 @@ body.light-mode .gc-cm-create-btn{background:#1a1a2e;color:#fff;}
 }
 body.light-mode .gc-cm-cat.selected{background:#1a1a2e;color:#fff;border-color:#1a1a2e;}
 .gc-cm-create-submit{
-  width:100%;margin-top:8px;padding:14px;border:0;border-radius:14px;
-  background:var(--gradient);color:#fff;font-size:15px;font-weight:700;
+  width:100%;margin-top:8px;padding:14px;border:0;border-radius:999px;
+  background:var(--surface-2);color:var(--text-muted);font-size:15px;font-weight:700;
   font-family:inherit;cursor:pointer;
+  transition:background .2s, color .2s, box-shadow .2s, opacity .15s;
+  opacity:.75;pointer-events:none;
 }
-.gc-cm-create-submit:active{opacity:.9;}
+.gc-cm-create-submit.is-ready{
+  background: linear-gradient(135deg, #c1f600 0%, #8fd400 42%, #00545f 100%) !important;
+  color:#0a1a12 !important;
+  box-shadow: 0 4px 14px rgba(193, 246, 0, 0.28);
+  opacity:1;pointer-events:auto;
+}
+.gc-cm-create-submit.is-ready:active{opacity:.9;}
 
 
 /* ═══ Leaderboard · full-screen page (not a modal) · 2026-09-11 ═══ */
@@ -13260,6 +13282,7 @@ l-137 -640 -193 -3 -193 -2 4 22 c2 13 67 314 144 671 l139 647 192 0 193 0
     <button type="button" class="op-tab active" data-filter="media" id="my-tab-media" onclick="applyProfileFilter('media','my',this)">Media</button>
     <button type="button" class="op-tab" data-filter="gallery" id="my-tab-gallery" onclick="applyProfileFilter('gallery','my',this)">Gallery</button>
     <button type="button" class="op-tab" data-filter="status" id="my-tab-status" onclick="applyProfileFilter('status','my',this)">Status</button>
+    <button type="button" class="op-tab" data-filter="repost" id="my-tab-repost" onclick="applyProfileFilter('repost','my',this)">Repost</button>
 </div>
 <div id="my-posts-list"></div>
 </div>
@@ -13344,6 +13367,7 @@ l-137 -640 -193 -3 -193 -2 4 22 c2 13 67 314 144 671 l139 647 192 0 193 0
     <button type="button" class="op-tab active" data-filter="media" id="other-tab-media" onclick="applyProfileFilter('media','other',this)">Media</button>
     <button type="button" class="op-tab" data-filter="gallery" id="other-tab-gallery" onclick="applyProfileFilter('gallery','other',this)">Gallery</button>
     <button type="button" class="op-tab" data-filter="status" id="other-tab-status" onclick="applyProfileFilter('status','other',this)">Status</button>
+    <button type="button" class="op-tab" data-filter="repost" id="other-tab-repost" onclick="applyProfileFilter('repost','other',this)">Repost</button>
 </div>
 <div id="other-user-posts-list"></div>
 </div>
@@ -15531,7 +15555,9 @@ window.gcActionSvg = function(name, size, extraStyle){
   var d = {
     like: 'M232.49,81.44A22,22,0,0,0,216,74H158V56a38,38,0,0,0-38-38,6,6,0,0,0-5.37,3.32L76.29,98H32a14,14,0,0,0-14,14v88a14,14,0,0,0,14,14H204a22,22,0,0,0,21.83-19.27l12-96A22,22,0,0,0,232.49,81.44ZM30,200V112a2,2,0,0,1,2-2H74v92H32A2,2,0,0,1,30,200ZM225.92,97.24l-12,96A10,10,0,0,1,204,202H86V105.42l37.58-75.17A26,26,0,0,1,146,56V80a6,6,0,0,0,6,6h64a10,10,0,0,1,9.92,11.24Z',
     comment: 'M166,112a6,6,0,0,1-6,6H96a6,6,0,0,1,0-12h64A6,6,0,0,1,166,112Zm-6,26H96a6,6,0,0,0,0,12h64a6,6,0,0,0,0-12Zm70-10A102,102,0,0,1,79.31,217.65L44.44,229.27a14,14,0,0,1-17.71-17.71l11.62-34.87A102,102,0,1,1,230,128Zm-12,0A90,90,0,1,0,50.08,173.06a6,6,0,0,1,.5,4.91L38.12,215.35a2,2,0,0,0,2.53,2.53L78,205.42a6.2,6.2,0,0,1,1.9-.31,6.09,6.09,0,0,1,3,.81A90,90,0,0,0,218,128Z',
-    share: 'M236.17,201.09,140.1,33.16a14,14,0,0,0-24.41,0l-95.88,168a14,14,0,0,0,16.87,20.05L128,190.34l91.33,30.85A14.31,14.31,0,0,0,224,222a14,14,0,0,0,12.13-20.91Zm-10.66,8.18a1.87,1.87,0,0,1-2.2.6l-.1,0L134,179.7V120a6,6,0,0,0-12,0v59.7L32.8,209.83l-.1,0a1.87,1.87,0,0,1-2.2-.6,1.84,1.84,0,0,1-.24-2.22L126.14,39a1.93,1.93,0,0,1,1.74-1,2,2,0,0,1,1.78,1.07L225.73,207A1.86,1.86,0,0,1,225.51,209.27Z'
+    share: 'M236.17,201.09,140.1,33.16a14,14,0,0,0-24.41,0l-95.88,168a14,14,0,0,0,16.87,20.05L128,190.34l91.33,30.85A14.31,14.31,0,0,0,224,222a14,14,0,0,0,12.13-20.91Zm-10.66,8.18a1.87,1.87,0,0,1-2.2.6l-.1,0L134,179.7V120a6,6,0,0,0-12,0v59.7L32.8,209.83l-.1,0a1.87,1.87,0,0,1-2.2-.6,1.84,1.84,0,0,1-.24-2.22L126.14,39a1.93,1.93,0,0,1,1.74-1,2,2,0,0,1,1.78,1.07L225.73,207A1.86,1.86,0,0,1,225.51,209.27Z',
+    repost: 'M26,128A70.08,70.08,0,0,1,96,58H209.51L195.76,44.24a6,6,0,0,1,8.48-8.48l24,24a6,6,0,0,1,0,8.48l-24,24a6,6,0,0,1-8.48-8.48L209.51,70H96a58.07,58.07,0,0,0-58,58,6,6,0,0,1-12,0Zm198-6a6,6,0,0,0-6,6,58.07,58.07,0,0,1-58,58H46.49l13.75-13.76a6,6,0,0,0-8.48-8.48l-24,24a6,6,0,0,0,0,8.48l24,24a6,6,0,0,0,8.48-8.48L46.49,198H160a70.08,70.08,0,0,0,70-70A6,6,0,0,0,224,122Z',
+    check: 'M229.66,77.66l-128,128a8,8,0,0,1-11.32,0l-56-56a8,8,0,0,1,11.32-11.32L96,188.69,218.34,66.34a8,8,0,0,1,11.32,11.32Z'
   };
   if(!d[name]) return '';
   var st = extraStyle ? (' style="'+extraStyle+'"') : '';
@@ -16694,6 +16720,7 @@ try{
 await gcEnsureActiveStatusPreference();
 updateActiveStatusUI();
 gcStartActivePresence();
+try{ if(typeof gcLoadMyReposts==='function') await gcLoadMyReposts(); }catch(e){}
 
 // 🚀 ভয়েস/ভিডিও কল — লগইন করা মাত্রই ইনকামিং কল লিসেনার চালু হবে
 try{ if(typeof gcListenForIncomingCalls === 'function') gcListenForIncomingCalls(); }catch(e){ console.warn('call listener init failed', e); }
@@ -23447,6 +23474,7 @@ const vBadge=(typeof gcResolveUserBadges==='function')
   : gcCombineBadges(getVerifiedBadge(p.email, p.isVerified), getLeaderBadge(p.email, p.isLeader, true));
 const isLiked=p.likedBy&&p.likedBy.includes(currentUser?.uid);
 const myReactType=(p.reactions&&currentUser&&p.reactions[currentUser.uid])||null;
+const isReposted=!!(currentUser && window.__gcMyReposts && window.__gcMyReposts.has(pid));
 // SVG only for non-default reactions (haha/wow/sad/angry/dislike). Plain "like" keeps filled thumb.
 const likeIconHtml=(myReactType && myReactType !== 'like' && typeof gcReactSvg==='function' && gcReactSvg(myReactType,true))
   ? gcReactSvg(myReactType,true)
@@ -23672,6 +23700,9 @@ ${generatePollHTML(p)}
 <button class="post-action-btn" onclick="event.stopPropagation(); openShareModal('${pid}', '${safeTitleForAttr}', '${imgUrls[0] || ''}')">
 ${typeof gcActionSvg==='function'?gcActionSvg('share',24):'<i class="ph-light ph-paper-plane-tilt" style="font-size:24px;"></i>'}
 <span style="font-size:14px;">${p.shares || 0}</span>
+</button>
+<button class="post-action-btn${isReposted?' reposted':''}" data-action="repost" data-post-id="${pid}" onclick="event.stopPropagation(); if(typeof toggleRepost==='function') toggleRepost('${pid}');" aria-label="Repost">
+${typeof gcActionSvg==='function'?gcActionSvg(isReposted?'check':'repost',24):'<i class="ph-light ph-arrows-clockwise" style="font-size:24px;"></i>'}
 </button>
 ${reactSummaryHtml}
 </div>
@@ -31343,6 +31374,159 @@ requestAnimationFrame(function(){ gcVidRaf = false; if(typeof gcVideoize === 'fu
 }).observe(document.body, {childList: true, subtree: true});
 
 
+
+// ═══════════════════════════════════════════════════════
+// FEATURE · repost system (user.reposts[] + profile Repost tab)
+// ═══════════════════════════════════════════════════════
+window.__gcMyReposts = window.__gcMyReposts || new Set();
+
+function gcRepostIconHtml(on){
+  if(typeof gcActionSvg==='function') return gcActionSvg(on ? 'check' : 'repost', 24);
+  return on
+    ? '<i class="ph-bold ph-check" style="font-size:24px;color:#16a34a;"></i>'
+    : '<i class="ph-light ph-arrows-clockwise" style="font-size:24px;"></i>';
+}
+
+function gcSyncRepostButtons(pid, on){
+  if(!pid) return;
+  try{
+    document.querySelectorAll('.post-action-btn[data-action="repost"][data-post-id="'+pid+'"], .post-action-btn[data-action="repost"][onclick*="'+pid+'"]').forEach(function(btn){
+      btn.classList.toggle('reposted', !!on);
+      btn.innerHTML = gcRepostIconHtml(!!on);
+    });
+  }catch(e){}
+}
+
+async function gcLoadMyReposts(){
+  if(!currentUser) return;
+  try{
+    var doc = await db.collection('users').doc(currentUser.uid).get();
+    var arr = (doc.exists && Array.isArray(doc.data().reposts)) ? doc.data().reposts : [];
+    window.__gcMyReposts = new Set(arr.map(String));
+    if(currentUserData) currentUserData.reposts = arr.slice();
+  }catch(e){ console.warn('load reposts', e); }
+}
+
+async function toggleRepost(pid){
+  if(!currentUser || !pid) return;
+  if(typeof checkRateLimit==='function' && !checkRateLimit()) return;
+  window.__gcRepostBusy = window.__gcRepostBusy || {};
+  if(window.__gcRepostBusy[pid]) return;
+  window.__gcRepostBusy[pid] = true;
+  try{
+    var ref = db.collection('users').doc(currentUser.uid);
+    var doc = await ref.get();
+    var data = doc.exists ? (doc.data()||{}) : {};
+    var list = Array.isArray(data.reposts) ? data.reposts.map(String) : [];
+    var on = list.indexOf(String(pid)) !== -1;
+    if(on){
+      list = list.filter(function(id){ return id !== String(pid); });
+      await ref.set({ reposts: list }, { merge: true });
+      window.__gcMyReposts.delete(String(pid));
+      if(currentUserData) currentUserData.reposts = list;
+      gcSyncRepostButtons(pid, false);
+      if(typeof showToast==='function') showToast('Removed from Reposts');
+    } else {
+      list = [String(pid)].concat(list.filter(function(id){ return id !== String(pid); }));
+      // keep a reasonable cap
+      if(list.length > 200) list = list.slice(0, 200);
+      await ref.set({ reposts: list }, { merge: true });
+      window.__gcMyReposts.add(String(pid));
+      if(currentUserData) currentUserData.reposts = list;
+      gcSyncRepostButtons(pid, true);
+      if(typeof showToast==='function') showToast('Reposted');
+    }
+    // Refresh profile repost tab if active
+    try{
+      if(window.__myProfileFilter === 'repost' && typeof applyProfileFilter==='function'){
+        applyProfileFilter('repost','my', document.getElementById('my-tab-repost'));
+      }
+    }catch(e){}
+  }catch(err){
+    console.error('toggleRepost', err);
+    if(typeof showToast==='function') showToast('Could not update repost');
+  }finally{
+    window.__gcRepostBusy[pid] = false;
+  }
+}
+window.toggleRepost = toggleRepost;
+window.gcLoadMyReposts = gcLoadMyReposts;
+window.gcSyncRepostButtons = gcSyncRepostButtons;
+
+async function gcRenderRepostTab(profileType){
+  var listId = profileType === 'my' ? 'my-posts-list' : 'other-user-posts-list';
+  var listContainer = document.getElementById(listId);
+  if(!listContainer) return;
+  listContainer.innerHTML = (typeof gcModernLoader==='function') ? gcModernLoader('Loading reposts') : '<div class="empty-feed">Loading…</div>';
+  var uid = null;
+  if(profileType === 'my'){
+    uid = currentUser && currentUser.uid;
+  } else {
+    uid = window.viewingUserId || window.__otherProfileUid || null;
+    try{
+      var otherPage = document.getElementById('page-other-profile');
+      if(!uid && otherPage) uid = otherPage.getAttribute('data-uid');
+    }catch(e){}
+  }
+  if(!uid){
+    listContainer.innerHTML = '<div class="empty-feed">No reposts yet</div>';
+    return;
+  }
+  try{
+    var uDoc = await db.collection('users').doc(uid).get();
+    var ids = (uDoc.exists && Array.isArray(uDoc.data().reposts)) ? uDoc.data().reposts.map(String) : [];
+    if(profileType === 'my'){
+      window.__gcMyReposts = new Set(ids);
+    }
+    if(!ids.length){
+      listContainer.innerHTML = '<div class="empty-feed" style="padding:40px 16px;text-align:center;color:var(--text-muted);"><div style="font-weight:800;color:var(--text);margin-bottom:6px;">No reposts yet</div><div style="font-size:13px;">Posts you repost will show up here.</div></div>';
+      return;
+    }
+    // Fetch in chunks of 10 (Firestore in query limit)
+    var posts = [];
+    for(var i=0;i<ids.length;i+=10){
+      var chunk = ids.slice(i, i+10);
+      try{
+        var snap = await db.collection('posts').where(firebase.firestore.FieldPath.documentId(), 'in', chunk).get();
+        snap.forEach(function(doc){
+          var d = doc.data()||{}; d.id = doc.id; posts.push(d);
+        });
+      }catch(e){
+        // fallback sequential gets
+        for(var j=0;j<chunk.length;j++){
+          try{
+            var one = await db.collection('posts').doc(chunk[j]).get();
+            if(one.exists){ var d2=one.data()||{}; d2.id=one.id; posts.push(d2); }
+          }catch(e2){}
+        }
+      }
+    }
+    // Keep order of ids
+    var map = {};
+    posts.forEach(function(p){ map[p.id]=p; });
+    var ordered = ids.map(function(id){ return map[id]; }).filter(Boolean);
+    if(!ordered.length){
+      listContainer.innerHTML = '<div class="empty-feed">No reposts yet</div>';
+      return;
+    }
+    var htmlOut = '';
+    ordered.forEach(function(p){
+      try{
+        if(typeof buildPostCardHTML === 'function') htmlOut += buildPostCardHTML(p);
+        else if(typeof createPostCard === 'function') htmlOut += createPostCard(p);
+        else if(typeof renderPostCard === 'function') htmlOut += renderPostCard(p);
+      }catch(e){}
+    });
+    listContainer.innerHTML = htmlOut || '<div class="empty-feed">No reposts yet</div>';
+    try{ if(typeof gcVideoize==='function') gcVideoize(listContainer); }catch(e){}
+  }catch(err){
+    console.error('gcRenderRepostTab', err);
+    listContainer.innerHTML = '<div class="empty-feed">Could not load reposts</div>';
+  }
+}
+window.gcRenderRepostTab = gcRenderRepostTab;
+
+
 // ==========================================
 // 🚀 PROFILE POSTS FILTER LOGIC (Fixed for both Grid & Feed styles)
 // প্রোফাইলে নতুন ফিল্টার সিস্টেম। 
@@ -31364,6 +31548,16 @@ function applyProfileFilter(filterType, profileType, clickedElement) {
         });
         if (profileType === 'other') window.__otherProfileFilter = filterType;
         if (profileType === 'my') window.__myProfileFilter = filterType;
+    }
+
+    // Repost tab: load from users/{uid}.reposts (not local DOM filter)
+    if (filterType === 'repost') {
+        if (typeof gcRenderRepostTab === 'function') gcRenderRepostTab(profileType);
+        return;
+    }
+
+    if (tabs.length) {
+        // continue normal filter path
     } else {
         // Legacy fallback (should not hit for profile pages)
         if(menu) menu.querySelectorAll('.gc-cf-item').forEach(el => el.classList.remove('active'));
@@ -35886,8 +36080,15 @@ function gcFilterCommunities(q){
 function gcOpenCreateCommunity(){
   window.__gcCmCat = null;
   var name = document.getElementById('gc-cm-name');
-  if(name) name.value = '';
+  if(name){
+    name.value = '';
+    if(!name._gcCmBound){
+      name._gcCmBound = true;
+      name.addEventListener('input', function(){ try{ gcSyncCmCreateSubmit(); }catch(e){} });
+    }
+  }
   document.querySelectorAll('#gc-cm-cats .gc-cm-cat').forEach(function(b){ b.classList.remove('selected'); });
+  try{ gcSyncCmCreateSubmit(); }catch(e){}
   var p = document.getElementById('page-community-create');
   if(!p) return;
   p.classList.add('open');
@@ -35900,11 +36101,20 @@ function gcCloseCreateCommunity(){
   if(p){ p.classList.remove('open'); p.setAttribute('aria-hidden','true'); }
   document.body.classList.remove('gc-cm-create-open');
 }
+function gcSyncCmCreateSubmit(){
+  var btn = document.querySelector('.gc-cm-create-submit');
+  if(!btn) return;
+  var nameEl = document.getElementById('gc-cm-name');
+  var name = nameEl ? (nameEl.value||'').trim() : '';
+  var ready = !!(name && window.__gcCmCat);
+  btn.classList.toggle('is-ready', ready);
+}
 function gcPickCmCat(btn){
   if(!btn) return;
   document.querySelectorAll('#gc-cm-cats .gc-cm-cat').forEach(function(b){ b.classList.remove('selected'); });
   btn.classList.add('selected');
   window.__gcCmCat = btn.getAttribute('data-cat') || null;
+  gcSyncCmCreateSubmit();
 }
 function gcSubmitCreateCommunity(){
   var nameEl = document.getElementById('gc-cm-name');
