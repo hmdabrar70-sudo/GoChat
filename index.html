@@ -5160,13 +5160,47 @@ Liked Posts পেজ (মেনুর ওভারলে)
   gap:6px;
   min-width:0;
 }
+
 .gc-short-name-row{
+  display:flex;
+  flex-direction:row;
+  align-items:flex-start;
+  flex-wrap:wrap;
+  gap:8px;
+  min-width:0;
+  max-width:100%;
+}
+.gc-short-follow-btn{
+  margin-top:0px;
+}
+.gc-short-name-text{
   display:flex;
   flex-direction:column;
   min-width:0;
-  max-width:100%;
   cursor:pointer;
 }
+.gc-short-follow-btn{
+  flex:0 0 auto;
+  border:1.5px solid rgba(255,255,255,0.85);
+  background:transparent;
+  color:#fff;
+  font-size:12px;
+  font-weight:800;
+  font-family:inherit;
+  padding:4px 12px;
+  border-radius:999px;
+  cursor:pointer;
+  line-height:1.2;
+  -webkit-tap-highlight-color:transparent;
+}
+.gc-short-follow-btn:active{ opacity:0.75; transform:scale(0.97); }
+.gc-short-follow-btn.is-following{
+  border-color:rgba(255,255,255,0.35);
+  background:rgba(255,255,255,0.12);
+  color:rgba(255,255,255,0.9);
+  pointer-events:none;
+}
+
 .gc-short-name{
   font-size:15px;
   line-height:1.25;
@@ -6528,7 +6562,7 @@ MODERN USERNAME SYSTEM STYLES
 
 /* ═══ Advertise hub + Community ═══ */
 .gc-adv-page,.gc-cm-page,.gc-cm-create-page{
-  display:none;position:fixed;inset:0;z-index:900;
+  display:none;position:fixed;inset:0;z-index:950;
   background:var(--bg);flex-direction:column;
   max-width:520px;margin:0 auto;width:100%;
 }
@@ -6645,11 +6679,10 @@ body.light-mode .gc-cm-cat.selected{background:#1a1a2e;color:#fff;border-color:#
 .gc-cm-create-btn{background:linear-gradient(135deg,#6d5dfc,#16b8c9)!important;color:#fff!important;box-shadow:0 6px 18px rgba(80,80,180,.18);}
 .gc-cm-body{padding:14px 14px 110px;}
 .gc-cm-hero{padding:4px 2px 16px;}
-.gc-cm-hero-card{position:relative;overflow:hidden;border-radius:22px;background:linear-gradient(135deg,rgba(109,93,252,.14),rgba(22,184,201,.10));border:1px solid var(--border);padding:18px;}
-.gc-cm-hero-card:before{content:"";position:absolute;inset:-50px auto auto -40px;width:180px;height:180px;border-radius:50%;background:rgba(109,93,252,.12);filter:blur(20px);pointer-events:none;}
+.gc-cm-hero-card{position:relative;overflow:hidden;border-radius:22px;background:var(--surface);border:1px solid var(--border);padding:16px 18px;}
 .gc-cm-hero-content{position:relative;display:flex;align-items:center;gap:14px;}
-.gc-cm-hero-icon{width:58px;height:58px;border-radius:18px;overflow:hidden;flex:0 0 58px;background:linear-gradient(135deg,#6d5dfc,#16b8c9);display:flex;align-items:center;justify-content:center;color:#fff;font-size:27px;font-weight:800;box-shadow:0 8px 22px rgba(80,80,180,.22);}
-.gc-cm-hero-icon img,.gc-cm-avatar img{width:100%;height:100%;object-fit:cover;display:block;}
+.gc-cm-hero-icon{display:none!important;}
+.gc-cm-avatar img{width:100%;height:100%;object-fit:cover;display:block;}
 .gc-cm-hero-copy{min-width:0;flex:1;}
 .gc-cm-hero-copy h2{margin:0 0 4px;font-size:18px;color:var(--text);}
 .gc-cm-hero-copy p{margin:0;color:var(--text-muted);font-size:12px;line-height:1.45;}
@@ -19181,6 +19214,47 @@ async function gcShortToggleLike(pid){
   }
 }
 window.gcShortToggleLike = gcShortToggleLike;
+
+async function gcShortFollow(btn){
+  try{
+    if(!btn || !currentUser){ if(typeof showToast==='function') showToast('Login first!'); return; }
+    var uid = btn.getAttribute('data-follow-uid') || '';
+    if(!uid || uid === currentUser.uid) return;
+    if(btn.classList.contains('is-following') || btn.disabled) return;
+    if(currentUserData && Array.isArray(currentUserData.following) && currentUserData.following.indexOf(uid) !== -1){
+      btn.textContent = 'Following';
+      btn.classList.add('is-following');
+      btn.disabled = true;
+      return;
+    }
+    btn.disabled = true;
+    if(typeof toggleFollow === 'function'){
+      await toggleFollow(uid);
+    }
+    if(currentUserData && Array.isArray(currentUserData.following) && currentUserData.following.indexOf(uid) === -1){
+      currentUserData.following = (currentUserData.following || []).concat([uid]);
+    }
+    btn.textContent = 'Following';
+    btn.classList.add('is-following');
+    btn.disabled = true;
+    btn.removeAttribute('onclick');
+    try{
+      document.querySelectorAll('.gc-short-follow-btn[data-follow-uid="'+uid+'"]').forEach(function(b){
+        b.textContent = 'Following';
+        b.classList.add('is-following');
+        b.disabled = true;
+        b.removeAttribute('onclick');
+      });
+    }catch(e){}
+  }catch(err){
+    console.error('gcShortFollow', err);
+    try{ btn.disabled = false; }catch(e){}
+    if(typeof showToast==='function') showToast('Could not follow');
+  }
+}
+window.gcShortFollow = gcShortFollow;
+
+
 
 function gcSyncShortsCache(pid, likes, likedBy, reactions){
   try{
@@ -32799,14 +32873,26 @@ function gcRenderShortsList(posts){
     var fmtL = (typeof gcFmtCount === 'function') ? gcFmtCount(likes) : String(likes);
     var fmtC = (typeof gcFmtCount === 'function') ? gcFmtCount(comments) : String(comments);
     var fmtS = (typeof gcFmtCount === 'function') ? gcFmtCount(shares) : String(shares);
+    var authorUid = p.uid || '';
+    var isSelf = !!(currentUser && authorUid && currentUser.uid === authorUid);
+    var isFollowing = !!(currentUserData && Array.isArray(currentUserData.following) && authorUid && currentUserData.following.indexOf(authorUid) !== -1);
+    var followBtnHtml = '';
+    if (currentUser && authorUid && !isSelf && !isFollowing) {
+      followBtnHtml = '<button type="button" class="gc-short-follow-btn" data-s-follow="1" data-follow-uid="'+escapeHTML(authorUid)+'" onclick="event.stopPropagation();gcShortFollow(this);">Follow</button>';
+    } else if (currentUser && authorUid && !isSelf && isFollowing) {
+      followBtnHtml = '<button type="button" class="gc-short-follow-btn is-following" data-s-follow="1" data-follow-uid="'+escapeHTML(authorUid)+'" disabled>Following</button>';
+    }
     html += '<div class="gc-short-item" data-post-id="'+escapeHTML(pid)+'" data-short-author-uid="'+escapeHTML(p.uid||'')+'">'
       + '<video src="'+escapeHTML(vurl)+'" playsinline webkit-playsinline loop preload="metadata" '
       + (window.gcGlobalMuted !== false ? 'muted' : '') + '></video>'
       + '<div class="gc-short-overlay"></div>'
       + '<div class="gc-short-meta-block">'
-      +   '<div class="gc-short-name-row" data-s-profile="1">'
-      +     '<div class="gc-short-name">'+escapeHTML(name)+' <span style="display:inline-flex;align-items:center;vertical-align:middle;">'+shortBadge+'</span></div>'
-      +     (timeL ? '<div class="gc-short-time">'+escapeHTML(timeL)+'</div>' : '')
+      +   '<div class="gc-short-name-row">'
+      +     '<div class="gc-short-name-text" data-s-profile="1">'
+      +       '<div class="gc-short-name">'+escapeHTML(name)+' <span style="display:inline-flex;align-items:center;vertical-align:middle;">'+shortBadge+'</span></div>'
+      +       (timeL ? '<div class="gc-short-time">'+escapeHTML(timeL)+'</div>' : '')
+      +     '</div>'
+      +     followBtnHtml
       +   '</div>'
       +   (title
             ? ('<div class="gc-short-caption-wrap">'
@@ -35899,10 +35985,10 @@ async function gcLoadCommunities(q){
     if(term) arr=arr.filter(function(c){return ((c.name||'')+' '+(c.category||'')+' '+(c.description||'')).toLowerCase().indexOf(term)!==-1;});
     window.__gcCmList=arr;
     if(!arr.length){
-      list.innerHTML='<div class="gc-cm-hero"><div class="gc-cm-hero-card"><div class="gc-cm-hero-content"><div class="gc-cm-hero-icon"><i class="ph-light ph-users-three"></i></div><div class="gc-cm-hero-copy"><h2>Find your people</h2><p>Join a community around an interest, learn together, share ideas and build real connections.</p></div></div></div></div><div class="gc-cm-empty"><div class="gc-cm-empty-icon"><i class="ph-light ph-compass"></i></div><h3>'+ (term?'No matches found':'No communities yet') +'</h3><p>'+ (term?'Try a different name or category.':'Create the first community and give people a place to belong.') +'</p></div>';
+      list.innerHTML='<div class="gc-cm-hero"><div class="gc-cm-hero-card"><div class="gc-cm-hero-content"><div class="gc-cm-hero-copy"><h2>Find your people</h2><p>Join a community around an interest, learn together, share ideas and build real connections.</p></div></div></div></div><div class="gc-cm-empty"><div class="gc-cm-empty-icon"><i class="ph-light ph-compass"></i></div><h3>'+ (term?'No matches found':'No communities yet') +'</h3><p>'+ (term?'Try a different name or category.':'Create the first community and give people a place to belong.') +'</p></div>';
       return;
     }
-    var html='<div class="gc-cm-hero"><div class="gc-cm-hero-card"><div class="gc-cm-hero-content"><div class="gc-cm-hero-icon"><i class="ph-light ph-sparkle"></i></div><div class="gc-cm-hero-copy"><h2>Communities</h2><p>Discover focused spaces for conversations, ideas and shared interests.</p></div></div></div></div><div class="gc-cm-section-title"><span>Explore communities</span><span class="gc-cm-pill">'+arr.length+' found</span></div>';
+    var html='<div class="gc-cm-hero"><div class="gc-cm-hero-card"><div class="gc-cm-hero-content"><div class="gc-cm-hero-copy"><h2>Communities</h2><p>Discover focused spaces for conversations, ideas and shared interests.</p></div></div></div></div><div class="gc-cm-section-title"><span>Explore communities</span><span class="gc-cm-pill">'+arr.length+' found</span></div>';
     arr.forEach(function(c){ html+='<div class="gc-cm-card" onclick="gcOpenCommunityDetail(\''+gcCmEsc(c.id)+'\')"><div class="gc-cm-card-row">'+gcCmAvatarHtml(c)+'<div class="gc-cm-meta"><h4>'+gcCmEsc(c.name||'Untitled community')+'</h4><p>'+gcCmEsc(c.category||'General')+' · '+Number(c.memberCount||0)+' member'+(Number(c.memberCount||0)===1?'':'s')+'</p></div><span class="gc-cm-pill">'+gcCmEsc(c.privacy==='private'?'Private':'Public')+'</span></div></div>'; });
     list.innerHTML=html;
   }catch(e){ console.error('gcLoadCommunities',e); list.innerHTML='<div class="gc-cm-empty"><div class="gc-cm-empty-icon"><i class="ph-light ph-warning-circle"></i></div><h3>Couldn’t load communities</h3><p>Please try again in a moment.</p><button class="gc-cm-action primary" style="margin-top:14px;width:100%;" onclick="gcLoadCommunities()">Try again</button></div>'; }
