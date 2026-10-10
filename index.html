@@ -7059,6 +7059,8 @@ body:not(.light-mode) .gc-profile-action-btn{
 /* Other profile: Follow / Following / Message — same neutral chip */
 .gc-op-btn-follow,
 .gc-op-btn-following,
+.gc-op-btn-friends,
+.gc-op-btn-follow-back,
 .gc-op-btn-message{
     background: #f1f3f5 !important;
     border: 1px solid rgba(0,0,0,0.06) !important;
@@ -7067,6 +7069,8 @@ body:not(.light-mode) .gc-profile-action-btn{
 }
 body:not(.light-mode) .gc-op-btn-follow,
 body:not(.light-mode) .gc-op-btn-following,
+body:not(.light-mode) .gc-op-btn-friends,
+body:not(.light-mode) .gc-op-btn-follow-back,
 body:not(.light-mode) .gc-op-btn-message{
     background: #2a2a30 !important;
     border: 1px solid rgba(255,255,255,0.08) !important;
@@ -17695,6 +17699,11 @@ async function toggleFollow(targetUid) {
         await db.collection('users').doc(targetUid).update({
             followers: firebase.firestore.FieldValue.arrayRemove(currentUser.uid)
         });
+        try{
+          if(currentUserData){
+            currentUserData.following = (currentUserData.following||[]).filter(function(id){ return id !== targetUid; });
+          }
+        }catch(e){}
         showToast('Unfollowed');
     } else {
         // ফলো (Follow) করার লজিক
@@ -17704,7 +17713,14 @@ async function toggleFollow(targetUid) {
         await db.collection('users').doc(targetUid).update({
             followers: firebase.firestore.FieldValue.arrayUnion(currentUser.uid)
         });
-        showToast('Following!');
+        try{
+          if(currentUserData){
+            if(!Array.isArray(currentUserData.following)) currentUserData.following = [];
+            if(currentUserData.following.indexOf(targetUid)===-1) currentUserData.following.push(targetUid);
+          }
+        }catch(e){}
+        var _becameFriends = !!(currentUserData && Array.isArray(currentUserData.followers) && currentUserData.followers.indexOf(targetUid)!==-1);
+        showToast(_becameFriends ? "You're friends now!" : 'Following!');
         
         // Follow notification: max once per target per 7 days (anti-spam)
         try {
@@ -19930,14 +19946,24 @@ ${gcDisplayName}
     document.getElementById('other-profile-details-display').innerHTML=dHtml; 
     
     const isBlocked=currentUserData.blockedUsers?.includes(uid);
-    const isFollowing=currentUserData.following?.includes(uid);
+    const isFollowing=!!(currentUserData.following&&currentUserData.following.includes(uid));
+    // Mutual check: I follow them AND they follow me
+    const theyFollowMe=!!(
+      (Array.isArray(currentUserData.followers)&&currentUserData.followers.indexOf(uid)!==-1) ||
+      (Array.isArray(u.following)&&u.following.indexOf(currentUser.uid)!==-1)
+    );
+    const isFriend=isFollowing&&theyFollowMe;
     let btnHtml='';
     
     // 🚀 বাটনগুলোকে রেসপন্সিভ এবং এক লাইনে রাখার জন্য flex: 1 ব্যবহার করা হয়েছে
     if(isBlocked){
         btnHtml=`<button class="icon-btn" style="flex:1; border-radius:30px; padding:10px 0; border:1px solid var(--success); color:var(--success); background:transparent; display:flex; justify-content:center; align-items:center; gap:4px; font-size:13px; font-weight:700;" onclick="unblockUser('${uid}')"><i class="ph-light ph-lock-open" style="font-size:18px;"></i> Unblock</button>`;
+    }else if(isFriend){
+        btnHtml=`<button class="icon-btn gc-op-btn-following gc-op-btn-friends" style="flex:1; border-radius:30px; padding:10px 0; display:flex; justify-content:center; align-items:center; gap:4px; font-size:13px; font-weight:700;" onclick="toggleFollow('${uid}')"><i class="ph-light ph-users-three" style="font-size:18px;"></i> Friends</button>`;
     }else if(isFollowing){
         btnHtml=`<button class="icon-btn gc-op-btn-following" style="flex:1; border-radius:30px; padding:10px 0; display:flex; justify-content:center; align-items:center; gap:4px; font-size:13px; font-weight:700;" onclick="toggleFollow('${uid}')"><i class="ph-light ph-user-minus" style="font-size:18px;"></i> Following</button>`;
+    }else if(theyFollowMe){
+        btnHtml=`<button class="icon-btn gc-op-btn-follow gc-op-btn-follow-back" style="flex:1; border-radius:30px; padding:10px 0; display:flex; justify-content:center; align-items:center; gap:4px; font-size:13px; font-weight:700;" onclick="toggleFollow('${uid}')"><i class="ph-light ph-user-plus" style="font-size:18px;"></i> Follow back</button>`;
     }else{
         btnHtml=`<button class="icon-btn gc-op-btn-follow" style="flex:1; border-radius:30px; padding:10px 0; display:flex; justify-content:center; align-items:center; gap:4px; font-size:13px; font-weight:700;" onclick="toggleFollow('${uid}')"><i class="ph-light ph-user-plus" style="font-size:18px;"></i> Follow</button>`;
     }
