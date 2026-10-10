@@ -3851,34 +3851,92 @@ margin-bottom: 0 !important;
 background: rgba(0, 0, 0, 0.05) !important;
 }
 /* =========================================
-   SKELETON LOADING ANIMATION
+   GoChat skeleton loading · shimmer surfaces
+   Scoped skeletons replace mismatched text/ring loaders on key pages.
    ========================================= */
-.skeleton-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 24px;
-    padding: 20px;
-    margin: 16px;
-    box-shadow: var(--shadow-sm);
+.gc-skeleton,
+.skeleton-card,
+.skeleton-avatar,
+.skeleton-text,
+.skeleton-box,
+.gc-loader-skel-av,
+.gc-loader-skel-line,
+.gc-loader-skel-btn {
+  position:relative;
+  overflow:hidden;
+  background-color:var(--gc-skel-base, #f6f7f8) !important;
+  background-image:linear-gradient(90deg,
+    var(--gc-skel-base, #f6f7f8) 0%,
+    var(--gc-skel-highlight, #edeef1) 22%,
+    var(--gc-skel-base, #f6f7f8) 45%,
+    var(--gc-skel-base, #f6f7f8) 100%) !important;
+  background-repeat:no-repeat !important;
+  background-size:800px 100% !important;
+  animation:gcSkeletonShimmer 1.45s linear infinite !important;
+  border-color:transparent !important;
+  color:transparent !important;
 }
-.skeleton-header { display: flex; gap: 12px; margin-bottom: 14px; }
-.skeleton-avatar { 
-    width: 44px; height: 44px; 
-    border-radius: 50%; 
-    background: var(--surface-2); 
-    animation: shimmer 1.5s infinite; 
+body:not(.light-mode){
+  --gc-skel-base:#20202a;
+  --gc-skel-highlight:#30303d;
 }
-.skeleton-text-wrap { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 8px; }
-.skeleton-text { height: 12px; background: var(--surface-2); border-radius: 6px; animation: shimmer 1.5s infinite; }
-.skeleton-text.w-40 { width: 40%; }
-.skeleton-text.w-20 { width: 20%; }
-.skeleton-box { width: 100%; height: 250px; background: var(--surface-2); border-radius: 16px; animation: shimmer 1.5s infinite; }
+body.light-mode{
+  --gc-skel-base:#f1f2f4;
+  --gc-skel-highlight:#e5e7eb;
+}
+@keyframes gcSkeletonShimmer{
+  0%{background-position:-400px 0;}
+  100%{background-position:400px 0;}
+}
+.skeleton-card{border-radius:24px;padding:18px;margin:12px;background:var(--surface);border:1px solid var(--border);box-shadow:none;}
+.skeleton-header{display:flex;gap:12px;margin-bottom:14px;}
+.skeleton-avatar{width:44px;height:44px;flex:0 0 44px;border-radius:50%;}
+.skeleton-text-wrap{flex:1;display:flex;flex-direction:column;justify-content:center;gap:8px;}
+.skeleton-text{height:12px;border-radius:6px;}
+.skeleton-text.w-40{width:40%;}.skeleton-text.w-20{width:20%;}
+.skeleton-box{width:100%;height:250px;border-radius:16px;}
+.gc-skeleton-post{padding:18px 16px;margin:12px 12px 16px;border-radius:22px;background:var(--surface);}
+.gc-skeleton-post-head{display:flex;align-items:center;gap:12px;margin-bottom:14px;}
+.gc-skeleton-post-avatar{width:42px;height:42px;border-radius:50%;flex:0 0 42px;}
+.gc-skeleton-lines{flex:1;display:flex;flex-direction:column;gap:8px;}
+.gc-skeleton-line{height:11px;border-radius:6px;}
+.gc-skeleton-line.wide{width:43%;}.gc-skeleton-line.short{width:26%;}
+.gc-skeleton-post-media{height:250px;width:100%;border-radius:15px;margin:10px 0 14px;}
+.gc-skeleton-actions{display:flex;gap:18px;margin-top:14px;}
+.gc-skeleton-action{height:12px;width:54px;border-radius:7px;}
+.gc-skeleton-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:3px;padding:3px;}
+.gc-skeleton-grid-cell{aspect-ratio:1/1;border-radius:4px;}
+.gc-skeleton-list{padding:2px 0 18px;}
+.gc-skeleton-chat{display:flex;align-items:center;gap:13px;padding:14px 18px;min-height:76px;border-bottom:1px solid var(--border);}
+.gc-skeleton-chat-avatar{width:48px;height:48px;flex:0 0 48px;border-radius:50%;}
+.gc-skeleton-chat-copy{flex:1;min-width:0;display:flex;flex-direction:column;gap:9px;}
+.gc-skeleton-chat-name{height:13px;width:44%;border-radius:6px;}
+.gc-skeleton-chat-preview{height:10px;width:72%;border-radius:6px;}
+.gc-skeleton-chat-time{height:9px;width:30px;border-radius:6px;align-self:flex-start;}
+.gc-skeleton-notif{display:flex;align-items:flex-start;gap:14px;padding:16px 20px;border-bottom:1px solid var(--border);}
+.gc-skeleton-notif-avatar{width:46px;height:46px;flex:0 0 46px;border-radius:50%;}
+.gc-skeleton-notif-copy{flex:1;display:flex;flex-direction:column;gap:9px;padding-top:4px;}
+.gc-skeleton-notif-line{height:11px;width:88%;border-radius:6px;}
+.gc-skeleton-notif-line.medium{width:64%;}.gc-skeleton-notif-line.short{width:30%;height:9px;}
+#page-other-profile.gc-loading-profile #other-profile-name,
+#page-other-profile.gc-loading-profile #other-profile-bio,
+#page-other-profile.gc-loading-profile #other-profile-username-display{color:transparent !important;}
+#page-other-profile.gc-loading-profile #other-profile-name{min-width:150px;max-width:230px;height:22px;border-radius:7px;}
+#page-other-profile.gc-loading-profile #other-profile-bio{width:78%;height:12px;border-radius:6px;margin-top:10px;}
+#page-other-profile.gc-loading-profile #other-profile-avatar,
+#page-other-profile.gc-loading-profile #other-profile-avatar{background-color:var(--gc-skel-base) !important;}
+#page-other-profile.gc-loading-profile #other-profile-avatar img,
+#page-other-profile.gc-loading-profile #other-profile-avatar img{visibility:hidden;}
+#page-other-profile.gc-loading-profile #other-profile-avatar{color:transparent !important;}
+#page-other-profile.gc-loading-profile #other-followers-count,
+#page-other-profile.gc-loading-profile #other-following-count,
+#page-other-profile.gc-loading-profile #other-posts-count{display:inline-block;min-width:28px;height:13px;border-radius:6px;color:transparent !important;background:linear-gradient(90deg,var(--gc-skel-base) 0%,var(--gc-skel-highlight) 22%,var(--gc-skel-base) 45%,var(--gc-skel-base) 100%);background-size:800px 100%;animation:gcSkeletonShimmer 1.45s linear infinite;}
 
-@keyframes shimmer {
-    0% { opacity: 0.5; }
-    50% { opacity: 1; }
-    100% { opacity: 0.5; }
-}
+#page-other-profile.gc-loading-profile #other-profile-name,
+#page-other-profile.gc-loading-profile #other-profile-bio,
+#page-other-profile.gc-loading-profile #other-profile-avatar,
+#page-other-profile.gc-loading-profile #other-profile-avatar{background-image:linear-gradient(90deg,var(--gc-skel-base) 0%,var(--gc-skel-highlight) 22%,var(--gc-skel-base) 45%,var(--gc-skel-base) 100%);background-size:800px 100%;animation:gcSkeletonShimmer 1.45s linear infinite;}
+@media(prefers-reduced-motion:reduce){.gc-skeleton,.skeleton-card,.skeleton-avatar,.skeleton-text,.skeleton-box,.gc-loader-skel-av,.gc-loader-skel-line,.gc-loader-skel-btn{animation:none !important;}}
 
 /* =========================================
 ✨ LOADER · Uiverse multi-ring (uxRakhal)
@@ -13249,16 +13307,14 @@ l-137 -640 -193 -3 -193 -2 4 22 c2 13 67 314 144 671 l139 647 192 0 193 0
 <div class="feed-tab active" id="tab-foryou" onclick="setFeedTab('foryou')">For You</div>
 <div class="feed-tab" id="tab-following" onclick="setFeedTab('following')">Following</div>
 </div>
-<div id="feed-loading">
-    <div class="skeleton-card">
-        <div class="skeleton-header">
-            <div class="skeleton-avatar"></div>
-            <div class="skeleton-text-wrap">
-                <div class="skeleton-text w-40"></div>
-                <div class="skeleton-text w-20"></div>
-            </div>
-        </div>
-        <div class="skeleton-box"></div>
+<div id="feed-loading" aria-label="Loading posts">
+    <div class="gc-skeleton-post" aria-hidden="true">
+      <div class="gc-skeleton-post-head"><div class="gc-skeleton gc-skeleton-post-avatar"></div><div class="gc-skeleton-lines"><div class="gc-skeleton gc-skeleton-line wide"></div><div class="gc-skeleton gc-skeleton-line short"></div></div></div>
+      <div class="gc-skeleton gc-skeleton-post-media"></div><div class="gc-skeleton-lines"><div class="gc-skeleton gc-skeleton-line" style="width:86%"></div><div class="gc-skeleton gc-skeleton-line" style="width:57%"></div></div><div class="gc-skeleton-actions"><div class="gc-skeleton gc-skeleton-action"></div><div class="gc-skeleton gc-skeleton-action"></div><div class="gc-skeleton gc-skeleton-action"></div></div>
+    </div>
+    <div class="gc-skeleton-post" aria-hidden="true">
+      <div class="gc-skeleton-post-head"><div class="gc-skeleton gc-skeleton-post-avatar"></div><div class="gc-skeleton-lines"><div class="gc-skeleton gc-skeleton-line wide"></div><div class="gc-skeleton gc-skeleton-line short"></div></div></div>
+      <div class="gc-skeleton gc-skeleton-post-media" style="height:210px"></div><div class="gc-skeleton-lines"><div class="gc-skeleton gc-skeleton-line" style="width:74%"></div></div><div class="gc-skeleton-actions"><div class="gc-skeleton gc-skeleton-action"></div><div class="gc-skeleton gc-skeleton-action"></div><div class="gc-skeleton gc-skeleton-action"></div></div>
     </div>
 </div>
 
@@ -13293,7 +13349,7 @@ l-137 -640 -193 -3 -193 -2 4 22 c2 13 67 314 144 671 l139 647 192 0 193 0
         </div>
     </div>
     
-    <div id="notifications-list"><div class="empty-feed">No notifications yet</div></div>
+    <div id="notifications-list"></div>
     
     </div>
 
@@ -15508,6 +15564,36 @@ async function ensureWelcomeMessage() {
     return;
 }
 
+function gcSkeletonPostHTML(count){
+  var n = Math.max(1, Math.min(4, Number(count) || 2));
+  var html = '';
+  for(var i=0;i<n;i++){
+    html += '<div class="gc-skeleton-post" aria-hidden="true">' +
+      '<div class="gc-skeleton-post-head"><div class="gc-skeleton gc-skeleton-post-avatar"></div>' +
+      '<div class="gc-skeleton-lines"><div class="gc-skeleton gc-skeleton-line wide"></div><div class="gc-skeleton gc-skeleton-line short"></div></div></div>' +
+      '<div class="gc-skeleton gc-skeleton-post-media"></div>' +
+      '<div class="gc-skeleton-lines"><div class="gc-skeleton gc-skeleton-line" style="width:86%"></div><div class="gc-skeleton gc-skeleton-line" style="width:57%"></div></div>' +
+      '<div class="gc-skeleton-actions"><div class="gc-skeleton gc-skeleton-action"></div><div class="gc-skeleton gc-skeleton-action"></div><div class="gc-skeleton gc-skeleton-action"></div></div>' +
+      '</div>';
+  }
+  return html;
+}
+function gcSkeletonChatListHTML(count){
+  var n=Math.max(3,Math.min(8,Number(count)||5)),html='<div class="gc-skeleton-list" aria-hidden="true">';
+  for(var i=0;i<n;i++) html += '<div class="gc-skeleton-chat"><div class="gc-skeleton gc-skeleton-chat-avatar"></div><div class="gc-skeleton-chat-copy"><div class="gc-skeleton gc-skeleton-chat-name"></div><div class="gc-skeleton gc-skeleton-chat-preview"></div></div><div class="gc-skeleton gc-skeleton-chat-time"></div></div>';
+  return html+'</div>';
+}
+function gcSkeletonNotificationsHTML(count){
+  var n=Math.max(3,Math.min(8,Number(count)||5)),html='';
+  for(var i=0;i<n;i++) html += '<div class="gc-skeleton-notif" aria-hidden="true"><div class="gc-skeleton gc-skeleton-notif-avatar"></div><div class="gc-skeleton-notif-copy"><div class="gc-skeleton gc-skeleton-notif-line"></div><div class="gc-skeleton gc-skeleton-notif-line medium"></div><div class="gc-skeleton gc-skeleton-notif-line short"></div></div></div>';
+  return html;
+}
+function gcSkeletonProfileGridHTML(count){
+  var n=Math.max(6,Math.min(12,Number(count)||9)),html='<div class="gc-skeleton-grid" aria-hidden="true">';
+  for(var i=0;i<n;i++) html+='<div class="gc-skeleton gc-skeleton-grid-cell"></div>';
+  return html+'</div>';
+}
+
 const SKELETON_HTML = `
 <div class="skeleton-card">
     <div class="skeleton-header">
@@ -16970,6 +17056,8 @@ else{fBadgeDrawer.style.display='none';}
 }
 });
 notifUnsub = db.collection('notifications').where('toUid', '==', user.uid).onSnapshot(async nSnap => {
+    var gcNotifLoadingList = document.getElementById('notifications-list');
+    if (gcNotifLoadingList && !gcNotifLoadingList.querySelector('.notif-item') && !gcNotifLoadingList.querySelector('.gc-skeleton-notif')) gcNotifLoadingList.innerHTML = gcSkeletonNotificationsHTML(5);
     if (!allUsersCache) await fetchAllUsers();
     
     let notifs = [];
@@ -17403,6 +17491,12 @@ function showPage(page) {
     }
 
     if(page === 'messages') loadMessages();
+    if(page === 'notifications') {
+      const notifLoading = document.getElementById('notifications-list');
+      if(notifLoading && !notifLoading.querySelector('.notif-item') && !notifLoading.querySelector('.gc-skeleton-notif')) {
+        notifLoading.innerHTML = gcSkeletonNotificationsHTML(5);
+      }
+    }
     if(page === 'profile') { loadUserUI(); loadMyPosts(); }
     if(page === 'friends') { loadFriendRequests(); loadAllFriends(); }
     
@@ -19760,10 +19854,11 @@ async function viewUserProfile(uid){
     const otherPage = document.getElementById('page-other-profile');
     if(otherPage){
         otherPage.classList.add('open');
+        otherPage.classList.add('gc-loading-profile');
         try {
             otherPage.scrollTop = 0;
             const nameEl = document.getElementById('other-profile-name');
-            if(nameEl) nameEl.textContent = 'Loading…';
+            if(nameEl) nameEl.textContent = '';
             const detailsWrap = document.getElementById('other-profile-details-wrapper');
             if(detailsWrap) detailsWrap.style.display = 'none';
             const chev = document.getElementById('other-pi-chevron');
@@ -19776,7 +19871,9 @@ async function viewUserProfile(uid){
                 const hit = allUsersCache.find(function(u){ return u && u.id === uid; });
                 if (hit && hit.coverPhoto) earlyCover = hit.coverPhoto;
               }
-              if (oHeader) {
+              var otherPostsLoading = document.getElementById('other-user-posts-list');
+            if(otherPostsLoading) otherPostsLoading.innerHTML = gcSkeletonProfileGridHTML(9);
+            if (oHeader) {
                 // Brief loading reserve only when we expect a cover from cache
                 if (earlyCover) oHeader.classList.add('gc-cover-loading');
                 else oHeader.classList.remove('gc-cover-loading');
@@ -19794,12 +19891,27 @@ async function viewUserProfile(uid){
     try {
         doc = await db.collection('users').doc(uid).get();
     } catch(e) {
+        if(reqId === window._gcProfileReq && currentOtherProfileUid === uid){
+          if(otherPage) otherPage.classList.remove('gc-loading-profile');
+          const nameEl=document.getElementById('other-profile-name');
+          if(nameEl) nameEl.textContent='Profile unavailable';
+          const bioEl=document.getElementById('other-profile-bio');
+          if(bioEl) bioEl.textContent='Could not load this profile. Check your connection and try again.';
+          const postsEl=document.getElementById('other-user-posts-list');
+          if(postsEl) postsEl.innerHTML='<div class="empty-feed">Could not load posts. Please try again.</div>';
+        }
         return;
     }
     // Stale response (user opened someone else or closed)
     if(reqId !== window._gcProfileReq || currentOtherProfileUid !== uid) return;
-    if(!doc.exists) return;
+    if(!doc.exists){
+      if(otherPage) otherPage.classList.remove('gc-loading-profile');
+      const nameEl=document.getElementById('other-profile-name'); if(nameEl) nameEl.textContent='Profile not found';
+      const postsEl=document.getElementById('other-user-posts-list'); if(postsEl) postsEl.innerHTML='<div class="empty-feed">This profile is not available.</div>';
+      return;
+    }
     const u = doc.data();
+    if(otherPage) otherPage.classList.remove('gc-loading-profile');
 
     if(typeof gcIsBanned === 'function' && gcIsBanned(uid, u)){
         if(typeof gcShowBanScreen === 'function') gcShowBanScreen(uid, false);
@@ -21283,10 +21395,10 @@ async function loadMessages(){
     const list=document.getElementById('msg-list');
     if(!list)return;
     
-    if(list.innerHTML.trim() === '') {
-      if (!allUsersCache) await fetchAllUsers();
-        list.innerHTML = '<div class="loading" style="padding:20px;text-align:center;"><i class="ph-light ph-arrows-clockwise"></i> Loading...</div>';
+    if(!list.querySelector('.msg-item') && !list.querySelector('.gc-skeleton-chat')) {
+      list.innerHTML = gcSkeletonChatListHTML(5);
     }
+    if (!allUsersCache) await fetchAllUsers();
     
     if(window.chatListUnsub) {
       try { window.chatListUnsub(); } catch(e){}
@@ -21504,7 +21616,7 @@ async function loadMessages(){
 
     function gcOnChatErr(err){
         console.error('chat list query failed', err);
-        if(list && list.querySelector('.loading')){
+        if(list && (list.querySelector('.loading') || list.querySelector('.gc-skeleton-chat'))){
             list.innerHTML = '<div class="empty-feed">Could not load chats. Pull to refresh or re-open Messages.</div>';
         }
     }
@@ -23832,7 +23944,7 @@ window.closeSinglePost = closeSinglePost;
 async function loadOtherUserPosts(uid){
     const list=document.getElementById('other-user-posts-list');
     if(!list)return;
-    list.innerHTML = SKELETON_HTML; // Skeleton Loading Effect
+    list.innerHTML = gcSkeletonProfileGridHTML(9); // Profile-grid skeleton, same shape as loaded media
     try{
         const snap=await db.collection('posts').where('uid','==',uid).get();
         let posts=[];
@@ -24028,7 +24140,7 @@ ${gcDisplayName}
 async function loadMyPosts(){
 const list=document.getElementById('my-posts-list');
 if(!list)return;
-list.innerHTML=gcModernLoader('Loading posts');
+list.innerHTML=gcSkeletonPostHTML(2);
 try{
 const snap=await db.collection('posts').where('uid','==',currentUser.uid).get();
 let mine=[];
