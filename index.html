@@ -12813,9 +12813,33 @@ body:not(.light-mode) .sp-comment-compose button.is-ready{
   0%, 80%, 100%{ opacity: 0.3; transform: scale(0.85); }
   40%{ opacity: 1; transform: scale(1.15); }
 }
+
+
+/* ═══ Offline banner ═══ */
+#gc-offline-banner{
+  display:none;
+  position:fixed;
+  top:0; left:0; right:0;
+  z-index:100200;
+  background:#1a1a2e;
+  color:#fff;
+  text-align:center;
+  font-size:13px;
+  font-weight:600;
+  padding:8px 12px;
+  padding-top:max(8px, env(safe-area-inset-top));
+  box-shadow:0 2px 10px rgba(0,0,0,0.18);
+}
+#gc-offline-banner.show{ display:block; }
+body.light-mode #gc-offline-banner{
+  background:#1a1a2e;
+  color:#fff;
+}
 </style>
 </head>
 <body>
+<div id="gc-offline-banner" role="status" aria-live="polite">You&rsquo;re offline — showing last saved content</div>
+
 <!-- Splash Screen HTML -->
 <div id="splash-screen">
   <div class="splash-brand">
@@ -15646,6 +15670,17 @@ appId:"1:203332487017:web:06af0b8b4b12af89581ff8"
 const auth=firebase.auth();
 const db=firebase.firestore();
 db.settings({ experimentalForceLongPolling: true });
+try {
+  db.enablePersistence({ synchronizeTabs: true }).catch(function(err) {
+    if (err && err.code === 'failed-precondition') {
+      console.warn('Firestore persistence: multiple tabs open');
+    } else if (err && err.code === 'unimplemented') {
+      console.warn('Firestore persistence not available');
+    }
+  });
+} catch (e) {
+  console.warn('Firestore persistence error', e);
+}
 
 // ===== STATE VARIABLES =====
 let currentUser=null,currentUserData=null,currentChatId=null,currentChatOtherUid=null;
@@ -37091,6 +37126,169 @@ window.gcCloseSheetSafe = gcCloseSheetSafe;
       try{ window.gcPauseAllAppVideos(true); }catch(e){}
       return _openShorts.apply(this, arguments);
     };
+  }
+})();
+
+
+// ═══════════════════════════════════════════════════════
+// GoChat · offline layer (shell + last feed/chats/profile)
+// ═══════════════════════════════════════════════════════
+(function(){
+  if (window.__gcOfflineV1) return;
+  window.__gcOfflineV1 = true;
+
+  var FEED_KEY = 'gc_off_feed_html';
+  var FEED_AT = 'gc_off_feed_at';
+  var MSG_KEY = 'gc_off_msg_html';
+  var PROF_KEY = 'gc_off_profile';
+  var MAX_HTML = 1.8e6;
+
+  function isOnline(){
+    try { return navigator.onLine !== false; } catch(e){ return true; }
+  }
+
+  function showBanner(){
+    var el = document.getElementById('gc-offline-banner');
+    if (el) el.classList.add('show');
+    try { document.body.classList.add('gc-is-offline'); } catch(e){}
+  }
+  function hideBanner(){
+    var el = document.getElementById('gc-offline-banner');
+    if (el) el.classList.remove('show');
+    try { document.body.classList.remove('gc-is-offline'); } catch(e){}
+  }
+
+  window.gcUpdateOnlineUI = function(){
+    if (isOnline()) hideBanner();
+    else showBanner();
+  };
+
+  window.addEventListener('online', function(){
+    hideBanner();
+    try { if (typeof loadFeed === 'function') loadFeed(); } catch(e){}
+    try { if (typeof loadMessages === 'function') loadMessages(); } catch(e){}
+  });
+  window.addEventListener('offline', function(){
+    showBanner();
+  });
+
+  window.gcSaveFeedCache = function(){
+    try {
+      var feedList = document.getElementById('feed-list');
+      if (!feedList) return;
+      var html = feedList.innerHTML || '';
+      if (html.length < 80 || html.length > MAX_HTML) return;
+      if (html.indexOf('skeleton') !== -1 && html.indexOf('data-post-id') === -1) return;
+      localStorage.setItem(FEED_KEY, html);
+      localStorage.setItem(FEED_AT, String(Date.now()));
+    } catch(e){}
+  };
+
+  window.gcRestoreFeedCache = function(){
+    try {
+      var feedList = document.getElementById('feed-list');
+      if (!feedList) return false;
+      var html = localStorage.getItem(FEED_KEY);
+      if (!html || html.length < 80) return false;
+      feedList.innerHTML = html;
+      var loadEl = document.getElementById('feed-loading');
+      if (loadEl) loadEl.style.display = 'none';
+      return true;
+    } catch(e){ return false; }
+  };
+
+  window.gcSaveMsgCache = function(){
+    try {
+      var list = document.getElementById('msg-list');
+      if (!list) return;
+      var html = list.innerHTML || '';
+      if (html.length < 40 || html.length > MAX_HTML) return;
+      if (html.indexOf('gc-skeleton') !== -1 && html.indexOf('msg-item') === -1) return;
+      localStorage.setItem(MSG_KEY, html);
+    } catch(e){}
+  };
+
+  window.gcRestoreMsgCache = function(){
+    try {
+      var list = document.getElementById('msg-list');
+      if (!list) return false;
+      var html = localStorage.getItem(MSG_KEY);
+      if (!html || html.length < 40) return false;
+      list.innerHTML = html;
+      return true;
+    } catch(e){ return false; }
+  };
+
+  window.gcSaveProfileCache = function(){
+    try {
+      if (!currentUserData || !currentUser) return;
+      var slim = {
+        uid: currentUser.uid,
+        name: currentUserData.name || '',
+        username: currentUserData.username || '',
+        avatar: currentUserData.avatar || '',
+        bio: currentUserData.bio || '',
+        cover: currentUserData.coverPhoto || currentUserData.cover || '',
+        following: Array.isArray(currentUserData.following) ? currentUserData.following.slice(0, 500) : [],
+        followers: Array.isArray(currentUserData.followers) ? currentUserData.followers.slice(0, 500) : []
+      };
+      localStorage.setItem(PROF_KEY, JSON.stringify(slim));
+    } catch(e){}
+  };
+
+  if (typeof window.loadFeed === 'function' && !window.__gcLoadFeedOfflinePatched) {
+    window.__gcLoadFeedOfflinePatched = true;
+    var _lf = window.loadFeed;
+    window.loadFeed = function(){
+      if (!isOnline()) {
+        showBanner();
+        if (window.gcRestoreFeedCache()) return;
+      }
+      var ret = _lf.apply(this, arguments);
+      setTimeout(function(){ try{ window.gcSaveFeedCache(); }catch(e){} }, 2500);
+      setTimeout(function(){ try{ window.gcSaveFeedCache(); }catch(e){} }, 6000);
+      return ret;
+    };
+  }
+
+  if (typeof window.loadMessages === 'function' && !window.__gcLoadMsgOfflinePatched) {
+    window.__gcLoadMsgOfflinePatched = true;
+    var _lm = window.loadMessages;
+    window.loadMessages = function(){
+      if (!isOnline()) {
+        showBanner();
+        if (window.gcRestoreMsgCache()) return;
+      }
+      var ret = _lm.apply(this, arguments);
+      setTimeout(function(){ try{ window.gcSaveMsgCache(); }catch(e){} }, 2500);
+      setTimeout(function(){ try{ window.gcSaveMsgCache(); }catch(e){} }, 6000);
+      return ret;
+    };
+  }
+
+  setInterval(function(){
+    try {
+      if (typeof currentUserData !== 'undefined' && currentUserData) window.gcSaveProfileCache();
+      if (isOnline()) {
+        window.gcSaveFeedCache();
+        window.gcSaveMsgCache();
+      }
+    } catch(e){}
+  }, 45000);
+
+  document.addEventListener('DOMContentLoaded', function(){
+    window.gcUpdateOnlineUI();
+  });
+  window.gcUpdateOnlineUI();
+
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function(){
+      navigator.serviceWorker.register('/sw.js').then(function(reg){
+        console.log('GoChat SW registered', reg.scope);
+      }).catch(function(err){
+        console.warn('GoChat SW register failed', err);
+      });
+    });
   }
 })();
 
