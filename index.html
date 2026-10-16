@@ -890,11 +890,15 @@ body:not(.light-mode) .stories-wrapper {
 .stories-wrapper::-webkit-scrollbar{display:none;}
 .stories-wrapper > div{
   flex:0 0 auto;
-  width:68px;
-  max-width:68px;
+  width:78px;
+  max-width:78px;
   display:flex;
   flex-direction:column;
   align-items:center;
+}
+.stories-wrapper{
+  gap:10px !important;
+  padding:14px 16px !important;
 }
 
 
@@ -1128,43 +1132,81 @@ body.light-mode .gc-hd-quick-btn{
 #topbar-logo-main{display:flex;align-items:center;gap:2px;justify-content:center;}
 
 
+/* Story strip · rounded rectangle cards (Vibe-style) */
 .story-circle{
-width:68px !important;
-height:68px !important;
-min-width:68px !important;
-min-height:68px !important;
-max-width:68px !important;
-max-height:68px !important;
-border-radius:50% !important;
-padding:3px;
+width:78px !important;
+height:118px !important;
+min-width:78px !important;
+min-height:118px !important;
+max-width:78px !important;
+max-height:118px !important;
+border-radius:18px !important;
+padding:2.5px;
 cursor:pointer;
 flex-shrink:0 !important;
 position:relative;
-overflow:visible;
+overflow:hidden;
 box-sizing:border-box;
-background:var(--gradient);
+background:linear-gradient(135deg,#f97316 0%,#ec4899 45%,#8b5cf6 100%);
 transition:transform 0.2s;
 }
-.story-circle:active{transform:scale(0.95);}
+.story-circle:active{transform:scale(0.96);}
 .story-circle img{
 width:100% !important;
 height:100% !important;
 max-width:100% !important;
 max-height:100% !important;
-border-radius:50% !important;
+border-radius:15.5px !important;
 object-fit:cover !important;
 display:block !important;
-border:3px solid var(--surface);
+border:none !important;
 box-sizing:border-box;
 overflow:hidden;
+background:var(--surface-2);
 }
-.story-circle.seen{background:var(--border);}
+.story-circle.seen{
+background:var(--border);
+}
+.story-circle.seen img{
+opacity:0.92;
+}
 .story-name{
-font-size:11px;text-align:center;
-margin-top:6px;color:var(--text);
-font-weight:600;
+position:absolute;
+left:0;right:0;bottom:0;
+z-index:2;
+padding:28px 6px 8px;
+font-size:11px;
+text-align:center;
+color:#fff;
+font-weight:700;
 white-space:nowrap;overflow:hidden;
-text-overflow:ellipsis;max-width:68px;
+text-overflow:ellipsis;
+max-width:100%;
+pointer-events:none;
+background:linear-gradient(transparent, rgba(0,0,0,0.72));
+border-radius:0 0 15.5px 15.5px;
+text-shadow:0 1px 2px rgba(0,0,0,0.35);
+}
+/* Create story card: soft surface, no rainbow ring */
+.story-circle.gc-story-create{
+background:var(--surface-2);
+border:1px solid var(--border);
+padding:0;
+}
+.story-circle.gc-story-create img{
+border-radius:18px !important;
+opacity:0.95;
+}
+.story-circle.gc-story-create .story-name{
+background:linear-gradient(transparent, rgba(0,0,0,0.65));
+border-radius:0 0 18px 18px;
+}
+body.light-mode .story-circle.gc-story-create{
+background:#eef1f5;
+border-color:rgba(0,0,0,0.06);
+}
+body.light-mode .story-circle.gc-story-create .story-name{
+color:#fff;
 }
 .story-viewer-modal{
 display:none;position:fixed;inset:0;
@@ -1286,29 +1328,31 @@ width:100%;max-height:85vh;object-fit:contain;
 }
 .sv-reply-send:active { transform: scale(0.92); background: var(--accent); }
 
-/* Pending story upload ring on stories bar */
+/* Pending story upload on stories bar */
 .story-circle.gc-story-pending {
     position: relative;
+    background: var(--border);
 }
 .story-circle.gc-story-pending::after {
     content: '';
     position: absolute;
-    inset: -3px;
-    border-radius: 50%;
-    border: 3px solid transparent;
+    inset: 0;
+    border-radius: 18px;
+    border: 2.5px solid transparent;
     border-top-color: var(--accent);
     border-right-color: var(--accent);
     animation: gcStorySpin 0.9s linear infinite;
     pointer-events: none;
+    z-index: 3;
 }
 @keyframes gcStorySpin { to { transform: rotate(360deg); } }
 .gc-story-pending-pct {
     position: absolute;
     inset: 0;
-    border-radius: 50%;
-    background: rgba(0,0,0,0.45);
+    border-radius: 15.5px;
+    background: rgba(0,0,0,0.48);
     color: #fff;
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 800;
     display: flex;
     align-items: center;
@@ -9350,7 +9394,7 @@ body.light-mode .nav-item.active > svg.nav-svg-icon {
 
 
 /* =========================================
-/* 🚀 Facebook Style Create Story Card */
+/* Create story card (legacy fb-* kept for compatibility) */
 ========================================= */
 .fb-create-story-card {
     width: 82px;
@@ -9406,14 +9450,15 @@ body:not(.light-mode) .fb-create-story-card {
 }
 .gc-story-create-plus {
     top: auto;
-    bottom: 0;
-    right: -2px;
+    bottom: 34px;
+    right: 6px;
     left: auto;
     transform: none;
-    width: 24px;
-    height: 24px;
-    border: 3px solid var(--bg);
-    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    width: 26px;
+    height: 26px;
+    border: 2.5px solid var(--bg);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+    z-index: 3;
 }
 body:not(.light-mode) .fb-create-story-plus,
 body:not(.light-mode) .gc-story-create-plus {
@@ -18393,81 +18438,79 @@ function loadStories(){
         });
         
                 let html='';
-        let userIdsOrder = []; // সিরিয়াল সেভ করার জন্য
+        let userIdsOrder = [];
         
-                // 🚀 সবার প্রথমে গোল ডিজাইনের Create Story বাটন
+                // Create story card
         const myNameForAv = (currentUserData && currentUserData.name) ? currentUserData.name : 'User';
         const myAvForCard = (currentUserData && currentUserData.avatar) ? currentUserData.avatar : 'https://via.placeholder.com/150/7c5cff/FFFFFF?text=' + avatarInitial(myNameForAv);
         
         html += `
         <div>
-            <div class="story-circle" onclick="openStoryCreatorModal()" style="background: transparent; cursor: pointer;">
-                <img src="${myAvForCard}" style="border: 2px solid var(--surface-2); opacity: 0.9;">
+            <div class="story-circle gc-story-create" onclick="openStoryCreatorModal()" style="cursor:pointer;">
+                <img src="${myAvForCard}" alt="">
                 <div class="gc-story-create-plus">
-                    <i class="ph-light ph-plus" style="font-size: 14px;"></i>
+                    <i class="ph-light ph-plus" style="font-size:14px;"></i>
                 </div>
+                <div class="story-name">Create story</div>
             </div>
-            <div class="story-name">Create story</div>
         </div>`;
         
-        // ১. নিজের স্টোরি থাকলে সেটা কার্ডের ঠিক পরেই দেখাবে
+        // Own story next to create
         if(grouped[currentUser.uid]){
             const av=currentUserData.avatar||'https://via.placeholder.com/150/7c5cff/FFFFFF?text='+avatarInitial(currentUserData.name);
             html+=`<div>
             <div class="story-circle" onclick="playStories('${currentUser.uid}')">
-            <img src="${av}">
-            </div>
+            <img src="${av}" alt="">
             <div class="story-name">Your Story</div>
+            </div>
             </div>`;
             userIdsOrder.push(currentUser.uid);
             delete grouped[currentUser.uid];
         }
         
-        // ২. অন্যদের স্টোরিগুলোকে 'seen' এবং 'unseen' এ ভাগ করা
+        // Split others into unseen / seen
         let unseenUsers = [];
         let seenUsers = [];
         
         for(let uid in grouped){
-        // 🚀 ম্যাজিক আপডেট: যাদেরকে ফলো করা নেই তাদের স্টোরি হাইড করা
             if (uid !== currentUser.uid) {
                 const isFollowing = currentUserData.following && currentUserData.following.includes(uid);
-                if (!isFollowing) continue; // ফলো করা না থাকলে স্টোরি স্কিপ করে যাবে
+                if (!isFollowing) continue;
             }
             // চেক করা হচ্ছে এই ইউজারের সব স্টোরি দেখা হয়ে গেছে কিনা
             const allSeen = grouped[uid].every(s => s.views && s.views.includes(currentUser.uid));
             
             if(allSeen) {
-                seenUsers.push(uid); // দেখা হয়ে গেলে seen লিস্টে
+                seenUsers.push(uid);
             } else {
-                unseenUsers.push(uid); // না দেখা থাকলে unseen লিস্টে
+                unseenUsers.push(uid);
             }
         }
         
-        // ৩. আগে unseen (না দেখা) স্টোরিগুলো রেন্ডার করা (রঙিন রিং সহ)
+        // Unseen stories first
         unseenUsers.forEach(uid => {
             const uName=grouped[uid][0].name;
             const safeUName=escapeHTML(uName);
             const uAv=grouped[uid][0].avatar||'https://via.placeholder.com/150/7c5cff/FFFFFF?text='+avatarInitial(uName);
             html+=`<div>
             <div class="story-circle" onclick="playStories('${uid}')">
-            <img src="${uAv}">
-            </div>
+            <img src="${uAv}" alt="">
             <div class="story-name">${safeUName}</div>
+            </div>
             </div>`;
             userIdsOrder.push(uid);
         });
 
-        // ৪. এরপর seen (দেখা) স্টোরিগুলো রেন্ডার করা (গ্রে রিং সহ, একদম শেষে)
+        // Seen stories last
         seenUsers.forEach(uid => {
             const uName=grouped[uid][0].name;
             const safeUName=escapeHTML(uName);
             const uAv=grouped[uid][0].avatar||'https://via.placeholder.com/150/7c5cff/FFFFFF?text='+avatarInitial(uName);
-            // .seen ক্লাস যোগ করা হয়েছে যাতে রিংয়ের রঙ ম্লান হয়ে যায়
             html+=`<div>
             <div class="story-circle seen" onclick="playStories('${uid}')">
-            <img src="${uAv}">
+            <img src="${uAv}" alt="">
+            <div class="story-name">${safeUName}</div>
             </div>
-            <div class="story-name" style="color:var(--text-muted);">${safeUName}</div>
             </div>`;
             userIdsOrder.push(uid);
         });
@@ -19156,10 +19199,10 @@ function gcPaintStoryPendingInList(){
     item.id = 'gc-story-pending-item';
     item.innerHTML =
       '<div class="story-circle gc-story-pending" id="gc-story-pending-circle">' +
-        (preview ? '<img src="'+preview.replace(/"/g,'&quot;')+'" style="opacity:.85;">' : '<div style="width:100%;height:100%;background:var(--surface-2);border-radius:50%;"></div>') +
+        (preview ? '<img src="'+preview.replace(/"/g,'&quot;')+'" style="opacity:.85;" alt="">' : '<div style="width:100%;height:100%;background:var(--surface-2);border-radius:15.5px;"></div>') +
         '<div class="gc-story-pending-pct" id="gc-story-pending-pct">'+pct+'%</div>' +
-      '</div>' +
-      '<div class="story-name">Uploading…</div>';
+        '<div class="story-name">Uploading…</div>' +
+      '</div>';
     // Insert right after Create story (first child)
     if(list.firstChild && list.firstChild.nextSibling){
       list.insertBefore(item, list.firstChild.nextSibling);
