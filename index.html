@@ -13210,6 +13210,9 @@ l-137 -640 -193 -3 -193 -2 4 22 c2 13 67 314 144 671 l139 647 192 0 193 0
         <div class="topbar-btn" id="gc-chat-filter-btn" onclick="event.stopPropagation(); if(typeof gcToggleFilterMenu==='function') gcToggleFilterMenu();" title="Filter" aria-label="Filter">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="20" height="20" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16" style="width:20px;height:20px;display:block;"><line x1="64" y1="136" x2="192" y2="136"/><line x1="24" y1="88" x2="232" y2="88"/><line x1="104" y1="184" x2="152" y2="184"/></svg>
         </div>
+        <div class="topbar-btn" id="topbar-group-btn" onclick="event.stopPropagation(); if(typeof openCreateGroupModal==='function') openCreateGroupModal();" title="New group" aria-label="New group">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true" style="width:20px;height:20px;display:block;"><g fill="currentColor" fill-rule="evenodd" clip-rule="evenodd"><path d="M2 6.857A4.857 4.857 0 0 1 6.857 2H12a1 1 0 1 1 0 2H6.857A2.857 2.857 0 0 0 4 6.857v10.286A2.857 2.857 0 0 0 6.857 20h10.286A2.857 2.857 0 0 0 20 17.143V12a1 1 0 1 1 2 0v5.143A4.857 4.857 0 0 1 17.143 22H6.857A4.857 4.857 0 0 1 2 17.143z"/><path d="m15.137 13.219l-2.205 1.33l-1.033-1.713l2.205-1.33l.003-.002a1.2 1.2 0 0 0 .232-.182l5.01-5.036a3 3 0 0 0 .145-.157c.331-.386.821-1.15.228-1.746c-.501-.504-1.219-.028-1.684.381a6 6 0 0 0-.36.345l-.034.034l-4.94 4.965a1.2 1.2 0 0 0-.27.41l-.824 2.073a.2.2 0 0 0 .29.245l1.032 1.713c-1.805 1.088-3.96-.74-3.18-2.698l.825-2.072a3.2 3.2 0 0 1 .71-1.081l4.939-4.966l.029-.029c.147-.15.641-.656 1.24-1.02c.327-.197.849-.458 1.494-.508c.74-.059 1.53.174 2.15.797a2.9 2.9 0 0 1 .845 1.75a3.15 3.15 0 0 1-.23 1.517c-.29.717-.774 1.244-.987 1.457l-5.01 5.036q-.28.281-.62.487m4.453-7.126s-.004.003-.013.006z"/></g></svg>
+        </div>
         <div class="topbar-btn" id="topbar-chat-settings-btn" onclick="event.stopPropagation(); gcToggleMsgMoreMenu(event);" title="More" aria-label="More">
             <svg class="gc-dots-ico" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" style="width:20px;height:20px;display:block;flex-shrink:0;"><circle cx="128" cy="128" r="12"/><circle cx="196" cy="128" r="12"/><circle cx="60" cy="128" r="12"/></svg>
         </div>
@@ -14965,6 +14968,71 @@ l-137 -640 -193 -3 -193 -2 4 22 c2 13 67 314 144 671 l139 647 192 0 193 0
 
         <div style="text-align:center; margin-top:24px; color:var(--text-muted); font-size:12px; line-height:1.6;">Thank you for using GoChat.</div>
     </div>
+</div>
+
+
+<!-- ═══ FEATURE: group-chat · create + info sheets · 2026-10-17 ═══ -->
+<div class="modal-overlay" id="create-group-modal" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:10006;justify-content:flex-start;align-items:stretch;">
+  <div style="background:var(--bg);width:100%;max-width:100%;height:100%;display:flex;flex-direction:column;">
+    <div class="chat-topbar" style="padding:15px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:15px;">
+      <div class="chat-back" onclick="closeCreateGroupModal()"><i class="ph-light ph-arrow-left"></i></div>
+      <div style="font-weight:800;font-size:18px;">New Group</div>
+    </div>
+    <div style="padding:20px;display:flex;flex-direction:column;gap:15px;flex:1;overflow:hidden;">
+      <input type="text" id="group-name-input" placeholder="Group name" style="padding:12px;border:1px solid var(--border);border-radius:12px;font-size:16px;background:var(--surface);color:var(--text);">
+      <div style="font-weight:700;font-size:14px;color:var(--text-secondary);">Add from Inbox</div>
+      <div id="group-friends-list" style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:8px;"></div>
+      <button type="button" class="btn-primary gc-create-group-btn" onclick="createGroupAction()" style="padding:14px;border-radius:14px;font-weight:800;font-size:16px;margin-top:8px;">Create Group</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="group-info-modal" style="z-index:10005;">
+  <div class="modal-box" style="display:flex;flex-direction:column;max-height:85vh;padding:0;">
+    <div class="chat-topbar" style="padding:16px 20px;">
+      <div class="chat-back" onclick="closeGroupInfoModal()"><i class="ph-light ph-arrow-left"></i></div>
+      <div class="chat-name" style="font-weight:800;font-size:18px;">Group Info</div>
+    </div>
+    <div style="padding:20px 20px 0;text-align:center;">
+      <div style="position:relative;display:inline-block;">
+        <div class="avatar xl" id="group-info-avatar" style="width:80px;height:80px;margin:0 auto;border:3px solid var(--bg);box-shadow:var(--shadow-sm);">?</div>
+        <label for="group-avatar-upload" id="group-avatar-edit-btn" style="display:none;position:absolute;bottom:0;right:0;background:var(--gradient);width:28px;height:28px;border-radius:50%;align-items:center;justify-content:center;color:white;cursor:pointer;border:2px solid var(--bg);">
+          <i class="ph-light ph-pencil-simple"></i>
+        </label>
+        <input type="file" id="group-avatar-upload" accept="image/*" style="display:none;" onchange="updateGroupAvatar(this)">
+      </div>
+      <div style="display:flex;justify-content:center;align-items:center;gap:8px;margin-top:12px;">
+        <div id="group-info-name" style="font-size:20px;font-weight:800;color:var(--text);">Group Name</div>
+        <i class="ph-light ph-pencil-simple" id="group-name-edit-btn" onclick="editGroupName()" style="cursor:pointer;"></i>
+      </div>
+      <div style="display:flex;gap:10px;justify-content:center;margin-top:16px;border-bottom:1px solid var(--border);padding-bottom:20px;">
+        <button type="button" class="btn-outline" style="padding:8px 16px;font-size:13px;border-radius:20px;" onclick="toggleGroupMedia()">
+          <i class="ph-light ph-image"></i> Shared Media
+        </button>
+      </div>
+    </div>
+    <div id="group-shared-media" style="display:none;padding:15px;border-bottom:1px solid var(--border);background:var(--surface-2);">
+      <div style="font-size:13px;font-weight:700;color:var(--text-muted);margin-bottom:10px;">Shared Media</div>
+      <div id="group-media-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;max-height:200px;overflow-y:auto;"></div>
+    </div>
+    <div style="padding:20px;overflow-y:auto;flex:1;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;">
+        <h4 style="color:var(--text);margin:0;">Members (<span id="group-member-count">0</span>)</h4>
+        <button type="button" class="btn-outline" style="padding:6px 12px;font-size:12px;margin:0;" onclick="openAddGroupMemberUI()">
+          <i class="ph-light ph-user-plus"></i> Add
+        </button>
+      </div>
+      <div id="add-group-member-ui" style="display:none;background:var(--surface-2);padding:12px;border-radius:12px;margin-bottom:15px;border:1px solid var(--border);">
+        <div style="font-size:13px;font-weight:700;color:var(--text-muted);margin-bottom:10px;">Select from Inbox:</div>
+        <div id="add-group-member-list" style="max-height:180px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;margin-bottom:10px;"></div>
+        <button type="button" class="btn-primary" style="padding:10px;font-size:13px;margin:0;" onclick="confirmAddGroupMembers()">Add Selected</button>
+      </div>
+      <div id="group-member-list" style="display:flex;flex-direction:column;gap:10px;"></div>
+      <button type="button" class="btn-outline" style="width:100%;margin-top:25px;border-color:var(--danger);color:var(--danger);background:rgba(255,77,106,0.05);" onclick="leaveCurrentGroup()">
+        <i class="ph-light ph-sign-out"></i> Leave Group
+      </button>
+    </div>
+  </div>
 </div>
 
 <div class="modal-overlay" id="following-privacy-modal" style="z-index:100210; align-items:flex-end; justify-content:center;" onclick="if(event.target===this) closeFollowingPrivacy()">
@@ -21361,7 +21429,7 @@ async function loadMessages(){
             }
             if (!isMyChat) return;
 
-            if (false && data.isGroup && !archivedChats.includes(chatId)) {
+            if (data.isGroup && !archivedChats.includes(chatId)) {
                 chats.push({
                     id: chatId, otherUid: 'group', otherName: data.groupName || 'Group', otherAv: 'group_icon', data: data, isGroup: true,
                     isPinned: pinnedChats.includes(chatId), isMuted: mutedChats.includes(chatId)
@@ -24861,18 +24929,155 @@ function togglePasswordVisibility() {
         eyeIcon.className = 'ph-light ph-eye-closed'; // স্বাভাবিক চোখ হয়ে যাবে
     }
 }
-// ===== GROUP CHAT LOGIC (STEP 2: Create & Load Friends) =====
+// ═══ FEATURE: group-chat · create from Inbox chat-list contacts · 2026-10-17 ═══
 let selectedGroupFriends = [];
 
-async function openCreateGroupModal(){ return; }
+async function openCreateGroupModal() {
+    var modal = document.getElementById('create-group-modal');
+    if (!modal) { if (typeof showToast === 'function') showToast('Group UI missing'); return; }
+    modal.style.display = 'flex';
+    selectedGroupFriends = [];
+    var nameEl = document.getElementById('group-name-input');
+    if (nameEl) nameEl.value = '';
+    await loadFriendsForGroup();
+}
 
-function closeCreateGroupModal(){ return; }
+function closeCreateGroupModal() {
+    var modal = document.getElementById('create-group-modal');
+    if (modal) modal.style.display = 'none';
+}
 
-async function loadFriendsForGroup(){ return; }
+/** Contacts already in the user's Inbox (1:1 chats only). */
+async function gcGetInboxContacts() {
+    var map = {};
+    try {
+        document.querySelectorAll('#msg-list .msg-item[data-other-uid]').forEach(function(el) {
+            var uid = el.getAttribute('data-other-uid');
+            if (!uid || uid === 'group') return;
+            var nameEl = el.querySelector('.msg-name');
+            var name = (nameEl && nameEl.textContent) ? nameEl.textContent.trim() : 'User';
+            var img = el.querySelector('.avatar img');
+            map[uid] = { uid: uid, name: name, avatar: img ? img.src : '' };
+        });
+    } catch (e) {}
+    try {
+        if (!currentUser) return Object.keys(map).map(function(k){ return map[k]; });
+        var snap = await db.collection('chats').get();
+        snap.forEach(function(doc) {
+            var id = doc.id;
+            var data = doc.data() || {};
+            if (data.isGroup) return;
+            var parts = id.split('_');
+            if (parts.length !== 2) return;
+            if (parts[0] !== currentUser.uid && parts[1] !== currentUser.uid) return;
+            var otherUid = parts[0] === currentUser.uid ? parts[1] : parts[0];
+            if (map[otherUid]) return;
+            var name = (data.names && data.names[otherUid]) ? data.names[otherUid] : 'User';
+            var av = (data.avatars && data.avatars[otherUid]) ? data.avatars[otherUid] : '';
+            map[otherUid] = { uid: otherUid, name: name, avatar: av };
+        });
+    } catch (e) {}
+    try {
+        if (typeof allUsersCache !== 'undefined' && allUsersCache) {
+            Object.keys(map).forEach(function(uid) {
+                var u = allUsersCache.find(function(x){ return x.id === uid; });
+                if (u) {
+                    if (u.name) map[uid].name = u.name;
+                    if (u.avatar) map[uid].avatar = u.avatar;
+                }
+            });
+        }
+    } catch (e) {}
+    return Object.keys(map).map(function(k){ return map[k]; });
+}
 
-function toggleGroupFriend(uid, element){ return; }
+async function loadFriendsForGroup() {
+    var list = document.getElementById('group-friends-list');
+    if (!list) return;
+    list.innerHTML = (typeof gcModernLoader === 'function') ? gcModernLoader('Loading contacts', 'list') : '<div style="text-align:center;padding:16px;color:var(--text-muted);">Loading…</div>';
+    try {
+        var contacts = await gcGetInboxContacts();
+        if (!contacts.length) {
+            list.innerHTML = '<div style="text-align:center;color:var(--text-muted);font-size:13px;margin-top:20px;">No chat contacts yet. Message someone first, then add them to a group.</div>';
+            return;
+        }
+        var html = '';
+        contacts.forEach(function(c) {
+            var safeName = (typeof escapeHTML === 'function') ? escapeHTML(c.name) : c.name;
+            var avHtml = c.avatar
+                ? '<img src="' + c.avatar + '" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">'
+                : '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:var(--gradient);color:#fff;font-weight:bold;">' + (safeName[0] || '?').toUpperCase() + '</div>';
+            html += '<div class="msg-item" onclick="toggleGroupFriend(\'' + c.uid + '\', this)" style="margin:0;padding:10px;cursor:pointer;border-radius:8px;">'
+                + '<div class="avatar sm">' + avHtml + '</div>'
+                + '<div class="msg-info" style="margin-left:10px;">' + safeName + '</div>'
+                + '<input type="checkbox" value="' + c.uid + '" style="pointer-events:none;width:18px;height:18px;accent-color:var(--accent);">'
+                + '</div>';
+        });
+        list.innerHTML = html;
+    } catch (err) {
+        console.error(err);
+        list.innerHTML = '<div style="text-align:center;color:var(--danger);font-size:13px;">Failed to load contacts.</div>';
+    }
+}
 
-async function createGroupAction(){ return; }
+function toggleGroupFriend(uid, element) {
+    var checkbox = element.querySelector('input[type="checkbox"]');
+    if (selectedGroupFriends.indexOf(uid) !== -1) {
+        selectedGroupFriends = selectedGroupFriends.filter(function(id){ return id !== uid; });
+        if (checkbox) checkbox.checked = false;
+    } else {
+        selectedGroupFriends.push(uid);
+        if (checkbox) checkbox.checked = true;
+    }
+}
+
+async function createGroupAction() {
+    var nameEl = document.getElementById('group-name-input');
+    var groupName = nameEl ? nameEl.value.trim() : '';
+    if (!groupName) { showToast('Please enter a group name'); return; }
+    if (!selectedGroupFriends.length) { showToast('Select at least one contact'); return; }
+    var btn = document.querySelector('#create-group-modal .gc-create-group-btn');
+    var originalText = btn ? btn.textContent : '';
+    if (btn) { btn.textContent = 'Creating…'; btn.disabled = true; }
+    try {
+        var groupId = 'group_' + Date.now();
+        var members = [currentUser.uid].concat(selectedGroupFriends);
+        var names = {};
+        var avatars = {};
+        names[currentUser.uid] = (currentUserData && currentUserData.name) || 'User';
+        avatars[currentUser.uid] = (currentUserData && currentUserData.avatar) || '';
+        if (typeof allUsersCache !== 'undefined' && allUsersCache) {
+            selectedGroupFriends.forEach(function(uid) {
+                var u = allUsersCache.find(function(x){ return x.id === uid; });
+                if (u) {
+                    names[uid] = u.name || 'User';
+                    avatars[uid] = u.avatar || '';
+                }
+            });
+        }
+        await db.collection('chats').doc(groupId).set({
+            isGroup: true,
+            groupName: groupName,
+            admin: currentUser.uid,
+            admins: [currentUser.uid],
+            members: members,
+            names: names,
+            avatars: avatars,
+            lastMsg: 'Group created',
+            lastAt: firebase.firestore.FieldValue.serverTimestamp(),
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        showToast('Group created');
+        closeCreateGroupModal();
+        if (typeof loadMessages === 'function') loadMessages();
+        if (typeof openChat === 'function') openChat(groupId, 'group', groupName, '');
+    } catch (error) {
+        console.error(error);
+        showToast('Failed to create group');
+    } finally {
+        if (btn) { btn.textContent = originalText || 'Create Group'; btn.disabled = false; }
+    }
+}
 
 // ===== MESSAGE SELECTION, SWIPE TO REPLY & DELETE LOGIC =====
 let selectedMsgIds = [];
@@ -27288,9 +27493,22 @@ let activeGroupData = null;
 let activeGroupId = null;
 let newMembersToGroup = [];
 
-async function openGroupInfoModal(groupId){ return; }
+async function openGroupInfoModal(groupId) {
+    activeGroupId = groupId;
+    var modal = document.getElementById('group-info-modal');
+    if (!modal) { if (typeof showToast === 'function') showToast('Group info UI missing'); return; }
+    modal.classList.add('open');
+    var addUi = document.getElementById('add-group-member-ui');
+    if (addUi) addUi.style.display = 'none';
+    await loadGroupMembers();
+}
 
-function closeGroupInfoModal(){ return; }
+function closeGroupInfoModal() {
+    var modal = document.getElementById('group-info-modal');
+    if (modal) modal.classList.remove('open');
+    activeGroupId = null;
+    activeGroupData = null;
+}
 
 async function loadGroupMembers() {
     const list = document.getElementById('group-member-list');
@@ -27373,40 +27591,50 @@ async function removeGroupMember(uid, name) {
     } catch(e) { showToast("Error removing member"); }
 }
 
-async function leaveCurrentGroup(){ return; }
-
-async function openAddGroupMemberUI() {
-    const ui = document.getElementById('add-group-member-ui');
-    const list = document.getElementById('add-group-member-list');
-    ui.style.display = 'block';
-    newMembersToGroup = [];
-    
-    const friends = currentUserData.friends || [];
-    const currentMembers = activeGroupData.members || [];
-    
-    // যারা অলরেডি গ্রুপে আছে তাদের বাদ দিয়ে ফ্রেন্ড লিস্ট বানানো
-    const availableFriends = friends.filter(fId => !currentMembers.includes(fId));
-    
-    if(availableFriends.length === 0) {
-        list.innerHTML = '<div style="font-size:13px; color:var(--danger); text-align:center; padding: 10px;">No new friends available to add.</div>';
+async function leaveCurrentGroup() {
+    if (typeof gcOpenConfirm === 'function' && !window.__gcConfirmForceYes) {
+        gcOpenConfirm({ title: 'Leave Group?', text: 'You will lose access to all messages.', icon: 'ph-light ph-sign-out', yesLabel: 'Leave', onYes: function(){ window.__gcConfirmForceYes = true; leaveCurrentGroup(); setTimeout(function(){ window.__gcConfirmForceYes = false; }, 800); } });
         return;
     }
-    
-    list.innerHTML = '<div class="loading"><i class="ph-light ph-arrows-clockwise"></i> Loading friends...</div>';
-    if(!allUsersCache) await fetchAllUsers();
-    
-    let html = '';
-    availableFriends.forEach(uid => {
-        const u = allUsersCache.find(user => user.id === uid) || { name: 'Unknown User', avatar: '' };
-        const safeName = escapeHTML(u.name);
-        const avHtml = u.avatar ? `<img src="${u.avatar}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">` : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:var(--gradient);color:#fff;font-weight:bold;">${safeName[0].toUpperCase()}</div>`;
-        
-        html += `
-        <div class="msg-item" onclick="toggleNewGroupMember('${uid}', this)" style="margin: 0; padding: 10px; cursor: pointer; border-radius: 8px;">
-            <div class="avatar sm" style="width:36px; height:36px;">${avHtml}</div>
-            <div class="msg-info" style="margin-left:12px; font-size:14px; font-weight:bold;">${safeName}</div>
-            <input type="checkbox" value="${uid}" style="pointer-events:none; width:18px; height:18px; accent-color: var(--accent);">
-        </div>`;
+    try {
+        var safeName = (currentUserData && currentUserData.name) || 'A member';
+        await db.collection('chats').doc(activeGroupId).update({
+            members: firebase.firestore.FieldValue.arrayRemove(currentUser.uid),
+            lastMsg: safeName + ' left the group',
+            lastAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        showToast('You left the group');
+        closeGroupInfoModal();
+        if (typeof closeChat === 'function') closeChat();
+        if (typeof loadMessages === 'function') loadMessages();
+    } catch (e) { showToast('Error leaving group'); }
+}
+
+async function openAddGroupMemberUI() {
+    var ui = document.getElementById('add-group-member-ui');
+    var list = document.getElementById('add-group-member-list');
+    if (!ui || !list) return;
+    ui.style.display = 'block';
+    newMembersToGroup = [];
+    var currentMembers = (activeGroupData && activeGroupData.members) || [];
+    list.innerHTML = '<div class="loading"><i class="ph-light ph-arrows-clockwise"></i> Loading…</div>';
+    var contacts = await gcGetInboxContacts();
+    var available = contacts.filter(function(c){ return currentMembers.indexOf(c.uid) === -1; });
+    if (!available.length) {
+        list.innerHTML = '<div style="font-size:13px;color:var(--text-muted);text-align:center;padding:10px;">No more Inbox contacts to add.</div>';
+        return;
+    }
+    var html = '';
+    available.forEach(function(c) {
+        var safeName = (typeof escapeHTML === 'function') ? escapeHTML(c.name) : c.name;
+        var avHtml = c.avatar
+            ? '<img src="' + c.avatar + '" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">'
+            : '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:var(--gradient);color:#fff;font-weight:bold;">' + (safeName[0] || '?').toUpperCase() + '</div>';
+        html += '<div class="msg-item" onclick="toggleNewGroupMember(\'' + c.uid + '\', this)" style="margin:0;padding:10px;cursor:pointer;border-radius:8px;">'
+            + '<div class="avatar sm" style="width:36px;height:36px;">' + avHtml + '</div>'
+            + '<div class="msg-info" style="margin-left:12px;font-size:14px;font-weight:bold;">' + safeName + '</div>'
+            + '<input type="checkbox" value="' + c.uid + '" style="pointer-events:none;width:18px;height:18px;accent-color:var(--accent);">'
+            + '</div>';
     });
     list.innerHTML = html;
 }
@@ -27422,7 +27650,24 @@ function toggleNewGroupMember(uid, element) {
     }
 }
 
-async function confirmAddGroupMembers(){ return; }
+async function confirmAddGroupMembers() {
+    if (!newMembersToGroup.length) { showToast('Select at least one contact'); return; }
+    var btn = document.querySelector('#add-group-member-ui button');
+    var originalText = btn ? btn.textContent : '';
+    if (btn) { btn.textContent = 'Adding…'; btn.disabled = true; }
+    try {
+        await db.collection('chats').doc(activeGroupId).update({
+            members: firebase.firestore.FieldValue.arrayUnion.apply(null, newMembersToGroup),
+            lastMsg: ((currentUserData && currentUserData.name) || 'Someone') + ' added new members',
+            lastAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        showToast('Members added');
+        var ui = document.getElementById('add-group-member-ui');
+        if (ui) ui.style.display = 'none';
+        loadGroupMembers();
+    } catch (e) { showToast('Failed to add members'); }
+    finally { if (btn) { btn.textContent = originalText || 'Add Selected'; btn.disabled = false; } }
+}
 
 
 // ==========================================
@@ -27430,7 +27675,24 @@ async function confirmAddGroupMembers(){ return; }
 // ( নতুন গ্রুপ মেসেজ সিস্টেম। )
 // ==========================================
 
-async function updateGroupAvatar(input){ return; }
+async function updateGroupAvatar(input) {
+    if (!input.files || !input.files[0] || !activeGroupId) return;
+    try {
+        showToast('Uploading…');
+        var file = input.files[0];
+        var fd = new FormData();
+        fd.append('file', file);
+        fd.append('upload_preset', 'gochat_unsigned');
+        var res = await fetch('https://api.cloudinary.com/v1_1/dtz0urit6/image/upload', { method: 'POST', body: fd });
+        var data = await res.json();
+        if (!data.secure_url) throw new Error('upload failed');
+        await db.collection('chats').doc(activeGroupId).update({ groupAvatar: data.secure_url });
+        if (activeGroupData) activeGroupData.groupAvatar = data.secure_url;
+        var av = document.getElementById('group-info-avatar');
+        if (av) av.innerHTML = '<img src="' + data.secure_url + '" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">';
+        showToast('Group photo updated');
+    } catch (e) { showToast('Avatar update failed'); }
+}
 
 async function editGroupName() {
     const newName = prompt("Enter new group name:", activeGroupData.groupName);
@@ -30115,6 +30377,8 @@ function exportCurrentChat() {
 // 🚀 NEW FEATURE  ·  quick-reply-templates  ·  2026-08-02
 // Quick Reply Templates (localStorage-ভিত্তিক)
 // খুঁজতে:  Ctrl+F → "quick-reply-templates" / নতুন কুইক রিপ্লাই সিস্টেম।  
+
+
 // ══════════════════════════════════════════════════════
 const QR_STORAGE_KEY = 'gochat_quick_replies';
 let qrEditIndex = null;
@@ -30446,6 +30710,8 @@ function qrAddToSettings(){
 // 🚀 NEW DESIGN · threads-bottom-sheet · 2026-08-06 (Update #5)
 // Threads স্টাইল বটম-শিট মেনু সিস্টেম (ফাইনাল প্যাকেজ)
 // খুঁজতে: Ctrl+F → "threads-bottom-sheet"
+
+
 // ═══════════════════════════════════════════════════════
 let gcSheetActions = [];
 function gcBuildSheet(groups){
@@ -30553,6 +30819,8 @@ document.addEventListener('keydown', function(e){ if(e.key === 'Escape') gcClose
 // ═══════════════════════════════════════════════════════
 // 🚀 FEATURE: profile · more menu (own 3-dot + other view photo/cover)
 // খুঁজতে: Ctrl+F → "gcOpenMyProfileMore"
+
+
 // ═══════════════════════════════════════════════════════
 function gcOpenMyProfileMore(){
   try{
@@ -30916,6 +31184,8 @@ window.shareZoomedImage = shareZoomedImage;
 // 🚀 NEW FEATURE · unfollow-confirm · 2026-08-06 (Update #6)
 // নতুন আনফলো কনফার্মেশন পপআপ
 // খুঁজতে: Ctrl+F → "unfollow-confirm"
+
+
 // ═══════════════════════════════════════════════════════
 let gcUnfollowTarget = null;
 window.gcOriginalToggleFollow = toggleFollow;
@@ -30984,6 +31254,8 @@ if(uid && window.gcOriginalToggleFollow) window.gcOriginalToggleFollow(uid);
 // 🚀 NEW FEATURE · chat-filter · 2026-08-06 (Update #11)
 // Chats পেজে নতুন All/Unread ফিল্টার
 // খুঁজতে: Ctrl+F → "chat-filter"
+
+
 // ═══════════════════════════════════════════════════════
 let gcChatFilter = 'all';
 // 🚀 Update #13 · filter-btn-size-fix: গ্রুপ বাটনের হুবহু কপি → সাইজ ও গ্যাপ একদম সেম
@@ -31072,6 +31344,8 @@ gcSyncFilterBtn();
 
 // ═══════════════════════════════════════════════════════
 // 🚀 NEW DESIGN · চ্যাট পেজের টপ বারের নতুন ডিজাইন
+
+
 // ═══════════════════════════════════════════════════════
 (function(){
 const menu = document.getElementById('chat-delete-menu');
@@ -31088,7 +31362,10 @@ window.gcChatTopObs.observe(menu, {attributes:true, attributeFilter:['style']});
 
 // ═══════════════════════════════════════════════════════
 // 🚀 NEW FEATURE · posted-snackbar · 2026-08-07 (Update #24)
+// Threads স্টাইল Posted স্ন্যাকবার + View বাটন
 // খুঁজতে: Ctrl+F → "posted-snackbar"
+
+
 // ═══════════════════════════════════════════════════════
 let gcPostedTimer = null;
 function gcShowPostedBar(){
@@ -31135,6 +31412,8 @@ return window.gcOrigShowToast.apply(this, arguments);
 // 🚀 NEW FEATURE · video-post · 2026-08-07 (Update #27)
 // ৬০ সেকেন্ডের ভিডিও পোস্ট সাপোর্ট (পুরনো সিস্টেমেই)
 // খুঁজতে: Ctrl+F → "video-post"
+
+
 // ═══════════════════════════════════════════════════════
 // ১) আপলোড ফাংশনে অটো-ভিডিও ডিটেকশন (স্টোরি/অ্যাভাটার অক্ষত)
 if(!window.gcVideoUploadWrapped){
@@ -31236,7 +31515,7 @@ requestAnimationFrame(function(){ gcVidRaf = false; if(typeof gcVideoize === 'fu
 
 
 // ═══════════════════════════════════════════════════════
-// 🚀 FEATURE · repost system (user.reposts[] + profile Repost tab)
+// FEATURE · repost system (user.reposts[] + profile Repost tab)
 // ═══════════════════════════════════════════════════════
 window.__gcMyReposts = window.__gcMyReposts || new Set();
 
@@ -31387,10 +31666,10 @@ async function gcRenderRepostTab(profileType){
 window.gcRenderRepostTab = gcRenderRepostTab;
 
 
-// ================================================================
+// ==========================================
 // 🚀 PROFILE POSTS FILTER LOGIC (Fixed for both Grid & Feed styles)
 // প্রোফাইলে নতুন ফিল্টার সিস্টেম। 
-// ================================================================
+// ==========================================
 function applyProfileFilter(filterType, profileType, clickedElement) {
     const listId = profileType === 'my' ? 'my-posts-list' : 'other-user-posts-list';
     const listContainer = document.getElementById(listId);
@@ -31565,9 +31844,9 @@ window.gcProfileEmptyHTML = gcProfileEmptyHTML;
 
 window.applyProfileFilter = applyProfileFilter;
 
-// ================================================================
+// ==========================================
 // 🚀 NOTIFICATIONS FILTER LOGIC / নোটিফিকেশন পেজে নতুন ফিল্টার সিস্টেম। 
-// ================================================================
+// ==========================================
 
 function gcMoveNotifTabPill(tabEl, animate){
   try{
@@ -31645,9 +31924,9 @@ function applyNotifFilter(filterType, btn) {
 }
 
 
-// ================================================================
+// ==========================================
 // 🚀 SMART SUGGESTIONS SYSTEM LOGIC / ইউজার সাজেশন সিস্টেম।
-// ================================================================
+// ==========================================
 // পপআপ ওপেন করার ফাংশন
 function openSuggestionsSheet() {
     const page = document.getElementById('page-suggestions');
@@ -31899,7 +32178,10 @@ try{ toggleMuteFeed(uid); }catch(e){}
 
 // ═══════════════════════════════════════════════════════
 // 🚀 Update #38 · full-block-system · 2026-08-08
+// ব্লক = সত্যিকারের ব্লক (প্রোফাইল/ফিড/সার্চ/চ্যাট)
 // খুঁজতে: Ctrl+F → "full-block-system"
+
+
 // ═══════════════════════════════════════════════════════
 function gcIsBlockedByMe(uid){
 return !!(currentUserData && (currentUserData.blockedUsers || []).includes(uid));
@@ -32047,6 +32329,8 @@ if(!ov || !ov.classList.contains('open')) gcShowBanScreen(currentUser.uid, true)
 // 🚀 Update #41 · profile-insights · 2026-08-08
 // ফুল ক্রিয়েটর ড্যাশবোর্ড (SVG চার্ট + লাইভ ডেটা)
 // খুঁজতে: Ctrl+F → "profile-insights"
+
+
 // ═══════════════════════════════════════════════════════
 let gcInsRange = 7;
 // Insights বাটন হুক (পুরনো "coming soon" টোস্ট সরিয়ে)
@@ -32265,10 +32549,14 @@ body.innerHTML = html;
 
 
 // ═══════════════════════════════════════════════════════
-// 🚀 ?? Update #43 · switch-account · 2026-08-08
+// ?? Update #43 · switch-account · 2026-08-08
 // মাল্টি একাউন্ট সুইচ সিস্টেম। 
 // খুঁজতে: Ctrl+F → "switch-account"
+
+
 // ═══════════════════════════════════════════════════════
+
+
 // ═══ FEATURE: bottom-sheet drag-to-dismiss (handle + top edge) ═══
 (function(){
   if (window.__gcSheetDragInit) return;
@@ -32576,6 +32864,8 @@ return window.gcOrigConfirmLogout();
 // 🚀 Update #52 · reply-privacy · 2026-08-09
 // "Who can reply?" — পোস্টের কমেন্ট প্রাইভেসি কন্ট্রোল
 // খুঁজতে: Ctrl+F → "reply-privacy"
+
+
 // ═══════════════════════════════════════════════════════
 window.currentPostReplyPrivacy = window.currentPostReplyPrivacy || 'everyone';
 const GC_RP_OPTIONS = [
@@ -32660,7 +32950,11 @@ showToast('The author limited who can reply');
 // 🚀 Update #53 · liked-posts-page · 2026-08-10
 // মেনুর "Liked" → নিজের লাইক করা পোস্টের লিস্ট
 // খুঁজতে: Ctrl+F → "liked-posts-page"
+
+
 // ═══════════════════════════════════════════════════════
+
+
 // ═══ Shorts · vertical video feed (from existing video posts) ═══
 window.__gcShortsPosts = window.__gcShortsPosts || [];
 window.__gcShortsAllPosts = window.__gcShortsAllPosts || [];
@@ -33613,6 +33907,8 @@ it.onclick = function(){ gcOpenLikedScreen(); };
 // 🚀 Update #54 · custom-confirm · 2026-08-10
 // পোস্ট/কমেন্ট ডিলিটে ব্রাউজার confirm-এর বদলে নিজস্ব ডিজাইন
 // খুঁজতে: Ctrl+F → "custom-confirm"
+
+
 // ═══════════════════════════════════════════════════════
 function gcOpenConfirm(opts){
 let ov = document.getElementById('gc-confirm-overlay');
@@ -33741,6 +34037,8 @@ onYes:function(){
 // 🚀 Update #55 · follow-request-page · 2026-08-10
 // হোম ফিডে বাঁ সোয়াইপ → Request Profile (নতুন যারা ফলো করেছে তাদের লিস্ট। )
 // খুঁজতে: Ctrl+F → "follow-request-page"
+
+
 // ═══════════════════════════════════════════════════════
 function gcOpenFollowRequests(){
 let scr = document.getElementById('gc-fr-screen');
@@ -36912,7 +37210,6 @@ window.gcCloseSheetSafe = gcCloseSheetSafe;
     });
   }
 })();
-
 
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
