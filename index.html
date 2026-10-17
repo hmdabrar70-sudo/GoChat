@@ -550,8 +550,39 @@ body.home-sky-mode #main-bottom-nav .nav-capsule{
 }
 
 body.home-sky-mode .topbar-search-standalone{ display:none !important; }
-body:not(.home-sky-mode) .topbar-actions-capsule{ display:none !important; }
+body:not(.home-sky-mode) .topbar-actions-capsule:not(.topbar-inbox-capsule){ display:none !important; }
 body:not(.home-sky-mode) .topbar-home-avatar{ display:none !important; }
+
+/* Inbox topbar · filter + more capsule (same chrome as home actions capsule) */
+body.messages-mode .topbar-inbox-capsule{
+  display:inline-flex !important;
+}
+body:not(.messages-mode) .topbar-inbox-capsule{
+  display:none !important;
+}
+body.msg-select-mode .topbar-inbox-capsule{
+  display:none !important;
+}
+.topbar-inbox-capsule .topbar-btn{
+  width:36px;height:36px;
+  display:inline-flex !important;
+  align-items:center;justify-content:center;
+  background:transparent !important;
+  border:none !important;
+  box-shadow:none !important;
+  color:var(--text);
+  padding:0;
+}
+/* Override old standalone display rules for these ids when inside capsule */
+#gc-chat-filter-btn,
+#topbar-chat-settings-btn{
+  display:inline-flex !important;
+}
+body:not(.messages-mode) #gc-chat-filter-btn,
+body:not(.messages-mode) #topbar-chat-settings-btn{
+  /* visibility controlled by parent capsule */
+}
+
 /* Hide bottom profile on all main tabs too (profile is top-left on home; other pages use nav or own chrome) */
 #main-bottom-nav{
   justify-content:center !important;
@@ -1809,7 +1840,6 @@ body:not(.light-mode) .gc-react-popup{
 /* Hold-to-react: lock scroll/select on the like control so first-hold always works */
 .post-action-btn[data-action="like"],
 .gc-short-act[data-s-act="like"],
-#zoom-like-btn,
 [data-gc-like-btn]{
   touch-action: none;
   -webkit-user-select: none;
@@ -7169,8 +7199,7 @@ body.notif-edit-mode .topbar-actions > .topbar-btn[onclick*="search"]{
 body.messages-mode .topbar-actions > .topbar-btn[onclick*="search"]{
   display:none !important;
 }
-#topbar-chat-settings-btn{ display:none !important; }
-body.messages-mode #topbar-chat-settings-btn{ display:flex !important; }
+/* chat settings visibility via .topbar-inbox-capsule */
 
 #topbar-notif-select-all{
   display:none;
@@ -13291,12 +13320,13 @@ l-137 -640 -193 -3 -193 -2 4 22 c2 13 67 314 144 671 l139 647 192 0 193 0
 
     <!-- Notification moved to bottom nav -->
     
-    <div class="topbar-btn" id="gc-chat-filter-btn" onclick="event.stopPropagation(); if(typeof gcToggleFilterMenu==='function') gcToggleFilterMenu();" title="Filter" aria-label="Filter" style="display:none;">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="22" height="22" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16" style="width:22px;height:22px;display:block;"><line x1="64" y1="136" x2="192" y2="136"/><line x1="24" y1="88" x2="232" y2="88"/><line x1="104" y1="184" x2="152" y2="184"/></svg>
-    </div>
-    
-    <div class="topbar-btn" id="topbar-chat-settings-btn" onclick="event.stopPropagation(); gcToggleMsgMoreMenu(event);" title="More" aria-label="More">
-        <svg class="gc-dots-ico" xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"  style="width:22px;height:22px;display:block;flex-shrink:0;"><circle cx="128" cy="128" r="12"/><circle cx="196" cy="128" r="12"/><circle cx="60" cy="128" r="12"/></svg>
+    <div class="topbar-actions-capsule topbar-inbox-capsule" id="topbar-inbox-actions-capsule" style="display:none;">
+        <div class="topbar-btn" id="gc-chat-filter-btn" onclick="event.stopPropagation(); if(typeof gcToggleFilterMenu==='function') gcToggleFilterMenu();" title="Filter" aria-label="Filter">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="20" height="20" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16" style="width:20px;height:20px;display:block;"><line x1="64" y1="136" x2="192" y2="136"/><line x1="24" y1="88" x2="232" y2="88"/><line x1="104" y1="184" x2="152" y2="184"/></svg>
+        </div>
+        <div class="topbar-btn" id="topbar-chat-settings-btn" onclick="event.stopPropagation(); gcToggleMsgMoreMenu(event);" title="More" aria-label="More">
+            <svg class="gc-dots-ico" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" style="width:20px;height:20px;display:block;flex-shrink:0;"><circle cx="128" cy="128" r="12"/><circle cx="196" cy="128" r="12"/><circle cx="60" cy="128" r="12"/></svg>
+        </div>
     </div>
     <div id="gc-msg-more-menu" class="gc-msg-more-menu" onclick="event.stopPropagation();" style="display:none;">
         <button type="button" class="gc-msg-more-item" onclick="gcCloseMsgMoreMenu(); gcEnterChatSelectMode();">
@@ -14664,34 +14694,8 @@ l-137 -640 -193 -3 -193 -2 4 22 c2 13 67 314 144 671 l139 647 192 0 193 0
     </div>
 
     
-        <!-- 🚀 Floating Bottom Action Bar (Smaller Size) -->
-    <div id="zoom-bottom-bar" style="position:absolute; bottom:0; left:0; right:0; padding:30px 24px calc(20px + env(safe-area-inset-bottom)); background:linear-gradient(transparent, rgba(0,0,0,0.85)); display:none; justify-content:space-around; align-items:center; z-index:10005;" onclick="event.stopPropagation()">
         
-        <!-- 🚀 Like Button — hold-to-react + short-tap (same as feed) -->
-        <div style="display:flex; align-items:center; gap:6px; cursor:pointer;" data-gc-like-btn
-             onclick="(function(el){ if(el.getAttribute('data-gc-react-hold')==='1'){ el.removeAttribute('data-gc-react-hold'); return; } if(zoomActivePostId) toggleLike(zoomActivePostId); })(this.querySelector('#zoom-like-btn')||this);">
-            <span id="zoom-like-btn" data-gc-like-btn style="display:flex; align-items:center; gap:6px; color:#fff;">
-                <svg class="gc-act-ico" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 256 256" fill="currentColor" style="filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));" aria-hidden="true"><path d="M232.49,81.44A22,22,0,0,0,216,74H158V56a38,38,0,0,0-38-38,6,6,0,0,0-5.37,3.32L76.29,98H32a14,14,0,0,0-14,14v88a14,14,0,0,0,14,14H204a22,22,0,0,0,21.83-19.27l12-96A22,22,0,0,0,232.49,81.44ZM30,200V112a2,2,0,0,1,2-2H74v92H32A2,2,0,0,1,30,200ZM225.92,97.24l-12,96A10,10,0,0,1,204,202H86V105.42l37.58-75.17A26,26,0,0,1,146,56V80a6,6,0,0,0,6,6h64a10,10,0,0,1,9.92,11.24Z"></path></svg>
-                <span class="like-count like-count-slot" data-raw-count="0" style="font-size:14px; font-weight:800; color:#fff; text-shadow:0 1px 3px rgba(0,0,0,0.6);"><span class="like-count-num">0</span></span>
-            </span>
-        </div>
-        
-        <!-- 🚀 Solid Comment Button -->
-        <div style="display:flex; align-items:center; gap:6px; cursor:pointer;" onclick="closeImageZoom(); if(zoomActivePostId) openCommentPanel(zoomActivePostId);">
-            <span id="zoom-comment-btn" style="display:flex; align-items:center; gap:6px; color:#fff;">
-                <svg class="gc-act-ico" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 256 256" fill="currentColor" style="filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));" aria-hidden="true"><path d="M166,112a6,6,0,0,1-6,6H96a6,6,0,0,1,0-12h64A6,6,0,0,1,166,112Zm-6,26H96a6,6,0,0,0,0,12h64a6,6,0,0,0,0-12Zm70-10A102,102,0,0,1,79.31,217.65L44.44,229.27a14,14,0,0,1-17.71-17.71l11.62-34.87A102,102,0,1,1,230,128Zm-12,0A90,90,0,1,0,50.08,173.06a6,6,0,0,1,.5,4.91L38.12,215.35a2,2,0,0,0,2.53,2.53L78,205.42a6.2,6.2,0,0,1,1.9-.31,6.09,6.09,0,0,1,3,.81A90,90,0,0,0,218,128Z"></path></svg>
-                <span style="font-size:14px; font-weight:800; text-shadow:0 1px 3px rgba(0,0,0,0.6);">0</span>
-            </span>
-        </div>
-        
-        <!-- 🚀 Solid Share Button — opens existing share modal (hydrate post data inside openShareModal) -->
-        <div style="display:flex; align-items:center; gap:6px; cursor:pointer;" onclick="(function(){ var pid=zoomActivePostId; if(!pid){ showToast('Nothing to share'); return; } closeImageZoom(); openShareModal(pid); })()">
-            <span style="display:flex; align-items:center; gap:6px; color:#fff;">
-                <svg class="gc-act-ico" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 256 256" fill="currentColor" style="filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));" aria-hidden="true"><path d="M236.17,201.09,140.1,33.16a14,14,0,0,0-24.41,0l-95.88,168a14,14,0,0,0,16.87,20.05L128,190.34l91.33,30.85A14.31,14.31,0,0,0,224,222a14,14,0,0,0,12.13-20.91Zm-10.66,8.18a1.87,1.87,0,0,1-2.2.6l-.1,0L134,179.7V120a6,6,0,0,0-12,0v59.7L32.8,209.83l-.1,0a1.87,1.87,0,0,1-2.2-.6,1.84,1.84,0,0,1-.24-2.22L126.14,39a1.93,1.93,0,0,1,1.74-1,2,2,0,0,1,1.78,1.07L225.73,207A1.86,1.86,0,0,1,225.51,209.27Z"></path></svg>
-            </span>
-        </div>
-        
-    </div>
+
 </div>
 
 <!-- 🚀 Avatar crop / preview editor -->
@@ -17552,8 +17556,10 @@ function showPage(page) {
     if (friendsBack) friendsBack.style.display = (page === 'friends') ? 'flex' : 'none'; 
     
     // গ্রুপ আইকন হ্যান্ডেল করার লজিক
-    const groupBtn = document.getElementById('gc-chat-filter-btn');
-    try{ var _fb=document.getElementById('gc-chat-filter-btn'); if(_fb) _fb.style.display = (page === 'messages') ? 'flex' : 'none'; }catch(_e){}
+    try{
+      var _cap = document.getElementById('topbar-inbox-actions-capsule');
+      if(_cap) _cap.style.display = (page === 'messages') ? 'inline-flex' : 'none';
+    }catch(_e){}
 
     // 🚀 নোটিফিকেশন এডিট বাটন হ্যান্ডেল করার লজিক
     const notifEditBtn = document.getElementById('topbar-notif-edit-btn');
@@ -23468,9 +23474,7 @@ function zoomPrev() {
 function renderZoomImage() {
     const imgEl = document.getElementById('zoom-image');
     const counterEl = document.getElementById('zoom-counter');
-    const bottomBar = document.getElementById('zoom-bottom-bar');
-    
-    // 🚀 প্রিমিয়াম স্মুথ অ্যানিমেশনের ম্যাজিক
+// 🚀 প্রিমিয়াম স্মুথ অ্যানিমেশনের ম্যাজিক
     imgEl.style.transition = 'none'; 
     imgEl.classList.remove('img-swipe-next', 'img-swipe-prev');
     void imgEl.offsetWidth; // Force CSS Reflow
@@ -23493,54 +23497,9 @@ function renderZoomImage() {
     } else {
         counterEl.style.display = 'none';
     }
-
-    if (zoomActivePostId) {
-        bottomBar.style.display = 'flex';
-        listenToZoomPostData(zoomActivePostId); // এই যে সেই ফাংশন!
-    } else {
-        bottomBar.style.display = 'none';
-        if (zoomUnsub) { zoomUnsub(); zoomUnsub = null; }
-    }
+    if (zoomUnsub) { try{ zoomUnsub(); }catch(e){} zoomUnsub = null; }
 }
 
-// 🚀 ডাটাবেস থেকে রিয়েল-টাইম লাইক ও কমেন্ট সিঙ্ক করা
-function listenToZoomPostData(pid) {
-    if (zoomUnsub) zoomUnsub();
-    zoomUnsub = db.collection('posts').doc(pid).onSnapshot(doc => {
-        if (doc.exists) {
-            const data = doc.data();
-            const isLiked = data.likedBy && currentUser && data.likedBy.includes(currentUser.uid);
-            const likeCount = data.likes || 0;
-            const commentCount = (typeof gcCommentTotal === 'function') ? gcCommentTotal(data) : (data.comments ? data.comments.length : 0);
-            const myReact = (currentUser && data.reactions && data.reactions[currentUser.uid]) || null;
-            
-            const likeBtn = document.getElementById('zoom-like-btn');
-            const commentBtn = document.getElementById('zoom-comment-btn');
-            
-            const formattedComments = typeof formatLBNum === 'function' ? formatLBNum(commentCount) : commentCount;
-            
-            if(likeBtn && typeof gcSyncEngagementUI === 'function') {
-                if (!(window.__gcLikeBusy && window.__gcLikeBusy[pid])) {
-                  gcSyncEngagementUI(pid, {
-                    liked: !!isLiked,
-                    count: likeCount,
-                    reaction: myReact,
-                    animate: false
-                  });
-                }
-            } else if(likeBtn) {
-                var __zlRaw = (typeof likeCount === 'number') ? likeCount : (parseInt(likeCount,10)||0);
-                var __zlFmt = (typeof gcFmtCount === 'function') ? gcFmtCount(__zlRaw) : __zlRaw;
-                likeBtn.innerHTML = isLiked 
-                    ? `<i class="ph-fill ph-thumbs-up" style="color:#1DA1F2; font-size:24px; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));"></i> <span class="like-count like-count-slot" data-raw-count="${__zlRaw}" style="font-size:14px; font-weight:800; color:#fff; text-shadow:0 1px 3px rgba(0,0,0,0.6);"><span class="like-count-num">${__zlFmt}</span></span>` 
-                    : `<i class="ph-light ph-thumbs-up" style="color:#fff; font-size:24px; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));"></i> <span class="like-count like-count-slot" data-raw-count="${__zlRaw}" style="font-size:14px; font-weight:800; color:#fff; text-shadow:0 1px 3px rgba(0,0,0,0.6);"><span class="like-count-num">${__zlFmt}</span></span>`;
-            }
-            if(commentBtn) {
-                commentBtn.innerHTML = (typeof gcActionSvg==='function'?gcActionSvg('comment',24,'color:#fff;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));'):'<i class="ph-light ph-chat-circle" style="color:#fff; font-size:24px; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));"></i>') + ` <span style="font-size:14px; font-weight:800; color:#fff; text-shadow:0 1px 3px rgba(0,0,0,0.6);">${formattedComments}</span>`;
-            }
-        }
-    });
-}
 
 // 🚀 রিয়েল-টাইম প্রো-লেভেল সোয়াইপ লজিক (Instagram Style)
 let zTouchStartX = 0;
@@ -36425,8 +36384,6 @@ window.gcCloseSheetSafe = gcCloseSheetSafe;
       '#single-post-container .post-action-btn[data-action="like"],'+
       '.gc-short-item[data-post-id="'+pid+'"] .gc-short-act[data-s-act="like"]'
     ).forEach(add);
-    var z = document.getElementById('zoom-like-btn');
-    if(z && typeof zoomActivePostId !== 'undefined' && zoomActivePostId === pid) add(z);
     return list;
   }
 
@@ -36526,9 +36483,7 @@ window.gcCloseSheetSafe = gcCloseSheetSafe;
     var btns = collectLikeButtons(pid);
     btns.forEach(function(btn){
       try{
-        var isZoom = (btn.id === 'zoom-like-btn');
         var isShort = btn.classList.contains('gc-short-act');
-        // Preserve existing count node (and its data-raw-count) if possible
         var span = btn.querySelector('[data-count="likes"], [data-s-likes], span.like-count, span[data-raw-count]');
         if(!span){
           span = document.createElement('span');
@@ -36539,10 +36494,7 @@ window.gcCloseSheetSafe = gcCloseSheetSafe;
           span = span.cloneNode(true);
         }
         setCountOnSpan(span, count, animate);
-        if(isZoom){
-          span.className = 'like-count like-count-slot';
-          span.style.cssText = 'font-size:14px; font-weight:800; color:#fff; text-shadow:0 1px 3px rgba(0,0,0,0.6);';
-        } else if(!isShort){
+        if(!isShort){
           span.style.fontSize = span.style.fontSize || '14px';
         }
         var wantLiked = liked || !!reaction;
@@ -36553,7 +36505,7 @@ window.gcCloseSheetSafe = gcCloseSheetSafe;
         if(needIconSwap){
           var ico;
           if(useSvg) ico = GC_REACT_SVG[reaction];
-          else ico = iconHtmlFor(null, wantLiked, isZoom);
+          else ico = iconHtmlFor(null, wantLiked, false);
           btn.classList.toggle('liked', wantLiked);
           if(reaction) btn.setAttribute('data-my-react', reaction);
           else btn.removeAttribute('data-my-react');
@@ -36575,7 +36527,7 @@ window.gcCloseSheetSafe = gcCloseSheetSafe;
           if(liveSpan) setCountOnSpan(liveSpan, count, false);
           else {
             // rare: count span missing — full rebuild
-            var ico2 = useSvg ? GC_REACT_SVG[reaction] : iconHtmlFor(null, wantLiked, isZoom);
+            var ico2 = useSvg ? GC_REACT_SVG[reaction] : iconHtmlFor(null, wantLiked, false);
             btn.innerHTML = ico2 + span.outerHTML;
           }
         }
@@ -36683,7 +36635,7 @@ window.gcCloseSheetSafe = gcCloseSheetSafe;
 
   function findLikeBtn(target){
     if(!target || !target.closest) return null;
-    return target.closest('.post-action-btn[data-action="like"], .gc-short-act[data-s-act="like"], #zoom-like-btn, [data-gc-like-btn]');
+    return target.closest('.post-action-btn[data-action="like"], .gc-short-act[data-s-act="like"], [data-gc-like-btn]');
   }
 
   function pidFromBtn(btn){
