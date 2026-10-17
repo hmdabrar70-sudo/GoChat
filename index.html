@@ -469,6 +469,116 @@ body.notifications-mode .topbar-actions {
 }
 .topbar-actions{display:flex;gap:8px;align-items:center;margin-left:auto;z-index:2;position:relative;}
 
+/* Home feed topbar · avatar left + menu/search capsule right */
+.topbar-home-avatar{
+  display:none;
+  width:44px;
+  height:44px;
+  border-radius:50%;
+  overflow:hidden;
+  flex-shrink:0;
+  cursor:pointer;
+  border:2px solid var(--border);
+  background:var(--surface-2);
+  box-shadow:0 2px 8px rgba(0,0,0,0.08);
+  box-sizing:border-box;
+}
+.topbar-home-avatar img{
+  width:100%;height:100%;object-fit:cover;display:block;
+}
+.topbar-home-avatar:active{ transform:scale(0.94); }
+body.home-sky-mode .topbar-home-avatar{ display:flex !important; align-items:center; justify-content:center; }
+
+.topbar-actions-capsule{
+  display:none;
+  align-items:center;
+  gap:2px;
+  padding:4px 6px;
+  border-radius:999px;
+  background:rgba(245,240,220,0.92);
+  border:1px solid rgba(0,0,0,0.06);
+  box-shadow:0 2px 10px rgba(0,0,0,0.06);
+}
+body:not(.light-mode) .topbar-actions-capsule{
+  background:rgba(40,40,52,0.72);
+  border:1px solid rgba(255,255,255,0.10);
+  box-shadow:0 2px 12px rgba(0,0,0,0.28);
+}
+body.home-sky-mode .topbar-actions-capsule{ display:inline-flex !important; }
+.topbar-actions-capsule .topbar-btn,
+.topbar-actions-capsule #home-drawer-btn,
+.topbar-actions-capsule #home-drawer-btn-cap{
+  width:36px;height:36px;
+  border-radius:50%;
+  display:inline-flex !important;
+  align-items:center;justify-content:center;
+  color:var(--text);
+  background:transparent !important;
+  border:none !important;
+  box-shadow:none !important;
+  cursor:pointer;
+  padding:0;
+}
+.topbar-actions-capsule .topbar-btn:active,
+.topbar-actions-capsule #home-drawer-btn:active,
+.topbar-actions-capsule #home-drawer-btn-cap:active{ opacity:0.7; transform:scale(0.94); }
+.topbar-actions-capsule #home-drawer-btn-cap svg{ display:block; }
+/* On home feed: hide the standalone left drawer (moved into capsule) */
+body.home-sky-mode .topbar-left > #home-drawer-btn{ display:none !important; }
+/* Bottom nav: hide separate profile, center capsule */
+body.home-sky-mode #main-bottom-nav .nav-profile-separate{
+  display:none !important;
+}
+body.home-sky-mode #main-bottom-nav{
+  justify-content:center !important;
+  width:auto !important;
+  max-width:min(92%, 360px) !important;
+  padding:2px 0 !important;
+}
+body.home-sky-mode #main-bottom-nav .nav-capsule{
+  flex:0 1 auto !important;
+  min-width:260px;
+  max-width:340px;
+  width:100%;
+}
+/* Create story plus → bottom-right corner of card */
+.gc-story-create-plus{
+  top:auto !important;
+  bottom:8px !important;
+  right:8px !important;
+  left:auto !important;
+  transform:none !important;
+  width:26px !important;
+  height:26px !important;
+  z-index:4 !important;
+}
+.story-circle.gc-story-create .story-name{
+  padding-right:34px;
+}
+
+body.home-sky-mode .topbar-search-standalone{ display:none !important; }
+body:not(.home-sky-mode) .topbar-actions-capsule{ display:none !important; }
+body:not(.home-sky-mode) .topbar-home-avatar{ display:none !important; }
+/* Hide bottom profile on all main tabs too (profile is top-left on home; other pages use nav or own chrome) */
+#main-bottom-nav .nav-profile-separate{ display:none !important; }
+#main-bottom-nav{
+  justify-content:center !important;
+  width:auto !important;
+  max-width:min(92%, 360px) !important;
+  left:50%;
+  transform:translateX(-50%);
+  padding-left:0 !important;
+  padding-right:0 !important;
+}
+#main-bottom-nav .nav-capsule{
+  flex:0 1 auto !important;
+  min-width:260px;
+  max-width:340px;
+  width:100%;
+}
+
+
+
 body.light-mode .topbar{background:var(--surface) !important;}
 body:not(.light-mode) .topbar{background:var(--surface) !important;}
 .topbar-btn > svg{display:block;width:24px;height:24px;}
@@ -13221,6 +13331,10 @@ l-137 -640 -193 -3 -193 -2 4 22 c2 13 67 314 144 671 l139 647 192 0 193 0
 <div id="app-screen">
 <div class="topbar">
 <div class="topbar-left">
+    <div class="topbar-home-avatar" id="topbar-home-avatar" onclick="showPage('profile')" title="Profile" aria-label="Profile">
+        <i class="ph-light ph-user-circle" id="topbar-home-avatar-fallback" style="font-size:22px;color:var(--text-muted);"></i>
+        <img id="topbar-home-avatar-img" alt="" style="display:none;">
+    </div>
     <span id="home-drawer-btn" onclick="event.stopPropagation(); gcOpenHomeDrawer();" style="display:none;align-items:center;justify-content:center;width:36px;height:36px;border-radius:50%;cursor:pointer;color:var(--text);" title="Menu">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9h16M4 15h16"/></svg>
     </span>
@@ -13342,7 +13456,15 @@ l-137 -640 -193 -3 -193 -2 4 22 c2 13 67 314 144 671 l139 647 192 0 193 0
         <i class="ph-light ph-x" style="font-size:22px;"></i>
     </button>
     <div id="gc-msg-select-count" style="display:none;font-weight:800;font-size:16px;color:var(--text);margin-right:auto;padding-left:4px;">0 selected</div>
-    <div class="topbar-btn" onclick="showPage('search')" style="color:var(--text);">
+    <div class="topbar-actions-capsule" id="topbar-home-actions-capsule">
+        <span id="home-drawer-btn-cap" onclick="event.stopPropagation(); gcOpenHomeDrawer();" title="Menu" aria-label="Menu">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9h16M4 15h16"/></svg>
+        </span>
+        <div class="topbar-btn" onclick="showPage('search')" style="color:var(--text);" title="Search" aria-label="Search">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </div>
+    </div>
+    <div class="topbar-btn topbar-search-standalone" onclick="showPage('search')" style="color:var(--text);">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
     </div>
 </div>
@@ -17479,7 +17601,7 @@ function showPage(page) {
     // Sync the cover-photo gradient top-bar mode after navigation.
     if (typeof gcSyncCoverTopbarMode === 'function') gcSyncCoverTopbarMode();
 
-    // 🚀 Topbar Dynamic Logic (লোগো ও নোটিফিকেশন হাইড/শো করার ম্যাজিক)
+    // Topbar visibility by page
     const topbarLogo = document.querySelector('.topbar-logo');
     document.body.classList.remove('messages-mode', 'notifications-mode', 'home-sky-mode', 'profile-mode', 'friends-mode', 'search-mode');
 
@@ -24183,7 +24305,6 @@ ${gcDisplayName}
     if(typeof gcApplyCoverPhoto === 'function') gcApplyCoverPhoto('my', currentUserData.coverPhoto || '');
 
     
-       // 🚀 নেভিগেশন বারে ইউজারের ছবি আপডেট করার লজিক
     const navPicContainer = document.getElementById('nav-profile-pic-container');
     if (navPicContainer) {
         if (currentUserData.avatar) {
@@ -24192,6 +24313,20 @@ ${gcDisplayName}
             navPicContainer.innerHTML = `<i class="ph-light ph-user-circle" style="font-size: 18px; color: var(--text-muted);"></i>`;
         }
     }
+    try{
+      var tbImg = document.getElementById('topbar-home-avatar-img');
+      var tbFb = document.getElementById('topbar-home-avatar-fallback');
+      if(tbImg){
+        if(currentUserData.avatar){
+          tbImg.src = currentUserData.avatar;
+          tbImg.style.display = 'block';
+          if(tbFb) tbFb.style.display = 'none';
+        } else {
+          tbImg.style.display = 'none';
+          if(tbFb) tbFb.style.display = 'block';
+        }
+      }
+    }catch(e){}
 
     const bioEl=document.getElementById('profile-bio-display');
     if(bioEl)bioEl.textContent=currentUserData.bio||'';
