@@ -28720,33 +28720,127 @@ async function uploadAndSendVoice(audioBlob) {
 }
 
 // ==========================================
-// 🚀 SMART BACK BUTTON & HISTORY MANAGER
+// 🚀 SMART BACK BUTTON & HISTORY MANAGER · v2
+// Centralized browser-history synchronization for internal pages.
 // ==========================================
-let backPressTimer = null;
+(function(){
+  if (window.__gcNavigationManagerV2) return;
+  window.__gcNavigationManagerV2 = true;
 
-// শুরুতে একটা ডামি হিস্ট্রি পুশ করে রাখা হলো
-history.pushState({ page: 'gochat_home' }, "", window.location.href);
+  var exitTimer = null;
+  var exitWindowMs = 2000;
+  var navigatingFromPopstate = false;
+  var lastPage = 'feed';
+  var navStack = ['feed'];
+  var stateKey = '__gcNavV2';
 
-window.addEventListener('popstate', function(event) {
-    // যদি কোনো স্ক্রিন বা মডাল ওপেন থাকে, তবে সেটা ক্লোজ হবে
-    if (closeTopMostView()) {
-        // বের হওয়া ঠেকাতে আবার হিস্ট্রি পুশ করে দেওয়া হলো
-        history.pushState({ page: 'gochat_home' }, "", window.location.href);
-    } else {
-        // যদি ইউজার মেইন ফিডে থাকে, তখন ডাবল ট্যাপ এক্সিট লজিক
-        if (backPressTimer) {
-            clearTimeout(backPressTimer);
-            // দ্বিতীয়বার চাপলে সত্যি বের হয়ে যাবে (ইতিমধ্যেই popstate হয়ে এক ধাপ পিছনে গেছে)
-        } else {
-            showToast("Press back again to exit");
-            // ভুল করে বের হওয়া ঠেকাতে আবার পুশ করা হলো
-            history.pushState({ page: 'gochat_home' }, "", window.location.href);
-            backPressTimer = setTimeout(() => {
-                backPressTimer = null;
-            }, 2000);
-        }
+  function getActivePage(){
+    var active = document.querySelector('.page.active');
+    if (active && active.id && active.id.indexOf('page-') === 0) return active.id.slice(5);
+    return lastPage || 'feed';
+  }
+  function stateFor(page){ return { [stateKey]: true, page: page || 'feed' }; }
+  function ensureBaseState(){
+    try {
+      var st = history.state;
+      if (!st || !st[stateKey]) history.replaceState(stateFor(getActivePage()), '', location.href);
+    } catch(e){}
+  }
+  function resetExitPrompt(){
+    if (exitTimer) { clearTimeout(exitTimer); exitTimer = null; }
+  }
+  function pushPage(page){
+    if (!page) return;
+    if (navigatingFromPopstate) { lastPage = page; return; }
+    var current = getActivePage();
+    if (page === current) { lastPage = page; return; }
+    resetExitPrompt();
+    try { history.pushState(stateFor(page), '', location.href); } catch(e){}
+    navStack.push(page);
+    lastPage = page;
+  }
+
+  // Keep the latest showPage wrapper chain intact and record only real page changes.
+  function attachShowPageTracker(){
+    if (typeof window.showPage !== 'function' || window.__gcNavShowPageWrappedV2) return;
+    window.__gcNavShowPageWrappedV2 = true;
+    var originalShowPage = window.showPage;
+    window.showPage = function(page){
+      var before = getActivePage();
+      var result = originalShowPage.apply(this, arguments);
+      var after = getActivePage();
+      // showPage can early-return for an already-active page; do not create history.
+      if (page && after === page && before !== after) pushPage(after);
+      return result;
+    };
+  }
+
+  function handleBack(event){
+    var state = event && event.state;
+    // First priority: close one visible overlay/sub-screen. Restore the current
+    // page entry because many legacy overlays do not own a dedicated history entry.
+    try {
+      if (typeof closeTopMostView === 'function' && closeTopMostView()) {
+        var currentPage = getActivePage();
+        lastPage = currentPage;
+        try { history.pushState(stateFor(currentPage), '', location.href); } catch(e){}
+        resetExitPrompt();
+        return;
+      }
+    } catch(e) { console.warn('GoChat back overlay handler:', e); }
+
+    // Internal navigation: popstate already moved browser history to the previous entry.
+    if (state && state[stateKey] && state.page) {
+      var target = state.page;
+      if (target && target !== getActivePage() && typeof window.showPage === 'function') {
+        navigatingFromPopstate = true;
+        window.GoChatNavigation._handlingPopstate = true;
+        try { window.showPage(target); } finally { navigatingFromPopstate = false; window.GoChatNavigation._handlingPopstate = false; }
+      }
+      lastPage = target || 'feed';
+      if (navStack.length > 1) navStack.pop();
+      resetExitPrompt();
+      return;
     }
-});
+
+    // Root-level back: prevent accidental exit on the first press. Web pages cannot
+    // forcibly close their browser tab, so the second press only allows native host behavior.
+    var page = getActivePage();
+    if (page !== 'feed' && typeof window.showPage === 'function') {
+      navigatingFromPopstate = true;
+      window.GoChatNavigation._handlingPopstate = true;
+      try { window.showPage('feed'); } finally { navigatingFromPopstate = false; window.GoChatNavigation._handlingPopstate = false; }
+      lastPage = 'feed';
+      navStack = ['feed'];
+      try { history.pushState(stateFor('feed'), '', location.href); } catch(e){}
+      resetExitPrompt();
+      return;
+    }
+    if (!exitTimer) {
+      try { if (typeof showToast === 'function') showToast('Press back again to exit'); } catch(e){}
+      try { history.pushState(stateFor('feed'), '', location.href); } catch(e){}
+      exitTimer = setTimeout(function(){ exitTimer = null; }, exitWindowMs);
+    } else {
+      resetExitPrompt();
+      // No window.close(): browsers block it for ordinary web pages.
+    }
+  }
+
+  ensureBaseState();
+  attachShowPageTracker();
+  // Legacy initialization created an unlabelled dummy entry. Replace it with a
+  // known root state where possible, avoiding an extra permanent blank history step.
+  try { history.replaceState(stateFor(getActivePage()), '', location.href); } catch(e){}
+  window.addEventListener('popstate', handleBack);
+
+  // Public helpers for future features to use instead of hand-written history calls.
+  window.GoChatNavigation = window.GoChatNavigation || {};
+  window.GoChatNavigation.currentPage = getActivePage;
+  window.GoChatNavigation._handlingPopstate = false;
+  window.GoChatNavigation.go = function(page){ if (typeof window.showPage === 'function') window.showPage(page); };
+  window.GoChatNavigation.back = function(){ history.back(); };
+  window.GoChatNavigation.resetExitPrompt = resetExitPrompt;
+})();
 
 function closeTopMostView() {
     // Advertise page
@@ -28755,71 +28849,46 @@ function closeTopMostView() {
     var editPost = document.getElementById('edit-post-modal');
     if (editPost && editPost.classList.contains('open')) { if(typeof closeEditPostModal==='function') closeEditPostModal(); return true; }
 
-    // ১. Full Screen Image Zoom
     const imageZoom = document.getElementById('image-zoom-modal');
-    if (imageZoom && imageZoom.classList.contains('open')) { closeImageZoom(); return true; }
-
-    // ২. Story Viewer
+    if (imageZoom && imageZoom.classList.contains('open')) { if(typeof closeImageZoom==='function') closeImageZoom(); return true; }
     const storyViewer = document.getElementById('story-viewer');
-    if (storyViewer && storyViewer.classList.contains('open')) { closeStory(); return true; }
-
-    // ৪. Bottom Sheets / Action Modals
+    if (storyViewer && storyViewer.classList.contains('open')) { if(typeof closeStory==='function') closeStory(); return true; }
     const deleteSheet = document.getElementById('delete-sheet-modal');
-    if (deleteSheet && deleteSheet.classList.contains('open')) { closeDeleteSheet(); return true; }
-    
+    if (deleteSheet && deleteSheet.classList.contains('open')) { if(typeof closeDeleteSheet==='function') closeDeleteSheet(); return true; }
     const qpModal = document.getElementById('quick-profile-modal');
-    if (qpModal && qpModal.classList.contains('open')) { closeQuickProfile(); return true; }
-
-    // ৫. Sub Screens (Chat, Profile, Post etc)
+    if (qpModal && qpModal.classList.contains('open')) { if(typeof closeQuickProfile==='function') closeQuickProfile(); return true; }
     const commentPanel = document.getElementById('comment-panel');
-    if (commentPanel && commentPanel.classList.contains('open')) { closeCommentPanel(); return true; }
-
+    if (commentPanel && commentPanel.classList.contains('open')) { if(typeof closeCommentPanel==='function') closeCommentPanel(); return true; }
     const singlePost = document.getElementById('single-post-screen');
-    if (singlePost && singlePost.classList.contains('open')) { closeSinglePost(); return true; }
-
+    if (singlePost && singlePost.classList.contains('open')) { if(typeof closeSinglePost==='function') closeSinglePost(); return true; }
     const chatScreen = document.getElementById('chat-screen');
-    if (chatScreen && chatScreen.classList.contains('open')) { closeChat(); return true; }
-
+    if (chatScreen && chatScreen.classList.contains('open')) { if(typeof closeChat==='function') closeChat(); return true; }
     const otherProfile = document.getElementById('page-other-profile');
-    if (otherProfile && otherProfile.classList.contains('open')) { closeUserProfile(); return true; }
-
+    if (otherProfile && otherProfile.classList.contains('open')) { if(typeof closeUserProfile==='function') closeUserProfile(); return true; }
     const createPost = document.getElementById('create-post-screen');
-    if (createPost && createPost.classList.contains('open')) { closeCreatePost(); return true; }
-
+    if (createPost && createPost.classList.contains('open')) { if(typeof closeCreatePost==='function') closeCreatePost(); return true; }
     const groupInfo = document.getElementById('group-info-modal');
-    if (groupInfo && groupInfo.style.display === 'flex') { closeGroupInfoModal(); return true; }
-
-    // ৬. Settings & Menus — close Edit Profile sections first
+    if (groupInfo && groupInfo.style.display === 'flex') { if(typeof closeGroupInfoModal==='function') closeGroupInfoModal(); return true; }
     const epPersonal = document.getElementById('ep-section-personal');
-    if (epPersonal && epPersonal.classList.contains('open')) { gcCloseEpSection('personal'); return true; }
+    if (epPersonal && epPersonal.classList.contains('open')) { if(typeof gcCloseEpSection==='function') gcCloseEpSection('personal'); return true; }
     const epWork = document.getElementById('ep-section-work');
-    if (epWork && epWork.classList.contains('open')) { gcCloseEpSection('work'); return true; }
+    if (epWork && epWork.classList.contains('open')) { if(typeof gcCloseEpSection==='function') gcCloseEpSection('work'); return true; }
     const epEdu = document.getElementById('ep-section-education');
-    if (epEdu && epEdu.classList.contains('open')) { gcCloseEpSection('education'); return true; }
-    const editProfile = document.getElementById('edit-profile-screen');
+    if (epEdu && epEdu.classList.contains('open')) { if(typeof gcCloseEpSection==='function') gcCloseEpSection('education'); return true; }
     const badgeInfo = document.getElementById('badge-info-modal');
-    if (badgeInfo && badgeInfo.classList.contains('open')) { closeBadgeInfo(); return true; }
-    if (editProfile && editProfile.style.display === 'flex') { closeProfileEdit(); return true; }
-
+    if (badgeInfo && badgeInfo.classList.contains('open')) { if(typeof closeBadgeInfo==='function') closeBadgeInfo(); return true; }
+    const editProfile = document.getElementById('edit-profile-screen');
+    if (editProfile && editProfile.style.display === 'flex') { if(typeof closeProfileEdit==='function') closeProfileEdit(); return true; }
     const galleryScreen = document.getElementById('gallery-screen');
-    if (galleryScreen && galleryScreen.style.display === 'flex') { closeGallery(); return true; }
-
+    if (galleryScreen && galleryScreen.style.display === 'flex') { if(typeof closeGallery==='function') closeGallery(); return true; }
     const mainSettings = document.getElementById('main-settings-screen');
-    if (mainSettings && mainSettings.style.display === 'flex') { closeMainSettingsScreen(); return true; }
-
+    if (mainSettings && mainSettings.style.display === 'flex') { if(typeof closeMainSettingsScreen==='function') closeMainSettingsScreen(); return true; }
     const mainMenu = document.getElementById('main-menu-screen');
-    if (mainMenu && mainMenu.style.display === 'flex') { closeMainMenu(); return true; }
-
-    // ৭. Bottom Navigation Pages (Back to Feed)
+    if (mainMenu && mainMenu.style.display === 'flex') { if(typeof closeMainMenu==='function') closeMainMenu(); return true; }
     const feedPage = document.getElementById('page-feed');
-    if (feedPage && !feedPage.classList.contains('active')) {
-        showPage('feed'); return true;
-    }
-
-    // কিছু ওপেন না থাকলে false রিটার্ন করবে (অর্থাৎ ইউজার মেইন ফিডে আছে)
+    if (feedPage && !feedPage.classList.contains('active')) { if(typeof showPage==='function') showPage('feed'); return true; }
     return false;
 }
-
 
 // ==========================================
 // 🚀 NOTIFICATION BATCH DELETE SYSTEM 🚀
@@ -36994,6 +37063,29 @@ window.gcCloseSheetSafe = gcCloseSheetSafe;
   } catch(e) {
     document.body.classList.add('light-mode');
   }
+})();
+
+
+// GoChat Navigation Manager · late binding for legacy showPage wrappers.
+(function(){
+  if(window.__gcNavigationLateBindV2) return;
+  window.__gcNavigationLateBindV2 = true;
+  function bind(){
+    if(!window.GoChatNavigation || typeof window.showPage !== 'function' || window.__gcNavigationLateShowPageWrappedV2) return;
+    window.__gcNavigationLateShowPageWrappedV2 = true;
+    var original = window.showPage;
+    window.showPage = function(page){
+      var before = window.GoChatNavigation.currentPage();
+      var result = original.apply(this, arguments);
+      var active = document.querySelector('.page.active');
+      var after = active && active.id && active.id.indexOf('page-') === 0 ? active.id.slice(5) : before;
+      if(page && after === page && before !== after && !window.GoChatNavigation._handlingPopstate){
+        try { history.pushState({__gcNavV2:true,page:after}, '', location.href); } catch(e){}
+      }
+      return result;
+    };
+  }
+  bind();
 })();
 </script>
 </body>
