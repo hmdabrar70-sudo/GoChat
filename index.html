@@ -6811,6 +6811,21 @@ MODERN USERNAME SYSTEM STYLES
     pointer-events: none;
 }
 
+/* 2026-10-18 · Display name & username live validation warnings */
+.gc-name-warn{
+  display:none;
+  font-size:12px;
+  font-weight:600;
+  color:#ff4d6a;
+  margin-top:6px;
+  line-height:1.35;
+  padding-left:2px;
+}
+.gc-name-warn.show{ display:block; }
+.gc-name-input-invalid{
+  border-color:#ff4d6a !important;
+}
+
 .username-restriction-msg {
     font-size: 12px;
     color: var(--text-muted);
@@ -12983,7 +12998,8 @@ l-137 -640 -193 -3 -193 -2 4 22 c2 13 67 314 144 671 l139 647 192 0 193 0
             <div id="step-1" class="auth-reg-body">
                 <div class="auth-input-group">
                     <i class="ph-light ph-identification-card lx-field-ico"></i>
-                    <input type="text" id="reg-fname" placeholder="Full Name" autocomplete="name">
+                    <input type="text" id="reg-fname" placeholder="Full Name" autocomplete="name" oninput="gcOnRegNameInput()">
+                    <div id="reg-fname-warn" class="gc-name-warn" aria-live="polite" style="padding-left:4px;"></div>
                 </div>
                 <div class="auth-input-group" id="reg-username-group">
                     <i class="ph-light ph-at lx-field-ico"></i>
@@ -14043,11 +14059,13 @@ l-137 -640 -193 -3 -193 -2 4 22 c2 13 67 314 144 671 l139 647 192 0 193 0
         <div class="gc-ep-form-card" id="modern-username-wrapper">
             <div class="gc-ep-form-row">
                 <label for="edit-username">Username</label>
-                <input type="text" id="edit-username" placeholder="e.g. sabbir_ahmed" autocomplete="username">
+                <input type="text" id="edit-username" placeholder="e.g. sabbir_ahmed" autocomplete="username" oninput="gcOnEditUsernameInput()">
+                <div id="edit-username-warn" class="gc-name-warn" aria-live="polite"></div>
             </div>
             <div class="gc-ep-form-row">
                 <label for="edit-name">Name</label>
-                <input type="text" id="edit-name" placeholder="Your name">
+                <input type="text" id="edit-name" placeholder="Your name" oninput="gcOnEditNameInput()">
+                <div id="edit-name-warn" class="gc-name-warn" aria-live="polite"></div>
             </div>
             <div class="gc-ep-form-row">
                 <label for="edit-bio">Bio</label>
@@ -22125,11 +22143,23 @@ function gcRenderEducationList(){
 async function savePersonalDetails(){
     if(!currentUser) return;
     const newName = document.getElementById('edit-name').value.trim();
-    if(!newName){ showToast('Name cannot be empty'); return; }
-    /* Display name rules: letters + spaces only — no emoji, @, or symbols */
-    if(/@/.test(newName)){ showToast('Name cannot contain @'); return; }
-    if(/[\p{Emoji_Presentation}\p{Extended_Pictographic}]/u.test(newName)){ showToast('Name cannot contain emojis'); return; }
-    if(!/^[\p{L}\s]+$/u.test(newName)){ showToast('Name can only contain letters and spaces'); return; }
+    /* 2026-10-18 · Display name rules: letters + spaces only — no emoji, no symbols */
+    var nameCheck = gcValidateDisplayName(newName);
+    if(!nameCheck.ok){
+      if(typeof gcShowNameWarn === 'function') gcShowNameWarn('edit-name-warn', 'edit-name', nameCheck.msg);
+      showToast(nameCheck.msg || 'Invalid name');
+      return;
+    }
+    if(typeof gcShowNameWarn === 'function') gcShowNameWarn('edit-name-warn', 'edit-name', '');
+
+    let newUsernameRaw = document.getElementById('edit-username').value.trim();
+    // Username: only new hard block is emoji; rest uses previous normalize rules
+    if(typeof gcUsernameHasEmoji === 'function' && gcUsernameHasEmoji(newUsernameRaw)){
+      if(typeof gcShowNameWarn === 'function') gcShowNameWarn('edit-username-warn', 'edit-username', 'Username cannot contain emojis');
+      showToast('Username cannot contain emojis');
+      return;
+    }
+    if(typeof gcShowNameWarn === 'function') gcShowNameWarn('edit-username-warn', 'edit-username', '');
 
     const isNameChanged = (newName !== currentUserData.name);
     if (isNameChanged && currentUserData.lastNameChange) {
@@ -22140,8 +22170,7 @@ async function savePersonalDetails(){
         }
     }
 
-    let newUsername = document.getElementById('edit-username').value.trim().toLowerCase();
-    newUsername = newUsername.replace(/[^a-z0-9_]/g, '');
+    let newUsername = gcNormalizeRegUsername(newUsernameRaw);
 
     const updates = {
         username: newUsername,
@@ -26918,6 +26947,93 @@ window.gcCloseDobPrivacyPopup = gcCloseDobPrivacyPopup;
 
 let gcRegUserTimer = null;
 
+
+// ═══════════════════════════════════════════════════════
+// 2026-10-18 · Display name & username rules
+// Name: letters + spaces only (no emoji, no symbols).
+// Username: previous rules kept (a-z 0-9 _ via normalize, unique, min 3).
+//          Extra rule only: no emoji.
+// Live warning under the field; Save blocked until fixed.
+// ═══════════════════════════════════════════════════════
+function gcValidateDisplayName(name){
+  var n = String(name || '').trim();
+  if(!n) return { ok:false, msg:'Name cannot be empty' };
+  if(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/u.test(n) || /[\p{Emoji_Presentation}\p{Extended_Pictographic}]/u.test(n)){
+    return { ok:false, msg:'Name cannot contain emojis' };
+  }
+  if(/[@#_\-().,'"!$?%^*=+[\]{}\\\/|;:<>~`0-9]/.test(n)){
+    return { ok:false, msg:'Name can only contain letters and spaces — no symbols' };
+  }
+  if(!/^[\p{L}\s]+$/u.test(n)){
+    return { ok:false, msg:'Name can only contain letters and spaces' };
+  }
+  return { ok:true, msg:'' };
+}
+window.gcValidateDisplayName = gcValidateDisplayName;
+
+function gcUsernameHasEmoji(raw){
+  var s = String(raw || '');
+  return /[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/u.test(s) || /[\p{Emoji_Presentation}\p{Extended_Pictographic}]/u.test(s);
+}
+window.gcUsernameHasEmoji = gcUsernameHasEmoji;
+
+/* Username: only new restriction is emoji. Other rules stay as before (normalize a-z0-9_, length, unique). */
+function gcValidateUsername(raw){
+  if(gcUsernameHasEmoji(raw)){
+    return { ok:false, msg:'Username cannot contain emojis' };
+  }
+  var u = (typeof gcNormalizeRegUsername === 'function')
+    ? gcNormalizeRegUsername(raw)
+    : String(raw || '').toLowerCase().replace(/[^a-z0-9_]/g, '').slice(0, 24);
+  if(!u) return { ok:false, msg:'Username is required' };
+  if(u.length < 3) return { ok:false, msg:'Username must be at least 3 characters' };
+  return { ok:true, msg:'', value: u };
+}
+window.gcValidateUsername = gcValidateUsername;
+
+function gcShowNameWarn(warnId, inputId, msg){
+  var w = document.getElementById(warnId);
+  var inp = inputId ? document.getElementById(inputId) : null;
+  if(w){
+    if(msg){ w.textContent = msg; w.classList.add('show'); }
+    else { w.textContent = ''; w.classList.remove('show'); }
+  }
+  if(inp){
+    if(msg) inp.classList.add('gc-name-input-invalid');
+    else inp.classList.remove('gc-name-input-invalid');
+  }
+}
+window.gcShowNameWarn = gcShowNameWarn;
+
+function gcOnEditNameInput(){
+  var inp = document.getElementById('edit-name');
+  if(!inp) return;
+  var r = gcValidateDisplayName(inp.value);
+  gcShowNameWarn('edit-name-warn', 'edit-name', r.ok ? '' : r.msg);
+}
+window.gcOnEditNameInput = gcOnEditNameInput;
+
+function gcOnEditUsernameInput(){
+  var inp = document.getElementById('edit-username');
+  if(!inp) return;
+  // Only block emoji; other chars follow old normalize behavior on save
+  if(gcUsernameHasEmoji(inp.value)){
+    gcShowNameWarn('edit-username-warn', 'edit-username', 'Username cannot contain emojis');
+  } else {
+    gcShowNameWarn('edit-username-warn', 'edit-username', '');
+  }
+}
+window.gcOnEditUsernameInput = gcOnEditUsernameInput;
+
+function gcOnRegNameInput(){
+  var inp = document.getElementById('reg-fname');
+  if(!inp) return;
+  var r = gcValidateDisplayName(inp.value);
+  gcShowNameWarn('reg-fname-warn', 'reg-fname', r.ok ? '' : r.msg);
+}
+window.gcOnRegNameInput = gcOnRegNameInput;
+
+
 function gcNormalizeRegUsername(raw){
     return String(raw || '').toLowerCase().replace(/[^a-z0-9_]/g, '').slice(0, 24);
 }
@@ -26950,7 +27066,14 @@ function gcSetRegUsernameUI(state, text){
 function gcOnRegUsernameInput(){
     const inp = document.getElementById('reg-username');
     if(!inp) return;
-    // sanitize while typing
+    // 2026-10-18 · Username: only extra rule is no emoji (rest = old normalize)
+    var raw = inp.value || '';
+    if(typeof gcUsernameHasEmoji === 'function' && gcUsernameHasEmoji(raw)){
+        gcSetRegUsernameUI('bad', 'Username cannot contain emojis');
+        window.gcRegUsernameOk = false;
+        return;
+    }
+    // sanitize while typing (keep a-z 0-9 _) — same as before
     const cleaned = gcNormalizeRegUsername(inp.value);
     if(inp.value !== cleaned){
         const pos = inp.selectionStart;
@@ -27015,9 +27138,14 @@ function goToStep2() {
         showToast("Please fill all fields!");
         return;
     }
-    if(/@/.test(fname)){ showToast('Name cannot contain @'); return; }
-    if(/[\p{Emoji_Presentation}\p{Extended_Pictographic}]/u.test(fname)){ showToast('Name cannot contain emojis'); return; }
-    if(!/^[\p{L}\s]+$/u.test(fname)){ showToast('Name can only contain letters and spaces'); return; }
+    /* 2026-10-18 · Display name rules on registration */
+    var _nameOk = gcValidateDisplayName(fname);
+    if(!_nameOk.ok){
+        if(typeof gcShowNameWarn === 'function') gcShowNameWarn('reg-fname-warn', 'reg-fname', _nameOk.msg);
+        showToast(_nameOk.msg || 'Invalid name');
+        return;
+    }
+    if(typeof gcShowNameWarn === 'function') gcShowNameWarn('reg-fname-warn', 'reg-fname', '');
     if(!uname || uname.length < 3){
         showToast("Username is required (min 3 characters)");
         gcSetRegUsernameUI('bad', 'Username is required (min 3 characters)');
@@ -27149,6 +27277,13 @@ async function completeRegistration() {
     if(!fname || !email || !uname || !window.gcRegDob){
         showToast('Please complete the previous steps first.');
         return;
+    }
+    /* 2026-10-18 · Final gate for display name rules */
+    var _fn = gcValidateDisplayName(fname);
+    if(!_fn.ok){ showToast(_fn.msg || 'Invalid name'); return; }
+    if(typeof gcUsernameHasEmoji === 'function' && gcUsernameHasEmoji((document.getElementById('reg-username') || {}).value || '')){
+      showToast('Username cannot contain emojis');
+      return;
     }
     if(!window.gcRegAvatarSaved || !window.gcRegAvatarUrl){
         showToast('Please select and save a profile photo to continue.');
