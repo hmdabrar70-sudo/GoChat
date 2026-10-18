@@ -6814,17 +6814,33 @@ MODERN USERNAME SYSTEM STYLES
 /* 2026-10-18 · Display name & username live validation warnings */
 .gc-name-warn{
   display:none;
-  font-size:12px;
-  font-weight:600;
-  color:#ff4d6a;
+  align-items:center;
+  justify-content:center;
+  width:22px;
+  height:22px;
   margin-top:6px;
-  line-height:1.35;
-  padding-left:2px;
+  color:#ff4d6a;
+  flex-shrink:0;
 }
-.gc-name-warn.show{ display:block; }
+.gc-name-warn.show{ display:inline-flex; }
+.gc-name-warn svg{
+  width:20px;
+  height:20px;
+  display:block;
+}
 .gc-name-input-invalid{
   border-color:#ff4d6a !important;
 }
+/* Inline warn next to field value on edit rows when space is tight */
+.gc-ep-form-row .gc-name-warn.show{
+  position:absolute;
+  right:12px;
+  top:50%;
+  transform:translateY(-50%);
+  margin-top:0;
+  z-index:2;
+}
+.gc-ep-form-row{ position:relative; }
 
 .username-restriction-msg {
     font-size: 12px;
@@ -8309,11 +8325,7 @@ body.dark-mode .gc-reg-avatar-saved, html.dark .gc-reg-avatar-saved, .dark .gc-r
 .mf-sheet .mf-box > *{ position:relative; z-index:1; }
 .mf-handle{ width:42px; height:5px; border-radius:5px; background:var(--border); margin:11px auto 0; }
 .mf-sheet-head{ padding:14px 20px 12px; display:flex; align-items:center; gap:12px; }
-.mf-sheet-head .mf-sh-ico{
-  width:40px; height:40px; border-radius:13px; flex-shrink:0; display:flex; align-items:center; justify-content:center;
-  background:linear-gradient(135deg, color-mix(in srgb, var(--mf-gold) 22%, var(--surface-2)), var(--surface-2));
-  border:1px solid color-mix(in srgb, var(--mf-gold) 35%, var(--border)); color:var(--mf-gold-deep);
-}
+.mf-sheet-head .mf-sh-ico{ display:none !important; }
 .mf-sheet-head .mf-sh-ico .material-symbols-outlined{ font-size:22px; font-variation-settings:'FILL' 1; }
 .mf-sheet-head .mf-sh-t{ flex:1; min-width:0; }
 .mf-sheet-head .mf-sh-t .mf-sh-title{ font-size:17px; font-weight:900; color:var(--text); letter-spacing:-.3px; }
@@ -8325,15 +8337,31 @@ body.dark-mode .gc-reg-avatar-saved, html.dark .gc-reg-avatar-saved, .dark .gc-r
 }
 .mf-sheet-head .mf-sh-close:active{ transform:scale(.86) rotate(90deg); }
 
-/* search */
-.mf-search{ padding:0 20px 12px; position:relative; }
-.mf-search .material-symbols-outlined{ position:absolute; left:34px; top:50%; transform:translateY(-50%); color:var(--text-muted); font-size:19px; pointer-events:none; }
-.mf-search input{
+/* search · theme surface (not brand gradient) · 2026-10-18 */
+.mf-search{
+  padding:0 20px 12px; position:relative;
+  background:transparent !important;
+  border:none !important;
+  box-shadow:none !important;
+}
+.mf-search > i,
+.mf-search .material-symbols-outlined{
+  position:absolute; left:34px; top:50%; transform:translateY(-50%);
+  color:var(--text-muted) !important; font-size:18px; pointer-events:none; z-index:2;
+}
+.mf-search input,
+#mf-search-input{
   width:100%; padding:12px 14px 12px 44px; border-radius:14px; font-size:14.5px; font-family:inherit;
-  background:var(--surface-2); border:1.5px solid var(--border); color:var(--text); outline:none;
+  background:var(--surface-2) !important; border:1.5px solid var(--border) !important;
+  color:var(--text) !important; -webkit-text-fill-color:var(--text) !important;
+  outline:none; box-shadow:none !important;
   transition:border-color .25s, box-shadow .25s;
 }
-.mf-search input:focus{ border-color:var(--accent); box-shadow:0 0 0 4px var(--accent-glow); }
+.mf-search input:focus,
+#mf-search-input:focus{
+  border-color:var(--accent) !important;
+  box-shadow:0 0 0 4px var(--accent-glow) !important;
+}
 
 /* list */
 .mf-list{ overflow-y:auto; padding:4px 14px calc(20px + env(safe-area-inset-bottom)); display:flex; flex-direction:column; gap:8px; }
@@ -12345,8 +12373,7 @@ body:not(.light-mode) .sp-comment-compose button.is-ready{
 .gc-edu-search-wrap,
 .gc-loc-search,
 .gc-rel-search,
-.gc-fwd-search,
-.mf-search{
+.gc-fwd-search{
   background: linear-gradient(135deg, #c1f600 0%, #8fd400 42%, #00545f 100%) !important;
   border: none !important;
   box-shadow: 0 4px 14px rgba(193, 246, 0, 0.22) !important;
@@ -12357,8 +12384,7 @@ body:not(.light-mode) .sp-comment-compose button.is-ready{
 .gc-edu-search-wrap i,
 .gc-loc-search i,
 .gc-rel-search i,
-.gc-fwd-search i,
-.mf-search i{
+.gc-fwd-search i{
   color: rgba(10, 26, 18, 0.75) !important;
 }
 .search-input-wrap input,
@@ -12367,7 +12393,6 @@ body:not(.light-mode) .sp-comment-compose button.is-ready{
 #gc-loc-input,
 #gc-rel-search,
 #gc-fwd-search-input,
-#mf-search-input,
 #search-input,
 #msg-search-input,
 #menu-settings-search,
@@ -17344,6 +17369,7 @@ function gcOpenHomeDrawer(){
     const m = document.getElementById('gc-home-drawer-mask');
     if (!d || !m) return;
     m.classList.add('open');
+    try{ if(typeof gcLockScroll==='function') gcLockScroll(); }catch(e){}
     // double rAF so browser paints mask first → smoother slide
     requestAnimationFrame(function(){
       requestAnimationFrame(function(){ d.classList.add('open'); });
@@ -17354,6 +17380,7 @@ function gcCloseHomeDrawer(){
     const m = document.getElementById('gc-home-drawer-mask');
     if (d) d.classList.remove('open');
     if (m) m.classList.remove('open');
+    try{ if(typeof gcUnlockScroll==='function') gcUnlockScroll(); }catch(e){}
 }
 
 function closeMainMenu() {
@@ -26994,9 +27021,19 @@ window.gcValidateUsername = gcValidateUsername;
 function gcShowNameWarn(warnId, inputId, msg){
   var w = document.getElementById(warnId);
   var inp = inputId ? document.getElementById(inputId) : null;
+  var ico = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M0 0h24v24H0z" fill="none"/><g fill="currentColor"><path d="M12 7.25C12.4142 7.25 12.75 7.58579 12.75 8V13C12.75 13.4142 12.4142 13.75 12 13.75C11.5858 13.75 11.25 13.4142 11.25 13V8C11.25 7.58579 11.5858 7.25 12 7.25Z"/><path d="M12 17C12.5523 17 13 16.5523 13 16C13 15.4477 12.5523 15 12 15C11.4477 15 11 15.4477 11 16C11 16.5523 11.4477 17 12 17Z"/><path fill-rule="evenodd" d="M8.2944 4.47643C9.36631 3.11493 10.5018 2.25 12 2.25C13.4981 2.25 14.6336 3.11493 15.7056 4.47643C16.7598 5.81544 17.8769 7.79622 19.3063 10.3305L19.7418 11.1027C20.9234 13.1976 21.8566 14.8523 22.3468 16.1804C22.8478 17.5376 22.9668 18.7699 22.209 19.8569C21.4736 20.9118 20.2466 21.3434 18.6991 21.5471C17.1576 21.75 15.0845 21.75 12.4248 21.75H11.5752C8.91552 21.75 6.84239 21.75 5.30082 21.5471C3.75331 21.3434 2.52637 20.9118 1.79099 19.8569C1.03318 18.7699 1.15218 17.5376 1.65314 16.1804C2.14334 14.8523 3.07658 13.1977 4.25818 11.1027L4.69361 10.3307C6.123 7.79629 7.24019 5.81547 8.2944 4.47643ZM9.47297 5.40432C8.49896 6.64148 7.43704 8.51988 5.96495 11.1299L5.60129 11.7747C4.37507 13.9488 3.50368 15.4986 3.06034 16.6998C2.6227 17.8855 2.68338 18.5141 3.02148 18.9991C3.38202 19.5163 4.05873 19.8706 5.49659 20.0599C6.92858 20.2484 8.9026 20.25 11.6363 20.25H12.3636C15.0974 20.25 17.0714 20.2484 18.5034 20.0599C19.9412 19.8706 20.6179 19.5163 20.9785 18.9991C21.3166 18.5141 21.3773 17.8855 20.9396 16.6998C20.4963 15.4986 19.6249 13.9488 18.3987 11.7747L18.035 11.1299C16.5629 8.51987 15.501 6.64148 14.527 5.40431C13.562 4.17865 12.8126 3.75 12 3.75C11.1874 3.75 10.4379 4.17865 9.47297 5.40432Z" clip-rule="evenodd"/></g></svg>';
   if(w){
-    if(msg){ w.textContent = msg; w.classList.add('show'); }
-    else { w.textContent = ''; w.classList.remove('show'); }
+    if(msg){
+      w.innerHTML = ico;
+      w.setAttribute('title', msg);
+      w.setAttribute('aria-label', msg);
+      w.classList.add('show');
+    } else {
+      w.innerHTML = '';
+      w.removeAttribute('title');
+      w.removeAttribute('aria-label');
+      w.classList.remove('show');
+    }
   }
   if(inp){
     if(msg) inp.classList.add('gc-name-input-invalid');
@@ -30236,12 +30273,11 @@ function mfBuildSheet(){
     <div class="mf-box">
       <div class="mf-handle"></div>
       <div class="mf-sheet-head">
-        <div class="mf-sh-ico"><i class="ph-light ph-users-three"></i></div>
         <div class="mf-sh-t">
           <div class="mf-sh-title" id="mf-sh-title">Mutual Person</div>
           <div class="mf-sh-sub" id="mf-sh-sub">People you both know</div>
         </div>
-        <button class="mf-sh-close" onclick="mfCloseSheet()"><i class="ph-light ph-x"></i></button>
+        <button class="mf-sh-close" onclick="mfCloseSheet()" aria-label="Close"><i class="ph-light ph-x"></i></button>
       </div>
       <div class="mf-search">
         <i class="ph-light ph-magnifying-glass"></i>
@@ -30256,6 +30292,7 @@ async function mfOpenSheet(uid){
   mfCurrentUid = uid;
   const ov = document.getElementById('mf-sheet');
   ov.style.display = 'flex';
+  try{ if(typeof gcLockScroll==='function') gcLockScroll(); }catch(e){}
   document.getElementById('mf-search-input').value = '';
   document.getElementById('mf-list').innerHTML = '<div class="mf-empty"><i class="ph-light ph-spinner-gap" style="animation:spin 1s linear infinite;"></i><div class="mf-e-t">Loading…</div></div>';
 
@@ -30266,7 +30303,11 @@ async function mfOpenSheet(uid){
   document.getElementById('mf-sh-sub').textContent = other ? ('Shared with ' + (other.name||'this profile')) : 'People you both know';
   mfRenderList(mfCurrentList);
 }
-function mfCloseSheet(){ const ov = document.getElementById('mf-sheet'); if(ov) ov.style.display = 'none'; }
+function mfCloseSheet(){
+  const ov = document.getElementById('mf-sheet');
+  if(ov) ov.style.display = 'none';
+  try{ if(typeof gcUnlockScroll==='function') gcUnlockScroll(); }catch(e){}
+}
 
 function mfRenderList(arr){
   const box = document.getElementById('mf-list'); if(!box) return;
@@ -30870,6 +30911,46 @@ function qrAddToSettings(){
 
 
 // ═══════════════════════════════════════════════════════
+
+// ═══════════════════════════════════════════════════════
+// 2026-10-18 · Body scroll lock while modal / drawer open
+// Prevents home feed scrolling behind sheets & Explore menu
+// ═══════════════════════════════════════════════════════
+window.__gcScrollLockCount = window.__gcScrollLockCount || 0;
+function gcLockScroll(){
+  try{
+    window.__gcScrollLockCount = (window.__gcScrollLockCount || 0) + 1;
+    if(window.__gcScrollLockCount > 1) return;
+    var y = window.scrollY || window.pageYOffset || 0;
+    document.body.dataset.gcScrollY = String(y);
+    document.documentElement.style.overflow = 'hidden';
+    document.body.style.overflow = 'hidden';
+    document.body.style.position = 'fixed';
+    document.body.style.top = '-' + y + 'px';
+    document.body.style.left = '0';
+    document.body.style.right = '0';
+    document.body.style.width = '100%';
+  }catch(e){}
+}
+window.gcLockScroll = gcLockScroll;
+function gcUnlockScroll(){
+  try{
+    window.__gcScrollLockCount = Math.max(0, (window.__gcScrollLockCount || 1) - 1);
+    if(window.__gcScrollLockCount > 0) return;
+    var y = parseInt(document.body.dataset.gcScrollY || '0', 10) || 0;
+    document.documentElement.style.overflow = '';
+    document.body.style.overflow = '';
+    document.body.style.position = '';
+    document.body.style.top = '';
+    document.body.style.left = '';
+    document.body.style.right = '';
+    document.body.style.width = '';
+    delete document.body.dataset.gcScrollY;
+    window.scrollTo(0, y);
+  }catch(e){}
+}
+window.gcUnlockScroll = gcUnlockScroll;
+
 let gcSheetActions = [];
 function gcBuildSheet(groups){
 let ov = document.getElementById('gc-sheet-overlay');
@@ -30900,12 +30981,14 @@ html += '</div>';
 html += '</div>';
 ov.innerHTML = html;
 ov.classList.add('open');
+try{ if(typeof gcLockScroll==='function') gcLockScroll(); }catch(e){}
 }
 function gcCloseSheet(){
   const ov = document.getElementById('gc-sheet-overlay');
   if(!ov) return;
   ov.classList.remove('open');
   ov.style.display = 'none';
+  try{ if(typeof gcUnlockScroll==='function') gcUnlockScroll(); }catch(e){}
 }
 function gcSheetTap(idx){
 gcCloseSheet();
