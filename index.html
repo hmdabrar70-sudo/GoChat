@@ -1179,7 +1179,7 @@ body:not(.light-mode) .post-card {
 }
 
 
-/* ═══ Home feed left drawer (Trending / Category / Liked / Saved) ═══ */
+/* ═══ Home feed left drawer (Trending / Category / Liked) ═══ */
 #gc-home-drawer-mask{
     display:none;position:fixed;inset:0;z-index:101500;
     background:rgba(0,0,0,0.4);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);
@@ -1201,7 +1201,7 @@ body:not(.light-mode) .post-card {
 .gc-hd-title{font-weight:800;font-size:18px;color:var(--text);}
 
 
-/* ═══ Explore drawer · quick actions (Saved / Liked / Settings) ═══ */
+/* ═══ Explore drawer · quick actions (Liked / Settings) ═══ */
 .gc-hd-quick{
   display:flex;
   gap:10px;
@@ -13241,7 +13241,7 @@ l-137 -640 -193 -3 -193 -2 4 22 c2 13 67 314 144 671 l139 647 192 0 193 0
 </div>
 </div>
 
-<!-- Home left drawer: Trending / Category / Liked / Saved -->
+<!-- Home left drawer: Trending / Category / Liked / Settings -->
 <div id="gc-home-drawer-mask"></div>
 <aside id="gc-home-drawer" aria-hidden="true">
     <div class="gc-hd-head">
@@ -13249,9 +13249,6 @@ l-137 -640 -193 -3 -193 -2 4 22 c2 13 67 314 144 671 l139 647 192 0 193 0
         <button type="button" class="gc-hd-close" onclick="gcCloseHomeDrawer()" aria-label="Close"><i class="ph-light ph-x"></i></button>
     </div>
     <div class="gc-hd-quick">
-        <button type="button" class="gc-hd-quick-btn" onclick="gcCloseHomeDrawer(); openSavedItems();" title="Saved">
-            <svg class="gc-hd-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="24" height="24" aria-hidden="true"><defs><linearGradient id="gSav" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#f472b6"/><stop offset="100%" stop-color="#a21caf"/></linearGradient><filter id="sSav" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="#a21caf" flood-opacity="0.45"/></filter></defs><path d="M184,32H72A16,16,0,0,0,56,48V224a8,8,0,0,0,12.24,6.78L128,193.43l59.77,37.35A8,8,0,0,0,200,224V48A16,16,0,0,0,184,32Z" fill="url(#gSav)" filter="url(#sSav)"/></svg>
-        </button>
         <button type="button" class="gc-hd-quick-btn" onclick="gcCloseHomeDrawer(); gcOpenLikedScreen();" title="Liked">
             <svg class="gc-hd-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="24" height="24" aria-hidden="true"><defs><linearGradient id="gLik" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#fb7185"/><stop offset="55%" stop-color="#ef4444"/><stop offset="100%" stop-color="#b91c1c"/></linearGradient><filter id="sLik" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="#ef4444" flood-opacity="0.45"/></filter></defs><path d="M234,80.12A24,24,0,0,0,216,72H160V56a40,40,0,0,0-40-40,8,8,0,0,0-7.16,4.42L75.06,96H32a16,16,0,0,0-16,16v88a16,16,0,0,0,16,16H204a24,24,0,0,0,23.82-21l12-96A24,24,0,0,0,234,80.12ZM32,112H72v88H32Z" fill="url(#gLik)" filter="url(#sLik)"/></svg>
         </button>
@@ -15085,16 +15082,6 @@ l-137 -640 -193 -3 -193 -2 4 22 c2 13 67 314 144 671 l139 647 192 0 193 0
     </div>
 </div>
 
-<div id="saved-items-screen" class="screen" style="display:none; z-index: 10005; background: var(--bg); position: fixed; top: 0; left: 0; width: 100%; height: 100%; overflow-y: auto;">
-    <div class="chat-topbar" style="position: sticky; top: 0; z-index: 10; display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--border); background: var(--surface);">
-        <div onclick="closeSavedItems()" style="width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: var(--surface-2); border: 1px solid var(--border); cursor: pointer; color: var(--text);">
-            <i class="ph-light ph-arrow-left" style="font-size: 20px;"></i>
-        </div>
-        <div class="chat-name" style="font-size: 18px; font-weight: 800;">Saved Items</div>
-    </div>
-    <div id="saved-posts-container" style="padding: 15px; padding-bottom: 80px; max-width: 600px; margin: 0 auto;">
-        </div>
-</div>
 
 <!-- 🚀 Support Page Screen -->
 <div id="support-screen" style="display:none; position:fixed; inset:0; background:var(--bg); z-index:1005; flex-direction:column; overflow-y:auto; animation:slideUp 0.3s ease;">
@@ -23207,6 +23194,8 @@ function loadFeed() {
 
         const mutedList = currentUserData?.mutedFeedUsers || [];
         postsData = postsData.filter(p => !mutedList.includes(p.uid));
+        /* Legacy profile-pic update posts never appear in feed */
+        postsData = postsData.filter(function(p){ return !p.isProfilePicUpdate; });
 
         // Audience: followers-only posts visible to author + people who follow the author
         postsData = postsData.filter(function(p){
@@ -23855,20 +23844,6 @@ if(p.uid === currentUser?.uid){
         <i class="ph-light ph-trash" style="font-size:20px;"></i> Delete Post
     </div>`;
 } else {
-    const isAlreadySaved = currentUserData?.savedPosts?.includes(pid);
-    
-    if (isAlreadySaved) {
-        postDropdownHtml += `
-        <div class="chat-dropdown-item" onclick="event.stopPropagation(); unsavePost('${pid}')">
-            <i class="ph-light ph-bookmark-simple" style="color: var(--danger); font-size:20px;"></i> Remove from Saved
-        </div>`;
-    } else {
-        postDropdownHtml += `
-        <div class="chat-dropdown-item" onclick="event.stopPropagation(); markInterested('${pid}')">
-            <i class="ph-light ph-bookmark-simple"></i> Save
-        </div>`;
-    }
-    
     postDropdownHtml += `<div class="chat-dropdown-item" onclick="event.stopPropagation(); markNotInterested('${pid}', this)"><i class="ph-light ph-eye-slash"></i> Not Interested</div>`;
 // 🚀 Update #37 · post-report-system: রিপোর্ট অপশন (শুধু অন্যের পোস্টে)
 postDropdownHtml += `<div class="chat-dropdown-item danger" onclick="event.stopPropagation(); gcOpenReportSheet('${pid}')"><i class="ph-light ph-flag"></i> Report</div>`;
@@ -24034,7 +24009,7 @@ async function loadOtherUserPosts(uid){
     try{
         const snap=await db.collection('posts').where('uid','==',uid).get();
         let posts=[];
-        snap.forEach(d=>{posts.push({id:d.id,...d.data()});});
+        snap.forEach(d=>{const data=d.data()||{}; if(data.isProfilePicUpdate) return; posts.push({id:d.id,...data});});
         posts.sort((a,b)=>{
             const ta=a.createdAt?.toMillis?a.createdAt.toMillis():0;
             const tb=b.createdAt?.toMillis?b.createdAt.toMillis():0;
@@ -24275,7 +24250,7 @@ list.innerHTML=gcSkeletonPostHTML(2);
 try{
 const snap=await db.collection('posts').where('uid','==',currentUser.uid).get();
 let mine=[];
-snap.forEach(d=>{mine.push({id:d.id,...d.data()});});
+snap.forEach(d=>{const data=d.data()||{}; if(data.isProfilePicUpdate) return; mine.push({id:d.id,...data});});
 mine.sort((a,b)=>{
 if(a.isPinned&&!b.isPinned)return-1;
 if(!a.isPinned&&b.isPinned)return 1;
@@ -24731,36 +24706,30 @@ async function gcUploadAvatarFile(file){
   } catch (error) {
     console.error("Error updating old posts avatar: ", error);
   }
-  // Feed post when profile picture is updated
-  try {
-    const expireAt = new Date(Date.now() + ONE_YEAR_MS);
-    await db.collection('posts').add({
-      uid: currentUser.uid,
-      name: currentUserData.name || (currentUser.email ? currentUser.email.split('@')[0] : 'User'),
-      email: currentUserData.email || '',
-      isVerified: currentUserData.isVerified || false,
-      isLeader: !!(currentUserData.isLeader === true || currentUserData.isLeader === 1 || currentUserData.isLeader === 'true'),
-      avatar: url,
-      title: '',
-      imgUrls: [url],
-      imgUrl: url,
-      likes: 0,
-      likedBy: [],
-      comments: [],
-      commentCount: 0,
-      shares: 0,
-      isProfilePicUpdate: true,
-      isPinned: false,
-      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-      expiresAt: expireAt
-    });
-    try { if (typeof loadFeed === 'function') loadFeed(); } catch(e) {}
-  } catch (postErr) {
-    console.error('Profile pic post error:', postErr);
-  }
+  /* Profile photo only — no feed post (WhatsApp-style) */
+  try{ if(typeof gcCleanupProfilePicUpdatePosts==='function') gcCleanupProfilePicUpdatePosts(); }catch(e){}
   loadUserUI();
   showToast('Profile photo updated!');
 }
+
+
+
+/* Remove legacy profile-picture-update feed posts (isProfilePicUpdate) */
+async function gcCleanupProfilePicUpdatePosts(){
+  try{
+    if(!currentUser) return;
+    var snap = await db.collection('posts').where('uid','==',currentUser.uid).where('isProfilePicUpdate','==',true).get();
+    if(snap.empty) return;
+    var batch = db.batch();
+    var n = 0;
+    snap.forEach(function(doc){ batch.delete(doc.ref); n++; });
+    if(n) await batch.commit();
+    console.log('Cleaned profile-pic-update posts:', n);
+  }catch(e){
+    console.warn('gcCleanupProfilePicUpdatePosts', e);
+  }
+}
+window.gcCleanupProfilePicUpdatePosts = gcCleanupProfilePicUpdatePosts;
 
 async function cleanupExpiredPosts(){
 const now = new Date();
@@ -24780,6 +24749,7 @@ console.log('Cleanup error:', e);
 }
 
 setInterval(cleanupExpiredPosts, 30 * 60 * 1000);
+try{ setTimeout(function(){ if(typeof gcCleanupProfilePicUpdatePosts==='function') gcCleanupProfilePicUpdatePosts(); }, 4000); }catch(e){}
 
 document.addEventListener('DOMContentLoaded', () => {
 const chatInput = document.getElementById('chat-input');
@@ -26179,33 +26149,6 @@ window.openCreatePost = function() {
   if (originalOpenCreatePost) originalOpenCreatePost();
   loadMentionFriends();
 };
-// Interested বাটনে ক্লিক করলে (আসল সেভ লজিক)
-async function markInterested(postId) {
-    closeAllDropdowns();
-    if (!currentUser) return;
-
-    // লোকাল ডাটাবেসে সেভ করা
-    if (!currentUserData.savedPosts) currentUserData.savedPosts = [];
-    
-    if (!currentUserData.savedPosts.includes(postId)) {
-        currentUserData.savedPosts.push(postId);
-        showToast("Saving post...");
-        
-        try {
-            // ফায়ারবেসে পার্মানেন্টলি সেভ করা
-            await db.collection('users').doc(currentUser.uid).update({
-                savedPosts: firebase.firestore.FieldValue.arrayUnion(postId)
-            });
-            showToast("Marked as Interested & Saved!");
-        } catch(e) {
-            console.error("Error saving post:", e);
-            showToast("Failed to save post.");
-        }
-    } else {
-        showToast("Already saved in your list!");
-    }
-}
-
 // Not Interested বাটনে ক্লিক করলে
 function markNotInterested(pid, element) {
     closeAllDropdowns();
@@ -27603,104 +27546,6 @@ function updateMessageSoundUI() {
 }
 
 
-// ==========================================
-// 🚀 SAVED ITEMS SYSTEM LOGIC
-// ==========================================
-function openSavedItems() {
-    document.getElementById('saved-items-screen').style.display = 'block';
-    loadSavedPosts();
-}
-
-function closeSavedItems() {
-    document.getElementById('saved-items-screen').style.display = 'none';
-}
-
-async function loadSavedPosts() {
-    const container = document.getElementById('saved-posts-container');
-    container.innerHTML = '<div style="text-align:center; padding: 40px; color: var(--text-muted);">Loading your saved posts...</div>';
-
-    // ১. চেক করা ইউজার কোনো পোস্ট সেভ করেছে কি না
-    if (!currentUser || !currentUserData.savedPosts || currentUserData.savedPosts.length === 0) {
-        container.innerHTML = `
-            <div style="text-align:center; padding: 60px 20px; color: var(--text-muted);">
-                <h3 style="margin-bottom: 5px; color: var(--text);">No saved items yet</h3>
-                <p style="font-size:14px;">Click 'Interested' on any post to save it here for later.</p>
-            </div>
-        `;
-        return;
-    }
-
-    try {
-        // ২. ফায়ারবেস থেকে সেভ করা পোস্টগুলোর আইডি দিয়ে ডাটা আনা
-        const postPromises = currentUserData.savedPosts.map(id => db.collection('posts').doc(id).get());
-        const postSnaps = await Promise.all(postPromises);
-        
-        let html = '';
-        
-        // ৩. পোস্টগুলো লুপ করে HTML কার্ড বানানো
-        for (let snap of postSnaps) {
-            if (snap.exists) {
-                const p = snap.data();
-                p.id = snap.id;
-                
-                // পোস্টদাতার ইনফরমেশন বের করা
-                let uName = 'Unknown User';
-                let uAv = '<i class="ph-light ph-user-circle" style="font-size:24px; color:white;"></i>';
-                let uVer = false;
-                
-                if (allUsersCache) {
-                    const u = allUsersCache.find(user => user.id === p.uid);
-                    if (u) {
-                        uName = u.name;
-                        uAv = u.avatar ? `<img src="${u.avatar}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">` : uAv;
-                        uVer = u.verified;
-                    }
-                }
-                
-                // পোস্ট রেন্ডার করা
-                html += buildPostCardHTML(p, uAv, uName, uVer);
-            }
-        }
-
-        if (html === '') {
-            container.innerHTML = '<div style="text-align:center; padding: 40px; color: var(--text-muted);">Some saved posts are no longer available.</div>';
-        } else {
-            container.innerHTML = html;
-        }
-    } catch (error) {
-        console.error("Error loading saved posts:", error);
-        container.innerHTML = '<div style="text-align:center; padding: 40px; color: var(--danger);">Failed to load saved posts. Please try again.</div>';
-    }
-}
-
-
-// ==========================================
-// 🚀 UNSAVE POST LOGIC
-// ==========================================
-async function unsavePost(postId) {
-    closeAllDropdowns();
-    if (!currentUser || !currentUserData.savedPosts) return;
-
-    // ১. লোকাল ডাটাবেস থেকে রিমুভ করা
-    currentUserData.savedPosts = currentUserData.savedPosts.filter(id => id !== postId);
-    
-    try {
-        // ২. ফায়ারবেস থেকে পার্মানেন্টলি রিমুভ করা
-        await db.collection('users').doc(currentUser.uid).update({
-            savedPosts: firebase.firestore.FieldValue.arrayRemove(postId)
-        });
-        showToast("Post removed from saved items!");
-        
-        // ৩. 🚀 ম্যাজিক: যদি ইউজার 'Saved Items' স্ক্রিনের ভেতরেই থাকে, তবে সাথে সাথে পেজ রিফ্রেশ হয়ে পোস্টটা গায়েব হয়ে যাবে
-        const savedScreen = document.getElementById('saved-items-screen');
-        if (savedScreen && savedScreen.style.display !== 'none') {
-            loadSavedPosts();
-        }
-    } catch(e) {
-        console.error("Error unsaving post:", e);
-        showToast("Failed to remove post.");
-    }
-}
 
 
 // ==========================================
