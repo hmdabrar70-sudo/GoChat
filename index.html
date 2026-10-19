@@ -3839,6 +3839,63 @@ transform-origin:top left;
 .reaction-emoji:hover {
     transform: scale(1.4) translateY(-5px); /* হোভার করলে লাফিয়ে উঠবে */
 }
+
+/* ═══ Message action popup · IG layout + Threads polish ═══ */
+.gc-msg-pop-mask{
+  position:fixed; inset:0; z-index:2147483010;
+  background:rgba(0,0,0,0.28);
+  backdrop-filter:blur(2px);
+  -webkit-backdrop-filter:blur(2px);
+}
+.gc-msg-pop{
+  position:fixed; z-index:2147483011;
+  width:min(300px, calc(100vw - 28px));
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:20px;
+  box-shadow:0 12px 40px rgba(0,0,0,0.22), 0 2px 8px rgba(0,0,0,0.08);
+  overflow:hidden;
+  animation:gcMsgPopIn .22s cubic-bezier(.22,1,.36,1);
+  transform-origin:top center;
+}
+@keyframes gcMsgPopIn{
+  from{ opacity:0; transform:scale(0.92) translateY(8px); }
+  to{ opacity:1; transform:scale(1) translateY(0); }
+}
+.gc-msg-pop-reacts{
+  display:flex; align-items:center; justify-content:space-between;
+  gap:4px; padding:12px 12px 10px;
+  border-bottom:1px solid var(--border);
+  background:var(--surface);
+}
+.gc-msg-pop-reacts .gc-mp-emoji{
+  width:40px; height:40px; border-radius:50%;
+  display:inline-flex; align-items:center; justify-content:center;
+  font-size:24px; cursor:pointer; border:none; background:transparent;
+  transition:transform .15s cubic-bezier(.34,1.56,.64,1);
+  line-height:1;
+}
+.gc-msg-pop-reacts .gc-mp-emoji:active{ transform:scale(1.25); }
+.gc-msg-pop-list{ padding:6px 0; }
+.gc-msg-pop-item{
+  display:flex; align-items:center; justify-content:space-between;
+  gap:14px; padding:14px 18px;
+  font-size:16px; font-weight:650; color:var(--text);
+  cursor:pointer; background:transparent; border:none; width:100%;
+  font-family:inherit; text-align:left;
+}
+.gc-msg-pop-item:active{ background:var(--surface-2); }
+.gc-msg-pop-item i{
+  font-size:22px; color:var(--text); flex-shrink:0;
+}
+.gc-msg-pop-item.danger{ color:var(--danger); }
+.gc-msg-pop-item.danger i{ color:var(--danger); }
+.gc-msg-pop-item + .gc-msg-pop-item{ border-top:1px solid var(--border); }
+body:not(.light-mode) .gc-msg-pop{
+  background:#1a1a22;
+  border-color:rgba(255,255,255,0.08);
+  box-shadow:0 16px 48px rgba(0,0,0,0.55);
+}
 .chat-bubble-wrapper{position:relative;display:flex;flex-direction:column;margin-bottom:14px;}
 .chat-bubble-wrapper .bubble-menu-btn{
 position:absolute;top:50%;
@@ -20461,7 +20518,7 @@ safeText = safeText.replace(urlRegex, function(url) {
         return dateSepHtml + `<div class="chat-bubble-wrapper ${isMine?'mine':'theirs'}" data-msgid="${d.id}" ontouchstart="handleMsgTouchStart('${d.id}', event)" ontouchmove="handleMsgTouchMove(event)" ontouchend="handleMsgTouchEnd('${d.id}', event)" ontouchcancel="handleMsgTouchEnd('${d.id}', event)" onmousedown="handleMsgTouchStart('${d.id}', event)" onmouseup="handleMsgTouchEnd('${d.id}', event)" onmouseleave="handleMsgTouchEnd('${d.id}', event)" oncontextmenu="event.preventDefault(); return false;" onclick="handleMsgClick('${d.id}')">
             <div style="display:flex; flex-direction:row; align-items:flex-start; width:100%; ${isMine?'justify-content:flex-end;':''}">
                 ${!isMine ? msgAvatarHtml : ''}
-                <div class="chat-bubble ${isMine?'mine':'theirs'}${(((m.images&&m.images.length)||m.imageUrl)&&!m.text)||m.sharedPostId?' gc-media-only':''}${m.audioUrl?' gc-voice-bubble':''}" ${(isMine && !((((m.images&&m.images.length)||m.imageUrl)&&!m.text)||m.sharedPostId))?'style="background:#00BFFF !important;background-color:#00BFFF !important;background-image:none !important;"':''} ondblclick="showReactionPicker(event,'${d.id}')">
+                <div class="chat-bubble ${isMine?'mine':'theirs'}${(((m.images&&m.images.length)||m.imageUrl)&&!m.text)||m.sharedPostId?' gc-media-only':''}${m.audioUrl?' gc-voice-bubble':''}" ${(isMine && !((((m.images&&m.images.length)||m.imageUrl)&&!m.text)||m.sharedPostId))?'style="background:#00BFFF !important;background-color:#00BFFF !important;background-image:none !important;"':''} >
                     ${m.forwarded ? '<div class="gc-fwd-label"><i class="ph-light ph-arrow-bend-double-up-right"></i> Forwarded</div>' : ''}
                     ${senderNameHtml}
                     ${replyHtml}
@@ -20598,39 +20655,154 @@ window.gcCloseChatAttach = gcCloseChatAttach;
 window.gcChatAttachAction = gcChatAttachAction;
 window.gcChatListTime = gcChatListTime;
 
+
+function gcCloseMsgActionPopup(){
+  try{
+    document.querySelectorAll('.gc-msg-pop-mask, .gc-msg-pop').forEach(function(el){ el.remove(); });
+  }catch(e){}
+}
+window.gcCloseMsgActionPopup = gcCloseMsgActionPopup;
+
+function gcOpenMsgActionPopup(msgId){
+  if(!msgId) return;
+  gcCloseMsgActionPopup();
+  try{ document.querySelectorAll('.reaction-picker.show, .chat-bubble-menu.show').forEach(function(el){ el.remove(); }); }catch(e){}
+
+  var wrapper = document.querySelector('.chat-bubble-wrapper[data-msgid="'+msgId+'"]');
+  if(!wrapper) return;
+  var isMine = wrapper.classList.contains('mine');
+  var bubble = wrapper.querySelector('.chat-bubble');
+  var isText = false;
+  if(bubble){
+    var t = (bubble.textContent || '').trim();
+    isText = t.length > 0 && !bubble.querySelector('img,video,audio,.gc-voice-player');
+  }
+
+  var mask = document.createElement('div');
+  mask.className = 'gc-msg-pop-mask';
+  mask.addEventListener('click', function(){ gcCloseMsgActionPopup(); });
+
+  var pop = document.createElement('div');
+  pop.className = 'gc-msg-pop';
+  pop.setAttribute('role', 'dialog');
+  pop.setAttribute('aria-label', 'Message actions');
+
+  var reacts = [
+    {e:'❤️', k:'❤️'},
+    {e:'😆', k:'😆'},
+    {e:'😮', k:'😮'},
+    {e:'😥', k:'😥'},
+    {e:'😡', k:'😡'},
+    {e:'👍', k:'👍'}
+  ];
+  var reactHtml = '<div class="gc-msg-pop-reacts">';
+  reacts.forEach(function(r){
+    reactHtml += '<button type="button" class="gc-mp-emoji" aria-label="React" onclick="event.stopPropagation();gcMsgPopReact(\''+msgId+'\',\''+r.k+'\')">'+r.e+'</button>';
+  });
+  reactHtml += '</div>';
+
+  var items = [];
+  items.push({label:'Reply', icon:'ph-arrow-bend-up-left', fn:"gcMsgPopReply('"+msgId+"')"});
+  items.push({label:'Forward', icon:'ph-paper-plane-tilt', fn:"gcMsgPopForward('"+msgId+"')"});
+  if(isText) items.push({label:'Copy text', icon:'ph-link', fn:"gcMsgPopCopy('"+msgId+"')"});
+  if(isMine && isText) items.push({label:'Edit', icon:'ph-pencil-simple', fn:"gcMsgPopEdit('"+msgId+"')"});
+  items.push({label:'Delete for you', icon:'ph-trash', fn:"gcMsgPopDelete('"+msgId+"','forme')", danger:false});
+  if(isMine) items.push({label:'Unsend', icon:'ph-arrow-counter-clockwise', fn:"gcMsgPopDelete('"+msgId+"','everyone')", danger:true});
+
+  var listHtml = '<div class="gc-msg-pop-list">';
+  items.forEach(function(it){
+    listHtml += '<button type="button" class="gc-msg-pop-item'+(it.danger?' danger':'')+'" onclick="event.stopPropagation();'+it.fn+'">'
+      + '<span>'+it.label+'</span>'
+      + '<i class="ph-light '+it.icon+'"></i>'
+      + '</button>';
+  });
+  listHtml += '</div>';
+  pop.innerHTML = reactHtml + listHtml;
+
+  document.body.appendChild(mask);
+  document.body.appendChild(pop);
+
+  // Position near the bubble (Instagram-style)
+  try{
+    var br = wrapper.getBoundingClientRect();
+    var pw = pop.offsetWidth || 280;
+    var ph = pop.offsetHeight || 360;
+    var top = br.top - ph - 10;
+    if(top < 12) top = Math.min(br.bottom + 10, window.innerHeight - ph - 12);
+    var left;
+    if(isMine){
+      left = Math.min(br.right - pw, window.innerWidth - pw - 14);
+    } else {
+      left = Math.max(14, br.left);
+    }
+    if(left < 10) left = 10;
+    if(left + pw > window.innerWidth - 10) left = window.innerWidth - pw - 10;
+    pop.style.top = Math.max(10, top) + 'px';
+    pop.style.left = left + 'px';
+  }catch(e){
+    pop.style.top = '20%';
+    pop.style.left = '50%';
+    pop.style.transform = 'translateX(-50%)';
+  }
+}
+window.gcOpenMsgActionPopup = gcOpenMsgActionPopup;
+
+function gcMsgPopReact(msgId, emoji){
+  gcCloseMsgActionPopup();
+  if(typeof toggleMessageReaction === 'function') toggleMessageReaction(msgId, emoji);
+}
+function gcMsgPopReply(msgId){
+  gcCloseMsgActionPopup();
+  if(typeof replyToMessage === 'function') replyToMessage(msgId);
+}
+function gcMsgPopForward(msgId){
+  gcCloseMsgActionPopup();
+  if(typeof gcOpenForwardSheet === 'function') gcOpenForwardSheet(msgId);
+  else if(typeof selectionForward === 'function'){
+    selectedMsgIds = [msgId];
+    selectionForward();
+  }
+}
+async function gcMsgPopCopy(msgId){
+  gcCloseMsgActionPopup();
+  if(typeof gcIsAdvancedPrivacyActive === 'function' && gcIsAdvancedPrivacyActive()){
+    if(typeof showToast==='function') showToast('Copy is disabled while Advanced Privacy is ON');
+    return;
+  }
+  if(typeof copyMessageText === 'function') await copyMessageText(msgId);
+}
+async function gcMsgPopEdit(msgId){
+  gcCloseMsgActionPopup();
+  if(typeof editMessage === 'function') await editMessage(msgId);
+}
+async function gcMsgPopDelete(msgId, type){
+  gcCloseMsgActionPopup();
+  if(!msgId || !currentChatId) return;
+  try{
+    var ref = db.collection('chats').doc(currentChatId).collection('messages').doc(msgId);
+    if(type === 'everyone'){
+      await ref.delete();
+      if(typeof showToast==='function') showToast('Message unsent');
+    } else {
+      await ref.set({ deletedFor: firebase.firestore.FieldValue.arrayUnion(currentUser.uid) }, { merge: true });
+      if(typeof showToast==='function') showToast('Deleted for you');
+    }
+  }catch(e){
+    if(typeof showToast==='function') showToast('Could not delete');
+  }
+}
+window.gcMsgPopReact = gcMsgPopReact;
+window.gcMsgPopReply = gcMsgPopReply;
+window.gcMsgPopForward = gcMsgPopForward;
+window.gcMsgPopCopy = gcMsgPopCopy;
+window.gcMsgPopEdit = gcMsgPopEdit;
+window.gcMsgPopDelete = gcMsgPopDelete;
+
+
 function showReactionPicker(event, msgId) {
-    event.stopPropagation();
-    const existing = document.querySelector('.reaction-picker.show');
-    if (existing) existing.remove();
-    
-    const wrapper = event.currentTarget.closest('.chat-bubble-wrapper');
-    const picker = document.createElement('div');
-    picker.className = 'reaction-picker show';
-    
-        // 🚀 NEW: আপনার সিলেক্ট করা ৫টি স্পেশাল ইমোজি লিস্ট
-    picker.innerHTML = `
-        <span class="reaction-emoji" onclick="toggleMessageReaction('${msgId}','❤️')">❤️</span>
-        <span class="reaction-emoji" onclick="toggleMessageReaction('${msgId}','😆')">😆</span>
-        <span class="reaction-emoji" onclick="toggleMessageReaction('${msgId}','🥰')">🥰</span>
-        <span class="reaction-emoji" onclick="toggleMessageReaction('${msgId}','😥')">😥</span>
-        <span class="reaction-emoji" onclick="toggleMessageReaction('${msgId}','😡')">😡</span>
-    `;
-    
-    
-wrapper.style.zIndex = '9999';
-wrapper.appendChild(picker);
-// 🚀 Update #15 · reaction-picker-flip: উপরে জায়গা না থাকলে পিকার নিচে দেখাবে
-requestAnimationFrame(function(){
-const pr = picker.getBoundingClientRect();
-if(pr.top < 140){ picker.classList.add('below'); }
-});
-    setTimeout(() => {
-        document.addEventListener('click', function closePicker() {
-if(picker) picker.remove();
-wrapper.style.zIndex = '';
-document.removeEventListener('click', closePicker);
-}, { once: true });
-    }, 100);
+  /* Double-tap reaction removed — reactions live on long-press popup */
+  try{ if(event){ event.stopPropagation(); event.preventDefault(); } }catch(e){}
+  if(msgId && typeof gcOpenMsgActionPopup === 'function') gcOpenMsgActionPopup(msgId);
 }
 
 async function toggleMessageReaction(msgId, emoji) {
@@ -25036,9 +25208,12 @@ function handleMsgTouchStart(msgId, event) {
         touchStartY = event.touches[0].clientY;
     }
     isSwiping = false;
-    msgPressTimer = setTimeout(() => {
-        if(!isSwiping) enterSelectionMode(msgId);
-    }, 500);
+    msgPressTimer = setTimeout(function(){
+        if(!isSwiping && typeof gcOpenMsgActionPopup === 'function'){
+            try{ if(navigator.vibrate) navigator.vibrate(30); }catch(e){}
+            gcOpenMsgActionPopup(msgId);
+        }
+    }, 450);
 }
 
 function handleMsgTouchMove(event) {
