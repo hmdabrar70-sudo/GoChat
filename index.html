@@ -17379,8 +17379,18 @@ function showPage(page) {
 
     // 🚀 Stop post music when leaving current view / switching pages
 
-    // 🚀 স্মার্ট রিফ্রেশ লজিক
-    if (page === 'feed' && document.getElementById('page-feed').classList.contains('active')) {
+    // Save scroll of the page we are leaving (feed / profile / others)
+    try{
+      window.__gcPageScroll = window.__gcPageScroll || {};
+      var _leaving = document.querySelector('.page.active');
+      if(_leaving && _leaving.id){
+        window.__gcPageScroll[_leaving.id] = window.pageYOffset || document.documentElement.scrollTop || 0;
+      }
+    }catch(e){}
+
+    // 🚀 স্মার্ট রিফ্রেশ লজিক — same tab re-tap still refreshes + goes to top
+    if (page === 'feed' && document.getElementById('page-feed') && document.getElementById('page-feed').classList.contains('active')) {
+        try{ window.__gcPageScroll = window.__gcPageScroll || {}; window.__gcPageScroll['page-feed'] = 0; }catch(e){}
         refreshFeed(); 
         window.scrollTo({top: 0, behavior: 'smooth'}); 
         return; 
@@ -17529,10 +17539,35 @@ function showPage(page) {
         notifLoading.innerHTML = gcSkeletonNotificationsHTML(5);
       }
     }
-    if(page === 'profile') { loadUserUI(); loadMyPosts(); }
+    if(page === 'profile') {
+      loadUserUI();
+      // Only rebuild posts if list is empty — preserves scroll when returning
+      try{
+        var _mpl = document.getElementById('my-posts-list');
+        var _hasPosts = _mpl && (_mpl.querySelector('[data-post-id]') || _mpl.querySelector('.grid-post-item') || _mpl.querySelector('.post-card'));
+        if(!_hasPosts) loadMyPosts();
+      }catch(e){ try{ loadMyPosts(); }catch(_e){} }
+    }
     if(page === 'friends') { loadFriendRequests(); loadAllFriends(); }
-    
-    window.scrollTo({top: 0, behavior: 'smooth'});
+
+    // Restore scroll for feed/profile; other pages go to top
+    try{
+      window.__gcPageScroll = window.__gcPageScroll || {};
+      var _tid = 'page-' + page;
+      var _y = window.__gcPageScroll[_tid];
+      if((page === 'feed' || page === 'profile') && typeof _y === 'number' && _y > 0){
+        var _restore = function(){ try{ window.scrollTo(0, _y); }catch(e){} };
+        _restore();
+        requestAnimationFrame(_restore);
+        setTimeout(_restore, 40);
+        setTimeout(_restore, 160);
+        setTimeout(_restore, 320);
+      } else {
+        window.scrollTo({top: 0, behavior: 'auto'});
+      }
+    }catch(e){
+      try{ window.scrollTo({top: 0, behavior: 'auto'}); }catch(_e){}
+    }
 }
 
 function refreshFeed(){
@@ -19414,45 +19449,9 @@ function gcSyncShortsCache(pid, likes, likedBy, reactions){
 window.gcSyncShortsCache = gcSyncShortsCache;
 
 function handleDoubleTap(pid,event){
-if(!pid || !currentUser) return;
-try{
-  var post = (event && event.currentTarget) || null;
-  if(!post || !post.querySelector){
-    post = document.querySelector('.post-media-wrap[ondblclick*="' + pid + '"]')
-      || document.querySelector('[data-post-id="' + pid + '"] .post-media-wrap')
-      || document.querySelector('[data-post-id="' + pid + '"]')
-      || document.querySelector('.gc-short-item[data-post-id="' + pid + '"]');
-  }
-  if(post){
-    var heart = post.querySelector('.double-tap-heart');
-    if(!heart){
-      heart = document.createElement('i');
-      heart.className = 'ph-light ph-thumbs-up double-tap-heart';
-      try{
-        var cs = window.getComputedStyle(post);
-        if(cs.position === 'static') post.style.position = 'relative';
-      }catch(e){}
-      post.appendChild(heart);
-    }
-    heart.classList.remove('show');
-    void heart.offsetWidth;
-    heart.classList.add('show');
-  }
-}catch(e){}
-try{
-  const ref = db.collection('posts').doc(pid);
-  ref.get().then(function(doc){
-    if(doc.exists){
-      const p = doc.data() || {};
-      const likedBy = p.likedBy || [];
-      if(!likedBy.includes(currentUser.uid)){
-        if(typeof toggleLike === 'function') toggleLike(pid);
-      }
-    }
-  }).catch(function(){});
-}catch(e){
-  try{ if(typeof toggleLike === 'function') toggleLike(pid); }catch(err){}
-}
+  /* Double-tap like removed for all media (image + video). Keep no-op so old markup does not error. */
+  try{ if(event){ event.preventDefault(); event.stopPropagation(); } }catch(e){}
+  return;
 }
 
 async function openCommentPanel(pid) {
@@ -23729,17 +23728,15 @@ let slides=imgUrls.map(url=>{
 const safeUrl = escapeHTML(url);
 return`<div class="gc-feed-slide"><img class="post-img" src="${safeUrl}" onclick="event.stopPropagation();openImageZoom('${safeUrl}',null,${zoomIsProfile})" alt=""></div>`;
 }).join('');
-mediaHtml=`<div class="post-media-wrap" ondblclick="event.stopPropagation(); handleDoubleTap('${pid}',event)">
+mediaHtml=`<div class="post-media-wrap">
 <div class="post-media-carousel">
 ${slides}
 </div>
-<i class="ph-light ph-thumbs-up double-tap-heart"></i>
 </div>`;
 }else if(imgUrls.length===1){
 const safeUrl = escapeHTML(imgUrls[0]);
-mediaHtml=`<div class="post-media-wrap" ondblclick="event.stopPropagation(); handleDoubleTap('${pid}',event)">
+mediaHtml=`<div class="post-media-wrap">
 <img class="post-img" src="${safeUrl}" onclick="event.stopPropagation();openImageZoom('${safeUrl}','${pid}',${zoomIsProfile})" alt="">
-<i class="ph-light ph-thumbs-up double-tap-heart"></i>
 </div>`;
 }
 
