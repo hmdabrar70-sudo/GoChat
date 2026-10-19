@@ -9097,7 +9097,7 @@ transition:background .2s;
 .gc-vp-btn i{font-size:17px;}
 .gc-vp-btn:active{transform:scale(.9);}
 .gc-vplayer.gc-controls-hidden .gc-vp-bar{opacity:0;visibility:hidden;pointer-events:none;}
-/* Facebook-style: mute always visible even when controls hide */
+/* Facebook-style mute — always visible (only mute control on video) */
 .gc-vplayer .gc-vp-mute-float{
   position:absolute; right:10px; bottom:12px; z-index:4;
   width:36px; height:36px; border-radius:50%;
@@ -9108,9 +9108,7 @@ transition:background .2s;
   opacity:1 !important; visibility:visible !important; pointer-events:auto !important;
 }
 .gc-vplayer .gc-vp-mute-float i{ font-size:18px; color:#fff; }
-.gc-vplayer.gc-controls-hidden .gc-vp-mute-float{ opacity:1 !important; visibility:visible !important; }
-.gc-vplayer:not(.gc-controls-hidden) .gc-vp-mute-float{ display:none; }
-.gc-vplayer.gc-controls-hidden .gc-vp-bar .gc-vp-mute{ visibility:hidden; }
+.gc-vplayer .gc-vp-bar .gc-vp-mute{ display:none !important; }
 
 .gc-vp-full,.gc-vp-dl,.gc-vp-center{display:none !important;}
 .gc-vplayer:fullscreen{border-radius:0;background:#000;}
@@ -17047,7 +17045,7 @@ else{fBadgeDrawer.style.display='none';}
 });
 notifUnsub = db.collection('notifications').where('toUid', '==', user.uid).onSnapshot(async nSnap => {
     var gcNotifLoadingList = document.getElementById('notifications-list');
-    if (gcNotifLoadingList && !gcNotifLoadingList.querySelector('.notif-item') && !gcNotifLoadingList.querySelector('.gc-skeleton-notif')) gcNotifLoadingList.innerHTML = gcSkeletonNotificationsHTML(5);
+    if (gcNotifLoadingList && !window.__gcNotifsLoadedOnce && !gcNotifLoadingList.querySelector('.notif-item') && !gcNotifLoadingList.querySelector('.notif-empty') && !gcNotifLoadingList.querySelector('.gc-skeleton-notif')) gcNotifLoadingList.innerHTML = gcSkeletonNotificationsHTML(5);
     if (!allUsersCache) await fetchAllUsers();
     
     let notifs = [];
@@ -17076,6 +17074,7 @@ notifUnsub = db.collection('notifications').where('toUid', '==', user.uid).onSna
     const nList = document.getElementById('notifications-list');
     if (!nList) return;
     
+    window.__gcNotifsLoadedOnce = true;
     if (notifs.length === 0) {
         nList.innerHTML = '<div class="notif-empty"><i class="ph-light ph-bell-slash"></i><h3>No notifications yet</h3><p>When someone likes, comments, or follows you, it will show up here.</p></div>';
         return;
@@ -17497,8 +17496,20 @@ function showPage(page) {
     if(page === 'messages') loadMessages();
     if(page === 'notifications') {
       const notifLoading = document.getElementById('notifications-list');
-      if(notifLoading && !notifLoading.querySelector('.notif-item') && !notifLoading.querySelector('.gc-skeleton-notif')) {
+      /* Skeleton only while first load pending — never overwrite empty state or existing list */
+      if(notifLoading
+        && !notifLoading.querySelector('.notif-item')
+        && !notifLoading.querySelector('.notif-empty')
+        && !notifLoading.querySelector('.gc-skeleton-notif')
+        && !window.__gcNotifsLoadedOnce) {
         notifLoading.innerHTML = gcSkeletonNotificationsHTML(5);
+      } else if(notifLoading
+        && window.__gcNotifsLoadedOnce
+        && !notifLoading.querySelector('.notif-item')
+        && !notifLoading.querySelector('.notif-empty')
+        && notifLoading.querySelector('.gc-skeleton-notif')) {
+        /* Stuck skeleton after load completed with 0 items → empty state */
+        notifLoading.innerHTML = '<div class="notif-empty"><i class="ph-light ph-bell-slash"></i><h3>No notifications yet</h3><p>When someone likes, comments, or follows you, it will show up here.</p></div>';
       }
     }
     if(page === 'profile') {
@@ -34898,7 +34909,9 @@ if(v.muted) v.setAttribute('muted', ''); else v.removeAttribute('muted');
 v.setAttribute('playsinline', ''); v.setAttribute('webkit-playsinline', '');
 wrap.appendChild(v);
 var muteIcon = v.muted ? 'ph-light ph-speaker-slash' : 'ph-light ph-speaker-high';
-wrap.insertAdjacentHTML('beforeend', '<div class="gc-vp-bar"><span class="gc-vp-cur">0:00</span><div class="gc-vp-track"><div class="gc-vp-fill"></div></div><span class="gc-vp-dur">0:00</span><button class="gc-vp-btn gc-vp-mute" type="button"><i class="ph-light ' + muteIcon + '"></i></button></div>');
+wrap.insertAdjacentHTML('beforeend', '<div class="gc-vp-bar"><span class="gc-vp-cur">0:00</span><div class="gc-vp-track"><div class="gc-vp-fill"></div></div><span class="gc-vp-dur">0:00</span></div>');
+/* Mute: only Facebook-style always-visible float button (no bar mute) */
+wrap.insertAdjacentHTML('beforeend', '<button type="button" class="gc-vp-mute-float" aria-label="Mute"><i class="ph-light ' + muteIcon + '"></i></button>');
 img.replaceWith(wrap);
 gcBindVPlayer(wrap);
 if(window.gcVpObserver) window.gcVpObserver.observe(wrap);
@@ -35060,14 +35073,7 @@ track.addEventListener('click', function(e){
   if(v.duration) v.currentTime = p * v.duration;
 });
 }
-if(muteBtn){
-muteBtn.addEventListener('click', function(e){
-e.stopPropagation();
-showControls();
-window.gcGlobalMuted = !window.gcGlobalMuted;
-gcApplyGlobalMuteToAll();
-});
-}
+
 wrap.addEventListener('click', function(e){ e.stopPropagation(); });
 }
 // অটো-প্লে: একসাথে একটাই চলে; নতুন ইন-ভিউ → পুরনো পজ, নতুন প্লে (muted)
