@@ -6454,6 +6454,14 @@ background:rgba(0,0,0,.28);color:#fff;font-size:18px;pointer-events:none;
 /* প্রোফাইল পেজ ওপেন হলে এটাকে ফুল স্ক্রিন ও উপরে রাখা */
 #page-other-profile.open {
     display: flex !important;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
+}
+/* Prevent body/home feed scrolling while other profile is open */
+body:has(#page-other-profile.open){
+    overflow: hidden !important;
+    overscroll-behavior: none;
 }
 /* Story viewer MUST be above other-profile (10000) so profile-tap story opens immediately */
 .story-viewer-modal,
@@ -14292,7 +14300,10 @@ l-137 -640 -193 -3 -193 -2 4 22 c2 13 67 314 144 671 l139 647 192 0 193 0
 </div>
 <div class="compose-img-grid" id="compose-img-grid"></div>
 </div>
-</div> <div id="single-post-screen">
+</div>
+</div><!-- /#create-post-screen -->
+
+<div id="single-post-screen">
 <div class="chat-topbar">
 <div class="chat-back" onclick="closeSinglePost()"><i class="ph-light ph-arrow-left"></i></div>
 <div class="chat-name">Post</div>
@@ -14503,9 +14514,6 @@ l-137 -640 -193 -3 -193 -2 4 22 c2 13 67 314 144 671 l139 647 192 0 193 0
   </div>
 </div>
 
-
-</div>
-
 <div class="modal-overlay" id="login-success-modal" style="z-index:10007;align-items:center;justify-content:center;padding:20px;">
     <div class="gc-login-ok-card" onclick="event.stopPropagation()">
         <div class="gc-login-ok-icon"><i class="ph-light ph-check-circle"></i></div>
@@ -14645,18 +14653,10 @@ l-137 -640 -193 -3 -193 -2 4 22 c2 13 67 314 144 671 l139 647 192 0 193 0
         </div>
         <button class="compose-btn" onclick="submitTextStory()" id="modal-text-story-btn" style="margin:0;" disabled>Post Story</button>
     </div>
-    <div style="flex:1; display:flex; flex-direction:column; justify-content:center; align-items:center; padding:20px; transition: background 0.3s;" id="text-story-preview">
-        <textarea id="text-story-input" placeholder="Type your status..." style="width:100%; border:none; background:transparent; color:#ffffff; font-size:28px; font-weight:800; text-align:center; outline:none; resize:none; font-family:inherit; min-height:200px;" oninput="checkTextStoryInput()"></textarea>
+    <div style="flex:1; display:flex; flex-direction:column; justify-content:center; align-items:center; padding:20px; transition: background 0.3s;" id="text-story-preview" style="background:var(--surface-2);">
+        <textarea id="text-story-input" placeholder="Type your status..." style="width:100%; border:none; background:transparent; color:var(--text); font-size:28px; font-weight:800; text-align:center; outline:none; resize:none; font-family:inherit; min-height:200px;" oninput="checkTextStoryInput()"></textarea>
     </div>
-    <div class="bg-color-picker show" style="display:flex; padding: 16px; background:var(--surface);">
-        <div class="color-circle selected" style="background: linear-gradient(135deg, var(--accent) 0%, var(--accent-light) 100%);" onclick="selectTextStoryBg('linear-gradient(135deg, var(--accent) 0%, var(--accent-light) 100%)', this)"></div>
-        <div class="color-circle" style="background: linear-gradient(45deg, #ff9a9e 0%, #fecfef 99%, #fecfef 100%);" onclick="selectTextStoryBg('linear-gradient(45deg, #ff9a9e 0%, #fecfef 99%, #fecfef 100%)', this)"></div>
-        <div class="color-circle" style="background: linear-gradient(120deg, #a1c4fd 0%, #c2e9fb 100%);" onclick="selectTextStoryBg('linear-gradient(120deg, #a1c4fd 0%, #c2e9fb 100%)', this)"></div>
-        <div class="color-circle" style="background: linear-gradient(to right, #43e97b 0%, #38f9d7 100%);" onclick="selectTextStoryBg('linear-gradient(to right, #43e97b 0%, #38f9d7 100%)', this)"></div>
-        <div class="color-circle" style="background: linear-gradient(to right, #fa709a 0%, #fee140 100%);" onclick="selectTextStoryBg('linear-gradient(to right, #fa709a 0%, #fee140 100%)', this)"></div>
-        <div class="color-circle" style="background: #1a1a2e;" onclick="selectTextStoryBg('#1a1a2e', this)"></div>
-        <div class="color-circle" style="background: #e91e63;" onclick="selectTextStoryBg('#e91e63', this)"></div>
-    </div>
+    
 </div>
 
 <div id="in-app-notif-container"></div>
@@ -19885,6 +19885,7 @@ async function viewUserProfile(uid){
     if(otherPage){
         otherPage.classList.add('open');
         otherPage.classList.add('gc-loading-profile');
+        try{ if(typeof gcLockScroll==='function') gcLockScroll(); }catch(_ls){}
         try {
             otherPage.scrollTop = 0;
             const nameEl = document.getElementById('other-profile-name');
@@ -20206,6 +20207,7 @@ currentOtherProfileUid=null;
 window.gcViewAsMode = false; // 🚀 view-as-feature · 2026-09-05 — সবসময় বন্ধ করার সময় রিসেট
 // Invalidate in-flight profile loads so they don't re-open after back
 window._gcProfileReq = (window._gcProfileReq || 0) + 1;
+try{ if(typeof gcUnlockScroll==='function') gcUnlockScroll(); }catch(_us){}
 if (typeof gcSyncCoverTopbarMode === 'function') gcSyncCoverTopbarMode();
 }
 
@@ -22621,6 +22623,7 @@ async function openSinglePostView(pid) {
       return;
     }
     if(screen) screen.classList.add('open');
+    try{ if(typeof gcLockScroll==='function') gcLockScroll(); }catch(_e){}
     if(!container) return;
     container.innerHTML = (typeof SKELETON_HTML !== 'undefined') ? SKELETON_HTML : '<div class="loading" style="padding:24px;text-align:center;">Loading...</div>';
     activeCommentPostId = pid;
@@ -23927,6 +23930,7 @@ function closeSinglePost(){
     const compose = document.getElementById('sp-fixed-compose');
     if(compose) compose.style.display = 'none';
     if(singlePostUnsub){ try{ singlePostUnsub(); }catch(e){} singlePostUnsub = null; }
+    try{ if(typeof gcUnlockScroll==='function') gcUnlockScroll(); }catch(e){}
 }
 window.closeSinglePost = closeSinglePost;
 
@@ -23977,14 +23981,22 @@ async function loadOtherUserPosts(uid){
             let media = '';
             let multiIcon = (!isVideoPost && imgUrls.length > 1) ? '<svg class="gc-dots-ico grid-multi-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"  style="width:18px;height:18px;display:block;flex-shrink:0;"><path d="M144,128a16,16,0,1,1-16-16A16,16,0,0,1,144,128ZM60,112a16,16,0,1,0,16,16A16,16,0,0,0,60,112Zm136,0a16,16,0,1,0,16,16A16,16,0,0,0,196,112Z"/></svg>' : '';
             if (isVideoPost) {
-                const thumb = p.videoUrl || imgUrls[0] || '';
-                media = '<div class="grid-post-video-thumb" style="position:relative;width:100%;height:100%;background:#111;display:flex;align-items:center;justify-content:center;">'
-                    + (thumb ? '<img src="' + escapeHTML(thumb) + '" style="width:100%;height:100%;object-fit:cover;">' : '')
-                    + '<i class="ph-light ph-play-circle" style="position:absolute;font-size:28px;color:#fff;filter:drop-shadow(0 2px 6px rgba(0,0,0,.5));"></i></div>';
+                let thumb = imgUrls[0] || p.thumb || p.thumbnail || p.poster || p.videoThumb || '';
+                const vUrl = p.videoUrl || imgUrls[0] || '';
+                if ((!thumb || /\.(mp4|webm|mov)(\?|$)/i.test(String(thumb)) || String(thumb).indexOf('/video/') !== -1) && vUrl) {
+                  if (String(vUrl).indexOf('/video/upload/') !== -1) {
+                    thumb = String(vUrl).replace('/video/upload/', '/video/upload/so_0,f_jpg,w_480,c_fill/').replace(/\.(mp4|webm|mov)(\?.*)?$/i, '.jpg');
+                  } else {
+                    thumb = '';
+                  }
+                }
+                media = '<div class="grid-post-video-thumb" style="position:relative;width:100%;min-height:120px;background:#111;display:flex;align-items:center;justify-content:center;pointer-events:none;">'
+                    + (thumb ? '<img src="' + escapeHTML(thumb) + '" style="width:100%;height:100%;object-fit:cover;pointer-events:none;" onerror="this.style.display=\'none\'">' : '')
+                    + '<i class="ph-light ph-play-circle" style="position:absolute;font-size:28px;color:#fff;filter:drop-shadow(0 2px 6px rgba(0,0,0,.5));pointer-events:none;"></i></div>';
             } else {
-                media = '<img src="' + escapeHTML(imgUrls[0]) + '">';
+                media = '<img src="' + escapeHTML(imgUrls[0]) + '" alt="" loading="lazy" style="pointer-events:none;width:100%;height:auto;display:block;object-fit:cover;" onerror="this.style.opacity=.35">';
             }
-            gridHtml += '<div class="grid-post-item" data-post-kind="' + kind + '" onclick="openSinglePostView(\'' + p.id + '\')">' + media + multiIcon + '</div>';
+            gridHtml += '<div class="grid-post-item" data-post-id="' + p.id + '" data-post-kind="' + kind + '" role="button" tabindex="0" onclick="event.stopPropagation();if(typeof openSinglePostView===\'function\')openSinglePostView(\'' + p.id + '\');">' + media + multiIcon + '</div>';
         });
         gridHtml += '</div>';
         let html = gridHtml + '<div class="profile-status-feed" style="display:none;">' + statusHtml + '</div>';
@@ -24000,6 +24012,24 @@ async function loadOtherUserPosts(uid){
         }catch(e){}
     }catch(e){list.innerHTML='<div class="empty-feed">Failed to load posts.</div>';}
 }
+
+
+// Profile grid · reliable open (nested img/video-thumb must not block)
+(function(){
+  if (window.__gcProfileGridClickV1) return;
+  window.__gcProfileGridClickV1 = true;
+  document.addEventListener('click', function(e){
+    var item = e.target && e.target.closest && e.target.closest('.grid-post-item');
+    if (!item) return;
+    if (!item.closest('#other-user-posts-list, #my-posts-list')) return;
+    var pid = item.getAttribute('data-post-id');
+    if (!pid) return;
+    e.preventDefault();
+    e.stopPropagation();
+    if (typeof openSinglePostView === 'function') openSinglePostView(pid);
+  }, true);
+})();
+
 
 function loadUserUI(){
     if(!currentUser||!currentUserData) return;
@@ -27367,7 +27397,7 @@ let currentTextStoryBg = 'linear-gradient(135deg, var(--accent) 0%, var(--accent
 function openTextStoryModal() {
     document.getElementById('create-text-story-modal').style.display = 'flex';
     document.getElementById('text-story-input').value = '';
-    document.getElementById('text-story-preview').style.background = currentTextStoryBg;
+    document.getElementById('text-story-preview').style.background = 'var(--surface-2)';
     checkTextStoryInput();
 }
 
@@ -27387,12 +27417,9 @@ function checkTextStoryInput() {
     }
 }
 
-function selectTextStoryBg(color, element) {
-    currentTextStoryBg = color;
-    document.getElementById('text-story-preview').style.background = color;
-    const circles = element.parentElement.querySelectorAll('.color-circle');
-    circles.forEach(c => c.classList.remove('selected'));
-    element.classList.add('selected');
+function selectTextStoryBg(color, element){
+    /* Text story background color feature removed */
+    currentTextStoryBg = '#1a1a2e';
 }
 
 async function submitTextStory() {
@@ -27412,7 +27439,7 @@ async function submitTextStory() {
             isVerified: currentUserData.isVerified === true,
             isText: true, // এটি টেক্সট স্টোরি চেনার উপায়
             text: text,
-            bgColor: currentTextStoryBg,
+            bgColor: '#1a1a2e', /* text story color feature removed */
             views: [],
             reacts: [],
             createdAt: firebase.firestore.FieldValue.serverTimestamp(),
@@ -29992,7 +30019,7 @@ function openStoryCreatorModal() {
                         </div>
                         <div style="text-align: left; flex: 1;">
                             <div>Text Story</div>
-                            <div style="font-size: 12px; color: var(--text-muted); font-weight: 500;">Write with a colored background</div>
+                            <div style="font-size: 12px; color: var(--text-muted); font-weight: 500;">Write with a background</div>
                         </div>
                     </div>
                 </div>
@@ -30012,8 +30039,6 @@ function closeStoryCreatorModal() {
 // ═══════════════════════════════════════════════════════
 // 🎨 লগইন পেজের সম্পূর্ন ডিজাইন। 
 //এখানে ইমেইল + পাসওয়ার্ড ইত্যাদির ডিজাইন করা হয়েছে।  খুঁজতে - (লগইন পেজ ডিজাইন)
-
-
 // ═══════════════════════════════════════════════════════
 (function lxLoginRedesign(){
 
