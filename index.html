@@ -9099,7 +9099,7 @@ transition:background .2s;
 .gc-vplayer.gc-controls-hidden .gc-vp-bar{opacity:0;visibility:hidden;pointer-events:none;}
 /* Facebook-style mute — always visible (only mute control on video) */
 .gc-vplayer .gc-vp-mute-float{
-  position:absolute; right:10px; bottom:12px; z-index:4;
+  position:absolute; right:10px; bottom:44px; z-index:4;
   width:36px; height:36px; border-radius:50%;
   border:none; padding:0; cursor:pointer;
   display:flex; align-items:center; justify-content:center;
@@ -21030,22 +21030,10 @@ function closeChat(){
   if(wasPrivate && leavingId && currentUser){
     (async function(){
       try{
-        var messagesRef = db.collection('chats').doc(leavingId).collection('messages');
-        var snap = await messagesRef.get();
-        if(!snap.empty){
-          var batch = db.batch();
-          snap.forEach(function(doc){ batch.delete(doc.ref); });
-          await batch.commit();
-        }
-        await db.collection('chats').doc(leavingId).set({
-          lastMsg: '🔒 Private chat ended',
-          lastAt: firebase.firestore.FieldValue.serverTimestamp(),
-          lastSender: currentUser.uid
-        }, { merge: true });
-        if(typeof loadMessages === 'function') loadMessages();
-      }catch(e){ console.error('private wipe', e); }
+        await gcEndPrivateSession(leavingId);
+      }catch(e){ console.error('private leave cleanup', e); }
     })();
-  }
+}
 }
 
 async function sendMsg(){
@@ -21095,6 +21083,12 @@ senderName: currentUserData.name || 'User', // <-- ফায়ারবেসে �
 text:text,
 createdAt:firebase.firestore.FieldValue.serverTimestamp()
 };
+try{
+  if(typeof gcIsCurrentPrivateChatEnabled==='function' && gcIsCurrentPrivateChatEnabled()){
+    var _psid = typeof gcGetPrivateSessionId==='function' ? gcGetPrivateSessionId(currentChatId) : null;
+    if(_psid){ msgData.privateSessionId = _psid; msgData.isPrivateMsg = true; }
+  }
+}catch(e){}
 // 🚀 রিপ্লাইয়ের বিস্তারিত তথ্য মেসেজের সাথে সেভ হবে
 if(currentReplyMsgId && replyToMsgData){
     msgData.replyTo = currentReplyMsgId;
@@ -21287,6 +21281,7 @@ async function sendChatImage(input){
     if(urls.length===1) payload.imageUrl=urls[0];
     else { payload.images=urls; payload.imageUrl=urls[0]; }
     if(replySnap){ payload.replyTo=replySnap.replyTo; payload.replySender=replySnap.replySender; payload.replyText=replySnap.replyText; }
+    try{ if(typeof gcIsCurrentPrivateChatEnabled==='function' && gcIsCurrentPrivateChatEnabled()){ var __ps=typeof gcGetPrivateSessionId==='function'?gcGetPrivateSessionId(currentChatId):null; if(__ps){ payload.privateSessionId=__ps; payload.isPrivateMsg=true; } } }catch(e){}
     await db.collection('chats').doc(currentChatId).collection('messages').add(payload);
     var lastText=urls.length>1?(' '+urls.length+' Photos'):' Photo';
     if(currentChatOtherUid==='group') lastText=((currentUserData&&currentUserData.name)||'User')+(urls.length>1?(' sent '+urls.length+' photos'):' sent a photo');
@@ -22384,6 +22379,19 @@ try{
 }catch(e){}
 // Restore location chip if a location was previously selected (merged from location wrapper)
 setTimeout(function(){ if (typeof gcRenderLocChip === 'function') gcRenderLocChip(); }, 120);
+/* Re-apply verified badge after async UI updates (tag preview / loadUserUI) */
+setTimeout(function(){
+  try{
+    var nameEl = document.getElementById('modal-composer-name');
+    if(!nameEl || !currentUserData) return;
+    if(nameEl.querySelector('.verified-icon') || nameEl.querySelector('.verified-badge') || nameEl.querySelector('.gc-verified-badge')) return;
+    var badges = (typeof gcResolveUserBadges === 'function')
+      ? gcResolveUserBadges(currentUser && currentUser.uid, currentUserData.email || (currentUser && currentUser.email), currentUserData.isVerified, currentUserData.isLeader)
+      : ((typeof getVerifiedBadge==='function'?getVerifiedBadge(currentUserData.email, currentUserData.isVerified):'') + (typeof getLeaderBadge==='function'?getLeaderBadge(currentUserData.email, currentUserData.isLeader):''));
+    if(!badges) return;
+    nameEl.innerHTML = '<span style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;">' + (typeof escapeHTML==='function'?escapeHTML(currentUserData.name||'User'):(currentUserData.name||'User')) + ' ' + badges + '</span>';
+  }catch(e){}
+}, 280);
 }
 
 function closeCreatePost(){
@@ -22521,7 +22529,10 @@ function updateTagPreview(){
     list.innerHTML = '';
     
 if(nameEl && currentUserData) {
-   nameEl.innerHTML = `<span style="display:flex; align-items:center; gap:4px;flex-wrap:wrap;">${escapeHTML(currentUserData.name || 'User')} ${getVerifiedBadge(currentUserData.email, currentUserData.isVerified) + getLeaderBadge(currentUserData.email, currentUserData.isLeader)}</span>`;
+   var _b = (typeof gcResolveUserBadges === 'function')
+     ? gcResolveUserBadges(currentUser && currentUser.uid, currentUserData.email || (currentUser && currentUser.email), currentUserData.isVerified, currentUserData.isLeader)
+     : (getVerifiedBadge(currentUserData.email, currentUserData.isVerified) + getLeaderBadge(currentUserData.email, currentUserData.isLeader));
+   nameEl.innerHTML = '<span style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;">' + escapeHTML(currentUserData.name || 'User') + ' ' + _b + '</span>';
 }
 if (typeof gcRenderLocChip === 'function') gcRenderLocChip();
 return;
@@ -24149,7 +24160,7 @@ ${gcDisplayName}
 
     const setSafeHTML = (id, html) => { const el = document.getElementById(id); if (el) el.innerHTML = html; };
     setSafeHTML('modal-composer-avatar', avHtml);
-    setSafeHTML('modal-composer-name', safeName + verifiedBadge);
+    setSafeHTML('modal-composer-name', '<span style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;">' + safeName + ' ' + verifiedBadge + '</span>');
     setSafeHTML('profile-name-display', nameHtml);
     setSafeHTML('profile-avatar-big', avHtml);
     // Story ring on own profile avatar
@@ -28002,27 +28013,18 @@ async function cleanupPrivateChatsOnLoad() {
             let cleanedCount = 0;
 
             for (const chatId of activePrivateChats) {
-                // ওই চ্যাটের সব মেসেজ খুঁজে বের করা
-                const messagesRef = db.collection('chats').doc(chatId).collection('messages');
-                const snap = await messagesRef.get();
-                
-                // ব্যাচে সব মেসেজ ডিলিট করার জন্য যোগ করা
-                snap.forEach(doc => {
-                    batch.delete(doc.ref);
-                    cleanedCount++;
-                });
+                try{
+                  if(typeof gcEndPrivateSession === 'function') await gcEndPrivateSession(chatId);
+                  else {
+                    await db.collection('users').doc(currentUser.uid).update({
+                      activePrivateChats: firebase.firestore.FieldValue.arrayRemove(chatId)
+                    });
+                  }
+                  cleanedCount++;
+                }catch(err){ console.warn('private cleanup', chatId, err); }
             }
-
-            // একসাথে সব ডিলিট কমিট করা
-            if (cleanedCount > 0) {
-                await batch.commit();
-                console.log(`✅ Successfully deleted ${cleanedCount} private messages.`);
-            }
-
-            // ৩. ডাটাবেস থেকে "Active Private Chats" লিস্টটাও ক্লিয়ার করা যাতে পরবর্তী লোডে আবার না আসে
-            await db.collection('users').doc(currentUser.uid).update({
-                activePrivateChats: [] 
-            });
+            currentUserData.activePrivateChats = [];
+            currentUserData.privateChatSessions = {};
         }
     } catch (e) {
         console.error("Error cleaning private chats:", e);
@@ -28030,6 +28032,68 @@ async function cleanupPrivateChatsOnLoad() {
 }
 
 // 🚀 Private Chat Settings Page
+
+/* Private session helpers — only session messages are wiped on OFF / leave */
+function gcGetPrivateSessionId(chatId){
+  try{
+    if(!chatId || !currentUserData) return null;
+    var map = currentUserData.privateChatSessions || {};
+    return map[chatId] || null;
+  }catch(e){ return null; }
+}
+async function gcStartPrivateSession(chatId){
+  if(!chatId || !currentUser) return null;
+  var sid = String(chatId) + '_' + Date.now() + '_' + Math.random().toString(36).slice(2, 9);
+  currentUserData.privateChatSessions = currentUserData.privateChatSessions || {};
+  currentUserData.privateChatSessions[chatId] = sid;
+  currentUserData.activePrivateChats = currentUserData.activePrivateChats || [];
+  if(currentUserData.activePrivateChats.indexOf(chatId) === -1) currentUserData.activePrivateChats.push(chatId);
+  var upd = {
+    activePrivateChats: firebase.firestore.FieldValue.arrayUnion(chatId)
+  };
+  upd['privateChatSessions.' + chatId] = sid;
+  await db.collection('users').doc(currentUser.uid).update(upd);
+  return sid;
+}
+async function gcDeletePrivateSessionMessages(chatId, sessionId){
+  if(!chatId || !sessionId) return 0;
+  var messagesRef = db.collection('chats').doc(chatId).collection('messages');
+  var snap = await messagesRef.get();
+  var n = 0;
+  var batch = db.batch();
+  snap.forEach(function(doc){
+    var d = doc.data() || {};
+    if(d.privateSessionId && String(d.privateSessionId) === String(sessionId)){
+      batch.delete(doc.ref);
+      n++;
+    }
+  });
+  if(n) await batch.commit();
+  return n;
+}
+async function gcEndPrivateSession(chatId){
+  if(!chatId || !currentUser) return;
+  var sid = gcGetPrivateSessionId(chatId);
+  if(sid){
+    try{ await gcDeletePrivateSessionMessages(chatId, sid); }catch(e){ console.error(e); }
+  }
+  try{
+    var upd = {
+      activePrivateChats: firebase.firestore.FieldValue.arrayRemove(chatId)
+    };
+    upd['privateChatSessions.' + chatId] = firebase.firestore.FieldValue.delete();
+    await db.collection('users').doc(currentUser.uid).update(upd);
+  }catch(e){ console.error(e); }
+  if(currentUserData){
+    currentUserData.activePrivateChats = (currentUserData.activePrivateChats || []).filter(function(id){ return id !== chatId; });
+    if(currentUserData.privateChatSessions) delete currentUserData.privateChatSessions[chatId];
+  }
+}
+window.gcGetPrivateSessionId = gcGetPrivateSessionId;
+window.gcStartPrivateSession = gcStartPrivateSession;
+window.gcEndPrivateSession = gcEndPrivateSession;
+window.gcDeletePrivateSessionMessages = gcDeletePrivateSessionMessages;
+
 function gcIsCurrentPrivateChatEnabled(){
     return !!(currentUserData && Array.isArray(currentUserData.activePrivateChats) && currentChatId && currentUserData.activePrivateChats.includes(currentChatId));
 }
@@ -28061,7 +28125,7 @@ async function togglePrivateChatFromSettingsPage(){
         if(typeof gcOpenConfirm==='function' && !window.__gcConfirmForceYes){
             gcOpenConfirm({
                 title:'Turn Off Private Chat?',
-                text:'Turning this off will permanently delete all messages and media in this chat for both people. This cannot be undone.',
+                text:'Turning this off will delete only messages from this private session. Earlier and later normal messages stay.',
                 icon:'ph-lock-open',
                 yesLabel:'Turn Off & Delete',
                 onYes:function(){
@@ -28075,29 +28139,19 @@ async function togglePrivateChatFromSettingsPage(){
     }
 
     try{
-        const messagesRef=db.collection('chats').doc(currentChatId).collection('messages');
-        const snap=await messagesRef.get();
-        const batch=db.batch();
-        snap.forEach(doc=>batch.delete(doc.ref));
-
         if(isPrivate){
-            await batch.commit();
-            await db.collection('users').doc(currentUser.uid).update({
-                activePrivateChats: firebase.firestore.FieldValue.arrayRemove(currentChatId)
-            });
-            currentUserData.activePrivateChats=(currentUserData.activePrivateChats||[]).filter(id=>id!==currentChatId);
+            await gcEndPrivateSession(currentChatId);
             updatePrivateChatSettingsPageUI();
             updatePrivateChatUI();
-            showToast('Private Chat OFF. All conversations and media were deleted.');
+            showToast('Private Chat OFF. Only this session\'s messages were removed.');
             closePrivateChatSettingsPage();
-            if(document.getElementById('chat-screen')?.classList.contains('open')){
-                try{ closeChat(); }catch(e){}
+            if(document.getElementById('chat-screen') && document.getElementById('chat-screen').classList.contains('open')){
+                try{
+                  openChat(currentChatId, currentChatOtherUid, document.getElementById('chat-name-display').textContent, '');
+                }catch(e){}
             }
         }else{
-            await db.collection('users').doc(currentUser.uid).update({
-                activePrivateChats: firebase.firestore.FieldValue.arrayUnion(currentChatId)
-            });
-            currentUserData.activePrivateChats=[...(currentUserData.activePrivateChats||[]),currentChatId];
+            await gcStartPrivateSession(currentChatId);
             updatePrivateChatSettingsPageUI();
             updatePrivateChatUI();
             showToast('Private Chat ON');
@@ -28122,50 +28176,33 @@ async function togglePrivateChatFromQP() {
     if (isCurrentlyPrivate) {
         // --- MODE OFF: সব মেসেজ পার্মানেন্টলি ডিলিট ---
         if(typeof gcOpenConfirm==='function' && !window.__gcConfirmForceYes){
-          gcOpenConfirm({title:'Turn Off Private Chat?',text:"This will PERMANENTLY delete all messages in this chat from everyone's device and Firebase.",icon:'ph-lock-open',yesLabel:'Continue',onYes:function(){window.__gcConfirmForceYes=true;togglePrivateChatFromQP();setTimeout(function(){window.__gcConfirmForceYes=false;},800);}});
+          gcOpenConfirm({title:'Turn Off Private Chat?',text:"This will delete only messages from this private session. Normal messages outside the session stay.",icon:'ph-lock-open',yesLabel:'Continue',onYes:function(){window.__gcConfirmForceYes=true;togglePrivateChatFromQP();setTimeout(function(){window.__gcConfirmForceYes=false;},800);}});
           return;
         }
         
-        showToast("️ Wiping private messages...");
+        showToast("Ending private session…");
         
         try {
-            // ক) সব মেসেজ ডিলিট
-            const messagesRef = db.collection('chats').doc(currentChatId).collection('messages');
-            const snap = await messagesRef.get();
-            const batch = db.batch();
-            snap.forEach(doc => batch.delete(doc.ref));
-            await batch.commit();
-            
-            // খ) লিস্ট থেকে এই চ্যাট আইডি রিমুভ করা
-            await db.collection('users').doc(currentUser.uid).update({
-                activePrivateChats: firebase.firestore.FieldValue.arrayRemove(currentChatId)
-            });
-            
-            // গ) UI আপডেট
-            currentUserData.activePrivateChats = currentUserData.activePrivateChats.filter(id => id !== currentChatId);
+            /* Only delete messages from this private session — not the whole chat */
+            await gcEndPrivateSession(currentChatId);
             updatePrivateChatUI();
-            showToast("Private Chat OFF. All messages deleted.");
+            showToast("Private Chat OFF. Session messages removed.");
             
-            // ঘ) চ্যাট স্ক্রিন রিফ্রেশ
             if(document.getElementById('chat-screen').classList.contains('open')) {
                 openChat(currentChatId, currentChatOtherUid, document.getElementById('chat-name-display').textContent, '');
             }
             
         } catch(e) {
-            showToast("Failed to clear private chat");
+            showToast("Failed to end private session");
             console.error(e);
         }
         
     } else {
         // --- MODE ON: শুধু ট্র্যাক করা শুরু ---
         try {
-            await db.collection('users').doc(currentUser.uid).update({
-                activePrivateChats: firebase.firestore.FieldValue.arrayUnion(currentChatId)
-            });
-            
-            currentUserData.activePrivateChats = [...(currentUserData.activePrivateChats || []), currentChatId];
+            await gcStartPrivateSession(currentChatId);
             updatePrivateChatUI();
-            showToast(" Private Chat ON. Messages will vanish when you leave.");
+            showToast("Private Chat ON. Session messages clear when you turn it off or leave.");
         } catch(e) {
             showToast("Failed to enable Private Chat");
         }
@@ -29037,6 +29074,7 @@ async function uploadAndSendVoice(audioBlob) {
             document.getElementById('chat-input').placeholder = 'Message...';
         }
 
+        try{ if(typeof gcIsCurrentPrivateChatEnabled==='function' && gcIsCurrentPrivateChatEnabled()){ var __psv=typeof gcGetPrivateSessionId==='function'?gcGetPrivateSessionId(currentChatId):null; if(__psv){ msgData.privateSessionId=__psv; msgData.isPrivateMsg=true; } } }catch(e){}
         await db.collection('chats').doc(currentChatId).collection('messages').add(msgData);
 
         let lastText = '🎤 Voice Message';
