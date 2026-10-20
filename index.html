@@ -2832,6 +2832,8 @@ body:not(.light-mode) .avatar-edit-btn i,body:not(.light-mode) .avatar-edit-btn 
 .msg-item{
 display:flex;align-items:flex-start;gap:14px;
 padding:14px 16px;
+min-height:76px;
+box-sizing:border-box;
 background:transparent;
 border:none;
 border-bottom:1px solid var(--border);
@@ -2841,6 +2843,11 @@ cursor:pointer;
 box-shadow:none;
 transition:background 0.15s ease;
 position:relative;
+}
+#msg-list .avatar{
+  width:42px !important;
+  height:42px !important;
+  flex:0 0 42px !important;
 }
 .msg-item:last-child{border-bottom:none;}
 .msg-item:hover {
@@ -3013,25 +3020,32 @@ transition:border-color 0.2s, box-shadow .2s;
 .gc-chat-plus-btn.is-open i{transform:rotate(45deg);}
 .gc-chat-attach-panel{
   display:none;position:absolute;left:12px;right:12px;bottom:100%;
-  margin-bottom:8px;padding:14px 12px;
+  margin-bottom:8px;padding:6px 0;
   background:var(--surface);border:1px solid var(--border);
   border-radius:18px;box-shadow:var(--shadow-lg);z-index:30;
   animation:gcAttachIn .2s ease;
+  overflow:hidden;
 }
-.gc-chat-attach-panel.open{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
+.gc-chat-attach-panel.open{display:block;}
 @keyframes gcAttachIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
 .gc-chat-attach-item{
-  display:flex;flex-direction:column;align-items:center;gap:6px;
+  display:flex;align-items:center;justify-content:space-between;
+  gap:14px;width:100%;
   background:none;border:none;cursor:pointer;color:var(--text);
-  font-family:inherit;padding:8px 4px;border-radius:14px;
+  font-family:inherit;padding:14px 18px;
+  font-size:16px;font-weight:650;text-align:left;
+}
+.gc-chat-attach-item + .gc-chat-attach-item{
+  border-top:1px solid var(--border);
 }
 .gc-chat-attach-item:active{background:var(--surface-2);}
-.gc-chat-attach-ico{
-  width:48px;height:48px;border-radius:16px;
-  display:flex;align-items:center;justify-content:center;
-  color:#fff;font-size:22px;
+.gc-chat-attach-item span{font-size:16px;font-weight:650;color:var(--text);}
+.gc-chat-attach-item i,
+.gc-chat-attach-item .gc-mp-ico{
+  font-size:22px;color:var(--text);flex-shrink:0;
+  width:22px;height:22px;display:block;
 }
-.gc-chat-attach-item span{font-size:11px;font-weight:700;color:var(--text-secondary);}
+.gc-chat-attach-ico{display:none;}
 /* Chat list time + typing */
 .msg-time{
   font-size:11px;font-weight:600;color:var(--text-muted);
@@ -14413,16 +14427,16 @@ l-137 -640 -193 -3 -193 -2 4 22 c2 13 67 314 144 671 l139 647 192 0 193 0
 <!-- 🚀 Attach panel (+ menu) · Photo / Voice / Quick Replies -->
 <div class="gc-chat-attach-panel" id="gc-chat-attach-panel">
   <button type="button" class="gc-chat-attach-item" onclick="gcChatAttachAction('photo')">
-    <div class="gc-chat-attach-ico" style="background:linear-gradient(135deg,var(--accent-light),var(--accent));"><i class="ph-light ph-image"></i></div>
     <span>Photo</span>
+    <i class="ph-light ph-image"></i>
   </button>
   <button type="button" class="gc-chat-attach-item" onclick="gcChatAttachAction('voice')">
-    <div class="gc-chat-attach-ico" style="background:linear-gradient(135deg,#34d399,#10b981);"><i class="ph-light ph-microphone"></i></div>
     <span>Voice</span>
+    <i class="ph-light ph-microphone"></i>
   </button>
   <button type="button" class="gc-chat-attach-item" onclick="event.stopPropagation(); gcChatAttachAction('quick')">
-    <div class="gc-chat-attach-ico" style="background:linear-gradient(135deg,#c1f600,#00545f);"><i class="ph-light ph-lightning"></i></div>
-    <span>Quick</span>
+    <span>Quick reply</span>
+    <i class="ph-light ph-lightning"></i>
   </button>
 </div>
 
@@ -14950,7 +14964,7 @@ l-137 -640 -193 -3 -193 -2 4 22 c2 13 67 314 144 671 l139 647 192 0 193 0
             </button>
             
             <button class="btn-outline" id="qp-mute-btn" onclick="toggleMuteFromQP()" style="margin:0; border-radius: 16px; padding: 12px; font-size: 14px; border: none; background: var(--surface-2); color: var(--text);">
-                <i class="ph-light ph-bell-slash" style="font-size:18px;"></i> Mute
+                <i class="ph-light ph-speaker-high" style="font-size:18px;"></i> Mute
             </button>
             
             <button class="btn-outline" onclick="archiveFromQP()" style="margin:0; border-radius: 16px; padding: 12px; font-size: 14px; border: none; background: var(--surface-2); color: var(--text);">
@@ -17515,7 +17529,15 @@ function showPage(page) {
         if (tb) tb.classList.remove('nav-hidden-top');
     }
 
-    if(page === 'messages') loadMessages();
+    if(page === 'messages') {
+      /* Avoid full re-subscribe/re-render jump when returning to Inbox */
+      var _ml = document.getElementById('msg-list');
+      var _hasLive = _ml && _ml.querySelector('.msg-item') && window.chatListUnsub;
+      if(!_hasLive) loadMessages();
+      else if(typeof window.__gcRerenderChatList === 'function'){
+        try{ window.__gcRerenderChatList(); }catch(e){}
+      }
+    }
     if(page === 'notifications') {
       const notifLoading = document.getElementById('notifications-list');
       /* Skeleton only while first load pending — never overwrite empty state or existing list */
@@ -21627,7 +21649,7 @@ async function loadMessages(){
             
             let avHtml = '';
             if (finalAv) {
-                avHtml = `<img src="${escapeHTML(finalAv)}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
+                avHtml = `<img src="${escapeHTML(finalAv)}" width="42" height="42" decoding="async" style="width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;">`;
             } else if (chat.isGroup) {
                 avHtml = `<div style="width:100%;height:100%;background:var(--gradient-orange);color:white;display:flex;align-items:center;justify-content:center;border-radius:50%;"><i class="ph-light ph-circle" style="font-size: 24px;"></i></div>`;
             } else {
@@ -21727,8 +21749,14 @@ async function loadMessages(){
                     }
                 }
             });
+            var _wasInitial = isInitialChatLoad;
             isInitialChatLoad = false;
-            gcRenderChatListFromMap();
+            /* Coalesce dual onSnapshot (users + members) into one paint — stops list jump */
+            if(window.__gcChatListRenderTimer) clearTimeout(window.__gcChatListRenderTimer);
+            window.__gcChatListRenderTimer = setTimeout(function(){
+              window.__gcChatListRenderTimer = null;
+              gcRenderChatListFromMap();
+            }, _wasInitial ? 48 : 16);
         }catch(e){
             console.error('chat list snap error', e);
         }
@@ -25490,9 +25518,9 @@ function viewProfileFromChat() {
     const isMuted = currentUserData.mutedChats?.includes(currentChatId);
     const muteBtn = document.getElementById('qp-mute-btn');
     if (isMuted) {
-        muteBtn.innerHTML = '<i class="ph-light ph-bell-ringing" style="font-size:18px;"></i> Unmute';
+        muteBtn.innerHTML = '<i class="ph-light ph-speaker-slash" style="font-size:18px;"></i> Unmute';
     } else {
-        muteBtn.innerHTML = '<i class="ph-light ph-bell-slash" style="font-size:18px;"></i> Mute';
+        muteBtn.innerHTML = '<i class="ph-light ph-speaker-high" style="font-size:18px;"></i> Mute';
     }
     // পপ-আপ ওপেন করা
     document.getElementById('quick-profile-modal').classList.add('open');
