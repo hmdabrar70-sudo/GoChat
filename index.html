@@ -3922,6 +3922,81 @@ body:not(.light-mode) .gc-msg-pop{
   box-shadow:0 16px 48px rgba(0,0,0,0.55);
 }
 
+
+/* Group Info · fixed sheet height; members scroll; Leave pinned */
+#group-info-modal .modal-box.gc-group-info-sheet,
+#group-info-modal .gc-group-info-sheet{
+  width:min(100%,520px);
+  height:min(85vh, 640px);
+  max-height:85vh;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+  padding:0;
+}
+#group-info-modal .gc-group-info-body{
+  flex:1 1 auto;
+  min-height:0;
+  overflow-y:auto;
+  overflow-x:hidden;
+  padding:16px 20px;
+  -webkit-overflow-scrolling:touch;
+}
+#group-info-modal .gc-group-info-footer{
+  flex:0 0 auto;
+  padding:12px 20px calc(12px + env(safe-area-inset-bottom));
+  border-top:1px solid var(--border);
+  background:var(--surface);
+}
+#group-member-list.gc-group-member-list,
+#group-member-list{
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+  min-height:0;
+}
+
+.gc-group-member-row{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding:12px 4px;
+  margin:0;
+  width:100%;
+  box-sizing:border-box;
+}
+.gc-group-member-row .gc-gmr-av{
+  flex:0 0 32px;
+  width:32px;
+  height:32px;
+}
+.gc-group-member-row .gc-gmr-main{
+  flex:1 1 auto;
+  min-width:0;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-wrap:nowrap;
+  overflow:hidden;
+}
+.gc-group-member-row .gc-gmr-name{
+  font-weight:700;
+  font-size:15px;
+  color:var(--text);
+  line-height:1.25;
+  margin:0;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  min-width:0;
+  flex:0 1 auto;
+}
+.gc-group-member-row .gc-gmr-actions{
+  flex:0 0 auto;
+  display:flex;
+  align-items:center;
+  gap:4px;
+}
 /* Group system event messages (add/remove) — WhatsApp-style center pill */
 .gc-sys-msg{
   display:flex; justify-content:center; align-items:center;
@@ -5167,12 +5242,16 @@ display:block;
 /* Profile grid: video preview only (no play/mute chrome) */
 .grid-post-video-thumb{
   position:relative;width:100%;height:100%;min-height:100%;
-  background:#111;overflow:hidden;pointer-events:none;
+  background:#1a1a1a;overflow:hidden;pointer-events:none;
 }
 .grid-post-video-thumb img,
 .grid-post-video-thumb video{
   width:100%;height:100%;object-fit:cover;display:block;pointer-events:none;
+  border:none;outline:none;background:#1a1a1a;
 }
+.grid-post-video-thumb video::-webkit-media-controls{display:none !important;}
+.grid-post-video-thumb video::-webkit-media-controls-start-playback-button{display:none !important;-webkit-appearance:none;}
+.grid-post-video-thumb video::-webkit-media-controls-overlay-play-button{display:none !important;}
 .grid-post-item .gc-vplayer,
 .grid-post-item video,
 .grid-post-item .gc-vplayer video {
@@ -15024,7 +15103,7 @@ l-137 -640 -193 -3 -193 -2 4 22 c2 13 67 314 144 671 l139 647 192 0 193 0
 </div>
 
 <div class="modal-overlay" id="group-info-modal" style="z-index:10005;">
-  <div class="modal-box" style="display:flex;flex-direction:column;max-height:85vh;padding:0;">
+  <div class="modal-box gc-group-info-sheet" style="display:flex;flex-direction:column;height:min(85vh,640px);max-height:85vh;padding:0;overflow:hidden;">
     <div class="chat-topbar" style="padding:16px 20px;">
       <div class="chat-back" onclick="closeGroupInfoModal()"><i class="ph-light ph-arrow-left"></i></div>
       <div class="chat-name" style="font-weight:800;font-size:18px;">Group Info</div>
@@ -15053,7 +15132,7 @@ l-137 -640 -193 -3 -193 -2 4 22 c2 13 67 314 144 671 l139 647 192 0 193 0
       <div style="font-size:13px;font-weight:700;color:var(--text-muted);margin-bottom:10px;">Shared Media</div>
       <div id="group-media-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;max-height:200px;overflow-y:auto;"></div>
     </div>
-    <div style="padding:20px;overflow-y:auto;flex:1;">
+    <div class="gc-group-info-body">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;">
         <button type="button" id="group-members-toggle" onclick="gcToggleGroupMembers()" style="display:inline-flex;align-items:center;gap:6px;background:none;border:none;padding:0;cursor:pointer;color:var(--text);font:inherit;">
           <h4 style="color:var(--text);margin:0;font:inherit;font-weight:700;font-size:16px;">Members (<span id="group-member-count">0</span>)</h4>
@@ -15068,8 +15147,10 @@ l-137 -640 -193 -3 -193 -2 4 22 c2 13 67 314 144 671 l139 647 192 0 193 0
         <div id="add-group-member-list" style="max-height:180px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;margin-bottom:10px;"></div>
         <button type="button" class="btn-primary" style="padding:10px;font-size:13px;margin:0;" onclick="confirmAddGroupMembers()">Add Selected</button>
       </div>
-      <div id="group-member-list" style="display:flex;flex-direction:column;gap:10px;"></div>
-      <button type="button" class="btn-outline" style="width:100%;margin-top:25px;border-color:var(--danger);color:var(--danger);background:rgba(255,77,106,0.05);" onclick="leaveCurrentGroup()">
+      <div id="group-member-list" class="gc-group-member-list"></div>
+    </div>
+    <div class="gc-group-info-footer">
+      <button type="button" class="btn-outline" style="width:100%;margin:0;border-color:var(--danger);color:var(--danger);background:rgba(255,77,106,0.05);" onclick="leaveCurrentGroup()">
         <i class="ph-light ph-sign-out"></i> Leave Group
       </button>
     </div>
@@ -24092,6 +24173,86 @@ window.closeSinglePost = closeSinglePost;
 
 // নিজের প্রোফাইলের পোস্ট লোড (গ্রিড ভিউ + স্কেলেটন)
 // অন্য ইউজারের প্রোফাইলের পোস্ট লোড (গ্রিড ভিউ + স্কেলেটন)
+
+/** Build a still-image URL from a video URL (Cloudinary). Empty string if not possible. */
+function gcCloudinaryVideoPoster(vUrl, w){
+  w = w || 480;
+  var u = String(vUrl || '');
+  if(!u) return '';
+  try{
+    // Already a likely image
+    if(/\.(jpg|jpeg|png|webp|gif)(\?|$)/i.test(u) && u.indexOf('/video/') === -1) return u;
+    var isCl = u.indexOf('cloudinary.com') !== -1 || u.indexOf('res.cloudinary') !== -1;
+    if(!isCl) return '';
+    // Normalize: work with /upload/ segment
+    var idx = u.indexOf('/upload/');
+    if(idx === -1) return '';
+    var head = u.slice(0, idx + 8); // includes '/upload/'
+    var rest = u.slice(idx + 8);
+    // Drop query
+    rest = rest.split('?')[0];
+    // Remove existing transformation segment(s) that look like so_ or w_ at start — keep public id path
+    // Cloudinary: /upload/[transforms/]v123/public_id.ext OR /upload/public_id.ext
+    // Insert our transform at the front of rest
+    rest = rest.replace(/\.(mp4|webm|mov)$/i, '');
+    // If rest already starts with transforms containing so_, strip leading transform groups until version or bare id
+    // Safer: always prepend so_0,f_jpg,w_N,c_fill/
+    if(!/^so_0/.test(rest)){
+      rest = 'so_0,f_jpg,w_' + w + ',c_fill/' + rest.replace(/^so_[^/]+\//, '');
+    }
+    if(!/\.(jpg|jpeg|png|webp)$/i.test(rest)) rest = rest + '.jpg';
+    return head + rest;
+  }catch(e){ return ''; }
+}
+window.gcCloudinaryVideoPoster = gcCloudinaryVideoPoster;
+
+/** After grid render: paint first video frame onto canvas → <img>, remove gray browser poster */
+function gcHydrateGridVideoThumbs(root){
+  try{
+    if(!root) return;
+    root.querySelectorAll('.grid-post-video-thumb video[data-gc-grid-vid]').forEach(function(vid){
+      if(vid.getAttribute('data-gc-hydrated')) return;
+      vid.setAttribute('data-gc-hydrated', '1');
+      try{ if(!vid.getAttribute('crossorigin')) vid.setAttribute('crossorigin', 'anonymous'); }catch(e){}
+      var wrap = vid.closest('.grid-post-video-thumb');
+      function paint(){
+        try{
+          if(!vid.videoWidth) return;
+          var c = document.createElement('canvas');
+          c.width = Math.min(vid.videoWidth, 480);
+          c.height = Math.round(c.width * (vid.videoHeight / vid.videoWidth) || c.width);
+          var ctx = c.getContext('2d');
+          ctx.drawImage(vid, 0, 0, c.width, c.height);
+          var url = c.toDataURL('image/jpeg', 0.85);
+          var img = document.createElement('img');
+          img.src = url;
+          img.alt = '';
+          img.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;pointer-events:none;';
+          if(wrap){
+            wrap.innerHTML = '';
+            wrap.appendChild(img);
+          }
+        }catch(e){ /* CORS tainted canvas — leave video visible without controls */ }
+      }
+      function trySeek(){
+        try{
+          if(vid.readyState >= 2){
+            if(vid.currentTime < 0.05) {
+              vid.currentTime = Math.min(0.1, (vid.duration || 1) * 0.01);
+            } else paint();
+          }
+        }catch(e){ paint(); }
+      }
+      vid.addEventListener('loadeddata', trySeek);
+      vid.addEventListener('seeked', paint);
+      if(vid.readyState >= 2) trySeek();
+      // Kick load
+      try{ vid.load(); }catch(e){}
+    });
+  }catch(e){}
+}
+window.gcHydrateGridVideoThumbs = gcHydrateGridVideoThumbs;
+
 async function loadOtherUserPosts(uid){
     const list=document.getElementById('other-user-posts-list');
     if(!list)return;
@@ -24137,32 +24298,33 @@ async function loadOtherUserPosts(uid){
             let media = '';
             let multiIcon = (!isVideoPost && imgUrls.length > 1) ? '<svg class="gc-dots-ico grid-multi-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"  style="width:18px;height:18px;display:block;flex-shrink:0;"><path d="M144,128a16,16,0,1,1-16-16A16,16,0,0,1,144,128ZM60,112a16,16,0,1,0,16,16A16,16,0,0,0,60,112Zm136,0a16,16,0,1,0,16,16A16,16,0,0,0,196,112Z"/></svg>' : '';
             if (isVideoPost) {
-                let thumb = imgUrls[0] || p.thumb || p.thumbnail || p.poster || p.videoThumb || '';
-                const vUrl = p.videoUrl || imgUrls.find(function(u){ return /\.(mp4|webm|mov)(\?|$)/i.test(String(u||'')) || String(u||'').indexOf('/video/') !== -1; }) || imgUrls[0] || '';
-                // If thumb is itself a video URL, derive Cloudinary still frame
-                if ((!thumb || /\.(mp4|webm|mov)(\?|$)/i.test(String(thumb)) || String(thumb).indexOf('/video/') !== -1) && vUrl) {
-                  var _vu = String(vUrl);
-                  if (_vu.indexOf('/video/upload/') !== -1) {
-                    thumb = _vu.replace('/video/upload/', '/video/upload/so_0,f_jpg,w_480,c_fill/').replace(/\.(mp4|webm|mov)(\?.*)?$/i, '.jpg');
-                  } else if (_vu.indexOf('res.cloudinary.com') !== -1 && _vu.indexOf('/upload/') !== -1) {
-                    thumb = _vu.replace('/upload/', '/upload/so_0,f_jpg,w_480,c_fill/').replace(/\.(mp4|webm|mov)(\?.*)?$/i, '.jpg');
-                  } else {
-                    thumb = '';
+                var vUrl = p.videoUrl || '';
+                if (!vUrl) {
+                  for (var _vi = 0; _vi < imgUrls.length; _vi++) {
+                    var _iu = String(imgUrls[_vi] || '');
+                    if (/\.(mp4|webm|mov)(\?|$)/i.test(_iu) || _iu.indexOf('/video/') !== -1) { vUrl = _iu; break; }
                   }
                 }
-                // Preview only: real thumbnail (or muted video first-frame fallback). No play/mute UI.
-                if (thumb) {
-                  media = '<div class="grid-post-video-thumb">'
-                    + '<img src="' + escapeHTML(thumb) + '" alt="" loading="lazy" decoding="async" style="width:100%;height:100%;object-fit:cover;display:block;pointer-events:none;" onerror="this.onerror=null;this.style.display=\'none\';var v=this.nextElementSibling;if(v)v.style.display=\'block\';">'
-                    + (vUrl ? '<video src="' + escapeHTML(vUrl) + '" muted playsinline preload="metadata" style="display:none;width:100%;height:100%;object-fit:cover;pointer-events:none;"></video>' : '')
-                    + '</div>';
-                } else if (vUrl) {
-                  media = '<div class="grid-post-video-thumb">'
-                    + '<video src="' + escapeHTML(vUrl) + '" muted playsinline preload="metadata" style="width:100%;height:100%;object-fit:cover;display:block;pointer-events:none;"></video>'
-                    + '</div>';
-                } else {
-                  media = '<div class="grid-post-video-thumb"></div>';
+                var thumb = p.thumb || p.thumbnail || p.poster || p.videoThumb || '';
+                // Prefer explicit non-video image from imgUrls as thumb
+                if (!thumb) {
+                  for (var _ti = 0; _ti < imgUrls.length; _ti++) {
+                    var _tu = String(imgUrls[_ti] || '');
+                    if (_tu && !/\.(mp4|webm|mov)(\?|$)/i.test(_tu) && _tu.indexOf('/video/') === -1) { thumb = _tu; break; }
+                  }
                 }
+                if (!thumb || /\.(mp4|webm|mov)(\?|$)/i.test(String(thumb)) || String(thumb).indexOf('/video/') !== -1) {
+                  thumb = (typeof gcCloudinaryVideoPoster === 'function') ? gcCloudinaryVideoPoster(vUrl, 480) : '';
+                }
+                // Always include video fallback with data-gc-grid-vid for frame capture if img fails / missing
+                media = '<div class="grid-post-video-thumb">';
+                if (thumb) {
+                  media += '<img src="' + escapeHTML(thumb) + '" alt="" loading="lazy" decoding="async" style="width:100%;height:100%;object-fit:cover;display:block;pointer-events:none;" onerror="this.style.display=\'none\';var v=this.nextElementSibling;if(v){v.style.display=\'block\';if(typeof gcHydrateGridVideoThumbs===\'function\')gcHydrateGridVideoThumbs(this.parentNode);}">';
+                }
+                if (vUrl) {
+                  media += '<video data-gc-grid-vid="1" crossorigin="anonymous" src="' + escapeHTML(vUrl) + '" muted playsinline preload="auto" ' + (thumb ? 'style="display:none;width:100%;height:100%;object-fit:cover;pointer-events:none;"' : 'style="width:100%;height:100%;object-fit:cover;display:block;pointer-events:none;"') + '></video>';
+                }
+                media += '</div>';
             } else {
                 media = '<img src="' + escapeHTML(imgUrls[0]) + '" alt="" loading="lazy" style="pointer-events:none;width:100%;height:auto;display:block;object-fit:cover;" onerror="this.style.opacity=.35">';
             }
@@ -24173,6 +24335,7 @@ async function loadOtherUserPosts(uid){
         list.innerHTML = html;
         list.setAttribute('data-status-count', String(statusCount));
         list.setAttribute('data-grid-count', String(gridCount));
+        try{ if(typeof gcHydrateGridVideoThumbs==='function') gcHydrateGridVideoThumbs(list); }catch(e){}
         // Default tab: Media (videos only) — or last selected
         try{
             const f = window.__otherProfileFilter || 'gallery';
@@ -25295,6 +25458,23 @@ async function createGroupAction() {
             lastAt: firebase.firestore.FieldValue.serverTimestamp(),
             createdAt: firebase.firestore.FieldValue.serverTimestamp()
         });
+        // System message for initial members (same style as later add)
+        try {
+          var actor = (currentUserData && currentUserData.name) || 'Someone';
+          var addedNames = selectedGroupFriends.map(function(uid){
+            return names[uid] || 'User';
+          });
+          var nameList = (typeof gcFormatNameList === 'function') ? gcFormatNameList(addedNames) : addedNames.join(', ');
+          var sysText = actor + ' added ' + nameList;
+          await db.collection('chats').doc(groupId).update({ lastMsg: sysText });
+          if (typeof gcPostGroupSystemMessage === 'function') {
+            await gcPostGroupSystemMessage(groupId, sysText, 'member_added', {
+              targetUids: selectedGroupFriends.slice(),
+              targetNames: addedNames,
+              actorName: actor
+            });
+          }
+        } catch (sysErr) { console.warn('group create system msg', sysErr); }
         showToast('Group created');
         closeCreateGroupModal();
         if (typeof loadMessages === 'function') loadMessages();
@@ -27743,12 +27923,12 @@ async function loadGroupMembers() {
             }
             
             html += `
-            <div class="msg-item" style="margin:0;padding:12px 4px;cursor:default;align-items:center;gap:10px;">
-                <div class="avatar sm" style="flex-shrink:0;">${avHtml}</div>
-                <div class="msg-info" style="margin:0;flex:1;min-width:0;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
-                    <span class="msg-name" style="margin:0;line-height:1.25;">${safeName}</span>${roleBadge}
+            <div class="gc-group-member-row">
+                <div class="avatar sm gc-gmr-av">${avHtml}</div>
+                <div class="gc-gmr-main">
+                    <span class="gc-gmr-name">${safeName}</span>${roleBadge}
                 </div>
-                <div style="display:flex;flex-shrink:0;align-items:center;gap:4px;">${adminBtns}</div>
+                <div class="gc-gmr-actions">${adminBtns}</div>
             </div>`;
         });
         
@@ -27919,18 +28099,38 @@ async function updateGroupAvatar(input) {
     try {
         showToast('Uploading…');
         var file = input.files[0];
+        if (file.type && file.type.indexOf('image/') !== 0) {
+            showToast('Please select an image');
+            input.value = '';
+            return;
+        }
+        // Same Cloudinary cloud + preset as profile/post uploads
         var fd = new FormData();
         fd.append('file', file);
-        fd.append('upload_preset', 'gochat_unsigned');
-        var res = await fetch('https://api.cloudinary.com/v1_1/dtz0urit6/image/upload', { method: 'POST', body: fd });
-        var data = await res.json();
-        if (!data.secure_url) throw new Error('upload failed');
+        fd.append('upload_preset', 'gochat');
+        var res = await fetch('https://api.cloudinary.com/v1_1/dsnqmwyvt/image/upload', { method: 'POST', body: fd });
+        var data = await res.json().catch(function(){ return {}; });
+        if (!res.ok || !data.secure_url) {
+            console.error('group avatar upload', res.status, data);
+            throw new Error((data && data.error && data.error.message) || 'upload failed');
+        }
         await db.collection('chats').doc(activeGroupId).update({ groupAvatar: data.secure_url });
         if (activeGroupData) activeGroupData.groupAvatar = data.secure_url;
         var av = document.getElementById('group-info-avatar');
         if (av) av.innerHTML = '<img src="' + data.secure_url + '" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">';
+        try {
+          if (currentChatId === activeGroupId) {
+            var chatAv = document.getElementById('chat-avatar');
+            if (chatAv) chatAv.innerHTML = '<img src="' + data.secure_url + '" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">';
+          }
+        } catch (e) {}
         showToast('Group photo updated');
-    } catch (e) { showToast('Avatar update failed'); }
+    } catch (e) {
+        console.error('updateGroupAvatar', e);
+        showToast('Avatar update failed');
+    } finally {
+        try { input.value = ''; } catch (e) {}
+    }
 }
 
 async function editGroupName() {
