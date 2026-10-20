@@ -3899,6 +3899,33 @@ body:not(.light-mode) .gc-msg-pop{
   border-color:rgba(255,255,255,0.08);
   box-shadow:0 16px 48px rgba(0,0,0,0.55);
 }
+
+/* Group system event messages (add/remove) — WhatsApp-style center pill */
+.gc-sys-msg{
+  display:flex; justify-content:center; align-items:center;
+  width:100%; margin:10px 0; padding:0 16px; box-sizing:border-box;
+  pointer-events:none; user-select:none;
+}
+.gc-sys-msg-pill{
+  max-width:85%;
+  padding:6px 14px;
+  border-radius:12px;
+  background:var(--surface-2);
+  border:1px solid var(--border);
+  color:var(--text-secondary);
+  font-size:12.5px; font-weight:600; line-height:1.45;
+  text-align:center;
+  box-shadow:0 1px 3px rgba(0,0,0,0.04);
+}
+body.light-mode .gc-sys-msg-pill{
+  background:rgba(0,0,0,0.05);
+  border-color:rgba(0,0,0,0.06);
+  color:var(--text-secondary);
+}
+body:not(.light-mode) .gc-sys-msg-pill{
+  background:rgba(255,255,255,0.07);
+  border-color:rgba(255,255,255,0.08);
+}
 .chat-bubble-wrapper{position:relative;display:flex;flex-direction:column;margin-bottom:14px;}
 .chat-bubble-wrapper .bubble-menu-btn{
 position:absolute;top:50%;
@@ -11100,6 +11127,24 @@ button.gc-pay-cta,
   height:36px !important;
   flex:0 0 36px !important;
   margin:0 !important;
+  border-radius:50% !important;
+  background:var(--surface-2) !important;
+  border:1px solid var(--border) !important;
+  box-shadow:0 1px 4px rgba(0,0,0,0.06);
+  color:var(--text) !important;
+}
+body.light-mode #chat-screen > .chat-topbar .chat-back{
+  background:rgba(0,0,0,0.05) !important;
+  border:1px solid rgba(0,0,0,0.06) !important;
+}
+body:not(.light-mode) #chat-screen > .chat-topbar .chat-back{
+  background:rgba(255,255,255,0.08) !important;
+  border:1px solid rgba(255,255,255,0.10) !important;
+}
+#chat-screen > .chat-topbar .chat-back i,
+#chat-screen > .chat-topbar .chat-back svg{
+  color:inherit !important;
+  -webkit-text-fill-color:currentColor !important;
 }
 #chat-screen > .chat-topbar #chat-avatar{
   width:36px !important;
@@ -11126,10 +11171,11 @@ button.gc-pay-cta,
   justify-content:flex-end !important;
   min-width:120px !important;
 }
-#chat-screen > .chat-topbar .chat-header-actions > i{
-  width:34px !important;
-  height:34px !important;
-  flex:0 0 34px !important;
+#chat-screen > .chat-topbar .chat-header-actions > i,
+#chat-screen > .chat-topbar .chat-header-actions > .gc-dots-ico{
+  width:36px !important;
+  height:36px !important;
+  flex:0 0 36px !important;
   display:inline-flex !important;
   align-items:center !important;
   justify-content:center !important;
@@ -11137,7 +11183,29 @@ button.gc-pay-cta,
   padding:0 !important;
   font-size:20px !important;
   line-height:1 !important;
-  cursor:pointer !important;
+  border-radius:50% !important;
+  background:var(--surface-2) !important;
+  border:1px solid var(--border) !important;
+  box-shadow:0 1px 4px rgba(0,0,0,0.06);
+  color:var(--text) !important;
+  box-sizing:border-box !important;
+  cursor:pointer;
+}
+body.light-mode #chat-screen > .chat-topbar .chat-header-actions > i,
+body.light-mode #chat-screen > .chat-topbar .chat-header-actions > .gc-dots-ico{
+  background:rgba(0,0,0,0.05) !important;
+  border:1px solid rgba(0,0,0,0.06) !important;
+}
+body:not(.light-mode) #chat-screen > .chat-topbar .chat-header-actions > i,
+body:not(.light-mode) #chat-screen > .chat-topbar .chat-header-actions > .gc-dots-ico{
+  background:rgba(255,255,255,0.08) !important;
+  border:1px solid rgba(255,255,255,0.10) !important;
+}
+#chat-screen > .chat-topbar .chat-header-actions > .gc-dots-ico{
+  width:36px !important;
+  height:36px !important;
+  padding:8px !important;
+  fill:currentColor !important;
 }
 /* Hide verification/leader badges only inside the chat header. */
 #chat-screen > .chat-topbar #chat-name-display .verified-badge,
@@ -20495,6 +20563,11 @@ safeText = safeText.replace(urlRegex, function(url) {
             }
         } catch (e) {}
 
+        if (m.isSystem || m.type === 'group_event') {
+            var sysText = escapeHTML(m.text || '');
+            return dateSepHtml + '<div class="gc-sys-msg" data-msgid="'+d.id+'"><div class="gc-sys-msg-pill">'+sysText+'</div></div>';
+        }
+
         return dateSepHtml + `<div class="chat-bubble-wrapper ${isMine?'mine':'theirs'}" data-msgid="${d.id}" ontouchstart="handleMsgTouchStart('${d.id}', event)" ontouchmove="handleMsgTouchMove(event)" ontouchend="handleMsgTouchEnd('${d.id}', event)" ontouchcancel="handleMsgTouchEnd('${d.id}', event)" onmousedown="handleMsgTouchStart('${d.id}', event)" onmouseup="handleMsgTouchEnd('${d.id}', event)" onmouseleave="handleMsgTouchEnd('${d.id}', event)" oncontextmenu="event.preventDefault(); return false;" onclick="handleMsgClick('${d.id}')">
             <div style="display:flex; flex-direction:row; align-items:flex-start; width:100%; ${isMine?'justify-content:flex-end;':''}">
                 ${!isMine ? msgAvatarHtml : ''}
@@ -20514,6 +20587,7 @@ safeText = safeText.replace(urlRegex, function(url) {
         
         snap.docs.forEach(d=>{
             const m=d.data();
+            if(m.isSystem || m.type === 'group_event') return;
             if(m.uid!==currentUser.uid&&!m.read){
                 d.ref.update({read:true,readAt:firebase.firestore.FieldValue.serverTimestamp()}).catch(()=>{});
             }
@@ -27625,6 +27699,41 @@ async function loadGroupMembers() {
     }
 }
 
+
+/** Post a group system/event message (centered history line). Only call after a successful action. */
+async function gcPostGroupSystemMessage(chatId, text, eventType, meta){
+  if(!chatId || !text) return;
+  try{
+    var payload = {
+      isSystem: true,
+      type: 'group_event',
+      eventType: eventType || 'info',
+      text: String(text),
+      uid: (currentUser && currentUser.uid) || 'system',
+      senderName: 'System',
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+    if(meta && typeof meta === 'object'){
+      if(meta.targetUids) payload.targetUids = meta.targetUids;
+      if(meta.targetNames) payload.targetNames = meta.targetNames;
+      if(meta.actorName) payload.actorName = meta.actorName;
+    }
+    await db.collection('chats').doc(chatId).collection('messages').add(payload);
+  }catch(e){
+    console.warn('gcPostGroupSystemMessage', e);
+  }
+}
+window.gcPostGroupSystemMessage = gcPostGroupSystemMessage;
+
+function gcFormatNameList(names){
+  names = (names || []).filter(Boolean);
+  if(!names.length) return 'someone';
+  if(names.length === 1) return names[0];
+  if(names.length === 2) return names[0] + ' and ' + names[1];
+  return names.slice(0, -1).join(', ') + ' and ' + names[names.length - 1];
+}
+window.gcFormatNameList = gcFormatNameList;
+
 async function removeGroupMember(uid, name) {
     if(typeof gcOpenConfirm==='function' && !window.__gcConfirmForceYes){
       gcOpenConfirm({title:'Remove Member?',text:'Remove '+name+' from the group?',icon:'ph-light ph-user-minus',yesLabel:'Remove',onYes:function(){window.__gcConfirmForceYes=true;removeGroupMember(uid,name);setTimeout(function(){window.__gcConfirmForceYes=false;},800);}});
@@ -27634,11 +27743,15 @@ async function removeGroupMember(uid, name) {
         // ফায়ারবেস থেকে মেম্বার রিমুভ করা
         await db.collection('chats').doc(activeGroupId).update({
             members: firebase.firestore.FieldValue.arrayRemove(uid),
-            lastMsg: `${name} was removed by Admin`,
+            lastMsg: name + ' was removed',
             lastAt: firebase.firestore.FieldValue.serverTimestamp()
         });
+        var actor = (currentUserData && currentUserData.name) || 'Admin';
+        await gcPostGroupSystemMessage(activeGroupId, actor + ' removed ' + name, 'member_removed', {
+          targetUids: [uid], targetNames: [name], actorName: actor
+        });
         showToast("Member removed!");
-        loadGroupMembers(); // লিস্ট রিফ্রেশ
+        loadGroupMembers();
     } catch(e) { showToast("Error removing member"); }
 }
 
@@ -27654,6 +27767,7 @@ async function leaveCurrentGroup() {
             lastMsg: safeName + ' left the group',
             lastAt: firebase.firestore.FieldValue.serverTimestamp()
         });
+        try{ await gcPostGroupSystemMessage(activeGroupId, safeName + ' left the group', 'member_left', { targetUids: [currentUser.uid], targetNames: [safeName], actorName: safeName }); }catch(e){}
         showToast('You left the group');
         closeGroupInfoModal();
         if (typeof closeChat === 'function') closeChat();
@@ -27707,10 +27821,25 @@ async function confirmAddGroupMembers() {
     var originalText = btn ? btn.textContent : '';
     if (btn) { btn.textContent = 'Adding…'; btn.disabled = true; }
     try {
+        var addedUids = newMembersToGroup.slice();
         await db.collection('chats').doc(activeGroupId).update({
-            members: firebase.firestore.FieldValue.arrayUnion.apply(null, newMembersToGroup),
-            lastMsg: ((currentUserData && currentUserData.name) || 'Someone') + ' added new members',
+            members: firebase.firestore.FieldValue.arrayUnion.apply(null, addedUids),
             lastAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        var actor = (currentUserData && currentUserData.name) || 'Someone';
+        var names = [];
+        try{
+          var contacts = await gcGetInboxContacts();
+          var map = {};
+          (contacts || []).forEach(function(c){ map[c.uid] = c.name; });
+          if(allUsersCache) allUsersCache.forEach(function(u){ if(u.id && u.name) map[u.id] = u.name; });
+          names = addedUids.map(function(id){ return map[id] || 'User'; });
+        }catch(e){ names = addedUids.map(function(){ return 'User'; }); }
+        var nameList = typeof gcFormatNameList === 'function' ? gcFormatNameList(names) : names.join(', ');
+        var sysText = actor + ' added ' + nameList;
+        await db.collection('chats').doc(activeGroupId).update({ lastMsg: sysText });
+        await gcPostGroupSystemMessage(activeGroupId, sysText, 'member_added', {
+          targetUids: addedUids, targetNames: names, actorName: actor
         });
         showToast('Members added');
         var ui = document.getElementById('add-group-member-ui');
