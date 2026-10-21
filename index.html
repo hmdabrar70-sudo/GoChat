@@ -15535,16 +15535,16 @@ const ONE_YEAR_MS = 365 * 24 * 60 * 60 * 1000;
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000; // 🚀 birthday-feature · 2026-09-04
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
-const MAX_FILE_SIZE = 5 * 1024 * 1024;
+const MAX_FILE_SIZE = 10 * 1024 * 1024; /* photo/video upload cap · post + story */
 const MAX_IMAGES_PER_POST = 10;
 const RATE_LIMIT_MS = 1000;
 
 
 /* ═══ Media limits + client-side compression (data saver) ═══ */
-const GC_POST_IMG_TARGET = 180 * 1024;      /* ~100–200 KB */
+const GC_POST_IMG_TARGET = 180 * 1024;      /* ~100–200 KB after compress */
 const GC_AVATAR_IMG_TARGET = 200 * 1024;
-const GC_STORY_IMG_MAX = 1.5 * 1024 * 1024; /* ≤ 1.5 MB */
-const GC_VIDEO_MAX_BYTES = 10 * 1024 * 1024; /* ≤ 10 MB · testing limit */
+const GC_STORY_IMG_MAX = 1.5 * 1024 * 1024; /* story image compress target */
+const GC_VIDEO_MAX_BYTES = 10 * 1024 * 1024; /* ≤ 10 MB · no duration limit */
 const GC_POST_VIDEO_MAX_SEC = 999999;
 const GC_STORY_VIDEO_MAX_SEC = 999999;
 
@@ -18346,6 +18346,12 @@ function gcShowStoryPreviewFile(file){
     showToast('Unsupported file type');
     return;
   }
+  // Same 10MB cap as Create Post (no duration limit)
+  var maxBytes = (typeof GC_VIDEO_MAX_BYTES === 'number') ? GC_VIDEO_MAX_BYTES : (10 * 1024 * 1024);
+  if(file.size > maxBytes){
+    showToast('Story media must be under 10MB');
+    return;
+  }
   gcRevokeStoryPreviewUrl();
   let url = '';
   try{ url = URL.createObjectURL(file); }catch(e){}
@@ -18493,7 +18499,7 @@ async function gcUploadStoryFile(file, localPreview, isVideo){
   }catch(e){
     if(typeof gcClearStoryPendingUI === 'function') gcClearStoryPendingUI();
     const msg = (e && e.message) ? String(e.message) : '';
-    if(msg === 'IMG_TOO_LARGE') showToast('Story image must be under 5MB!');
+    if(msg === 'IMG_TOO_LARGE') showToast('Story media must be under 10MB!');
     else if(msg.indexOf('VID_TOO_LONG') === 0) showToast('Story video must be under 10MB.');
     else if(msg === 'VID_TOO_LARGE') showToast('Story video must be under 10MB. Trim or compress it.');
     else if(msg === 'UNSUPPORTED') showToast('Unsupported file type');
@@ -18697,7 +18703,10 @@ function playStories(uid, startIndex = 0){
         if(typeof showToast === 'function') showToast('No active story');
         return;
     }
-    currentStoryIndex = startIndex;
+    var si = parseInt(startIndex, 10);
+    if(isNaN(si) || si < 0) si = 0;
+    if(si >= activeStoryGroup.length) si = activeStoryGroup.length - 1;
+    currentStoryIndex = si;
     const sv = document.getElementById('story-viewer');
     if(sv){
         try {
@@ -18714,15 +18723,19 @@ function playStories(uid, startIndex = 0){
 
 
 function renderCurrentStory(){
-    if(currentStoryIndex>=activeStoryGroup.length){closeStory();return;}
+    if(!activeStoryGroup || !activeStoryGroup.length || currentStoryIndex < 0 || currentStoryIndex >= activeStoryGroup.length){
+      closeStory();
+      return;
+    }
     const s=activeStoryGroup[currentStoryIndex];
+    if(!s){ closeStory(); return; }
 
-    // 🚀 একদম প্রথম স্টোরিতে "আগের স্টোরি" (left) বাটন দেখানো হবে না —
-    // এই বাটন শুধু দ্বিতীয় স্টোরি থেকে শুরু করে দেখা যাবে।
+    // Left nav: hide only when there is truly no previous story (first of first user)
     {
       const prevBtn = document.querySelector('.story-nav-btn.left');
       if(prevBtn){
-        prevBtn.style.display = (currentStoryIndex === 0) ? 'none' : 'flex';
+        var canPrev = (typeof gcCanGoPrevStory === 'function') ? gcCanGoPrevStory() : (currentStoryIndex > 0);
+        prevBtn.style.display = canPrev ? 'flex' : 'none';
       }
     }
     const safeName=escapeHTML(s.name);
@@ -18859,43 +18872,68 @@ function renderCurrentStory(){
 }
 
 
+/** Sorted story list for one user (skips empty / deleted groups) */
+function gcStoryGroupForUid(uid){
+  var data = window.allStoriesData || [];
+  return data.filter(function(st){ return st && st.uid === uid; }).sort(function(a, b){
+    var ta = (a.createdAt && a.createdAt.toMillis) ? a.createdAt.toMillis() : 0;
+    var tb = (b.createdAt && b.createdAt.toMillis) ? b.createdAt.toMillis() : 0;
+    return ta - tb;
+  });
+}
+function gcCanGoPrevStory(){
+  if(!activeStoryGroup || !activeStoryGroup.length) return false;
+  if(currentStoryIndex > 0) return true;
+  var ids = window.storyUserIds || [];
+  var idx = (typeof window.currentStoryUidIndex === 'number') ? window.currentStoryUidIndex : -1;
+  for(var i = idx - 1; i >= 0; i--){
+    if(gcStoryGroupForUid(ids[i]).length) return true;
+  }
+  return false;
+}
+
 // পরের স্টোরিতে যাওয়ার লজিক
 function nextStorySegment(){
+    if(!activeStoryGroup || !activeStoryGroup.length){ closeStory(); return; }
     if(currentStoryIndex < activeStoryGroup.length - 1) {
-        // একই ইউজারের পরের স্টোরি
         currentStoryIndex++;
         renderCurrentStory();
-    } else {
-        // ইউজারের সব স্টোরি শেষ, পরের ইউজারের স্টোরিতে যাবে
-        if(window.storyUserIds && window.currentStoryUidIndex < window.storyUserIds.length - 1) {
-            window.currentStoryUidIndex++;
-            let nextUid = window.storyUserIds[window.currentStoryUidIndex];
-            playStories(nextUid, 0); 
-        } else {
-            closeStory(); // সবার স্টোরি শেষ হলে তবেই ক্লোজ হবে
-        }
+        return;
     }
+    // Same user done → next user with at least one story
+    var ids = window.storyUserIds || [];
+    var idx = (typeof window.currentStoryUidIndex === 'number') ? window.currentStoryUidIndex : -1;
+    for(var i = idx + 1; i < ids.length; i++){
+      var g = gcStoryGroupForUid(ids[i]);
+      if(g.length){
+        window.currentStoryUidIndex = i;
+        playStories(ids[i], 0);
+        return;
+      }
+    }
+    closeStory();
 }
 
 // আগের স্টোরিতে যাওয়ার লজিক
 function prevStorySegment(){
+    if(!activeStoryGroup || !activeStoryGroup.length) return;
     if(currentStoryIndex > 0) {
-        // একই ইউজারের আগের স্টোরি
         currentStoryIndex--;
         renderCurrentStory();
-    } else {
-        // আগের ইউজারের শেষ স্টোরিতে যাবে
-        if(window.storyUserIds && window.currentStoryUidIndex > 0) {
-            window.currentStoryUidIndex--;
-            let prevUid = window.storyUserIds[window.currentStoryUidIndex];
-            let prevGroup = window.allStoriesData.filter(s=>s.uid===prevUid);
-            playStories(prevUid, prevGroup.length - 1);
-        } else {
-            // একদম প্রথম ইউজারের প্রথম স্টোরি হলে আবার শুরু থেকে প্লে হবে
-            currentStoryIndex = 0;
-            renderCurrentStory();
-        }
+        return;
     }
+    // First of this user → previous user's last story (skip empty groups)
+    var ids = window.storyUserIds || [];
+    var idx = (typeof window.currentStoryUidIndex === 'number') ? window.currentStoryUidIndex : -1;
+    for(var i = idx - 1; i >= 0; i--){
+      var g = gcStoryGroupForUid(ids[i]);
+      if(g.length){
+        window.currentStoryUidIndex = i;
+        playStories(ids[i], g.length - 1);
+        return;
+      }
+    }
+    // Already first story of first user — stay (do not loop / blank)
 }
 
 
@@ -19090,18 +19128,7 @@ async function sendStoryReply(){
       isRead: false,
       users: [currentUser.uid, otherUid]
     }, { merge: true });
-    try{
-      db.collection('notifications').add({
-        toUid: otherUid,
-        fromUid: currentUser.uid,
-        fromName: (currentUserData && currentUserData.name) || 'User',
-        type: 'story_reply',
-        text: text,
-        storyId: s.id || '',
-        read: false,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-      });
-    }catch(e){}
+    /* Story reply goes to Messages/Inbox only — no Notifications page entry */
     showToast('Reply sent');
     // Open chat so user sees the reply under the story card
     if(typeof closeStory === 'function') closeStory();
@@ -22592,7 +22619,7 @@ const files=Array.from(input.files);
 if(!files.length)return;
 const oversizedFiles = files.filter(file => file.size > MAX_FILE_SIZE);
 if (oversizedFiles.length > 0) {
-showToast('Maximum photo size is 5MB!');
+showToast('Each photo or video must be under 10MB!');
 return;
 }
 const remaining=MAX_IMAGES_PER_POST-composeImages.length;
@@ -31731,7 +31758,7 @@ else showToast('Invalid video file');
 }else if(file.type.startsWith('image/')){
 (async function(){
 try{
-if(file.size > MAX_FILE_SIZE){ showToast('Each image must be under 5MB!'); return; }
+if(file.size > MAX_FILE_SIZE){ showToast('Each photo or video must be under 10MB!'); return; }
 showToast('Optimizing image…');
 const prepared = await gcPrepareMediaFile(file, 'post');
 const reader = new FileReader();
@@ -31739,7 +31766,7 @@ reader.onload = function(e){ composeImages.push({file: prepared, preview: e.targ
 reader.readAsDataURL(prepared);
 }catch(e){
 const msg = (e && e.message) ? String(e.message) : '';
-if(msg === 'IMG_TOO_LARGE') showToast('Each image must be under 5MB!');
+if(msg === 'IMG_TOO_LARGE') showToast('Each photo or video must be under 10MB!');
 else showToast('Could not process image');
 }
 })();
