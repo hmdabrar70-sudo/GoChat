@@ -5457,27 +5457,19 @@ Liked Posts পেজ (মেনুর ওভারলে)
 .gc-shorts-head{
   position:absolute; top:0; left:0; right:0; z-index:8;
   height:74px;
-  display:grid; grid-template-columns:52px minmax(0,1fr) 52px;
+  display:flex;
   align-items:center;
+  justify-content:space-between;
   padding:calc(8px + env(safe-area-inset-top)) 12px 8px;
   background:linear-gradient(to bottom,rgba(0,0,0,.62),rgba(0,0,0,.18),transparent);
   pointer-events:none;
 }
 .gc-shorts-head > *{ pointer-events:auto; }
 
-.gc-shorts-title{
-  grid-column:2;
-  justify-self:center;
-  font-size:20px; line-height:1;
-  font-weight:800; letter-spacing:.1px;
-  color:#fff;
-  white-space:nowrap;
-  text-shadow:0 1px 5px rgba(0,0,0,.55);
-}
+/* Title removed from Shorts header */
+.gc-shorts-title{ display:none !important; }
+
 .gc-shorts-back{
-  grid-column:1;
-  grid-row:1;
-  justify-self:start;
   width:44px; height:44px;
   border:1px solid rgba(255,255,255,.10);
   border-radius:50%;
@@ -5488,25 +5480,42 @@ Liked Posts পেজ (মেনুর ওভারলে)
   box-shadow:0 2px 10px rgba(0,0,0,.25);
   backdrop-filter:blur(5px);
   -webkit-backdrop-filter:blur(5px);
+  flex-shrink:0;
 }
 .gc-shorts-back i{ font-size:24px !important; }
 
-.gc-shorts-filter-btn{
-  grid-column:3;
-  grid-row:1;
-  justify-self:end;
-  width:44px; height:44px;
+/* Plus + Filter share one capsule background */
+.gc-shorts-head-actions{
+  display:flex;
+  align-items:center;
+  gap:2px;
+  padding:4px;
+  border-radius:999px;
   border:1px solid rgba(255,255,255,.10);
-  border-radius:50%;
   background:rgba(0,0,0,.38);
-  color:#fff;
-  display:flex; align-items:center; justify-content:center;
-  cursor:pointer;
   box-shadow:0 2px 10px rgba(0,0,0,.25);
   backdrop-filter:blur(5px);
   -webkit-backdrop-filter:blur(5px);
-  padding:0;
+  flex-shrink:0;
 }
+.gc-shorts-add-btn,
+.gc-shorts-filter-btn{
+  width:40px; height:40px;
+  border:0;
+  border-radius:50%;
+  background:transparent;
+  color:#fff;
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer;
+  box-shadow:none;
+  padding:0;
+  flex-shrink:0;
+}
+.gc-shorts-add-btn:active,
+.gc-shorts-filter-btn:active{
+  background:rgba(255,255,255,.12);
+}
+.gc-shorts-add-btn svg,
 .gc-shorts-filter-btn svg{ width:22px; height:22px; display:block; }
 .gc-shorts-filter-pop{
   position:absolute; top:calc(66px + env(safe-area-inset-top)); right:12px;
@@ -13882,11 +13891,8 @@ l-137 -640 -193 -3 -193 -2 4 22 c2 13 67 314 144 671 l139 647 192 0 193 0
 <div style="font-weight:700;font-size:14px;text-shadow:0 1px 4px rgba(0,0,0,0.8); cursor:pointer;" id="sv-name" onclick="viewProfileFromStory()">Name</div>
 </div>
 <div style="display:flex;align-items:center;gap:16px;position:relative;">
-<svg id="sv-menu-btn" class="gc-dots-ico gc-dots-on-dark more-btn" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" onclick="toggleStoryMenu(event)" style="width:20px;height:20px;display:block;cursor:pointer;color:#fff;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.6));"><path d="M144,128a16,16,0,1,1-16-16A16,16,0,0,1,144,128ZM60,112a16,16,0,1,0,16,16A16,16,0,0,0,60,112Zm136,0a16,16,0,1,0,16,16A16,16,0,0,0,196,112Z"/></svg>
+<svg id="sv-menu-btn" class="gc-dots-ico gc-dots-on-dark more-btn" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" onclick="toggleStoryMenu(event)" style="width:20px;height:20px;display:none;cursor:pointer;color:#fff;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.6));"><path d="M144,128a16,16,0,1,1-16-16A16,16,0,0,1,144,128ZM60,112a16,16,0,1,0,16,16A16,16,0,0,0,60,112Zm136,0a16,16,0,1,0,16,16A16,16,0,0,0,196,112Z"/></svg>
 <div id="story-menu" class="post-dropdown-menu" style="top:40px;right:30px;position:absolute;z-index:10000;padding:4px;" onclick="event.stopPropagation();">
-    <div class="setting-item" onclick="downloadCurrentStory(event)" style="margin:0; display:flex; gap:10px; align-items:center;">
-        <i class="ph-light ph-download-simple" style="font-size: 20px;"></i> Save to device
-    </div>
     <div class="setting-item" id="sv-delete-btn" onclick="deleteCurrentStory()" style="color:var(--danger);margin:0; display:flex; gap:10px; align-items:center;">
         <i class="ph-light ph-trash" style="font-size: 20px;"></i> Delete Story
     </div>
@@ -18775,22 +18781,16 @@ function renderCurrentStory(){
         }).catch(function(){});
     }
 
-    // ১. থ্রি-ডট মেনুটি সবার স্টোরিতেই দেখাবে
+    // Three-dot menu: only on own stories (Delete only). Hidden for other users.
     const svMenuBtn = document.getElementById('sv-menu-btn');
+    const isOwnStory = !!(currentUser && s.uid === currentUser.uid);
     if(svMenuBtn) {
-        svMenuBtn.style.display = 'block'; 
+        svMenuBtn.style.display = isOwnStory ? 'block' : 'none';
     }
-
-    // ২. ডিলিট বাটনটি শুধু নিজের স্টোরি হলে দেখাবে, অন্যের হলে হাইড হয়ে যাবে (CSS Conflict Fix)
     const svDeleteBtn = document.getElementById('sv-delete-btn');
     if(svDeleteBtn) {
-        if (s.uid === currentUser.uid) {
-            svDeleteBtn.style.setProperty('display', 'flex', 'important');
-        } else {
-            svDeleteBtn.style.setProperty('display', 'none', 'important'); // জোর করে লুকানো হলো
-        }
+        svDeleteBtn.style.setProperty('display', isOwnStory ? 'flex' : 'none', 'important');
     }
-
     const sm = document.getElementById('story-menu');
     if(sm) sm.classList.remove('open');
     document.getElementById('sv-avatar').innerHTML=s.avatar?`<img src="${escapeHTML(s.avatar)}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`:avatarInitial(s.name);
@@ -26445,24 +26445,6 @@ function markNotInterested(pid, element) {
         postCard.style.display = 'none';
     }
 }
-// স্টোরি ডাউনলোড করার ফাংশন
-async function downloadCurrentStory(event) {
-    if(event) event.stopPropagation();
-    const menu = document.getElementById('story-menu');
-    if(menu) menu.classList.remove('open');
-    if(!activeStoryGroup || currentStoryIndex >= activeStoryGroup.length) return;
-    const s = activeStoryGroup[currentStoryIndex];
-    let mediaUrl = s.mediaUrl;
-    if(!mediaUrl) return;
-    // Pause story auto-advance while downloading
-    try{ if(typeof pauseStoryProgress === 'function') pauseStoryProgress(); }catch(e){}
-    try{ if(window.storyTimer) { clearTimeout(window.storyTimer); window.storyTimer = null; } }catch(e){}
-    const ext = s.isVideo ? '.mp4' : '.jpg';
-    await gcDownloadMedia(mediaUrl, {
-      which: 'story',
-      filename: 'GoChat_Story_' + Date.now() + ext
-    });
-}
 function gcSyncOtherMuteIcon(uid) {
     const icon = document.getElementById('other-mute-profile-icon');
     const btn = document.getElementById('other-mute-profile-btn');
@@ -33268,10 +33250,14 @@ function gcEnsureShortsScreen(){
   scr.innerHTML = ''
     + '<div class="gc-shorts-head">'
     +   '<button type="button" class="gc-shorts-back" onclick="gcCloseShorts()" aria-label="Back"><i class="ph-light ph-arrow-left"></i></button>'
-    +   '<div class="gc-shorts-title">Shorts</div>'
-    +   '<button type="button" class="gc-shorts-filter-btn" onclick="event.stopPropagation(); gcToggleShortsFilter(event)" aria-label="Filter">'
-    +     '<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16 16.25C16.4142 16.25 16.75 16.5858 16.75 17C16.75 17.4142 16.4142 17.75 16 17.75H8C7.58579 17.75 7.25 17.4142 7.25 17C7.25 16.5858 7.58579 16.25 8 16.25H16Z"/><path d="M19 11.25C19.4142 11.25 19.75 11.5858 19.75 12C19.75 12.4142 19.4142 12.75 19 12.75H5C4.58579 12.75 4.25 12.4142 4.25 12C4.25 11.5858 4.58579 11.25 5 11.25H19Z"/><path d="M22 6.25C22.4142 6.25 22.75 6.58579 22.75 7C22.75 7.41421 22.4142 7.75 22 7.75H2C1.58579 7.75 1.25 7.41421 1.25 7C1.25 6.58579 1.58579 6.25 2 6.25H22Z"/></svg>'
-    +   '</button>'
+    +   '<div class="gc-shorts-head-actions">'
+    +     '<button type="button" class="gc-shorts-add-btn" onclick="event.stopPropagation(); if(typeof gcOpenCreateFromShorts===\'function\') gcOpenCreateFromShorts();" aria-label="Create post">'
+    +       '<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12.75 9C12.75 8.58579 12.4142 8.25 12 8.25C11.5858 8.25 11.25 8.58579 11.25 9L11.25 11.25H9C8.58579 11.25 8.25 11.5858 8.25 12C8.25 12.4142 8.58579 12.75 9 12.75H11.25V15C11.25 15.4142 11.5858 15.75 12 15.75C12.4142 15.75 12.75 15.4142 12.75 15L12.75 12.75H15C15.4142 12.75 15.75 12.4142 15.75 12C15.75 11.5858 15.4142 11.25 15 11.25H12.75V9Z"/><path fill-rule="evenodd" d="M12.0574 1.25H11.9426C9.63424 1.24999 7.82519 1.24998 6.41371 1.43975C4.96897 1.63399 3.82895 2.03933 2.93414 2.93414C2.03933 3.82895 1.63399 4.96897 1.43975 6.41371C1.24998 7.82519 1.24999 9.63422 1.25 11.9426V12.0574C1.24999 14.3658 1.24998 16.1748 1.43975 17.5863C1.63399 19.031 2.03933 20.1711 2.93414 21.0659C3.82895 21.9607 4.96897 22.366 6.41371 22.5603C7.82519 22.75 9.63423 22.75 11.9426 22.75H12.0574C14.3658 22.75 16.1748 22.75 17.5863 22.5603C19.031 22.366 20.1711 21.9607 21.0659 21.0659C21.9607 20.1711 22.366 19.031 22.5603 17.5863C22.75 16.1748 22.75 14.3658 22.75 12.0574V11.9426C22.75 9.63423 22.75 7.82519 22.5603 6.41371C22.366 4.96897 21.9607 3.82895 21.0659 2.93414C20.1711 2.03933 19.031 1.63399 17.5863 1.43975C16.1748 1.24998 14.3658 1.24999 12.0574 1.25ZM3.9948 3.9948C4.56445 3.42514 5.33517 3.09825 6.61358 2.92637C7.91356 2.75159 9.62177 2.75 12 2.75C14.3782 2.75 16.0864 2.75159 17.3864 2.92637C18.6648 3.09825 19.4355 3.42514 20.0052 3.9948C20.5749 4.56445 20.9018 5.33517 21.0736 6.61358C21.2484 7.91356 21.25 9.62177 21.25 12C21.25 14.3782 21.2484 16.0864 21.0736 17.3864C20.9018 18.6648 20.5749 19.4355 20.0052 20.0052C19.4355 20.5749 18.6648 20.9018 17.3864 21.0736C16.0864 21.2484 14.3782 21.25 12 21.25C9.62177 21.25 7.91356 21.2484 6.61358 21.0736C5.33517 20.9018 4.56445 20.5749 3.9948 20.0052C3.42514 19.4355 3.09825 18.6648 2.92637 17.3864C2.75159 16.0864 2.75 14.3782 2.75 12C2.75 9.62177 2.75159 7.91356 2.92637 6.61358C3.09825 5.33517 3.42514 4.56445 3.9948 3.9948Z" clip-rule="evenodd"/></svg>'
+    +     '</button>'
+    +     '<button type="button" class="gc-shorts-filter-btn" onclick="event.stopPropagation(); gcToggleShortsFilter(event)" aria-label="Filter">'
+    +       '<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16 16.25C16.4142 16.25 16.75 16.5858 16.75 17C16.75 17.4142 16.4142 17.75 16 17.75H8C7.58579 17.75 7.25 17.4142 7.25 17C7.25 16.5858 7.58579 16.25 8 16.25H16Z"/><path d="M19 11.25C19.4142 11.25 19.75 11.5858 19.75 12C19.75 12.4142 19.4142 12.75 19 12.75H5C4.58579 12.75 4.25 12.4142 4.25 12C4.25 11.5858 4.58579 11.25 5 11.25H19Z"/><path d="M22 6.25C22.4142 6.25 22.75 6.58579 22.75 7C22.75 7.41421 22.4142 7.75 22 7.75H2C1.58579 7.75 1.25 7.41421 1.25 7C1.25 6.58579 1.58579 6.25 2 6.25H22Z"/></svg>'
+    +     '</button>'
+    +   '</div>'
     +   '<div class="gc-shorts-filter-pop" id="gc-shorts-filter-pop" role="menu">'
     +     '<button type="button" class="gc-shorts-filter-item active" data-sf="foryou" onclick="event.stopPropagation(); gcPickShortsFilter(\'foryou\')">For You</button>'
     +     '<button type="button" class="gc-shorts-filter-item" data-sf="following" onclick="event.stopPropagation(); gcPickShortsFilter(\'following\')">Following</button>'
@@ -33991,6 +33977,17 @@ function gcCloseShortsComments(){
     }
   }catch(e){}
 }
+
+
+/** Open Create Post from Shorts — close Shorts first so create-post (z-index 500) is not hidden under Shorts (z-index 100700). */
+function gcOpenCreateFromShorts(){
+  try{ if(typeof gcCloseShorts === 'function') gcCloseShorts(); }catch(e){}
+  try{
+    if(typeof openCreatePost === 'function') openCreatePost();
+    else if(typeof window.openCreatePost === 'function') window.openCreatePost();
+  }catch(e){ console.error('gcOpenCreateFromShorts', e); }
+}
+window.gcOpenCreateFromShorts = gcOpenCreateFromShorts;
 
 function gcOpenShorts(){
   try{ if(typeof gcCloseHomeDrawer==='function') gcCloseHomeDrawer(); }catch(e){}
