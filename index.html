@@ -9099,6 +9099,14 @@ body:not(.light-mode) .post-card {
     align-self: center !important;
 }
 .gc-react-summary-count{ display:none !important; }
+/* Hide like/comment count when post owner enables hideLikeCommentCount */
+.post-card[data-hide-counts="1"] [data-count="likes"],
+.post-card[data-hide-counts="1"] [data-count="comments"],
+.gc-short-item[data-hide-counts="1"] [data-s-likes],
+.gc-short-item[data-hide-counts="1"] [data-s-comments] {
+  display: none !important;
+}
+
 .post-card .post-actions .post-action-btn {
     pointer-events: auto; /* only real buttons remain tappable */
 }
@@ -23191,6 +23199,7 @@ async function openSinglePostView(pid) {
             if (canSoft) {
               // Soft update: counts + comments only — never destroy <video> (stops jump/reload)
               try {
+                try{ if(existingCard) existingCard.setAttribute('data-hide-counts', data.hideLikeCommentCount ? '1' : '0'); }catch(_h){}
                 var likesN = (typeof data.likes === 'number') ? data.likes : ((data.likedBy && data.likedBy.length) || 0);
                 var sharesN = (typeof data.shares === 'number') ? data.shares : (data.shareCount || 0);
                 var isLiked = !!(currentUser && data.likedBy && data.likedBy.indexOf(currentUser.uid) !== -1);
@@ -23726,6 +23735,7 @@ function loadFeed() {
                 
                 // শুধু লাইক এবং কমেন্ট আপডেট (stable data-action selectors)
                 if (true) {
+                    try{ existingCard.setAttribute('data-hide-counts', p.hideLikeCommentCount ? '1' : '0'); }catch(_h){}
                     const likeBtn = existingCard.querySelector('.post-action-btn[data-action="like"]') || existingCard.querySelector('.post-action-btn:nth-child(1)');
                     const commentBtn = existingCard.querySelector('.post-action-btn[data-action="comment"]') || existingCard.querySelector('.post-action-btn:nth-child(2)');
                     const likeCountEl = likeBtn ? (likeBtn.querySelector('[data-count="likes"]') || likeBtn.querySelector('span')) : null;
@@ -24295,9 +24305,15 @@ if(p.uid === currentUser?.uid){
     const pinText = p.isPinned ? 'Unpin Post' : 'Pin Post';
     postDropdownHtml += `<div class="chat-dropdown-item" onclick="event.stopPropagation(); openPostInsights('${pid}')"><i class="ph-light ph-chart-line-up"></i> Post Insights</div>`;
     const pinIcon = p.isPinned ? 'ph-light ph-push-pin-slash' : 'ph-light ph-push-pin';
+    const hideCountsOn = !!p.hideLikeCommentCount;
+    const hideCountsLabel = hideCountsOn ? 'Show Like and Comment Count' : 'Hide Like and Comment Count';
+    const hideCountsIcon = hideCountsOn ? 'ph-light ph-eye' : 'ph-light ph-eye-slash';
     postDropdownHtml += `
     <div class="chat-dropdown-item" onclick="event.stopPropagation(); pinPost('${pid}')">
         <i class="${pinIcon}" style="font-size:20px;"></i> ${pinText}
+    </div>
+    <div class="chat-dropdown-item" onclick="event.stopPropagation(); if(typeof toggleHideLikeCommentCount==='function') toggleHideLikeCommentCount('${pid}');">
+        <i class="${hideCountsIcon}" style="font-size:20px;"></i> ${hideCountsLabel}
     </div>
     <div class="chat-dropdown-item" onclick="event.stopPropagation(); openEditPostModal('${pid}')">
         <i class="ph-light ph-pencil-line"></i> Edit Post
@@ -24379,7 +24395,7 @@ const __pcUrls = (p.imgUrls && p.imgUrls.length) ? p.imgUrls : (p.imgUrl ? [p.im
 const __pcIsVid = !!(p.videoUrl) || __pcUrls.some(function(u){ u=String(u||''); return u.indexOf('/video/')!==-1 || /\.(mp4|webm|mov)(\?|$)/i.test(u); });
 const __pcIsImg = !__pcIsVid && __pcUrls.length > 0;
 const __pcKind = __pcIsVid ? 'media' : (__pcIsImg ? 'gallery' : 'status');
-return`<div class="post-card ${premiumPostClass}${pinnedClass}" data-post-id="${pid}" data-post-kind="${__pcKind}" style="cursor:pointer;" onclick="openSinglePostView('${pid}')">
+return`<div class="post-card ${premiumPostClass}${pinnedClass}" data-post-id="${pid}" data-post-kind="${__pcKind}" data-hide-counts="${p.hideLikeCommentCount ? '1' : '0'}" style="cursor:pointer;" onclick="openSinglePostView('${pid}')">
 <div class="post-header">
 <div class="tf-av-wrap" data-uid="${p.uid}">
 <div class="avatar" style="width:44px;height:44px;cursor:pointer;" onclick="event.stopPropagation(); viewUserProfile('${p.uid}')">${av}</div>
@@ -24451,6 +24467,57 @@ ${reactSummaryHtml}
 </div>
 </div>`;
 }
+
+
+// ═══════════════════════════════════════════════════════
+// 🚀 FEATURE · hide-like-comment-count · 2026-10-23
+// Post owner can hide like & comment counts on a per-post basis.
+// Field: hideLikeCommentCount (boolean, default false). Owner-only write
+// is already enforced by posts update rule (uid == auth.uid).
+// ═══════════════════════════════════════════════════════
+window.gcApplyHideLikeCommentCount = function(pid, hide){
+  if(!pid) return;
+  hide = !!hide;
+  try{
+    document.querySelectorAll('.post-card[data-post-id="'+pid+'"], .gc-short-item[data-post-id="'+pid+'"]').forEach(function(el){
+      el.setAttribute('data-hide-counts', hide ? '1' : '0');
+    });
+    var sp = document.querySelector('#single-post-container .post-card[data-post-id="'+pid+'"]');
+    if(sp) sp.setAttribute('data-hide-counts', hide ? '1' : '0');
+  }catch(e){}
+};
+window.toggleHideLikeCommentCount = async function(pid){
+  if(!pid || !currentUser) return;
+  try{ if(typeof closeAllDropdowns==='function') closeAllDropdowns(); }catch(e){}
+  try{ if(typeof gcCloseSheet==='function') gcCloseSheet(); }catch(e){}
+  try{
+    var ref = db.collection('posts').doc(pid);
+    var snap = await ref.get();
+    if(!snap.exists){ showToast('Post not found'); return; }
+    var data = snap.data() || {};
+    if(data.uid !== currentUser.uid){
+      showToast('Only the post owner can change this');
+      return;
+    }
+    var next = !data.hideLikeCommentCount;
+    await ref.update({ hideLikeCommentCount: next });
+    try{ window.gcApplyHideLikeCommentCount(pid, next); }catch(e){}
+    try{
+      if(window.__gcFeedPostsCache && window.__gcFeedPostsCache[pid]){
+        window.__gcFeedPostsCache[pid].hideLikeCommentCount = next;
+      }
+    }catch(e){}
+    try{
+      if(window.__gcShortsPosts && window.__gcShortsPosts[pid]){
+        window.__gcShortsPosts[pid].hideLikeCommentCount = next;
+      }
+    }catch(e){}
+    showToast(next ? 'Like & comment counts hidden' : 'Like & comment counts visible');
+  }catch(e){
+    console.error('toggleHideLikeCommentCount', e);
+    showToast('Could not update setting');
+  }
+};
 
 function closeSinglePost(){
     const screen = document.getElementById('single-post-screen');
@@ -33795,7 +33862,7 @@ function gcRenderShortsList(posts){
     } else if (currentUser && authorUid && !isSelf && isFollowing) {
       followBtnHtml = '<button type="button" class="gc-short-follow-btn is-following" data-s-follow="1" data-follow-uid="'+escapeHTML(authorUid)+'" disabled>Following</button>';
     }
-    html += '<div class="gc-short-item" data-post-id="'+escapeHTML(pid)+'" data-short-author-uid="'+escapeHTML(p.uid||'')+'">'
+    html += '<div class="gc-short-item" data-post-id="'+escapeHTML(pid)+'" data-short-author-uid="'+escapeHTML(p.uid||'')+'" data-hide-counts="'+(p.hideLikeCommentCount ? '1' : '0')+'">'
       + '<video src="'+escapeHTML(vurl)+'" playsinline webkit-playsinline loop preload="metadata" '
       + (window.gcGlobalMuted !== false ? 'muted' : '') + '></video>'
       + '<div class="gc-short-overlay"></div>'
