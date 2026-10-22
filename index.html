@@ -17717,12 +17717,12 @@ function showPage(page) {
     }
     if(page === 'friends') { loadFriendRequests(); loadAllFriends(); }
 
-    // Restore scroll for feed/profile; other pages go to top
+    // Restore scroll for ANY page that previously saved a position
     try{
       window.__gcPageScroll = window.__gcPageScroll || {};
       var _tid = 'page-' + page;
       var _y = window.__gcPageScroll[_tid];
-      if((page === 'feed' || page === 'profile') && typeof _y === 'number' && _y > 0){
+      if(typeof _y === 'number' && _y >= 0){
         var _restore = function(){ try{ window.scrollTo(0, _y); }catch(e){} };
         _restore();
         requestAnimationFrame(_restore);
@@ -22812,7 +22812,7 @@ function gcSetComposerIdentity(){
 window.gcSetComposerIdentity = gcSetComposerIdentity;
 
 function openCreatePost(){
-try{ if(typeof window.gcPauseAllAppVideos==='function') window.gcPauseAllAppVideos(true); }catch(e){}
+try{ if(typeof window.gcPauseAllAppVideos==='function') window.gcPauseAllAppVideos(false); }catch(e){}
 try{
   document.querySelectorAll('video').forEach(function(v){
     try{ if(!v.paused) v.pause(); v.muted = true; }catch(err){}
@@ -24454,6 +24454,11 @@ ${reactSummaryHtml}
 
 function closeSinglePost(){
     const screen = document.getElementById('single-post-screen');
+    try{
+      if(screen) screen.querySelectorAll('video').forEach(function(v){
+        try{ v.pause(); v.gcUserPaused = true; }catch(e){}
+      });
+    }catch(e){}
     if(screen) screen.classList.remove('open');
     const compose = document.getElementById('sp-fixed-compose');
     if(compose) compose.style.display = 'none';
@@ -29542,6 +29547,13 @@ function closeTopMostView() {
     var editPost = document.getElementById('edit-post-modal');
     if (editPost && editPost.classList.contains('open')) { if(typeof closeEditPostModal==='function') closeEditPostModal(); return true; }
 
+    // 0. Shorts full-screen (must restore feed scroll via gcCloseShorts)
+    var shortsScr = document.getElementById('gc-shorts-screen');
+    if (shortsScr && shortsScr.classList.contains('open')) {
+      if (typeof gcCloseShorts === 'function') gcCloseShorts();
+      return true;
+    }
+
     // ১. Full Screen Image Zoom
     const imageZoom = document.getElementById('image-zoom-modal');
     if (imageZoom && imageZoom.classList.contains('open')) { closeImageZoom(); return true; }
@@ -31251,7 +31263,10 @@ function gcLockScroll(){
   try{
     window.__gcScrollLockCount = (window.__gcScrollLockCount || 0) + 1;
     if(window.__gcScrollLockCount > 1) return;
-    var y = window.scrollY || window.pageYOffset || 0;
+    /* Prefer last known feed scroll (tracked continuously) over live scrollY */
+    var tracked = (typeof window.__gcLastFeedScrollY === 'number') ? window.__gcLastFeedScrollY : null;
+    var y = (tracked !== null && tracked > 0) ? tracked : (window.scrollY || window.pageYOffset || 0);
+    window.__gcLastFeedScrollY = y;
     document.body.dataset.gcScrollY = String(y);
     document.documentElement.style.overflow = 'hidden';
     document.body.style.overflow = 'hidden';
@@ -31265,9 +31280,15 @@ function gcLockScroll(){
 window.gcLockScroll = gcLockScroll;
 function gcUnlockScroll(){
   try{
-    window.__gcScrollLockCount = Math.max(0, (window.__gcScrollLockCount || 1) - 1);
+    /* Not locked → do nothing (prevents double-unlock scrolling to 0) */
+    if(!window.__gcScrollLockCount || window.__gcScrollLockCount <= 0){
+      window.__gcScrollLockCount = 0;
+      return;
+    }
+    window.__gcScrollLockCount -= 1;
     if(window.__gcScrollLockCount > 0) return;
-    var y = parseInt(document.body.dataset.gcScrollY || '0', 10) || 0;
+    var y = parseInt(document.body.dataset.gcScrollY || '', 10);
+    if(isNaN(y)) y = (typeof window.__gcLastFeedScrollY === 'number') ? window.__gcLastFeedScrollY : 0;
     document.documentElement.style.overflow = '';
     document.body.style.overflow = '';
     document.body.style.position = '';
@@ -31277,9 +31298,32 @@ function gcUnlockScroll(){
     document.body.style.width = '';
     delete document.body.dataset.gcScrollY;
     window.scrollTo(0, y);
+    window.__gcLastFeedScrollY = y;
   }catch(e){}
 }
 window.gcUnlockScroll = gcUnlockScroll;
+
+/* Continuously track Home Feed window scroll so drawer/Shorts never lose position */
+(function(){
+  if(window.__gcFeedScrollTrackV1) return;
+  window.__gcFeedScrollTrackV1 = true;
+  window.__gcLastFeedScrollY = window.__gcLastFeedScrollY || 0;
+  var _t = null;
+  function _mark(){
+    try{
+      var feed = document.getElementById('page-feed');
+      if(!feed || !feed.classList.contains('active')) return;
+      /* Ignore while body is position:fixed (locked) */
+      if(document.body.style.position === 'fixed') return;
+      window.__gcLastFeedScrollY = window.scrollY || window.pageYOffset || 0;
+    }catch(e){}
+  }
+  window.addEventListener('scroll', function(){
+    if(_t) return;
+    _t = setTimeout(function(){ _t = null; _mark(); }, 80);
+  }, {passive:true});
+  document.addEventListener('touchend', function(){ setTimeout(_mark, 50); }, {passive:true});
+})();
 
 let gcSheetActions = [];
 function gcBuildSheet(groups){
@@ -34353,10 +34397,34 @@ function gcOpenCreateFromShorts(){
 window.gcOpenCreateFromShorts = gcOpenCreateFromShorts;
 
 function gcOpenShorts(){
+  /* Capture scroll BEFORE closing drawer (drawer unlock must not zero it) */
+  var _y = 0;
+  try{
+    if(typeof window.__gcLastFeedScrollY === 'number' && window.__gcLastFeedScrollY > 0){
+      _y = window.__gcLastFeedScrollY;
+    } else if(document.body.style.position === 'fixed' && document.body.dataset.gcScrollY){
+      _y = parseInt(document.body.dataset.gcScrollY, 10) || 0;
+    } else {
+      _y = window.pageYOffset || document.documentElement.scrollTop || 0;
+    }
+    window.__gcPageScroll = window.__gcPageScroll || {};
+    window.__gcPageScroll['page-feed'] = _y;
+    window.__gcShortsReturnScroll = _y;
+    window.__gcLastFeedScrollY = _y;
+  }catch(e){}
   try{ if(typeof gcCloseHomeDrawer==='function') gcCloseHomeDrawer(); }catch(e){}
+  /* Pause playback only — do NOT force mute / touch sound button state */
+  try{ if(typeof window.gcPauseAllAppVideos==='function') window.gcPauseAllAppVideos(false); }catch(e){}
   var scr = gcEnsureShortsScreen();
   scr.classList.add('open');
-  try{ document.body.style.overflow = 'hidden'; }catch(e){}
+  try{
+    /* Ensure lock uses the saved feed Y, not a possibly-zero live scroll */
+    if(typeof window.__gcShortsReturnScroll === 'number'){
+      window.__gcLastFeedScrollY = window.__gcShortsReturnScroll;
+    }
+    if(typeof gcLockScroll==='function') gcLockScroll();
+    else document.body.style.overflow = 'hidden';
+  }catch(e){}
   gcLoadShorts();
 }
 function gcCloseShorts(){
@@ -34364,8 +34432,27 @@ function gcCloseShorts(){
   var scr = document.getElementById('gc-shorts-screen');
   if(scr) scr.classList.remove('open');
   gcPauseAllShorts(null);
-  try{ document.body.style.overflow = ''; }catch(e){}
   try{ if(window.__gcShortsIO) window.__gcShortsIO.disconnect(); }catch(e){}
+  var y = 0;
+  try{
+    y = (typeof window.__gcShortsReturnScroll === 'number')
+      ? window.__gcShortsReturnScroll
+      : ((window.__gcPageScroll && typeof window.__gcPageScroll['page-feed'] === 'number')
+          ? window.__gcPageScroll['page-feed']
+          : (window.__gcLastFeedScrollY || 0));
+    /* Force unlock target so unlock won't restore a wrong intermediate value */
+    if(document.body.dataset) document.body.dataset.gcScrollY = String(y);
+    window.__gcLastFeedScrollY = y;
+  }catch(e){}
+  try{ if(typeof gcUnlockScroll==='function') gcUnlockScroll(); else document.body.style.overflow = ''; }catch(e){}
+  try{
+    var _r = function(){ try{ window.scrollTo(0, y); window.__gcLastFeedScrollY = y; }catch(e){} };
+    _r();
+    requestAnimationFrame(_r);
+    setTimeout(_r, 40);
+    setTimeout(_r, 120);
+    setTimeout(_r, 280);
+  }catch(e){}
 }
 // Shorts like counts are owned by gcSyncEngagementUI + gcSyncShortsCache (no delayed overwrite)
 window.gcOpenShorts = gcOpenShorts;
@@ -35264,12 +35351,11 @@ function gcPauseAllVideos(muteToo){
 document.querySelectorAll('.gc-vplayer video').forEach(function(v){
 try{
 if(!v.paused) v.pause();
-v.gcUserPaused = false;
-if(muteToo){
-// Pause for navigation — keep element muted for autoplay policy, but do NOT reset global preference
+/* Navigation leave: mark paused so IntersectionObserver will NOT auto-resume on return */
+v.gcUserPaused = true;
+/* Only change mute state when explicitly requested — never touch sound button UI on nav pause */
+if(muteToo === true){
 v.muted = true;
-const btn = v.closest('.gc-vplayer') && v.closest('.gc-vplayer').querySelector('.gc-vp-mute');
-if(btn) btn.innerHTML = '<i class="ph-light ph-speaker-slash"></i>';
 }
 }catch(e){}
 });
@@ -35490,12 +35576,11 @@ v.gcUserPaused = false;
 });
 }, {threshold:[0, 0.4, 0.6, 1]});
 document.querySelectorAll('.gc-vplayer').forEach(function(w){ window.gcVpObserver.observe(w); });
-// পেজ বদলালে (feed ছাড়া) সব ভিডিও পজ + মিউট
+// পেজ বদলালে (feed ছাড়া) সব ভিডিও পজ — mute নয় (Sound button state অক্ষুণ্ণ)
 window.gcOrigShowPage65 = showPage;
 showPage = function(page){
-// home feed ছেড়ে অন্য পেজে গেলেই সব ভিডিও পজ + মিউট
 if(page !== 'feed'){
-gcPauseAllVideos(true);
+gcPauseAllVideos(false);
 }
 return window.gcOrigShowPage65(page);
 };
@@ -35503,7 +35588,7 @@ if(typeof openSinglePostView === 'function' && !window.gcSpWrapped65){
 window.gcSpWrapped65 = true;
 window.gcOrigSPV65 = openSinglePostView;
 openSinglePostView = function(pid){
-gcPauseAllVideos(true);
+gcPauseAllVideos(false);
 return window.gcOrigSPV65(pid);
 };
 }
@@ -35513,7 +35598,7 @@ if(typeof window[fn] === 'function' && !window['gcVidWrap_'+fn]){
 window['gcVidWrap_'+fn] = true;
 const orig = window[fn];
 window[fn] = function(){
-gcPauseAllVideos(true);
+gcPauseAllVideos(false);
 return orig.apply(this, arguments);
 };
 }
@@ -37597,55 +37682,50 @@ window.gcCloseSheetSafe = gcCloseSheetSafe;
 
 
 // ═══════════════════════════════════════════════════════
-// 🚀 Update · global-video-page-lifecycle · 2026-09-20
-// Stop every app video whenever the user leaves the current video view.
-// This is intentionally centralized so Feed/Profile/other pages stay consistent.
+// 🚀 Update · global-page-lifecycle-media · 2026-10-22
+// Central: pause ALL video/audio on any real navigation; never auto-resume.
+// Scroll positions saved in showPage + Shorts open/close.
 // ═══════════════════════════════════════════════════════
 (function(){
-  if(window.__gcGlobalVideoLifecycleV1) return;
-  window.__gcGlobalVideoLifecycleV1 = true;
+  if(window.__gcGlobalVideoLifecycleV2) return;
+  window.__gcGlobalVideoLifecycleV2 = true;
 
   window.gcPauseAllAppVideos = function(muteToo){
     try{
       document.querySelectorAll('video').forEach(function(v){
         try{
           if(!v.paused) v.pause();
-          v.gcUserPaused = false;
-          if(muteToo) v.muted = true;
+          /* Prevent feed IntersectionObserver from auto-playing after return */
+          v.gcUserPaused = true;
+          /* Do NOT force mute on navigation — keep Sound button state intact */
+          if(muteToo === true) v.muted = true;
         }catch(e){}
       });
-      // Keep every known player-level mute button in sync after navigation.
-      document.querySelectorAll('.gc-vp-mute').forEach(function(btn){
-        try{
-          var wrap = btn.closest('.gc-vplayer');
-          var v = wrap && wrap.querySelector('video');
-          if(v) btn.innerHTML = v.muted
-            ? '<i class="ph-light ph-speaker-slash"></i>'
-            : '<i class="ph-light ph-speaker-high"></i>';
-        }catch(e){}
+      document.querySelectorAll('audio').forEach(function(a){
+        try{ if(!a.paused) a.pause(); }catch(e){}
       });
+      try{ if(typeof gcPauseAllShorts === 'function') gcPauseAllShorts(null); }catch(e){}
+      try{ if(typeof gcPauseAllVideos === 'function') gcPauseAllVideos(muteToo === true); }catch(e){}
+      /* Never rewrite mute-button DOM on pause-for-navigation */
     }catch(e){}
   };
 
-  // The normal page switch already has video handling, but this final wrapper
-  // guarantees that later feature wrappers cannot accidentally bypass it.
-  if(typeof window.showPage === 'function' && !window.__gcGlobalVideoShowPageWrapped){
-    window.__gcGlobalVideoShowPageWrapped = true;
+  if(typeof window.showPage === 'function' && !window.__gcGlobalVideoShowPageWrappedV2){
+    window.__gcGlobalVideoShowPageWrappedV2 = true;
     var _showPage = window.showPage;
     window.showPage = function(page){
-      try{ window.gcPauseAllAppVideos(true); }catch(e){}
+      try{ window.gcPauseAllAppVideos(false); }catch(e){}
       return _showPage.apply(this, arguments);
     };
   }
 
-  // Full-screen/overlay destinations that do not use showPage().
   function wrapVideoStop(name){
     try{
-      if(typeof window[name] !== 'function' || window['__gcVideoStopWrap_'+name]) return;
-      window['__gcVideoStopWrap_'+name] = true;
+      if(typeof window[name] !== 'function' || window['__gcVideoStopWrapV2_'+name]) return;
+      window['__gcVideoStopWrapV2_'+name] = true;
       var original = window[name];
       window[name] = function(){
-        try{ window.gcPauseAllAppVideos(true); }catch(e){}
+        try{ window.gcPauseAllAppVideos(false); }catch(e){}
         return original.apply(this, arguments);
       };
     }catch(e){}
@@ -37661,17 +37741,28 @@ window.gcCloseSheetSafe = gcCloseSheetSafe;
     'viewUserProfile',
     'openSinglePostView',
     'openCreatePost',
-    'closeCreatePost'
+    'closeCreatePost',
+    'playStories',
+    'closeStory',
+    'openMainSettingsScreen',
+    'gcOpenCreateFromShorts'
   ].forEach(wrapVideoStop);
 
-  // Opening Shorts is also a navigation event: stop any Feed/Profile player
-  // before Shorts starts its own active video.
-  if(typeof window.gcOpenShorts === 'function' && !window.__gcVideoStopWrap_gcOpenShorts){
-    window.__gcVideoStopWrap_gcOpenShorts = true;
+  /* Shorts open already pauses inside gcOpenShorts; still wrap if assigned later */
+  if(typeof window.gcOpenShorts === 'function' && !window.__gcVideoStopWrapV2_gcOpenShorts){
+    window.__gcVideoStopWrapV2_gcOpenShorts = true;
     var _openShorts = window.gcOpenShorts;
     window.gcOpenShorts = function(){
-      try{ window.gcPauseAllAppVideos(true); }catch(e){}
+      try{ window.gcPauseAllAppVideos(false); }catch(e){}
       return _openShorts.apply(this, arguments);
+    };
+  }
+  if(typeof window.gcCloseShorts === 'function' && !window.__gcVideoStopWrapV2_gcCloseShorts){
+    window.__gcVideoStopWrapV2_gcCloseShorts = true;
+    var _closeShorts = window.gcCloseShorts;
+    window.gcCloseShorts = function(){
+      try{ if(typeof gcPauseAllShorts === 'function') gcPauseAllShorts(null); }catch(e){}
+      return _closeShorts.apply(this, arguments);
     };
   }
 })();
