@@ -5234,13 +5234,14 @@ display:block;
 নিজস্ব Phosphor আইকনের ভিডিও প্লেয়ার কন্ট্রোল
 খুঁজতে: Ctrl+F → "custom-vplayer"
 ========================================= */
-.gc-vplayer{position:relative;width:100%;max-height:560px;border-radius:18px;overflow:hidden;background:#000;display:flex;align-items:center;justify-content:center;}
-/* Tall videos are scaled down proportionally so the FULL frame remains visible.
-   No crop: portrait videos use intrinsic ratio + a feed max-height. */
-.gc-vplayer.gc-tall-video{height:auto;min-height:0;}
-.gc-vplayer.gc-tall-video video{width:auto;max-width:100%;height:auto;max-height:560px;display:block;object-fit:contain;}
-.gc-vplayer.gc-wide-video video{width:100%;height:auto;max-height:none;display:block;object-fit:contain;}
-.gc-vplayer video{display:block;}
+.gc-vplayer{position:relative;width:100%;max-height:440px;border-radius:16px;overflow:hidden;background:transparent;display:flex;align-items:center;justify-content:flex-start;}
+/* Feed / Profile / Single View — moderate Threads-like size. Full frame, no crop, no side letterbox box.
+   Shorts (.gc-shorts / .gc-short-item) is separate and not affected. */
+.gc-vplayer.gc-tall-video{width:fit-content;max-width:100%;height:auto;min-height:0;}
+.gc-vplayer.gc-tall-video video{width:auto;max-width:100%;height:auto;max-height:340px;display:block;object-fit:contain;border-radius:16px;background:#000;}
+.gc-vplayer.gc-wide-video{width:100%;}
+.gc-vplayer.gc-wide-video video{width:100%;height:auto;max-height:300px;display:block;object-fit:contain;border-radius:16px;background:#000;}
+.gc-vplayer video{display:block;object-fit:contain;border-radius:16px;}
 .gc-vp-center{display:none !important;}
 .gc-vp-center i{font-size:28px;color:#1a1a2e;margin-left:3px;}
 .gc-vp-center.hide{opacity:0;pointer-events:none;transform:translate(-50%,-50%) scale(.8);}
@@ -24602,6 +24603,13 @@ async function loadOtherUserPosts(uid){
         list.innerHTML = html;
         list.setAttribute('data-status-count', String(statusCount));
         list.setAttribute('data-grid-count', String(gridCount));
+        try{
+          list.removeAttribute('data-repost-active');
+          window.__gcProfilePostsCache = window.__gcProfilePostsCache || {};
+          var okey = 'other:' + (window.viewingUserId || window.__otherProfileUid || uid || 'other');
+          window.__gcProfilePostsCache[okey] = list.innerHTML;
+          list.setAttribute('data-posts-cache-key', okey);
+        }catch(e){}
         try{ if(typeof gcHydrateGridVideoThumbs==='function') gcHydrateGridVideoThumbs(list); }catch(e){}
         // Default tab: Media (videos only) — or last selected
         try{
@@ -24800,6 +24808,12 @@ if(mine.length===0){
 }
 list.innerHTML=mine.map(function(p){ return buildPostCardHTML(p); }).join('');
 // data-post-kind is set inside buildPostCardHTML (media / gallery / status)
+try{
+  list.removeAttribute('data-repost-active');
+  window.__gcProfilePostsCache = window.__gcProfilePostsCache || {};
+  window.__gcProfilePostsCache.my = list.innerHTML;
+  list.setAttribute('data-posts-cache-key', 'my');
+}catch(e){}
 try{
   var f = window.__myProfileFilter || 'gallery';
   if(typeof applyProfileFilter==='function') applyProfileFilter(f, 'my', document.getElementById('my-tab-'+f));
@@ -32115,6 +32129,18 @@ async function gcRenderRepostTab(profileType){
   var listId = profileType === 'my' ? 'my-posts-list' : 'other-user-posts-list';
   var listContainer = document.getElementById(listId);
   if(!listContainer) return;
+  // Cache Gallery/Media/Status DOM before wiping for Repost tab
+  try{
+    if(listContainer.getAttribute('data-repost-active') !== '1'){
+      window.__gcProfilePostsCache = window.__gcProfilePostsCache || {};
+      var cacheKey = profileType === 'other'
+        ? ('other:' + (window.viewingUserId || window.__otherProfileUid || 'other'))
+        : 'my';
+      window.__gcProfilePostsCache[cacheKey] = listContainer.innerHTML;
+      listContainer.setAttribute('data-posts-cache-key', cacheKey);
+    }
+    listContainer.setAttribute('data-repost-active', '1');
+  }catch(e){}
   listContainer.innerHTML = (typeof gcModernLoader==='function') ? gcModernLoader('Loading reposts') : '<div class="empty-feed">Loading…</div>';
   var uid = null;
   if(profileType === 'my'){
@@ -32212,6 +32238,39 @@ function applyProfileFilter(filterType, profileType, clickedElement) {
     if (filterType === 'repost') {
         if (typeof gcRenderRepostTab === 'function') gcRenderRepostTab(profileType);
         return;
+    }
+
+    // Leaving Repost → restore cached Gallery/Media/Status posts
+    if (listContainer && listContainer.getAttribute('data-repost-active') === '1') {
+        try {
+            var cacheKey = listContainer.getAttribute('data-posts-cache-key') || profileType;
+            if (profileType === 'other' && String(cacheKey).indexOf('other:') !== 0) {
+                cacheKey = 'other:' + (window.viewingUserId || window.__otherProfileUid || 'other');
+            }
+            var cached = (window.__gcProfilePostsCache && window.__gcProfilePostsCache[cacheKey]) || '';
+            listContainer.removeAttribute('data-repost-active');
+            if (cached && (cached.indexOf('grid-post-item') !== -1 || cached.indexOf('post-card') !== -1 || cached.indexOf('profile-photo-grid') !== -1 || cached.indexOf('profile-status-feed') !== -1)) {
+                listContainer.innerHTML = cached;
+            } else {
+                if (profileType === 'my' && typeof loadMyPosts === 'function') {
+                    loadMyPosts();
+                    return;
+                }
+                if (profileType === 'other') {
+                    var ouid = window.viewingUserId || window.__otherProfileUid || null;
+                    try {
+                        var op = document.getElementById('page-other-profile');
+                        if (!ouid && op) ouid = op.getAttribute('data-uid');
+                    } catch (e) {}
+                    if (ouid && typeof loadOtherUserPosts === 'function') {
+                        loadOtherUserPosts(ouid);
+                        return;
+                    }
+                }
+            }
+        } catch (e) {
+            try { listContainer.removeAttribute('data-repost-active'); } catch (e2) {}
+        }
     }
 
     if (tabs.length) {
@@ -35326,10 +35385,10 @@ function gcApplyFeedVideoSizing(){
     const isTall = ratio > 1.05;
     wrap.classList.toggle('gc-tall-video', isTall);
     wrap.classList.toggle('gc-wide-video', !isTall);
+    /* Moderate Threads-like caps (Home/Profile/Single). Full frame, no crop. Shorts untouched. */
     if(isTall){
-      /* Preserve the original aspect ratio and scale the whole video down. */
-      const cap = Math.min(560, Math.max(320, window.innerHeight ? window.innerHeight * 0.68 : 560));
-      v.style.maxHeight = Math.round(cap) + 'px';
+      const cap = 440;
+      v.style.maxHeight = cap + 'px';
       v.style.width = 'auto';
       v.style.height = 'auto';
       v.style.maxWidth = '100%';
@@ -35337,7 +35396,7 @@ function gcApplyFeedVideoSizing(){
     }else{
       v.style.width = '100%';
       v.style.height = 'auto';
-      v.style.maxHeight = 'none';
+      v.style.maxHeight = '300px';
       v.style.maxWidth = '100%';
       v.style.objectFit = 'contain';
     }
