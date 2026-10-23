@@ -16030,30 +16030,30 @@ t.classList.add('show');
 setTimeout(()=>t.classList.remove('show'),2500);
 }
 
-/** Read-only official notice (admin announcement notification) */
-function openOfficialNotice(message) {
-    let ov = document.getElementById('gc-official-notice');
+/** Read-only official announcement (admin announcement notification) */
+function openOfficialAnnouncement(message) {
+    let ov = document.getElementById('gc-official-announcement');
     if (!ov) {
         ov = document.createElement('div');
-        ov.id = 'gc-official-notice';
+        ov.id = 'gc-official-announcement';
         ov.style.cssText = 'display:none;position:fixed;inset:0;z-index:100500;background:rgba(0,0,0,0.55);align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(6px);';
         ov.innerHTML = '<div style="width:100%;max-width:400px;background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:28px 24px 22px;box-shadow:var(--shadow-lg);animation:fadeIn .25s ease;">' +
             '<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">' +
             '<div style="width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#fdb931);display:flex;align-items:center;justify-content:center;color:#fff;font-size:22px;flex-shrink:0;"><i class="ph-light ph-megaphone"></i></div>' +
             '<div><div style="font-weight:800;font-size:17px;color:var(--text);">GoChat Official</div>' +
-            '<div style="font-size:12px;color:var(--text-muted);font-weight:600;">Official notice · read only</div></div></div>' +
-            '<div id="gc-official-notice-body" style="font-size:15px;line-height:1.65;color:var(--text);white-space:pre-wrap;word-break:break-word;max-height:50vh;overflow-y:auto;margin-bottom:20px;"></div>' +
-            '<button onclick="closeOfficialNotice()" style="width:100%;padding:14px;border:none;border-radius:16px;background:var(--gradient);color:#fff;font-weight:800;font-size:15px;cursor:pointer;">Got it</button>' +
+            '<div style="font-size:12px;color:var(--text-muted);font-weight:600;">Official announcement · read only</div></div></div>' +
+            '<div id="gc-official-announcement-body" style="font-size:15px;line-height:1.65;color:var(--text);white-space:pre-wrap;word-break:break-word;max-height:50vh;overflow-y:auto;margin-bottom:20px;"></div>' +
+            '<button onclick="closeOfficialAnnouncement()" style="width:100%;padding:14px;border:none;border-radius:16px;background:var(--gradient);color:#fff;font-weight:800;font-size:15px;cursor:pointer;">Got it</button>' +
             '</div>';
-        ov.onclick = function(e) { if (e.target === ov) closeOfficialNotice(); };
+        ov.onclick = function(e) { if (e.target === ov) closeOfficialAnnouncement(); };
         document.body.appendChild(ov);
     }
-    const body = document.getElementById('gc-official-notice-body');
+    const body = document.getElementById('gc-official-announcement-body');
     if (body) body.textContent = message || '';
     ov.style.display = 'flex';
 }
-function closeOfficialNotice() {
-    const ov = document.getElementById('gc-official-notice');
+function closeOfficialAnnouncement() {
+    const ov = document.getElementById('gc-official-announcement');
     if (ov) ov.style.display = 'none';
 }
 
@@ -17352,7 +17352,7 @@ notifUnsub = db.collection('notifications').where('toUid', '==', user.uid).onSna
       if(t === 'comment') return 'commented on your post';
       if(t === 'follow') return 'started following you';
       if(t === 'tag') return 'tagged you in a post';
-      if(t === 'announcement') return 'sent an official notice';
+      if(t === 'announcement') return 'sent an official announcement';
       if(t === 'friend_request') return 'requested to follow you';
       if(t === 'request_accepted') return 'followed you back';
       if(t === 'relationship_request') return 'wants to show you as partner 💞';
@@ -17379,7 +17379,7 @@ notifUnsub = db.collection('notifications').where('toUid', '==', user.uid).onSna
         var onClickAction = "db.collection('notifications').doc('"+data.id+"').update({read:true});";
         if (isAnn) {
         var safeMsg = String(data.message || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\n/g, '\\n').replace(/\r/g, '');
-            onClickAction += " openOfficialNotice('"+safeMsg+"');";
+            onClickAction += " openOfficialAnnouncement('"+safeMsg+"');";
         } else if (data.postId && data.type === 'comment') {
             onClickAction += " openSinglePostView('"+data.postId+"');";
         } else if (data.postId) {
