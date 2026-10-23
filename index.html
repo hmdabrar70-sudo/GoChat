@@ -11043,7 +11043,19 @@ i.ph.ph-dots-three{
   background:rgba(0,0,0,.45);align-items:flex-end;justify-content:center;
   -webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);
 }
-#gc-schedule-overlay.open{display:flex;}
+#gc-schedule-overlay.open{display:flex !important;}
+#gc-schedule-overlay{
+  position:fixed !important;inset:0 !important;z-index:2147483646 !important;
+  display:none;align-items:flex-end;justify-content:center;
+  background:rgba(0,0,0,.45);
+  -webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);
+  pointer-events:auto;
+}
+#gc-schedule-overlay.open{display:flex !important;}
+#gc-scheduled-list-screen{
+  z-index:2147483645 !important;
+}
+
 .gc-sch-sheet{
   width:100%;max-width:480px;max-height:92vh;overflow:auto;
   background:var(--surface);color:var(--text);
@@ -14575,7 +14587,7 @@ l-137 -640 -193 -3 -193 -2 4 22 c2 13 67 314 144 671 l139 647 192 0 193 0
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="20" height="20" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="12" style="width:20px;height:20px;flex-shrink:0;" id="post-privacy-icon"><circle cx="128" cy="128" r="96"/><path d="M75.88,123.26,89.2,100a8,8,0,0,1,6.94-4h16.71a7.9,7.9,0,0,0,3.86-1L129,88.24a7.12,7.12,0,0,0,1.49-1.07l26.92-24.33A8,8,0,0,0,159,53l-10.5-18.81"/><path d="M67.78,53.23,56,81.08A8,8,0,0,0,55.88,87l11.5,30.67a8,8,0,0,0,5.81,5l21.43,4.61a8,8,0,0,1,5.52,4.33l3.8,7.87a8,8,0,0,0,7.2,4.51h13.8"/><path d="M213.09,172.48l-52.38-32.22a8.11,8.11,0,0,0-3.12-1.11l-22.82-3.08a8,8,0,0,0-8.38,4.67l-13.7,30.74a8,8,0,0,0,1.44,8.69l19.74,20.33a8,8,0,0,1,2,6.95l-3.17,16.44"/></svg> Who can reply
             </div>
 
-            <div class="chat-dropdown-item" onclick="if(typeof gcOpenSchedulePicker==='function')gcOpenSchedulePicker(); document.getElementById('compose-more-menu').classList.remove('open');">
+            <div class="chat-dropdown-item" onclick="event.stopPropagation(); try{document.getElementById('compose-more-menu').classList.remove('open');}catch(e){} if(typeof window.gcOpenSchedulePicker==='function'){window.gcOpenSchedulePicker();}else if(typeof showToast==='function'){showToast('Schedule not ready');}">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="currentColor" style="width:20px;height:20px;flex-shrink:0;"><path d="M0 0h24v24H0z" fill="none"/><path fill-rule="evenodd" d="M12 2.75a9.25 9.25 0 1 0 0 18.5 9.25 9.25 0 0 0 0-18.5ZM1.25 12C1.25 6.063 6.063 1.25 12 1.25S22.75 6.063 22.75 12 17.937 22.75 12 22.75 1.25 17.937 1.25 12Zm10.5-5.5a.75.75 0 0 1 .75.75v4.69l2.78 2.78a.75.75 0 1 1-1.06 1.06l-3-3A.75.75 0 0 1 11 12V7.25a.75.75 0 0 1 .75-.75Z" clip-rule="evenodd"/></svg> Schedule Post
             </div>
             
@@ -14702,45 +14714,6 @@ l-137 -640 -193 -3 -193 -2 4 22 c2 13 67 314 144 671 l139 647 192 0 193 0
   </button>
 </div>
 
-
-<!-- Schedule Post picker -->
-<div id="gc-schedule-overlay" onclick="if(event.target===this&&typeof gcCloseSchedulePicker==='function')gcCloseSchedulePicker();">
-  <div class="gc-sch-sheet" role="dialog" aria-label="Schedule post" onclick="event.stopPropagation();">
-    <div class="gc-sch-handle"></div>
-    <div class="gc-sch-title">Schedule Post</div>
-    <div class="gc-sch-sub">Pick when this post should go live</div>
-    <div class="gc-sch-preview" id="gc-sch-preview">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M0 0h24v24H0z" fill="none"/><path fill-rule="evenodd" d="M12 2.75a9.25 9.25 0 1 0 0 18.5 9.25 9.25 0 0 0 0-18.5ZM1.25 12C1.25 6.063 6.063 1.25 12 1.25S22.75 6.063 22.75 12 17.937 22.75 12 22.75 1.25 17.937 1.25 12Zm10.5-5.5a.75.75 0 0 1 .75.75v4.69l2.78 2.78a.75.75 0 1 1-1.06 1.06l-3-3A.75.75 0 0 1 11 12V7.25a.75.75 0 0 1 .75-.75Z" clip-rule="evenodd"/></svg>
-      <span id="gc-sch-preview-text">Select a date & time</span>
-    </div>
-    <div class="gc-sch-cal-head">
-      <button type="button" aria-label="Previous month" onclick="gcSchShiftMonth(-1)"><i class="ph-light ph-caret-left" style="font-size:18px;"></i></button>
-      <div class="gc-sch-month" id="gc-sch-month-label">Month</div>
-      <button type="button" aria-label="Next month" onclick="gcSchShiftMonth(1)"><i class="ph-light ph-caret-right" style="font-size:18px;"></i></button>
-    </div>
-    <div class="gc-sch-dow"><span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span></div>
-    <div class="gc-sch-grid" id="gc-sch-grid"></div>
-    <div class="gc-sch-time">
-      <select id="gc-sch-hour" aria-label="Hour" onchange="gcSchSyncPreview()"></select>
-      <span class="gc-sch-colon">:</span>
-      <select id="gc-sch-min" aria-label="Minute" onchange="gcSchSyncPreview()"></select>
-      <select id="gc-sch-ampm" aria-label="AM/PM" onchange="gcSchSyncPreview()"><option value="AM">AM</option><option value="PM">PM</option></select>
-    </div>
-    <div class="gc-sch-actions">
-      <button type="button" class="gc-sch-btn-cancel" onclick="gcCloseSchedulePicker()">Cancel</button>
-      <button type="button" class="gc-sch-btn-ok" onclick="gcConfirmSchedule()">Confirm</button>
-    </div>
-    <button type="button" class="gc-sch-btn-clear" id="gc-sch-clear-btn" style="display:none;" onclick="gcClearSchedule();gcCloseSchedulePicker();">Remove schedule</button>
-  </div>
-</div>
-
-<div id="gc-scheduled-list-screen" aria-hidden="true">
-  <div class="gc-sch-list-head">
-    <button type="button" class="chat-back" onclick="gcCloseScheduledList()" aria-label="Back" style="border:none;background:var(--surface-2);width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--text);"><i class="ph-light ph-arrow-left" style="font-size:18px;"></i></button>
-    <span>Scheduled Posts</span>
-  </div>
-  <div class="gc-sch-list-body" id="gc-scheduled-list-body"></div>
-</div>
 
 <!-- Voice Recording — WhatsApp-style inline bar -->
 <div id="recording-ui" class="gc-voice-rec-bar" aria-label="Recording voice">
@@ -23847,15 +23820,21 @@ function gcSchMinDate(){
 }
 
 function gcOpenSchedulePicker(){
+  try{
   var ov = document.getElementById('gc-schedule-overlay');
-  if(!ov) return;
+  if(!ov){
+    if(typeof showToast==='function') showToast('Schedule UI missing');
+    return;
+  }
+  // Always mount on body so it is not trapped inside hidden screens (chat/create-post)
+  try{ if(ov.parentNode !== document.body) document.body.appendChild(ov); }catch(e){}
   var base = window.__gcScheduleAt instanceof Date ? new Date(window.__gcScheduleAt.getTime()) : gcSchMinDate();
-  // snap minutes to 5
   base.setSeconds(0,0);
-  base.setMinutes(Math.ceil(base.getMinutes() / 5) * 5);
+  var snapped = Math.ceil(base.getMinutes() / 5) * 5;
+  if(snapped >= 60){ base.setHours(base.getHours()+1); base.setMinutes(0); }
+  else base.setMinutes(snapped);
   window.__gcSchSelected = new Date(base.getFullYear(), base.getMonth(), base.getDate());
   window.__gcSchView = { y: base.getFullYear(), m: base.getMonth() };
-  // fill hour/min
   var hourSel = document.getElementById('gc-sch-hour');
   var minSel = document.getElementById('gc-sch-min');
   var ampm = document.getElementById('gc-sch-ampm');
@@ -23881,16 +23860,27 @@ function gcOpenSchedulePicker(){
   if(ampm) ampm.value = isPm ? 'PM' : 'AM';
   var clr = document.getElementById('gc-sch-clear-btn');
   if(clr) clr.style.display = window.__gcScheduleAt ? 'block' : 'none';
-  gcSchRenderCal();
-  gcSchSyncPreview();
+  try{ gcSchRenderCal(); }catch(e){ console.warn('gcSchRenderCal', e); }
+  try{ gcSchSyncPreview(); }catch(e){}
   ov.classList.add('open');
+  ov.style.display = 'flex';
+  ov.style.zIndex = '2147483646';
+  ov.style.position = 'fixed';
+  ov.style.inset = '0';
   try{ if(typeof gcLockScroll==='function') gcLockScroll(); }catch(e){}
+  }catch(err){
+    console.error('gcOpenSchedulePicker', err);
+    if(typeof showToast==='function') showToast('Could not open schedule');
+  }
 }
 window.gcOpenSchedulePicker = gcOpenSchedulePicker;
 
 function gcCloseSchedulePicker(){
   var ov = document.getElementById('gc-schedule-overlay');
-  if(ov) ov.classList.remove('open');
+  if(ov){
+    ov.classList.remove('open');
+    ov.style.display = 'none';
+  }
   try{ if(typeof gcUnlockScroll==='function') gcUnlockScroll(); }catch(e){}
 }
 window.gcCloseSchedulePicker = gcCloseSchedulePicker;
@@ -38583,5 +38573,45 @@ window.gcCloseSheetSafe = gcCloseSheetSafe;
   }
 })();
 </script>
+<!-- Schedule Post picker -->
+<div id="gc-schedule-overlay" onclick="if(event.target===this&&typeof gcCloseSchedulePicker==='function')gcCloseSchedulePicker();">
+  <div class="gc-sch-sheet" role="dialog" aria-label="Schedule post" onclick="event.stopPropagation();">
+    <div class="gc-sch-handle"></div>
+    <div class="gc-sch-title">Schedule Post</div>
+    <div class="gc-sch-sub">Pick when this post should go live</div>
+    <div class="gc-sch-preview" id="gc-sch-preview">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M0 0h24v24H0z" fill="none"/><path fill-rule="evenodd" d="M12 2.75a9.25 9.25 0 1 0 0 18.5 9.25 9.25 0 0 0 0-18.5ZM1.25 12C1.25 6.063 6.063 1.25 12 1.25S22.75 6.063 22.75 12 17.937 22.75 12 22.75 1.25 17.937 1.25 12Zm10.5-5.5a.75.75 0 0 1 .75.75v4.69l2.78 2.78a.75.75 0 1 1-1.06 1.06l-3-3A.75.75 0 0 1 11 12V7.25a.75.75 0 0 1 .75-.75Z" clip-rule="evenodd"/></svg>
+      <span id="gc-sch-preview-text">Select a date & time</span>
+    </div>
+    <div class="gc-sch-cal-head">
+      <button type="button" aria-label="Previous month" onclick="gcSchShiftMonth(-1)"><i class="ph-light ph-caret-left" style="font-size:18px;"></i></button>
+      <div class="gc-sch-month" id="gc-sch-month-label">Month</div>
+      <button type="button" aria-label="Next month" onclick="gcSchShiftMonth(1)"><i class="ph-light ph-caret-right" style="font-size:18px;"></i></button>
+    </div>
+    <div class="gc-sch-dow"><span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span></div>
+    <div class="gc-sch-grid" id="gc-sch-grid"></div>
+    <div class="gc-sch-time">
+      <select id="gc-sch-hour" aria-label="Hour" onchange="gcSchSyncPreview()"></select>
+      <span class="gc-sch-colon">:</span>
+      <select id="gc-sch-min" aria-label="Minute" onchange="gcSchSyncPreview()"></select>
+      <select id="gc-sch-ampm" aria-label="AM/PM" onchange="gcSchSyncPreview()"><option value="AM">AM</option><option value="PM">PM</option></select>
+    </div>
+    <div class="gc-sch-actions">
+      <button type="button" class="gc-sch-btn-cancel" onclick="gcCloseSchedulePicker()">Cancel</button>
+      <button type="button" class="gc-sch-btn-ok" onclick="gcConfirmSchedule()">Confirm</button>
+    </div>
+    <button type="button" class="gc-sch-btn-clear" id="gc-sch-clear-btn" style="display:none;" onclick="gcClearSchedule();gcCloseSchedulePicker();">Remove schedule</button>
+  </div>
+</div>
+
+<div id="gc-scheduled-list-screen" aria-hidden="true">
+  <div class="gc-sch-list-head">
+    <button type="button" class="chat-back" onclick="gcCloseScheduledList()" aria-label="Back" style="border:none;background:var(--surface-2);width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--text);"><i class="ph-light ph-arrow-left" style="font-size:18px;"></i></button>
+    <span>Scheduled Posts</span>
+  </div>
+  <div class="gc-sch-list-body" id="gc-scheduled-list-body"></div>
+</div>
+
+
 </body>
 </html>
