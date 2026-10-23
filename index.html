@@ -20041,7 +20041,7 @@ function gcBuildOneCommentHTML(pid, c, idx, where){
       }
       const rTextEsc = escapeHTML(r.text || '');
       return '<div class="gc-c-reply-item" data-reply-text="' + rTextEsc.replace(/"/g, '&quot;') + '" ondblclick="event.stopPropagation();showReplyActions(\'' + pid + '\',' + idx + ',' + fullIdx + ',\'' + (r.uid || '') + '\')">'
-        + '<div class="gc-c-reply-av" onclick="event.stopPropagation();' + closeFn + '();viewUserProfile(\'' + r.uid + '\')">' + rAv + '</div>'
+        + '<div class="gc-c-reply-av" onclick="event.stopPropagation();">' + rAv + '</div>'
         + '<div style="flex:1;min-width:0;">'
         +   '<div class="gc-c-reply-bubble">'
         +     '<div class="gc-c-reply-name" onclick="event.stopPropagation();' + closeFn + '();viewUserProfile(\'' + r.uid + '\')">' + escapeHTML(r.name || 'User') + '</div>'
@@ -20067,7 +20067,7 @@ function gcBuildOneCommentHTML(pid, c, idx, where){
 
   const plainText = (c.text || '').replace(/"/g, '&quot;');
   return '<div class="comment-item" id="gc-comment-' + pid + '-' + idx + '" data-comment-text="' + plainText + '" style="display:flex;gap:10px;align-items:flex-start;">'
-    + '<div class="avatar sm" style="flex-shrink:0;cursor:pointer;margin-top:2px;" onclick="event.stopPropagation();' + closeFn + '();viewUserProfile(\'' + c.uid + '\')">' + commentAvHtml + '</div>'
+    + '<div class="avatar sm" style="flex-shrink:0;cursor:default;margin-top:2px;" onclick="event.stopPropagation();">' + commentAvHtml + '</div>'
     + '<div style="flex:1;min-width:0;">'
     +   '<div style="background:var(--surface-2);padding:10px 14px;border-radius:4px 18px 18px 18px;display:inline-block;border:1px solid var(--border);max-width:100%;">'
     +     '<div class="comment-author" style="cursor:pointer;font-size:13px;margin-bottom:4px;" onclick="event.stopPropagation();' + closeFn + '();viewUserProfile(\'' + c.uid + '\')">' + safeCName + commentBadge + '</div>'
@@ -24403,7 +24403,7 @@ const __pcKind = __pcIsVid ? 'media' : (__pcIsImg ? 'gallery' : 'status');
 return`<div class="post-card ${premiumPostClass}${pinnedClass}" data-post-id="${pid}" data-post-kind="${__pcKind}" data-hide-counts="${p.hideLikeCommentCount ? '1' : '0'}" style="cursor:pointer;" onclick="openSinglePostView('${pid}')">
 <div class="post-header">
 <div class="tf-av-wrap" data-uid="${p.uid}">
-<div class="avatar" style="width:44px;height:44px;cursor:pointer;" onclick="event.stopPropagation(); viewUserProfile('${p.uid}')">${av}</div>
+<div class="avatar" style="width:44px;height:44px;cursor:pointer;" onclick="event.stopPropagation();">${av}</div>
 ${followBadge}
 </div>
 <div style="flex:1; min-width:0;">
@@ -33887,7 +33887,7 @@ function gcRenderShortsList(posts){
             : '')
       + '</div>'
       + '<div class="gc-short-actions">'
-      +   '<button type="button" class="gc-short-av-btn" data-s-profile="1" aria-label="Profile">'+avHtml+'</button>'
+      +   '<button type="button" class="gc-short-av-btn" aria-label="Author">'+avHtml+'</button>'
       +   '<button type="button" class="gc-short-act'+(isLiked || myReact ? ' liked' : '')+'" data-s-act="like"'+(myReact ? ' data-my-react="'+escapeHTML(myReact)+'"' : '')+' onclick="event.stopPropagation();">'
       +   shortLikeIcon+'<span data-s-likes data-raw="'+likes+'" data-raw-count="'+likes+'">'+fmtL+'</span></button>'
       +   '<button type="button" class="gc-short-act" data-s-act="comment" onclick="event.stopPropagation(); gcOpenShortsComments(\''+escapeHTML(pid)+'\');">'
@@ -34097,7 +34097,7 @@ function gcShortsCommentRenderReply(pid, cIdx, r, rIdx){
   return '<div class="gc-short-reply">'
     + avatar
     + '<div class="gc-short-comment-main">'
-    +   '<div class="gc-short-comment-headline"><span class="gc-short-comment-name">'+escapeHTML(rName)+'</span>'+badge+(rTime?'<span class="gc-short-comment-time">'+escapeHTML(rTime)+'</span>':'')+'</div>'
+    +   '<div class="gc-short-comment-headline"><span class="gc-short-comment-name" style="cursor:pointer;" onclick="event.stopPropagation();try{if(typeof gcCloseShortsComments===\'function\')gcCloseShortsComments();}catch(e){}viewUserProfile(\''+escapeHTML(r.uid||'')+'\')">'+escapeHTML(rName)+'</span>'+badge+(rTime?'<span class="gc-short-comment-time">'+escapeHTML(rTime)+'</span>':'')+'</div>'
     +   '<div class="gc-short-comment-text">'+gcShortsCommentTextHTML(r.text)+'</div>'
     +   '<div class="gc-short-comment-actions"><button type="button" class="gc-short-comment-reply" onclick="event.stopPropagation();gcShortsCommentReplyBox(\''+escapeHTML(pid)+'\','+cIdx+',\''+safeName+'\')">Reply</button></div>'
     + '</div></div>';
@@ -34129,7 +34129,7 @@ function gcShortsCommentRenderOne(pid, c, idx){
   return '<div class="gc-short-comment" id="gc-short-comment-'+String(pid).replace(/[^a-zA-Z0-9_-]/g,'')+'-'+idx+'">'
     + avatar
     + '<div class="gc-short-comment-main">'
-    +   '<div class="gc-short-comment-headline"><span class="gc-short-comment-name">'+escapeHTML(name)+'</span>'+badge+(timeLabel?'<span class="gc-short-comment-time">'+escapeHTML(timeLabel)+'</span>':'')+'</div>'
+    +   '<div class="gc-short-comment-headline"><span class="gc-short-comment-name" style="cursor:pointer;" onclick="event.stopPropagation();try{if(typeof gcCloseShortsComments===\'function\')gcCloseShortsComments();}catch(e){}viewUserProfile(\''+escapeHTML(c.uid||'')+'\')">'+escapeHTML(name)+'</span>'+badge+(timeLabel?'<span class="gc-short-comment-time">'+escapeHTML(timeLabel)+'</span>':'')+'</div>'
     +   '<div class="gc-short-comment-text">'+gcShortsCommentTextHTML(c.text)+'</div>'
     +   imageHTML
     +   '<div class="gc-short-comment-actions"><button type="button" class="gc-short-comment-reply" onclick="event.stopPropagation();gcShortsCommentReplyBox(\''+escapeHTML(pid)+'\','+idx+',\''+escapeHTML(String(name||'User').replace(/'/g,''))+'\')">Reply</button></div>'
