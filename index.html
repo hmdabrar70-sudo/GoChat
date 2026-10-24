@@ -16230,6 +16230,85 @@ function gcDefaultAvatarImgHtml(){
   return '<img src="'+GC_DEFAULT_AVATAR_DATA+'" alt="" class="gc-default-av-img">';
 }
 
+/** True if url looks like a real profile photo (not empty / placeholder). */
+function gcIsValidAvatarUrl(url){
+  if(url == null) return false;
+  var s = String(url).trim();
+  if(!s) return false;
+  if(s === 'undefined' || s === 'null') return false;
+  if(s.indexOf('via.placeholder.com') !== -1) return false;
+  if(s.indexOf('GC_DEFAULT_AVATAR') !== -1) return false;
+  return true;
+}
+
+/**
+ * Live avatar URL for a user.
+ * Prefer currentUserData / allUsersCache over stored post/comment URL
+ * so delete/change photo reflects everywhere.
+ */
+function gcResolveAvatarUrl(uid, storedUrl){
+  try{
+    if(uid && typeof currentUser !== 'undefined' && currentUser && uid === currentUser.uid && currentUserData){
+      if(Object.prototype.hasOwnProperty.call(currentUserData, 'avatar')){
+        return gcIsValidAvatarUrl(currentUserData.avatar) ? String(currentUserData.avatar).trim() : '';
+      }
+    }
+  }catch(e){}
+  try{
+    if(uid && typeof allUsersCache !== 'undefined' && allUsersCache && allUsersCache.length){
+      var live = null;
+      for(var i=0;i<allUsersCache.length;i++){
+        if(allUsersCache[i] && allUsersCache[i].id === uid){ live = allUsersCache[i]; break; }
+      }
+      if(live && Object.prototype.hasOwnProperty.call(live, 'avatar')){
+        return gcIsValidAvatarUrl(live.avatar) ? String(live.avatar).trim() : '';
+      }
+    }
+  }catch(e){}
+  return gcIsValidAvatarUrl(storedUrl) ? String(storedUrl).trim() : '';
+}
+
+/**
+ * Inner HTML for an .avatar (or similar) container.
+ * Photo → <img>; none → '' so CSS default silhouette shows.
+ */
+function gcAvatarInnerHtml(uid, storedUrl, name){
+  var url = gcResolveAvatarUrl(uid, storedUrl);
+  if(url){
+    return '<img src="'+escapeHTML(url)+'" alt="" loading="lazy">';
+  }
+  return '';
+}
+
+/** Keep allUsersCache entry in sync after own photo change/delete */
+function gcPatchUsersCacheAvatar(uid, url){
+  try{
+    if(!uid || typeof allUsersCache === 'undefined' || !allUsersCache) return;
+    var u = allUsersCache.find(function(x){ return x && x.id === uid; });
+    if(u) u.avatar = url || '';
+  }catch(e){}
+}
+
+/** Soft-update every feed/profile DOM avatar for this uid */
+function gcSyncDomAvatarsForUser(uid, url){
+  if(!uid) return;
+  var valid = gcIsValidAvatarUrl(url);
+  var inner = valid ? ('<img src="'+escapeHTML(String(url).trim())+'" alt="" loading="lazy">') : '';
+  try{
+    document.querySelectorAll('.tf-av-wrap[data-uid="'+uid+'"] .avatar').forEach(function(el){
+      el.innerHTML = inner;
+    });
+  }catch(e){}
+  try{
+    if(typeof currentUser !== 'undefined' && currentUser && uid === currentUser.uid){
+      var big = document.getElementById('profile-avatar-big');
+      if(big) big.innerHTML = inner;
+      var home = document.querySelector('.topbar-home-avatar');
+      if(home) home.innerHTML = inner;
+    }
+  }catch(e){}
+}
+
 
 function getRelativeTime(ts){
 if(!ts)return'Just now';
@@ -16551,7 +16630,7 @@ async function openLeaderboard() {
     // ---------- 1) Your Rank Card ----------
     const myAv = (currentUserData && currentUserData.avatar)
       ? `<img src="${escapeHTML(currentUserData.avatar)}">`
-      : avatarInitial((currentUserData && currentUserData.name) || 'You');
+      : (typeof gcAvatarInnerHtml==='function'?gcAvatarInnerHtml(currentUser&&currentUser.uid,currentUserData&&currentUserData.avatar,'You'):'');
     const rankLabel = myRank > 0 ? `#${myRank}` : '50+';
     const encourage = myRank > 0
       ? 'Keep going — you are on the board! 🔥'
@@ -16573,7 +16652,7 @@ async function openLeaderboard() {
         const u = r.data;
         const av = u.avatar
           ? `<img src="${escapeHTML(u.avatar)}">`
-          : `<div>${avatarInitial(u.name)}</div>`;
+          : (typeof gcAvatarInnerHtml==='function'?gcAvatarInnerHtml(u.id,u.avatar,u.name):'');
         const delay = cls === 'r1' ? '.15s' : (cls === 'r2' ? '.05s' : '.25s');
         const badge = gcRankBadgeSVG(rankNum);
         return `
@@ -17592,7 +17671,9 @@ notifUnsub = db.collection('notifications').where('toUid', '==', user.uid).onSna
         var isChecked = typeof selectedNotifs !== 'undefined' && selectedNotifs.includes(data.id);
         var displayCb = typeof isNotifEditMode !== 'undefined' && isNotifEditMode ? 'block' : 'none';
 
-        var userAvatarHtml = avatarInitial(data.fromName || 'U');
+        var userAvatarHtml = (typeof gcAvatarInnerHtml==='function')
+          ? gcAvatarInnerHtml(data.fromUid, data.fromAvatar || data.avatar, data.fromName)
+          : '';
         if (isAnn) {
             userAvatarHtml = '<div style="width:100%;height:100%;border-radius:50%;background:linear-gradient(135deg,var(--accent),#fdb931);display:flex;align-items:center;justify-content:center;color:#fff;font-size:18px;"><i class="ph-light ph-megaphone"></i></div>';
         } else if (allUsersCache) {
@@ -18271,7 +18352,7 @@ snapshots.forEach((doc, index) => {
 if(doc.exists){
 const u=doc.data();
 const safeName=escapeHTML(u.name);
-const avHtml=u.avatar?`<img src="${u.avatar}">`:avatarInitial(u.name);
+const avHtml=(typeof gcAvatarInnerHtml==='function')?gcAvatarInnerHtml(u.id,u.avatar,u.name):(gcIsValidAvatarUrl(u.avatar)?`<img src="${escapeHTML(u.avatar)}">`:'');
 html+=`<div class="friend-req-item">
 <div class="avatar" onclick="viewUserProfile('${reqs[index]}')">${avHtml}</div>
 <div class="msg-info" onclick="viewUserProfile('${reqs[index]}')">
@@ -18616,9 +18697,9 @@ async function renderRecentSearches() {
             const u = doc.data();
             const uid = recents[index];
             const safeName = escapeHTML(u.name || 'User');
-            const avHtml = u.avatar
-                ? `<img src="${escapeHTML(u.avatar)}">`
-                : avatarInitial(u.name || 'User');
+            const avHtml = (typeof gcAvatarInnerHtml==='function')
+                ? gcAvatarInnerHtml(uid, u.avatar, u.name)
+                : (u.avatar ? `<img src="${escapeHTML(u.avatar)}">` : '');
 
             html += `<div class="msg-item" onclick="viewUserProfile('${uid}')">
                 <div class="avatar">${avHtml}</div>
@@ -18689,7 +18770,7 @@ snapshots.forEach((fDoc, index) => {
 if(fDoc.exists){
 const u=fDoc.data();
 const safeName=escapeHTML(u.name);
-const avHtml=u.avatar?`<img src="${u.avatar}">`:avatarInitial(u.name);
+const avHtml=(typeof gcAvatarInnerHtml==='function')?gcAvatarInnerHtml(u.id,u.avatar,u.name):(gcIsValidAvatarUrl(u.avatar)?`<img src="${escapeHTML(u.avatar)}">`:'');
 html+=`<div class="gc-fl-item" onclick="closeFriendsListModal();viewUserProfile('${friends[index]}')">
 <div class="avatar">${avHtml}</div>
 <div class="gc-fl-name">${safeName}</div>
@@ -20199,16 +20280,12 @@ function gcBuildOneCommentHTML(pid, c, idx, where){
       }
     });
   }
-  let commentAvHtml = avatarInitial(c.name);
+  let commentAvHtml = (typeof gcAvatarInnerHtml==='function')
+    ? gcAvatarInnerHtml(c.uid, c.avatar, c.name)
+    : '';
   let commentBadge = '';
   const gcBadgeUser = (allUsersCache ? allUsersCache.find(function(u){ return u.id === c.uid; }) : null) || (currentUser && c.uid === currentUser.uid ? currentUserData : null);
   if(gcBadgeUser) commentBadge = getVerifiedBadge(gcBadgeUser.email || '', gcBadgeUser.isVerified === true) + getLeaderBadge(gcBadgeUser.email || '', gcBadgeUser.isLeader === true);
-  if(allUsersCache){
-    const commentUser = allUsersCache.find(function(u){ return u.id === c.uid; });
-    if(commentUser && commentUser.avatar){
-      commentAvHtml = '<img src="' + escapeHTML(commentUser.avatar) + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">';
-    }
-  }
   const commentImageHtml = c.imageUrl
     ? '<img src="' + escapeHTML(c.imageUrl) + '" style="width:100%;max-width:250px;border-radius:12px;margin-top:8px;cursor:pointer;box-shadow:var(--shadow-sm);" onclick="openImageZoom(\'' + escapeHTML(c.imageUrl) + '\')">'
     : '';
@@ -22580,7 +22657,7 @@ if(liveU){
   otherAv = liveU.avatar || otherAv;
   archBadge = getVerifiedBadge(liveU.email || '', liveU.isVerified === true) + getLeaderBadge(liveU.email || '', liveU.isLeader === true);
 }
-const avHtml=otherAv?`<img src="${otherAv}">`:avatarInitial(otherName);
+const avHtml=(typeof gcAvatarInnerHtml==='function')?gcAvatarInnerHtml(otherUid,otherAv,otherName):(gcIsValidAvatarUrl(otherAv)?`<img src="${escapeHTML(otherAv)}">`:'');
 html+=`<div class="msg-item" onclick="openChat('${chatId}','${otherUid}','${escapeHTML(otherName)}','${escapeHTML(otherAv)}')">
 <div class="avatar">${avHtml}</div>
 <div class="msg-info">
@@ -23314,7 +23391,7 @@ async function openTagModal(){
             const fId = friends[index];
             const isTagged=currentTaggedFriends.includes(fId);
             const safeName=escapeHTML(u.name);
-            const avHtml=u.avatar?`<img src="${u.avatar}">`:avatarInitial(u.name);
+            const avHtml=(typeof gcAvatarInnerHtml==='function')?gcAvatarInnerHtml(u.id,u.avatar,u.name):(gcIsValidAvatarUrl(u.avatar)?`<img src="${escapeHTML(u.avatar)}">`:'');
             
             // এখানে onclick এর ভেতর safeName পাস করা হয়েছে
             html+=`<div class="msg-item" onclick="toggleTag('${fId}', '${safeName}', this)">
@@ -24619,7 +24696,7 @@ window.gcExpandPostCaption = gcExpandPostCaption;
 function buildPostCardHTML(p){
 const pid=p.id;
 const uniqueDropId = pid + '_' + Math.random().toString(36).substr(2, 5);
-const av=p.avatar?`<img src="${p.avatar}">`:avatarInitial(p.name||'?');
+const av=(typeof gcAvatarInnerHtml==='function')?gcAvatarInnerHtml(p.uid,p.avatar,p.name):(p.avatar?`<img src="${p.avatar}">`:'');
 if(p.uid && window.__gcLeaderMap && window.__gcLeaderMap[p.uid]) p.isLeader = true;
 if(p.uid && !p.isLeader && typeof allUsersCache!=='undefined' && allUsersCache){
   try{ var __lu = allUsersCache.find(function(u){return u.id===p.uid;}); if(__lu && ( __lu.isLeader===true || __lu.isLeader===1 || __lu.isLeader==='true')) p.isLeader = true; }catch(e){}
@@ -25138,7 +25215,7 @@ function loadUserUI(){
     if(!currentUser||!currentUserData) return;
     
     const name = currentUserData.name || currentUser.email.split('@')[0] || 'User';
-    const avHtml = currentUserData.avatar ? `<img src="${currentUserData.avatar}">` : avatarInitial(name);
+    const avHtml = currentUserData.avatar ? `<img src="${currentUserData.avatar}">` : (typeof gcAvatarInnerHtml==='function'?gcAvatarInnerHtml(currentUser&&currentUser.uid,currentUserData&&currentUserData.avatar,name):'');
     const safeName = escapeHTML(name);
     try{
       if(typeof allUsersCache !== 'undefined' && allUsersCache && currentUser){
@@ -25738,6 +25815,7 @@ async function gcUploadAvatarFile(file){
   const url = await uploadToCloudinary(prepared, false);
   await db.collection('users').doc(currentUser.uid).update({avatar:url});
   currentUserData.avatar = url;
+  try{ if(typeof gcPatchUsersCacheAvatar==='function') gcPatchUsersCacheAvatar(currentUser.uid, url); }catch(e){}
   try {
     const postsSnapshot = await db.collection('posts').where('uid', '==', currentUser.uid).get();
     if (!postsSnapshot.empty) {
@@ -25750,6 +25828,7 @@ async function gcUploadAvatarFile(file){
   } catch (error) {
     console.error("Error updating old posts avatar: ", error);
   }
+  try{ if(typeof gcSyncDomAvatarsForUser==='function') gcSyncDomAvatarsForUser(currentUser.uid, url); }catch(e){}
   /* Profile photo only — no feed post (WhatsApp-style) */
   try{ if(typeof gcCleanupProfilePicUpdatePosts==='function') gcCleanupProfilePicUpdatePosts(); }catch(e){}
   loadUserUI();
@@ -27040,7 +27119,7 @@ function renderMentionDropdown(dropdown, friends, textarea, startPos, endPos) {
     const safeName = escapeHTML(friend.name);
     const avHtml = friend.avatar 
       ? `<img src="${escapeHTML(friend.avatar)}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`
-      : avatarInitial(friend.name);
+      : (typeof gcAvatarInnerHtml==='function'?gcAvatarInnerHtml(friend.uid||friend.id,friend.avatar,friend.name):'');
     
     return `
       <div class="mention-item ${index === 0 ? 'selected' : ''}" 
@@ -32149,8 +32228,20 @@ function gcRemoveProfilePhotoFromZoom(e){
     try{
       await db.collection('users').doc(currentUser.uid).update({ avatar: '' });
       if(currentUserData) currentUserData.avatar = '';
+      try{ if(typeof gcPatchUsersCacheAvatar==='function') gcPatchUsersCacheAvatar(currentUser.uid, ''); }catch(e){}
+      /* Clear denormalized avatar on own posts so offline/old clients stay consistent */
+      try{
+        var postsSnapshot = await db.collection('posts').where('uid','==',currentUser.uid).get();
+        if(!postsSnapshot.empty){
+          var batch = db.batch();
+          postsSnapshot.forEach(function(doc){ batch.update(doc.ref, { avatar: '' }); });
+          await batch.commit();
+        }
+      }catch(postErr){ console.error('Error clearing posts avatar', postErr); }
+      try{ if(typeof gcSyncDomAvatarsForUser==='function') gcSyncDomAvatarsForUser(currentUser.uid, ''); }catch(e){}
       try{ if(typeof closeImageZoom === 'function') closeImageZoom(); }catch(err){}
       try{ if(typeof loadUserUI === 'function') loadUserUI(); }catch(err){}
+      try{ if(typeof loadFeed === 'function') loadFeed(); }catch(e){}
       showToast('Profile photo removed');
     }catch(err){
       console.error(err);
@@ -34245,7 +34336,7 @@ function gcRenderShortsList(posts){
     var vurl = gcPostVideoUrl(p);
     if(!vurl) return;
     var name = p.name || 'User';
-    var av = p.avatar || '';
+    var av = (typeof gcResolveAvatarUrl==='function') ? gcResolveAvatarUrl(p.uid, p.avatar) : (p.avatar || '');
     var title = p.title || '';
     var shortVerified = (p.isVerified === true || p.isVerified === 1 || p.isVerified === 'true');
     var shortLeader = gcIsTruthyLeader(p.isLeader);
@@ -34275,7 +34366,7 @@ function gcRenderShortsList(posts){
       : (typeof gcActionSvg === 'function' ? gcActionSvg('like', 24) : '<i class="'+(isLiked || myReact ? 'ph-fill' : 'ph-light')+' ph-thumbs-up"></i>');
     var timeL = gcShortTimeLabel(p.createdAt);
     var avHtml = av
-      ? '<img class="gc-short-av" src="'+escapeHTML(av)+'" alt="" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\';"><div class="gc-short-av-fallback" style="display:none;">'+escapeHTML((name||'U').charAt(0).toUpperCase())+'</div>'
+      ? '<img class="gc-short-av" src="'+escapeHTML(av)+'" alt="" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\';"><div class="gc-short-av-fallback" style="display:none;">'+'</div>'
       : '<div class="gc-short-av-fallback"></div>';
     var fmtL = (typeof gcFmtCount === 'function') ? gcFmtCount(likes) : String(likes);
     var fmtC = (typeof gcFmtCount === 'function') ? gcFmtCount(comments) : String(comments);
@@ -34484,12 +34575,13 @@ function gcShortsCommentUser(uid, comment){
 
 function gcShortsCommentAvatarHTML(uid, name, comment, small){
   var u = gcShortsCommentUser(uid, comment);
-  var av = (u && u.avatar) || (comment && comment.avatar) || '';
+  var stored = (u && u.avatar) || (comment && comment.avatar) || '';
+  var av = (typeof gcResolveAvatarUrl==='function') ? gcResolveAvatarUrl(uid, stored) : stored;
   var sizeClass = small ? 'gc-short-comment-avatar-small' : '';
-  if(av){
+  if(av && (typeof gcIsValidAvatarUrl!=='function' || gcIsValidAvatarUrl(av))){
     return '<div class="gc-short-comment-avatar '+sizeClass+'"><img src="'+escapeHTML(av)+'" alt="" draggable="false"></div>';
   }
-  return '<div class="gc-short-comment-avatar '+sizeClass+'">'+escapeHTML(avatarInitial(name))+'</div>';
+  return '<div class="gc-short-comment-avatar '+sizeClass+'"></div>';
 }
 
 function gcShortsCommentBadgeHTML(uid, comment){
@@ -34638,7 +34730,7 @@ function gcShortsCommentBuildComposerAvatar(){
   var name = (currentUserData && currentUserData.name) || 'Me';
   return av
     ? '<div class="gc-short-composer-avatar"><img src="'+escapeHTML(av)+'" alt="" draggable="false"></div>'
-    : '<div class="gc-short-composer-avatar">'+escapeHTML(avatarInitial(name))+'</div>';
+    : '<div class="gc-short-composer-avatar"></div>';
 }
 
 function gcEnsureShortsCommentsScreen(){
