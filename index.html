@@ -11232,6 +11232,40 @@ button.gc-pay-cta,
   background:var(--text-muted);
   box-shadow:none;
 }
+/* Quick Profile · online indicator (story-plus corner pattern) */
+.qp-avatar-wrap{
+  position:relative;
+  width:96px;
+  height:96px;
+  margin:0 auto 12px;
+  flex-shrink:0;
+}
+.qp-avatar-wrap .avatar.xl{
+  margin:0 !important;
+  width:100%;
+  height:100%;
+}
+.qp-online-dot{
+  position:absolute;
+  right:2px;
+  bottom:2px;
+  width:18px;
+  height:18px;
+  border-radius:50%;
+  background:#22c55e;
+  border:3px solid var(--surface);
+  box-shadow:0 1px 4px rgba(0,0,0,.18);
+  z-index:3;
+  pointer-events:none;
+  display:none;
+}
+.qp-online-dot.is-on{
+  display:block;
+}
+body:not(.light-mode) .qp-online-dot{
+  border-color:var(--surface);
+}
+
 .gc-chat-list-active-dot{
   display:inline-block;
   width:7px;
@@ -15109,7 +15143,10 @@ l-137 -640 -193 -3 -193 -2 4 22 c2 13 67 314 144 671 l139 647 192 0 193 0
         
         <div style="width: 40px; height: 5px; background: var(--border); border-radius: 10px; margin: 0 auto 20px;"></div>
         
-        <div class="avatar xl" id="qp-avatar" style="margin: 0 auto 12px; border: 4px solid var(--bg); box-shadow: var(--shadow-md);">?</div>
+        <div class="qp-avatar-wrap">
+          <div class="avatar xl" id="qp-avatar" style="border: 4px solid var(--bg); box-shadow: var(--shadow-md);">?</div>
+          <span class="qp-online-dot" id="qp-online-dot" aria-hidden="true"></span>
+        </div>
         <div id="qp-name" style="font-size: 22px; font-weight: 800; color: var(--text); margin-bottom: 24px;">User Name</div>
         
                 <!-- 🚀 সবগুলো বাটন এখন Grid-এর ভেতরে দুই লাইনে সাজানো হলো -->
@@ -16770,12 +16807,36 @@ function gcIsPresenceFresh(data){
   return !!t && (Date.now() - t < 90000);
 }
 
+function gcUpdateQpOnlineIndicator(data){
+  var dot = document.getElementById('qp-online-dot');
+  if(!dot) return;
+  var modal = document.getElementById('quick-profile-modal');
+  var open = !!(modal && modal.classList.contains('open'));
+  if(!open){
+    dot.classList.remove('is-on');
+    return;
+  }
+  if(!data || data.__isGroup || !currentUserData || currentUserData.showActiveStatus === false || data.showActiveStatus === false){
+    dot.classList.remove('is-on');
+    return;
+  }
+  if(typeof gcIsPresenceFresh === 'function' && gcIsPresenceFresh(data)){
+    dot.classList.add('is-on');
+  }else{
+    dot.classList.remove('is-on');
+  }
+}
+
 function gcRenderActiveStatusUI(data){
   var el = document.getElementById('chat-active-status');
-  if(!el) return;
+  if(!el){
+    try{ if(typeof gcUpdateQpOnlineIndicator==='function') gcUpdateQpOnlineIndicator(data); }catch(e){}
+    return;
+  }
   if(!data || data.__isGroup || !currentUserData || currentUserData.showActiveStatus === false || data.showActiveStatus === false){
     el.innerHTML = '';
     el.style.display = 'none';
+    try{ if(typeof gcUpdateQpOnlineIndicator==='function') gcUpdateQpOnlineIndicator(data); }catch(e){}
     return;
   }
   el.style.display = 'flex';
@@ -16787,6 +16848,7 @@ function gcRenderActiveStatusUI(data){
     var text = gcFormatActiveTime(data.lastSeen);
     el.innerHTML = '<span class="gc-active-dot offline" aria-hidden="true"></span><span>' + escapeHTML(text) + '</span>';
   }
+  try{ if(typeof gcUpdateQpOnlineIndicator==='function') gcUpdateQpOnlineIndicator(data); }catch(e){}
 }
 
 function gcStopActiveStatusOtherListener(){
@@ -20675,134 +20737,57 @@ function gcBuildMsgDateSep(createdAt){
   }catch(e){ return ''; }
 }
 
-function openChat(chatId, otherUid, otherName, otherAvatar){
-    // Private account: non-followers cannot message
-    try{
-      if(otherUid && currentUser && otherUid !== currentUser.uid && typeof allUsersCache !== 'undefined' && allUsersCache){
-        var _tu = allUsersCache.find(function(x){ return x.id === otherUid; });
-        if(_tu && _tu.isPrivate === true){
-          var _fl = Array.isArray(_tu.followers) ? _tu.followers : [];
-          if(_fl.indexOf(currentUser.uid) === -1){
-            showToast('This account is private. Follow to message.');
-            return;
-          }
-        }
+
+// ═══ Chat messages · paginated load (latest 30 + older on scroll) ═══
+var GC_CHAT_MSG_PAGE = 30;
+var __gcChatMsgScrollBound = false;
+
+function gcChatMsgGetMs(docSnap){
+  try{
+    var m = docSnap && docSnap.data ? docSnap.data() : null;
+    if(!m || !m.createdAt) return 0;
+    if(m.createdAt.toMillis) return m.createdAt.toMillis();
+    if(m.createdAt.seconds) return m.createdAt.seconds * 1000;
+    return +new Date(m.createdAt) || 0;
+  }catch(e){ return 0; }
+}
+
+function gcResetChatMsgState(chatId){
+  window.__gcChatMsgState = {
+    chatId: chatId,
+    docs: [],
+    hasMore: true,
+    loadingOlder: false,
+    initialDone: false
+  };
+}
+
+function gcBuildChatMessagesHtml(docsArr){
+  docsArr = docsArr || [];
+  // Peer meta was previously openChat locals — resolve from live chat state
+  var otherUid = (typeof currentChatOtherUid !== 'undefined') ? currentChatOtherUid : null;
+  var finalOtherName = '';
+  var finalOtherAvatar = '';
+  try{
+    var _nmEl = document.getElementById('chat-name-display');
+    if(_nmEl) finalOtherName = (_nmEl.textContent || '').trim();
+  }catch(e){}
+  try{
+    var _avEl = document.getElementById('chat-avatar');
+    var _img = _avEl && _avEl.querySelector('img');
+    if(_img && _img.src) finalOtherAvatar = _img.src;
+  }catch(e){}
+  try{
+    if(otherUid && otherUid !== 'group' && typeof allUsersCache !== 'undefined' && allUsersCache){
+      var _u = allUsersCache.find(function(x){ return x && x.id === otherUid; });
+      if(_u){
+        if(_u.name) finalOtherName = _u.name;
+        if(_u.avatar) finalOtherAvatar = _u.avatar;
       }
-    }catch(e){}
-    currentChatId=chatId;
-    currentChatOtherUid=otherUid;
-    document.getElementById('chat-screen').classList.add('open');
-        // 🚀 NEW: চ্যাট ওপেন হলে সেভ করা ড্রাফট ফিরিয়ে আনা
-    const savedDraft = localStorage.getItem('gochat_draft_' + chatId);
-    document.getElementById('chat-input').value = savedDraft ? savedDraft : '';
-    if(typeof gcUpdateChatSendState==='function') gcUpdateChatSendState();
-
-        // 🚀 Group Security: রিমুভ হলে বা লিভ নিলে সাথে সাথে চ্যাট থেকে বের করে দেবে
-    if (otherUid === 'group') {
-        db.collection('chats').doc(chatId).onSnapshot(doc => {
-            if (doc.exists && doc.data().members && !doc.data().members.includes(currentUser.uid)) {
-                if (currentChatId === chatId && document.getElementById('chat-screen').classList.contains('open')) {
-                    closeChat();
-                    showToast("You are no longer a member of this group.");
-                }
-            }
-        });
     }
+  }catch(e){}
+  return docsArr.map(function(d, idx){
 
-    
-    // চ্যাট ওপেন করলে মেসেজ 'Read' + users[] ব্যাকফিল — কিন্তু শুধু তখনই,
-    // যদি চ্যাট ডকুমেন্টটা আগে থেকেই এক্সিস্ট করে (অর্থাৎ অন্তত একবার
-    // মেসেজ পাঠানো হয়েছে)। .get()→.update() ব্যবহার করা হয়েছে যাতে
-    // শুধু প্রোফাইল থেকে "Message" চাপলে (কোনো টেক্সট না লিখেই) একটা
-    // নতুন খালি চ্যাট ডকুমেন্ট তৈরি হয়ে চ্যাট লিস্টে ভুলভাবে চলে না আসে।
-    db.collection('chats').doc(chatId).get().then(doc => {
-      if (!doc.exists) return; // কোনো মেসেজ কখনো হয়নি — ডকুমেন্ট তৈরি করার দরকার নেই
-      try{
-        const patch = { isRead: true };
-        if (otherUid && otherUid !== 'group' && chatId && String(chatId).indexOf('group_') !== 0) {
-          const parts = String(chatId).split('_');
-          if (parts.length === 2 && parts[0] && parts[1]) {
-            patch.users = [parts[0], parts[1]];
-          }
-        }
-        db.collection('chats').doc(chatId).update(patch);
-      }catch(e){
-        db.collection('chats').doc(chatId).update({ isRead: true }).catch(()=>{});
-      }
-    }).catch(()=>{});
-
-    // ইনপুট বার ঠিক রাখা
-    document.getElementById('chat-input-area').style.display = 'flex';
-    if(typeof closeSelectionMode === 'function') closeSelectionMode();
-        
-    const safeName=escapeHTML(otherName);
-    
-     // --- 🚀 আপডেট ১: হেডারের লাইভ প্রোফাইল পিকচার ফিক্স ---
-    const chatAvatarEl = document.getElementById('chat-avatar');
-    let finalOtherName = otherName;
-    let finalOtherAvatar = otherAvatar;
-
-    if (otherUid === 'group') {
-        db.collection('chats').doc(chatId).get().then(doc => {
-            if (doc.exists) {
-                const gName = doc.data().groupName || 'Group Chat';
-                const gAv = doc.data().groupAvatar || '';
-                document.getElementById('chat-name-display').textContent = gName;
-                chatAvatarEl.innerHTML = gAv ? `<img src="${escapeHTML(gAv)}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">` : `<div style="width:100%;height:100%;background:var(--gradient-orange);color:white;display:flex;align-items:center;justify-content:center;border-radius:50%;"><i class="ph-light ph-users-three" style="font-size: 20px;"></i></div>`;
-            }
-        });
-    } else {
-        const liveUser = allUsersCache ? allUsersCache.find(u => u.id === otherUid) : null;
-        if (liveUser) {
-            finalOtherName = liveUser.name || finalOtherName;
-            finalOtherAvatar = liveUser.avatar || '';
-        }
-        
-        const chatHeaderBadge = liveUser ? getVerifiedBadge(liveUser.email || '', liveUser.isVerified === true) + getLeaderBadge(liveUser.email || '', liveUser.isLeader === true) : '';
-        document.getElementById('chat-name-display').innerHTML = escapeHTML(finalOtherName) + chatHeaderBadge;
-
-        if (finalOtherAvatar && finalOtherAvatar !== 'undefined' && finalOtherAvatar !== '') {
-            chatAvatarEl.innerHTML = `<img src="${escapeHTML(finalOtherAvatar)}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
-        } else {
-            chatAvatarEl.innerHTML = `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:var(--gradient);color:#fff;font-weight:bold;font-size:16px;border-radius:50%;">${avatarInitial(finalOtherName)}</div>`;
-        }
-    }
-
-    
-    // Live Online Status in the message header. Groups do not expose member presence here.
-    if(otherUid && otherUid !== 'group') gcStartActiveStatusOtherListener(otherUid);
-    else gcStopActiveStatusOtherListener();
-
-
-    setupTypingIndicator(chatId, otherUid);
-        
-    // 🚀 Check and Apply Advanced Privacy on Chat Load
-    db.collection('chats').doc(chatId).get().then(doc => {
-        if (doc.exists && doc.data().advancedPrivacy === true) {
-            const chatMessagesEl = document.getElementById('chat-messages');
-            const toggleBtn = document.getElementById('advanced-privacy-toggle');
-            
-            if(typeof gcApplyAdvancedPrivacyState === 'function') gcApplyAdvancedPrivacyState(true);
-            else {
-                if (chatMessagesEl) chatMessagesEl.classList.add('privacy-restricted');
-                if (toggleBtn) toggleBtn.classList.add('active');
-            }
-        } else {
-            if(typeof gcApplyAdvancedPrivacyState === 'function') gcApplyAdvancedPrivacyState(false);
-            else {
-                const chatMessagesEl = document.getElementById('chat-messages');
-                const toggleBtn = document.getElementById('advanced-privacy-toggle');
-                if (chatMessagesEl) chatMessagesEl.classList.remove('privacy-restricted');
-                if (toggleBtn) toggleBtn.classList.remove('active');
-            }
-        }
-    });
-    
-    if(chatUnsub)chatUnsub();
-    chatUnsub=db.collection('chats').doc(chatId).collection('messages').orderBy('createdAt').onSnapshot(snap=>{
-        const list=document.getElementById('chat-messages');
-        
-        list.innerHTML = snap.docs.map((d, idx)=>{
             const m=d.data();
             if(m.isCallLog) return '';
             // System/welcome messages always show as incoming (left)
@@ -20963,7 +20948,7 @@ safeText = safeText.replace(urlRegex, function(url) {
             if (curKey) {
                 let prevKey = null;
                 if (idx > 0) {
-                    const prevM = snap.docs[idx - 1].data();
+                    const prevM = docsArr[idx - 1].data();
                     prevKey = gcMsgDayKey(prevM && prevM.createdAt);
                 }
                 if (curKey !== prevKey) {
@@ -20990,19 +20975,278 @@ safeText = safeText.replace(urlRegex, function(url) {
             </div>
             ${reactionsHtml}
         </div>`;
-        }).join('');
-        gcRenderPendingChatImageJobs();
-        list.scrollTop=list.scrollHeight;
         
-        snap.docs.forEach(d=>{
-            const m=d.data();
-            if(m.isSystem || m.type === 'group_event') return;
-            if(m.uid!==currentUser.uid&&!m.read){
-                d.ref.update({read:true,readAt:firebase.firestore.FieldValue.serverTimestamp()}).catch(()=>{});
-            }
-        });
+  }).join('');
+}
+
+function gcRenderChatMessagesList(opts){
+  opts = opts || {};
+  var st = window.__gcChatMsgState;
+  var list = document.getElementById('chat-messages');
+  if(!st || !list) return;
+  var prevHeight = list.scrollHeight;
+  var prevTop = list.scrollTop;
+  var nearBottom = (list.scrollHeight - list.scrollTop - list.clientHeight) < 140;
+  try{
+    list.innerHTML = gcBuildChatMessagesHtml(st.docs);
+  }catch(err){
+    console.error('gcRenderChatMessagesList', err);
+  }
+  try{ if(typeof gcRenderPendingChatImageJobs === 'function') gcRenderPendingChatImageJobs(); }catch(e){}
+  if(opts.preserveScroll){
+    list.scrollTop = list.scrollHeight - prevHeight + prevTop;
+  } else if(opts.forceBottom || !st.initialDone || nearBottom || opts.scrollBottom){
+    list.scrollTop = list.scrollHeight;
+  }
+}
+
+function gcMarkChatMessagesRead(docs){
+  if(!currentUser || !docs) return;
+  docs.forEach(function(d){
+    try{
+      var m = d.data();
+      if(m.isSystem || m.type === 'group_event') return;
+      if(m.uid !== currentUser.uid && !m.read){
+        d.ref.update({read:true, readAt: firebase.firestore.FieldValue.serverTimestamp()}).catch(function(){});
+      }
+    }catch(e){}
+  });
+}
+
+function gcMergeChatLiveDocs(liveDescDocs){
+  var st = window.__gcChatMsgState;
+  if(!st) return;
+  var liveAsc = (liveDescDocs || []).slice().reverse();
+  var liveIds = {};
+  liveAsc.forEach(function(d){ liveIds[d.id] = true; });
+  var older = [];
+  if(liveAsc.length){
+    var liveOldestMs = gcChatMsgGetMs(liveAsc[0]);
+    (st.docs || []).forEach(function(d){
+      if(liveIds[d.id]) return;
+      if(gcChatMsgGetMs(d) < liveOldestMs) older.push(d);
+    });
+  }
+  // Dedupe + ascending order
+  var seen = {};
+  var merged = [];
+  older.concat(liveAsc).forEach(function(d){
+    if(seen[d.id]) return;
+    seen[d.id] = true;
+    merged.push(d);
+  });
+  st.docs = merged;
+  if(!st.initialDone && liveDescDocs && liveDescDocs.length < GC_CHAT_MSG_PAGE){
+    st.hasMore = false;
+  }
+}
+
+async function gcLoadOlderChatMessages(){
+  var st = window.__gcChatMsgState;
+  if(!st || !st.chatId || !st.hasMore || st.loadingOlder) return;
+  if(!st.docs.length){ st.hasMore = false; return; }
+  st.loadingOlder = true;
+  var list = document.getElementById('chat-messages');
+  var ind = document.getElementById('gc-chat-older-ind');
+  if(list && !ind){
+    ind = document.createElement('div');
+    ind.id = 'gc-chat-older-ind';
+    ind.style.cssText = 'text-align:center;padding:8px;font-size:12px;color:var(--text-muted);';
+    ind.textContent = 'Loading…';
+    list.insertBefore(ind, list.firstChild);
+  }
+  try{
+    var oldest = st.docs[0];
+    var snap = await db.collection('chats').doc(st.chatId).collection('messages')
+      .orderBy('createdAt', 'desc')
+      .startAfter(oldest)
+      .limit(GC_CHAT_MSG_PAGE)
+      .get();
+    if(st.chatId !== currentChatId) return;
+    if(snap.empty){
+      st.hasMore = false;
+    } else {
+      var olderAsc = snap.docs.slice().reverse();
+      var existing = {};
+      st.docs.forEach(function(d){ existing[d.id] = true; });
+      var toPrepend = olderAsc.filter(function(d){ return !existing[d.id]; });
+      st.docs = toPrepend.concat(st.docs);
+      if(snap.size < GC_CHAT_MSG_PAGE) st.hasMore = false;
+      gcRenderChatMessagesList({ preserveScroll: true });
+    }
+  }catch(e){
+    console.error('gcLoadOlderChatMessages', e);
+  }finally{
+    st.loadingOlder = false;
+    var ind2 = document.getElementById('gc-chat-older-ind');
+    if(ind2) try{ ind2.remove(); }catch(e){}
+  }
+}
+
+function gcOnChatMessagesScroll(){
+  var list = document.getElementById('chat-messages');
+  if(!list) return;
+  if(list.scrollTop > 80) return;
+  gcLoadOlderChatMessages();
+}
+
+function gcBindChatMessagesScroll(){
+  var list = document.getElementById('chat-messages');
+  if(!list || list.__gcMsgPageBound) return;
+  list.addEventListener('scroll', gcOnChatMessagesScroll, { passive: true });
+  list.__gcMsgPageBound = true;
+}
+
+function gcStartChatMessagesListener(chatId){
+  if(chatUnsub) try{ chatUnsub(); }catch(e){}
+  chatUnsub = null;
+  gcResetChatMsgState(chatId);
+  var list = document.getElementById('chat-messages');
+  if(list) list.innerHTML = '';
+  gcBindChatMessagesScroll();
+  chatUnsub = db.collection('chats').doc(chatId).collection('messages')
+    .orderBy('createdAt', 'desc')
+    .limit(GC_CHAT_MSG_PAGE)
+    .onSnapshot(function(snap){
+      var st = window.__gcChatMsgState;
+      if(!st || st.chatId !== chatId || currentChatId !== chatId) return;
+      gcMergeChatLiveDocs(snap.docs);
+      var forceBottom = !st.initialDone;
+      gcRenderChatMessagesList({ scrollBottom: forceBottom, forceBottom: forceBottom });
+      st.initialDone = true;
+      gcMarkChatMessagesRead(snap.docs);
+    }, function(err){
+      console.error('chat messages listener', err);
     });
 }
+
+
+function openChat(chatId, otherUid, otherName, otherAvatar){
+    // Private account: non-followers cannot message
+    try{
+      if(otherUid && currentUser && otherUid !== currentUser.uid && typeof allUsersCache !== 'undefined' && allUsersCache){
+        var _tu = allUsersCache.find(function(x){ return x.id === otherUid; });
+        if(_tu && _tu.isPrivate === true){
+          var _fl = Array.isArray(_tu.followers) ? _tu.followers : [];
+          if(_fl.indexOf(currentUser.uid) === -1){
+            showToast('This account is private. Follow to message.');
+            return;
+          }
+        }
+      }
+    }catch(e){}
+    currentChatId=chatId;
+    currentChatOtherUid=otherUid;
+    document.getElementById('chat-screen').classList.add('open');
+        // 🚀 NEW: চ্যাট ওপেন হলে সেভ করা ড্রাফট ফিরিয়ে আনা
+    const savedDraft = localStorage.getItem('gochat_draft_' + chatId);
+    document.getElementById('chat-input').value = savedDraft ? savedDraft : '';
+    if(typeof gcUpdateChatSendState==='function') gcUpdateChatSendState();
+
+        // 🚀 Group Security: রিমুভ হলে বা লিভ নিলে সাথে সাথে চ্যাট থেকে বের করে দেবে
+    if (otherUid === 'group') {
+        db.collection('chats').doc(chatId).onSnapshot(doc => {
+            if (doc.exists && doc.data().members && !doc.data().members.includes(currentUser.uid)) {
+                if (currentChatId === chatId && document.getElementById('chat-screen').classList.contains('open')) {
+                    closeChat();
+                    showToast("You are no longer a member of this group.");
+                }
+            }
+        });
+    }
+
+    
+    // চ্যাট ওপেন করলে মেসেজ 'Read' + users[] ব্যাকফিল — কিন্তু শুধু তখনই,
+    // যদি চ্যাট ডকুমেন্টটা আগে থেকেই এক্সিস্ট করে (অর্থাৎ অন্তত একবার
+    // মেসেজ পাঠানো হয়েছে)। .get()→.update() ব্যবহার করা হয়েছে যাতে
+    // শুধু প্রোফাইল থেকে "Message" চাপলে (কোনো টেক্সট না লিখেই) একটা
+    // নতুন খালি চ্যাট ডকুমেন্ট তৈরি হয়ে চ্যাট লিস্টে ভুলভাবে চলে না আসে।
+    db.collection('chats').doc(chatId).get().then(doc => {
+      if (!doc.exists) return; // কোনো মেসেজ কখনো হয়নি — ডকুমেন্ট তৈরি করার দরকার নেই
+      try{
+        const patch = { isRead: true };
+        if (otherUid && otherUid !== 'group' && chatId && String(chatId).indexOf('group_') !== 0) {
+          const parts = String(chatId).split('_');
+          if (parts.length === 2 && parts[0] && parts[1]) {
+            patch.users = [parts[0], parts[1]];
+          }
+        }
+        db.collection('chats').doc(chatId).update(patch);
+      }catch(e){
+        db.collection('chats').doc(chatId).update({ isRead: true }).catch(()=>{});
+      }
+    }).catch(()=>{});
+
+    // ইনপুট বার ঠিক রাখা
+    document.getElementById('chat-input-area').style.display = 'flex';
+    if(typeof closeSelectionMode === 'function') closeSelectionMode();
+        
+    const safeName=escapeHTML(otherName);
+    
+     // --- 🚀 আপডেট ১: হেডারের লাইভ প্রোফাইল পিকচার ফিক্স ---
+    const chatAvatarEl = document.getElementById('chat-avatar');
+    let finalOtherName = otherName;
+    let finalOtherAvatar = otherAvatar;
+
+    if (otherUid === 'group') {
+        db.collection('chats').doc(chatId).get().then(doc => {
+            if (doc.exists) {
+                const gName = doc.data().groupName || 'Group Chat';
+                const gAv = doc.data().groupAvatar || '';
+                document.getElementById('chat-name-display').textContent = gName;
+                chatAvatarEl.innerHTML = gAv ? `<img src="${escapeHTML(gAv)}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">` : `<div style="width:100%;height:100%;background:var(--gradient-orange);color:white;display:flex;align-items:center;justify-content:center;border-radius:50%;"><i class="ph-light ph-users-three" style="font-size: 20px;"></i></div>`;
+            }
+        });
+    } else {
+        const liveUser = allUsersCache ? allUsersCache.find(u => u.id === otherUid) : null;
+        if (liveUser) {
+            finalOtherName = liveUser.name || finalOtherName;
+            finalOtherAvatar = liveUser.avatar || '';
+        }
+        
+        const chatHeaderBadge = liveUser ? getVerifiedBadge(liveUser.email || '', liveUser.isVerified === true) + getLeaderBadge(liveUser.email || '', liveUser.isLeader === true) : '';
+        document.getElementById('chat-name-display').innerHTML = escapeHTML(finalOtherName) + chatHeaderBadge;
+
+        if (finalOtherAvatar && finalOtherAvatar !== 'undefined' && finalOtherAvatar !== '') {
+            chatAvatarEl.innerHTML = `<img src="${escapeHTML(finalOtherAvatar)}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
+        } else {
+            chatAvatarEl.innerHTML = `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:var(--gradient);color:#fff;font-weight:bold;font-size:16px;border-radius:50%;">${avatarInitial(finalOtherName)}</div>`;
+        }
+    }
+
+    
+    // Live Online Status in the message header. Groups do not expose member presence here.
+    if(otherUid && otherUid !== 'group') gcStartActiveStatusOtherListener(otherUid);
+    else gcStopActiveStatusOtherListener();
+
+
+    setupTypingIndicator(chatId, otherUid);
+        
+    // 🚀 Check and Apply Advanced Privacy on Chat Load
+    db.collection('chats').doc(chatId).get().then(doc => {
+        if (doc.exists && doc.data().advancedPrivacy === true) {
+            const chatMessagesEl = document.getElementById('chat-messages');
+            const toggleBtn = document.getElementById('advanced-privacy-toggle');
+            
+            if(typeof gcApplyAdvancedPrivacyState === 'function') gcApplyAdvancedPrivacyState(true);
+            else {
+                if (chatMessagesEl) chatMessagesEl.classList.add('privacy-restricted');
+                if (toggleBtn) toggleBtn.classList.add('active');
+            }
+        } else {
+            if(typeof gcApplyAdvancedPrivacyState === 'function') gcApplyAdvancedPrivacyState(false);
+            else {
+                const chatMessagesEl = document.getElementById('chat-messages');
+                const toggleBtn = document.getElementById('advanced-privacy-toggle');
+                if (chatMessagesEl) chatMessagesEl.classList.remove('privacy-restricted');
+                if (toggleBtn) toggleBtn.classList.remove('active');
+            }
+        }
+    });
+    
+    gcStartChatMessagesListener(chatId);
+}
+
 
 function setupTypingIndicator(chatId, otherUid) {
     const chatRef = db.collection('chats').doc(chatId);
@@ -21475,7 +21719,9 @@ function closeChat(){
   var leavingId = currentChatId;
   document.getElementById('chat-screen').classList.remove('open');
   if(chatUnsub) try{ chatUnsub(); }catch(e){}
+  chatUnsub = null;
   if(onlineUnsub) try{ onlineUnsub(); }catch(e){}
+  try{ window.__gcChatMsgState = null; }catch(e){}
   currentChatId=null;
   currentChatOtherUid=null;
   try{ setTypingStatus(false); }catch(e){}
@@ -26130,11 +26376,26 @@ function viewProfileFromChat() {
     }
     // পপ-আপ ওপেন করা
     document.getElementById('quick-profile-modal').classList.add('open');
+    try{
+      var _qpData = (typeof gcActiveStatusOtherData !== 'undefined' && gcActiveStatusOtherData) ? gcActiveStatusOtherData : null;
+      if(!_qpData && otherUser){
+        _qpData = {
+          online: otherUser.online,
+          lastSeen: otherUser.lastSeen,
+          showActiveStatus: otherUser.showActiveStatus
+        };
+      }
+      if(typeof gcUpdateQpOnlineIndicator === 'function') gcUpdateQpOnlineIndicator(_qpData);
+    }catch(e){}
 }
 
 
 function closeQuickProfile() {
     document.getElementById('quick-profile-modal').classList.remove('open');
+    try{
+      var dot = document.getElementById('qp-online-dot');
+      if(dot) dot.classList.remove('is-on');
+    }catch(e){}
 }
 
 // "View Profile" বাটনে ক্লিক করলে ফুল প্রোফাইলে যাবে
