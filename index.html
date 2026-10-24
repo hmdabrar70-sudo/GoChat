@@ -7740,10 +7740,14 @@ body:not(.light-mode) .act-tab.active .notif-tab-count{
 /* Swipe delete affordance */
 #notifications-list .notif-item{
   touch-action: pan-y;
-  transition: transform .2s ease, opacity .2s ease, background .2s ease;
+  /* Swipe-to-delete disabled — Edit mode only */
+  transition: background .2s ease;
 }
-#notifications-list .notif-item.swiping{ transition: none; }
-#notifications-list .notif-item.swipe-out{ opacity:0; transform:translateX(-120%); }
+#notifications-list .notif-item.swiping,
+#notifications-list .notif-item.swipe-out{
+  transform: none !important;
+  opacity: 1 !important;
+}
 
 /* Avatar clickable */
 .notif-av-wrap{ cursor:pointer; }
@@ -11189,6 +11193,99 @@ button.gc-pay-cta,
 
 
 /* GoChat chat top bar cleanup — layout only; existing icon sizes remain 20px. */
+/* Chat header · identity capsule — name gets full remaining width (same as pre-capsule) */
+#chat-screen > .chat-topbar .gc-chat-header-capsule{
+  flex:1 1 auto !important;
+  min-width:0 !important;
+  max-width:none !important;
+  width:auto !important;
+  display:flex !important;
+  align-items:center !important;
+  gap:6px !important;
+  margin:0 !important;
+  /* Minimal padding so text width ≈ old header name area */
+  padding:3px 10px 3px 3px !important;
+  border-radius:999px !important;
+  background:var(--surface-2) !important;
+  border:1px solid var(--border) !important;
+  box-shadow:0 1px 4px rgba(0,0,0,0.06);
+  box-sizing:border-box !important;
+  cursor:pointer !important;
+  overflow:hidden !important;
+  -webkit-tap-highlight-color:transparent;
+  min-height:36px !important;
+  height:auto !important;
+}
+body.light-mode #chat-screen > .chat-topbar .gc-chat-header-capsule{
+  background:rgba(0,0,0,0.05) !important;
+  border:1px solid rgba(0,0,0,0.06) !important;
+}
+body:not(.light-mode) #chat-screen > .chat-topbar .gc-chat-header-capsule{
+  background:rgba(255,255,255,0.08) !important;
+  border:1px solid rgba(255,255,255,0.10) !important;
+}
+#chat-screen > .chat-topbar .gc-chat-header-capsule #chat-avatar{
+  flex:0 0 auto !important;
+  margin:0 !important;
+  width:30px !important;
+  height:30px !important;
+  pointer-events:none;
+}
+#chat-screen > .chat-topbar .gc-chat-header-capsule .gc-chat-header-identity{
+  flex:1 1 auto !important;
+  min-width:0 !important;
+  margin:0 !important;
+  padding:0 !important;
+  display:flex !important;
+  flex-direction:column !important;
+  align-items:flex-start !important;
+  justify-content:center !important;
+  gap:0 !important;
+  overflow:hidden !important;
+  pointer-events:none;
+}
+#chat-screen > .chat-topbar #chat-name-display{
+  flex:0 1 auto !important;
+  min-width:0 !important;
+  max-width:100% !important;
+  width:100% !important;
+  margin:0 !important;
+  padding:0 !important;
+  overflow:hidden !important;
+  white-space:nowrap !important;
+  text-overflow:ellipsis !important;
+  line-height:1.15 !important;
+  font-size:15px !important;
+  font-weight:700 !important;
+}
+body.light-mode #chat-screen > .chat-topbar .gc-chat-header-capsule{
+  background:rgba(0,0,0,0.05) !important;
+  border:1px solid rgba(0,0,0,0.06) !important;
+}
+body:not(.light-mode) #chat-screen > .chat-topbar .gc-chat-header-capsule{
+  background:rgba(255,255,255,0.08) !important;
+  border:1px solid rgba(255,255,255,0.10) !important;
+}
+#chat-screen > .chat-topbar .gc-chat-header-capsule #chat-avatar{
+  flex:0 0 auto !important;
+  margin:0 !important;
+  width:32px !important;
+  height:32px !important;
+  pointer-events:none;
+}
+#chat-screen > .chat-topbar .gc-chat-header-capsule .gc-chat-header-identity{
+  flex:1 1 auto !important;
+  min-width:0 !important;
+  margin:0 !important;
+  padding:0 !important;
+  display:flex !important;
+  flex-direction:column !important;
+  align-items:flex-start !important;
+  justify-content:center !important;
+  gap:1px !important;
+  overflow:hidden !important;
+  pointer-events:none;
+}
 #chat-screen > .chat-topbar .gc-chat-header-identity{
   flex:1 1 auto !important;
   min-width:0 !important;
@@ -14584,10 +14681,12 @@ l-137 -640 -193 -3 -193 -2 4 22 c2 13 67 314 144 671 l139 647 192 0 193 0
 <div id="chat-screen">
 <div class="chat-topbar">
 <div class="chat-back" onclick="closeChat()"><i class="ph-light ph-arrow-left"></i></div>
-<div class="avatar sm" id="chat-avatar" style="position:relative; cursor:pointer;" onclick="viewProfileFromChat()">?</div>
-<div class="gc-chat-header-identity" id="gc-chat-header-identity" onclick="viewProfileFromChat()">
+<div class="gc-chat-header-capsule" id="gc-chat-header-capsule" onclick="viewProfileFromChat()" role="button" tabindex="0" aria-label="View profile">
+<div class="avatar sm" id="chat-avatar" style="position:relative;">?</div>
+<div class="gc-chat-header-identity" id="gc-chat-header-identity">
 <div class="chat-name" id="chat-name-display">Chat</div>
 <div id="chat-active-status" class="gc-chat-active-status" aria-live="polite"></div>
+</div>
 </div>
 <div class="chat-header-actions" style="margin-left: auto; position: relative; display: flex; align-items: center; gap: 4px;">
 
@@ -25881,14 +25980,34 @@ async function unblockUserFromList(uid) {
     }, { passive: true });
 })();
 // চ্যাট হেডারের মেনু ওপেন/ক্লোজ করার ফাংশন
-function toggleChatDeleteMenu() {
-    const menu = document.getElementById('chat-delete-menu');
-    if (menu.style.display === 'block') {
-        menu.style.display = 'none';
+function toggleChatDeleteMenu(ev) {
+    try{ if(ev && ev.preventDefault){ ev.preventDefault(); ev.stopPropagation(); } }catch(e){}
+    var menu = document.getElementById('chat-delete-menu');
+    if(!menu) return;
+    // Preserve chat thread scroll — sheet/lock must not jump the message list
+    var list = document.getElementById('chat-messages');
+    var keepTop = list ? list.scrollTop : 0;
+    // Blur only non-input elements; blurring chat-input dismisses keyboard and jumps
+    try{
+      var ae = document.activeElement;
+      if(ae && ae.blur && ae.id !== 'chat-input' && ae.tagName !== 'INPUT' && ae.tagName !== 'TEXTAREA'){
+        ae.blur();
+      }
+    }catch(e){}
+    // Never flash display:block (causes layout jump); open sheet directly
+    menu.style.display = 'none';
+    if(typeof gcOpenSheetFromMenu === 'function'){
+      gcOpenSheetFromMenu(menu);
     } else {
-        menu.style.display = 'block';
+      menu.style.display = (menu.style.display === 'block') ? 'none' : 'block';
     }
+    function restore(){ try{ if(list) list.scrollTop = keepTop; }catch(e){} }
+    restore();
+    requestAnimationFrame(function(){ restore(); requestAnimationFrame(restore); });
+    setTimeout(restore, 50);
+    setTimeout(restore, 200);
 }
+window.toggleChatDeleteMenu = toggleChatDeleteMenu;
 
 // স্ক্রিনের অন্য কোথাও ক্লিক করলে মেনু হাইড করার জন্য
 document.addEventListener('click', function(event) {
@@ -30247,41 +30366,37 @@ async function gcEnrichNotifThumbs(notifs){
 window.gcEnrichNotifThumbs = gcEnrichNotifThumbs;
 
 
+/* Swipe-to-delete on notifications disabled — use Edit → Select → Delete only */
 (function gcNotifItemSwipe(){
   if(window.gcNotifItemSwipeOn) return;
   window.gcNotifItemSwipeOn = true;
-  var sx=0, sy=0, item=null, active=false;
+  // Block any residual swipe-delete gestures on notification rows
+  var sx=0, sy=0, active=null;
   document.addEventListener('touchstart', function(e){
-    var el = e.target && e.target.closest ? e.target.closest('#notifications-list .notif-item') : null;
-    if(!el || (typeof isNotifEditMode !== 'undefined' && isNotifEditMode)) return;
-    item = el; active = true;
-    sx = e.touches[0].clientX; sy = e.touches[0].clientY;
-    el.classList.add('swiping');
+    var it = e.target && e.target.closest ? e.target.closest('#notifications-list .notif-item') : null;
+    if(!it){ active=null; return; }
+    active = it;
+    sx = e.touches[0].clientX;
+    sy = e.touches[0].clientY;
   }, {passive:true});
   document.addEventListener('touchmove', function(e){
-    if(!active || !item) return;
-    var dx = e.touches[0].clientX - sx;
-    var dy = e.touches[0].clientY - sy;
-    if(Math.abs(dy) > Math.abs(dx)){ active=false; item.style.transform=''; item.classList.remove('swiping'); item=null; return; }
-    if(dx < 0) item.style.transform = 'translateX('+Math.max(dx, -120)+'px)';
+    if(!active) return;
+    // Never translate or mark for delete — vertical scroll only
+    try{
+      active.classList.remove('swiping','swipe-out');
+      active.style.transform = '';
+      active.style.opacity = '';
+    }catch(err){}
   }, {passive:true});
-  document.addEventListener('touchend', function(e){
-    if(!item) return;
-    var el = item; item=null; active=false;
-    el.classList.remove('swiping');
-    var dx = (e.changedTouches[0].clientX - sx);
-    if(dx < -80){
-      var id = el.getAttribute('data-id');
-      el.classList.add('swipe-out');
-      setTimeout(function(){
-        if(id){
-          db.collection('notifications').doc(id).delete().catch(function(){});
-        }
-        try{ el.remove(); }catch(err){}
-      }, 220);
-    } else {
-      el.style.transform = '';
+  document.addEventListener('touchend', function(){
+    if(active){
+      try{
+        active.classList.remove('swiping','swipe-out');
+        active.style.transform = '';
+        active.style.opacity = '';
+      }catch(err){}
     }
+    active = null;
   }, {passive:true});
 })();
 
@@ -31688,14 +31803,34 @@ html += '</div>';
 html += '</div>';
 ov.innerHTML = html;
 ov.classList.add('open');
-try{ if(typeof gcLockScroll==='function') gcLockScroll(); }catch(e){}
+var _chatScreen = document.getElementById('chat-screen');
+var _chatOpen = !!( _chatScreen && _chatScreen.classList.contains('open') );
+var _chatList = document.getElementById('chat-messages');
+var _chatKeep = _chatList ? _chatList.scrollTop : null;
+// Chat is already a fixed full-screen overlay — body scroll-lock causes jump
+window.__gcSheetSkipBodyLock = !!_chatOpen;
+if(!_chatOpen){
+  try{ if(typeof gcLockScroll==='function') gcLockScroll(); }catch(e){}
+}
+function _restoreChatScroll(){
+  if(_chatList != null && _chatKeep != null){
+    try{ _chatList.scrollTop = _chatKeep; }catch(e){}
+  }
+}
+_restoreChatScroll();
+requestAnimationFrame(function(){ _restoreChatScroll(); requestAnimationFrame(_restoreChatScroll); });
+setTimeout(_restoreChatScroll, 50);
 }
 function gcCloseSheet(){
   const ov = document.getElementById('gc-sheet-overlay');
   if(!ov) return;
   ov.classList.remove('open');
   ov.style.display = 'none';
-  try{ if(typeof gcUnlockScroll==='function') gcUnlockScroll(); }catch(e){}
+  var skip = !!window.__gcSheetSkipBodyLock;
+  window.__gcSheetSkipBodyLock = false;
+  if(!skip){
+    try{ if(typeof gcUnlockScroll==='function') gcUnlockScroll(); }catch(e){}
+  }
 }
 function gcSheetTap(idx){
 gcCloseSheet();
@@ -32294,17 +32429,7 @@ gcSyncFilterBtn();
 
 
 // ═══════════════════════════════════════════════════════
-(function(){
-const menu = document.getElementById('chat-delete-menu');
-if(!menu || window.gcChatTopObs) return;
-window.gcChatTopObs = new MutationObserver(function(){
-if(menu.style.display && menu.style.display !== 'none'){
-menu.style.display = 'none';
-gcOpenSheetFromMenu(menu);   // Threads স্টাইল শিট খুলে দিই
-}
-});
-window.gcChatTopObs.observe(menu, {attributes:true, attributeFilter:['style']});
-})();
+/* chat-delete-menu MutationObserver removed — toggleChatDeleteMenu opens sheet directly (no display flash / scroll jump) */
 
 
 // ═══════════════════════════════════════════════════════
