@@ -10516,24 +10516,37 @@ body:not(.light-mode) .chat-send-btn.is-ready{
 /* Education search icon: centered precisely inside the 44px-left text inset. */
 .gc-edu-search-wrap{
   position:relative !important;
-}
-.gc-edu-search{
+  display:flex !important;
+  align-items:center !important;
+  gap:10px !important;
+  padding:10px 16px !important;
+  border-radius:999px !important;
   box-sizing:border-box !important;
-  padding-left:46px !important;
+}
+.gc-edu-search,
+#edu-search-input{
+  flex:1 1 auto !important;
+  min-width:0 !important;
+  width:auto !important;
+  padding:0 !important;
+  padding-left:0 !important;
+  border:none !important;
+  background:transparent !important;
+  box-sizing:border-box !important;
 }
 .gc-edu-search-ico{
-  position:absolute !important;
-  left:16px !important;
-  top:50% !important;
+  position:static !important;
+  left:auto !important;
+  top:auto !important;
+  transform:none !important;
   width:20px !important;
   height:20px !important;
   margin:0 !important;
-  transform:translateY(-50%) !important;
+  flex:0 0 auto !important;
   display:flex !important;
   align-items:center !important;
   justify-content:center !important;
   line-height:1 !important;
-  color:var(--text-muted) !important;
   font-size:18px !important;
   pointer-events:none !important;
 }
@@ -11235,14 +11248,18 @@ button.gc-pay-cta,
 /* GoChat chat top bar cleanup — layout only; existing icon sizes remain 20px. */
 /* Chat header · identity capsule — name gets full remaining width (same as pre-capsule) */
 #chat-screen > .chat-topbar .gc-chat-header-capsule{
-  flex:1 1 auto !important;
+  position:absolute !important;
+  left:50% !important;
+  transform:translateX(-50%) !important;
+  flex:0 1 auto !important;
   min-width:0 !important;
-  max-width:none !important;
-  width:auto !important;
+  max-width:min(72%, calc(100% - 96px)) !important;
+  width:max-content !important;
   display:flex !important;
   align-items:center !important;
   gap:6px !important;
   margin:0 !important;
+  z-index:1 !important;
   /* Minimal padding so text width ≈ old header name area */
   padding:3px 10px 3px 3px !important;
   border-radius:999px !important;
@@ -11425,6 +11442,16 @@ body:not(.light-mode) .qp-online-dot{
   width:100% !important;
   overflow:visible !important;
   border-bottom:none !important;
+  position:relative !important;
+}
+#chat-screen > .chat-topbar .chat-back{
+  position:relative !important;
+  z-index:2 !important;
+}
+#chat-screen > .chat-topbar .chat-header-actions{
+  position:relative !important;
+  z-index:2 !important;
+  margin-left:auto !important;
 }
 #chat-screen > .chat-topbar .chat-back{
   width:36px !important;
@@ -11558,23 +11585,75 @@ body:not(.light-mode) #chat-screen > .chat-topbar .chat-header-actions > .gc-dot
 }
 .gc-ep-section.open{display:flex;}
 .gc-ep-body{padding:16px 18px 40px;display:flex;flex-direction:column;gap:10px;}
-.gc-edu-search-wrap{position:relative;}
-.gc-edu-search{
-  width:100%;padding:14px 16px 14px 44px;border-radius:16px;
-  border:1px solid var(--border);background:var(--surface-2);
-  color:var(--text);font-size:15px;font-family:inherit;outline:none;
+.gc-edu-search-wrap{
+  position:relative;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:10px 16px;
+  border-radius:999px;
+  box-sizing:border-box;
 }
-.gc-edu-search:focus{border-color:var(--accent);}
+.gc-edu-search{
+  flex:1;
+  min-width:0;
+  width:100%;
+  padding:0;
+  border:none;
+  border-radius:0;
+  background:transparent;
+  color:var(--text);
+  font-size:15px;
+  font-family:inherit;
+  outline:none;
+  line-height:1.3;
+}
+.gc-edu-search:focus{border-color:transparent;outline:none;}
 .gc-edu-search-ico{
-  position:absolute;left:14px;top:50%;transform:translateY(-50%);
-  color:var(--text-muted);font-size:18px;pointer-events:none;
+  position:static;
+  left:auto;
+  top:auto;
+  transform:none;
+  flex:0 0 auto;
+  color:var(--text-muted);
+  font-size:18px;
+  line-height:1;
+  pointer-events:none;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.gc-edu-search-block{
+  position:relative;
+  width:100%;
+  z-index:5;
 }
 .gc-edu-results{
-  margin-top:8px;background:var(--surface);border:1px solid var(--border);
-  border-radius:16px;overflow:hidden;max-height:240px;overflow-y:auto;
+  position:absolute;
+  left:0;
+  right:0;
+  top:calc(100% + 6px);
+  margin:0;
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:16px;
+  overflow:hidden;
+  max-height:min(240px, 45vh);
+  overflow-y:auto;
   display:none;
+  z-index:20;
+  box-shadow:0 8px 24px rgba(0,0,0,0.12);
+  box-sizing:border-box;
 }
 .gc-edu-results.open{display:block;}
+body.light-mode .gc-edu-results{
+  background:#fff;
+  box-shadow:0 8px 28px rgba(0,0,0,0.14);
+}
+body:not(.light-mode) .gc-edu-results{
+  background:var(--surface);
+  box-shadow:0 8px 28px rgba(0,0,0,0.45);
+}
 .gc-edu-item{
   padding:12px 14px;display:flex;align-items:center;gap:12px;
   cursor:pointer;border:none;background:transparent;width:100%;
@@ -13687,6 +13766,11 @@ l-137 -640 -193 -3 -193 -2 4 22 c2 13 67 314 144 671 l139 647 192 0 193 0
             Following
             <i class="ph-light ph-caret-right gc-hd-chev"></i>
         </div>
+        <div class="gc-hd-item" onclick="gcCloseHomeDrawer(); openLeaderboard();">
+            <svg class="gc-hd-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="24" height="24" aria-hidden="true"><defs><linearGradient id="gLbExpl" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#fcd34d"/><stop offset="100%" stop-color="#d97706"/></linearGradient></defs><path d="M240,200h-8V144a16,16,0,0,0-16-16H176V56a16,16,0,0,0-16-16H96A16,16,0,0,0,80,56V88H40a16,16,0,0,0-16,16v96H16a8,8,0,0,0,0,16H240a8,8,0,0,0,0-16ZM80,200H40V104H80Zm60-64a8,8,0,0,1-16,0V107.1l-1.47.49a8,8,0,0,1-5.06-15.18l12-4A8,8,0,0,1,140,96Zm76,64H176V144h40Z" fill="url(#gLbExpl)"/></svg>
+            Leaderboard
+            <i class="ph-light ph-caret-right gc-hd-chev"></i>
+        </div>
         <div class="gc-hd-item" onclick="gcCloseHomeDrawer(); gcOpenTrending();">
             <svg class="gc-hd-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><defs><linearGradient id="gTrNew" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#fb923c"/><stop offset="100%" stop-color="#ef4444"/></linearGradient></defs><path fill="url(#gTrNew)" fill-rule="evenodd" d="M3.46447 3.46447C2 4.92893 2 7.28595 2 12C2 16.714 2 19.0711 3.46447 20.5355C4.92893 22 7.28595 22 12 22C16.714 22 19.0711 22 20.5355 20.5355C22 19.0711 22 16.714 22 12C22 7.28595 22 4.92893 20.5355 3.46447C19.0711 2 16.714 2 12 2C7.28595 2 4.92893 2 3.46447 3.46447ZM13.75 10C13.75 10.4142 14.0858 10.75 14.5 10.75H15.1893L13.1768 12.7626C13.0791 12.8602 12.9209 12.8602 12.8232 12.7626L11.2374 11.1768C10.554 10.4934 9.44598 10.4934 8.76256 11.1768L6.46967 13.4697C6.17678 13.7626 6.17678 14.2374 6.46967 14.5303C6.76256 14.8232 7.23744 14.8232 7.53033 14.5303L9.82322 12.2374C9.92085 12.1398 10.0791 12.1398 10.1768 12.2374L11.7626 13.8232C12.446 14.5066 13.554 14.5066 14.2374 13.8232L16.25 11.8107V12.5C16.25 12.9142 16.5858 13.25 17 13.25C17.4142 13.25 17.75 12.9142 17.75 12.5V10C17.75 9.58579 17.4142 9.25 17 9.25H14.5C14.0858 9.25 13.75 9.58579 13.75 10Z" clip-rule="evenodd"/></svg>
             Trending
@@ -14565,9 +14649,11 @@ l-137 -640 -193 -3 -193 -2 4 22 c2 13 67 314 144 671 l139 647 192 0 193 0
         <button class="btn-primary" onclick="saveEducationDetails()" style="margin:0; width:auto; padding:8px 16px; border-radius:20px; font-size:14px;">Save</button>
     </div>
     <div class="gc-ep-body">
+        <div class="gc-edu-search-block">
         <div class="gc-edu-search-wrap">
             <i class="ph-light ph-magnifying-glass gc-edu-search-ico"></i>
             <input type="search" id="edu-search-input" class="gc-edu-search" placeholder="Search school, college or university…" autocomplete="off" oninput="gcFilterEducationSearch(this.value)" onkeydown="if(event.key==='Enter'){event.preventDefault();gcAddCustomEducation();}">
+        </div>
             <div class="gc-edu-results" id="edu-search-results"></div>
         </div>
         <div style="font-size:12px;font-weight:700;color:var(--text-muted);margin-top:4px;">Your education</div>
@@ -15134,16 +15220,7 @@ l-137 -640 -193 -3 -193 -2 4 22 c2 13 67 314 144 671 l139 647 192 0 193 0
 <i class="ph-light ph-caret-right"></i>
 </div>
 
-                <!-- 🚀 NEW: Leaderboard Menu Item -->
-        <div class="settings-list-item" onclick="closeMainMenu(); openLeaderboard();">
-            <div style="display:flex; align-items:center; gap:16px;">
-                <svg class="gc-menu-ico" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 256 256" fill="none" aria-hidden="true"><defs><linearGradient id="gMenuL" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#fcd34d"/><stop offset="100%" stop-color="#d97706"/></linearGradient></defs><path d="M240,200h-8V144a16,16,0,0,0-16-16H176V56a16,16,0,0,0-16-16H96A16,16,0,0,0,80,56V88H40a16,16,0,0,0-16,16v96H16a8,8,0,0,0,0,16H240a8,8,0,0,0,0-16ZM80,200H40V104H80Zm60-64a8,8,0,0,1-16,0V107.1l-1.47.49a8,8,0,0,1-5.06-15.18l12-4A8,8,0,0,1,140,96Zm76,64H176V144h40Z" fill="url(#gMenuL)"/></svg>
-                <span style="font-weight:600; font-size:15px;">Leaderboard</span>
-            </div>
-            <i class="ph-light ph-caret-right"></i>
-        </div>
-
-        <!-- 🚀 Invite Friends Menu Item · 2026-09-18 -->
+                <!-- 🚀 Invite Friends Menu Item · 2026-09-18 -->
         <div class="settings-list-item" onclick="closeMainMenu(); openInviteFriendsPage();">
             <div style="display:flex; align-items:center; gap:16px;">
                 <svg class="gc-menu-ico" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 256 256" fill="none" aria-hidden="true"><defs><linearGradient id="gMenuI" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#f472b6"/><stop offset="100%" stop-color="#db2777"/></linearGradient></defs><path d="M256,136a8,8,0,0,1-8,8H232v16a8,8,0,0,1-16,0V144H200a8,8,0,0,1,0-16h16V112a8,8,0,0,1,16,0v16h16A8,8,0,0,1,256,136ZM144,157.68a68,68,0,1,0-71.9,0c-20.65,6.76-39.23,19.39-54.17,37.17A8,8,0,0,0,24,208H192a8,8,0,0,0,6.13-13.15C183.18,177.07,164.6,164.44,144,157.68Z" fill="url(#gMenuI)"/></svg>
@@ -22995,6 +23072,15 @@ var GC_SCHOOL_DB = [
   'Ideal School and College','Rajuk Uttara Model College','Dhaka Residential Model College',
   'Adamjee Cantonment College','Milestone College','Dhaka City College','Government Titumir College',
   'Eden Mohila College','Begum Badrunnesa Government Girls College','Tejgaon College',
+  /* Dhaka historic government seven colleges */
+  'Dhaka College','ঢাকা কলেজ',
+  'ইডেন মহিলা কলেজ',
+  'সরকারি তিতুমীর কলেজ',
+  'Government Bangla College','সরকারি বাঙলা কলেজ',
+  'Begum Badrunnesa Government Women\'s College','বেগম বদরুন্নেসা সরকারি মহিলা কলেজ',
+  'Government Shaheed Suhrawardy College','Govt. Shahid Suhrawardy College','সরকারি শহীদ সোহরাওয়ার্দী কলেজ',
+  'Kabi Nazrul Government College','কবি নজরুল সরকারি কলেজ',
+
   'Bangladesh Navy College','Cantonment Public School and College','Mirzapur Cadet College',
   'Faujdarhat Cadet College','Jhenaidah Cadet College','Rajshahi Cadet College',
   'Scholastica','Maple Leaf International School','International School Dhaka (ISD)',
