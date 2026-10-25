@@ -19034,6 +19034,32 @@ async function gcUploadStoryFile(file, localPreview, isVideo){
 window.gcUploadStoryFile = gcUploadStoryFile;
 
 
+
+/* Refresh story strip when following list changes */
+(function(){
+  if(window.__gcStoryFollowRefresh) return;
+  window.__gcStoryFollowRefresh = true;
+  function _hook(){
+    if(typeof window.toggleFollow !== 'function' || window.toggleFollow.__gcStoryHooked) return;
+    var prev = window.toggleFollow;
+    window.toggleFollow = function(targetUid){
+      var ret = prev.apply(this, arguments);
+      try{
+        Promise.resolve(ret).finally(function(){
+          setTimeout(function(){ try{ if(typeof loadStories==='function') loadStories(); }catch(e){} }, 500);
+        });
+      }catch(e){
+        setTimeout(function(){ try{ if(typeof loadStories==='function') loadStories(); }catch(e2){} }, 500);
+      }
+      return ret;
+    };
+    window.toggleFollow.__gcStoryHooked = true;
+  }
+  _hook();
+  setTimeout(_hook, 0);
+  setTimeout(_hook, 2000);
+})();
+
 function loadStories(){
     const list=document.getElementById('stories-list');
     if(!list)return;
@@ -19084,8 +19110,8 @@ function loadStories(){
         
         for(let uid in grouped){
             if (uid !== currentUser.uid) {
-                const isFollowing = currentUserData.following && currentUserData.following.includes(uid);
-                if (!isFollowing) continue;
+                var _fol = (currentUserData && Array.isArray(currentUserData.following)) ? currentUserData.following : [];
+                if (_fol.indexOf(uid) === -1) continue;
             }
             // চেক করা হচ্ছে এই ইউজারের সব স্টোরি দেখা হয়ে গেছে কিনা
             const allSeen = grouped[uid].every(s => s.views && s.views.includes(currentUser.uid));
@@ -19220,6 +19246,16 @@ function playStories(uid, startIndex = 0){
         // Stories may not be loaded yet — try once from cache after brief wait
         if(typeof loadStories === 'function') try{ loadStories(); }catch(e){}
     }
+    // Story feed rule: only own stories or people you follow
+    try{
+      if(uid && currentUser && uid !== currentUser.uid){
+        var _fl = (currentUserData && Array.isArray(currentUserData.following)) ? currentUserData.following : [];
+        if(_fl.indexOf(uid) === -1){
+          showToast('Follow to see their story');
+          return;
+        }
+      }
+    }catch(e){}
     // Block private account stories for non-followers
     try{
       if(uid && currentUser && uid !== currentUser.uid && typeof gcCanViewPrivateContent === 'function' && !gcCanViewPrivateContent(uid)){
@@ -21144,11 +21180,14 @@ safeText = safeText.replace(urlRegex, function(url) {
                 sAv = (sUser && sUser.avatar) ? sUser.avatar : '';
                 sNm = (sUser && sUser.name) ? sUser.name : (m.senderName || '?');
             }
-            if (sAv && sAv !== 'undefined' && sAv !== '') {
-                msgAvatarHtml = `<div class="avatar sm" style="align-self:flex-start;margin-right:8px;flex-shrink:0;margin-top:2px;"><img src="${escapeHTML(sAv)}"></div>`;
-            } else {
-                msgAvatarHtml = `<div class="avatar sm" style="align-self:flex-start;margin-right:8px;flex-shrink:0;margin-top:2px;background-color:#fff;background-image:url(data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='32' r='21' fill='%23838C9B'/%3E%3Ccircle cx='50' cy='115' r='55' fill='%23838C9B'/%3E%3C/svg%3E);background-size:cover;background-position:center;border:1px solid var(--border);"></div>`;
+            var _sidForAv = (otherUid === 'group') ? (m.uid || m.sender) : otherUid;
+            if (typeof gcResolveAvatarUrl === 'function') {
+                sAv = gcResolveAvatarUrl(_sidForAv, sAv);
             }
+            var _inner = (typeof gcAvatarInnerHtml === 'function')
+              ? gcAvatarInnerHtml(_sidForAv, sAv, sNm)
+              : ((sAv && sAv !== 'undefined') ? '<img src="'+escapeHTML(sAv)+'">' : '');
+            msgAvatarHtml = '<div class="avatar sm" style="align-self:flex-start;margin-right:8px;flex-shrink:0;margin-top:2px;">' + _inner + '</div>';
         }
 
         if (m.deletedFor && m.deletedFor.includes(currentUser.uid)) { return ''; }
@@ -21419,10 +21458,15 @@ function openChat(chatId, otherUid, otherName, otherAvatar){
         const chatHeaderBadge = liveUser ? getVerifiedBadge(liveUser.email || '', liveUser.isVerified === true) + getLeaderBadge(liveUser.email || '', liveUser.isLeader === true) : '';
         document.getElementById('chat-name-display').innerHTML = escapeHTML(finalOtherName) + chatHeaderBadge;
 
-        if (finalOtherAvatar && finalOtherAvatar !== 'undefined' && finalOtherAvatar !== '') {
+        if (typeof gcResolveAvatarUrl === 'function') {
+            finalOtherAvatar = gcResolveAvatarUrl(otherUid, finalOtherAvatar);
+        }
+        if (typeof gcAvatarInnerHtml === 'function') {
+            chatAvatarEl.innerHTML = gcAvatarInnerHtml(otherUid, finalOtherAvatar, finalOtherName);
+        } else if (finalOtherAvatar && finalOtherAvatar !== 'undefined' && finalOtherAvatar !== '') {
             chatAvatarEl.innerHTML = `<img src="${escapeHTML(finalOtherAvatar)}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
         } else {
-            chatAvatarEl.innerHTML = `<div style="width:100%;height:100%;border-radius:50%;background-color:#fff;background-image:url(data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='32' r='21' fill='%23838C9B'/%3E%3Ccircle cx='50' cy='115' r='55' fill='%23838C9B'/%3E%3C/svg%3E);background-size:cover;background-position:center;background-repeat:no-repeat;">${avatarInitial(finalOtherName)}</div>`;
+            chatAvatarEl.innerHTML = '';
         }
     }
 
@@ -22477,7 +22521,7 @@ async function loadMessages(){
             const unreadClass = isUnread ? 'unread-chat' : '';
             const unreadDot = isUnread ? '<div class="unread-badge-dot"></div>' : '';
 
-            // 🚀 Profile Picture Real-time Fix
+            // 🚀 Profile Picture Real-time Fix (live resolve + default silhouette)
             let finalAv = chat.otherAv;
             let finalName = chat.otherName;
 
@@ -22487,18 +22531,28 @@ async function loadMessages(){
             } else {
                 const liveUser = allUsersCache ? allUsersCache.find(u => u.id === chat.otherUid) : null;
                 if (liveUser) {
+                    finalName = liveUser.name || finalName || 'Unknown User';
+                }
+                if (typeof gcResolveAvatarUrl === 'function') {
+                    finalAv = gcResolveAvatarUrl(chat.otherUid, chat.otherAv || (liveUser && liveUser.avatar) || '');
+                } else if (liveUser) {
                     finalAv = liveUser.avatar || '';
-                    finalName = liveUser.name || 'Unknown User';
                 }
             }
             
             let avHtml = '';
-            if (finalAv) {
+            if (chat.isGroup) {
+                if (finalAv && (typeof gcIsValidAvatarUrl !== 'function' || gcIsValidAvatarUrl(finalAv))) {
+                    avHtml = `<img src="${escapeHTML(finalAv)}" width="42" height="42" decoding="async" style="width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;">`;
+                } else {
+                    avHtml = `<div style="width:100%;height:100%;background:var(--gradient-orange);color:white;display:flex;align-items:center;justify-content:center;border-radius:50%;"><i class="ph-light ph-users-three" style="font-size: 24px;"></i></div>`;
+                }
+            } else if (typeof gcAvatarInnerHtml === 'function') {
+                avHtml = gcAvatarInnerHtml(chat.otherUid, finalAv, finalName);
+            } else if (finalAv && (typeof gcIsValidAvatarUrl !== 'function' || gcIsValidAvatarUrl(finalAv))) {
                 avHtml = `<img src="${escapeHTML(finalAv)}" width="42" height="42" decoding="async" style="width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;">`;
-            } else if (chat.isGroup) {
-                avHtml = `<div style="width:100%;height:100%;background:var(--gradient-orange);color:white;display:flex;align-items:center;justify-content:center;border-radius:50%;"><i class="ph-light ph-circle" style="font-size: 24px;"></i></div>`;
             } else {
-                avHtml = `<div style="width:100%;height:100%;border-radius:50%;background-color:#fff;background-image:url(data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='32' r='21' fill='%23838C9B'/%3E%3Ccircle cx='50' cy='115' r='55' fill='%23838C9B'/%3E%3C/svg%3E);background-size:cover;background-position:center;background-repeat:no-repeat;">${avatarInitial(finalName)}</div>`;
+                avHtml = '';
             }
             
             chat.otherName = finalName;
@@ -32455,7 +32509,10 @@ gcUnfollowTarget = null;
 function gcConfirmUnfollow(){
 const uid = gcUnfollowTarget;
 gcHideUnfollowConfirm();
-if(uid && window.gcOriginalToggleFollow) window.gcOriginalToggleFollow(uid);
+if(uid && window.gcOriginalToggleFollow){
+  window.gcOriginalToggleFollow(uid);
+  setTimeout(function(){ try{ if(typeof loadStories==='function') loadStories(); }catch(e){} }, 400);
+}
 }
 
 
