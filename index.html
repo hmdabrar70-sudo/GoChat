@@ -25181,19 +25181,159 @@ async function gcFetchBlobWithProgress(url, onProgress){
   if(onProgress) onProgress(100);
   return new Blob(chunks, { type: res.headers.get('content-type') || 'application/octet-stream' });
 }
-function gcTriggerBlobDownload(blob, filename){
-  var blobUrl = URL.createObjectURL(blob);
-  var a = document.createElement('a');
-  a.style.display = 'none';
-  a.href = blobUrl;
-  a.download = filename || ('GoChat_' + Date.now() + '.jpg');
-  document.body.appendChild(a);
-  a.click();
-  setTimeout(function(){
-    try{ URL.revokeObjectURL(blobUrl); }catch(e){}
-    try{ a.remove(); }catch(e){}
-  }, 1500);
+function gcIsLikelyWebView(){
+  try{
+    var ua = navigator.userAgent || '';
+    // Common Android WebView / hybrid APK markers
+    if(/; wv\)/i.test(ua)) return true;
+    if(/\bWebView\b/i.test(ua)) return true;
+    if(/Version\/\d+\.\d+.*Chrome\/[.0-9]* Mobile/i.test(ua) && /Android/i.test(ua)) return true;
+    // Some builders inject a bridge
+    if(window.Android || window.AndroidInterface || window.JSBridge || window.webkit && window.webkit.messageHandlers){
+      if(window.Android || window.AndroidInterface || window.JSBridge) return true;
+    }
+  }catch(e){}
+  return false;
 }
+
+/** Try native bridges used by some Web→APK builders (no-op if absent) */
+function gcTryNativeSaveBlob(blob, filename){
+  return new Promise(function(resolve){
+    try{
+      var bridges = [window.Android, window.AndroidInterface, window.JSBridge, window.GoChatNative];
+      for(var i=0;i<bridges.length;i++){
+        var b = bridges[i];
+        if(!b) continue;
+        if(typeof b.saveImage === 'function' || typeof b.downloadFile === 'function' || typeof b.saveBlob === 'function'){
+          var reader = new FileReader();
+          reader.onloadend = function(){
+            try{
+              var dataUrl = reader.result;
+              if(typeof b.saveImage === 'function') b.saveImage(dataUrl, filename);
+              else if(typeof b.downloadFile === 'function') b.downloadFile(dataUrl, filename);
+              else if(typeof b.saveBlob === 'function') b.saveBlob(dataUrl, filename);
+              resolve(true);
+            }catch(e){ resolve(false); }
+          };
+          reader.onerror = function(){ resolve(false); };
+          reader.readAsDataURL(blob);
+          return;
+        }
+      }
+    }catch(e){}
+    resolve(false);
+  });
+}
+
+/**
+ * Save blob reliably across Chrome + Android WebView APKs.
+ * Order: native bridge → Web Share (files) → <a download> → data-URL open.
+ * Returns true if a save/share path was started (not user-cancel).
+ */
+async function gcTriggerBlobDownload(blob, filename){
+  filename = filename || ('GoChat_' + Date.now() + '.jpg');
+  if(!blob) return false;
+  var mime = blob.type || 'image/jpeg';
+  if(!mime || mime === 'application/octet-stream'){
+    // Guess from name
+    if(/\.png$/i.test(filename)) mime = 'image/png';
+    else if(/\.webp$/i.test(filename)) mime = 'image/webp';
+    else if(/\.gif$/i.test(filename)) mime = 'image/gif';
+    else mime = 'image/jpeg';
+    try{ blob = new Blob([blob], { type: mime }); }catch(e){}
+  }
+
+  // 1) Native bridge (if WebView builder injected one)
+  try{
+    var nativeOk = await gcTryNativeSaveBlob(blob, filename);
+    if(nativeOk) return true;
+  }catch(e){}
+
+  // 2) Web Share API with File — best path inside many Android WebViews/APKs
+  //    User gets system sheet → Save image / Files / Gallery
+  try{
+    if(navigator.share && typeof File !== 'undefined'){
+      var file = new File([blob], filename, { type: mime });
+      var payload = { files: [file], title: filename };
+      var can = true;
+      try{
+        if(typeof navigator.canShare === 'function') can = !!navigator.canShare(payload);
+      }catch(e){ can = true; }
+      if(can){
+        await navigator.share(payload);
+        return true;
+      }
+    }
+  }catch(e){
+    // AbortError = user cancelled share → treat as handled (don't force second path)
+    if(e && (e.name === 'AbortError' || e.name === 'NotAllowedError')) return true;
+  }
+
+  // 3) Classic <a download> (works in Chrome; ignored by many WebViews)
+  try{
+    if(window.navigator && typeof window.navigator.msSaveOrOpenBlob === 'function'){
+      window.navigator.msSaveOrOpenBlob(blob, filename);
+      return true;
+    }
+  }catch(e){}
+
+  var blobUrl = null;
+  try{
+    blobUrl = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.style.display = 'none';
+    a.href = blobUrl;
+    a.download = filename;
+    a.setAttribute('download', filename);
+    a.rel = 'noopener';
+    document.body.appendChild(a);
+    // Some WebViews need the element visible briefly / user-gesture synchronous click
+    a.click();
+    setTimeout(function(){
+      try{ a.remove(); }catch(e){}
+      try{ if(blobUrl) URL.revokeObjectURL(blobUrl); }catch(e){}
+    }, 60000); // keep longer for slow WebView download managers
+  }catch(e){
+    try{ if(blobUrl) URL.revokeObjectURL(blobUrl); }catch(e2){}
+  }
+
+  // 4) WebView often ignores download attr — open blob in same tab context via iframe
+  //    (avoids leaving the SPA when possible)
+  try{
+    if(gcIsLikelyWebView()){
+      var iframe = document.createElement('iframe');
+      iframe.style.cssText = 'position:fixed;width:0;height:0;border:0;opacity:0;pointer-events:none;';
+      iframe.src = blobUrl || URL.createObjectURL(blob);
+      document.body.appendChild(iframe);
+      setTimeout(function(){ try{ iframe.remove(); }catch(e){} }, 8000);
+    }
+  }catch(e){}
+
+  // 5) Last resort for small images: data URL navigation (WebView download listener may catch)
+  try{
+    if(blob.size && blob.size < 4 * 1024 * 1024){
+      var dataUrl = await new Promise(function(resolve, reject){
+        var fr = new FileReader();
+        fr.onload = function(){ resolve(fr.result); };
+        fr.onerror = reject;
+        fr.readAsDataURL(blob);
+      });
+      // Prefer hidden <a> with data URL + download
+      var a2 = document.createElement('a');
+      a2.style.display = 'none';
+      a2.href = dataUrl;
+      a2.download = filename;
+      document.body.appendChild(a2);
+      a2.click();
+      setTimeout(function(){ try{ a2.remove(); }catch(e){} }, 2000);
+    }
+  }catch(e){}
+
+  return true;
+}
+window.gcTriggerBlobDownload = gcTriggerBlobDownload;
+window.gcIsLikelyWebView = gcIsLikelyWebView;
+
 async function gcDownloadMedia(url, opts){
   opts = opts || {};
   var which = opts.which || 'zoom';
@@ -25211,36 +25351,88 @@ async function gcDownloadMedia(url, opts){
     if(fetchUrl.indexOf('fl_attachment') !== -1){
       fetchUrl = fetchUrl.replace(/\/upload\/fl_attachment:[^/]+\//, '/upload/');
     }
-    var blob = await gcFetchBlobWithProgress(fetchUrl, function(p){ gcDlProgress(which, p); });
-    gcTriggerBlobDownload(blob, filename);
+    // Prefer same-origin / cors fetch; if img is already decoded, canvas path as backup
+    var blob = null;
+    try{
+      blob = await gcFetchBlobWithProgress(fetchUrl, function(p){ gcDlProgress(which, p); });
+    }catch(fetchErr){
+      // Canvas fallback (helps when CORS on original URL fails but image is on-screen)
+      blob = await gcBlobFromVisibleImage(fetchUrl, which);
+      if(!blob) throw fetchErr;
+    }
+    gcDlProgress(which, 100);
+    await gcTriggerBlobDownload(blob, filename);
     gcDlSaved(which);
   } catch(err){
     console.warn('gcDownloadMedia fetch failed, fallback', err);
-    // Fallback: Cloudinary attachment redirect (may leave page in some WebViews)
     try{
       var fallback = url;
       if(fallback.indexOf('cloudinary.com') !== -1 && fallback.indexOf('fl_attachment') === -1){
         fallback = fallback.replace('/upload/', '/upload/fl_attachment:GoChat_Photo/');
       }
-      // Still show Saved UX — browser/WebView will handle actual save
       gcDlProgress(which, 100);
+      // Try opening fallback without claiming success prematurely on pure <a>
+      var a = document.createElement('a');
+      a.href = fallback;
+      a.download = filename;
+      a.target = '_blank';
+      a.rel = 'noopener';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      // Share URL as last soft fallback on WebView
+      try{
+        if(gcIsLikelyWebView() && navigator.share){
+          await navigator.share({ url: fallback, title: filename });
+        }
+      }catch(eShare){}
       gcDlSaved(which);
-      setTimeout(function(){
-        var a = document.createElement('a');
-        a.href = fallback;
-        a.download = filename;
-        a.target = '_blank';
-        a.rel = 'noopener';
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-      }, 200);
     } catch(e2){
       gcDlHide(which);
       showToast('Download failed');
     }
   }
 }
+
+/** Build a blob from an already-loaded <img> when fetch CORS blocks WebView */
+async function gcBlobFromVisibleImage(url, which){
+  try{
+    var imgs = document.querySelectorAll('img');
+    var target = null;
+    for(var i=0;i<imgs.length;i++){
+      if(imgs[i].src === url || imgs[i].currentSrc === url){ target = imgs[i]; break; }
+    }
+    if(!target){
+      var zoom = document.getElementById('zoom-image');
+      if(zoom && (zoom.src === url || !url)) target = zoom;
+    }
+    if(!target || !target.naturalWidth) return null;
+    if(which) gcDlProgress(which, 40);
+    var canvas = document.createElement('canvas');
+    canvas.width = target.naturalWidth;
+    canvas.height = target.naturalHeight;
+    var ctx = canvas.getContext('2d');
+    ctx.drawImage(target, 0, 0);
+    if(which) gcDlProgress(which, 80);
+    var blob = await new Promise(function(resolve){
+      if(canvas.toBlob) canvas.toBlob(function(b){ resolve(b); }, 'image/jpeg', 0.95);
+      else {
+        try{
+          var data = canvas.toDataURL('image/jpeg', 0.95);
+          var arr = data.split(',');
+          var bstr = atob(arr[1]);
+          var u8 = new Uint8Array(bstr.length);
+          for(var j=0;j<bstr.length;j++) u8[j] = bstr.charCodeAt(j);
+          resolve(new Blob([u8], { type: 'image/jpeg' }));
+        }catch(e){ resolve(null); }
+      }
+    });
+    return blob;
+  }catch(e){
+    return null;
+  }
+}
+window.gcBlobFromVisibleImage = gcBlobFromVisibleImage;
 
 async function downloadZoomedImage(event) {
     if(event) event.stopPropagation();
