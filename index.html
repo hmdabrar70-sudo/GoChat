@@ -2228,6 +2228,47 @@ transition:background .15s;
   padding:28px 16px;text-align:center;color:var(--text-muted);font-weight:600;font-size:14px;
 }
 
+/* Popup scroll isolation · chat reaction UIs */
+.gc-msg-pop-mask{
+  touch-action:none;
+  overscroll-behavior:none;
+}
+.gc-msg-pop{
+  overscroll-behavior:contain;
+  -webkit-overflow-scrolling:touch;
+}
+.gc-msg-pop-reacts{
+  overscroll-behavior:contain;
+  overscroll-behavior-x:contain;
+}
+.gc-msg-pop-list{
+  max-height:min(50vh, 360px);
+  overflow-y:auto;
+  overscroll-behavior:contain;
+  -webkit-overflow-scrolling:touch;
+  touch-action:pan-y;
+}
+#gc-react-detail-overlay.gc-sheet-overlay{
+  touch-action:none;
+  overscroll-behavior:none;
+}
+.gc-react-detail-sheet{
+  overscroll-behavior:contain;
+  touch-action:pan-y;
+}
+.gc-react-detail-list{
+  overscroll-behavior:contain;
+  overscroll-behavior-y:contain;
+  -webkit-overflow-scrolling:touch;
+  touch-action:pan-y;
+}
+body.gc-chat-popup-open #chat-messages{
+  overflow:hidden !important;
+  overscroll-behavior:none !important;
+  touch-action:none;
+}
+
+
 .comment-panel{
 display:none;position:fixed;inset:0;
 background:var(--bg);z-index:999;
@@ -21893,9 +21934,92 @@ function gcChatReactSvg(key,size){size=size||24;try{var m=GC_CHAT_REACT_MAP[key]
 function gcChatReactIconHtml(key,size){var s=gcChatReactSvg(key,size);if(s)return s;return '<span class="gc-react-fallback">'+String(key||'')+'</span>';}
 window.GC_CHAT_REACT_MAP=GC_CHAT_REACT_MAP;window.gcChatReactSvg=gcChatReactSvg;window.gcChatReactIconHtml=gcChatReactIconHtml;
 
+
+/* Chat popup scroll isolation · count-based lock */
+window.__gcChatPopupScrollLock = window.__gcChatPopupScrollLock || 0;
+function gcLockChatPopupScroll(){
+  try{
+    window.__gcChatPopupScrollLock = (window.__gcChatPopupScrollLock || 0) + 1;
+    if(window.__gcChatPopupScrollLock > 1) return;
+    var el = document.getElementById('chat-messages');
+    if(el){
+      window.__gcChatMsgScrollTop = el.scrollTop;
+      el.dataset.gcLockedScroll = '1';
+    }
+    document.body.classList.add('gc-chat-popup-open');
+    if(typeof gcLockScroll === 'function') gcLockScroll();
+  }catch(e){}
+}
+function gcUnlockChatPopupScroll(){
+  try{
+    if(!window.__gcChatPopupScrollLock || window.__gcChatPopupScrollLock <= 0){
+      window.__gcChatPopupScrollLock = 0;
+      return;
+    }
+    window.__gcChatPopupScrollLock -= 1;
+    if(window.__gcChatPopupScrollLock > 0) return;
+    document.body.classList.remove('gc-chat-popup-open');
+    var el = document.getElementById('chat-messages');
+    if(el){
+      delete el.dataset.gcLockedScroll;
+      if(typeof window.__gcChatMsgScrollTop === 'number'){
+        try{ el.scrollTop = window.__gcChatMsgScrollTop; }catch(e){}
+      }
+    }
+    if(typeof gcUnlockScroll === 'function') gcUnlockScroll();
+  }catch(e){}
+}
+/** Prevent scroll chaining: touchmove on overlay/mask, allow inside designated scroll areas */
+function gcBindPopupScrollContain(root, scrollSelectors){
+  if(!root || root.dataset.gcScrollContainBound === '1') return;
+  root.dataset.gcScrollContainBound = '1';
+  var sels = scrollSelectors || [];
+  root.addEventListener('touchmove', function(e){
+    try{
+      var t = e.target;
+      var scrollEl = null;
+      for(var i=0;i<sels.length;i++){
+        var hit = t.closest ? t.closest(sels[i]) : null;
+        if(hit){ scrollEl = hit; break; }
+      }
+      if(!scrollEl){
+        e.preventDefault();
+        return;
+      }
+      // at edges: block chaining
+      var canScroll = scrollEl.scrollHeight > scrollEl.clientHeight + 1;
+      if(!canScroll){
+        // horizontal-only strip (emoji row)
+        var canX = scrollEl.scrollWidth > scrollEl.clientWidth + 1;
+        if(!canX){ e.preventDefault(); return; }
+        return; // allow horizontal pan
+      }
+      var dy = 0;
+      if(e.touches && e.touches[0] && root._gcTouchY != null){
+        dy = e.touches[0].clientY - root._gcTouchY;
+      }
+      var top = scrollEl.scrollTop <= 0;
+      var bot = scrollEl.scrollTop + scrollEl.clientHeight >= scrollEl.scrollHeight - 1;
+      if((top && dy > 0) || (bot && dy < 0)){
+        e.preventDefault();
+      }
+    }catch(err){}
+  }, { passive: false });
+  root.addEventListener('touchstart', function(e){
+    try{
+      if(e.touches && e.touches[0]) root._gcTouchY = e.touches[0].clientY;
+    }catch(err){}
+  }, { passive: true });
+}
+window.gcLockChatPopupScroll = gcLockChatPopupScroll;
+window.gcUnlockChatPopupScroll = gcUnlockChatPopupScroll;
+window.gcBindPopupScrollContain = gcBindPopupScrollContain;
+
 function gcCloseMsgActionPopup(){
   try{
+    var had = !!document.querySelector('.gc-msg-pop-mask, .gc-msg-pop');
     document.querySelectorAll('.gc-msg-pop-mask, .gc-msg-pop').forEach(function(el){ el.remove(); });
+    if(had && typeof gcUnlockChatPopupScroll === 'function') gcUnlockChatPopupScroll();
   }catch(e){}
 }
 window.gcCloseMsgActionPopup = gcCloseMsgActionPopup;
@@ -21918,6 +22042,8 @@ function gcOpenMsgActionPopup(msgId){
   var mask = document.createElement('div');
   mask.className = 'gc-msg-pop-mask';
   mask.addEventListener('click', function(){ gcCloseMsgActionPopup(); });
+  if(typeof gcLockChatPopupScroll==='function') gcLockChatPopupScroll();
+  if(typeof gcBindPopupScrollContain==='function'){ gcBindPopupScrollContain(mask, ['.gc-msg-pop-reacts','.gc-msg-pop-list','.gc-msg-pop']); }
 
   var pop = document.createElement('div');
   pop.className = 'gc-msg-pop';
@@ -22059,8 +22185,10 @@ function showReactionPicker(event, msgId) {
 
 function gcCloseMsgReactionDetails(){
   var ov = document.getElementById('gc-react-detail-overlay');
+  var wasOpen = !!(ov && (ov.classList.contains('open') || ov.style.display === 'flex'));
   if(ov){ ov.classList.remove('open'); ov.style.display='none'; }
   window.__gcReactDetailMsgId = null;
+  if(wasOpen && typeof gcUnlockChatPopupScroll === 'function') gcUnlockChatPopupScroll();
 }
 window.gcCloseMsgReactionDetails = gcCloseMsgReactionDetails;
 
@@ -22083,6 +22211,8 @@ async function gcOpenMsgReactionDetails(msgId){
   }
   ov.style.display = 'flex';
   ov.classList.add('open');
+  if(typeof gcLockChatPopupScroll==='function') gcLockChatPopupScroll();
+  if(typeof gcBindPopupScrollContain==='function') gcBindPopupScrollContain(ov, ['.gc-react-detail-list','.gc-react-detail-sheet']);
   var list = document.getElementById('gc-react-detail-list');
   if(list) list.innerHTML = '<div class="gc-react-detail-empty">Loading…</div>';
   await gcRenderMsgReactionDetails(msgId);
