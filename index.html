@@ -12769,6 +12769,37 @@ body.friends-mode .topbar.nav-hidden-top {
   opacity: 1 !important;
   pointer-events: auto !important;
 }
+
+/* Inbox + Notifications: topbar always fixed while list scrolls */
+body.messages-mode .topbar,
+body.messages-mode #app-screen > .topbar,
+body.notifications-mode .topbar,
+body.notifications-mode #app-screen > .topbar {
+  transform: none !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 100 !important;
+}
+body.messages-mode .topbar.nav-hidden-top,
+body.notifications-mode .topbar.nav-hidden-top {
+  transform: none !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+body.notifications-mode #page-notifications .activity-tabs-wrapper {
+  position: sticky !important;
+  top: 58px !important;
+  z-index: 90 !important;
+}
+body.notifications-mode #page-notifications .activity-tabs-wrapper.nav-hidden-tabs {
+  transform: none !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  visibility: visible !important;
+}
+
 body.friends-mode #main-bottom-nav,
 body.friends-mode .bottom-nav,-pic-container,
 body.friends-mode .nav-capsule {
@@ -18112,10 +18143,20 @@ function showPage(page) {
 
     if (page === 'messages') {
         document.body.classList.add('messages-mode');
+        try {
+          var _mtb = document.querySelector('#app-screen > .topbar') || document.querySelector('.topbar');
+          if (_mtb) _mtb.classList.remove('nav-hidden-top');
+        } catch(e) {}
         if (topbarLogo) topbarLogo.innerHTML = 'Inbox';
         gcCloseHomeDrawer();
     } else if (page === 'notifications') {
         document.body.classList.add('notifications-mode');
+        try {
+          var _ntb = document.querySelector('#app-screen > .topbar') || document.querySelector('.topbar');
+          if (_ntb) _ntb.classList.remove('nav-hidden-top');
+          var _ntabs = document.querySelector('#page-notifications .activity-tabs-wrapper');
+          if (_ntabs) _ntabs.classList.remove('nav-hidden-tabs');
+        } catch(e) {}
         if (topbarLogo) topbarLogo.innerHTML = 'Notifications';
         setTimeout(function(){ try{ gcInitNotifTabPill(); }catch(e){} }, 30);
         gcCloseHomeDrawer();
@@ -26643,6 +26684,13 @@ async function unblockUserFromList(uid) {
         requestAnimationFrame(function() {
             // Chats page: never auto-hide topbar or bottom nav
             if (gcOnMessagesPage()) {
+                gcShowBothNavs();
+                safeLastScroll = window.pageYOffset || document.documentElement.scrollTop || 0;
+                ticking = false;
+                return;
+            }
+            // Notifications page: keep topbar + filter tabs fixed while list scrolls
+            if (gcOnNotificationsPage() || document.body.classList.contains('notifications-mode')) {
                 gcShowBothNavs();
                 safeLastScroll = window.pageYOffset || document.documentElement.scrollTop || 0;
                 ticking = false;
