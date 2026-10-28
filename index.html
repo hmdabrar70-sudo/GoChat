@@ -3861,6 +3861,135 @@ backdrop-filter:none;
 #gc-av-editor.mode-original .gc-av-mask,
 #gc-av-editor.mode-original .gc-av-ring{ display:none; }
 #gc-av-editor.mode-original .gc-av-zoom-row{ opacity:0.35; pointer-events:none; }
+
+/* ═══ Cover photo crop editor ═══ */
+#gc-cover-editor{
+  display:none; position:fixed; inset:0; z-index:100260;
+  background:#f0f2f5; flex-direction:column;
+  max-width:520px; margin:0 auto;
+  color:#050505;
+}
+#gc-cover-editor.open{ display:flex; }
+body:not(.light-mode) #gc-cover-editor{
+  background:#18191a; color:#e4e6eb;
+}
+.gc-cover-ed-head{
+  display:flex; align-items:center; justify-content:space-between;
+  gap:8px;
+  padding:10px 12px; padding-top:max(10px, env(safe-area-inset-top));
+  background:#fff; flex-shrink:0;
+  border-bottom:1px solid rgba(0,0,0,0.08);
+  z-index:5;
+}
+body:not(.light-mode) .gc-cover-ed-head{
+  background:#242526; border-bottom-color:rgba(255,255,255,0.08);
+}
+.gc-cover-ed-head h3{
+  font-size:17px; font-weight:700; margin:0; flex:1; text-align:center;
+  color:inherit; letter-spacing:-0.01em;
+}
+.gc-cover-ed-back{
+  width:40px; height:40px; border:none; border-radius:50%;
+  background:transparent; color:inherit; cursor:pointer;
+  display:inline-flex; align-items:center; justify-content:center;
+  font-size:22px; flex-shrink:0; padding:0;
+}
+.gc-cover-ed-back:active{ opacity:0.65; background:rgba(0,0,0,0.06); }
+body:not(.light-mode) .gc-cover-ed-back:active{ background:rgba(255,255,255,0.08); }
+.gc-cover-ed-save-top{
+  border:none; border-radius:8px; padding:8px 14px;
+  background:#0866ff; color:#fff; font-weight:700; font-size:15px;
+  font-family:inherit; cursor:pointer; flex-shrink:0;
+  min-width:72px; text-align:center;
+}
+.gc-cover-ed-save-top:disabled{ opacity:0.55; pointer-events:none; }
+.gc-cover-ed-save-top:active{ opacity:0.88; }
+.gc-cover-ed-body{
+  flex:1; display:flex; flex-direction:column; min-height:0;
+  position:relative; background:#fff;
+}
+body:not(.light-mode) .gc-cover-ed-body{ background:#18191a; }
+#gc-cover-stage{
+  position:relative; width:100%;
+  aspect-ratio:1280 / 820;
+  max-height:min(42vh, 320px);
+  overflow:hidden;
+  touch-action:none; user-select:none; -webkit-user-select:none;
+  background:#000; flex-shrink:0;
+  cursor:grab;
+}
+#gc-cover-stage:active{ cursor:grabbing; }
+#gc-cover-ed-img{
+  position:absolute; max-width:none; max-height:none;
+  transform-origin:center center; will-change:transform;
+  pointer-events:none;
+}
+/* Crop viewport = entire stage; no border frame (FB-style live cover band) */
+.gc-cover-ed-frame{ display:none !important; }
+.gc-cover-ed-sheet{
+  flex:1; position:relative; min-height:160px;
+  background:#fff;
+  border-radius:18px 18px 0 0;
+  margin-top:-18px;
+  box-shadow:0 -4px 24px rgba(0,0,0,0.06);
+  z-index:2;
+}
+body:not(.light-mode) .gc-cover-ed-sheet{
+  background:#242526;
+  box-shadow:0 -4px 24px rgba(0,0,0,0.35);
+}
+.gc-cover-ed-avatar-wrap{
+  position:absolute;
+  left:50%;
+  top:0;
+  transform:translate(-50%, -52%);
+  width:112px; height:112px;
+  border-radius:50%;
+  border:4px solid #fff;
+  background:#e4e6eb;
+  overflow:hidden;
+  box-shadow:0 2px 12px rgba(0,0,0,0.12);
+  z-index:3;
+  pointer-events:none;
+}
+body:not(.light-mode) .gc-cover-ed-avatar-wrap{
+  border-color:#242526;
+  background:#3a3b3c;
+}
+.gc-cover-ed-avatar-wrap img{
+  width:100%; height:100%; object-fit:cover; display:block;
+}
+.gc-cover-ed-avatar-wrap .gc-def-av,
+.gc-cover-ed-avatar-wrap .default-avatar{
+  width:100% !important; height:100% !important;
+}
+.gc-cover-ed-footer{
+  flex-shrink:0;
+  padding:10px 16px calc(14px + env(safe-area-inset-bottom));
+  background:#fff;
+  border-top:1px solid rgba(0,0,0,0.06);
+  display:flex; align-items:center; gap:12px;
+}
+body:not(.light-mode) .gc-cover-ed-footer{
+  background:#242526; border-top-color:rgba(255,255,255,0.08);
+}
+.gc-cover-ed-zoom-row{
+  display:flex; align-items:center; gap:10px; flex:1;
+  color:rgba(0,0,0,0.45); font-size:16px;
+}
+body:not(.light-mode) .gc-cover-ed-zoom-row{ color:rgba(255,255,255,0.45); }
+.gc-cover-ed-zoom-row input[type=range]{
+  flex:1; accent-color:#0866ff; height:4px;
+}
+.gc-cover-ed-hint-bar{
+  text-align:center; font-size:12px; font-weight:600;
+  color:rgba(0,0,0,0.45); padding:0 8px 6px;
+  background:#fff;
+}
+body:not(.light-mode) .gc-cover-ed-hint-bar{
+  color:rgba(255,255,255,0.45); background:#242526;
+}
+
 .gc-av-hint{
   position:absolute; bottom:18px; left:0; right:0; text-align:center;
   color:rgba(255,255,255,0.75); font-size:12px; font-weight:600;
@@ -15229,6 +15358,34 @@ l-137 -640 -193 -3 -193 -2 4 22 c2 13 67 314 144 671 l139 647 192 0 193 0
 </div>
 
 <!-- 🚀 Avatar crop / preview editor -->
+
+<div id="gc-cover-editor" aria-hidden="true">
+  <div class="gc-cover-ed-head">
+    <button type="button" class="gc-cover-ed-back" onclick="gcCloseCoverEditor()" aria-label="Back">
+      <i class="ph-bold ph-arrow-left"></i>
+    </button>
+    <h3>Drag to Adjust</h3>
+    <button type="button" class="gc-cover-ed-save-top" id="gc-cover-save-btn" onclick="gcConfirmCoverCrop()">SAVE</button>
+  </div>
+  <div class="gc-cover-ed-body">
+    <div id="gc-cover-stage">
+      <img id="gc-cover-ed-img" alt="">
+      <div class="gc-cover-ed-frame" id="gc-cover-ed-frame" aria-hidden="true"></div>
+    </div>
+    <div class="gc-cover-ed-sheet">
+      <div class="gc-cover-ed-avatar-wrap" id="gc-cover-ed-avatar"></div>
+    </div>
+  </div>
+  <div class="gc-cover-ed-hint-bar">Drag photo to reposition · pinch or slide to zoom</div>
+  <div class="gc-cover-ed-footer">
+    <div class="gc-cover-ed-zoom-row">
+      <i class="ph-light ph-magnifying-glass-minus"></i>
+      <input type="range" id="gc-cover-zoom" min="100" max="300" value="100" aria-label="Zoom">
+      <i class="ph-light ph-magnifying-glass-plus"></i>
+    </div>
+  </div>
+</div>
+
 <div id="gc-av-editor" aria-hidden="true">
   <div class="gc-av-head">
     <button type="button" onclick="gcCloseAvatarEditor()" aria-label="Cancel"><i class="ph-light ph-x"></i></button>
@@ -26107,32 +26264,288 @@ function gcApplyCoverPhoto(which, url){
 }
 window.gcApplyCoverPhoto = gcApplyCoverPhoto;
 
-async function gcUploadCoverPhoto(input){
-  if(!currentUser || !input || !input.files || !input.files[0]) return;
-  const file = input.files[0];
+var gcCoverState = {
+  file: null,
+  objectUrl: null,
+  naturalW: 1,
+  naturalH: 1,
+  scale: 1,
+  minScale: 1,
+  tx: 0,
+  ty: 0,
+  dragging: false,
+  lastX: 0,
+  lastY: 0,
+  pinchDist: 0,
+  bound: false,
+  saving: false
+};
+
+function gcCoverFrameSize(){
+  var stage = document.getElementById('gc-cover-stage');
+  var w = (stage && stage.clientWidth) ? stage.clientWidth : Math.min(window.innerWidth, 520);
+  var h = (stage && stage.clientHeight) ? stage.clientHeight : Math.round(w * 820 / 1280);
+  if(h < 80) h = Math.round(w * 820 / 1280);
+  return { w: w, h: h };
+}
+
+function gcCoverUpdateFrame(){
+  var fr = document.getElementById('gc-cover-ed-frame');
+  if(!fr) return;
+  var sz = gcCoverFrameSize();
+  fr.style.width = Math.round(sz.w) + 'px';
+  fr.style.height = Math.round(sz.h) + 'px';
+}
+
+function gcCoverFitImage(){
+  var sz = gcCoverFrameSize();
+  var nw = gcCoverState.naturalW || 1;
+  var nh = gcCoverState.naturalH || 1;
+  // Cover the frame (no empty gaps)
+  gcCoverState.minScale = Math.max(sz.w / nw, sz.h / nh);
+  gcCoverState.scale = gcCoverState.minScale;
+  gcCoverState.tx = 0;
+  gcCoverState.ty = 0;
+  var zoom = document.getElementById('gc-cover-zoom');
+  if(zoom){
+    zoom.min = 100;
+    zoom.max = 300;
+    zoom.value = 100;
+  }
+  gcCoverUpdateFrame();
+}
+
+function gcCoverClamp(){
+  var sz = gcCoverFrameSize();
+  var halfW = sz.w / 2;
+  var halfH = sz.h / 2;
+  var w = gcCoverState.naturalW * gcCoverState.scale;
+  var h = gcCoverState.naturalH * gcCoverState.scale;
+  var maxX = Math.max(0, w / 2 - halfW);
+  var maxY = Math.max(0, h / 2 - halfH);
+  gcCoverState.tx = Math.max(-maxX, Math.min(maxX, gcCoverState.tx));
+  gcCoverState.ty = Math.max(-maxY, Math.min(maxY, gcCoverState.ty));
+}
+
+function gcCoverApplyTransform(){
+  var img = document.getElementById('gc-cover-ed-img');
+  if(!img) return;
+  var s = gcCoverState.scale;
+  img.style.width = (gcCoverState.naturalW * s) + 'px';
+  img.style.height = (gcCoverState.naturalH * s) + 'px';
+  img.style.left = '50%';
+  img.style.top = '50%';
+  gcCoverClamp();
+  img.style.transform = 'translate(calc(-50% + ' + gcCoverState.tx + 'px), calc(-50% + ' + gcCoverState.ty + 'px))';
+}
+
+function gcCoverBindGestures(){
+  if(gcCoverState.bound) return;
+  gcCoverState.bound = true;
+  var stage = document.getElementById('gc-cover-stage');
+  var zoom = document.getElementById('gc-cover-zoom');
+  if(!stage) return;
+
+  if(zoom){
+    zoom.addEventListener('input', function(){
+      var pct = parseInt(zoom.value, 10) || 100;
+      gcCoverState.scale = gcCoverState.minScale * (pct / 100);
+      gcCoverApplyTransform();
+    });
+  }
+
+  stage.addEventListener('pointerdown', function(e){
+    if(e.target.closest && e.target.closest('input,button')) return;
+    gcCoverState.dragging = true;
+    gcCoverState.lastX = e.clientX;
+    gcCoverState.lastY = e.clientY;
+    try{ stage.setPointerCapture(e.pointerId); }catch(err){}
+  });
+  stage.addEventListener('pointermove', function(e){
+    if(!gcCoverState.dragging) return;
+    var dx = e.clientX - gcCoverState.lastX;
+    var dy = e.clientY - gcCoverState.lastY;
+    gcCoverState.lastX = e.clientX;
+    gcCoverState.lastY = e.clientY;
+    gcCoverState.tx += dx;
+    gcCoverState.ty += dy;
+    gcCoverApplyTransform();
+  });
+  stage.addEventListener('pointerup', function(){ gcCoverState.dragging = false; });
+  stage.addEventListener('pointercancel', function(){ gcCoverState.dragging = false; });
+
+  stage.addEventListener('touchstart', function(e){
+    if(e.touches && e.touches.length === 2){
+      var dx = e.touches[0].clientX - e.touches[1].clientX;
+      var dy = e.touches[0].clientY - e.touches[1].clientY;
+      gcCoverState.pinchDist = Math.hypot(dx, dy);
+      gcCoverState.dragging = false;
+    }
+  }, {passive:true});
+  stage.addEventListener('touchmove', function(e){
+    if(e.touches && e.touches.length === 2 && gcCoverState.pinchDist){
+      e.preventDefault();
+      var dx = e.touches[0].clientX - e.touches[1].clientX;
+      var dy = e.touches[0].clientY - e.touches[1].clientY;
+      var dist = Math.hypot(dx, dy);
+      var ratio = dist / gcCoverState.pinchDist;
+      gcCoverState.pinchDist = dist;
+      gcCoverState.scale = Math.max(gcCoverState.minScale, Math.min(gcCoverState.minScale * 3, gcCoverState.scale * ratio));
+      if(zoom) zoom.value = Math.round((gcCoverState.scale / gcCoverState.minScale) * 100);
+      gcCoverApplyTransform();
+    }
+  }, {passive:false});
+  stage.addEventListener('touchend', function(){ gcCoverState.pinchDist = 0; });
+
+  window.addEventListener('resize', function(){
+    var ed = document.getElementById('gc-cover-editor');
+    if(ed && ed.classList.contains('open')){
+      gcCoverUpdateFrame();
+      gcCoverApplyTransform();
+    }
+  });
+}
+
+function gcOpenCoverEditor(input){
+  if(!input || !input.files || !input.files[0]) return;
+  var file = input.files[0];
   if(!file.type || file.type.indexOf('image/') !== 0){
     showToast('Please select an image');
-    input.value = '';
+    try{ input.value = ''; }catch(e){}
     return;
   }
   if(file.size > 12 * 1024 * 1024){
     showToast('Image too large (max 12MB)');
-    input.value = '';
+    try{ input.value = ''; }catch(e){}
     return;
   }
+  var editor = document.getElementById('gc-cover-editor');
+  var img = document.getElementById('gc-cover-ed-img');
+  var zoom = document.getElementById('gc-cover-zoom');
+  if(!editor || !img) return;
+
+  if(gcCoverState.objectUrl){
+    try{ URL.revokeObjectURL(gcCoverState.objectUrl); }catch(e){}
+  }
+  gcCoverState.file = file;
+  gcCoverState.objectUrl = URL.createObjectURL(file);
+  gcCoverState.scale = 1;
+  gcCoverState.tx = 0;
+  gcCoverState.ty = 0;
+  gcCoverState.dragging = false;
+  gcCoverState.saving = false;
+  if(zoom) zoom.value = 100;
+
+  img.onload = function(){
+    gcCoverState.naturalW = img.naturalWidth || img.width || 1;
+    gcCoverState.naturalH = img.naturalHeight || img.height || 1;
+    gcCoverFitImage();
+    gcCoverApplyTransform();
+  };
+  img.src = gcCoverState.objectUrl;
+
   try{
-    showToast('Uploading cover…');
-    const url = await uploadToCloudinary(file, false);
+    var av = document.getElementById('gc-cover-ed-avatar');
+    if(av){
+      var uid = (typeof currentUser !== 'undefined' && currentUser) ? currentUser.uid : '';
+      var name = (typeof currentUserData !== 'undefined' && currentUserData) ? (currentUserData.name || '') : '';
+      var aurl = (typeof currentUserData !== 'undefined' && currentUserData) ? (currentUserData.avatar || '') : '';
+      if(typeof gcAvatarInnerHtml === 'function'){
+        av.innerHTML = gcAvatarInnerHtml(uid, aurl, name);
+      } else if(aurl){
+        av.innerHTML = '<img src="'+String(aurl).replace(/"/g,'&quot;')+'" alt="">';
+      } else {
+        av.innerHTML = '';
+      }
+    }
+  }catch(e){}
+
+  editor.classList.add('open');
+  editor.setAttribute('aria-hidden', 'false');
+  gcCoverBindGestures();
+  requestAnimationFrame(function(){
+    try{ gcCoverFitImage(); gcCoverApplyTransform(); }catch(e){}
+  });
+  try{ input.value = ''; }catch(e){}
+}
+window.gcOpenCoverEditor = gcOpenCoverEditor;
+
+function gcCloseCoverEditor(){
+  if(gcCoverState.saving) return;
+  var editor = document.getElementById('gc-cover-editor');
+  if(editor){
+    editor.classList.remove('open');
+    editor.setAttribute('aria-hidden', 'true');
+  }
+  if(gcCoverState.objectUrl){
+    try{ URL.revokeObjectURL(gcCoverState.objectUrl); }catch(e){}
+    gcCoverState.objectUrl = null;
+  }
+  gcCoverState.file = null;
+  var img = document.getElementById('gc-cover-ed-img');
+  if(img) img.removeAttribute('src');
+  var btn = document.getElementById('gc-cover-save-btn');
+  if(btn){ btn.disabled = false; btn.textContent = 'SAVE'; }
+}
+window.gcCloseCoverEditor = gcCloseCoverEditor;
+
+function gcExportCoverBlob(){
+  return new Promise(function(resolve, reject){
+    try{
+      var outW = 1280;
+      var outH = 820;
+      var canvas = document.createElement('canvas');
+      canvas.width = outW;
+      canvas.height = outH;
+      var ctx = canvas.getContext('2d');
+      var img = document.getElementById('gc-cover-ed-img');
+      if(!img || !img.complete){ reject(new Error('Image not ready')); return; }
+      var sz = gcCoverFrameSize();
+      var scaleToCanvas = outW / sz.w;
+      var drawW = gcCoverState.naturalW * gcCoverState.scale * scaleToCanvas;
+      var drawH = gcCoverState.naturalH * gcCoverState.scale * scaleToCanvas;
+      var cx = outW / 2 + gcCoverState.tx * scaleToCanvas;
+      var cy = outH / 2 + gcCoverState.ty * scaleToCanvas;
+      ctx.fillStyle = '#000';
+      ctx.fillRect(0, 0, outW, outH);
+      ctx.drawImage(img, cx - drawW / 2, cy - drawH / 2, drawW, drawH);
+      canvas.toBlob(function(blob){
+        if(blob) resolve(blob);
+        else reject(new Error('Export failed'));
+      }, 'image/jpeg', 0.92);
+    }catch(e){ reject(e); }
+  });
+}
+
+async function gcConfirmCoverCrop(){
+  if(!currentUser || gcCoverState.saving) return;
+  var btn = document.getElementById('gc-cover-save-btn');
+  gcCoverState.saving = true;
+  if(btn){ btn.disabled = true; btn.textContent = '…'; }
+  try{
+    var blob = await gcExportCoverBlob();
+    var file = new File([blob], 'cover.jpg', { type: 'image/jpeg' });
+    if(typeof showToast === 'function') showToast('Uploading cover…');
+    var url = await uploadToCloudinary(file, false);
     if(!url) throw new Error('No URL');
     await db.collection('users').doc(currentUser.uid).update({ coverPhoto: url });
     if(currentUserData) currentUserData.coverPhoto = url;
-    gcApplyCoverPhoto('my', url);
-    showToast('Cover photo updated');
+    if(typeof gcApplyCoverPhoto === 'function') gcApplyCoverPhoto('my', url);
+    if(typeof showToast === 'function') showToast('Cover photo updated');
+    gcCoverState.saving = false;
+    gcCloseCoverEditor();
   }catch(e){
     console.error(e);
-    showToast('Failed to upload cover');
+    gcCoverState.saving = false;
+    if(typeof showToast === 'function') showToast('Failed to upload cover');
+    if(btn){ btn.disabled = false; btn.textContent = 'SAVE'; }
   }
-  try{ input.value = ''; }catch(e){}
+}
+window.gcConfirmCoverCrop = gcConfirmCoverCrop;
+
+/** Gallery pick → open editor (does not upload yet) */
+function gcUploadCoverPhoto(input){
+  gcOpenCoverEditor(input);
 }
 window.gcUploadCoverPhoto = gcUploadCoverPhoto;
 
