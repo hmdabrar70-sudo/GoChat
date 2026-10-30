@@ -9573,6 +9573,25 @@ body:not(.light-mode) .post-card {
   display: none !important;
 }
 
+/* Stable number counters — prevent layout shift on count change */
+.post-action-btn [data-count],
+.post-action-btn .like-count,
+.gc-short-act [data-s-likes],
+.gc-short-act [data-s-comments],
+span[data-raw-count].like-count {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+  min-width: 1.25em;
+  display: inline-block;
+  text-align: left;
+  box-sizing: border-box;
+}
+/* Reaction breakdown counts — hidden when post has hideLikeCommentCount */
+.gc-react-sheet-mask[data-hide-counts="1"] .gc-rs-count,
+.gc-react-sheet-mask[data-hide-counts="1"] .gc-rf-num {
+  display: none !important;
+}
+
 .post-card .post-actions .post-action-btn {
     pointer-events: auto; /* only real buttons remain tappable */
 }
@@ -39756,6 +39775,8 @@ window.gcCloseSheetSafe = gcCloseSheetSafe;
   var activeFilter = 'all';
   var cachedTallies = {};
   var cachedTotal = 0;
+  var cachedHideCounts = false;
+  var cachedBreakdownPid = null;
 
   function tallyFromPost(p){
     var map = (p && p.reactions && typeof p.reactions === 'object') ? p.reactions : {};
@@ -39838,11 +39859,12 @@ window.gcCloseSheetSafe = gcCloseSheetSafe;
     types.forEach(function(t){
       var n = cachedTallies[t] || 0;
       var ico = svgFor(t);
+      var countHtml = cachedHideCounts ? '' : ('<span class="gc-rs-count">'+((typeof gcFmtCount==='function')?gcFmtCount(n):n)+'</span>');
       rows.push(
         '<div class="gc-react-sheet-row" data-type="'+t+'">'
         + (ico || '')
         + '<span class="gc-rs-label">'+(LABELS[t]||t)+'</span>'
-        + '<span class="gc-rs-count">'+((typeof gcFmtCount==='function')?gcFmtCount(n):n)+'</span>'
+        + countHtml
         + '</div>'
       );
     });
@@ -39853,21 +39875,23 @@ window.gcCloseSheetSafe = gcCloseSheetSafe;
     var pop = document.getElementById('gc-rs-filter-pop');
     if(!pop) return;
     var items = [];
+    var allNum = cachedHideCounts ? '' : ('<span class="gc-rf-num">'+((typeof gcFmtCount==='function')?gcFmtCount(cachedTotal):cachedTotal)+'</span>');
     items.push(
       '<button type="button" class="gc-react-filter-item'+(activeFilter==='all'?' active':'')+'" data-f="all">'
       + '<span>All reactions</span>'
-      + '<span class="gc-rf-num">'+((typeof gcFmtCount==='function')?gcFmtCount(cachedTotal):cachedTotal)+'</span>'
+      + allNum
       + '</button>'
     );
     ORDER.forEach(function(t){
       var n = cachedTallies[t] || 0;
       if(n <= 0) return;
       var ico = svgFor(t);
+      var itemNum = cachedHideCounts ? '' : ('<span class="gc-rf-num">'+((typeof gcFmtCount==='function')?gcFmtCount(n):n)+'</span>');
       items.push(
         '<button type="button" class="gc-react-filter-item'+(activeFilter===t?' active':'')+'" data-f="'+t+'">'
         + (ico || '')
         + '<span>'+(LABELS[t]||t)+'</span>'
-        + '<span class="gc-rf-num">'+((typeof gcFmtCount==='function')?gcFmtCount(n):n)+'</span>'
+        + itemNum
         + '</button>'
       );
     });
@@ -39902,6 +39926,8 @@ window.gcCloseSheetSafe = gcCloseSheetSafe;
     activeFilter = 'all';
     cachedTallies = {};
     cachedTotal = 0;
+    cachedHideCounts = false;
+    cachedBreakdownPid = pid;
 
     var label = document.getElementById('gc-rs-filter-label');
     if(label) label.textContent = 'All reactions';
@@ -39913,10 +39939,27 @@ window.gcCloseSheetSafe = gcCloseSheetSafe;
         var _pd = doc.data() || {};
         _pd.id = pid;
         cachedTallies = tallyFromPost(_pd);
+        cachedHideCounts = !!_pd.hideLikeCommentCount;
       }
     }catch(e){}
 
-    // Fallback: probe any in-memory cache / DOM post card data attributes
+    // Fallback caches + DOM data-hide-counts
+    try{
+      if(window.__gcFeedPostsCache && window.__gcFeedPostsCache[pid] && window.__gcFeedPostsCache[pid].hideLikeCommentCount){
+        cachedHideCounts = true;
+      }
+    }catch(e){}
+    try{
+      if(window.__gcShortsPosts && window.__gcShortsPosts[pid]){
+        if(!Object.keys(cachedTallies).length) cachedTallies = tallyFromPost(window.__gcShortsPosts[pid]);
+        if(window.__gcShortsPosts[pid].hideLikeCommentCount) cachedHideCounts = true;
+      }
+    }catch(e){}
+    try{
+      var card = document.querySelector('.post-card[data-post-id="'+pid+'"], .gc-short-item[data-post-id="'+pid+'"]');
+      if(card && card.getAttribute('data-hide-counts') === '1') cachedHideCounts = true;
+    }catch(e){}
+
     if(!Object.keys(cachedTallies).length){
       try{
         if(window.__gcShortsPosts && window.__gcShortsPosts[pid]){
@@ -39929,7 +39972,11 @@ window.gcCloseSheetSafe = gcCloseSheetSafe;
     renderBody();
     renderFilterPop();
     var mask = document.getElementById('gc-react-sheet-mask');
-    if(mask) mask.classList.add('open');
+    if(mask){
+      if(cachedHideCounts) mask.setAttribute('data-hide-counts','1');
+      else mask.removeAttribute('data-hide-counts');
+      mask.classList.add('open');
+    }
   };
 })();
 
