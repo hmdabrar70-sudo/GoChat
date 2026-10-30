@@ -18799,6 +18799,12 @@ window.refreshMessages = refreshMessages;
       var GAP = 320;
       el.addEventListener('click', function(e){
         try{ e.preventDefault(); e.stopPropagation(); }catch(err){}
+        // Long-press opened Account Switch — skip click navigation/refresh
+        if(window.__gcProfileLongPress){
+          window.__gcProfileLongPress = false;
+          last = 0;
+          return;
+        }
         var now = Date.now();
         var pageEl = document.getElementById('page-profile');
         var active = !!(pageEl && pageEl.classList.contains('active')) || document.body.classList.contains('profile-mode');
@@ -25029,7 +25035,13 @@ async function gcSendSinglePostComment(){
         const ref = db.collection('posts').doc(activeCommentPostId);
         const snap = await ref.get();
         if(!snap.exists){ showToast('Post not found'); return; }
-        const comments = snap.data().comments || [];
+        var __spPd = snap.data() || {};
+        if(typeof gcIsCommentsDisabled === 'function' && gcIsCommentsDisabled(__spPd)){
+          showToast('Comments are turned off');
+          try{ inp.disabled = false; }catch(e){}
+          return;
+        }
+        const comments = __spPd.comments || [];
         const row = {
             uid: currentUser.uid,
             name: (currentUserData && currentUserData.name) || 'User',
@@ -35588,6 +35600,30 @@ return null;
 (function gcHookSwitchBtn(){
 if(window.gcSwHookStarted) return;
 window.gcSwHookStarted = true;
+function gcBindLongPressSwitch(el){
+  if(!el || el.dataset.gcLong) return;
+  el.dataset.gcLong = '1';
+  var timer = null;
+  var LONG_MS = 550;
+  function clearT(){ if(timer){ clearTimeout(timer); timer = null; } }
+  function startLP(e){
+    clearT();
+    timer = setTimeout(function(){
+      timer = null;
+      try{ window.__gcProfileLongPress = true; }catch(err){}
+      try{ if(typeof gcOpenSwitchSheet === 'function') gcOpenSwitchSheet(); }catch(err){}
+      try{ if(navigator.vibrate) navigator.vibrate(12); }catch(err){}
+    }, LONG_MS);
+  }
+  el.addEventListener('touchstart', startLP, {passive:true});
+  el.addEventListener('touchend', clearT, {passive:true});
+  el.addEventListener('touchcancel', clearT, {passive:true});
+  el.addEventListener('touchmove', clearT, {passive:true});
+  el.addEventListener('mousedown', function(e){ if(e.button===0) startLP(e); });
+  el.addEventListener('mouseup', clearT);
+  el.addEventListener('mouseleave', clearT);
+  el.addEventListener('contextmenu', function(e){ e.preventDefault(); });
+}
 setInterval(function(){
 const btn = gcFindSwitchBtn();
 if(btn && !btn.dataset.gcSwHook){
@@ -35596,14 +35632,10 @@ btn.removeAttribute('onclick');
 btn.style.cursor = 'pointer';
 btn.addEventListener('click', function(e){ e.stopPropagation(); gcOpenSwitchSheet(); });
 }
-const nav = document.getElementById('topbar-home-avatar');
-if(nav && !nav.dataset.gcLong){
-nav.dataset.gcLong = '1';
-let t = null;
-nav.addEventListener('touchstart', function(){ t = setTimeout(function(){ gcOpenSwitchSheet(); }, 550); }, {passive:true});
-nav.addEventListener('touchend', function(){ clearTimeout(t); });
-nav.addEventListener('touchmove', function(){ clearTimeout(t); });
-}
+// Legacy topbar avatar (if ever shown again)
+gcBindLongPressSwitch(document.getElementById('topbar-home-avatar'));
+// Current profile button on bottom nav
+gcBindLongPressSwitch(document.getElementById('nav-profile-btn'));
 }, 1500);
 })();
 function gcOpenSwitchSheet(){
@@ -35754,20 +35786,37 @@ const o = GC_RP_OPTIONS.find(function(x){ return x.key === window.currentPostRep
 ic.className = 'ph-light ' + o.icon;
 }
 function gcUnlockCommentBar(){
+try{
+  document.querySelectorAll('.comment-input-bar[data-gc-comments-off], .sp-comment-compose[data-gc-comments-off], .sp-comment-compose-fixed[data-gc-comments-off]').forEach(function(bar){
+    bar.style.display = '';
+    bar.removeAttribute('data-gc-comments-off');
+  });
+  document.querySelectorAll('#comment-panel-input, #sp-comment-input, #comment-input, input[placeholder*="comment" i], textarea[placeholder*="comment" i]').forEach(function(input){
+    input.disabled = false;
+    input.style.display = '';
+    if(!input.value) input.placeholder = 'Write a comment...';
+  });
+  document.querySelectorAll('#comment-panel-send-btn, #sp-comment-send-btn').forEach(function(b){
+    b.style.display = '';
+    b.disabled = false;
+    b.style.opacity = '';
+    b.style.pointerEvents = '';
+  });
+}catch(e){}
 const input = document.getElementById('comment-input') || document.querySelector('input[placeholder*="comment" i]');
 if(input){
 input.disabled = false;
+input.style.display = '';
 if(!input.value) input.placeholder = 'Write a comment...';
 const bar = input.parentElement;
-if(bar) bar.querySelectorAll('button').forEach(function(b){ b.style.opacity = ''; b.style.pointerEvents = ''; });
+if(bar) bar.querySelectorAll('button').forEach(function(b){ b.style.opacity = ''; b.style.pointerEvents = ''; b.style.display = ''; });
 }
 }
 function gcIsCommentsDisabled(pd){
   if(!pd) return false;
   var rule = pd.replyPrivacy || 'everyone';
-  if(rule !== 'nobody') return false;
-  if(currentUser && pd.uid === currentUser.uid) return false;
-  return true;
+  // Nobody = truly nobody (including post owner)
+  return rule === 'nobody';
 }
 
 async function gcApplyReplyRestriction(pid){
@@ -35781,15 +35830,24 @@ rule = pd.replyPrivacy || 'everyone';
 }catch(e){ return; }
 if(rule === 'everyone') return;
 if(rule === 'nobody'){
-if(!(pd && currentUser && pd.uid === currentUser.uid)){
-const input = document.getElementById('comment-input') || document.querySelector('input[placeholder*="comment" i]');
-if(input){
-input.disabled = true;
-input.placeholder = 'Comments are turned off';
-const bar = input.parentElement;
-if(bar) bar.querySelectorAll('button').forEach(function(b){ b.style.opacity = '.4'; b.style.pointerEvents = 'none'; });
-}
-}
+try{
+  document.querySelectorAll('.comment-input-bar, .sp-comment-compose, .sp-comment-compose-fixed').forEach(function(bar){
+    bar.style.display = 'none';
+    bar.setAttribute('data-gc-comments-off','1');
+  });
+  document.querySelectorAll('#comment-panel-input, #sp-comment-input, #comment-input, input[placeholder*="comment" i], textarea[placeholder*="comment" i]').forEach(function(input){
+    input.disabled = true;
+    input.value = '';
+    input.placeholder = 'Comments are turned off';
+    input.style.display = 'none';
+  });
+  document.querySelectorAll('#comment-panel-send-btn, #sp-comment-send-btn, .chat-send-btn').forEach(function(b){
+    if(b.closest && (b.closest('.comment-input-bar') || b.closest('.sp-comment-compose') || b.closest('.sp-comment-compose-fixed'))){
+      b.style.display = 'none';
+      b.disabled = true;
+    }
+  });
+}catch(e){}
 return;
 }
 let allowed = false;
