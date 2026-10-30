@@ -508,7 +508,7 @@ body.notifications-mode .topbar-actions {
   width:100%;height:100%;object-fit:cover;display:block;
 }
 .topbar-home-avatar:active{ transform:scale(0.94); }
-body.home-sky-mode .topbar-home-avatar{ display:flex !important; align-items:center; justify-content:center; }
+body.home-sky-mode .topbar-home-avatar{ display:none !important; }
 
 /* Shared capsule chrome · bottom nav + home search/menu + inbox actions */
 :root{
@@ -585,6 +585,77 @@ body.home-sky-mode #main-bottom-nav{
   max-width:min(92%, 360px) !important;
   padding:2px 0 !important;
 }
+
+/* Bottom nav · capsule + external profile avatar */
+#main-bottom-nav{
+  display:flex !important;
+  flex-direction:row;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+  width:auto !important;
+  max-width:min(96%, 420px) !important;
+  left:50%;
+  transform:translateX(-50%);
+  padding:2px 0 !important;
+  box-sizing:border-box;
+}
+#main-bottom-nav .nav-capsule{
+  flex:0 1 auto !important;
+  min-width:0;
+  max-width:min(78vw, 320px);
+  width:auto;
+}
+.nav-profile-btn{
+  flex:0 0 auto;
+  width:46px;
+  height:46px;
+  border-radius:50%;
+  border:2px solid var(--gc-capsule-border, rgba(0,0,0,0.08));
+  background:var(--gc-capsule-bg, rgba(255,255,255,0.92));
+  box-shadow:var(--gc-capsule-shadow, 0 4px 16px rgba(0,0,0,0.08));
+  backdrop-filter:blur(18px) saturate(150%);
+  -webkit-backdrop-filter:blur(18px) saturate(150%);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  padding:0;
+  overflow:hidden;
+  cursor:pointer;
+  position:relative;
+  box-sizing:border-box;
+}
+body.home-sky-mode .nav-profile-btn,
+body:not(.profile-mode):not(.messages-mode):not(.notifications-mode) .nav-profile-btn{
+  /* show on main feed-like modes; still ok if hidden by page-specific rules */
+}
+body.home-sky-mode .nav-profile-btn{ display:inline-flex !important; }
+/* keep visible on core app pages that show bottom nav */
+body:not(.home-sky-mode) .nav-profile-btn{ display:inline-flex !important; }
+/* hide when bottom nav itself is hidden via existing rules — inherits display:none from parent? */
+body.gc-adv-open .nav-profile-btn,
+body.gc-leaderboard-open .nav-profile-btn,
+body.notif-edit-mode .nav-profile-btn,
+body.msg-select-mode .nav-profile-btn,
+body.gc-suggestions-open .nav-profile-btn{ display:none !important; }
+
+.nav-profile-btn img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  display:block;
+  border-radius:50%;
+}
+.nav-profile-btn > i{
+  font-size:24px;
+  color:var(--text-muted);
+  line-height:1;
+}
+.nav-profile-btn:active{ transform:scale(0.94); }
+body.profile-mode .nav-profile-btn{
+  box-shadow:0 0 0 2px var(--accent-glow), var(--gc-capsule-shadow, 0 4px 16px rgba(0,0,0,0.08));
+}
+
 body.home-sky-mode #main-bottom-nav .nav-capsule{
   flex:0 1 auto !important;
   min-width:260px;
@@ -14591,6 +14662,11 @@ l-137 -640 -193 -3 -193 -2 4 22 c2 13 67 314 144 671 l139 647 192 0 193 0
         </div>
     </div>
 
+    <button type="button" class="nav-profile-btn" id="nav-profile-btn" title="Profile" aria-label="Profile">
+      <img id="nav-profile-btn-img" alt="" style="display:none;">
+      <i class="ph-light ph-user-circle" id="nav-profile-btn-fallback" aria-hidden="true"></i>
+    </button>
+
 </div>
 
 </div>
@@ -18714,6 +18790,34 @@ window.refreshMessages = refreshMessages;
       if(typeof refreshMessages === 'function') refreshMessages();
       else if(typeof loadMessages === 'function') loadMessages();
     });
+    // Profile avatar button (outside capsule)
+    (function bindProfileNav(){
+      var el = document.getElementById('nav-profile-btn');
+      if(!el || el.__gcDblBound) return;
+      el.__gcDblBound = true;
+      var last = 0;
+      var GAP = 320;
+      el.addEventListener('click', function(e){
+        try{ e.preventDefault(); e.stopPropagation(); }catch(err){}
+        var now = Date.now();
+        var pageEl = document.getElementById('page-profile');
+        var active = !!(pageEl && pageEl.classList.contains('active')) || document.body.classList.contains('profile-mode');
+        if(active && last && (now - last) < GAP){
+          last = 0;
+          try{
+            if(typeof showToast === 'function') showToast('Refreshing profile...');
+            if(typeof loadUserUI === 'function') loadUserUI();
+            if(typeof loadMyPosts === 'function') loadMyPosts();
+            else if(typeof loadProfilePosts === 'function') loadProfilePosts();
+          }catch(err){ console.warn(err); }
+          return;
+        }
+        last = now;
+        if(!active){
+          try{ showPage('profile'); }catch(err){}
+        }
+      }, true);
+    })();
   }
   if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();
@@ -25880,13 +25984,16 @@ const safeTitleForAttr=(p.title||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'").r
 
 // --- নতুন আপডেট: "is with..." টেক্সট তৈরি করা (ক্লিকেবল) ---
 let withText = '';
-if (p.taggedNames && p.taggedNames.length > 0 && p.tagged) {
-    if (p.taggedNames.length === 1) {
-        withText = `<span style="font-weight:500; color:var(--text-secondary); font-size:14px; margin-left:4px;">is with</span> <strong style="color:var(--text); font-size:14px; margin-left:4px; cursor:pointer;" onclick="event.stopPropagation(); viewUserProfile('${p.tagged[0]}')">${escapeHTML(p.taggedNames[0])}</strong>`;
-    } else if (p.taggedNames.length === 2) {
-        withText = `<span style="font-weight:500; color:var(--text-secondary); font-size:14px; margin-left:4px;">is with</span> <strong style="color:var(--text); font-size:14px; margin-left:4px; cursor:pointer;" onclick="event.stopPropagation(); viewUserProfile('${p.tagged[0]}')">${escapeHTML(p.taggedNames[0])}</strong> <span style="font-weight:500; color:var(--text-secondary); font-size:14px; margin-left:4px;">and</span> <strong style="color:var(--text); font-size:14px; margin-left:4px; cursor:pointer;" onclick="event.stopPropagation(); viewUserProfile('${p.tagged[1]}')">${escapeHTML(p.taggedNames[1])}</strong>`;
-    } else if (p.taggedNames.length > 2) {
-        withText = `<span style="font-weight:500; color:var(--text-secondary); font-size:14px; margin-left:4px;">is with</span> <strong style="color:var(--text); font-size:14px; margin-left:4px; cursor:pointer;" onclick="event.stopPropagation(); viewUserProfile('${p.tagged[0]}')">${escapeHTML(p.taggedNames[0])}</strong> <span style="font-weight:500; color:var(--text-secondary); font-size:14px; margin-left:4px;">and</span> <strong style="color:var(--text); font-size:14px; margin-left:4px;">${p.taggedNames.length - 1} others</strong>`;
+// Normalize tag fields (compat with older posts)
+var __tagNames = (p.taggedNames && p.taggedNames.length) ? p.taggedNames : (p.tagged_names || []);
+var __tagUids = (p.tagged && p.tagged.length) ? p.tagged : (p.taggedFriends || p.taggedUids || []);
+if (__tagNames && __tagNames.length > 0) {
+    if (__tagNames.length === 1) {
+        withText = `<span style="font-weight:500; color:var(--text-secondary); font-size:14px; margin-left:4px;">is with</span> <strong style="color:var(--text); font-size:14px; margin-left:4px; cursor:pointer;" onclick="event.stopPropagation(); viewUserProfile('${__tagUids[0] || ''}')">${escapeHTML(__tagNames[0])}</strong>`;
+    } else if (__tagNames.length === 2) {
+        withText = `<span style="font-weight:500; color:var(--text-secondary); font-size:14px; margin-left:4px;">is with</span> <strong style="color:var(--text); font-size:14px; margin-left:4px; cursor:pointer;" onclick="event.stopPropagation(); viewUserProfile('${__tagUids[0] || ''}')">${escapeHTML(__tagNames[0])}</strong> <span style="font-weight:500; color:var(--text-secondary); font-size:14px; margin-left:4px;">and</span> <strong style="color:var(--text); font-size:14px; margin-left:4px; cursor:pointer;" onclick="event.stopPropagation(); viewUserProfile('${__tagUids[1] || ''}')">${escapeHTML(__tagNames[1])}</strong>`;
+    } else if (__tagNames.length > 2) {
+        withText = `<span style="font-weight:500; color:var(--text-secondary); font-size:14px; margin-left:4px;">is with</span> <strong style="color:var(--text); font-size:14px; margin-left:4px; cursor:pointer;" onclick="event.stopPropagation(); viewUserProfile('${__tagUids[0] || ''}')">${escapeHTML(__tagNames[0])}</strong> <span style="font-weight:500; color:var(--text-secondary); font-size:14px; margin-left:4px;">and</span> <strong style="color:var(--text); font-size:14px; margin-left:4px;">${__tagNames.length - 1} others</strong>`;
     }
 }
 
@@ -26445,7 +26552,21 @@ ${gcDisplayName}
           if(tbFb) tbFb.style.display = 'block';
         }
       }
-    }catch(e){}
+    
+      var npImg = document.getElementById('nav-profile-btn-img');
+      var npFb = document.getElementById('nav-profile-btn-fallback');
+      if(npImg){
+        if(currentUserData.avatar){
+          npImg.src = currentUserData.avatar;
+          npImg.style.display = 'block';
+          if(npFb) npFb.style.display = 'none';
+        } else {
+          npImg.removeAttribute('src');
+          npImg.style.display = 'none';
+          if(npFb) npFb.style.display = '';
+        }
+      }
+}catch(e){}
 
     const bioEl=document.getElementById('profile-bio-display');
     if(bioEl)bioEl.textContent=currentUserData.bio||'';
@@ -32842,7 +32963,14 @@ async function sendCommentWithImage() {
         const ref = db.collection('posts').doc(activeCommentPostId);
         const docSnap = await ref.get();
         if(docSnap.exists) {
-            let comments = docSnap.data().comments || [];
+            let __pd = docSnap.data() || {};
+            if(typeof gcIsCommentsDisabled === 'function' && gcIsCommentsDisabled(__pd)){
+              showToast('Comments are turned off');
+              btnEl.disabled = false;
+              btnEl.innerHTML = '<i class="ph-fill ph-paper-plane-tilt" style="font-size:20px;"></i>';
+              return;
+            }
+            let comments = __pd.comments || [];
             comments.push(newComment);
             await ref.update({ comments });
             
@@ -35593,7 +35721,8 @@ const GC_RP_OPTIONS = [
 {key:'everyone', label:'Everyone', icon:'ph-globe-hemisphere-west'},
 {key:'verified', label:'Verified accounts', icon:'ph-seal-check'},
 {key:'following', label:'Accounts you follow', icon:'ph-user-check'},
-{key:'mention', label:'Only accounts you mention', icon:'ph-at'}
+{key:'mention', label:'Only accounts you mention', icon:'ph-at'},
+{key:'nobody', label:'Nobody', icon:'ph-prohibit'}
 ];
 function openReplyPrivacyModal(){
 let ov = document.getElementById('gc-rp-overlay');
@@ -35604,7 +35733,7 @@ document.body.appendChild(ov);
 }
 let html = '<div class="gc-rp-sheet"><div class="gc-rp-handle"></div><div class="gc-rp-title">Who can reply?</div><div class="gc-rp-sub">Pick who can reply to this post. Anyone you mention can always reply.</div>';
 GC_RP_OPTIONS.forEach(function(o){
-html += '<div class="gc-rp-opt' + (window.currentPostReplyPrivacy === o.key ? ' active' : '') + '" onclick="gcSetReplyPrivacy(\'' + o.key + '\')"><i class="ph-light ' + o.icon + '"></i><div class="t">' + o.label + '</div><div class="gc-rp-radio"></div></div>';
+html += '<div class="gc-rp-opt' + (window.currentPostReplyPrivacy === o.key ? ' active' : '') + '" onclick="gcSetReplyPrivacy(\'' + o.key + '\')"><div class="t">' + o.label + '</div><div class="gc-rp-radio"></div></div>';
 });
 html += '</div>';
 ov.innerHTML = html;
@@ -35633,6 +35762,14 @@ const bar = input.parentElement;
 if(bar) bar.querySelectorAll('button').forEach(function(b){ b.style.opacity = ''; b.style.pointerEvents = ''; });
 }
 }
+function gcIsCommentsDisabled(pd){
+  if(!pd) return false;
+  var rule = pd.replyPrivacy || 'everyone';
+  if(rule !== 'nobody') return false;
+  if(currentUser && pd.uid === currentUser.uid) return false;
+  return true;
+}
+
 async function gcApplyReplyRestriction(pid){
 if(!currentUser) return;
 let rule = 'everyone', pd = null;
@@ -35643,6 +35780,18 @@ pd = d.data();
 rule = pd.replyPrivacy || 'everyone';
 }catch(e){ return; }
 if(rule === 'everyone') return;
+if(rule === 'nobody'){
+if(!(pd && currentUser && pd.uid === currentUser.uid)){
+const input = document.getElementById('comment-input') || document.querySelector('input[placeholder*="comment" i]');
+if(input){
+input.disabled = true;
+input.placeholder = 'Comments are turned off';
+const bar = input.parentElement;
+if(bar) bar.querySelectorAll('button').forEach(function(b){ b.style.opacity = '.4'; b.style.pointerEvents = 'none'; });
+}
+}
+return;
+}
 let allowed = false;
 if(rule === 'verified'){
 allowed = (currentUserData && currentUserData.isVerified === true);
