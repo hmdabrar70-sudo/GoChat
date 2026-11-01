@@ -32082,83 +32082,62 @@ async function uploadAndSendVoice(audioBlob) {
     }
 }
 
-// ==========================================
-// 🚀 SMART BACK BUTTON & HISTORY MANAGER
-// Hierarchical navigation: overlays first, then previous page, then exit.
-// ==========================================
-window.__gcBackPageStack = [];
-window.__gcBackCurrentPage = (document.querySelector('.page.active')?.id || 'page-feed').replace(/^page-/, '');
-window.__gcBackHandling = false;
-
-// A single sentinel keeps Android/browser Back inside the app while a
-// dismissible layer or a previous in-app page still exists.
-history.pushState({ gcBackSentinel: true }, '', window.location.href);
-
-window.addEventListener('popstate', function() {
-    if (window.__gcBackHandling) return;
-    window.__gcBackHandling = true;
-    var handled = false;
-    try {
-        // Highest priority: dismiss the topmost popup / nested screen.
-        handled = (typeof closeTopMostView === 'function') && closeTopMostView();
-
-        // If no overlay is open, return to the previous main page.
-        if (!handled) {
-            var stack = window.__gcBackPageStack || [];
-            var previous = stack.length ? stack.pop() : null;
-            if (previous && previous !== window.__gcBackCurrentPage) {
-                window.__gcBackNavigating = true;
-                try { showPage(previous); } finally { window.__gcBackNavigating = false; }
-                handled = true;
-            }
-        }
-
-        // Re-arm the sentinel only when Back was consumed in-app.
-        if (handled) history.pushState({ gcBackSentinel: true }, '', window.location.href);
-    } catch (err) {
-        console.error('GoChat back navigation failed:', err);
-    } finally {
-        window.__gcBackHandling = false;
-    }
-    // If nothing handled the event, allow the browser / Android host to exit.
-});
+// Back handling is installed once, after all page/screen functions are defined.
+// The legacy single-sentinel/double-press handler was removed because it did not
+// preserve nested page and screen history.
 
 function closeTopMostView() {
-    // Transient interaction states must close before their parent screen.
-    var emailPrivacy = document.getElementById('gc-email-privacy-sheet');
-    if (emailPrivacy && emailPrivacy.classList.contains('open')) { if (typeof gcCloseEmailPrivacy === 'function') gcCloseEmailPrivacy(); return true; }
-
-    var msgMoreMenu = document.getElementById('gc-msg-more-menu');
-    if (msgMoreMenu && (msgMoreMenu.classList.contains('open') || msgMoreMenu.style.display === 'flex')) { if (typeof window.gcCloseMsgMoreMenu === 'function') window.gcCloseMsgMoreMenu(); else { msgMoreMenu.classList.remove('open'); msgMoreMenu.style.display = 'none'; } return true; }
-
-    if (typeof isNotifEditMode !== 'undefined' && isNotifEditMode) { toggleNotifEditMode(); return true; }
-    var picker = document.querySelector('.reaction-picker.show');
-    if (picker) { picker.remove(); return true; }
-
+    // Transient controls inside the current page must close before their parent screen.
+    var followPopup = document.getElementById('tf-popup');
+    if (followPopup && followPopup.style.display !== 'none') { if(typeof closeFollowPopup === 'function') closeFollowPopup(); else followPopup.style.display = 'none'; return true; }
+    var privacySubpage = document.querySelector('.gc-priv-subpage.open');
+    if (privacySubpage) {
+      var privacyId = (privacySubpage.id || '').replace(/^gc-priv-page-/, '');
+      if (privacyId && typeof gcClosePrivPage === 'function') gcClosePrivPage(privacyId);
+      else privacySubpage.classList.remove('open');
+      return true;
+    }
+    var reactionDetail = document.getElementById('gc-react-detail-overlay');
+    if (reactionDetail && (reactionDetail.classList.contains('open') || reactionDetail.style.display === 'flex')) {
+      if (typeof gcCloseMsgReactionDetails === 'function') gcCloseMsgReactionDetails();
+      else { reactionDetail.classList.remove('open'); reactionDetail.style.display = 'none'; }
+      return true;
+    }
+    var reactionPop = document.querySelector('.reaction-picker.show');
+    if (reactionPop) { reactionPop.remove(); return true; }
     var bubbleMenu = document.querySelector('.chat-bubble-menu.show');
-    if (bubbleMenu) { bubbleMenu.classList.remove('show'); bubbleMenu.remove(); return true; }
-
-    var msgPop = document.querySelector('.msg-pop.show, .msg-menu-popup.show, .chat-message-menu.show');
-    if (msgPop) { msgPop.classList.remove('show'); msgPop.remove(); return true; }
-
+    if (bubbleMenu) { bubbleMenu.remove(); return true; }
+    if (document.querySelector('.gc-msg-pop-mask, .gc-msg-pop')) {
+      if (typeof gcCloseMsgActionPopup === 'function') gcCloseMsgActionPopup();
+      else document.querySelectorAll('.gc-msg-pop-mask, .gc-msg-pop').forEach(function(el){ el.remove(); });
+      return true;
+    }
+    var filterMenu = document.getElementById('gc-chat-filter-menu');
+    if (filterMenu && filterMenu.style.display !== 'none') { filterMenu.style.display = 'none'; return true; }
     if (document.body.classList.contains('msg-select-mode')) {
-        if (typeof window.gcExitChatSelectMode === 'function') window.gcExitChatSelectMode();
-        else document.body.classList.remove('msg-select-mode');
-        return true;
+      if (typeof gcExitChatSelectMode === 'function') gcExitChatSelectMode();
+      else document.body.classList.remove('msg-select-mode');
+      return true;
     }
-
+    if (typeof isNotifEditMode !== 'undefined' && isNotifEditMode) {
+      if (typeof toggleNotifEditMode === 'function') toggleNotifEditMode();
+      return true;
+    }
     var homeDrawer = document.getElementById('gc-home-drawer');
-    var homeDrawerMask = document.getElementById('gc-home-drawer-mask');
-    if ((homeDrawer && homeDrawer.classList.contains('open')) || (homeDrawerMask && homeDrawerMask.classList.contains('open'))) {
-        if (typeof gcCloseHomeDrawer === 'function') gcCloseHomeDrawer();
-        return true;
-    }
+    if (homeDrawer && homeDrawer.classList.contains('open')) { gcCloseHomeDrawer(); return true; }
+
+    var emailPrivacy = document.getElementById('gc-email-privacy-sheet');
+    if (emailPrivacy && emailPrivacy.classList.contains('open')) { if(typeof gcCloseEmailPrivacy === 'function') gcCloseEmailPrivacy(); return true; }
 
     var cvv = document.getElementById('gc-chat-video-viewer');
     if (cvv && cvv.classList.contains('open')) { if(typeof gcCloseChatVideoViewer==='function') gcCloseChatVideoViewer(); return true; }
 
     var editPost = document.getElementById('edit-post-modal');
     if (editPost && editPost.classList.contains('open')) { if(typeof closeEditPostModal==='function') closeEditPostModal(); return true; }
+
+    // Shorts comments are a nested sheet above the Shorts screen.
+    var shortsComments = document.getElementById('gc-short-comments-screen');
+    if (shortsComments && shortsComments.classList.contains('open')) { if(typeof gcCloseShortsComments === 'function') gcCloseShortsComments(); return true; }
 
     // 0. Shorts full-screen (must restore feed scroll via gcCloseShorts)
     var shortsScr = document.getElementById('gc-shorts-screen');
@@ -32199,7 +32178,7 @@ function closeTopMostView() {
     if (createPost && createPost.classList.contains('open')) { closeCreatePost(); return true; }
 
     const groupInfo = document.getElementById('group-info-modal');
-    if (groupInfo && groupInfo.style.display === 'flex') { closeGroupInfoModal(); return true; }
+    if (groupInfo && groupInfo.classList.contains('open')) { closeGroupInfoModal(); return true; }
 
     // ৬. Settings & Menus — close Edit Profile sections first
     const epPersonal = document.getElementById('ep-section-personal');
@@ -32224,8 +32203,8 @@ function closeTopMostView() {
     const mainMenu = document.getElementById('main-menu-screen');
     if (mainMenu && mainMenu.style.display === 'flex') { closeMainMenu(); return true; }
 
-    // Page-to-page navigation is handled by __gcBackPageStack in the
-    // popstate manager. This function only dismisses the currently open layer.
+    // Main-page navigation is handled by the unified history stack below.
+    // This function now closes overlays/screens only; it never guesses a page.
     return false;
 }
 
@@ -40714,39 +40693,287 @@ window.gcCloseSheetSafe = gcCloseSheetSafe;
   }
 })();
 
-// ==========================================
-// 🚀 PAGE HISTORY TRACKER (installed after app functions are defined)
-// Records real page transitions so nested screens return to their parent.
-// ==========================================
-(function(){
-  if (window.__gcPageHistoryTrackerInstalled) return;
-  window.__gcPageHistoryTrackerInstalled = true;
-  var originalShowPage = window.showPage;
-  if (typeof originalShowPage !== 'function') return;
+// ═══════════════════════════════════════════════════════════════
+// GoChat Unified Navigation History (pages + nested screens)
+// Every navigation layer gets one browser-history entry. Back pops
+// exactly one layer; in-app close buttons remove their matching entry.
+// ═══════════════════════════════════════════════════════════════
+(function gcInstallUnifiedNavigation(){
+  if (window.__gcUnifiedNavInstalled) return;
+  window.__gcUnifiedNavInstalled = true;
 
-  // Normalize the initial page and start with a clean in-app history.
-  var initialEl = document.querySelector('.page.active');
-  window.__gcBackCurrentPage = initialEl ? initialEl.id.replace(/^page-/, '') : 'feed';
-  window.__gcBackPageStack = [];
+  var stack = [];
+  var busy = false;
+  var manualClose = false;
+  var seq = 0;
+  var originalShowPage = (typeof window.showPage === 'function') ? window.showPage : null;
 
-  window.showPage = function(nextPage){
-    var next = String(nextPage || '');
-    var currentEl = document.querySelector('.page.active');
-    var current = currentEl ? currentEl.id.replace(/^page-/, '') : window.__gcBackCurrentPage;
-
-    if (!window.__gcBackNavigating && next && current && next !== current) {
-      // Search is a shared destination; its Back destination is the feed.
-      if (next === 'search') {
-        if (current !== 'feed') window.__gcBackPageStack.push('feed');
-        else window.__gcBackPageStack.push(current);
-      } else {
-        window.__gcBackPageStack.push(current);
+  function activePage(){
+    var el = document.querySelector('.page.active');
+    return el && el.id ? el.id.replace(/^page-/, '') : 'feed';
+  }
+  function makeState(entry){
+    return { __gcUnifiedNav: true, navId: entry.id, kind: entry.kind, key: entry.key || '', page: entry.page || '' };
+  }
+  function pushEntry(entry){
+    if (busy) return;
+    entry.id = ++seq;
+    stack.push(entry);
+    try { history.pushState(makeState(entry), '', window.location.href); }
+    catch(e){ stack.pop(); }
+  }
+  function sameTop(key){
+    var top = stack[stack.length - 1];
+    return !!(top && top.kind === 'screen' && top.key === key);
+  }
+  function addScreen(key, closeName){
+    if (busy || !key) return;
+    if (sameTop(key)) return;
+    // Re-opening the same screen while it is already in the stack is a content
+    // switch (for example, opening another person's profile), not a new layer.
+    for (var i = stack.length - 1; i >= 0; i--) {
+      if (stack[i].kind === 'screen' && stack[i].key === key) return;
+    }
+    pushEntry({ kind: 'screen', key: key, closeName: closeName });
+  }
+  function removeTopForManualClose(key){
+    if (busy || !stack.length) return;
+    var top = stack[stack.length - 1];
+    if (!top || top.kind !== 'screen' || top.key !== key) return;
+    manualClose = true;
+    try { history.back(); }
+    catch(e){ manualClose = false; stack.pop(); }
+  }
+  function wrapOpen(name, key, closeName, isOpen){
+    var fn = window[name];
+    if (typeof fn !== 'function' || fn.__gcNavWrapped) return;
+    var wrapped = function(){
+      var before = false;
+      try { before = !!isOpen(); } catch(e){}
+      var result = fn.apply(this, arguments);
+      function captureOpenedLayer(){
+        var after = false;
+        try { after = !!isOpen(); } catch(e){}
+        if (!before && after) addScreen(key, closeName);
       }
+      captureOpenedLayer();
+      // Some async openers show their modal only after loading their data.
+      if (result && typeof result.then === 'function') {
+        result.then(captureOpenedLayer).catch(function(){});
+      }
+      return result;
+    };
+    wrapped.__gcNavWrapped = true;
+    window[name] = wrapped;
+  }
+  function wrapClose(name, key){
+    var fn = window[name];
+    if (typeof fn !== 'function' || fn.__gcNavWrapped) return;
+    var wrapped = function(){
+      var result = fn.apply(this, arguments);
+      removeTopForManualClose(key);
+      return result;
+    };
+    wrapped.__gcNavWrapped = true;
+    window[name] = wrapped;
+  }
+  function byClass(id){
+    return function(){ var el = document.getElementById(id); return !!(el && el.classList.contains('open')); };
+  }
+  function byFlex(id){
+    return function(){ var el = document.getElementById(id); return !!(el && getComputedStyle(el).display !== 'none'); };
+  }
+
+  // The current entry is the root page. Do not add a dummy sentinel here:
+  // that would require two Back presses to exit from the Home Feed.
+  var rootPage = activePage();
+  stack.push({ id: ++seq, kind: 'page', page: rootPage });
+  try { history.replaceState(makeState(stack[0]), '', window.location.href); } catch(e){}
+
+  // Wrap the final showPage implementation, after all older wrappers have loaded.
+  if (originalShowPage) {
+    var navShowPage = function(page){
+      var before = activePage();
+      var result = originalShowPage.apply(this, arguments);
+      var after = activePage();
+      if (!busy && after && after !== before) pushEntry({ kind: 'page', page: after });
+      return result;
+    };
+    navShowPage.__gcNavWrapped = true;
+    window.showPage = navShowPage;
+  }
+
+  // Main screens and full-screen sub-pages.
+  wrapOpen('openChat', 'chat-screen', 'closeChat', byClass('chat-screen'));
+  wrapClose('closeChat', 'chat-screen');
+  wrapOpen('viewUserProfile', 'page-other-profile', 'closeUserProfile', byClass('page-other-profile'));
+  wrapClose('closeUserProfile', 'page-other-profile');
+  wrapOpen('openSinglePostView', 'single-post-screen', 'closeSinglePost', byClass('single-post-screen'));
+  wrapClose('closeSinglePost', 'single-post-screen');
+  wrapOpen('openCreatePost', 'create-post-screen', 'closeCreatePost', byClass('create-post-screen'));
+  wrapClose('closeCreatePost', 'create-post-screen');
+  wrapOpen('openProfileEdit', 'edit-profile-screen', 'closeProfileEdit', byFlex('edit-profile-screen'));
+  wrapClose('closeProfileEdit', 'edit-profile-screen');
+  wrapOpen('openMainMenu', 'main-menu-screen', 'closeMainMenu', byFlex('main-menu-screen'));
+  wrapClose('closeMainMenu', 'main-menu-screen');
+  // Settings is nested inside the main menu: preserve both layers when
+  // Settings is opened directly from a closed menu.
+  (function(){
+    var fn = window.openMainSettingsScreen;
+    if (typeof fn === 'function' && !fn.__gcNavWrapped) {
+      var wrapped = function(){
+        var menuWasOpen = byFlex('main-menu-screen')();
+        var result = fn.apply(this, arguments);
+        if (!menuWasOpen && byFlex('main-menu-screen')()) addScreen('main-menu-screen', 'closeMainMenu');
+        if (byFlex('main-settings-screen')()) addScreen('main-settings-screen', 'closeMainSettingsScreen');
+        return result;
+      };
+      wrapped.__gcNavWrapped = true;
+      window.openMainSettingsScreen = wrapped;
+    }
+  })();
+  wrapClose('closeMainSettingsScreen', 'main-settings-screen');
+  wrapOpen('playStories', 'story-viewer', 'closeStory', byClass('story-viewer'));
+  wrapClose('closeStory', 'story-viewer');
+  wrapOpen('openGallery', 'gallery-screen', 'closeGallery', byFlex('gallery-screen'));
+  wrapClose('closeGallery', 'gallery-screen');
+  wrapOpen('gcOpenShorts', 'gc-shorts-screen', 'gcCloseShorts', byClass('gc-shorts-screen'));
+  wrapClose('gcCloseShorts', 'gc-shorts-screen');
+  wrapOpen('viewProfileFromChat', 'quick-profile-modal', 'closeQuickProfile', byClass('quick-profile-modal'));
+  wrapClose('closeQuickProfile', 'quick-profile-modal');
+  wrapOpen('openGroupInfoModal', 'group-info-modal', 'closeGroupInfoModal', byClass('group-info-modal'));
+  wrapClose('closeGroupInfoModal', 'group-info-modal');
+  wrapOpen('openEditPostModal', 'edit-post-modal', 'closeEditPostModal', byClass('edit-post-modal'));
+  wrapClose('closeEditPostModal', 'edit-post-modal');
+  wrapOpen('openStoryCreatorModal', 'story-creator-modal', 'closeStoryCreatorModal', byClass('story-creator-modal'));
+  wrapClose('closeStoryCreatorModal', 'story-creator-modal');
+  wrapOpen('gcOpenEmailPrivacy', 'gc-email-privacy-sheet', 'gcCloseEmailPrivacy', byClass('gc-email-privacy-sheet'));
+  wrapClose('gcCloseEmailPrivacy', 'gc-email-privacy-sheet');
+
+  // Additional page-level screens and modal layers already present in GoChat.
+  wrapOpen('openBlockedAccountsPage', 'blocked-accounts-screen', 'closeBlockedAccountsPage', byFlex('blocked-accounts-screen'));
+  wrapClose('closeBlockedAccountsPage', 'blocked-accounts-screen');
+  wrapOpen('openSettingsPrivacy', 'settings-privacy-screen', 'closeSettingsPrivacy', byClass('settings-privacy-screen'));
+  wrapClose('closeSettingsPrivacy', 'settings-privacy-screen');
+  wrapOpen('gcOpenAboutUs', 'gc-about-screen', 'gcCloseAboutUs', byClass('gc-about-screen'));
+  wrapClose('gcCloseAboutUs', 'gc-about-screen');
+  wrapOpen('openLeaderboard', 'page-leaderboard', 'closeLeaderboard', byClass('page-leaderboard'));
+  wrapClose('closeLeaderboard', 'page-leaderboard');
+  wrapOpen('openFriendsListModal', 'friends-list-modal', 'closeFriendsListModal', byClass('friends-list-modal'));
+  wrapClose('closeFriendsListModal', 'friends-list-modal');
+  wrapOpen('openTagModal', 'tag-modal', 'closeTagModal', byClass('tag-modal'));
+  wrapClose('closeTagModal', 'tag-modal');
+  wrapOpen('openCreateGroupModal', 'create-group-modal', 'closeCreateGroupModal', byFlex('create-group-modal'));
+  wrapClose('closeCreateGroupModal', 'create-group-modal');
+  wrapOpen('openFollowingPrivacy', 'following-privacy-modal', 'closeFollowingPrivacy', byClass('following-privacy-modal'));
+  wrapClose('closeFollowingPrivacy', 'following-privacy-modal');
+  wrapOpen('gcOpenBirthdayPicker', 'gc-dob-modal', 'gcCloseBirthdayPicker', byClass('gc-dob-modal'));
+  wrapClose('gcCloseBirthdayPicker', 'gc-dob-modal');
+  wrapOpen('gcOpenDobPrivacyPopup', 'gc-dob-privacy-modal', 'gcCloseDobPrivacyPopup', byClass('gc-dob-privacy-modal'));
+  wrapClose('gcCloseDobPrivacyPopup', 'gc-dob-privacy-modal');
+  wrapOpen('openTextStoryModal', 'create-text-story-modal', 'closeTextStoryModal', byFlex('create-text-story-modal'));
+  wrapClose('closeTextStoryModal', 'create-text-story-modal');
+  wrapOpen('openSupportPage', 'support-screen', 'closeSupportPage', byFlex('support-screen'));
+  wrapClose('closeSupportPage', 'support-screen');
+  wrapOpen('openInviteFriendsPage', 'invite-friends-screen', 'closeInviteFriendsPage', byFlex('invite-friends-screen'));
+  wrapClose('closeInviteFriendsPage', 'invite-friends-screen');
+  wrapOpen('openChatSettingsScreen', 'chat-settings-screen', 'closeChatSettingsScreen', byFlex('chat-settings-screen'));
+  wrapClose('closeChatSettingsScreen', 'chat-settings-screen');
+  wrapOpen('openChatPrivacyPage', 'chat-privacy-screen', 'closeChatPrivacyPage', byFlex('chat-privacy-screen'));
+  wrapClose('closeChatPrivacyPage', 'chat-privacy-screen');
+  wrapOpen('openPostInsights', 'post-insights-modal', 'closePostInsights', byClass('post-insights-modal'));
+  wrapClose('closePostInsights', 'post-insights-modal');
+  wrapOpen('openShareModal', 'share-post-modal', 'closeShareModal', byClass('share-post-modal'));
+  wrapClose('closeShareModal', 'share-post-modal');
+  wrapOpen('gcOpenChatTools', 'gc-chat-tools', 'gcCloseChatTools', byClass('gc-chat-tools'));
+  wrapClose('gcCloseChatTools', 'gc-chat-tools');
+  wrapOpen('gcOpenInsights', 'gc-insights-screen', 'gcCloseInsights', byClass('gc-insights-screen'));
+  wrapClose('gcCloseInsights', 'gc-insights-screen');
+  wrapOpen('gcOpenLikedScreen', 'gc-liked-screen', 'gcCloseLikedScreen', byClass('gc-liked-screen'));
+  wrapClose('gcCloseLikedScreen', 'gc-liked-screen');
+  wrapOpen('gcOpenFollowRequests', 'gc-fr-screen', 'gcCloseFollowRequests', byClass('gc-fr-screen'));
+  wrapClose('gcCloseFollowRequests', 'gc-fr-screen');
+  wrapOpen('gcOpenLocationPicker', 'gc-loc-screen', 'gcCloseLocationPicker', byClass('gc-loc-screen'));
+  wrapClose('gcCloseLocationPicker', 'gc-loc-screen');
+  wrapOpen('gcOpenForwardSheet', 'gc-fwd-sheet', 'gcCloseForwardSheet', byClass('gc-fwd-sheet'));
+  wrapClose('gcCloseForwardSheet', 'gc-fwd-sheet');
+  wrapOpen('gcOpenAudienceSheet', 'gc-audience-sheet', 'gcCloseAudienceSheet', byClass('gc-audience-sheet'));
+  wrapClose('gcCloseAudienceSheet', 'gc-audience-sheet');
+
+  function closeTransientFirst(){
+    var transient = document.querySelector('.reaction-picker.show, .chat-bubble-menu.show, .gc-msg-pop-mask, .gc-msg-pop');
+    var filter = document.getElementById('gc-chat-filter-menu');
+    var drawer = document.getElementById('gc-home-drawer');
+    var emailPrivacy = document.getElementById('gc-email-privacy-sheet');
+    var epSection = document.querySelector('#ep-section-personal.open, #ep-section-work.open, #ep-section-education.open, #ep-section-skills.open');
+    var privacySubpage = document.querySelector('.gc-priv-subpage.open');
+    var reactDetails = document.getElementById('gc-react-detail-overlay');
+    var deleteSheet = document.getElementById('delete-sheet-modal');
+    var badgeInfo = document.getElementById('badge-info-modal');
+    var chatVideo = document.getElementById('gc-chat-video-viewer');
+    var imageZoom = document.getElementById('image-zoom-modal');
+    var shortsComments = document.getElementById('gc-short-comments-screen');
+    var followPopup = document.getElementById('tf-popup');
+    return !!(transient || (filter && filter.style.display !== 'none') ||
+      (drawer && drawer.classList.contains('open')) ||
+      (emailPrivacy && emailPrivacy.classList.contains('open')) || epSection || privacySubpage ||
+      (reactDetails && (reactDetails.classList.contains('open') || reactDetails.style.display === 'flex')) ||
+      (deleteSheet && deleteSheet.classList.contains('open')) ||
+      (badgeInfo && badgeInfo.classList.contains('open')) ||
+      (chatVideo && chatVideo.classList.contains('open')) ||
+      (imageZoom && imageZoom.classList.contains('open')) ||
+      (shortsComments && shortsComments.classList.contains('open')) ||
+      (followPopup && followPopup.style.display !== 'none') ||
+      document.body.classList.contains('msg-select-mode') ||
+      (typeof isNotifEditMode !== 'undefined' && isNotifEditMode));
+  }
+
+  window.addEventListener('popstate', function(event){
+    if (manualClose) {
+      manualClose = false;
+      if (stack.length > 1) stack.pop();
+      return;
+    }
+    if (busy) return;
+
+    // A reaction/menu/drawer/select mode is a transient layer and may not
+    // have its own history entry. Close it, then restore the current entry.
+    if (closeTransientFirst()) {
+      busy = true;
+      try { if (typeof closeTopMostView === 'function') closeTopMostView(); } catch(e){}
+      try {
+        var current = stack[stack.length - 1];
+        if (current) history.pushState(makeState(current), '', window.location.href);
+      } catch(e){}
+      busy = false;
+      return;
     }
 
-    var result = originalShowPage.apply(this, arguments);
-    if (next) window.__gcBackCurrentPage = next;
-    return result;
+    if (stack.length <= 1) {
+      // Root Home Feed: do not re-push history. Let Android/browser exit.
+      return;
+    }
+
+    var popped = stack.pop();
+    busy = true;
+    try {
+      if (popped.kind === 'screen') {
+        if (popped.closeName && typeof window[popped.closeName] === 'function') {
+          window[popped.closeName]();
+        } else if (typeof closeTopMostView === 'function') {
+          closeTopMostView();
+        }
+      } else if (popped.kind === 'page') {
+        var previous = stack[stack.length - 1];
+        var targetPage = previous && previous.kind === 'page' ? previous.page : rootPage;
+        if (originalShowPage) originalShowPage.call(window, targetPage);
+      }
+    } catch(err){ console.error('GoChat navigation back:', err); }
+    busy = false;
+  });
+
+  window.__gcNavigationDebug = function(){
+    return stack.map(function(item){ return { kind:item.kind, page:item.page || '', key:item.key || '' }; });
   };
 })();
 </script>
