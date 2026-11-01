@@ -32084,83 +32084,64 @@ async function uploadAndSendVoice(audioBlob) {
 
 // ==========================================
 // 🚀 SMART BACK BUTTON & HISTORY MANAGER
+// Hierarchical navigation: overlays first, then previous page, then exit.
 // ==========================================
-// Keep one browser-history sentinel; GoChat manages its own screen history.
-window.__gcBackPageStack = window.__gcBackPageStack || [];
-window.__gcBackNavigating = false;
-window.__gcBackSentinelReady = false;
+window.__gcBackPageStack = [];
+window.__gcBackCurrentPage = (document.querySelector('.page.active')?.id || 'page-feed').replace(/^page-/, '');
+window.__gcBackHandling = false;
 
-function gcNormalizeBackPage(page) {
-    return (page === 'home') ? 'feed' : page;
-}
-
-function gcInitBackNavigation() {
-    if (window.__gcBackSentinelReady) return;
-    var active = document.querySelector('.page.active');
-    var initial = active && active.id ? active.id.replace(/^page-/, '') : 'feed';
-    initial = gcNormalizeBackPage(initial);
-    window.__gcBackPageStack = [initial || 'feed'];
-    try {
-        history.pushState({ gochatBackSentinel: true }, '', window.location.href);
-        window.__gcBackSentinelReady = true;
-    } catch (e) { console.warn('GoChat back history initialization failed', e); }
-}
-
-// The final showPage wrapper is installed at the end of this script, after
-// the app's existing feature wrappers, so every navigation passes through it.
+// A single sentinel keeps Android/browser Back inside the app while a
+// dismissible layer or a previous in-app page still exists.
+history.pushState({ gcBackSentinel: true }, '', window.location.href);
 
 window.addEventListener('popstate', function() {
-    // First close the topmost transient UI. Never navigate away while one is open.
-    if (closeTopMostView()) {
-        try { history.pushState({ gochatBackSentinel: true }, '', window.location.href); } catch (e) {}
-        return;
-    }
+    if (window.__gcBackHandling) return;
+    window.__gcBackHandling = true;
+    var handled = false;
+    try {
+        // Highest priority: dismiss the topmost popup / nested screen.
+        handled = (typeof closeTopMostView === 'function') && closeTopMostView();
 
-    // Then restore the previous GoChat page from its own navigation stack.
-    var stack = window.__gcBackPageStack || [];
-    if (stack.length > 1) {
-        stack.pop();
-        var previousPage = stack[stack.length - 1] || 'feed';
-        window.__gcBackPageStack = stack;
-        window.__gcBackNavigating = true;
-        try { window.showPage(previousPage); }
-        finally { window.__gcBackNavigating = false; }
-        try { history.pushState({ gochatBackSentinel: true }, '', window.location.href); } catch (e) {}
-        return;
-    }
+        // If no overlay is open, return to the previous main page.
+        if (!handled) {
+            var stack = window.__gcBackPageStack || [];
+            var previous = stack.length ? stack.pop() : null;
+            if (previous && previous !== window.__gcBackCurrentPage) {
+                window.__gcBackNavigating = true;
+                try { showPage(previous); } finally { window.__gcBackNavigating = false; }
+                handled = true;
+            }
+        }
 
-    // At the root Feed with no open UI: allow the browser/host Back action to exit.
+        // Re-arm the sentinel only when Back was consumed in-app.
+        if (handled) history.pushState({ gcBackSentinel: true }, '', window.location.href);
+    } catch (err) {
+        console.error('GoChat back navigation failed:', err);
+    } finally {
+        window.__gcBackHandling = false;
+    }
+    // If nothing handled the event, allow the browser / Android host to exit.
 });
 
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', gcInitBackNavigation, { once: true });
-} else {
-    gcInitBackNavigation();
-}
-
 function closeTopMostView() {
-    // Highest-priority lightweight chat overlays and selection states.
-    var reactionPicker = document.querySelector('.reaction-picker.show');
-    if (reactionPicker) { reactionPicker.remove(); return true; }
+    // Transient interaction states must close before their parent screen.
+    var emailPrivacy = document.getElementById('gc-email-privacy-sheet');
+    if (emailPrivacy && emailPrivacy.classList.contains('open')) { if (typeof gcCloseEmailPrivacy === 'function') gcCloseEmailPrivacy(); return true; }
 
-    var chatBubbleMenu = document.querySelector('.chat-bubble-menu.show');
-    if (chatBubbleMenu) { chatBubbleMenu.remove(); return true; }
+    var msgMoreMenu = document.getElementById('gc-msg-more-menu');
+    if (msgMoreMenu && (msgMoreMenu.classList.contains('open') || msgMoreMenu.style.display === 'flex')) { if (typeof window.gcCloseMsgMoreMenu === 'function') window.gcCloseMsgMoreMenu(); else { msgMoreMenu.classList.remove('open'); msgMoreMenu.style.display = 'none'; } return true; }
 
-    if (document.querySelector('.gc-msg-pop-mask, .gc-msg-pop')) {
-        if (typeof gcCloseMsgActionPopup === 'function') gcCloseMsgActionPopup();
-        else document.querySelectorAll('.gc-msg-pop-mask, .gc-msg-pop').forEach(function(el){ el.remove(); });
-        return true;
-    }
+    if (typeof isNotifEditMode !== 'undefined' && isNotifEditMode) { toggleNotifEditMode(); return true; }
+    var picker = document.querySelector('.reaction-picker.show');
+    if (picker) { picker.remove(); return true; }
 
-    var chatMoreMenu = document.getElementById('gc-msg-more-menu');
-    if (chatMoreMenu && chatMoreMenu.classList.contains('open')) {
-        if (typeof gcCloseMsgMoreMenu === 'function') gcCloseMsgMoreMenu();
-        else chatMoreMenu.classList.remove('open');
-        return true;
-    }
+    var bubbleMenu = document.querySelector('.chat-bubble-menu.show');
+    if (bubbleMenu) { bubbleMenu.classList.remove('show'); bubbleMenu.remove(); return true; }
 
-    if (document.body.classList.contains('msg-select-mode') &&
-        document.getElementById('chat-screen') && document.getElementById('chat-screen').classList.contains('open')) {
+    var msgPop = document.querySelector('.msg-pop.show, .msg-menu-popup.show, .chat-message-menu.show');
+    if (msgPop) { msgPop.classList.remove('show'); msgPop.remove(); return true; }
+
+    if (document.body.classList.contains('msg-select-mode')) {
         if (typeof window.gcExitChatSelectMode === 'function') window.gcExitChatSelectMode();
         else document.body.classList.remove('msg-select-mode');
         return true;
@@ -32170,17 +32151,6 @@ function closeTopMostView() {
     var homeDrawerMask = document.getElementById('gc-home-drawer-mask');
     if ((homeDrawer && homeDrawer.classList.contains('open')) || (homeDrawerMask && homeDrawerMask.classList.contains('open'))) {
         if (typeof gcCloseHomeDrawer === 'function') gcCloseHomeDrawer();
-        return true;
-    }
-
-    var emailPrivacySheet = document.getElementById('gc-email-privacy-sheet');
-    if (emailPrivacySheet && emailPrivacySheet.classList.contains('open')) {
-        if (typeof gcCloseEmailPrivacy === 'function') gcCloseEmailPrivacy();
-        return true;
-    }
-
-    if (typeof isNotifEditMode !== 'undefined' && isNotifEditMode) {
-        if (typeof toggleNotifEditMode === 'function') toggleNotifEditMode();
         return true;
     }
 
@@ -32254,13 +32224,8 @@ function closeTopMostView() {
     const mainMenu = document.getElementById('main-menu-screen');
     if (mainMenu && mainMenu.style.display === 'flex') { closeMainMenu(); return true; }
 
-    // ৭. Bottom Navigation Pages (Back to Feed)
-    const feedPage = document.getElementById('page-feed');
-    if (feedPage && !feedPage.classList.contains('active')) {
-        showPage('feed'); return true;
-    }
-
-    // কিছু ওপেন না থাকলে false রিটার্ন করবে (অর্থাৎ ইউজার মেইন ফিডে আছে)
+    // Page-to-page navigation is handled by __gcBackPageStack in the
+    // popstate manager. This function only dismisses the currently open layer.
     return false;
 }
 
@@ -40749,31 +40714,40 @@ window.gcCloseSheetSafe = gcCloseSheetSafe;
   }
 })();
 
+// ==========================================
+// 🚀 PAGE HISTORY TRACKER (installed after app functions are defined)
+// Records real page transitions so nested screens return to their parent.
+// ==========================================
+(function(){
+  if (window.__gcPageHistoryTrackerInstalled) return;
+  window.__gcPageHistoryTrackerInstalled = true;
+  var originalShowPage = window.showPage;
+  if (typeof originalShowPage !== 'function') return;
 
-// Final navigation tracker: installed after all existing showPage wrappers.
-(function gcInstallFinalBackPageTracker(){
-    if (window.__gcBackFinalTrackerInstalled || typeof window.showPage !== 'function') return;
-    window.__gcBackFinalTrackerInstalled = true;
-    var previousShowPage = window.showPage;
-    window.showPage = function(page) {
-        var target = gcNormalizeBackPage(page);
-        var activeEl = document.querySelector('.page.active');
-        var current = activeEl && activeEl.id ? activeEl.id.replace(/^page-/, '') : '';
-        current = gcNormalizeBackPage(current);
-        if (!window.__gcBackNavigating && target && target !== current) {
-            if (target === 'feed') {
-                window.__gcBackPageStack = ['feed'];
-            } else if (target === 'search') {
-                window.__gcBackPageStack = ['feed', 'search'];
-            } else {
-                var stack = window.__gcBackPageStack || [];
-                if (!stack.length) stack = [current || 'feed'];
-                if (stack[stack.length - 1] !== target) stack.push(target);
-                window.__gcBackPageStack = stack;
-            }
-        }
-        return previousShowPage.apply(this, arguments);
-    };
+  // Normalize the initial page and start with a clean in-app history.
+  var initialEl = document.querySelector('.page.active');
+  window.__gcBackCurrentPage = initialEl ? initialEl.id.replace(/^page-/, '') : 'feed';
+  window.__gcBackPageStack = [];
+
+  window.showPage = function(nextPage){
+    var next = String(nextPage || '');
+    var currentEl = document.querySelector('.page.active');
+    var current = currentEl ? currentEl.id.replace(/^page-/, '') : window.__gcBackCurrentPage;
+
+    if (!window.__gcBackNavigating && next && current && next !== current) {
+      // Search is a shared destination; its Back destination is the feed.
+      if (next === 'search') {
+        if (current !== 'feed') window.__gcBackPageStack.push('feed');
+        else window.__gcBackPageStack.push(current);
+      } else {
+        window.__gcBackPageStack.push(current);
+      }
+    }
+
+    var result = originalShowPage.apply(this, arguments);
+    if (next) window.__gcBackCurrentPage = next;
+    return result;
+  };
 })();
 </script>
 </body>
