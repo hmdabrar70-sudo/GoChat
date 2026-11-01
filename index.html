@@ -13809,6 +13809,75 @@ body:not(.light-mode) .sp-comment-compose button.is-ready{
 }
 
 
+
+/* ═══ Chat video message + fullscreen viewer ═══ */
+.gc-chat-video-bubble{
+  position:relative;display:block;max-width:240px;border-radius:14px;overflow:hidden;
+  background:#000;cursor:pointer;-webkit-tap-highlight-color:transparent;
+}
+.gc-chat-video-bubble video{
+  display:block;width:100%;max-height:320px;object-fit:contain;background:#000;pointer-events:none;
+}
+.gc-chat-video-play{
+  position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+  width:48px;height:48px;border-radius:50%;
+  background:rgba(0,0,0,0.55);border:2px solid rgba(255,255,255,0.9);
+  display:flex;align-items:center;justify-content:center;pointer-events:none;
+  color:#fff;
+}
+.gc-chat-video-play svg{ width:22px;height:22px;margin-left:2px; }
+.gc-chat-video-dur{
+  position:absolute;right:8px;bottom:8px;padding:2px 8px;border-radius:10px;
+  background:rgba(0,0,0,0.55);color:#fff;font-size:11px;font-weight:700;
+  pointer-events:none;
+}
+#gc-chat-video-viewer{
+  display:none;position:fixed;inset:0;z-index:100500;
+  background:#000;flex-direction:column;align-items:stretch;justify-content:center;
+}
+#gc-chat-video-viewer.open{ display:flex; }
+.gc-cvv-top{
+  position:absolute;top:0;left:0;right:0;z-index:2;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:12px 14px;padding-top:max(12px, env(safe-area-inset-top));
+  background:linear-gradient(rgba(0,0,0,0.55), transparent);
+}
+.gc-cvv-top button{
+  width:40px;height:40px;border-radius:50%;border:none;cursor:pointer;
+  background:rgba(255,255,255,0.12);color:#fff;
+  display:flex;align-items:center;justify-content:center;
+}
+.gc-cvv-top button:active{ transform:scale(0.92); }
+.gc-cvv-menu-wrap{ position:relative; }
+.gc-cvv-menu{
+  display:none;position:absolute;right:0;top:44px;min-width:180px;
+  background:var(--surface);border:1px solid var(--border);border-radius:14px;
+  box-shadow:var(--shadow-lg);overflow:hidden;z-index:3;
+}
+.gc-cvv-menu.open{ display:block; }
+.gc-cvv-stage{
+  flex:1;display:flex;align-items:center;justify-content:center;
+  padding:56px 12px 100px;box-sizing:border-box;min-height:0;
+}
+.gc-cvv-stage video{
+  max-width:100%;max-height:100%;width:auto;height:auto;
+  object-fit:contain;background:#000;border-radius:0;
+}
+.gc-cvv-controls{
+  position:absolute;left:0;right:0;bottom:0;z-index:2;
+  display:flex;align-items:center;justify-content:center;gap:18px;
+  padding:16px 18px;padding-bottom:max(18px, env(safe-area-inset-bottom));
+  background:linear-gradient(transparent, rgba(0,0,0,0.65));
+}
+.gc-cvv-playbtn{
+  width:56px;height:56px;border-radius:50%;border:none;cursor:pointer;
+  background:rgba(255,255,255,0.18);color:#fff;
+  display:flex;align-items:center;justify-content:center;
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+}
+.gc-cvv-playbtn:active{ transform:scale(0.94); }
+.gc-cvv-playbtn svg{ width:26px;height:26px; }
+
 /* ═══ Offline banner ═══ */
 #gc-offline-banner{
   display:none;
@@ -15423,6 +15492,10 @@ l-137 -640 -193 -3 -193 -2 4 22 c2 13 67 314 144 671 l139 647 192 0 193 0
     <span>Photo</span>
     <svg class="gc-attach-ico" xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M0 0h24v24H0z" fill="none"/><g fill="currentColor" fill-rule="evenodd" clip-rule="evenodd"><path d="M16 6.75C15.3096 6.75 14.75 7.30964 14.75 8C14.75 8.69036 15.3096 9.25 16 9.25C16.6904 9.25 17.25 8.69036 17.25 8C17.25 7.30964 16.6904 6.75 16 6.75ZM13.25 8C13.25 6.48122 14.4812 5.25 16 5.25C17.5188 5.25 18.75 6.48122 18.75 8C18.75 9.51878 17.5188 10.75 16 10.75C14.4812 10.75 13.25 9.51878 13.25 8Z"/><path d="M11.9426 1.25H12.0574C14.3658 1.24999 16.1748 1.24998 17.5863 1.43975C19.031 1.63399 20.1711 2.03933 21.0659 2.93414C21.9607 3.82895 22.366 4.96897 22.5603 6.41371C22.75 7.82519 22.75 9.63423 22.75 11.9426V12.0574C22.75 14.3658 22.75 16.1748 22.5603 17.5863C22.366 19.031 21.9607 20.1711 21.0659 21.0659C20.1711 21.9607 19.031 22.366 17.5863 22.5603C16.1748 22.75 14.3658 22.75 12.0574 22.75H11.9426C9.63423 22.75 7.82519 22.75 6.41371 22.5603C4.96897 22.366 3.82895 21.9607 2.93414 21.0659C2.03933 20.1711 1.63399 19.031 1.43975 17.5863C1.24998 16.1748 1.24999 14.3658 1.25 12.0574V11.9426C1.24999 9.63423 1.24998 7.82519 1.43975 6.41371C1.63399 4.96897 2.03933 3.82895 2.93414 2.93414C3.82895 2.03933 4.96897 1.63399 6.41371 1.43975C7.82519 1.24998 9.63423 1.24999 11.9426 1.25ZM3.9948 20.0052C3.42514 19.4355 3.09825 18.6648 2.92637 17.3864C2.77289 16.2449 2.75296 14.7885 2.75038 12.8401L4.24546 11.5319C4.85958 10.9946 5.78515 11.0254 6.36216 11.6024L10.6519 15.8922C11.5968 16.8371 13.0843 16.9659 14.1776 16.1975L14.4758 15.988C15.334 15.3849 16.4951 15.4547 17.2747 16.1564L20.4983 19.0576C20.5334 19.0892 20.5706 19.1168 20.6095 19.1406C20.4478 19.4815 20.2487 19.7617 20.0052 20.0052C19.4355 20.5749 18.6648 20.9018 17.3864 21.0736C16.0864 21.2484 14.3782 21.25 12 21.25C9.62177 21.25 7.91356 21.2484 6.61358 21.0736C5.33517 20.9018 4.56445 20.5749 3.9948 20.0052ZM6.61358 2.92637C5.33517 3.09825 4.56445 3.42514 3.9948 3.9948C3.42514 4.56445 3.09825 5.33517 2.92637 6.61358C2.78124 7.69307 2.75552 9.05407 2.75098 10.8465L3.25771 10.4031C4.46613 9.34572 6.28741 9.40636 7.42282 10.5418L11.7125 14.8315C12.1421 15.261 12.8182 15.3196 13.3152 14.9703L13.6134 14.7607C15.0437 13.7555 16.9788 13.872 18.2782 15.0415L21.0522 17.5381C21.0596 17.4883 21.0667 17.4378 21.0736 17.3864C21.2484 16.0864 21.25 14.3782 21.25 12C21.25 9.62177 21.2484 7.91356 21.0736 6.61358C20.9018 5.33517 20.5749 4.56445 20.0052 3.9948C19.4355 3.42514 18.6648 3.09825 17.3864 2.92637C16.0864 2.75159 14.3782 2.75 12 2.75C9.62177 2.75 7.91356 2.75159 6.61358 2.92637Z"/></g></svg>
   </button>
+  <button type="button" class="gc-chat-attach-item" onclick="gcChatAttachAction('video')">
+    <span>Video</span>
+    <svg class="gc-attach-ico" xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M0 0h24v24H0z" fill="none"/><path fill="currentColor" fill-rule="evenodd" d="M4.25 6.5C4.25 5.25736 5.25736 4.25 6.5 4.25H13.5C14.7426 4.25 15.75 5.25736 15.75 6.5V17.5C15.75 18.7426 14.7426 19.75 13.5 19.75H6.5C5.25736 19.75 4.25 18.7426 4.25 17.5V6.5ZM6.5 5.75C6.08579 5.75 5.75 6.08579 5.75 6.5V17.5C5.75 17.9142 6.08579 18.25 6.5 18.25H13.5C13.9142 18.25 14.25 17.9142 14.25 17.5V6.5C14.25 6.08579 13.9142 5.75 13.5 5.75H6.5ZM17.2803 8.21967C17.5732 7.92678 18.0479 7.92678 18.3408 8.21967L21.2803 11.1592C21.5732 11.4521 21.5732 11.9268 21.2803 12.2197L18.3408 15.1592C18.0479 15.4521 17.5732 15.4521 17.2803 15.1592C16.9874 14.8663 16.9874 14.3916 17.2803 14.0987L19.4393 11.9397L17.2803 9.78033C16.9874 9.48744 16.9874 9.01256 17.2803 8.71967C17.5732 8.42678 17.5732 8.21967 17.2803 8.21967Z" clip-rule="evenodd"/></svg>
+  </button>
   <button type="button" class="gc-chat-attach-item" onclick="gcChatAttachAction('voice')">
     <span>Voice</span>
     <svg class="gc-attach-ico" xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M0 0h24v24H0z" fill="none"/><path fill="currentColor" fill-rule="evenodd" d="M6.25 8C6.25 4.82436 8.82436 2.25 12 2.25C15.1756 2.25 17.75 4.82436 17.75 8V11C17.75 14.1756 15.1756 16.75 12 16.75C8.82436 16.75 6.25 14.1756 6.25 11V8ZM12 3.75C9.65279 3.75 7.75 5.65279 7.75 8V11C7.75 13.3472 9.65279 15.25 12 15.25C14.0913 15.25 15.8298 13.7395 16.184 11.75L13 11.75C12.5858 11.75 12.25 11.4142 12.25 11C12.25 10.5858 12.5858 10.25 13 10.25L16.25 10.25V8.75H13C12.5858 8.75 12.25 8.41421 12.25 8C12.25 7.58579 12.5858 7.25 13 7.25H16.184C15.8298 5.26049 14.0913 3.75 12 3.75ZM4 9.25C4.41421 9.25 4.75 9.58579 4.75 10V11C4.75 15.0041 7.99594 18.25 12 18.25C16.0041 18.25 19.25 15.0041 19.25 11V10C19.25 9.58579 19.5858 9.25 20 9.25C20.4142 9.25 20.75 9.58579 20.75 10V11C20.75 15.5798 17.2314 19.3379 12.75 19.7183V22C12.75 22.4142 12.4142 22.75 12 22.75C11.5858 22.75 11.25 22.4142 11.25 22V19.7183C6.7686 19.3379 3.25 15.5798 3.25 11V10C3.25 9.58579 3.58579 9.25 4 9.25Z" clip-rule="evenodd"/></svg>
@@ -15474,6 +15547,7 @@ l-137 -640 -193 -3 -193 -2 4 22 c2 13 67 314 144 671 l139 647 192 0 193 0
     <i class="ph-light ph-image"></i>
 </label>
 <input type="file" id="chat-img-input" accept="image/*" multiple style="display:none;" onchange="gcQueueChatImages(this)">
+<input type="file" id="chat-video-input" accept="video/*" style="display:none;" onchange="sendChatVideo(this)">
 
 <!-- 📤 Send Button -->
 <button class="chat-send-btn" id="text-send-btn" type="button" onclick="sendMsg()" style="margin-left: 2px; flex-shrink:0;" aria-label="Send">
@@ -15593,6 +15667,29 @@ l-137 -640 -193 -3 -193 -2 4 22 c2 13 67 314 144 671 l139 647 192 0 193 0
 
 
 <!-- 🚀 NEW: Fullscreen Immersive Gallery Modal (Swipeable + Actions) -->
+
+<!-- Chat video fullscreen viewer -->
+<div id="gc-chat-video-viewer" aria-hidden="true">
+  <div class="gc-cvv-top" onclick="event.stopPropagation()">
+    <button type="button" onclick="gcCloseChatVideoViewer()" aria-label="Close"><i class="ph-light ph-x" style="font-size:22px;"></i></button>
+    <div class="gc-cvv-menu-wrap">
+      <button type="button" onclick="gcToggleChatVideoMenu(event)" aria-label="More"><i class="ph-bold ph-dots-three" style="font-size:22px;"></i></button>
+      <div class="gc-cvv-menu" id="gc-cvv-menu">
+        <div class="chat-dropdown-item" onclick="gcShareChatVideo(event)"><i class="ph-light ph-export" style="font-size:20px;"></i> Share via...</div>
+        <div class="chat-dropdown-item" onclick="gcSaveChatVideo(event)"><i class="ph-light ph-download-simple" style="font-size:20px;"></i> Save video</div>
+      </div>
+    </div>
+  </div>
+  <div class="gc-cvv-stage">
+    <video id="gc-cvv-video" playsinline webkit-playsinline></video>
+  </div>
+  <div class="gc-cvv-controls" onclick="event.stopPropagation()">
+    <button type="button" class="gc-cvv-playbtn" id="gc-cvv-playbtn" onclick="gcToggleChatVideoPlayback()" aria-label="Play">
+      <svg id="gc-cvv-play-ico" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.14v13.72a1 1 0 0 0 1.5.86l11-6.86a1 1 0 0 0 0-1.72l-11-6.86a1 1 0 0 0-1.5.86z"/></svg>
+      <svg id="gc-cvv-pause-ico" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="display:none;"><path d="M7 5h3a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1zm7 0h3a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1h-3a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z"/></svg>
+    </button>
+  </div>
+</div>
 <div class="image-zoom-modal" id="image-zoom-modal">
     <div class="zoom-blur-bg" id="zoom-blur-bg" aria-hidden="true"></div>
     <!-- Top Left Counter -->
@@ -22052,6 +22149,10 @@ safeText = safeText.replace(urlRegex, function(url) {
                   </div>
                 </div>`;
                 if(m.text) content += `<div style="margin-top:6px;">${safeText}</div>`;
+            } else if(m.videoUrl){
+                const vUrl = escapeHTML(m.videoUrl);
+                const vBubble = (typeof gcBuildChatVideoBubble==='function') ? gcBuildChatVideoBubble(m.videoUrl) : (`<div class="gc-chat-video-bubble" onclick="event.stopPropagation();gcOpenChatVideoViewer('${vUrl}')"><video src="${vUrl}" preload="metadata" muted playsinline></video><div class="gc-chat-video-play"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.14v13.72a1 1 0 0 0 1.5.86l11-6.86a1 1 0 0 0 0-1.72l-11-6.86a1 1 0 0 0-1.5.86z"/></svg></div></div>`);
+                content = (m.text ? `<div style="margin-bottom:6px;">${safeText}</div>` : '') + vBubble;
             } else if((m.images && m.images.length) || m.imageUrl){
                 const imgList = (m.images && m.images.length) ? m.images : [m.imageUrl];
                 const gridHtml = (typeof gcBuildChatImageGrid==='function') ? gcBuildChatImageGrid(imgList) : `<img src="${escapeHTML(imgList[0]||'')}" onclick="openImageZoom('${escapeHTML(imgList[0]||'')}')">`;
@@ -22096,7 +22197,7 @@ safeText = safeText.replace(urlRegex, function(url) {
                 const date = m.createdAt.toDate ? m.createdAt.toDate() : new Date(m.createdAt);
                 timeString = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
             }
-            const _isMediaOnly = ((((m.images&&m.images.length)||m.imageUrl)&&!m.text)||m.sharedPostId);
+            const _isMediaOnly = ((((m.images&&m.images.length)||m.imageUrl||m.videoUrl)&&!m.text)||m.sharedPostId);
             let timeAndReceiptHtml = `<div class="gc-msg-time-row" style="font-size: 10px; text-align: right; margin-top: 5px; display: flex; justify-content: flex-end; gap: 4px; align-items: center;">
                 <span>${timeString}</span>`;
             if(isMine){
@@ -22173,7 +22274,7 @@ safeText = safeText.replace(urlRegex, function(url) {
         return dateSepHtml + `<div class="chat-bubble-wrapper ${isMine?'mine':'theirs'}" data-msgid="${d.id}" ontouchstart="handleMsgTouchStart('${d.id}', event)" ontouchmove="handleMsgTouchMove(event)" ontouchend="handleMsgTouchEnd('${d.id}', event)" ontouchcancel="handleMsgTouchEnd('${d.id}', event)" onmousedown="handleMsgTouchStart('${d.id}', event)" onmouseup="handleMsgTouchEnd('${d.id}', event)" onmouseleave="handleMsgTouchEnd('${d.id}', event)" oncontextmenu="event.preventDefault(); return false;" onclick="handleMsgClick('${d.id}')">
             <div style="display:flex; flex-direction:row; align-items:flex-start; width:100%; ${isMine?'justify-content:flex-end;':''}">
                 ${!isMine ? msgAvatarHtml : ''}
-                <div class="chat-bubble ${isMine?'mine':'theirs'}${(((m.images&&m.images.length)||m.imageUrl)&&!m.text)||m.sharedPostId?' gc-media-only':''}${m.audioUrl?' gc-voice-bubble':''}" ${(isMine && !((((m.images&&m.images.length)||m.imageUrl)&&!m.text)||m.sharedPostId))?'style="background:#00BFFF !important;background-color:#00BFFF !important;background-image:none !important;"':''} >
+                <div class="chat-bubble ${isMine?'mine':'theirs'}${(((m.images&&m.images.length)||m.imageUrl||m.videoUrl)&&!m.text)||m.sharedPostId?' gc-media-only':''}${m.audioUrl?' gc-voice-bubble':''}" ${(isMine && !((((m.images&&m.images.length)||m.imageUrl||m.videoUrl)&&!m.text)||m.sharedPostId))?'style="background:#00BFFF !important;background-color:#00BFFF !important;background-image:none !important;"':''} >
                     ${m.forwarded ? '<div class="gc-fwd-label"><i class="ph-light ph-arrow-bend-double-up-right"></i> Forwarded</div>' : ''}
                     ${senderNameHtml}
                     ${replyHtml}
@@ -22560,6 +22661,9 @@ function gcChatAttachAction(kind){
   if(kind === 'photo'){
     var inp = document.getElementById('chat-img-input');
     if(inp) inp.click();
+  } else if(kind === 'video'){
+    var vinp = document.getElementById('chat-video-input');
+    if(vinp) vinp.click();
   } else if(kind === 'voice'){
     if(typeof startVoiceRecord === 'function') startVoiceRecord();
   } else if(kind === 'quick'){
@@ -23409,6 +23513,218 @@ async function sendChatImage(input){
   }
   try{ input.value=''; }catch(e){}
 }
+
+async function sendChatVideo(input){
+  if(!input||!input.files||!input.files.length||!currentChatId) return;
+  var file = input.files[0];
+  try{ input.value=''; }catch(e){}
+  if(!file||!file.type||file.type.indexOf('video/')!==0){
+    showToast('Please select a video');
+    return;
+  }
+  var maxBytes = (typeof GC_VIDEO_MAX_BYTES === 'number') ? GC_VIDEO_MAX_BYTES : (10 * 1024 * 1024);
+  if(file.size > maxBytes){
+    showToast('Video must be under 10MB');
+    return;
+  }
+  var pendingJob = null;
+  try{
+    pendingJob = gcCreatePendingChatImageJob([file]);
+    if(pendingJob) gcUpdatePendingChatImageJob(pendingJob, 'Uploading video...');
+  }catch(e){}
+  var replySnap=null;
+  if(typeof currentReplyMsgId!=='undefined' && currentReplyMsgId && typeof replyToMsgData!=='undefined' && replyToMsgData){
+    replySnap={replyTo:currentReplyMsgId,replySender:replyToMsgData.senderName||'User',replyText:replyToMsgData.text||'Video'};
+    currentReplyMsgId=null; replyToMsgData=null;
+    var rp=document.getElementById('reply-preview-container'); if(rp) rp.innerHTML='';
+    var ci=document.getElementById('chat-input'); if(ci) ci.placeholder='Message...';
+  }
+  try{
+    if(pendingJob) gcUpdatePendingChatImageJob(pendingJob, 'Uploading...');
+    var url = await uploadToCloudinary(file, true);
+    if(!url){
+      if(pendingJob) gcFinishPendingChatImageJob(pendingJob);
+      showToast('Failed to upload video');
+      return;
+    }
+    if(pendingJob) gcUpdatePendingChatImageJob(pendingJob, 'Sending...');
+    var payload={
+      uid:currentUser.uid,
+      senderName:(currentUserData&&currentUserData.name)||'User',
+      text:'',
+      videoUrl:url,
+      mediaType:'video',
+      createdAt:firebase.firestore.FieldValue.serverTimestamp()
+    };
+    if(replySnap){ payload.replyTo=replySnap.replyTo; payload.replySender=replySnap.replySender; payload.replyText=replySnap.replyText; }
+    await db.collection('chats').doc(currentChatId).collection('messages').add(payload);
+    var lastText=' Video';
+    if(currentChatOtherUid==='group') lastText=((currentUserData&&currentUserData.name)||'User')+' sent a video';
+    await db.collection('chats').doc(currentChatId).set({lastMsg:lastText,lastAt:firebase.firestore.FieldValue.serverTimestamp(),lastSender:currentUser.uid,isRead:false},{merge:true});
+    if(pendingJob) gcFinishPendingChatImageJob(pendingJob);
+    showToast('Video sent!');
+  }catch(e){
+    console.error(e);
+    if(pendingJob) try{ gcFinishPendingChatImageJob(pendingJob); }catch(_e){}
+    showToast('Failed to send video');
+  }
+}
+window.sendChatVideo = sendChatVideo;
+
+function gcBuildChatVideoBubble(url){
+  if(!url) return '';
+  var u = escapeHTML(url);
+  return '<div class="gc-chat-video-bubble" onclick="event.stopPropagation();gcOpenChatVideoViewer(\''+u+'\')">'
+    +'<video src="'+u+'" preload="metadata" muted playsinline></video>'
+    +'<div class="gc-chat-video-play"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.14v13.72a1 1 0 0 0 1.5.86l11-6.86a1 1 0 0 0 0-1.72l-11-6.86a1 1 0 0 0-1.5.86z"/></svg></div>'
+    +'</div>';
+}
+window.gcBuildChatVideoBubble = gcBuildChatVideoBubble;
+
+window.__gcChatVideoScroll = null;
+window.__gcChatVideoUrl = '';
+
+function gcOpenChatVideoViewer(url){
+  if(!url) return;
+  window.__gcChatVideoUrl = url;
+  var list = document.getElementById('chat-messages');
+  if(list) window.__gcChatVideoScroll = list.scrollTop;
+  var viewer = document.getElementById('gc-chat-video-viewer');
+  var vid = document.getElementById('gc-cvv-video');
+  var menu = document.getElementById('gc-cvv-menu');
+  if(!viewer || !vid) return;
+  if(menu) menu.classList.remove('open');
+  vid.pause();
+  vid.removeAttribute('src');
+  vid.src = url;
+  vid.load();
+  viewer.classList.add('open');
+  viewer.setAttribute('aria-hidden','false');
+  gcSyncChatVideoPlayIcon(false);
+  // Autoplay attempt (muted first for mobile policies, then unmute)
+  try{
+    vid.muted = false;
+    var p = vid.play();
+    if(p && p.then){ p.then(function(){ gcSyncChatVideoPlayIcon(true); }).catch(function(){ gcSyncChatVideoPlayIcon(false); }); }
+  }catch(e){ gcSyncChatVideoPlayIcon(false); }
+}
+window.gcOpenChatVideoViewer = gcOpenChatVideoViewer;
+
+function gcCloseChatVideoViewer(){
+  var viewer = document.getElementById('gc-chat-video-viewer');
+  var vid = document.getElementById('gc-cvv-video');
+  var menu = document.getElementById('gc-cvv-menu');
+  if(menu) menu.classList.remove('open');
+  if(vid){ try{ vid.pause(); }catch(e){} try{ vid.removeAttribute('src'); vid.load(); }catch(e){} }
+  if(viewer){ viewer.classList.remove('open'); viewer.setAttribute('aria-hidden','true'); }
+  var list = document.getElementById('chat-messages');
+  if(list && window.__gcChatVideoScroll != null){
+    try{ list.scrollTop = window.__gcChatVideoScroll; }catch(e){}
+  }
+  window.__gcChatVideoUrl = '';
+}
+window.gcCloseChatVideoViewer = gcCloseChatVideoViewer;
+
+function gcSyncChatVideoPlayIcon(playing){
+  var playI = document.getElementById('gc-cvv-play-ico');
+  var pauseI = document.getElementById('gc-cvv-pause-ico');
+  var btn = document.getElementById('gc-cvv-playbtn');
+  if(playI) playI.style.display = playing ? 'none' : 'block';
+  if(pauseI) pauseI.style.display = playing ? 'block' : 'none';
+  if(btn) btn.setAttribute('aria-label', playing ? 'Pause' : 'Play');
+}
+function gcToggleChatVideoPlayback(){
+  var vid = document.getElementById('gc-cvv-video');
+  if(!vid) return;
+  if(vid.paused){
+    var p = vid.play();
+    if(p && p.then){ p.then(function(){ gcSyncChatVideoPlayIcon(true); }).catch(function(){ gcSyncChatVideoPlayIcon(false); }); }
+    else gcSyncChatVideoPlayIcon(true);
+  } else {
+    vid.pause();
+    gcSyncChatVideoPlayIcon(false);
+  }
+}
+window.gcToggleChatVideoPlayback = gcToggleChatVideoPlayback;
+
+function gcToggleChatVideoMenu(e){
+  if(e) e.stopPropagation();
+  var menu = document.getElementById('gc-cvv-menu');
+  if(!menu) return;
+  menu.classList.toggle('open');
+}
+window.gcToggleChatVideoMenu = gcToggleChatVideoMenu;
+
+async function gcShareChatVideo(event){
+  if(event) event.stopPropagation();
+  if(typeof gcIsAdvancedPrivacyActive === 'function' && gcIsAdvancedPrivacyActive()){
+    showToast('Sharing media is disabled while Advanced Privacy is ON');
+    return;
+  }
+  var menu = document.getElementById('gc-cvv-menu');
+  if(menu) menu.classList.remove('open');
+  var url = window.__gcChatVideoUrl || ((document.getElementById('gc-cvv-video')||{}).src) || '';
+  if(!url){ showToast('Nothing to share'); return; }
+  try{
+    if(navigator.share){
+      try{
+        var res = await fetch(url);
+        var blob = await res.blob();
+        var file = new File([blob], 'GoChat_Video.mp4', { type: blob.type || 'video/mp4' });
+        if(navigator.canShare && navigator.canShare({ files:[file] })){
+          await navigator.share({ files:[file], title:'GoChat Video' });
+          return;
+        }
+      }catch(e){}
+      await navigator.share({ url:url, title:'GoChat Video' });
+      return;
+    }
+  }catch(e){}
+  try{
+    await navigator.clipboard.writeText(url);
+    showToast('Video link copied');
+  }catch(e2){
+    showToast('Unable to share');
+  }
+}
+window.gcShareChatVideo = gcShareChatVideo;
+
+async function gcSaveChatVideo(event){
+  if(event) event.stopPropagation();
+  var menu = document.getElementById('gc-cvv-menu');
+  if(menu) menu.classList.remove('open');
+  var url = window.__gcChatVideoUrl || ((document.getElementById('gc-cvv-video')||{}).src) || '';
+  if(!url) return;
+  if(typeof gcDownloadMedia === 'function'){
+    await gcDownloadMedia(url, { which:'zoom', filename:'GoChat_Video_'+Date.now()+'.mp4' });
+  } else {
+    try{
+      var a=document.createElement('a'); a.href=url; a.download='GoChat_Video.mp4'; a.target='_blank';
+      document.body.appendChild(a); a.click(); a.remove();
+    }catch(e){ showToast('Download failed'); }
+  }
+}
+window.gcSaveChatVideo = gcSaveChatVideo;
+
+(function(){
+  // Keep play icon in sync + close menu on outside
+  document.addEventListener('DOMContentLoaded', function(){
+    var vid = document.getElementById('gc-cvv-video');
+    if(vid){
+      vid.addEventListener('play', function(){ gcSyncChatVideoPlayIcon(true); });
+      vid.addEventListener('pause', function(){ gcSyncChatVideoPlayIcon(false); });
+      vid.addEventListener('ended', function(){ gcSyncChatVideoPlayIcon(false); });
+    }
+  });
+  // Also bind immediately if DOM ready
+  var vid2 = document.getElementById('gc-cvv-video');
+  if(vid2){
+    vid2.addEventListener('play', function(){ gcSyncChatVideoPlayIcon(true); });
+    vid2.addEventListener('pause', function(){ gcSyncChatVideoPlayIcon(false); });
+    vid2.addEventListener('ended', function(){ gcSyncChatVideoPlayIcon(false); });
+  }
+})();
+
 function gcBuildChatImageGrid(urls){
   urls=(urls||[]).filter(Boolean).slice(0,10);
   if(!urls.length) return '';
@@ -31709,6 +32025,9 @@ window.addEventListener('popstate', function(event) {
 });
 
 function closeTopMostView() {
+    var cvv = document.getElementById('gc-chat-video-viewer');
+    if (cvv && cvv.classList.contains('open')) { if(typeof gcCloseChatVideoViewer==='function') gcCloseChatVideoViewer(); return true; }
+
     var editPost = document.getElementById('edit-post-modal');
     if (editPost && editPost.classList.contains('open')) { if(typeof closeEditPostModal==='function') closeEditPostModal(); return true; }
 
