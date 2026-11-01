@@ -13837,46 +13837,96 @@ body:not(.light-mode) .sp-comment-compose button.is-ready{
 }
 #gc-chat-video-viewer.open{ display:flex; }
 .gc-cvv-top{
-  position:absolute;top:0;left:0;right:0;z-index:2;
+  position:absolute;top:0;left:0;right:0;z-index:3;
   display:flex;align-items:center;justify-content:space-between;
   padding:12px 14px;padding-top:max(12px, env(safe-area-inset-top));
   background:linear-gradient(rgba(0,0,0,0.55), transparent);
+  pointer-events:none;
 }
 .gc-cvv-top button{
-  width:40px;height:40px;border-radius:50%;border:none;cursor:pointer;
+  width:42px;height:42px;border-radius:50%;border:none;cursor:pointer;
   background:rgba(255,255,255,0.12);color:#fff;
   display:flex;align-items:center;justify-content:center;
+  pointer-events:auto;
 }
+.gc-cvv-top button svg{ width:22px;height:22px;display:block; }
 .gc-cvv-top button:active{ transform:scale(0.92); }
-.gc-cvv-menu-wrap{ position:relative; }
+.gc-cvv-menu-wrap{ position:relative; pointer-events:auto; }
 .gc-cvv-menu{
   display:none;position:absolute;right:0;top:44px;min-width:180px;
   background:var(--surface);border:1px solid var(--border);border-radius:14px;
-  box-shadow:var(--shadow-lg);overflow:hidden;z-index:3;
+  box-shadow:var(--shadow-lg);overflow:hidden;z-index:4;
 }
 .gc-cvv-menu.open{ display:block; }
 .gc-cvv-stage{
   flex:1;display:flex;align-items:center;justify-content:center;
-  padding:56px 12px 100px;box-sizing:border-box;min-height:0;
+  padding:56px 12px 150px;box-sizing:border-box;min-height:0;
 }
 .gc-cvv-stage video{
   max-width:100%;max-height:100%;width:auto;height:auto;
   object-fit:contain;background:#000;border-radius:0;
 }
+/* Bottom minimalist controls + progress (always docked) */
 .gc-cvv-controls{
-  position:absolute;left:0;right:0;bottom:0;z-index:2;
-  display:flex;align-items:center;justify-content:center;gap:18px;
-  padding:16px 18px;padding-bottom:max(18px, env(safe-area-inset-bottom));
-  background:linear-gradient(transparent, rgba(0,0,0,0.65));
+  position:absolute;left:0;right:0;bottom:0;z-index:3;
+  padding:12px 18px max(18px, env(safe-area-inset-bottom));
+  background:linear-gradient(transparent, rgba(0,0,0,0.72) 28%, rgba(0,0,0,0.88));
+  display:flex;flex-direction:column;align-items:stretch;gap:14px;
+  box-sizing:border-box;
 }
+.gc-cvv-transport{
+  display:flex;align-items:center;justify-content:center;gap:28px;
+}
+.gc-cvv-skip{
+  background:none;border:none;color:rgba(255,255,255,0.88);cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;gap:2px;
+  padding:6px;min-width:44px;
+}
+.gc-cvv-skip svg{ width:26px;height:26px;display:block; }
+.gc-cvv-skip span{
+  font-size:10px;font-weight:700;letter-spacing:0.02em;color:rgba(255,255,255,0.55);
+}
+.gc-cvv-skip:active{ opacity:0.7; transform:scale(0.94); }
 .gc-cvv-playbtn{
-  width:56px;height:56px;border-radius:50%;border:none;cursor:pointer;
-  background:rgba(255,255,255,0.18);color:#fff;
+  width:58px;height:58px;border-radius:50%;border:none;cursor:pointer;
+  background:rgba(255,255,255,0.16);color:#fff;
   display:flex;align-items:center;justify-content:center;
-  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  box-shadow:0 4px 16px rgba(0,0,0,0.25);
 }
+.gc-cvv-playbtn svg{ width:30px;height:30px;display:block; }
 .gc-cvv-playbtn:active{ transform:scale(0.94); }
-.gc-cvv-playbtn svg{ width:26px;height:26px; }
+.gc-cvv-progress-row{
+  display:flex;align-items:center;gap:10px;
+  width:100%;
+}
+.gc-cvv-time{
+  flex:0 0 auto;min-width:40px;
+  font-size:12px;font-weight:700;color:rgba(255,255,255,0.85);
+  font-variant-numeric:tabular-nums;letter-spacing:0.02em;
+}
+.gc-cvv-time.end{ text-align:right; }
+.gc-cvv-bar{
+  position:relative;flex:1;height:18px;
+  display:flex;align-items:center;cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+}
+.gc-cvv-bar-track{
+  position:relative;width:100%;height:5px;border-radius:999px;
+  background:rgba(255,255,255,0.22);overflow:hidden;
+}
+.gc-cvv-bar-fill{
+  position:absolute;left:0;top:0;bottom:0;width:0%;
+  border-radius:999px;
+  background:linear-gradient(135deg, #c1f600 0%, #8fd400 42%, #00545f 100%);
+  transition:width 0.05s linear;
+}
+.gc-cvv-bar-thumb{
+  position:absolute;top:50%;width:14px;height:14px;border-radius:50%;
+  background:#fff;box-shadow:0 1px 4px rgba(0,0,0,0.35);
+  transform:translate(-50%,-50%);left:0%;
+  pointer-events:none;
+}
 
 /* ═══ Offline banner ═══ */
 #gc-offline-banner{
@@ -15670,10 +15720,14 @@ l-137 -640 -193 -3 -193 -2 4 22 c2 13 67 314 144 671 l139 647 192 0 193 0
 
 <!-- Chat video fullscreen viewer -->
 <div id="gc-chat-video-viewer" aria-hidden="true">
-  <div class="gc-cvv-top" onclick="event.stopPropagation()">
-    <button type="button" onclick="gcCloseChatVideoViewer()" aria-label="Close"><i class="ph-light ph-x" style="font-size:22px;"></i></button>
+  <div class="gc-cvv-top">
+    <button type="button" onclick="gcCloseChatVideoViewer()" aria-label="Close">
+      <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M0 0h24v24H0z" fill="none"/><path fill="currentColor" d="M18.4765 4.46964C18.7694 4.17681 19.2442 4.17677 19.5371 4.46964C19.8298 4.76253 19.8298 5.23734 19.5371 5.53019L13.0634 12.0028L19.5302 18.4696C19.8229 18.7625 19.823 19.2373 19.5302 19.5302C19.2374 19.823 18.7626 19.8229 18.4697 19.5302L12.0029 13.0634L5.53705 19.5302C5.2442 19.823 4.76939 19.8229 4.47651 19.5302C4.18363 19.2373 4.18367 18.7625 4.47651 18.4696L10.9423 12.0028L4.46967 5.53019C4.17678 5.2373 4.17678 4.76253 4.46967 4.46964C4.76257 4.1768 5.23734 4.17677 5.53022 4.46964L12.0029 10.9423L18.4765 4.46964Z"/></svg>
+    </button>
     <div class="gc-cvv-menu-wrap">
-      <button type="button" onclick="gcToggleChatVideoMenu(event)" aria-label="More"><i class="ph-bold ph-dots-three" style="font-size:22px;"></i></button>
+      <button type="button" onclick="gcToggleChatVideoMenu(event)" aria-label="More">
+        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM12.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM18.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z"/></svg>
+      </button>
       <div class="gc-cvv-menu" id="gc-cvv-menu">
         <div class="chat-dropdown-item" onclick="gcShareChatVideo(event)"><i class="ph-light ph-export" style="font-size:20px;"></i> Share via...</div>
         <div class="chat-dropdown-item" onclick="gcSaveChatVideo(event)"><i class="ph-light ph-download-simple" style="font-size:20px;"></i> Save video</div>
@@ -15684,10 +15738,30 @@ l-137 -640 -193 -3 -193 -2 4 22 c2 13 67 314 144 671 l139 647 192 0 193 0
     <video id="gc-cvv-video" playsinline webkit-playsinline></video>
   </div>
   <div class="gc-cvv-controls" onclick="event.stopPropagation()">
-    <button type="button" class="gc-cvv-playbtn" id="gc-cvv-playbtn" onclick="gcToggleChatVideoPlayback()" aria-label="Play">
-      <svg id="gc-cvv-play-ico" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.14v13.72a1 1 0 0 0 1.5.86l11-6.86a1 1 0 0 0 0-1.72l-11-6.86a1 1 0 0 0-1.5.86z"/></svg>
-      <svg id="gc-cvv-pause-ico" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="display:none;"><path d="M7 5h3a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1zm7 0h3a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1h-3a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z"/></svg>
-    </button>
+    <div class="gc-cvv-transport">
+      <button type="button" class="gc-cvv-skip" onclick="gcChatVideoSkip(-5)" aria-label="Back 5 seconds">
+        <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M0 0h24v24H0z" fill="none"/><path fill="currentColor" fill-rule="evenodd" d="M22.7498 6.42642C22.7498 5.28953 22.2555 4.2991 21.4787 3.73235C20.6815 3.15078 19.6076 3.04585 18.6712 3.69083L18.6624 3.69687L13.75 7.2906V7.12313C13.75 6.08735 13.2773 5.18999 12.5457 4.68051C11.7998 4.16104 10.8013 4.06826 9.92676 4.64326L2.50932 9.52023C1.639 10.0925 1.25 11.0822 1.25 12.0001C1.25 12.918 1.63899 13.9077 2.50931 14.48L9.92676 19.3569C10.8013 19.9319 11.7998 19.8392 12.5457 19.3197C13.2773 18.8102 13.75 17.9129 13.75 16.8771V16.7096L18.6624 20.3033L18.6712 20.3094C19.6076 20.9544 20.6815 20.8494 21.4787 20.2679C22.2555 19.7011 22.7498 18.7107 22.7498 17.5738L22.7498 6.42642ZM13.75 14.8511L19.5298 19.0794C19.8935 19.3258 20.2682 19.2942 20.5946 19.0561C20.9437 18.8014 21.2498 18.2843 21.2498 17.5738L21.2498 6.42642C21.2498 5.71593 20.9437 5.19882 20.5946 4.94415C20.2682 4.706 19.8935 4.67439 19.5299 4.92083L13.75 9.14914L13.75 14.8511ZM10.7508 5.89661C11.0703 5.68659 11.4024 5.71218 11.6885 5.91145C11.989 6.12071 12.25 6.54246 12.25 7.12313L12.25 16.8771C12.25 17.4577 11.989 17.8795 11.6885 18.0888C11.4024 18.288 11.0703 18.3136 10.7508 18.1036L3.33339 13.2266C2.97524 12.9911 2.75 12.5316 2.75 12.0001C2.75 11.4686 2.97524 11.0091 3.3334 10.7736L10.7508 5.89661Z" clip-rule="evenodd"/></svg>
+        <span>5s</span>
+      </button>
+      <button type="button" class="gc-cvv-playbtn" id="gc-cvv-playbtn" onclick="gcToggleChatVideoPlayback()" aria-label="Play">
+        <svg id="gc-cvv-play-ico" xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M0 0h24v24H0z" fill="none"/><g fill="currentColor" fill-rule="evenodd" clip-rule="evenodd"><path d="M11.0748 7.50835C9.74622 6.72395 8.25 7.79065 8.25 9.21316V14.7868C8.25 16.2093 9.74622 17.276 11.0748 16.4916L15.795 13.7048C17.0683 12.953 17.0683 11.047 15.795 10.2952L11.0748 7.50835ZM9.75 9.21316C9.75 9.01468 9.84615 8.87585 9.95947 8.80498C10.0691 8.73641 10.1919 8.72898 10.3122 8.80003L15.0324 11.5869C15.165 11.6652 15.25 11.8148 15.25 12C15.25 12.1852 15.165 12.3348 15.0324 12.4131L10.3122 15.2C10.1919 15.271 10.0691 15.2636 9.95947 15.195C9.84615 15.1242 9.75 14.9853 9.75 14.7868V9.21316Z"/><path d="M12 1.25C6.06294 1.25 1.25 6.06294 1.25 12C1.25 17.9371 6.06294 22.75 12 22.75C17.9371 22.75 22.75 17.9371 22.75 12C22.75 6.06294 17.9371 1.25 12 1.25ZM2.75 12C2.75 6.89137 6.89137 2.75 12 2.75C17.1086 2.75 21.25 6.89137 21.25 12C21.25 17.1086 17.1086 21.25 12 21.25C6.89137 21.25 2.75 17.1086 2.75 12Z"/></g></svg>
+        <svg id="gc-cvv-pause-ico" xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="currentColor" style="display:none;" aria-hidden="true"><path d="M0 0h24v24H0z" fill="none"/><path fill="currentColor" fill-rule="evenodd" d="M12 2.75C6.89137 2.75 2.75 6.89137 2.75 12C2.75 17.1086 6.89137 21.25 12 21.25C17.1086 21.25 21.25 17.1086 21.25 12C21.25 6.89137 17.1086 2.75 12 2.75ZM1.25 12C1.25 6.06294 6.06294 1.25 12 1.25C17.9371 1.25 22.75 6.06294 22.75 12C22.75 17.9371 17.9371 22.75 12 22.75C6.06294 22.75 1.25 17.9371 1.25 12ZM9.47824 7.25H9.52176C9.73604 7.24999 9.93288 7.24997 10.0982 7.26125C10.2759 7.27338 10.4712 7.30099 10.6697 7.38321C11.0985 7.56083 11.4392 7.90151 11.6168 8.3303C11.699 8.52881 11.7266 8.72415 11.7387 8.90179C11.75 9.06712 11.75 9.26396 11.75 9.47824V14.5218C11.75 14.736 11.75 14.9329 11.7387 15.0982C11.7266 15.2759 11.699 15.4712 11.6168 15.6697C11.4392 16.0985 11.0985 16.4392 10.6697 16.6168C10.4712 16.699 10.2759 16.7266 10.0982 16.7387C9.93288 16.75 9.73604 16.75 9.52176 16.75H9.47824C9.26396 16.75 9.06712 16.75 8.90179 16.7387C8.72415 16.7266 8.52881 16.699 8.3303 16.6168C7.90151 16.4392 7.56083 16.0985 7.38321 15.6697C7.30099 15.4712 7.27338 15.2759 7.26125 15.0982C7.24997 14.9329 7.24999 14.736 7.25 14.5218V9.47824C7.24999 9.26396 7.24997 9.06712 7.26125 8.90179C7.27338 8.72415 7.30099 8.52881 7.38321 8.3303C7.56083 7.9015 7.9015 7.56083 8.3303 7.38321C8.52881 7.30099 8.72415 7.27338 8.90179 7.26125C9.06712 7.24997 9.26396 7.24999 9.47824 7.25ZM14.4782 7.25H14.5218C14.736 7.24999 14.9329 7.24997 15.0982 7.26125C15.2759 7.27338 15.4712 7.30099 15.6697 7.38321C16.0985 7.56083 16.4392 7.90151 16.6168 8.3303C16.699 8.52881 16.7266 8.72415 16.7387 8.90179C16.75 9.06712 16.75 9.26396 16.75 9.47824V14.5218C16.75 14.736 16.75 14.9329 16.7387 15.0982C16.7266 15.2759 16.699 15.4712 16.6168 15.6697C16.4392 16.0985 16.0985 16.4392 15.6697 16.6168C15.4712 16.699 15.2759 16.7266 15.0982 16.7387C14.9329 16.75 14.736 16.75 14.5218 16.75H14.4782C14.264 16.75 14.0671 16.75 13.9018 16.7387C13.7241 16.7266 13.5288 16.699 13.3303 16.6168C12.9015 16.4392 12.5608 16.0985 12.3832 15.6697C12.301 15.4712 12.2734 15.2759 12.2613 15.0982C12.25 14.9329 12.25 14.736 12.25 14.5218V9.47824C12.25 9.26396 12.25 9.06712 12.2613 8.90179C12.2734 8.72415 12.301 8.52881 12.3832 8.3303C12.5608 7.90151 12.9015 7.56083 13.3303 7.38321C13.5288 7.30099 13.7241 7.27338 13.9018 7.26125C14.0671 7.24997 14.264 7.24999 14.4782 7.25Z" clip-rule="evenodd"/></svg>
+      </button>
+      <button type="button" class="gc-cvv-skip" onclick="gcChatVideoSkip(5)" aria-label="Forward 5 seconds">
+        <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="currentColor" style="transform:scaleX(-1)" aria-hidden="true"><path d="M0 0h24v24H0z" fill="none"/><path fill="currentColor" fill-rule="evenodd" d="M22.7498 6.42642C22.7498 5.28953 22.2555 4.2991 21.4787 3.73235C20.6815 3.15078 19.6076 3.04585 18.6712 3.69083L18.6624 3.69687L13.75 7.2906V7.12313C13.75 6.08735 13.2773 5.18999 12.5457 4.68051C11.7998 4.16104 10.8013 4.06826 9.92676 4.64326L2.50932 9.52023C1.639 10.0925 1.25 11.0822 1.25 12.0001C1.25 12.918 1.63899 13.9077 2.50931 14.48L9.92676 19.3569C10.8013 19.9319 11.7998 19.8392 12.5457 19.3197C13.2773 18.8102 13.75 17.9129 13.75 16.8771V16.7096L18.6624 20.3033L18.6712 20.3094C19.6076 20.9544 20.6815 20.8494 21.4787 20.2679C22.2555 19.7011 22.7498 18.7107 22.7498 17.5738L22.7498 6.42642ZM13.75 14.8511L19.5298 19.0794C19.8935 19.3258 20.2682 19.2942 20.5946 19.0561C20.9437 18.8014 21.2498 18.2843 21.2498 17.5738L21.2498 6.42642C21.2498 5.71593 20.9437 5.19882 20.5946 4.94415C20.2682 4.706 19.8935 4.67439 19.5299 4.92083L13.75 9.14914L13.75 14.8511ZM10.7508 5.89661C11.0703 5.68659 11.4024 5.71218 11.6885 5.91145C11.989 6.12071 12.25 6.54246 12.25 7.12313L12.25 16.8771C12.25 17.4577 11.989 17.8795 11.6885 18.0888C11.4024 18.288 11.0703 18.3136 10.7508 18.1036L3.33339 13.2266C2.97524 12.9911 2.75 12.5316 2.75 12.0001C2.75 11.4686 2.97524 11.0091 3.3334 10.7736L10.7508 5.89661Z" clip-rule="evenodd"/></svg>
+        <span>5s</span>
+      </button>
+    </div>
+    <div class="gc-cvv-progress-row">
+      <span class="gc-cvv-time" id="gc-cvv-cur">00:00</span>
+      <div class="gc-cvv-bar" id="gc-cvv-bar" role="slider" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+        <div class="gc-cvv-bar-track">
+          <div class="gc-cvv-bar-fill" id="gc-cvv-bar-fill"></div>
+        </div>
+        <div class="gc-cvv-bar-thumb" id="gc-cvv-bar-thumb"></div>
+      </div>
+      <span class="gc-cvv-time end" id="gc-cvv-dur">00:00</span>
+    </div>
   </div>
 </div>
 <div class="image-zoom-modal" id="image-zoom-modal">
@@ -23601,11 +23675,11 @@ function gcOpenChatVideoViewer(url){
   viewer.classList.add('open');
   viewer.setAttribute('aria-hidden','false');
   gcSyncChatVideoPlayIcon(false);
-  // Autoplay attempt (muted first for mobile policies, then unmute)
+  gcUpdateChatVideoProgress();
   try{
     vid.muted = false;
     var p = vid.play();
-    if(p && p.then){ p.then(function(){ gcSyncChatVideoPlayIcon(true); }).catch(function(){ gcSyncChatVideoPlayIcon(false); }); }
+    if(p && p.then){ p.then(function(){ gcSyncChatVideoPlayIcon(true); gcUpdateChatVideoProgress(); }).catch(function(){ gcSyncChatVideoPlayIcon(false); }); }
   }catch(e){ gcSyncChatVideoPlayIcon(false); }
 }
 window.gcOpenChatVideoViewer = gcOpenChatVideoViewer;
@@ -23625,6 +23699,12 @@ function gcCloseChatVideoViewer(){
 }
 window.gcCloseChatVideoViewer = gcCloseChatVideoViewer;
 
+function gcFmtVideoTime(sec){
+  sec = Math.max(0, Math.floor(sec || 0));
+  var m = Math.floor(sec / 60);
+  var s = sec % 60;
+  return (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+}
 function gcSyncChatVideoPlayIcon(playing){
   var playI = document.getElementById('gc-cvv-play-ico');
   var pauseI = document.getElementById('gc-cvv-pause-ico');
@@ -23632,6 +23712,39 @@ function gcSyncChatVideoPlayIcon(playing){
   if(playI) playI.style.display = playing ? 'none' : 'block';
   if(pauseI) pauseI.style.display = playing ? 'block' : 'none';
   if(btn) btn.setAttribute('aria-label', playing ? 'Pause' : 'Play');
+}
+function gcUpdateChatVideoProgress(){
+  var vid = document.getElementById('gc-cvv-video');
+  if(!vid) return;
+  var cur = vid.currentTime || 0;
+  var dur = vid.duration;
+  if(!isFinite(dur) || dur <= 0) dur = 0;
+  var pct = dur > 0 ? Math.min(100, Math.max(0, (cur / dur) * 100)) : 0;
+  var fill = document.getElementById('gc-cvv-bar-fill');
+  var thumb = document.getElementById('gc-cvv-bar-thumb');
+  var curEl = document.getElementById('gc-cvv-cur');
+  var durEl = document.getElementById('gc-cvv-dur');
+  var bar = document.getElementById('gc-cvv-bar');
+  if(fill) fill.style.width = pct + '%';
+  if(thumb) thumb.style.left = pct + '%';
+  if(curEl) curEl.textContent = gcFmtVideoTime(cur);
+  if(durEl) durEl.textContent = gcFmtVideoTime(dur);
+  if(bar){
+    bar.setAttribute('aria-valuenow', String(Math.round(pct)));
+    bar.setAttribute('aria-valuetext', gcFmtVideoTime(cur) + ' / ' + gcFmtVideoTime(dur));
+  }
+}
+function gcChatVideoSeekFromEvent(e){
+  var vid = document.getElementById('gc-cvv-video');
+  var bar = document.getElementById('gc-cvv-bar');
+  if(!vid || !bar || !isFinite(vid.duration) || vid.duration <= 0) return;
+  var rect = bar.getBoundingClientRect();
+  var clientX = (e.touches && e.touches[0]) ? e.touches[0].clientX : e.clientX;
+  if(e.changedTouches && e.changedTouches[0] && clientX == null) clientX = e.changedTouches[0].clientX;
+  var ratio = (clientX - rect.left) / Math.max(1, rect.width);
+  ratio = Math.min(1, Math.max(0, ratio));
+  vid.currentTime = ratio * vid.duration;
+  gcUpdateChatVideoProgress();
 }
 function gcToggleChatVideoPlayback(){
   var vid = document.getElementById('gc-cvv-video');
@@ -23647,83 +23760,57 @@ function gcToggleChatVideoPlayback(){
 }
 window.gcToggleChatVideoPlayback = gcToggleChatVideoPlayback;
 
-function gcToggleChatVideoMenu(e){
-  if(e) e.stopPropagation();
-  var menu = document.getElementById('gc-cvv-menu');
-  if(!menu) return;
-  menu.classList.toggle('open');
+function gcChatVideoSkip(deltaSec){
+  var vid = document.getElementById('gc-cvv-video');
+  if(!vid || !isFinite(vid.duration)) return;
+  var next = (vid.currentTime || 0) + (deltaSec || 0);
+  next = Math.min(vid.duration, Math.max(0, next));
+  vid.currentTime = next;
+  gcUpdateChatVideoProgress();
 }
-window.gcToggleChatVideoMenu = gcToggleChatVideoMenu;
+window.gcChatVideoSkip = gcChatVideoSkip;
 
-async function gcShareChatVideo(event){
-  if(event) event.stopPropagation();
-  if(typeof gcIsAdvancedPrivacyActive === 'function' && gcIsAdvancedPrivacyActive()){
-    showToast('Sharing media is disabled while Advanced Privacy is ON');
-    return;
+function gcBindChatVideoViewerOnce(){
+  if(window.__gcChatVideoBound) return;
+  window.__gcChatVideoBound = true;
+  var vid = document.getElementById('gc-cvv-video');
+  var bar = document.getElementById('gc-cvv-bar');
+  if(vid){
+    vid.addEventListener('play', function(){ gcSyncChatVideoPlayIcon(true); });
+    vid.addEventListener('pause', function(){ gcSyncChatVideoPlayIcon(false); });
+    vid.addEventListener('ended', function(){ gcSyncChatVideoPlayIcon(false); });
+    vid.addEventListener('timeupdate', gcUpdateChatVideoProgress);
+    vid.addEventListener('loadedmetadata', gcUpdateChatVideoProgress);
+    vid.addEventListener('durationchange', gcUpdateChatVideoProgress);
   }
-  var menu = document.getElementById('gc-cvv-menu');
-  if(menu) menu.classList.remove('open');
-  var url = window.__gcChatVideoUrl || ((document.getElementById('gc-cvv-video')||{}).src) || '';
-  if(!url){ showToast('Nothing to share'); return; }
-  try{
-    if(navigator.share){
-      try{
-        var res = await fetch(url);
-        var blob = await res.blob();
-        var file = new File([blob], 'GoChat_Video.mp4', { type: blob.type || 'video/mp4' });
-        if(navigator.canShare && navigator.canShare({ files:[file] })){
-          await navigator.share({ files:[file], title:'GoChat Video' });
-          return;
-        }
-      }catch(e){}
-      await navigator.share({ url:url, title:'GoChat Video' });
-      return;
+  if(bar){
+    var dragging = false;
+    function startDrag(e){
+      dragging = true;
+      gcChatVideoSeekFromEvent(e);
+      e.preventDefault();
     }
-  }catch(e){}
-  try{
-    await navigator.clipboard.writeText(url);
-    showToast('Video link copied');
-  }catch(e2){
-    showToast('Unable to share');
-  }
-}
-window.gcShareChatVideo = gcShareChatVideo;
-
-async function gcSaveChatVideo(event){
-  if(event) event.stopPropagation();
-  var menu = document.getElementById('gc-cvv-menu');
-  if(menu) menu.classList.remove('open');
-  var url = window.__gcChatVideoUrl || ((document.getElementById('gc-cvv-video')||{}).src) || '';
-  if(!url) return;
-  if(typeof gcDownloadMedia === 'function'){
-    await gcDownloadMedia(url, { which:'zoom', filename:'GoChat_Video_'+Date.now()+'.mp4' });
-  } else {
-    try{
-      var a=document.createElement('a'); a.href=url; a.download='GoChat_Video.mp4'; a.target='_blank';
-      document.body.appendChild(a); a.click(); a.remove();
-    }catch(e){ showToast('Download failed'); }
-  }
-}
-window.gcSaveChatVideo = gcSaveChatVideo;
-
-(function(){
-  // Keep play icon in sync + close menu on outside
-  document.addEventListener('DOMContentLoaded', function(){
-    var vid = document.getElementById('gc-cvv-video');
-    if(vid){
-      vid.addEventListener('play', function(){ gcSyncChatVideoPlayIcon(true); });
-      vid.addEventListener('pause', function(){ gcSyncChatVideoPlayIcon(false); });
-      vid.addEventListener('ended', function(){ gcSyncChatVideoPlayIcon(false); });
+    function moveDrag(e){
+      if(!dragging) return;
+      gcChatVideoSeekFromEvent(e);
+      e.preventDefault();
     }
-  });
-  // Also bind immediately if DOM ready
-  var vid2 = document.getElementById('gc-cvv-video');
-  if(vid2){
-    vid2.addEventListener('play', function(){ gcSyncChatVideoPlayIcon(true); });
-    vid2.addEventListener('pause', function(){ gcSyncChatVideoPlayIcon(false); });
-    vid2.addEventListener('ended', function(){ gcSyncChatVideoPlayIcon(false); });
+    function endDrag(e){
+      if(!dragging) return;
+      dragging = false;
+      if(e) gcChatVideoSeekFromEvent(e);
+    }
+    bar.addEventListener('mousedown', startDrag);
+    window.addEventListener('mousemove', moveDrag);
+    window.addEventListener('mouseup', endDrag);
+    bar.addEventListener('touchstart', startDrag, {passive:false});
+    window.addEventListener('touchmove', moveDrag, {passive:false});
+    window.addEventListener('touchend', endDrag);
+    bar.addEventListener('click', function(e){ gcChatVideoSeekFromEvent(e); });
   }
-})();
+}
+gcBindChatVideoViewerOnce();
+document.addEventListener('DOMContentLoaded', gcBindChatVideoViewerOnce);
 
 function gcBuildChatImageGrid(urls){
   urls=(urls||[]).filter(Boolean).slice(0,10);
