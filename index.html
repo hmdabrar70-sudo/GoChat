@@ -32085,33 +32085,105 @@ async function uploadAndSendVoice(audioBlob) {
 // ==========================================
 // 🚀 SMART BACK BUTTON & HISTORY MANAGER
 // ==========================================
-let backPressTimer = null;
+// Keep one browser-history sentinel; GoChat manages its own screen history.
+window.__gcBackPageStack = window.__gcBackPageStack || [];
+window.__gcBackNavigating = false;
+window.__gcBackSentinelReady = false;
 
-// শুরুতে একটা ডামি হিস্ট্রি পুশ করে রাখা হলো
-history.pushState({ page: 'gochat_home' }, "", window.location.href);
+function gcNormalizeBackPage(page) {
+    return (page === 'home') ? 'feed' : page;
+}
 
-window.addEventListener('popstate', function(event) {
-    // যদি কোনো স্ক্রিন বা মডাল ওপেন থাকে, তবে সেটা ক্লোজ হবে
+function gcInitBackNavigation() {
+    if (window.__gcBackSentinelReady) return;
+    var active = document.querySelector('.page.active');
+    var initial = active && active.id ? active.id.replace(/^page-/, '') : 'feed';
+    initial = gcNormalizeBackPage(initial);
+    window.__gcBackPageStack = [initial || 'feed'];
+    try {
+        history.pushState({ gochatBackSentinel: true }, '', window.location.href);
+        window.__gcBackSentinelReady = true;
+    } catch (e) { console.warn('GoChat back history initialization failed', e); }
+}
+
+// The final showPage wrapper is installed at the end of this script, after
+// the app's existing feature wrappers, so every navigation passes through it.
+
+window.addEventListener('popstate', function() {
+    // First close the topmost transient UI. Never navigate away while one is open.
     if (closeTopMostView()) {
-        // বের হওয়া ঠেকাতে আবার হিস্ট্রি পুশ করে দেওয়া হলো
-        history.pushState({ page: 'gochat_home' }, "", window.location.href);
-    } else {
-        // যদি ইউজার মেইন ফিডে থাকে, তখন ডাবল ট্যাপ এক্সিট লজিক
-        if (backPressTimer) {
-            clearTimeout(backPressTimer);
-            // দ্বিতীয়বার চাপলে সত্যি বের হয়ে যাবে (ইতিমধ্যেই popstate হয়ে এক ধাপ পিছনে গেছে)
-        } else {
-            showToast("Press back again to exit");
-            // ভুল করে বের হওয়া ঠেকাতে আবার পুশ করা হলো
-            history.pushState({ page: 'gochat_home' }, "", window.location.href);
-            backPressTimer = setTimeout(() => {
-                backPressTimer = null;
-            }, 2000);
-        }
+        try { history.pushState({ gochatBackSentinel: true }, '', window.location.href); } catch (e) {}
+        return;
     }
+
+    // Then restore the previous GoChat page from its own navigation stack.
+    var stack = window.__gcBackPageStack || [];
+    if (stack.length > 1) {
+        stack.pop();
+        var previousPage = stack[stack.length - 1] || 'feed';
+        window.__gcBackPageStack = stack;
+        window.__gcBackNavigating = true;
+        try { window.showPage(previousPage); }
+        finally { window.__gcBackNavigating = false; }
+        try { history.pushState({ gochatBackSentinel: true }, '', window.location.href); } catch (e) {}
+        return;
+    }
+
+    // At the root Feed with no open UI: allow the browser/host Back action to exit.
 });
 
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', gcInitBackNavigation, { once: true });
+} else {
+    gcInitBackNavigation();
+}
+
 function closeTopMostView() {
+    // Highest-priority lightweight chat overlays and selection states.
+    var reactionPicker = document.querySelector('.reaction-picker.show');
+    if (reactionPicker) { reactionPicker.remove(); return true; }
+
+    var chatBubbleMenu = document.querySelector('.chat-bubble-menu.show');
+    if (chatBubbleMenu) { chatBubbleMenu.remove(); return true; }
+
+    if (document.querySelector('.gc-msg-pop-mask, .gc-msg-pop')) {
+        if (typeof gcCloseMsgActionPopup === 'function') gcCloseMsgActionPopup();
+        else document.querySelectorAll('.gc-msg-pop-mask, .gc-msg-pop').forEach(function(el){ el.remove(); });
+        return true;
+    }
+
+    var chatMoreMenu = document.getElementById('gc-msg-more-menu');
+    if (chatMoreMenu && chatMoreMenu.classList.contains('open')) {
+        if (typeof gcCloseMsgMoreMenu === 'function') gcCloseMsgMoreMenu();
+        else chatMoreMenu.classList.remove('open');
+        return true;
+    }
+
+    if (document.body.classList.contains('msg-select-mode') &&
+        document.getElementById('chat-screen') && document.getElementById('chat-screen').classList.contains('open')) {
+        if (typeof window.gcExitChatSelectMode === 'function') window.gcExitChatSelectMode();
+        else document.body.classList.remove('msg-select-mode');
+        return true;
+    }
+
+    var homeDrawer = document.getElementById('gc-home-drawer');
+    var homeDrawerMask = document.getElementById('gc-home-drawer-mask');
+    if ((homeDrawer && homeDrawer.classList.contains('open')) || (homeDrawerMask && homeDrawerMask.classList.contains('open'))) {
+        if (typeof gcCloseHomeDrawer === 'function') gcCloseHomeDrawer();
+        return true;
+    }
+
+    var emailPrivacySheet = document.getElementById('gc-email-privacy-sheet');
+    if (emailPrivacySheet && emailPrivacySheet.classList.contains('open')) {
+        if (typeof gcCloseEmailPrivacy === 'function') gcCloseEmailPrivacy();
+        return true;
+    }
+
+    if (typeof isNotifEditMode !== 'undefined' && isNotifEditMode) {
+        if (typeof toggleNotifEditMode === 'function') toggleNotifEditMode();
+        return true;
+    }
+
     var cvv = document.getElementById('gc-chat-video-viewer');
     if (cvv && cvv.classList.contains('open')) { if(typeof gcCloseChatVideoViewer==='function') gcCloseChatVideoViewer(); return true; }
 
@@ -40675,6 +40747,33 @@ window.gcCloseSheetSafe = gcCloseSheetSafe;
   } catch(e) {
     document.body.classList.add('light-mode');
   }
+})();
+
+
+// Final navigation tracker: installed after all existing showPage wrappers.
+(function gcInstallFinalBackPageTracker(){
+    if (window.__gcBackFinalTrackerInstalled || typeof window.showPage !== 'function') return;
+    window.__gcBackFinalTrackerInstalled = true;
+    var previousShowPage = window.showPage;
+    window.showPage = function(page) {
+        var target = gcNormalizeBackPage(page);
+        var activeEl = document.querySelector('.page.active');
+        var current = activeEl && activeEl.id ? activeEl.id.replace(/^page-/, '') : '';
+        current = gcNormalizeBackPage(current);
+        if (!window.__gcBackNavigating && target && target !== current) {
+            if (target === 'feed') {
+                window.__gcBackPageStack = ['feed'];
+            } else if (target === 'search') {
+                window.__gcBackPageStack = ['feed', 'search'];
+            } else {
+                var stack = window.__gcBackPageStack || [];
+                if (!stack.length) stack = [current || 'feed'];
+                if (stack[stack.length - 1] !== target) stack.push(target);
+                window.__gcBackPageStack = stack;
+            }
+        }
+        return previousShowPage.apply(this, arguments);
+    };
 })();
 </script>
 </body>
