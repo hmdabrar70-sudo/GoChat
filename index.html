@@ -1368,7 +1368,7 @@ body:not(.light-mode) .post-card {
 }
 
 
-/* ═══ Home feed left drawer (Trending / Category / Liked) ═══ */
+/* ═══ Home feed left drawer (Trending / Liked) ═══ */
 #gc-home-drawer-mask{
     display:none;position:fixed;inset:0;z-index:101500;
     background:rgba(0,0,0,0.4);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);
@@ -15864,10 +15864,10 @@ l-137 -640 -193 -3 -193 -2 4 22 c2 13 67 314 144 671 l139 647 192 0 193 0
 
 <div id="gc-av-editor" aria-hidden="true">
   <div class="gc-av-head">
-    <button type="button" onclick="gcCloseAvatarEditor()" aria-label="Cancel"><i class="ph-light ph-x"></i></button>
-    <h3>Edit profile photo</h3>
-    <button type="button" onclick="gcAvatarChooseAnother()">Change</button>
-  </div>
+  <button type="button" onclick="gcCloseAvatarEditor()" aria-label="Cancel"><i class="ph-light ph-x"></i></button>
+  <h3>Edit profile photo</h3>
+  <div style="width:40px;"></div>
+</div>
   <div class="gc-av-stage" id="gc-av-stage">
     <img id="gc-av-img" alt="Profile preview" draggable="false">
     <div class="gc-av-mask"></div>
@@ -15889,13 +15889,13 @@ l-137 -640 -193 -3 -193 -2 4 22 c2 13 67 314 144 671 l139 647 192 0 193 0
       <i class="ph-light ph-magnifying-glass-plus"></i>
     </div>
     <div class="gc-av-actions">
-      <button type="button" class="gc-av-btn-secondary" onclick="gcAvatarChooseAnother()">
-        Gallery
-      </button>
-      <button type="button" class="gc-av-btn-primary" id="gc-av-save-btn" onclick="gcConfirmAvatarCrop()">
-        Use photo
-      </button>
-    </div>
+  <button type="button" class="gc-av-btn-secondary" onclick="gcAvatarChooseAnother()">
+    Change
+  </button>
+  <button type="button" class="gc-av-btn-primary" id="gc-av-save-btn" onclick="gcConfirmAvatarCrop()">
+    Use photo
+  </button>
+</div>
   </div>
 </div>
 
@@ -18444,9 +18444,9 @@ notifUnsub = db.collection('notifications').where('toUid', '==', user.uid).onSna
     }catch(e){}
 
     if (notifs.length === 0) {
-        nList.innerHTML = '<div class="notif-empty"><i class="ph-light ph-bell-slash"></i><h3>No notifications yet</h3><p>When someone likes, comments, or follows you, it will show up here.</p></div>';
-        return;
-    }
+    nList.innerHTML = '<div class="notif-empty"><h3>No notifications yet</h3><p>When someone likes, comments, or follows you, it will show up here.</p></div>';
+    return;
+}
 
     function gcNotifTypeMeta(t, reaction){
       t = t || '';
@@ -19877,8 +19877,7 @@ function gcEnsureStoryPreviewMask(){
     +  '<div style="width:40px;"></div>'
     + '</div>'
     + '<div class="gc-story-preview-media" id="gc-story-preview-media"></div>'
-    + '<div class="gc-story-preview-actions">'
-    +  '<button type="button" class="gc-sp-btn-cancel" onclick="gcCancelStoryPreview()">Cancel</button>'
+    + '<div class="gc-story-preview-actions">'    
     +  '<button type="button" class="gc-sp-btn-change" onclick="gcChangeStoryMedia()">Change</button>'
     +  '<button type="button" class="gc-sp-btn-post" id="gc-story-preview-post-btn" onclick="gcConfirmStoryUpload()">Post Story</button>'
     + '</div>'
@@ -22061,17 +22060,16 @@ ${gcDisplayName}
     
 
     // 🚀 view-as-feature · 2026-09-05 — Follow/Message/Rank-এর বদলে "প্রিভিউ মোড" ব্যানার
-    if (window.gcViewAsMode && currentUser && uid === currentUser.uid) {
-        const btnsWrap = document.getElementById('other-profile-btns');
-        if (btnsWrap) {
-            btnsWrap.innerHTML = `
-            <div class="gc-viewas-banner">
-                <i class="ph-fill ph-eye"></i>
-                <span>You're viewing your profile as others see it</span>
-                <button type="button" onclick="gcExitViewAs()">Exit</button>
-            </div>`;
-        }
+if (window.gcViewAsMode && currentUser && uid === currentUser.uid) {
+    const btnsWrap = document.getElementById('other-profile-btns');
+    if (btnsWrap) {
+        btnsWrap.innerHTML = `
+        <div class="gc-viewas-banner">
+            <span>You're viewing your profile as others see it</span>
+            <button type="button" onclick="gcExitViewAs()">Exit</button>
+        </div>`;
     }
+  }
 }
 
 function closeUserProfile(){
@@ -38066,9 +38064,12 @@ document.getElementById('gc-pay-body').innerHTML = `
 <h3 class="gc-pay-h">Complete Payment</h3>
 <div class="gc-pay-sum"><span>${gcPayPlan.name} · Elite</span><b>৳${gcPayPlan.price}</b></div>
 <div class="gc-bkash-card">
-<div class="gc-bkash-logo">bKash</div>
-<div><div class="gc-bkash-lbl">Send Money to (Personal)</div><div class="gc-bkash-num">${GC_BKASH_NUMBER}</div></div>
-<button class="gc-copy-btn" onclick="gcPayCopyNum()"><i class="ph-light ph-copy"></i> Copy</button>
+    <div class="gc-bkash-logo">bKash</div>
+    <div>
+        <div class="gc-bkash-lbl">Send Money to (Personal)</div>
+        <div class="gc-bkash-num">${GC_BKASH_NUMBER}</div>
+    </div>
+    <button class="gc-copy-btn" onclick="gcPayCopyNum()">Copy</button>
 </div>
 <div class="gc-pay-steps">
 <div><b>1.</b> Open bKash & send <b>৳${gcPayPlan.price}</b> to the number above</div>
@@ -38654,7 +38655,7 @@ const btn = document.querySelector('#auth-screen button[onclick*="loginWithEmail
 if(!btn || !btn.parentNode) return;
 const l = document.createElement('button');
 l.type = 'button'; l.id = 'gc-fp-link'; l.className = 'gc-fp-link';
-l.innerHTML = 'Forgot Password?';
+l.innerHTML = 'Forgot your password?';
 l.onclick = function(e){ e.stopPropagation(); gcOpenForgotPassword(); };
 btn.parentNode.insertBefore(l, btn);
 };
@@ -39107,7 +39108,6 @@ if(snap.size === 20) list.insertAdjacentHTML('beforeend', '<button class="gc-ht-
 }catch(e){ if(!more) list.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted);font-size:13px;">Failed to load posts.</div>'; }
 }
 function gcCloseHashtag(){ const s = document.getElementById('gc-hashtag-screen'); if(s) s.classList.remove('open'); }
-// ---------- টপবার ট্রেন্ডিং বাটন সরানো — এখন মেনুতে Category-এর উপরে ----------
 // ---------- সার্চে হ্যাশট্যাগ (ক্যাশ-ফিল্টার, রিড শূন্য) ----------
 (function gcHashSearch94(){
 if(window.gcHashSearchOn94) return; window.gcHashSearchOn94 = true;
