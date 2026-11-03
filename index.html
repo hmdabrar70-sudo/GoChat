@@ -5409,6 +5409,34 @@ body.gc-splash-handoff .page.active{
 .mention-dropdown.show {
   display: block;
 }
+.mention-empty{
+  padding:16px 14px;
+  text-align:center;
+  color:var(--text-muted);
+  font-size:13px;
+  font-weight:600;
+}
+#chat-mention-dropdown.mention-dropdown{
+  position:absolute;
+  left:0;right:0;
+  bottom:100%;
+  top:auto;
+  width:100%;
+  margin-bottom:8px;
+  max-height:min(42vh, 280px);
+  overflow-y:auto;
+  overscroll-behavior:contain;
+  z-index:10060;
+  border-radius:16px 16px 12px 12px;
+  background:var(--surface);
+  border:1px solid var(--border);
+  box-shadow:var(--shadow-lg);
+}
+#chat-input-area{
+  position:relative;
+  z-index:30;
+}
+
 .mention-item {
   display: flex;
   align-items: center;
@@ -6765,6 +6793,8 @@ background:rgba(0,0,0,.28);color:#fff;font-size:18px;pointer-events:none;
 .gc-cf-icon{display:none!important;}
 .gc-cf-overlay{position:fixed;inset:0;background:rgba(10,10,20,.65);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);z-index:1000500 !important;display:none;align-items:center;justify-content:center;padding:24px;pointer-events:auto !important;}
 .gc-cf-overlay.open{display:flex !important;}
+.gc-tp-input{width:100%;box-sizing:border-box;padding:12px 14px;border-radius:14px;border:1px solid var(--border);background:var(--surface-2);color:var(--text);font-size:16px;outline:none;}
+.gc-tp-input:focus{border-color:var(--accent);}
 .gc-cf-card{width:100%;max-width:320px;background:var(--surface);border-radius:24px;padding:26px 20px 20px;text-align:center;box-shadow:0 24px 70px rgba(0,0,0,.5);animation:gcUnfollowPop .25s cubic-bezier(.22,1,.36,1);}
 .gc-cf-icon{width:70px;height:70px;margin:0 auto 14px;border-radius:50%;background:rgba(255,77,106,.12);border:2px solid var(--danger);display:flex;align-items:center;justify-content:center;}
 .gc-cf-icon i{font-size:30px!important;color:var(--danger)!important;display:inline-flex!important;line-height:1;}
@@ -10786,6 +10816,21 @@ body.light-mode .gc-email-privacy-opt.gc-email-priv-active{
 .gc-chat-img-thumb img{
   width:100%;height:100%;object-fit:cover;display:block;
   pointer-events:none;
+}
+.gc-chat-img-thumb video{
+  width:100%;height:100%;object-fit:cover;display:block;
+  pointer-events:none;background:#111;
+}
+.gc-chat-vid-badge{
+  position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+  width:28px;height:28px;border-radius:50%;
+  background:rgba(0,0,0,0.55);color:#fff;
+  display:flex;align-items:center;justify-content:center;
+  pointer-events:none;z-index:1;
+}
+.gc-chat-vid-badge svg{ margin-left:2px; }
+.gc-chat-video-bubble img.gc-chat-video-poster{
+  display:block;width:100%;max-height:320px;object-fit:cover;background:#000;
 }
 .gc-chat-img-num{
   position:absolute;top:6px;left:6px;
@@ -16145,7 +16190,13 @@ l-137 -640 -193 -3 -193 -2 4 22 c2 13 67 314 144 671 l139 647 192 0 193 0
       <div style="font-weight:800;font-size:18px;">New Group</div>
     </div>
     <div style="padding:20px;display:flex;flex-direction:column;gap:15px;flex:1;overflow:hidden;">
-      <input type="text" id="group-name-input" placeholder="Group name" style="padding:12px;border:1px solid var(--border);border-radius:12px;font-size:16px;background:var(--surface);color:var(--text);">
+      <div style="display:flex;align-items:center;gap:14px;">
+        <label for="create-group-avatar-input" style="flex-shrink:0;width:64px;height:64px;border-radius:50%;background:var(--surface-2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;overflow:hidden;cursor:pointer;position:relative;">
+          <span id="create-group-avatar-preview" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:22px;">+</span>
+        </label>
+        <input type="file" id="create-group-avatar-input" accept="image/*" style="display:none;" onchange="gcPreviewCreateGroupAvatar(this)">
+        <input type="text" id="group-name-input" placeholder="Group name" style="flex:1;padding:12px;border:1px solid var(--border);border-radius:12px;font-size:16px;background:var(--surface);color:var(--text);">
+      </div>
       <div style="font-weight:700;font-size:14px;color:var(--text-secondary);">Add from Inbox</div>
       <div id="group-friends-list" style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:8px;"></div>
       <button type="button" class="btn-primary gc-create-group-btn" onclick="createGroupAction()" style="padding:14px;border-radius:14px;font-weight:800;font-size:16px;margin-top:8px;">Create Group</button>
@@ -22213,7 +22264,7 @@ safeText = safeText.replace(urlRegex, function(url) {
                 if(m.text) content += `<div style="margin-top:6px;">${safeText}</div>`;
             } else if(m.videoUrl){
                 const vUrl = escapeHTML(m.videoUrl);
-                const vBubble = (typeof gcBuildChatVideoBubble==='function') ? gcBuildChatVideoBubble(m.videoUrl) : (`<div class="gc-chat-video-bubble" onclick="event.stopPropagation();gcOpenChatVideoViewer('${vUrl}')"><video src="${vUrl}" preload="metadata" muted playsinline></video><div class="gc-chat-video-play"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.14v13.72a1 1 0 0 0 1.5.86l11-6.86a1 1 0 0 0 0-1.72l-11-6.86a1 1 0 0 0-1.5.86z"/></svg></div></div>`);
+                const vBubble = (typeof gcBuildChatVideoBubble==='function') ? gcBuildChatVideoBubble(m.videoUrl, m.videoThumb) : (`<div class="gc-chat-video-bubble" onclick="event.stopPropagation();gcOpenChatVideoViewer('${vUrl}')"><video src="${vUrl}" preload="metadata" muted playsinline></video><div class="gc-chat-video-play"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.14v13.72a1 1 0 0 0 1.5.86l11-6.86a1 1 0 0 0 0-1.72l-11-6.86a1 1 0 0 0-1.5.86z"/></svg></div></div>`);
                 content = (m.text ? `<div style="margin-bottom:6px;">${safeText}</div>` : '') + vBubble;
             } else if((m.images && m.images.length) || m.imageUrl){
                 const imgList = (m.images && m.images.length) ? m.images : [m.imageUrl];
@@ -22639,9 +22690,15 @@ function setupTypingIndicator(chatId, otherUid) {
 
         // --- 🚀 4. Group Mention Setup (Load Members) ---
         if(data.isGroup && data.members) {
-            mentionData.friends = data.members.map(uid => {
-                const u = allUsersCache ? allUsersCache.find(user => user.id === uid) : null;
-                return { uid, name: u ? u.name : 'User', avatar: u ? u.avatar : '' };
+            var gNames = data.names || {};
+            var gAvs = data.avatars || {};
+            mentionData.friends = data.members.map(function(uid){
+                var u = allUsersCache ? allUsersCache.find(function(user){ return user.id === uid; }) : null;
+                return {
+                  uid: uid,
+                  name: (u && u.name) || gNames[uid] || 'User',
+                  avatar: (u && u.avatar) || gAvs[uid] || ''
+                };
             });
         }
 
@@ -23374,6 +23431,23 @@ text:text,
 createdAt:firebase.firestore.FieldValue.serverTimestamp()
 };
 
+// Group @mentions — keep only UIDs still present in the text
+try{
+  var pendingMentions = window.__gcChatMentions || [];
+  if(pendingMentions.length){
+    var kept = pendingMentions.filter(function(m){
+      if(!m || !m.uid) return false;
+      var n = m.name || '';
+      return n && text.indexOf('@' + n) !== -1;
+    });
+    if(kept.length){
+      msgData.mentions = kept.map(function(m){ return { uid: m.uid, name: m.name || 'User' }; });
+      msgData.mentionUids = kept.map(function(m){ return m.uid; });
+    }
+  }
+  window.__gcChatMentions = [];
+}catch(e){ window.__gcChatMentions = []; }
+
 // 🚀 রিপ্লাইয়ের বিস্তারিত তথ্য মেসেজের সাথে সেভ হবে
 if(currentReplyMsgId && replyToMsgData){
     msgData.replyTo = currentReplyMsgId;
@@ -23420,10 +23494,18 @@ function gcQueueChatImages(input){
   if(!input||!input.files||!input.files.length) return;
   var q = window.__gcChatImgQueue || (window.__gcChatImgQueue=[]);
   var files = Array.prototype.slice.call(input.files,0);
+  var maxBytes = (typeof GC_VIDEO_MAX_BYTES === 'number') ? GC_VIDEO_MAX_BYTES : (10 * 1024 * 1024);
   for(var i=0;i<files.length;i++){
     var f=files[i];
-    if(!f||!f.type||f.type.indexOf('image/')!==0) continue;
-    if(q.length>=10){ showToast('Maximum 10 images'); break; }
+    if(!f) continue;
+    var isVid = (typeof gcIsChatVideoFile === 'function') ? gcIsChatVideoFile(f) : !!(f.type && f.type.indexOf('video/')===0);
+    var isImg = (typeof gcIsChatImageFile === 'function') ? gcIsChatImageFile(f) : !!(f.type && f.type.indexOf('image/')===0);
+    if(!isVid && !isImg) continue;
+    if(isVid && f.size > maxBytes){
+      showToast('Video must be under 10MB');
+      continue;
+    }
+    if(q.length>=10){ showToast('Maximum 10 media'); break; }
     q.push(f);
   }
   try{ input.value=''; }catch(e){}
@@ -23456,20 +23538,50 @@ function gcRenderChatImgPreview(){
   if(sendBtn) sendBtn.textContent = q.length===1 ? 'Send 1' : ('Send '+q.length);
   var html='';
   for(var i=0;i<q.length;i++){
-    var u=URL.createObjectURL(q[i]); box._urls.push(u);
-    html+='<div class="gc-chat-img-thumb">'
-      +'<img src="'+u+'" alt="">'
-      +'<span class="gc-chat-img-num">'+(i+1)+'</span>'
-      +'<button type="button" class="gc-chat-img-x" onclick="event.stopPropagation();gcRemoveQueuedChatImage('+i+')" aria-label="Remove">&times;</button>'
-      +'</div>';
+    var f=q[i];
+    var isVid = (typeof gcIsChatVideoFile === 'function') ? gcIsChatVideoFile(f) : !!(f.type && f.type.indexOf('video/')===0);
+    var u=URL.createObjectURL(f); box._urls.push(u);
+    if(isVid){
+      html+='<div class="gc-chat-img-thumb gc-chat-vid-thumb">'
+        +'<video src="'+u+'" muted playsinline preload="metadata"></video>'
+        +'<span class="gc-chat-vid-badge" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M8 5.14v13.72a1 1 0 0 0 1.5.86l11-6.86a1 1 0 0 0 0-1.72l-11-6.86a1 1 0 0 0-1.5.86z"/></svg></span>'
+        +'<span class="gc-chat-img-num">'+(i+1)+'</span>'
+        +'<button type="button" class="gc-chat-img-x" onclick="event.stopPropagation();gcRemoveQueuedChatImage('+i+')" aria-label="Remove">&times;</button>'
+        +'</div>';
+    } else {
+      html+='<div class="gc-chat-img-thumb">'
+        +'<img src="'+u+'" alt="">'
+        +'<span class="gc-chat-img-num">'+(i+1)+'</span>'
+        +'<button type="button" class="gc-chat-img-x" onclick="event.stopPropagation();gcRemoveQueuedChatImage('+i+')" aria-label="Remove">&times;</button>'
+        +'</div>';
+    }
   }
   box.innerHTML=html;
+  try{
+    box.querySelectorAll('video').forEach(function(v){
+      v.addEventListener('loadeddata', function(){
+        try{ if(v.duration && isFinite(v.duration)) v.currentTime = Math.min(0.12, Math.max(0.01, v.duration * 0.01)); }catch(e){}
+      }, {once:true});
+    });
+  }catch(e){}
 }
 async function gcSendQueuedChatImages(){
   var q=(window.__gcChatImgQueue||[]).slice();
   if(!q.length||!currentChatId) return;
   window.__gcChatImgQueue=[]; gcRenderChatImgPreview();
-  await sendChatImage({ files: q, value: '' });
+  var imgs = [];
+  var vids = [];
+  for(var i=0;i<q.length;i++){
+    var f=q[i];
+    if((typeof gcIsChatVideoFile === 'function') ? gcIsChatVideoFile(f) : !!(f.type && f.type.indexOf('video/')===0)) vids.push(f);
+    else imgs.push(f);
+  }
+  if(imgs.length && typeof sendChatImage === 'function'){
+    await sendChatImage({ files: imgs, value: '' });
+  }
+  if(vids.length && typeof sendChatVideo === 'function'){
+    await sendChatVideo({ files: vids, value: '' });
+  }
 }
 window.gcQueueChatImages=gcQueueChatImages;
 window.gcRemoveQueuedChatImage=gcRemoveQueuedChatImage;
@@ -23533,7 +23645,7 @@ function gcFinishPendingChatImageJob(job){
 
 async function sendChatImage(input){
   if(!input||!input.files||!input.files.length||!currentChatId) return;
-  var files=Array.prototype.slice.call(input.files,0,10).filter(function(f){ return f&&f.type&&f.type.indexOf('image/')===0; });
+  var files=Array.prototype.slice.call(input.files,0,10).filter(function(f){ return f && ((typeof gcIsChatImageFile==='function')?gcIsChatImageFile(f):(f.type&&f.type.indexOf('image/')===0)); });
   if(input.files&&input.files.length>10) showToast('Maximum 10 images');
   if(!files.length){ try{input.value='';}catch(e){} return; }
 
@@ -23580,51 +23692,53 @@ async function sendChatImage(input){
   try{ input.value=''; }catch(e){}
 }
 
+function gcIsChatVideoFile(f){
+  if(!f) return false;
+  var typ = (f.type || '').toLowerCase();
+  var name = (f.name || '').toLowerCase();
+  if(typ.indexOf('video/') === 0) return true;
+  return /\.(mp4|mov|webm|mkv|3gp|m4v)$/i.test(name);
+}
+function gcIsChatImageFile(f){
+  if(!f) return false;
+  if(gcIsChatVideoFile(f)) return false;
+  var typ = (f.type || '').toLowerCase();
+  var name = (f.name || '').toLowerCase();
+  if(typ.indexOf('image/') === 0) return true;
+  return /\.(jpe?g|png|gif|webp|heic|heif|bmp)$/i.test(name) || !typ;
+}
 function gcOnChatMediaPicked(input){
-  if(!input || !input.files || !input.files.length || !currentChatId) return;
-  var files = Array.prototype.slice.call(input.files || []);
-  var imgs = [];
-  var vids = [];
-  files.forEach(function(f){
-    if(!f) return;
-    var typ = (f.type || '').toLowerCase();
-    var name = (f.name || '').toLowerCase();
-    if(typ.indexOf('video/') === 0 || /\.(mp4|mov|webm|mkv|3gp|m4v)$/.test(name)) vids.push(f);
-    else if(typ.indexOf('image/') === 0 || /\.(jpe?g|png|gif|webp|heic|heif|bmp)$/.test(name)) imgs.push(f);
-    else imgs.push(f);
-  });
-  try{
-    if(imgs.length && typeof gcQueueChatImages === 'function'){
-      gcQueueChatImages({ files: imgs, value: '' });
-    }
-  }catch(e){ console.warn('gcOnChatMediaPicked images', e); }
-  try{
-    if(vids.length && typeof sendChatVideo === 'function'){
-      sendChatVideo({ files: vids, value: '' });
-    }
-  }catch(e){ console.warn('gcOnChatMediaPicked video', e); }
+  if(!input || !input.files || !input.files.length) return;
+  if(typeof gcQueueChatImages === 'function'){
+    gcQueueChatImages(input);
+  }
   try{ input.value = ''; }catch(e){}
 }
+window.gcIsChatVideoFile = gcIsChatVideoFile;
+window.gcIsChatImageFile = gcIsChatImageFile;
 window.gcOnChatMediaPicked = gcOnChatMediaPicked;
 
 async function sendChatVideo(input){
   if(!input||!input.files||!input.files.length||!currentChatId) return;
-  var file = input.files[0];
+  var raw = Array.prototype.slice.call(input.files || []);
   try{ input.value=''; }catch(e){}
-  if(!file||!file.type||file.type.indexOf('video/')!==0){
+  var maxBytes = (typeof GC_VIDEO_MAX_BYTES === 'number') ? GC_VIDEO_MAX_BYTES : (10 * 1024 * 1024);
+  var files = [];
+  for(var i=0;i<raw.length;i++){
+    var f = raw[i];
+    if(!f) continue;
+    var ok = (typeof gcIsChatVideoFile === 'function') ? gcIsChatVideoFile(f) : !!(f.type && f.type.indexOf('video/')===0);
+    if(!ok) continue;
+    if(f.size > maxBytes){
+      showToast('Video must be under 10MB');
+      continue;
+    }
+    files.push(f);
+  }
+  if(!files.length){
     showToast('Please select a video');
     return;
   }
-  var maxBytes = (typeof GC_VIDEO_MAX_BYTES === 'number') ? GC_VIDEO_MAX_BYTES : (10 * 1024 * 1024);
-  if(file.size > maxBytes){
-    showToast('Video must be under 10MB');
-    return;
-  }
-  var pendingJob = null;
-  try{
-    pendingJob = gcCreatePendingChatImageJob([file]);
-    if(pendingJob) gcUpdatePendingChatImageJob(pendingJob, 'Uploading video...');
-  }catch(e){}
   var replySnap=null;
   if(typeof currentReplyMsgId!=='undefined' && currentReplyMsgId && typeof replyToMsgData!=='undefined' && replyToMsgData){
     replySnap={replyTo:currentReplyMsgId,replySender:replyToMsgData.senderName||'User',replyText:replyToMsgData.text||'Video'};
@@ -23632,46 +23746,85 @@ async function sendChatVideo(input){
     var rp=document.getElementById('reply-preview-container'); if(rp) rp.innerHTML='';
     var ci=document.getElementById('chat-input'); if(ci) ci.placeholder='Message...';
   }
+  var pendingJob = null;
   try{
-    if(pendingJob) gcUpdatePendingChatImageJob(pendingJob, 'Uploading...');
-    var url = await uploadToCloudinary(file, true);
-    if(!url){
-      if(pendingJob) gcFinishPendingChatImageJob(pendingJob);
-      showToast('Failed to upload video');
-      return;
+    pendingJob = gcCreatePendingChatImageJob(files);
+    if(pendingJob) gcUpdatePendingChatImageJob(pendingJob, 'Uploading video...');
+  }catch(e){}
+  var sent = 0;
+  try{
+    for(var vi=0; vi<files.length; vi++){
+      var file = files[vi];
+      if(pendingJob) gcUpdatePendingChatImageJob(pendingJob, 'Uploading '+(vi+1)+'/'+files.length+'...');
+      var url = null;
+      try{ url = await uploadToCloudinary(file, true); }catch(upErr){ console.error(upErr); }
+      if(!url){
+        showToast('Failed to upload video');
+        continue;
+      }
+      var thumb = (typeof gcChatVideoPosterUrl === 'function') ? gcChatVideoPosterUrl(url) : '';
+      if(pendingJob) gcUpdatePendingChatImageJob(pendingJob, 'Sending '+(vi+1)+'/'+files.length+'...');
+      var payload={
+        uid:currentUser.uid,
+        senderName:(currentUserData&&currentUserData.name)||'User',
+        text:'',
+        videoUrl:url,
+        mediaType:'video',
+        createdAt:firebase.firestore.FieldValue.serverTimestamp()
+      };
+      if(thumb) payload.videoThumb = thumb;
+      if(replySnap && vi===0){
+        payload.replyTo=replySnap.replyTo;
+        payload.replySender=replySnap.replySender;
+        payload.replyText=replySnap.replyText;
+      }
+      await db.collection('chats').doc(currentChatId).collection('messages').add(payload);
+      try{
+        await db.collection('chats').doc(currentChatId).set({
+          lastMsg: 'Video',
+          lastMsgAt: firebase.firestore.FieldValue.serverTimestamp(),
+          lastSender: currentUser.uid
+        }, {merge:true});
+      }catch(e){}
+      sent++;
     }
-    if(pendingJob) gcUpdatePendingChatImageJob(pendingJob, 'Sending...');
-    var payload={
-      uid:currentUser.uid,
-      senderName:(currentUserData&&currentUserData.name)||'User',
-      text:'',
-      videoUrl:url,
-      mediaType:'video',
-      createdAt:firebase.firestore.FieldValue.serverTimestamp()
-    };
-    if(replySnap){ payload.replyTo=replySnap.replyTo; payload.replySender=replySnap.replySender; payload.replyText=replySnap.replyText; }
-    await db.collection('chats').doc(currentChatId).collection('messages').add(payload);
-    var lastText=' Video';
-    if(currentChatOtherUid==='group') lastText=((currentUserData&&currentUserData.name)||'User')+' sent a video';
-    await db.collection('chats').doc(currentChatId).set({lastMsg:lastText,lastAt:firebase.firestore.FieldValue.serverTimestamp(),lastSender:currentUser.uid,isRead:false},{merge:true});
     if(pendingJob) gcFinishPendingChatImageJob(pendingJob);
-    showToast('Video sent!');
+    if(!sent) showToast('Failed to send video');
   }catch(e){
     console.error(e);
-    if(pendingJob) try{ gcFinishPendingChatImageJob(pendingJob); }catch(_e){}
+    try{ if(pendingJob) gcFinishPendingChatImageJob(pendingJob); }catch(_e){}
     showToast('Failed to send video');
   }
 }
 window.sendChatVideo = sendChatVideo;
 
-function gcBuildChatVideoBubble(url){
+function gcChatVideoPosterUrl(videoUrl){
+  if(!videoUrl) return '';
+  try{
+    var u = String(videoUrl);
+    if(u.indexOf('res.cloudinary.com') !== -1 && u.indexOf('/video/upload/') !== -1){
+      return u.replace('/video/upload/', '/video/upload/so_0,w_480,c_limit,f_jpg/').replace(/\.(mp4|webm|mov|mkv|3gp|m4v)(\?|$)/i, '.jpg$2');
+    }
+  }catch(e){}
+  return '';
+}
+function gcBuildChatVideoBubble(url, thumbUrl){
   if(!url) return '';
   var u = escapeHTML(url);
+  var thumb = thumbUrl || ((typeof gcChatVideoPosterUrl === 'function') ? gcChatVideoPosterUrl(url) : '');
+  var mediaHtml;
+  if(thumb){
+    mediaHtml = '<img class="gc-chat-video-poster" src="'+escapeHTML(thumb)+'" alt="" loading="lazy" onerror="this.style.display=\'none\';var v=this.nextElementSibling;if(v){v.style.display=\'block\';}">'
+      +'<video src="'+u+'" preload="metadata" muted playsinline style="display:none;"></video>';
+  } else {
+    mediaHtml = '<video src="'+u+'" preload="metadata" muted playsinline></video>';
+  }
   return '<div class="gc-chat-video-bubble" onclick="event.stopPropagation();gcOpenChatVideoViewer(\''+u+'\')">'
-    +'<video src="'+u+'" preload="metadata" muted playsinline></video>'
+    + mediaHtml
     +'<div class="gc-chat-video-play"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.14v13.72a1 1 0 0 0 1.5.86l11-6.86a1 1 0 0 0 0-1.72l-11-6.86a1 1 0 0 0-1.5.86z"/></svg></div>'
     +'</div>';
 }
+window.gcChatVideoPosterUrl = gcChatVideoPosterUrl;
 window.gcBuildChatVideoBubble = gcBuildChatVideoBubble;
 
 window.__gcChatVideoScroll = null;
@@ -28328,6 +28481,25 @@ function toggleGroupFriend(uid, element) {
     }
 }
 
+function gcPreviewCreateGroupAvatar(input){
+  var prev = document.getElementById('create-group-avatar-preview');
+  if(!input || !input.files || !input.files[0] || !prev) return;
+  var file = input.files[0];
+  var typ = (file.type || '').toLowerCase();
+  var name = (file.name || '').toLowerCase();
+  if(!(typ.indexOf('image/')===0 || /\.(jpe?g|png|gif|webp|heic|heif|bmp)$/i.test(name))){
+    showToast('Please select an image');
+    try{ input.value=''; }catch(e){}
+    return;
+  }
+  try{ if(prev._url) URL.revokeObjectURL(prev._url); }catch(e){}
+  var url = URL.createObjectURL(file);
+  prev._url = url;
+  window.__gcCreateGroupAvatarFile = file;
+  prev.innerHTML = '<img src="'+url+'" style="width:100%;height:100%;object-fit:cover;display:block;">';
+}
+window.gcPreviewCreateGroupAvatar = gcPreviewCreateGroupAvatar;
+
 async function createGroupAction() {
     var nameEl = document.getElementById('group-name-input');
     var groupName = nameEl ? nameEl.value.trim() : '';
@@ -28352,7 +28524,15 @@ async function createGroupAction() {
                 }
             });
         }
-        await db.collection('chats').doc(groupId).set({
+        var groupAvatarUrl = '';
+        try{
+          var avFile = window.__gcCreateGroupAvatarFile;
+          if(avFile && typeof uploadToCloudinary === 'function'){
+            if(btn) btn.textContent = 'Uploading photo…';
+            groupAvatarUrl = await uploadToCloudinary(avFile, false) || '';
+          }
+        }catch(avErr){ console.warn('group avatar create', avErr); }
+        var groupDoc = {
             isGroup: true,
             groupName: groupName,
             admin: currentUser.uid,
@@ -28363,7 +28543,16 @@ async function createGroupAction() {
             lastMsg: 'Group created',
             lastAt: firebase.firestore.FieldValue.serverTimestamp(),
             createdAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
+        };
+        if(groupAvatarUrl) groupDoc.groupAvatar = groupAvatarUrl;
+        await db.collection('chats').doc(groupId).set(groupDoc);
+        window.__gcCreateGroupAvatarFile = null;
+        try{
+          var prev = document.getElementById('create-group-avatar-preview');
+          if(prev){ if(prev._url) try{ URL.revokeObjectURL(prev._url); }catch(e){} prev.innerHTML = '+'; }
+          var ain = document.getElementById('create-group-avatar-input');
+          if(ain) ain.value = '';
+        }catch(e){}
         // System message for initial members (same style as later add)
         try {
           var actor = (currentUserData && currentUserData.name) || 'Someone';
@@ -29112,33 +29301,49 @@ function handleMentionInput(textarea, dropdownId, event) {
   
     // ড্রপডাউন পজিশন সেট করা
   if (dropdownId === 'comment-mention-dropdown') {
-      // কমেন্ট সেকশনের জন্য লিস্টটি কিবোর্ডের উপরে (উপরের দিকে) দেখাবে
       dropdown.style.left = '16px';
-      dropdown.style.bottom = '75px'; 
+      dropdown.style.bottom = '75px';
       dropdown.style.top = 'auto';
-      dropdown.style.width = 'calc(100% - 32px)'; 
+      dropdown.style.width = 'calc(100% - 32px)';
+  } else if (dropdownId === 'chat-mention-dropdown') {
+      dropdown.style.left = '0';
+      dropdown.style.right = '0';
+      dropdown.style.width = '100%';
+      dropdown.style.top = 'auto';
+      dropdown.style.bottom = '100%';
+      dropdown.style.marginBottom = '8px';
+      dropdown.style.maxHeight = 'min(42vh, 280px)';
+      dropdown.style.zIndex = '10060';
+      try{
+        if(window.visualViewport){
+          var vv = window.visualViewport;
+          var room = Math.max(120, Math.min(280, Math.floor(vv.height * 0.38)));
+          dropdown.style.maxHeight = room + 'px';
+        }
+      }catch(e){}
   } else {
-      // অন্যান্য জায়গায় (যেমন পোস্ট ক্রিয়েট) আগের মতোই কাজ করবে
       const coords = getCaretCoordinates(textarea, cursorPos);
       dropdown.style.left = coords.left + 'px';
       dropdown.style.top = (coords.top + textarea.offsetTop + 30) + 'px';
       dropdown.style.bottom = 'auto';
   }
   
-  // ফিল্টার টেক্সট
   const filterText = betweenText.toLowerCase();
-  
-  // ফ্রেন্ডস ফিল্টার করা
-  const filtered = mentionData.friends.filter(f => 
-    f.name.toLowerCase().includes(filterText)
-  );
+  const friends = (mentionData.friends || []).filter(function(f){
+    return f && f.uid !== (currentUser && currentUser.uid);
+  });
+  const filtered = friends.filter(function(f){
+    return ((f.name || '').toLowerCase().indexOf(filterText) !== -1);
+  });
   
   if (filtered.length === 0) {
-    hideMentionDropdown(dropdown);
+    mentionData.textarea = textarea;
+    mentionData.dropdown = dropdown;
+    dropdown.innerHTML = '<div class="mention-empty">No members found</div>';
+    dropdown.classList.add('show');
     return;
   }
   
-  // ড্রপডাউন রেন্ডার করা
   renderMentionDropdown(dropdown, filtered, textarea, lastAtIndex, cursorPos);
 }
 
@@ -29181,24 +29386,31 @@ function selectMention(uid, name, startPos, endPos) {
   const textarea = mentionData.textarea;
   const text = textarea.value;
   
-  // @mention দিয়ে রিপ্লেস করা
   const beforeText = text.substring(0, startPos);
   const afterText = text.substring(endPos);
   const mentionText = `@${name} `;
   
   textarea.value = beforeText + mentionText + afterText;
   
-  // কার্সার পজিশন সেট করা
   const newPos = startPos + mentionText.length;
   textarea.setSelectionRange(newPos, newPos);
   textarea.focus();
   
-  // ড্রপডাউন হাইড করা
   if (mentionData.dropdown) {
     hideMentionDropdown(mentionData.dropdown);
   }
+
+  try{
+    if(textarea.id === 'chat-input'){
+      window.__gcChatMentions = window.__gcChatMentions || [];
+      var exists = window.__gcChatMentions.some(function(m){ return m && m.uid === uid; });
+      if(!exists && uid){
+        window.__gcChatMentions.push({ uid: uid, name: name || 'User' });
+      }
+      if(typeof gcUpdateChatSendState === 'function') gcUpdateChatSendState();
+    }
+  }catch(e){}
   
-  // ট্যাগড ফ্রেন্ডস এড করা (পোস্টের জন্য)
   if (currentTaggedFriends && !currentTaggedFriends.includes(uid)) {
     currentTaggedFriends.push(uid);
     currentTaggedNames.push(name);
@@ -30783,8 +30995,8 @@ async function loadGroupMembers() {
         document.getElementById('group-member-count').textContent = (activeGroupData.members || []).length;
         
         const members = activeGroupData.members || [];
-        const admins = activeGroupData.admins || [activeGroupData.admin]; // 🚀 3. Multiple Admins Support
-        const isMeAdmin = admins.includes(currentUser.uid);
+        const admins = activeGroupData.admins || (activeGroupData.admin ? [activeGroupData.admin] : []);
+        const isMeAdmin = !!(currentUser && (admins.indexOf(currentUser.uid) !== -1 || activeGroupData.admin === currentUser.uid));
         
         // অ্যাডমিন হলে এডিট বাটন দেখাবে
         document.getElementById('group-avatar-edit-btn').style.display = isMeAdmin ? 'flex' : 'none';
@@ -30990,58 +31202,142 @@ async function confirmAddGroupMembers() {
 // ==========================================
 
 async function updateGroupAvatar(input) {
-    if (!input.files || !input.files[0] || !activeGroupId) return;
+    if (!input || !input.files || !input.files[0]) return;
+    if (!activeGroupId) {
+        showToast('Open group info first');
+        try { input.value = ''; } catch (e) {}
+        return;
+    }
     try {
         showToast('Uploading…');
         var file = input.files[0];
-        if (file.type && file.type.indexOf('image/') !== 0) {
+        var typ = (file.type || '').toLowerCase();
+        var name = (file.name || '').toLowerCase();
+        var isImg = typ.indexOf('image/') === 0 || /\.(jpe?g|png|gif|webp|heic|heif|bmp)$/i.test(name);
+        if (!isImg) {
             showToast('Please select an image');
             input.value = '';
             return;
         }
-        // Same Cloudinary cloud + preset as profile/post uploads
-        var fd = new FormData();
-        fd.append('file', file);
-        fd.append('upload_preset', 'gochat');
-        var res = await fetch('https://api.cloudinary.com/v1_1/dsnqmwyvt/image/upload', { method: 'POST', body: fd });
-        var data = await res.json().catch(function(){ return {}; });
-        if (!res.ok || !data.secure_url) {
-            console.error('group avatar upload', res.status, data);
-            throw new Error((data && data.error && data.error.message) || 'upload failed');
+        if (file.size > 12 * 1024 * 1024) {
+            showToast('Image too large (max 12MB)');
+            input.value = '';
+            return;
         }
-        await db.collection('chats').doc(activeGroupId).update({ groupAvatar: data.secure_url });
-        if (activeGroupData) activeGroupData.groupAvatar = data.secure_url;
+        var url = null;
+        if (typeof uploadToCloudinary === 'function') {
+            url = await uploadToCloudinary(file, false);
+        } else {
+            var fd = new FormData();
+            fd.append('file', file);
+            fd.append('upload_preset', 'gochat');
+            var res = await fetch('https://api.cloudinary.com/v1_1/dsnqmwyvt/image/upload', { method: 'POST', body: fd });
+            var data = await res.json().catch(function(){ return {}; });
+            if (!res.ok || !data.secure_url) throw new Error((data && data.error && data.error.message) || 'upload failed');
+            url = data.secure_url;
+        }
+        if (!url) throw new Error('upload failed');
+        await db.collection('chats').doc(activeGroupId).update({ groupAvatar: url });
+        if (activeGroupData) activeGroupData.groupAvatar = url;
         var av = document.getElementById('group-info-avatar');
-        if (av) av.innerHTML = '<img src="' + data.secure_url + '" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">';
+        if (av) av.innerHTML = '<img src="' + url + '" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">';
         try {
           if (currentChatId === activeGroupId) {
             var chatAv = document.getElementById('chat-avatar');
-            if (chatAv) chatAv.innerHTML = '<img src="' + data.secure_url + '" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">';
+            if (chatAv) chatAv.innerHTML = '<img src="' + url + '" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">';
           }
         } catch (e) {}
         showToast('Group photo updated');
     } catch (e) {
         console.error('updateGroupAvatar', e);
-        showToast('Avatar update failed');
+        var msg = (e && e.message) ? String(e.message) : 'Avatar update failed';
+        if (msg.toLowerCase().indexOf('permission') !== -1) showToast('No permission to update group photo');
+        else showToast('Avatar update failed');
     } finally {
         try { input.value = ''; } catch (e) {}
     }
 }
 
+function gcOpenTextPrompt(opts){
+  opts = opts || {};
+  var ov = document.getElementById('gc-text-prompt-overlay');
+  if(!ov){
+    ov = document.createElement('div');
+    ov.id = 'gc-text-prompt-overlay';
+    ov.className = 'gc-cf-overlay';
+    ov.innerHTML = '<div class="gc-cf-card" style="text-align:left;">'
+      + '<div class="gc-cf-title" id="gc-tp-title" style="text-align:center;"></div>'
+      + '<div class="gc-cf-text" id="gc-tp-text" style="text-align:center;margin-bottom:12px;"></div>'
+      + '<input type="text" id="gc-tp-input" class="gc-tp-input" maxlength="60" autocomplete="off" />'
+      + '<div class="gc-cf-btns" style="margin-top:16px;">'
+      + '<button type="button" class="gc-cf-btn cancel" id="gc-tp-cancel">Cancel</button>'
+      + '<button type="button" class="gc-cf-btn yes" id="gc-tp-yes">Save</button>'
+      + '</div></div>';
+    document.body.appendChild(ov);
+    ov.addEventListener('click', function(e){ if(e.target === ov) gcCloseTextPrompt(); });
+    document.getElementById('gc-tp-cancel').onclick = function(){ gcCloseTextPrompt(); };
+  }
+  try{ ov.style.setProperty('z-index', '1000500', 'important'); }catch(e){ ov.style.zIndex = '1000500'; }
+  document.getElementById('gc-tp-title').textContent = opts.title || 'Edit';
+  document.getElementById('gc-tp-text').textContent = opts.text || '';
+  var inp = document.getElementById('gc-tp-input');
+  inp.value = opts.value || '';
+  inp.placeholder = opts.placeholder || '';
+  var yes = document.getElementById('gc-tp-yes');
+  yes.textContent = opts.yesLabel || 'Save';
+  yes.onclick = function(){
+    var v = (inp.value || '').trim();
+    if(!v){
+      showToast(opts.emptyToast || 'Name cannot be empty');
+      inp.focus();
+      return;
+    }
+    gcCloseTextPrompt();
+    if(typeof opts.onSave === 'function') opts.onSave(v);
+  };
+  inp.onkeydown = function(e){
+    if(e.key === 'Enter'){ e.preventDefault(); yes.click(); }
+    if(e.key === 'Escape'){ gcCloseTextPrompt(); }
+  };
+  ov.classList.add('open');
+  setTimeout(function(){ try{ inp.focus(); inp.select(); }catch(e){} }, 50);
+}
+function gcCloseTextPrompt(){
+  var ov = document.getElementById('gc-text-prompt-overlay');
+  if(ov) ov.classList.remove('open');
+}
+window.gcOpenTextPrompt = gcOpenTextPrompt;
+window.gcCloseTextPrompt = gcCloseTextPrompt;
+
 async function editGroupName() {
-    const newName = prompt("Enter new group name:", activeGroupData.groupName);
-    if(!newName || newName.trim() === "" || !activeGroupId) return;
-    try {
-        await db.collection('chats').doc(activeGroupId).update({
-            groupName: newName.trim(),
-            lastMsg: `${currentUserData.name} changed the group name`,
+    if(!activeGroupId || !activeGroupData) return;
+    var current = (activeGroupData.groupName || '').trim();
+    gcOpenTextPrompt({
+      title: 'Group name',
+      text: 'Enter a new name for this group',
+      value: current,
+      placeholder: 'Group name',
+      yesLabel: 'Save',
+      emptyToast: 'Group name cannot be empty',
+      onSave: async function(newName){
+        try {
+          await db.collection('chats').doc(activeGroupId).update({
+            groupName: newName,
+            lastMsg: ((currentUserData && currentUserData.name) || 'Someone') + ' changed the group name',
             lastAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
-        activeGroupData.groupName = newName.trim();
-        document.getElementById('group-info-name').textContent = newName.trim();
-        document.getElementById('chat-name-display').textContent = newName.trim();
-        showToast('Group name updated!');
-    } catch(e) { showToast('Update failed'); }
+          });
+          activeGroupData.groupName = newName;
+          var gin = document.getElementById('group-info-name');
+          if(gin) gin.textContent = newName;
+          var cnd = document.getElementById('chat-name-display');
+          if(cnd && currentChatId === activeGroupId) cnd.textContent = newName;
+          showToast('Group name updated!');
+        } catch(e) {
+          console.error(e);
+          showToast('Update failed');
+        }
+      }
+    });
 }
 
 async function makeGroupAdmin(uid, name) {
@@ -31097,12 +31393,12 @@ document.addEventListener('DOMContentLoaded', () => {
   const chatInputBox = document.getElementById('chat-input');
   if (chatInputBox) {
     chatInputBox.addEventListener('input', (e) => {
-      if(currentChatOtherUid === 'group') {
+      if(currentChatOtherUid === 'group' || (currentChatId && String(currentChatId).indexOf('group_') === 0)) {
         handleMentionInput(e.target, 'chat-mention-dropdown', e);
       }
     });
     chatInputBox.addEventListener('keydown', (e) => {
-      if(currentChatOtherUid === 'group') {
+      if(currentChatOtherUid === 'group' || (currentChatId && String(currentChatId).indexOf('group_') === 0)) {
         handleMentionKeydown(e, 'chat-mention-dropdown');
       }
     });
