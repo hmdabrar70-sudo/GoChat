@@ -14491,7 +14491,7 @@ l-137 -640 -193 -3 -193 -2 4 22 c2 13 67 314 144 671 l139 647 192 0 193 0
             Trending
             <i class="ph-light ph-caret-right gc-hd-chev"></i>
         </div>
-        <div class="gc-hd-item" id="hd-tab-friends" onclick="gcCloseHomeDrawer(); showPage('friends');">
+        <div class="gc-hd-item" id="hd-tab-friends" onclick="window.__gcFriendsFromDrawer=true; gcCloseHomeDrawer(); showPage('friends');">
             <svg class="gc-hd-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><defs><linearGradient id="gConNew" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#34d399"/><stop offset="100%" stop-color="#059669"/></linearGradient></defs><g fill="url(#gConNew)">
 		<path d="M9 6C9 7.65685 10.3431 9 12 9C13.6569 9 15 7.65685 15 6C15 4.34315 13.6569 3 12 3C10.3431 3 9 4.34315 9 6Z" />
 		<path d="M2.5 18C2.5 19.6569 3.84315 21 5.5 21C7.15685 21 8.5 19.6569 8.5 18C8.5 16.3431 7.15685 15 5.5 15C3.84315 15 2.5 16.3431 2.5 18Z" />
@@ -32455,6 +32455,51 @@ function closeTopMostView() {
 
     const mainMenu = document.getElementById('main-menu-screen');
     if (mainMenu && mainMenu.style.display === 'flex') { closeMainMenu(); return true; }
+
+    // 7a. Connectors · Suggestions overlay (back → Following / friends page)
+    try {
+      var sugPage = document.getElementById('page-suggestions');
+      if (sugPage && (sugPage.style.display === 'flex' || sugPage.classList.contains('open') || document.body.classList.contains('gc-suggestions-open'))) {
+        if (typeof closeSuggestionsSheet === 'function') closeSuggestionsSheet();
+        else {
+          sugPage.style.display = 'none';
+          document.body.classList.remove('gc-suggestions-open');
+        }
+        return true;
+      }
+    } catch (e) {}
+
+    // 7b. Connectors · Following / friends page (back → reopen Menu Drawer on Home Feed)
+    try {
+      var friendsPage = document.getElementById('page-friends');
+      var onFriends = (friendsPage && friendsPage.classList.contains('active')) || document.body.classList.contains('friends-mode');
+      if (onFriends) {
+        var fromDrawer = !!window.__gcFriendsFromDrawer;
+        window.__gcFriendsFromDrawer = false;
+        if (typeof showPage === 'function') showPage('feed');
+        // Only reopen Menu Drawer when Connectors was opened from the drawer
+        if (fromDrawer) {
+          setTimeout(function(){
+            try { if (typeof gcOpenHomeDrawer === 'function') gcOpenHomeDrawer(); } catch (e) {}
+          }, 30);
+        }
+        return true;
+      }
+    } catch (e) {}
+
+    // 7c. Home Menu Drawer (back → close drawer, stay on Home Feed)
+    try {
+      var hd = document.getElementById('gc-home-drawer');
+      var hdm = document.getElementById('gc-home-drawer-mask');
+      if ((hd && hd.classList.contains('open')) || (hdm && hdm.classList.contains('open'))) {
+        if (typeof gcCloseHomeDrawer === 'function') gcCloseHomeDrawer();
+        else {
+          if (hd) hd.classList.remove('open');
+          if (hdm) hdm.classList.remove('open');
+        }
+        return true;
+      }
+    } catch (e) {}
 
     // ৭. Bottom Navigation Pages (Back to Feed)
     const feedPage = document.getElementById('page-feed');
