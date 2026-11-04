@@ -3288,6 +3288,42 @@ overflow:hidden !important;
   -webkit-tap-highlight-color:transparent;
 }
 
+/* New Post selected-media strip: compact, responsive thumbnails */
+#create-post-screen #compose-img-grid{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:flex-start;
+  gap:6px;
+  margin-top:12px;
+}
+#create-post-screen #compose-img-grid > [data-compose-idx]{
+  width:80px !important;
+  height:80px !important;
+  flex:0 0 80px !important;
+  overflow:hidden;
+  border-radius:10px;
+  background:var(--surface-2, rgba(127,127,127,.12));
+}
+#create-post-screen .gc-compose-video-thumb{
+  display:block;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  opacity:0;
+  transition:opacity .18s ease;
+}
+#create-post-screen .gc-compose-video-thumb.is-ready{opacity:1;}
+#create-post-screen .gc-compose-video-thumb-loading{
+  position:absolute;
+  inset:0;
+  overflow:hidden;
+  background:linear-gradient(110deg,rgba(127,127,127,.10) 8%,rgba(127,127,127,.22) 18%,rgba(127,127,127,.10) 33%);
+  background-size:200% 100%;
+  animation:gcComposeThumbShimmer 1.25s linear infinite;
+  pointer-events:none;
+}
+@keyframes gcComposeThumbShimmer{to{background-position-x:-200%;}}
+
 #chat-screen.open,#create-post-screen.open,#settings-privacy-screen.open,#page-other-profile.open{
 display:flex;
 animation:slideUp 0.3s ease;
@@ -15442,10 +15478,10 @@ l-137 -640 -193 -3 -193 -2 4 22 c2 13 67 314 144 671 l139 647 192 0 193 0
 </div>
 
 <div id="create-post-screen">
-<div class="chat-topbar" style="justify-content:space-between;width:100%;">
-<div style="display:flex;align-items:center;gap:12px;min-width:0;">
+<div class="chat-topbar" style="justify-content:space-between;width:100%;position:relative;">
+<div style="display:flex;align-items:center;gap:12px;min-width:0;flex:1;">
 <div class="chat-back" onclick="closeCreatePost()"><i class="ph-light ph-x" style="font-size:22px;"></i></div>
-<div style="font-weight:800;font-size:18px;">Create Post</div>
+<div style="font-weight:800;font-size:18px;position:absolute;left:50%;transform:translateX(-50%);pointer-events:none;white-space:nowrap;">New Post</div>
 </div>
 <button class="compose-btn" onclick="submitPost()" id="modal-post-btn" style="margin:0;margin-left:auto;flex-shrink:0;" disabled>Post</button>
 </div>
@@ -35450,11 +35486,51 @@ if(composeImages.length === 0){ preview.style.display = 'none'; grid.innerHTML =
 preview.style.display = 'block';
 grid.innerHTML = composeImages.map(function(it, i){
 const media = it.isVideo
-? ('<video src="' + it.preview + '" muted playsinline style="width:100%;height:100%;object-fit:cover;border-radius:10px;background:#000;pointer-events:none;"></video>')
+? ('<div class="gc-compose-video-thumb-loading" aria-hidden="true"></div><img class="gc-compose-video-thumb" data-video-thumb-idx="' + i + '" alt="Video thumbnail" draggable="false">')
 : ('<img src="' + it.preview + '" style="width:100%;height:100%;object-fit:cover;border-radius:10px;pointer-events:none;">');
-return '<div data-compose-idx="' + i + '" onclick="gcOpenComposeMediaPreview(' + i + ')" style="position:relative;width:72px;height:72px;flex-shrink:0;">' + media +
+return '<div data-compose-idx="' + i + '" onclick="gcOpenComposeMediaPreview(' + i + ')" style="position:relative;width:80px;height:80px;flex-shrink:0;">' + media +
 '<button type="button" onclick="event.stopPropagation();gcRemoveCompose(' + i + ')" style="position:absolute;top:4px;right:4px;width:20px;height:20px;border-radius:50%;border:none;background:rgba(0,0,0,.65);color:#fff;font-size:12px;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:2;">✕</button></div>';
 }).join('');
+composeImages.forEach(function(it, i){
+  if(it && it.isVideo && !it.thumbnail && !it.thumbnailLoading) gcGenerateComposeVideoThumbnail(it, i);
+  else if(it && it.isVideo && it.thumbnail){
+    var readyImg = grid.querySelector('img[data-video-thumb-idx="' + i + '"]');
+    if(readyImg){ readyImg.src = it.thumbnail; readyImg.classList.add('is-ready'); var loader=readyImg.parentNode.querySelector('.gc-compose-video-thumb-loading'); if(loader) loader.remove(); }
+  }
+});
+}
+/** Extract a real frame from the selected local video file for the small composer thumbnail. */
+function gcGenerateComposeVideoThumbnail(item, index){
+  if(!item || !item.file || !item.preview) return;
+  item.thumbnailLoading = true;
+  var probe = document.createElement('video');
+  probe.muted = true;
+  probe.playsInline = true;
+  probe.preload = 'auto';
+  probe.src = item.preview;
+  probe.addEventListener('loadeddata', function(){
+    try{
+      var canvas = document.createElement('canvas');
+      var width = probe.videoWidth || 0, height = probe.videoHeight || 0;
+      if(!width || !height) throw new Error('Video frame unavailable');
+      var scale = Math.min(1, 480 / Math.max(width, height));
+      canvas.width = Math.max(1, Math.round(width * scale));
+      canvas.height = Math.max(1, Math.round(height * scale));
+      var ctx = canvas.getContext('2d');
+      ctx.drawImage(probe, 0, 0, canvas.width, canvas.height);
+      var thumbnail = canvas.toDataURL('image/jpeg', 0.82);
+      item.thumbnail = thumbnail;
+      item.thumbnailLoading = false;
+      var currentIndex = composeImages.indexOf(item);
+      if(currentIndex < 0) return;
+      var grid = document.getElementById('compose-img-grid');
+      var img = grid && grid.querySelector('img[data-video-thumb-idx="' + currentIndex + '"]');
+      if(img){ img.src = thumbnail; img.classList.add('is-ready'); var loader=img.parentNode.querySelector('.gc-compose-video-thumb-loading'); if(loader) loader.remove(); }
+    }catch(err){ item.thumbnailLoading = false; }
+    finally{ try{ probe.removeAttribute('src'); probe.load(); }catch(e){} }
+  }, {once:true});
+  probe.addEventListener('error', function(){ item.thumbnailLoading = false; }, {once:true});
+  try{ probe.load(); }catch(e){ item.thumbnailLoading = false; }
 }
 function gcRemoveCompose(i){
 composeImages.splice(i, 1);
