@@ -13850,6 +13850,29 @@ body:not(.light-mode) .sp-comment-compose button.is-ready{
 .gc-chat-video-bubble video{
   display:block;width:100%;max-height:320px;object-fit:contain;background:#000;pointer-events:none;
 }
+
+.gc-chat-video-bubble .gc-chat-video-poster{
+  position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000;z-index:1;pointer-events:none;
+}
+.gc-chat-video-bubble video{ position:relative; z-index:0; }
+.gc-chat-video-bubble .gc-chat-video-play{ z-index:2; }
+.gc-chat-img-thumb video,
+.gc-chat-img-thumb img{ width:100%;height:100%;object-fit:cover;display:block;background:#000; }
+.gc-chat-img-thumb .gc-vid-badge{
+  position:absolute;left:6px;bottom:6px;z-index:2;
+  width:22px;height:22px;border-radius:50%;background:rgba(0,0,0,0.55);
+  display:flex;align-items:center;justify-content:center;pointer-events:none;
+}
+.gc-chat-img-thumb .gc-vid-badge svg{ width:10px;height:10px;fill:#fff; }
+.gc-cvv-menu .chat-dropdown-item{
+  display:flex;align-items:center;gap:12px;padding:13px 16px;
+  color:var(--text);font-weight:700;font-size:14px;cursor:pointer;
+  background:transparent;border:none;width:100%;text-align:left;
+}
+.gc-cvv-menu .chat-dropdown-item:active,
+.gc-cvv-menu .chat-dropdown-item:hover{ background:var(--surface-2, rgba(0,0,0,0.06)); }
+.gc-cvv-menu .chat-dropdown-item i{ color:var(--text); }
+.gc-chat-upload-item video{ width:100%;height:100%;object-fit:cover;display:block;background:#000; }
 .gc-chat-video-play{
   position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
   width:48px;height:48px;border-radius:50%;
@@ -22379,7 +22402,7 @@ safeText = safeText.replace(urlRegex, function(url) {
                 if(m.text) content += `<div style="margin-top:6px;">${safeText}</div>`;
             } else if(m.videoUrl){
                 const vUrl = escapeHTML(m.videoUrl);
-                const vBubble = (typeof gcBuildChatVideoBubble==='function') ? gcBuildChatVideoBubble(m.videoUrl) : (`<div class="gc-chat-video-bubble" onclick="event.stopPropagation();gcOpenChatVideoViewer('${vUrl}')"><video src="${vUrl}" preload="metadata" muted playsinline></video><div class="gc-chat-video-play"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.14v13.72a1 1 0 0 0 1.5.86l11-6.86a1 1 0 0 0 0-1.72l-11-6.86a1 1 0 0 0-1.5.86z"/></svg></div></div>`);
+                const vBubble = (typeof gcBuildChatVideoBubble==='function') ? gcBuildChatVideoBubble(m.videoUrl, m.videoThumb || m.poster || m.thumbnail || '') : (function(){ var pt=escapeHTML(m.videoThumb||m.poster||m.thumbnail||''); var pi=pt?('<img class="gc-chat-video-poster" src="'+pt+'" alt="">'):''; var pa=pt?(' poster="'+pt+'"'):''; return '<div class="gc-chat-video-bubble" onclick="event.stopPropagation();gcOpenChatVideoViewer(\''+vUrl+'\')">'+pi+'<video src="'+vUrl+'"'+pa+' preload="metadata" muted playsinline></video><div class="gc-chat-video-play"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.14v13.72a1 1 0 0 0 1.5.86l11-6.86a1 1 0 0 0 0-1.72l-11-6.86a1 1 0 0 0-1.5.86z"/></svg></div></div>'; })();
                 content = (m.text ? `<div style="margin-bottom:6px;">${safeText}</div>` : '') + vBubble;
             } else if((m.images && m.images.length) || m.imageUrl){
                 const imgList = (m.images && m.images.length) ? m.images : [m.imageUrl];
@@ -23656,21 +23679,40 @@ function gcRenderChatImgPreview(){
   if(countEl) countEl.textContent=q.length+'/10';
   if(circle) circle.textContent=String(q.length);
   if(sendBtn) sendBtn.textContent = q.length===1 ? 'Send 1' : ('Send '+q.length);
+  var gen = ++window.__gcChatPreviewGen || (window.__gcChatPreviewGen=1);
   var html='';
+  var vidBadge = '<span class="gc-vid-badge"><svg viewBox="0 0 24 24"><path d="M8 5.14v13.72a1 1 0 0 0 1.5.86l11-6.86a1 1 0 0 0 0-1.72l-11-6.86a1 1 0 0 0-1.5.86z"/></svg></span>';
   for(var i=0;i<q.length;i++){
     var f=q[i];
-    var u=URL.createObjectURL(f); box._urls.push(u);
     var isVid = (typeof gcIsChatVideoFile === 'function') ? gcIsChatVideoFile(f) : !!(f.type && f.type.indexOf('video/')===0);
-    var media = isVid
-      ? ('<video src="'+u+'" muted playsinline preload="metadata" style="width:100%;height:100%;object-fit:cover;display:block;background:#000;"></video>')
-      : ('<img src="'+u+'" alt="">');
+    var u=URL.createObjectURL(f); box._urls.push(u);
+    // Prefer <img> for both: videos get real frame via async thumb fill
+    var media = '<img data-preview-idx="'+i+'" data-is-vid="'+(isVid?'1':'0')+'" src="'+u+'" alt="">';
     html+='<div class="gc-chat-img-thumb">'
       + media
+      + (isVid ? vidBadge : '')
       +'<span class="gc-chat-img-num">'+(i+1)+'</span>'
       +'<button type="button" class="gc-chat-img-x" onclick="event.stopPropagation();gcRemoveQueuedChatImage('+i+')" aria-label="Remove">&times;</button>'
       +'</div>';
   }
   box.innerHTML=html;
+  // Async: replace video object-URL on <img> with canvas-captured JPEG thumb
+  (function(localGen, files){
+    files.forEach(function(f, idx){
+      var isVid = (typeof gcIsChatVideoFile === 'function') ? gcIsChatVideoFile(f) : !!(f.type && f.type.indexOf('video/')===0);
+      if(!isVid) return;
+      if(typeof gcMakeVideoThumbBlob !== 'function') return;
+      gcMakeVideoThumbBlob(f).then(function(blob){
+        if(!blob) return;
+        if(window.__gcChatPreviewGen !== localGen) return;
+        var img = box.querySelector('img[data-preview-idx="'+idx+'"]');
+        if(!img) return;
+        var thumbUrl = URL.createObjectURL(blob);
+        box._urls.push(thumbUrl);
+        img.src = thumbUrl;
+      });
+    });
+  })(gen, q.slice());
 }
 async function gcSendQueuedChatImages(){
   var q=(window.__gcChatImgQueue||[]).slice();
@@ -23712,11 +23754,17 @@ function gcRenderPendingChatImageJobs(){
     var count=job.urls.length;
     var gridClass=count===1?'gc-chat-upload-grid single':'gc-chat-upload-grid';
     var items='';
+    var kinds = job.kinds || [];
     job.urls.forEach(function(u,idx){
-      items += '<div class="gc-chat-upload-item"><img src="'+gcEscapeAttr(u)+'" alt="Processing image '+(idx+1)+'">'
+      items += '<div class="gc-chat-upload-item"><img src="'+gcEscapeAttr(u)+'" alt="Processing '+(idx+1)+'">'
         +'<div class="gc-chat-upload-shade"><span class="gc-chat-upload-spinner"></span><span class="gc-chat-upload-label">Processing...</span></div></div>';
     });
-    var label=count===1?'Processing image':'Processing '+count+' images';
+    var allVid = kinds.length && kinds.every(function(k){ return k==='video'; });
+    var mixed = kinds.length && kinds.some(function(k){ return k==='video'; }) && kinds.some(function(k){ return k!=='video'; });
+    var label;
+    if(allVid) label = count===1 ? 'Processing video' : ('Processing '+count+' videos');
+    else if(mixed) label = 'Processing '+count+' items';
+    else label = count===1 ? 'Processing image' : ('Processing '+count+' images');
     wrap.innerHTML='<div class="gc-chat-upload-inner"><div class="'+gridClass+'">'+items+'</div>'
       +'<div class="gc-chat-upload-status"><span><strong>'+label+'</strong></span><span>'+gcEscapeAttr(job.status||'Uploading...')+'</span></div></div>';
     list.appendChild(wrap);
@@ -23724,15 +23772,34 @@ function gcRenderPendingChatImageJobs(){
 }
 function gcCreatePendingChatImageJob(files){
   var urls=[];
+  var kinds=[];
   (files||[]).forEach(function(file){
-    try{ urls.push(URL.createObjectURL(file)); }catch(e){}
+    var isVid = (typeof gcIsChatVideoFile === 'function') ? gcIsChatVideoFile(file) : !!(file && file.type && file.type.indexOf('video/')===0);
+    kinds.push(isVid ? 'video' : 'image');
+    try{ urls.push(URL.createObjectURL(file)); }catch(e){ urls.push(''); }
   });
   if(!urls.length) return null;
-  var job={id:'job_'+Date.now()+'_'+Math.random().toString(36).slice(2,7),domId:'gc-chat-upload-'+Date.now()+'-'+Math.random().toString(36).slice(2,7),chatId:currentChatId,urls:urls,status:'Uploading...'};
+  var job={id:'job_'+Date.now()+'_'+Math.random().toString(36).slice(2,7),domId:'gc-chat-upload-'+Date.now()+'-'+Math.random().toString(36).slice(2,7),chatId:currentChatId,urls:urls,kinds:kinds,status:'Uploading...',files:(files||[]).slice()};
   window.__gcPendingChatImageJobs.push(job);
   gcRenderPendingChatImageJobs();
   var list=document.getElementById('chat-messages');
   if(list) list.scrollTop=list.scrollHeight;
+  // Replace video blob previews with real frame thumbnails
+  (files||[]).forEach(function(file, idx){
+    var isVid = kinds[idx]==='video';
+    if(!isVid || typeof gcMakeVideoThumbBlob !== 'function') return;
+    gcMakeVideoThumbBlob(file).then(function(blob){
+      if(!blob) return;
+      if(window.__gcPendingChatImageJobs.indexOf(job) === -1) return;
+      try{
+        var old = job.urls[idx];
+        var nu = URL.createObjectURL(blob);
+        job.urls[idx] = nu;
+        if(old) try{ URL.revokeObjectURL(old); }catch(e){}
+        gcRenderPendingChatImageJobs();
+      }catch(e){}
+    });
+  });
   return job;
 }
 function gcUpdatePendingChatImageJob(job,status){
@@ -23835,7 +23902,20 @@ async function sendChatVideo(input){
       var file = files[vi];
       if(pendingJob) gcUpdatePendingChatImageJob(pendingJob, 'Uploading '+(vi+1)+'/'+files.length+'...');
       var url = null;
-      try{ url = await uploadToCloudinary(file, true); }catch(upErr){ console.error(upErr); }
+      var thumbUrl = '';
+      try{
+        // Generate thumbnail first (local canvas) then upload video + thumb
+        if(typeof gcMakeVideoThumbBlob === 'function'){
+          try{
+            var thumbBlob = await gcMakeVideoThumbBlob(file);
+            if(thumbBlob){
+              var thumbFile = new File([thumbBlob], 'thumb_'+Date.now()+'.jpg', { type: 'image/jpeg' });
+              try{ thumbUrl = await uploadToCloudinary(thumbFile, false); }catch(te){ console.warn('thumb upload', te); }
+            }
+          }catch(te){ console.warn('thumb gen', te); }
+        }
+        url = await uploadToCloudinary(file, true);
+      }catch(upErr){ console.error(upErr); }
       if(!url){
         showToast('Failed to upload video');
         continue;
@@ -23849,6 +23929,7 @@ async function sendChatVideo(input){
         mediaType:'video',
         createdAt:firebase.firestore.FieldValue.serverTimestamp()
       };
+      if(thumbUrl) payload.videoThumb = thumbUrl;
       if(replySnap && vi===0){
         payload.replyTo=replySnap.replyTo;
         payload.replySender=replySnap.replySender;
@@ -23874,11 +23955,15 @@ async function sendChatVideo(input){
 }
 window.sendChatVideo = sendChatVideo;
 
-function gcBuildChatVideoBubble(url){
+function gcBuildChatVideoBubble(url, poster){
   if(!url) return '';
   var u = escapeHTML(url);
+  var p = poster ? escapeHTML(String(poster)) : '';
+  var posterAttr = p ? (' poster="'+p+'"') : '';
+  var posterImg = p ? ('<img class="gc-chat-video-poster" src="'+p+'" alt="" loading="lazy">') : '';
   return '<div class="gc-chat-video-bubble" onclick="event.stopPropagation();gcOpenChatVideoViewer(\''+u+'\')">'
-    +'<video src="'+u+'" preload="metadata" muted playsinline></video>'
+    + posterImg
+    +'<video src="'+u+'"'+posterAttr+' preload="metadata" muted playsinline></video>'
     +'<div class="gc-chat-video-play"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.14v13.72a1 1 0 0 0 1.5.86l11-6.86a1 1 0 0 0 0-1.72l-11-6.86a1 1 0 0 0-1.5.86z"/></svg></div>'
     +'</div>';
 }
@@ -23903,6 +23988,13 @@ function gcOpenChatVideoViewer(url){
   vid.load();
   viewer.classList.add('open');
   viewer.setAttribute('aria-hidden','false');
+  try{
+    viewer.onclick = function(ev){
+      if(ev && ev.target && (ev.target.id === 'gc-chat-video-viewer' || (ev.target.classList && ev.target.classList.contains('gc-cvv-stage')))){
+        gcCloseChatVideoMenu();
+      }
+    };
+  }catch(e){}
   gcSyncChatVideoPlayIcon(false);
   gcUpdateChatVideoProgress();
   try{
@@ -23912,6 +24004,147 @@ function gcOpenChatVideoViewer(url){
   }catch(e){ gcSyncChatVideoPlayIcon(false); }
 }
 window.gcOpenChatVideoViewer = gcOpenChatVideoViewer;
+
+
+function gcToggleChatVideoMenu(e){
+  if(e){ try{ e.stopPropagation(); e.preventDefault(); }catch(_e){} }
+  var menu = document.getElementById('gc-cvv-menu');
+  if(!menu) return;
+  var open = menu.classList.contains('open');
+  if(open) menu.classList.remove('open');
+  else menu.classList.add('open');
+}
+function gcCloseChatVideoMenu(){
+  var menu = document.getElementById('gc-cvv-menu');
+  if(menu) menu.classList.remove('open');
+}
+async function gcShareChatVideo(event){
+  if(event){ try{ event.stopPropagation(); }catch(e){} }
+  gcCloseChatVideoMenu();
+  if(typeof gcIsAdvancedPrivacyActive === 'function' && gcIsAdvancedPrivacyActive()){
+    showToast('Sharing media is disabled while Advanced Privacy is ON');
+    return;
+  }
+  var url = window.__gcChatVideoUrl || '';
+  if(!url){ showToast('Nothing to share'); return; }
+  try{
+    if(navigator.share){
+      try{
+        var res = await fetch(url);
+        var blob = await res.blob();
+        var file = new File([blob], 'GoChat_Video.mp4', { type: blob.type || 'video/mp4' });
+        if(navigator.canShare && navigator.canShare({ files: [file] })){
+          await navigator.share({ files: [file], title: 'GoChat' });
+          return;
+        }
+      }catch(err){}
+      await navigator.share({ url: url, title: 'GoChat' });
+      return;
+    }
+  }catch(e){}
+  try{
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      await navigator.clipboard.writeText(url);
+      showToast('Link copied');
+      return;
+    }
+  }catch(e){}
+  showToast('Sharing not supported on this device');
+}
+async function gcSaveChatVideo(event){
+  if(event){ try{ event.stopPropagation(); }catch(e){} }
+  gcCloseChatVideoMenu();
+  var url = window.__gcChatVideoUrl || '';
+  if(!url){ showToast('Nothing to save'); return; }
+  if(typeof gcDownloadMedia === 'function'){
+    await gcDownloadMedia(url, {
+      which: 'zoom',
+      filename: 'GoChat_Video_' + Date.now() + '.mp4'
+    });
+  } else {
+    try{
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = 'GoChat_Video_' + Date.now() + '.mp4';
+      a.target = '_blank';
+      a.rel = 'noopener';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    }catch(e){ showToast('Could not save video'); }
+  }
+}
+window.gcToggleChatVideoMenu = gcToggleChatVideoMenu;
+window.gcShareChatVideo = gcShareChatVideo;
+window.gcSaveChatVideo = gcSaveChatVideo;
+
+/** Capture first-frame thumbnail from a local video File → JPEG Blob */
+function gcMakeVideoThumbBlob(file, maxW){
+  maxW = maxW || 480;
+  return new Promise(function(resolve){
+    try{
+      if(!file){ resolve(null); return; }
+      var url = URL.createObjectURL(file);
+      var video = document.createElement('video');
+      video.muted = true;
+      video.playsInline = true;
+      video.preload = 'auto';
+      var done = false;
+      function finish(blob){
+        if(done) return;
+        done = true;
+        try{ URL.revokeObjectURL(url); }catch(e){}
+        try{ video.removeAttribute('src'); video.load(); }catch(e){}
+        resolve(blob || null);
+      }
+      var timer = setTimeout(function(){ finish(null); }, 8000);
+      video.onloadeddata = function(){
+        try{
+          var seekTo = Math.min(0.25, (video.duration && isFinite(video.duration) ? video.duration * 0.05 : 0.1));
+          var onSeek = function(){
+            try{
+              var w = video.videoWidth || 320;
+              var h = video.videoHeight || 180;
+              if(w < 2 || h < 2){ clearTimeout(timer); finish(null); return; }
+              var scale = Math.min(1, maxW / w);
+              var cw = Math.max(1, Math.round(w * scale));
+              var ch = Math.max(1, Math.round(h * scale));
+              var canvas = document.createElement('canvas');
+              canvas.width = cw; canvas.height = ch;
+              var ctx = canvas.getContext('2d');
+              ctx.drawImage(video, 0, 0, cw, ch);
+              if(canvas.toBlob){
+                canvas.toBlob(function(b){ clearTimeout(timer); finish(b); }, 'image/jpeg', 0.82);
+              } else {
+                clearTimeout(timer);
+                finish(null);
+              }
+            }catch(e){ clearTimeout(timer); finish(null); }
+          };
+          if(typeof video.fastSeek === 'function'){
+            try{ video.fastSeek(seekTo); }catch(e){ video.currentTime = seekTo; }
+          } else {
+            video.currentTime = seekTo;
+          }
+          video.onseeked = onSeek;
+          // Some browsers fire loadeddata already at frame 0
+          setTimeout(function(){ if(!done) onSeek(); }, 400);
+        }catch(e){ clearTimeout(timer); finish(null); }
+      };
+      video.onerror = function(){ clearTimeout(timer); finish(null); };
+      video.src = url;
+      try{ video.load(); }catch(e){}
+    }catch(e){ resolve(null); }
+  });
+}
+async function gcMakeVideoThumbObjectUrl(file){
+  try{
+    var blob = await gcMakeVideoThumbBlob(file);
+    if(!blob) return null;
+    return URL.createObjectURL(blob);
+  }catch(e){ return null; }
+}
+window.gcMakeVideoThumbBlob = gcMakeVideoThumbBlob;
 
 function gcCloseChatVideoViewer(){
   var viewer = document.getElementById('gc-chat-video-viewer');
