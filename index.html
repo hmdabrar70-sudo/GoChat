@@ -14060,6 +14060,8 @@ body:not(.messages-mode):not(.notifications-mode) #topbar-logo-main .gc-app-logo
 .gc-ann-post-media{margin:0 -14px -16px;border-radius:0 0 16px 16px;overflow:hidden;background:#000;}
 .gc-ann-post-media img{width:100%;height:auto;display:block;object-fit:contain;max-height:70vh;background:#000;}
 body.gc-ann-viewer-open{overflow:hidden !important;}
+.gc-ann-viewer.open{display:flex !important;}
+
 </style>
 </head>
 <body>
@@ -17111,6 +17113,26 @@ setTimeout(()=>t.classList.remove('show'),2500);
 }
 
 /** Read-only official announcement (admin announcement notification) */
+function openAnnouncementFromNotif(notifId) {
+    try {
+      var data = (window.__gcNotifById && window.__gcNotifById[notifId]) || null;
+      var message = data ? (data.message || '') : '';
+      var imageUrl = data ? (data.imageUrl || '') : '';
+      var tLabel = 'Official announcement';
+      try {
+        if (data && data.createdAt) {
+          var ms = data.createdAt.toMillis ? data.createdAt.toMillis() : (data.createdAt.seconds ? data.createdAt.seconds * 1000 : (typeof data.createdAt === 'number' ? data.createdAt : 0));
+          if (ms) tLabel = new Date(ms).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+        }
+      } catch(e) {}
+      if (typeof openOfficialAnnouncement === 'function') {
+        openOfficialAnnouncement(message, imageUrl, tLabel);
+      }
+    } catch (e) {
+      console.error('openAnnouncementFromNotif', e);
+    }
+  }
+
 function openOfficialAnnouncement(message, imageUrl, timeLabel) {
     try { window.__gcAnnScrollY = window.pageYOffset || document.documentElement.scrollTop || 0; } catch(e) {}
     let ov = document.getElementById('gc-official-announcement');
@@ -17165,12 +17187,18 @@ function openOfficialAnnouncement(message, imageUrl, timeLabel) {
       if (media) media.style.display = 'none';
     }
     ov.style.display = 'flex';
+    ov.style.setProperty('display', 'flex', 'important');
+    try { ov.classList.add('open'); } catch(e){}
     try { document.body.classList.add('gc-ann-viewer-open'); } catch(e){}
 }
 
 function closeOfficialAnnouncement() {
     const ov = document.getElementById('gc-official-announcement');
-    if (ov) ov.style.display = 'none';
+    if (ov) {
+      ov.style.display = 'none';
+      ov.style.setProperty('display', 'none', 'important');
+      try { ov.classList.remove('open'); } catch(e){}
+    }
     try { document.body.classList.remove('gc-ann-viewer-open'); } catch(e){}
     try {
       if (typeof window.__gcAnnScrollY === 'number') {
@@ -18626,17 +18654,17 @@ notifUnsub = db.collection('notifications').where('toUid', '==', user.uid).onSna
 
         var onClickAction = "db.collection('notifications').doc('"+data.id+"').update({read:true});";
         if (isAnn) {
-        var safeMsg = String(data.message || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\n/g, '\\n').replace(/\r/g, '');
-            var safeImg = String(data.imageUrl || data.imgUrl || data.postImage || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-            var tLabel = 'Official announcement';
             try {
-              if (data.createdAt && data.createdAt.toMillis) {
-                var d = new Date(data.createdAt.toMillis());
-                tLabel = d.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
-              }
-            } catch(e){}
-            var safeTime = String(tLabel).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-            onClickAction += " openOfficialAnnouncement('"+safeMsg+"','"+safeImg+"','"+safeTime+"');";
+              if (!window.__gcNotifById) window.__gcNotifById = {};
+              window.__gcNotifById[data.id] = {
+                id: data.id,
+                type: data.type,
+                message: data.message || '',
+                imageUrl: data.imageUrl || data.imgUrl || data.postImage || '',
+                createdAt: data.createdAt || null
+              };
+            } catch(e) {}
+            onClickAction += " openAnnouncementFromNotif('"+String(data.id).replace(/'/g, '')+"');";
         } else if (data.postId && data.type === 'comment') {
             onClickAction += " openSinglePostView('"+data.postId+"');";
         } else if (data.postId) {
