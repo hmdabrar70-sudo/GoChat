@@ -3176,9 +3176,9 @@ transition:background 0.15s ease;
 position:relative;
 }
 #msg-list .avatar{
-  width:49px !important;
-  height:49px !important;
-  flex:0 0 49px !important;
+  width:42px !important;
+  height:42px !important;
+  flex:0 0 42px !important;
 }
 .msg-item:last-child{border-bottom:none;}
 .msg-item:hover {
@@ -10688,12 +10688,43 @@ Edit Profile-এ পার্টনার সিলেক্ট বাটন
   color:var(--text-secondary) !important;
   background:transparent !important;
 }
-/* Own Message — Timestamp Text & Receipt Contrast */
+/* Timestamp row — inherit, no second band */
 .chat-bubble.mine .gc-msg-time-row,
-.chat-bubble.mine .gc-msg-time-row span,
-.chat-bubble.mine .gc-msg-time-row i{
+.chat-bubble.mine > div.gc-msg-time-row,
+.chat-bubble.mine > div[style*="font-size: 10px"],
+.chat-bubble.mine > div[style*="font-size:10px"]{
+  background:transparent !important;
+  background-color:transparent !important;
+  background-image:none !important;
   color:#ffffff !important;
   opacity:1 !important;
+  margin-top:6px !important;
+}
+.chat-bubble.mine .gc-msg-time-row span,
+.chat-bubble.mine .gc-msg-time-row i,
+.chat-bubble.mine > div[style*="font-size: 10px"] span,
+.chat-bubble.mine > div[style*="font-size:10px"] span,
+.chat-bubble.mine > div[style*="font-size: 10px"] i,
+.chat-bubble.mine > div[style*="font-size:10px"] i{
+  color:#ffffff !important;
+  opacity:1 !important;
+}
+/* Hide native audio chrome completely */
+.chat-bubble.mine audio,
+.chat-bubble.theirs audio,
+.chat-bubble audio,
+.gc-voice-player audio{
+  display:none !important;
+  visibility:hidden !important;
+  position:absolute !important;
+  width:0 !important;
+  height:0 !important;
+  max-width:0 !important;
+  max-height:0 !important;
+  opacity:0 !important;
+  pointer-events:none !important;
+  appearance:none !important;
+  -webkit-appearance:none !important;
 }
 
 
@@ -11708,10 +11739,11 @@ body:not(.light-mode) .chat-bubble.gc-media-only .gc-msg-time-row i{
   color: #a0a0b5 !important;
   opacity: 1 !important;
 }
-/* Media Message — Timestamp Capsule Spacing */
+/* Time row sits outside photo edge for clarity */
 .chat-bubble.gc-media-only .gc-msg-time-row{
-  margin-top:8px !important;
-  text-shadow:none !important;
+  margin-top: 6px !important;
+  padding: 0 2px !important;
+  text-shadow: none !important;
 }
 
 
@@ -12302,7 +12334,8 @@ body:not(.light-mode) .gc-edu-results{
   background-image:none !important;
 }
 .chat-bubble.mine .gc-voice-player,
-.chat-bubble.mine .gc-voice-player .gc-vp-meta{
+.chat-bubble.mine .gc-voice-player .gc-vp-meta,
+.chat-bubble.mine .gc-msg-time-row{
   background:#00BFFF !important;
   background-color:#00BFFF !important;
   background-image:none !important;
@@ -14078,62 +14111,6 @@ body.gc-ann-viewer-open{overflow:hidden !important;}
 .gc-media-fallback.gc-media-cover{background:linear-gradient(135deg,var(--surface-2,#171923),var(--surface,#0a0a0f))}
 .gc-media-fallback[hidden]{display:none!important}
 
-
-/* ============================================================
-   GOCHAT MESSENGER — MESSAGE TIMESTAMP & READ RECEIPT
-   COMPONENT : Message Metadata Capsule
-   DESIGN    : Rounded Capsule · Theme Adaptive
-   PURPOSE   : Timestamp + Seen / Delivery Status
-   ============================================================ */
-
-.chat-bubble .gc-msg-time-row{
-  display:flex !important;
-  align-items:center !important;
-  justify-content:flex-end !important;
-  gap:4px !important;
-
-  width:fit-content !important;
-  max-width:100% !important;
-  box-sizing:border-box !important;
-
-  padding:4px 9px !important;
-  margin:8px 0 0 auto !important;
-
-  border-radius:999px !important;
-  line-height:1.2 !important;
-
-  backdrop-filter:blur(8px);
-  -webkit-backdrop-filter:blur(8px);
-
-  opacity:1 !important;
-}
-
-/* OWN MESSAGE — Cyan Bubble Capsule */
-.chat-bubble.mine .gc-msg-time-row{
-  background:rgba(0,0,0,0.18) !important;
-  border:1px solid rgba(255,255,255,0.18) !important;
-  color:#ffffff !important;
-}
-
-/* OTHER USER — Light Mode */
-body.light-mode .chat-bubble.theirs .gc-msg-time-row{
-  background:rgba(0,0,0,0.055) !important;
-  border:1px solid rgba(0,0,0,0.08) !important;
-  color:#555568 !important;
-}
-
-/* OTHER USER — Dark Mode */
-body:not(.light-mode) .chat-bubble.theirs .gc-msg-time-row{
-  background:rgba(255,255,255,0.09) !important;
-  border:1px solid rgba(255,255,255,0.10) !important;
-  color:#e5e7eb !important;
-}
-
-/* Timestamp + Receipt Icon Visibility */
-.chat-bubble .gc-msg-time-row span,
-.chat-bubble .gc-msg-time-row i{
-  opacity:1 !important;
-}
 </style>
 </head>
 <body>
@@ -22334,7 +22311,7 @@ safeText = safeText.replace(urlRegex, function(url) {
             }
             const _isMediaOnly = ((((m.images&&m.images.length)||m.imageUrl||m.videoUrl)&&!m.text)||m.sharedPostId);
             let timeAndReceiptHtml = `<div class="gc-msg-time-row" style="font-size: 10px; text-align: right; margin-top: 5px; display: flex; justify-content: flex-end; gap: 4px; align-items: center;">
-    <span>${timeString}</span>`;
+                <span>${timeString}</span>`;
             if(isMine){
                 if(m.read){
                     timeAndReceiptHtml += `<i class="ph-light ph-circle" style="font-size: 14px; color: #4ade80;"></i>`;
@@ -22387,7 +22364,7 @@ safeText = safeText.replace(urlRegex, function(url) {
             var _inner = (typeof gcAvatarInnerHtml === 'function')
               ? gcAvatarInnerHtml(_sidForAv, sAv, sNm)
               : ((sAv && sAv !== 'undefined') ? '<img src="'+escapeHTML(sAv)+'">' : '');
-            msgAvatarHtml = '<div class="avatar sm" style="align-self:flex-end;margin-right:8px;flex-shrink:0;margin-top:0;">' + _inner + '</div>';
+            msgAvatarHtml = '<div class="avatar sm" style="align-self:flex-start;margin-right:8px;flex-shrink:0;margin-top:2px;">' + _inner + '</div>';
         }
 
         if (m.deletedFor && m.deletedFor.includes(currentUser.uid)) { return ''; }
@@ -22414,7 +22391,7 @@ safeText = safeText.replace(urlRegex, function(url) {
         }
 
         return dateSepHtml + `<div class="chat-bubble-wrapper ${isMine?'mine':'theirs'}" data-msgid="${d.id}" ontouchstart="handleMsgTouchStart('${d.id}', event)" ontouchmove="handleMsgTouchMove(event)" ontouchend="handleMsgTouchEnd('${d.id}', event)" ontouchcancel="handleMsgTouchEnd('${d.id}', event)" onmousedown="handleMsgTouchStart('${d.id}', event)" onmouseup="handleMsgTouchEnd('${d.id}', event)" onmouseleave="handleMsgTouchEnd('${d.id}', event)" oncontextmenu="event.preventDefault(); return false;" onclick="handleMsgClick('${d.id}')">
-            <div style="display:flex; flex-direction:row; align-items:flex-end; width:100%; ${isMine?'justify-content:flex-end;':''}">
+            <div style="display:flex; flex-direction:row; align-items:flex-start; width:100%; ${isMine?'justify-content:flex-end;':''}">
                 ${!isMine ? msgAvatarHtml : ''}
                 <div class="chat-bubble ${isMine?'mine':'theirs'}${(((m.images&&m.images.length)||m.imageUrl||m.videoUrl)&&!m.text)||m.sharedPostId?' gc-media-only':''}${m.audioUrl?' gc-voice-bubble':''}" ${(isMine && !((((m.images&&m.images.length)||m.imageUrl||m.videoUrl)&&!m.text)||m.sharedPostId))?'style="background:#00BFFF !important;background-color:#00BFFF !important;background-image:none !important;"':''} >
                     ${m.forwarded ? '<div class="gc-fwd-label"><i class="ph-light ph-arrow-bend-double-up-right"></i> Forwarded</div>' : ''}
