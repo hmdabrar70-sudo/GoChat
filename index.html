@@ -3267,8 +3267,21 @@ overflow:hidden !important;
   background:#000;
 }
 .gc-compose-media-fs-stage video{
-  width:100%;
+  width:auto;
+  height:auto;
+  max-width:100%;
   max-height:100%;
+  object-fit:contain;
+  outline:none;
+  border:0;
+  pointer-events:auto;
+}
+.gc-compose-media-fs-stage video::-webkit-media-controls,
+.gc-compose-media-fs-stage video::-webkit-media-controls-enclosure,
+.gc-compose-media-fs-stage video::-webkit-media-controls-panel,
+.gc-compose-media-fs-stage video::-webkit-media-controls-overlay-play-button{
+  display:none !important;
+  -webkit-appearance:none !important;
 }
 .compose-img-grid > div[data-compose-idx]{
   cursor:pointer;
@@ -4274,38 +4287,51 @@ display:flex;justify-content:space-between;align-items:center;
 }
 .reply-preview .reply-text{color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:80%;}
 .reply-preview .reply-close{cursor:pointer;color:var(--text-muted);padding:4px;}
-.message-reactions {
-    display: flex;
-    gap: 4px;
-    flex-wrap: wrap;
-    position: absolute;
-    bottom: -12px; /* বাবলটির নিচে অর্ধেকটা বের হয়ে থাকবে */
-    z-index: 10;
+/* Message reactions stay in normal flow: never cover the timestamp/bubble. */
+.message-reactions{
+    position:relative;
+    display:flex;
+    align-items:center;
+    gap:4px;
+    flex-wrap:nowrap;
+    width:max-content;
+    max-width:calc(100% - 44px);
+    min-height:0;
+    margin-top:7px;
+    z-index:2;
 }
-/* নিজের মেসেজ হলে রিয়্যাক্ট ডানদিকে বসবে, অন্যের হলে বামদিকে */
-.chat-bubble-wrapper.mine .message-reactions {
-    right: 15px;
+.chat-bubble-wrapper.mine .message-reactions{align-self:flex-end;margin-right:4px;}
+.chat-bubble-wrapper.theirs .message-reactions{align-self:flex-start;margin-left:48px;}
+.reaction-badge{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:4px;
+    min-width:32px;
+    height:28px;
+    padding:2px 8px;
+    border:1px solid var(--border);
+    border-radius:999px;
+    background:var(--surface);
+    color:var(--text);
+    box-shadow:0 2px 6px rgba(0,0,0,.12);
+    font-family:inherit;
+    font-size:12px;
+    font-weight:700;
+    line-height:1;
+    cursor:pointer;
+    white-space:nowrap;
+    flex:0 0 auto;
+    -webkit-tap-highlight-color:transparent;
 }
-.chat-bubble-wrapper.theirs .message-reactions {
-    left: 15px;
-}
-.reaction-badge {
-    background: var(--surface); /* মেসেঞ্জারের মতো ব্যাকগ্রাউন্ডের সাথে ম্যাচ করবে */
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 2px 6px;
-    font-size: 12px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.15); /* সুন্দর হালকা শ্যাডো */
-    transform: scale(1);
-    transition: transform 0.2s;
-}
-.reaction-badge:hover {
-    transform: scale(1.1);
-    background: var(--surface-2);
+.reaction-badge svg{width:17px;height:17px;display:block;}
+.reaction-badge:active{background:var(--surface-2);transform:scale(.97);}
+.reaction-badge.is-own{background:var(--accent-glow);border-color:var(--accent);}
+.reaction-badge.more{font-size:11px;color:var(--text-secondary);}
+@media(max-width:360px){
+  .chat-bubble-wrapper.theirs .message-reactions{margin-left:42px;}
+  .message-reactions{max-width:calc(100% - 38px);gap:3px;}
+  .reaction-badge{height:26px;min-width:29px;padding:2px 6px;}
 }
 /* 🚀 NEW: Reaction Picker With Bounce Animation */
 .reaction-picker {
@@ -14086,6 +14112,28 @@ body:not(.messages-mode):not(.notifications-mode) #topbar-logo-main .gc-app-logo
 body.gc-ann-viewer-open{overflow:hidden !important;}
 .gc-ann-viewer.open{display:flex !important;}
 
+
+/* ═══ GoChat shared media loading / fallback system ═══ */
+.gc-media-loading{
+  background-color:var(--surface-2,#171923)!important;
+  background-image:linear-gradient(100deg,rgba(255,255,255,0) 20%,rgba(255,255,255,.09) 42%,rgba(255,255,255,0) 64%)!important;
+  background-size:220% 100%!important;
+  animation:gcMediaShimmer 1.35s ease-in-out infinite;
+}
+@keyframes gcMediaShimmer{0%{background-position:100% 0}100%{background-position:-120% 0}}
+.gc-media-loaded{animation:none!important;background-image:none!important}
+.gc-media-failed{animation:none!important;background-image:none!important}
+.gc-media-fallback{
+  position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:7px;padding:12px;text-align:center;color:var(--text-muted,#9297a5);
+  background:var(--surface-2,#171923);font:600 12px/1.35 Inter,Arial,sans-serif;
+  pointer-events:none;z-index:3;overflow:hidden;
+}
+.gc-media-fallback svg{width:28px;height:28px;opacity:.72;flex:0 0 auto}
+.gc-media-fallback.gc-media-avatar{border-radius:inherit;background:var(--surface-2,#171923)}
+.gc-media-fallback.gc-media-cover{background:linear-gradient(135deg,var(--surface-2,#171923),var(--surface,#0a0a0f))}
+.gc-media-fallback[hidden]{display:none!important}
+
 </style>
 </head>
 <body>
@@ -22406,15 +22454,22 @@ safeText = safeText.replace(urlRegex, function(url) {
 
             let reactionsHtml = '';
             if (m.reactions && Object.keys(m.reactions).length > 0) {
-                reactionsHtml = '<div class="message-reactions">';
-                for (let emoji in m.reactions) {
-                    const count = m.reactions[emoji].length;
-                    const hasReacted = m.reactions[emoji].includes(currentUser.uid);
-                    var _rk = String(emoji).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-                    var _ricon = (typeof gcChatReactIconHtml==='function') ? gcChatReactIconHtml(emoji, 14) : emoji;
-                    reactionsHtml += `<span class="reaction-badge" data-msg-id="${d.id}" data-emoji="${_rk}" onclick="event.stopPropagation();gcOpenMsgReactionDetails('${d.id}')" style="${hasReacted?'background:var(--accent-glow);border-color:var(--accent);':''}">${_ricon} <span>${count}</span></span>`;
+                const _reactionEntries = Object.keys(m.reactions).map(function(type){
+                    const members = Array.isArray(m.reactions[type]) ? m.reactions[type] : [];
+                    return { type:type, members:members, count:members.length, own:!!(currentUser && members.indexOf(currentUser.uid)!==-1) };
+                }).filter(function(item){ return item.count > 0; }).sort(function(a,b){ return b.count-a.count; });
+                if(_reactionEntries.length){
+                    const _visibleReactions = _reactionEntries.slice(0,3);
+                    reactionsHtml = '<div class="message-reactions" role="group" aria-label="Message reactions">';
+                    _visibleReactions.forEach(function(item){
+                        var _ricon = (typeof gcChatReactIconHtml==='function') ? gcChatReactIconHtml(item.type, 16) : escapeHTML(item.type);
+                        reactionsHtml += '<button type="button" class="reaction-badge'+(item.own?' is-own':'')+'" data-msg-id="'+d.id+'" data-emoji="'+escapeHTML(item.type)+'" onclick="event.stopPropagation();gcOpenMsgReactionDetails(\''+d.id+'\')" aria-label="'+item.count+' '+escapeHTML(item.type)+' reactions">'+_ricon+'<span>'+item.count+'</span></button>';
+                    });
+                    if(_reactionEntries.length > 3){
+                        reactionsHtml += '<button type="button" class="reaction-badge more" onclick="event.stopPropagation();gcOpenMsgReactionDetails(\''+d.id+'\')" aria-label="View '+(_reactionEntries.length-3)+' more reaction types">+'+(_reactionEntries.length-3)+'</button>';
+                    }
+                    reactionsHtml += '</div>';
                 }
-                reactionsHtml += '</div>';
             }
 
             let senderNameHtml = '';
@@ -23189,6 +23244,10 @@ function gcCloseMsgReactionDetails(){
   var ov = document.getElementById('gc-react-detail-overlay');
   var wasOpen = !!(ov && (ov.classList.contains('open') || ov.style.display === 'flex'));
   if(ov){ ov.classList.remove('open'); ov.style.display='none'; }
+  if(typeof window.__gcMsgReactionUnsub === 'function'){
+    try{ window.__gcMsgReactionUnsub(); }catch(e){}
+    window.__gcMsgReactionUnsub = null;
+  }
   window.__gcReactDetailMsgId = null;
   if(wasOpen && typeof gcUnlockChatPopupScroll === 'function') gcUnlockChatPopupScroll();
 }
@@ -23217,17 +23276,29 @@ async function gcOpenMsgReactionDetails(msgId){
   if(typeof gcBindPopupScrollContain==='function') gcBindPopupScrollContain(ov, ['.gc-react-detail-list','.gc-react-detail-sheet']);
   var list = document.getElementById('gc-react-detail-list');
   if(list) list.innerHTML = '<div class="gc-react-detail-empty">Loading…</div>';
-  await gcRenderMsgReactionDetails(msgId);
+  if(typeof window.__gcMsgReactionUnsub === 'function'){
+    try{ window.__gcMsgReactionUnsub(); }catch(e){}
+    window.__gcMsgReactionUnsub = null;
+  }
+  var detailRef = db.collection('chats').doc(currentChatId).collection('messages').doc(msgId);
+  window.__gcMsgReactionUnsub = detailRef.onSnapshot(function(doc){
+    if(window.__gcReactDetailMsgId !== msgId || !document.getElementById('gc-react-detail-overlay')?.classList.contains('open')) return;
+    if(!doc.exists){ var target=document.getElementById('gc-react-detail-list'); if(target) target.innerHTML='<div class="gc-react-detail-empty">No reactions</div>'; return; }
+    gcRenderMsgReactionDetails(msgId, (doc.data() && doc.data().reactions) || {});
+  }, function(err){ console.error('message reaction detail listener',err); });
 }
 window.gcOpenMsgReactionDetails = gcOpenMsgReactionDetails;
 
-async function gcRenderMsgReactionDetails(msgId){
+async function gcRenderMsgReactionDetails(msgId, liveReactions){
   var list = document.getElementById('gc-react-detail-list');
   if(!list || !currentChatId) return;
   try{
-    var doc = await db.collection('chats').doc(currentChatId).collection('messages').doc(msgId).get();
-    if(!doc.exists){ list.innerHTML = '<div class="gc-react-detail-empty">No reactions</div>'; return; }
-    var reactions = (doc.data() && doc.data().reactions) || {};
+    var reactions = liveReactions;
+    if(!reactions){
+      var doc = await db.collection('chats').doc(currentChatId).collection('messages').doc(msgId).get();
+      if(!doc.exists){ list.innerHTML = '<div class="gc-react-detail-empty">No reactions</div>'; return; }
+      reactions = (doc.data() && doc.data().reactions) || {};
+    }
     var rows = [];
     Object.keys(reactions).forEach(function(emoji){
       var arr = reactions[emoji] || [];
@@ -23292,19 +23363,23 @@ async function gcRemoveOwnMsgReaction(msgId, emoji){
 window.gcRemoveOwnMsgReaction = gcRemoveOwnMsgReaction;
 
 async function toggleMessageReaction(msgId, emoji) {
-if (!checkRateLimit()) return;
+if (!currentUser || !currentChatId || !msgId || !emoji || !checkRateLimit()) return;
 const ref = db.collection('chats').doc(currentChatId).collection('messages').doc(msgId);
 const doc = await ref.get();
 if (!doc.exists) return;
 const data = doc.data();
-let reactions = data.reactions || {};
-if (!reactions[emoji]) reactions[emoji] = [];
-const idx = reactions[emoji].indexOf(currentUser.uid);
-if (idx > -1) {
-reactions[emoji].splice(idx, 1);
-if (reactions[emoji].length === 0) delete reactions[emoji];
-} else {
-reactions[emoji].push(currentUser.uid);
+let reactions = Object.assign({}, data.reactions || {});
+let alreadySelected = Array.isArray(reactions[emoji]) && reactions[emoji].indexOf(currentUser.uid) > -1;
+// One reaction per member per message: remove any previous type before switching.
+Object.keys(reactions).forEach(function(type){
+  if(!Array.isArray(reactions[type])) reactions[type] = [];
+  reactions[type] = reactions[type].filter(function(uid){ return uid !== currentUser.uid; });
+  if(reactions[type].length === 0) delete reactions[type];
+});
+// Selecting the current reaction toggles it off; selecting another replaces it.
+if(!alreadySelected){
+  if(!Array.isArray(reactions[emoji])) reactions[emoji] = [];
+  reactions[emoji].push(currentUser.uid);
 }
 await ref.update({ reactions });
 const picker = document.querySelector('.reaction-picker.show');
@@ -32770,6 +32845,9 @@ window.addEventListener('popstate', function(event) {
 });
 
 function closeTopMostView() {
+    var reactionDetails = document.getElementById('gc-react-detail-overlay');
+    if(reactionDetails && reactionDetails.classList.contains('open')) { gcCloseMsgReactionDetails(); return true; }
+
     var annV = document.getElementById('gc-official-announcement');
     if (annV && annV.style.display === 'flex') { if(typeof closeOfficialAnnouncement==='function') closeOfficialAnnouncement(); return true; }
 
@@ -35395,14 +35473,22 @@ function gcOpenComposeMediaPreview(idx){
   if(it.isVideo){
     var v = document.createElement('video');
     v.src = it.preview;
-    v.controls = true;
+    v.controls = false;
     v.playsInline = true;
+    v.muted = false;
+    v.autoplay = true;
+    v.loop = true;
     v.setAttribute('playsinline', '');
-    v.setAttribute('controls', '');
+    v.setAttribute('webkit-playsinline', '');
+    v.setAttribute('disablepictureinpicture', '');
+    v.setAttribute('disableremoteplayback', '');
+    v.setAttribute('controlslist', 'nodownload noplaybackrate noremoteplayback');
+    v.removeAttribute('controls');
     v.style.maxWidth = '100%';
     v.style.maxHeight = '100%';
     stage.appendChild(v);
-    try{ v.play(); }catch(e){}
+    var playAttempt = v.play();
+    if(playAttempt && typeof playAttempt.catch === 'function') playAttempt.catch(function(){});
   }else{
     var img = document.createElement('img');
     img.src = it.preview;
@@ -41507,6 +41593,155 @@ window.gcCloseSheetSafe = gcCloseSheetSafe;
     document.body.classList.add('light-mode');
   }
 })();
+
+
+/* ═══ GoChat centralized dynamic media state manager ═══
+   Works with dynamically-rendered img/video nodes without changing stored URLs or Firestore data. */
+(function gcInstallSharedMediaSystem(){
+  if(window.__gcSharedMediaSystemInstalled) return;
+  window.__gcSharedMediaSystemInstalled = true;
+  var FALLBACK_PHOTO = 'Photo Unavailable';
+  var FALLBACK_VIDEO = 'Video Unavailable';
+  var SVG_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="8.5" cy="9" r="1.5"/><path d="m21 15-5-5L5 20"/></svg>';
+  var SVG_VIDEO = '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m10 9 5 3-5 3z"/></svg>';
+  function kindOf(el){
+    var parentHint=el.parentElement?((el.parentElement.className&&typeof el.parentElement.className==='string'?el.parentElement.className:'')+' '+(el.parentElement.id||'')):'';
+    var hint=((el.id||'')+' '+(el.className&&typeof el.className==='string'?el.className:'')+' '+(el.alt||'')+' '+(el.getAttribute('data-gc-media-kind')||'')+' '+parentHint).toLowerCase();
+    if(/cover|banner/.test(hint)) return 'cover';
+    if(/avatar|profile-photo|profilephoto|user-photo|userphoto/.test(hint)) return 'avatar';
+    return el.tagName==='VIDEO'?'video':'photo';
+  }
+  function fallbackMarkup(kind){
+    if(kind==='avatar') return '<span class="gc-media-fallback gc-media-avatar" aria-label="Profile photo unavailable">'+SVG_ICON+'</span>';
+    if(kind==='cover') return '<span class="gc-media-fallback gc-media-cover" aria-label="Cover photo unavailable">'+SVG_ICON+'</span>';
+    return '<span class="gc-media-fallback" aria-label="'+(kind==='video'?FALLBACK_VIDEO:FALLBACK_PHOTO)+'">'+(kind==='video'?SVG_VIDEO:SVG_ICON)+'<span>'+(kind==='video'?FALLBACK_VIDEO:FALLBACK_PHOTO)+'</span></span>';
+  }
+  function ensureFallbackHost(el){
+    var host=el.parentElement;
+    if(!host) return null;
+    var existing=host.querySelector(':scope > .gc-media-fallback');
+    if(existing) return existing;
+    var style=window.getComputedStyle(host);
+    if(style.position==='static'){
+      if(!host.dataset.gcMediaPrevPosition) host.dataset.gcMediaPrevPosition='static';
+      host.style.position='relative';
+    }
+    host.insertAdjacentHTML('beforeend',fallbackMarkup(kindOf(el)));
+    return host.querySelector(':scope > .gc-media-fallback');
+  }
+  function markLoaded(el){
+    el.classList.remove('gc-media-loading','gc-media-failed');
+    el.classList.add('gc-media-loaded');
+    el.dataset.gcMediaState='loaded';
+    var host=el.parentElement;
+    var fallback=host&&host.querySelector(':scope > .gc-media-fallback');
+    if(fallback) fallback.remove();
+    if(el.tagName==='VIDEO'){
+      var poster=el.getAttribute('data-gc-original-poster');
+      if(poster===null) el.removeAttribute('poster');
+    }
+  }
+  function markFailed(el){
+    if(el.dataset.gcMediaState==='failed' || el.dataset.gcMediaState==='fallback') return;
+    if(el.tagName==='VIDEO' && !el.dataset.gcOriginalSrc) el.dataset.gcOriginalSrc=el.currentSrc||el.getAttribute('src')||'';
+    el.dataset.gcMediaState='failed';
+    el.classList.remove('gc-media-loading','gc-media-loaded');
+    el.classList.add('gc-media-failed');
+    if(el.tagName==='IMG'){
+      /* Preserve the image box and its click target; replace only the failed visual. */
+      if(!el.dataset.gcOriginalSrc) el.dataset.gcOriginalSrc=el.currentSrc||el.src||'';
+      var kind=kindOf(el);
+      var label=kind==='avatar'?'Profile photo unavailable':kind==='cover'?'Cover photo unavailable':FALLBACK_PHOTO;
+      var artwork=kind==='avatar'
+        ? '<circle cx="320" cy="132" r="66" fill="#9297a5" fill-opacity=".72"/><path d="M180 350c8-83 62-124 140-124s132 41 140 124" fill="#9297a5" fill-opacity=".72"/>'
+        : kind==='cover'
+          ? '<defs><linearGradient id="g" x2="1" y2="1"><stop stop-color="#9297a5" stop-opacity=".22"/><stop offset="1" stop-color="#9297a5" stop-opacity=".04"/></linearGradient></defs><rect width="640" height="360" fill="url(#g)"/><path d="m0 300 180-130 110 80 110-110 240 180" fill="#9297a5" fill-opacity=".12"/>'
+          : '<g fill="none" stroke="#9297a5" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" opacity=".75"><rect x="255" y="112" width="130" height="112" rx="18"/><circle cx="291" cy="149" r="10"/><path d="m265 208 43-43 29 28 20-19 18 34"/></g>';
+      var svg='<svg xmlns="http://www.w3.org/2000/svg" width="640" height="360" viewBox="0 0 640 360"><rect width="640" height="360" fill="#777" fill-opacity=".08"/>'+artwork+(kind==='avatar'||kind==='cover'?'':'<text x="320" y="275" text-anchor="middle" fill="#9297a5" font-family="Arial,sans-serif" font-size="24">'+label+'</text>')+'</svg>';
+      el.onerror=null;
+      el.src='data:image/svg+xml;charset=UTF-8,'+encodeURIComponent(svg);
+      el.dataset.gcMediaState='fallback';
+      el.classList.remove('gc-media-failed');
+      el.classList.add('gc-media-loaded');
+      el.style.objectFit=el.style.objectFit||'cover';
+    }else{
+      ensureFallbackHost(el);
+      el.style.visibility='hidden';
+    }
+  }
+  function prepare(el){
+    if(!el||el.nodeType!==1||!(/^(IMG|VIDEO)$/.test(el.tagName))) return;
+    if(el.dataset.gcMediaManaged==='1') return;
+    if(el.classList.contains('gc-default-av-img')) return;
+    el.dataset.gcMediaManaged='1';
+    el.dataset.gcMediaLastSrc=el.getAttribute('src')||'';
+    if(el.tagName==='IMG' && (!el.getAttribute('src') || el.getAttribute('src')==='')) return;
+    if(el.tagName==='VIDEO' && !el.getAttribute('src') && !el.querySelector('source')) return;
+    el.classList.add('gc-media-loading');
+    el.addEventListener('load',function(){if(el.dataset.gcMediaState!=='fallback') markLoaded(el);},{once:false});
+    el.addEventListener('loadeddata',function(){if(el.dataset.gcMediaState!=='fallback') markLoaded(el);},{once:false});
+    el.addEventListener('error',function(){markFailed(el);},{once:false});
+    if(el.tagName==='VIDEO' && !el.hasAttribute('poster')){
+      el.setAttribute('data-gc-original-poster','');
+      /* The shimmer background remains visible until a real video frame is decoded. */
+    }
+    if(el.tagName==='IMG'){
+      if(el.complete){ if(el.naturalWidth>0) markLoaded(el); else markFailed(el); }
+    }else if(el.readyState>=2){ markLoaded(el); }
+  }
+  function scan(root){
+    if(!root) return;
+    if(root.matches&&root.matches('img,video')) prepare(root);
+    if(root.querySelectorAll) root.querySelectorAll('img,video').forEach(prepare);
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',function(){scan(document);},{once:true});
+  else scan(document);
+  if('MutationObserver' in window){
+    var observer=new MutationObserver(function(records){
+      records.forEach(function(record){
+        if(record.type==='childList') record.addedNodes.forEach(function(node){if(node.nodeType===1) scan(node);});
+        else if(record.type==='attributes' && record.target.dataset.gcMediaManaged==='1'){
+          var el=record.target;
+          if(record.attributeName==='src') {
+            var nextSrc=el.getAttribute('src')||'';
+            if(nextSrc && nextSrc!==el.dataset.gcMediaLastSrc) {
+              el.dataset.gcMediaLastSrc=nextSrc;
+              if(el.dataset.gcMediaState==='fallback' && nextSrc.indexOf('data:image/svg+xml')===0) return;
+              el.dataset.gcMediaState='loading';
+              el.classList.remove('gc-media-loaded','gc-media-failed');
+              el.classList.add('gc-media-loading');
+              var host=el.parentElement; var oldFallback=host&&host.querySelector(':scope > .gc-media-fallback'); if(oldFallback) oldFallback.remove();
+              if(el.tagName==='VIDEO') el.style.visibility='';
+            }
+          }
+          if(el.dataset.gcMediaState==='failed' || el.dataset.gcMediaState==='fallback') return;
+          if(el.tagName==='IMG' && el.complete && el.naturalWidth===0) markFailed(el);
+        }
+      });
+    });
+    observer.observe(document.documentElement,{childList:true,subtree:true,attributes:true,attributeFilter:['src','poster']});
+  }
+  /* Retry only once per online transition, not continuously on every render. */
+  window.addEventListener('online',function(){
+    document.querySelectorAll('img[data-gc-original-src],video[data-gc-original-src]').forEach(function(el){
+      if(el.dataset.gcMediaState!=='fallback' && el.dataset.gcMediaState!=='failed') return;
+      var original=el.dataset.gcOriginalSrc;
+      if(!original) return;
+      el.dataset.gcMediaState='retrying';
+      if(el.tagName==='IMG'){
+        el.classList.remove('gc-media-loaded','gc-media-failed');
+        el.classList.add('gc-media-loading');
+        el.src=original;
+      }else{
+        el.style.visibility='';
+        var fb=el.parentElement&&el.parentElement.querySelector(':scope > .gc-media-fallback'); if(fb) fb.remove();
+        el.load();
+      }
+    });
+  });
+  window.gcPrepareMedia = scan;
+})();
+
 </script>
 </body>
 </html>
