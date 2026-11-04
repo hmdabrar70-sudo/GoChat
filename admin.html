@@ -317,7 +317,21 @@ h2{letter-spacing:-.035em}
                                 <p class="text-sm text-gray-500">Sends to every user’s Notification box (not the home feed)</p>
                             </div>
                         </div>
-                        <textarea id="annInput" rows="4" class="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 mb-4" placeholder="Write an official announcement for all users..."></textarea>
+                        <textarea id="annInput" rows="4" class="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 mb-3" placeholder="Write an official announcement for all users..."></textarea>
+                        <div class="mb-4">
+                            <div class="flex items-center gap-3 mb-2">
+                                <label class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gray-50 border border-gray-200 text-sm font-bold text-gray-700 cursor-pointer hover:bg-gray-100 transition">
+                                    <i class="fas fa-image text-blue-500"></i>
+                                    Add Photo
+                                    <input type="file" id="annImageInput" accept="image/*" class="hidden" onchange="annOnImagePicked(this)">
+                                </label>
+                                <button type="button" id="annImageClearBtn" onclick="annClearImage()" class="hidden text-xs font-bold text-red-500 hover:text-red-700 px-3 py-2 rounded-lg bg-red-50">Remove photo</button>
+                            </div>
+                            <div id="annImagePreviewWrap" class="hidden relative rounded-xl overflow-hidden border border-gray-200 bg-gray-50">
+                                <img id="annImagePreview" src="" alt="Preview" class="w-full max-h-64 object-contain bg-black/5">
+                            </div>
+                            <p class="text-xs text-gray-400 mt-1.5">Optional. Text-only notices still work without a photo.</p>
+                        </div>
                         <button id="annPublishBtn" onclick="postAnnouncement()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition">Publish to Notifications</button>
                         <p id="annProgress" class="text-xs text-gray-500 mt-2 hidden"></p>
                         
@@ -874,8 +888,14 @@ body.innerHTML = '<div class="text-center text-red-500 font-bold py-10">Error lo
         function initSystemSettings() {
             db.collection('system').doc('announcement').onSnapshot(doc => {
                 const box = document.getElementById('currAnnText');
-                if (doc.exists && doc.data().message) {
-                    box.innerHTML = `<span class="text-blue-600 font-bold mr-2">LIVE:</span> ${escapeHTML(doc.data().message)}`;
+                if (!box) return;
+                if (doc.exists && (doc.data().message || doc.data().imageUrl)) {
+                    const d = doc.data();
+                    let html = '<span class="text-blue-600 font-bold mr-2">LIVE:</span> ' + escapeHTML(d.message || '(Photo notice)');
+                    if (d.imageUrl) {
+                      html += '<div class="mt-2"><img src="' + escapeHTML(d.imageUrl) + '" class="max-h-32 rounded-lg border object-contain" style="max-width:100%"></div>';
+                    }
+                    box.innerHTML = html;
                 } else {
                     box.innerHTML = "No active announcement.";
                 }
@@ -890,26 +910,33 @@ body.innerHTML = '<div class="text-center text-red-500 font-bold py-10">Error lo
 
         async function postAnnouncement() {
             const msg = document.getElementById('annInput').value.trim();
-            if (!msg) return showToast("Type a message first", "error");
+            const hasImg = !!(window.__annImageFile);
+            if (!msg && !hasImg) return showToast("Type a message or add a photo", "error");
             const btn = document.getElementById('annPublishBtn');
             const prog = document.getElementById('annProgress');
             if (btn) { btn.disabled = true; btn.textContent = 'Publishing...'; }
-            if (prog) { prog.classList.remove('hidden'); prog.textContent = 'Saving announcement & loading users...'; }
+            if (prog) { prog.classList.remove('hidden'); prog.textContent = hasImg ? 'Uploading photo...' : 'Saving announcement & loading users...'; }
             try {
+                let imageUrl = '';
+                if (hasImg && window.__annImageFile) {
+                    imageUrl = await annUploadImage(window.__annImageFile);
+                    if (!imageUrl) throw new Error('Photo upload failed');
+                    if (prog) prog.textContent = 'Photo uploaded. Loading users...';
+                }
                 const annId = 'ann_' + Date.now();
-                await db.collection('system').doc('announcement').set({
-                    message: msg,
+                const annPayload = {
+                    message: msg || '',
                     annId: annId,
                     publishedAt: Date.now(),
                     publishedBy: auth.currentUser ? auth.currentUser.email : 'admin'
-                });
+                };
+                if (imageUrl) annPayload.imageUrl = imageUrl;
+                await db.collection('system').doc('announcement').set(annPayload);
 
-                // Deliver as personal notifications (same inbox as likes/follows)
                 const snap = await db.collection('users').get();
                 const uids = [];
                 snap.forEach(d => uids.push(d.id));
                 const adminUid = auth.currentUser ? auth.currentUser.uid : 'admin';
-                const adminEmail = auth.currentUser ? auth.currentUser.email : 'admin';
                 let sent = 0;
                 const CHUNK = 400;
                 for (let i = 0; i < uids.length; i += CHUNK) {
@@ -917,16 +944,18 @@ body.innerHTML = '<div class="text-center text-red-500 font-bold py-10">Error lo
                     const slice = uids.slice(i, i + CHUNK);
                     slice.forEach(uid => {
                         const ref = db.collection('notifications').doc();
-                        batch.set(ref, {
+                        const n = {
                             toUid: uid,
                             fromUid: adminUid,
                             fromName: 'GoChat Official',
                             type: 'announcement',
-                            message: msg,
+                            message: msg || '',
                             annId: annId,
                             read: false,
                             createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                        });
+                        };
+                        if (imageUrl) n.imageUrl = imageUrl;
+                        batch.set(ref, n);
                     });
                     await batch.commit();
                     sent += slice.length;
@@ -934,8 +963,9 @@ body.innerHTML = '<div class="text-center text-red-500 font-bold py-10">Error lo
                 }
 
                 document.getElementById('annInput').value = '';
+                annClearImage();
                 showToast('Announcement sent to ' + sent + ' users’ notifications', 'success');
-                if (prog) prog.textContent = 'Done — delivered to ' + sent + ' users.';
+                if (prog) prog.textContent = 'Done — ' + sent + ' notifications created.';
             } catch (e) {
                 console.error(e);
                 showToast('Error publishing: ' + (e.message || 'failed'), 'error');
@@ -943,6 +973,62 @@ body.innerHTML = '<div class="text-center text-red-500 font-bold py-10">Error lo
             } finally {
                 if (btn) { btn.disabled = false; btn.textContent = 'Publish to Notifications'; }
             }
+        }
+
+        window.__annImageFile = null;
+        window.__annImageObjectUrl = null;
+        function annOnImagePicked(input) {
+            try {
+                const f = input && input.files && input.files[0];
+                if (!f) return;
+                if (!f.type || f.type.indexOf('image/') !== 0) {
+                    showToast('Please select an image file', 'error');
+                    input.value = '';
+                    return;
+                }
+                if (f.size > 8 * 1024 * 1024) {
+                    showToast('Image must be under 8MB', 'error');
+                    input.value = '';
+                    return;
+                }
+                if (window.__annImageObjectUrl) {
+                    try { URL.revokeObjectURL(window.__annImageObjectUrl); } catch (e) {}
+                }
+                window.__annImageFile = f;
+                window.__annImageObjectUrl = URL.createObjectURL(f);
+                const img = document.getElementById('annImagePreview');
+                const wrap = document.getElementById('annImagePreviewWrap');
+                const clr = document.getElementById('annImageClearBtn');
+                if (img) img.src = window.__annImageObjectUrl;
+                if (wrap) wrap.classList.remove('hidden');
+                if (clr) clr.classList.remove('hidden');
+            } catch (e) { console.error(e); }
+        }
+        function annClearImage() {
+            window.__annImageFile = null;
+            if (window.__annImageObjectUrl) {
+                try { URL.revokeObjectURL(window.__annImageObjectUrl); } catch (e) {}
+                window.__annImageObjectUrl = null;
+            }
+            const inp = document.getElementById('annImageInput');
+            if (inp) inp.value = '';
+            const img = document.getElementById('annImagePreview');
+            const wrap = document.getElementById('annImagePreviewWrap');
+            const clr = document.getElementById('annImageClearBtn');
+            if (img) img.src = '';
+            if (wrap) wrap.classList.add('hidden');
+            if (clr) clr.classList.add('hidden');
+        }
+        async function annUploadImage(file) {
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('upload_preset', 'gochat');
+            const res = await fetch('https://api.cloudinary.com/v1_1/pfbi9lmx/image/upload', { method: 'POST', body: formData });
+            const data = await res.json().catch(function () { return {}; });
+            if (!res.ok || !data.secure_url) {
+                throw new Error((data && data.error && data.error.message) ? data.error.message : 'Upload failed');
+            }
+            return data.secure_url;
         }
 
         async function deleteAnnouncement() {

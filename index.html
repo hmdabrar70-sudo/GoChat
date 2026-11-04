@@ -14022,6 +14022,44 @@ body:not(.messages-mode):not(.notifications-mode) #topbar-logo-main .gc-app-logo
     position: relative;
     z-index: 2; /* ছবিটা লাইনের উপরে থাকবে, যাতে লাইনটা ছবির ভেতর ঢুকে গেছে মনে হয় */
 }
+
+/* ═══ Official Announcement · full-screen post-style viewer ═══ */
+.gc-ann-viewer{
+  display:none;position:fixed;inset:0;z-index:100500;
+  background:var(--bg);flex-direction:column;
+}
+.gc-ann-viewer-inner{display:flex;flex-direction:column;height:100%;max-width:520px;margin:0 auto;width:100%;}
+.gc-ann-viewer-top{
+  display:flex;align-items:center;gap:8px;
+  padding:10px 12px;padding-top:max(10px, env(safe-area-inset-top));
+  border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0;
+}
+.gc-ann-viewer-back{
+  width:40px;height:40px;border:none;border-radius:50%;
+  background:transparent;color:var(--text);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;padding:0;
+}
+.gc-ann-viewer-back:active{opacity:.7;}
+.gc-ann-viewer-top-title{flex:1;text-align:center;font-weight:800;font-size:16px;color:var(--text);}
+.gc-ann-viewer-top-spacer{width:40px;flex-shrink:0;}
+.gc-ann-viewer-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:12px 14px 28px;}
+.gc-ann-post-card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:16px;padding:14px 14px 16px;
+}
+.gc-ann-post-header{display:flex;align-items:center;gap:12px;margin-bottom:14px;}
+.gc-ann-post-logo{width:40px;height:40px;border-radius:12px;overflow:hidden;flex-shrink:0;}
+.gc-ann-post-logo svg{display:block;width:40px;height:40px;}
+.gc-ann-post-name{font-weight:700;font-size:15px;color:var(--text);}
+.gc-ann-post-time{font-size:11px;color:var(--text-muted);margin-top:2px;font-weight:600;}
+.gc-ann-post-text{
+  font-size:15px;line-height:1.55;color:var(--text);font-weight:600;
+  white-space:pre-wrap;word-break:break-word;margin-bottom:12px;
+}
+.gc-ann-post-text:empty{display:none;margin:0;}
+.gc-ann-post-media{margin:0 -14px -16px;border-radius:0 0 16px 16px;overflow:hidden;background:#000;}
+.gc-ann-post-media img{width:100%;height:auto;display:block;object-fit:contain;max-height:70vh;background:#000;}
+body.gc-ann-viewer-open{overflow:hidden !important;}
 </style>
 </head>
 <body>
@@ -17073,31 +17111,74 @@ setTimeout(()=>t.classList.remove('show'),2500);
 }
 
 /** Read-only official announcement (admin announcement notification) */
-function openOfficialAnnouncement(message) {
+function openOfficialAnnouncement(message, imageUrl, timeLabel) {
+    try { window.__gcAnnScrollY = window.pageYOffset || document.documentElement.scrollTop || 0; } catch(e) {}
     let ov = document.getElementById('gc-official-announcement');
     if (!ov) {
         ov = document.createElement('div');
         ov.id = 'gc-official-announcement';
-        ov.style.cssText = 'display:none;position:fixed;inset:0;z-index:100500;background:rgba(0,0,0,0.55);align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(6px);';
-        ov.innerHTML = '<div style="width:100%;max-width:400px;background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:28px 24px 22px;box-shadow:var(--shadow-lg);animation:fadeIn .25s ease;">' +
-            '<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">' +
-            '<div style="width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#fdb931);display:flex;align-items:center;justify-content:center;color:#fff;font-size:22px;flex-shrink:0;"><i class="ph-light ph-megaphone"></i></div>' +
-            '<div><div style="font-weight:800;font-size:17px;color:var(--text);">GoChat Official</div>' +
-            '<div style="font-size:12px;color:var(--text-muted);font-weight:600;">Official announcement · read only</div></div></div>' +
-            '<div id="gc-official-announcement-body" style="font-size:15px;line-height:1.65;color:var(--text);white-space:pre-wrap;word-break:break-word;max-height:50vh;overflow-y:auto;margin-bottom:20px;"></div>' +
-            '<button onclick="closeOfficialAnnouncement()" style="width:100%;padding:14px;border:none;border-radius:16px;background:var(--gradient);color:#fff;font-weight:800;font-size:15px;cursor:pointer;">Got it</button>' +
-            '</div>';
-        ov.onclick = function(e) { if (e.target === ov) closeOfficialAnnouncement(); };
+        ov.className = 'gc-ann-viewer';
+        ov.innerHTML =
+          '<div class="gc-ann-viewer-inner">' +
+            '<div class="gc-ann-viewer-top">' +
+              '<button type="button" class="gc-ann-viewer-back" onclick="closeOfficialAnnouncement()" aria-label="Back">' +
+                '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path fill="currentColor" fill-rule="evenodd" d="M15.4881 4.43057C15.8026 4.70014 15.839 5.17361 15.5694 5.48811L9.98781 12L15.5694 18.5119C15.839 18.8264 15.8026 19.2999 15.4881 19.5695C15.1736 19.839 14.7001 19.8026 14.4306 19.4881L8.43056 12.4881C8.18981 12.2072 8.18981 11.7928 8.43056 11.5119L14.4306 4.51192C14.7001 4.19743 15.1736 4.161 15.4881 4.43057Z" clip-rule="evenodd"/></svg>' +
+              '</button>' +
+              '<div class="gc-ann-viewer-top-title">Announcement</div>' +
+              '<div class="gc-ann-viewer-top-spacer"></div>' +
+            '</div>' +
+            '<div class="gc-ann-viewer-scroll">' +
+              '<article class="gc-ann-post-card">' +
+                '<div class="gc-ann-post-header">' +
+                  '<div class="gc-ann-post-logo" aria-hidden="true">' +
+                    '<svg class="gc-app-logo" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" width="40" height="40">' +
+                      '<defs><linearGradient id="gcAnnLogoG" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#a3e635"/><stop offset="100%" stop-color="#14b8a6"/></linearGradient></defs>' +
+                      '<rect width="64" height="64" rx="16" fill="url(#gcAnnLogoG)"/>' +
+                      '<text x="32" y="42" text-anchor="middle" font-size="32" font-weight="800" fill="#0a0a0f" font-family="Inter,system-ui,sans-serif">G</text>' +
+                    '</svg>' +
+                  '</div>' +
+                  '<div class="gc-ann-post-meta">' +
+                    '<div class="gc-ann-post-name">GoChat</div>' +
+                    '<div class="gc-ann-post-time" id="gc-ann-viewer-time"></div>' +
+                  '</div>' +
+                '</div>' +
+                '<div class="gc-ann-post-text" id="gc-ann-viewer-body"></div>' +
+                '<div class="gc-ann-post-media" id="gc-ann-viewer-media" style="display:none;">' +
+                  '<img id="gc-ann-viewer-img" src="" alt="Announcement photo">' +
+                '</div>' +
+              '</article>' +
+            '</div>' +
+          '</div>';
         document.body.appendChild(ov);
     }
-    const body = document.getElementById('gc-official-announcement-body');
+    var body = document.getElementById('gc-ann-viewer-body');
+    var media = document.getElementById('gc-ann-viewer-media');
+    var img = document.getElementById('gc-ann-viewer-img');
+    var timeEl = document.getElementById('gc-ann-viewer-time');
     if (body) body.textContent = message || '';
+    if (timeEl) timeEl.textContent = timeLabel || 'Official announcement';
+    if (imageUrl && String(imageUrl).trim()) {
+      if (img) img.src = String(imageUrl);
+      if (media) media.style.display = 'block';
+    } else {
+      if (img) img.removeAttribute('src');
+      if (media) media.style.display = 'none';
+    }
     ov.style.display = 'flex';
+    try { document.body.classList.add('gc-ann-viewer-open'); } catch(e){}
 }
+
 function closeOfficialAnnouncement() {
     const ov = document.getElementById('gc-official-announcement');
     if (ov) ov.style.display = 'none';
+    try { document.body.classList.remove('gc-ann-viewer-open'); } catch(e){}
+    try {
+      if (typeof window.__gcAnnScrollY === 'number') {
+        window.scrollTo(0, window.__gcAnnScrollY);
+      }
+    } catch(e){}
 }
+
 
 /* Default silhouette when no profile photo (letter fallback retired) */
 var GC_DEFAULT_AVATAR_DATA = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='32' r='21' fill='%23838C9B'/%3E%3Ccircle cx='50' cy='115' r='55' fill='%23838C9B'/%3E%3C/svg%3E";
@@ -18546,7 +18627,16 @@ notifUnsub = db.collection('notifications').where('toUid', '==', user.uid).onSna
         var onClickAction = "db.collection('notifications').doc('"+data.id+"').update({read:true});";
         if (isAnn) {
         var safeMsg = String(data.message || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\n/g, '\\n').replace(/\r/g, '');
-            onClickAction += " openOfficialAnnouncement('"+safeMsg+"');";
+            var safeImg = String(data.imageUrl || data.imgUrl || data.postImage || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+            var tLabel = 'Official announcement';
+            try {
+              if (data.createdAt && data.createdAt.toMillis) {
+                var d = new Date(data.createdAt.toMillis());
+                tLabel = d.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+              }
+            } catch(e){}
+            var safeTime = String(tLabel).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+            onClickAction += " openOfficialAnnouncement('"+safeMsg+"','"+safeImg+"','"+safeTime+"');";
         } else if (data.postId && data.type === 'comment') {
             onClickAction += " openSinglePostView('"+data.postId+"');";
         } else if (data.postId) {
@@ -32386,6 +32476,9 @@ window.addEventListener('popstate', function(event) {
 });
 
 function closeTopMostView() {
+    var annV = document.getElementById('gc-official-announcement');
+    if (annV && annV.style.display === 'flex') { if(typeof closeOfficialAnnouncement==='function') closeOfficialAnnouncement(); return true; }
+
     var cvv = document.getElementById('gc-chat-video-viewer');
     if (cvv && cvv.classList.contains('open')) { if(typeof gcCloseChatVideoViewer==='function') gcCloseChatVideoViewer(); return true; }
 
