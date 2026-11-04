@@ -33111,11 +33111,37 @@ async function gcEnrichNotifThumbs(notifs){
       db.collection('posts').doc(pid).get().then(function(snap){
         if(!snap.exists) return;
         var pd = snap.data()||{};
-        var img = (Array.isArray(pd.imageUrls)&&pd.imageUrls[0]) ? pd.imageUrls[0]
-          : (pd.imageUrl || (Array.isArray(pd.mediaUrls)&&pd.mediaUrls[0]) || pd.mediaUrl
-          || pd.thumb || pd.thumbnail || pd.poster || pd.videoThumb
-          || (Array.isArray(pd.images)&&pd.images[0] && (typeof pd.images[0]==='string'?pd.images[0]:(pd.images[0].url||'')))
-          || '');
+        function gcNotifPickThumb(pd){
+          var candidates = [];
+          if(pd.videoThumb) candidates.push(pd.videoThumb);
+          if(pd.poster) candidates.push(pd.poster);
+          if(pd.thumb) candidates.push(pd.thumb);
+          if(pd.thumbnail) candidates.push(pd.thumbnail);
+          if(Array.isArray(pd.imageUrls) && pd.imageUrls[0]) candidates.push(pd.imageUrls[0]);
+          if(pd.imageUrl) candidates.push(pd.imageUrl);
+          if(pd.imgUrl) candidates.push(pd.imgUrl);
+          if(Array.isArray(pd.images) && pd.images[0]){
+            var im0 = pd.images[0];
+            candidates.push(typeof im0==='string' ? im0 : (im0 && im0.url) || '');
+          }
+          if(Array.isArray(pd.mediaUrls) && pd.mediaUrls[0]) candidates.push(pd.mediaUrls[0]);
+          if(pd.mediaUrl) candidates.push(pd.mediaUrl);
+          function isVidUrl(u){
+            if(!u) return false;
+            var s = String(u);
+            return s.indexOf('/video/') !== -1 || /\.mp4(\?|$)/i.test(s) || /\.webm(\?|$)/i.test(s);
+          }
+          var firstImg = '';
+          for(var ci=0;ci<candidates.length;ci++){
+            var c = candidates[ci] && String(candidates[ci]).trim();
+            if(!c) continue;
+            if(!isVidUrl(c)) return c;
+            if(!firstImg) firstImg = c;
+          }
+          // Prefer non-video; only fall back to video URL if nothing else (still will stay as thumb, not player)
+          return firstImg || '';
+        }
+        var img = gcNotifPickThumb(pd);
         if(!img) return;
         need[pid].forEach(function(nid){
           var el = document.querySelector('.notif-item[data-id="'+nid+'"] .notif-thumb');
@@ -38803,9 +38829,9 @@ gcVideoize = function(scope){
 const s = img.getAttribute('src') || '';
 if(img.dataset.gcVid) return;
 if(s.indexOf('/video/') === -1 && !/\.mp4(\?|$)/.test(s) && !/\.webm(\?|$)/.test(s)) return;
-// Never expand thumbs inside Insights / Liked / list rows into full players
-if(img.closest('.gc-ins-top-post, .gc-lk-item, .gc-ins-tp-vid, .gc-lk-vid, .mf-row, .friend-item-check')) return;
-if(img.classList.contains('gc-ins-tp-img') || img.classList.contains('gc-lk-img')) return;
+// Never expand thumbs inside Insights / Liked / list rows / notifications / avatars into full players
+if(img.closest('.gc-ins-top-post, .gc-lk-item, .gc-ins-tp-vid, .gc-lk-vid, .mf-row, .friend-item-check, .notif-item, #notifications-list, .avatar, .notif-av-wrap, .topbar-home-avatar, .profile-avatar, .gc-comment-composer-avatar, .gc-short-comment-avatar, .gc-ep-id-avatar, .qp-avatar-wrap')) return;
+if(img.classList.contains('gc-ins-tp-img') || img.classList.contains('gc-lk-img') || img.classList.contains('notif-thumb') || img.classList.contains('gc-default-av-img')) return;
 img.dataset.gcVid = '1';
 const wrap = document.createElement('div');
 wrap.className = 'gc-vplayer';
@@ -41542,7 +41568,7 @@ window.gcCloseSheetSafe = gcCloseSheetSafe;
     return el.tagName==='VIDEO'?'video':'photo';
   }
   function fallbackMarkup(kind){
-    if(kind==='avatar') return '<span class="gc-media-fallback gc-media-avatar" aria-label="Profile photo unavailable">'+SVG_ICON+'</span>';
+    if(kind==='avatar') return ''; /* parent .avatar CSS default silhouette */
     if(kind==='cover') return '<span class="gc-media-fallback gc-media-cover" aria-label="Cover photo unavailable">'+SVG_ICON+'</span>';
     return '<span class="gc-media-fallback" aria-label="'+(kind==='video'?FALLBACK_VIDEO:FALLBACK_PHOTO)+'">'+(kind==='video'?SVG_VIDEO:SVG_ICON)+'<span>'+(kind==='video'?FALLBACK_VIDEO:FALLBACK_PHOTO)+'</span></span>';
   }
@@ -41581,13 +41607,28 @@ window.gcCloseSheetSafe = gcCloseSheetSafe;
       /* Preserve the image box and its click target; replace only the failed visual. */
       if(!el.dataset.gcOriginalSrc) el.dataset.gcOriginalSrc=el.currentSrc||el.src||'';
       var kind=kindOf(el);
-      var label=kind==='avatar'?'Profile photo unavailable':kind==='cover'?'Cover photo unavailable':FALLBACK_PHOTO;
-      var artwork=kind==='avatar'
-        ? '<circle cx="320" cy="132" r="66" fill="#9297a5" fill-opacity=".72"/><path d="M180 350c8-83 62-124 140-124s132 41 140 124" fill="#9297a5" fill-opacity=".72"/>'
-        : kind==='cover'
+      /* Avatar: remove broken <img> so parent CSS default silhouette shows — never media placeholder */
+      if(kind==='avatar'){
+        el.onerror=null;
+        el.dataset.gcMediaState='fallback';
+        try{
+          var host=el.parentElement;
+          el.remove();
+          if(host){
+            var fb=host.querySelector(':scope > .gc-media-fallback');
+            if(fb) fb.remove();
+          }
+        }catch(_ae){
+          el.removeAttribute('src');
+          el.style.display='none';
+        }
+        return;
+      }
+      var label=kind==='cover'?'Cover photo unavailable':FALLBACK_PHOTO;
+      var artwork=kind==='cover'
           ? '<defs><linearGradient id="g" x2="1" y2="1"><stop stop-color="#9297a5" stop-opacity=".22"/><stop offset="1" stop-color="#9297a5" stop-opacity=".04"/></linearGradient></defs><rect width="640" height="360" fill="url(#g)"/><path d="m0 300 180-130 110 80 110-110 240 180" fill="#9297a5" fill-opacity=".12"/>'
           : '<g fill="none" stroke="#9297a5" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" opacity=".75"><rect x="255" y="112" width="130" height="112" rx="18"/><circle cx="291" cy="149" r="10"/><path d="m265 208 43-43 29 28 20-19 18 34"/></g>';
-      var svg='<svg xmlns="http://www.w3.org/2000/svg" width="640" height="360" viewBox="0 0 640 360"><rect width="640" height="360" fill="#777" fill-opacity=".08"/>'+artwork+(kind==='avatar'||kind==='cover'?'':'<text x="320" y="275" text-anchor="middle" fill="#9297a5" font-family="Arial,sans-serif" font-size="24">'+label+'</text>')+'</svg>';
+      var svg='<svg xmlns="http://www.w3.org/2000/svg" width="640" height="360" viewBox="0 0 640 360"><rect width="640" height="360" fill="#777" fill-opacity=".08"/>'+artwork+(kind==='cover'?'':'<text x="320" y="275" text-anchor="middle" fill="#9297a5" font-family="Arial,sans-serif" font-size="24">'+label+'</text>')+'</svg>';
       el.onerror=null;
       el.src='data:image/svg+xml;charset=UTF-8,'+encodeURIComponent(svg);
       el.dataset.gcMediaState='fallback';
@@ -41603,6 +41644,12 @@ window.gcCloseSheetSafe = gcCloseSheetSafe;
     if(!el||el.nodeType!==1||!(/^(IMG|VIDEO)$/.test(el.tagName))) return;
     if(el.dataset.gcMediaManaged==='1') return;
     if(el.classList.contains('gc-default-av-img')) return;
+    /* Avatar system is separate: never apply media-placeholder fallbacks to profile photos */
+    try{
+      if(el.closest && el.closest('.avatar, .notif-av-wrap, .topbar-home-avatar, .profile-avatar, .gc-comment-composer-avatar, .gc-short-comment-avatar, .gc-short-composer-avatar, .gc-ep-id-avatar, .qp-avatar-wrap, .msg-avatar, .chat-avatar, .story-avatar, .gc-react-user-av')) return;
+      var _hint=((el.className&&typeof el.className==='string'?el.className:'')+' '+(el.id||'')+' '+(el.getAttribute('data-gc-media-kind')||'')).toLowerCase();
+      if(/avatar|profile-photo|profilephoto|user-photo|userphoto/.test(_hint)) return;
+    }catch(_e){}
     el.dataset.gcMediaManaged='1';
     el.dataset.gcMediaLastSrc=el.getAttribute('src')||'';
     if(el.tagName==='IMG' && (!el.getAttribute('src') || el.getAttribute('src')==='')) return;
@@ -41671,7 +41718,6 @@ window.gcCloseSheetSafe = gcCloseSheetSafe;
   });
   window.gcPrepareMedia = scan;
 })();
-
 </script>
 </body>
 </html>
