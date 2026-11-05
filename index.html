@@ -3176,9 +3176,9 @@ transition:background 0.15s ease;
 position:relative;
 }
 #msg-list .avatar{
-  width:42px !important;
-  height:42px !important;
-  flex:0 0 42px !important;
+  width:48px !important;
+  height:48px !important;
+  flex:0 0 48px !important;
 }
 .msg-item:last-child{border-bottom:none;}
 .msg-item:hover {
@@ -32692,12 +32692,23 @@ async function startVoiceRecord() {
             if (session !== voiceSessionId) return;
             if (voiceRecordCancelled) return;
             if (voiceUploadInFlight) return;
-            if (!chunks.length) return;
+            if (!chunks.length) {
+              showToast('No audio captured. Try again.');
+              return;
+            }
+            // Too short = often empty/corrupt webm on some WebViews
+            if (recordSeconds < 1) {
+              showToast('Hold a bit longer to record.');
+              return;
+            }
 
             var blobType = (mime && mime.indexOf('mp4') !== -1) ? 'audio/mp4' : 'audio/webm';
             var audioBlob = new Blob(chunks, { type: blobType });
             chunks = null;
-            if (!audioBlob || audioBlob.size < 1) return;
+            if (!audioBlob || audioBlob.size < 500) {
+              showToast('Recording failed. Try again.');
+              return;
+            }
             await uploadAndSendVoice(audioBlob, session);
             // Fully drop recorder after send path
             try { mediaRecorder = null; } catch(e) {}
@@ -32802,27 +32813,51 @@ function gcToggleVoice(btn){
     const timeEl = wrap.querySelector('.gc-vp-time');
     if(!audio) return;
 
-    // Bind once
+    // Always use THIS message's URL from data-src (prevents wrong audio after re-render)
+    var wantSrc = wrap.getAttribute('data-src') || '';
+    if (wantSrc) {
+      var curSrc = audio.getAttribute('src') || audio.src || '';
+      // Compare path without query/hash
+      var norm = function(u){ try { return String(u).split('?')[0].split('#')[0]; } catch(e){ return String(u||''); } };
+      if (norm(curSrc) !== norm(wantSrc) && curSrc.indexOf(wantSrc) === -1 && wantSrc.indexOf(norm(curSrc).split('/').pop()) === -1) {
+        try { audio.pause(); } catch(e){}
+        audio.setAttribute('src', wantSrc);
+        audio.src = wantSrc;
+        try { audio.load(); } catch(e){}
+      } else if (!curSrc) {
+        audio.setAttribute('src', wantSrc);
+        audio.src = wantSrc;
+      }
+    }
+
+    // Bind once per audio element
     if(!audio._gcVoiceBound){
         audio._gcVoiceBound = true;
         try{ audio.setAttribute('playsinline', ''); audio.playsInline = true; audio.preload = 'auto'; }catch(e){}
         audio.addEventListener('timeupdate', function(){
             const dur = audio.duration || 0;
             const cur = audio.currentTime || 0;
-            if(bar && dur) bar.style.width = Math.min(100, (cur / dur) * 100) + '%';
-            if(timeEl) timeEl.textContent = gcFmtVoiceTime(cur) + (dur && isFinite(dur) ? ' / ' + gcFmtVoiceTime(dur) : '');
+            var b = wrap.querySelector('.gc-vp-bar > i');
+            var t = wrap.querySelector('.gc-vp-time');
+            if(b && dur) b.style.width = Math.min(100, (cur / dur) * 100) + '%';
+            if(t) t.textContent = gcFmtVoiceTime(cur) + (dur && isFinite(dur) ? ' / ' + gcFmtVoiceTime(dur) : '');
         });
         audio.addEventListener('loadedmetadata', function(){
-            if(timeEl && isFinite(audio.duration)) timeEl.textContent = '0:00 / ' + gcFmtVoiceTime(audio.duration);
+            var t = wrap.querySelector('.gc-vp-time');
+            if(t && isFinite(audio.duration)) t.textContent = '0:00 / ' + gcFmtVoiceTime(audio.duration);
         });
         audio.addEventListener('ended', function(){
-            if(icon) icon.className = 'ph-light ph-play';
-            if(bar) bar.style.width = '0%';
-            if(timeEl && isFinite(audio.duration)) timeEl.textContent = '0:00 / ' + gcFmtVoiceTime(audio.duration);
+            var ic = wrap.querySelector('.gc-vp-play i');
+            var b = wrap.querySelector('.gc-vp-bar > i');
+            var t = wrap.querySelector('.gc-vp-time');
+            if(ic) ic.className = 'ph-light ph-play';
+            if(b) b.style.width = '0%';
+            if(t && isFinite(audio.duration)) t.textContent = '0:00 / ' + gcFmtVoiceTime(audio.duration);
             if(gcActiveVoiceAudio === audio) gcActiveVoiceAudio = null;
         });
         audio.addEventListener('error', function(){
-            if(icon) icon.className = 'ph-light ph-play';
+            var ic = wrap.querySelector('.gc-vp-play i');
+            if(ic) ic.className = 'ph-light ph-play';
             showToast('Voice file could not load');
         });
     }
@@ -32911,6 +32946,11 @@ function resetRecordUI() {
 async function uploadAndSendVoice(audioBlob, session) {
     if (!currentChatId) return;
     if (!audioBlob || !audioBlob.size) return;
+    // Reject tiny/empty recordings (often means MediaRecorder produced no real audio)
+    if (audioBlob.size < 500) {
+      showToast('Recording too short. Hold a bit longer.');
+      return;
+    }
     // Hard lock — never send the same recording twice
     if (voiceUploadInFlight) return;
     if (session != null && session !== voiceSessionId) return;
@@ -32918,20 +32958,45 @@ async function uploadAndSendVoice(audioBlob, session) {
 
     voiceUploadInFlight = true;
     showToast("Sending voice message...");
+
+    // Snapshot blob bytes so nothing can mutate what we upload
+    var blobToSend = audioBlob;
+    try {
+      var ab = await audioBlob.arrayBuffer();
+      blobToSend = new Blob([ab], { type: audioBlob.type || 'audio/webm' });
+    } catch(e) {}
     
-    // Cloudinary তে আপলোড (Cloudinary অডিওর জন্য /video/upload এন্ডপয়েন্ট ব্যবহার করে)
-    const formData = new FormData();
-    var fname = (audioBlob.type && audioBlob.type.indexOf('mp4') !== -1) ? 'voicemsg.m4a' : 'voicemsg.webm';
-    formData.append('file', audioBlob, fname);
-    formData.append('upload_preset', 'gochat'); 
+    // Cloudinary — unique filename EVERY time so old voice assets are never overwritten
+    var isMp4 = !!(blobToSend.type && blobToSend.type.indexOf('mp4') !== -1);
+    var unique = 'voice_' + (currentUser && currentUser.uid ? String(currentUser.uid).slice(0,8) : 'u') + '_' + Date.now() + '_' + Math.random().toString(36).slice(2, 10);
+    var fname = unique + (isMp4 ? '.m4a' : '.webm');
+
+    async function gcDoCloudinaryVoiceUpload(usePublicId) {
+        var fd = new FormData();
+        fd.append('file', blobToSend, fname);
+        fd.append('upload_preset', 'gochat');
+        // Unique name in form file is the main safeguard; public_id when preset allows it
+        if (usePublicId) {
+          try { fd.append('public_id', 'gochat_voice/' + unique); } catch(e) {}
+        }
+        var res = await fetch('https://api.cloudinary.com/v1_1/pfbi9lmx/video/upload', {
+            method: 'POST',
+            body: fd
+        });
+        return await res.json();
+    }
     
     try {
-        const res = await fetch('https://api.cloudinary.com/v1_1/pfbi9lmx/video/upload', {
-            method: 'POST',
-            body: formData
-        });
-        const data = await res.json();
-        if (!data.secure_url) throw new Error("Upload failed");
+        var data = await gcDoCloudinaryVoiceUpload(true);
+        if (!data || !data.secure_url) {
+          // Retry without public_id (some unsigned presets reject custom public_id)
+          console.warn('Voice upload retry without public_id', data && data.error);
+          data = await gcDoCloudinaryVoiceUpload(false);
+        }
+        if (!data || !data.secure_url) {
+          console.error('Cloudinary voice upload response', data);
+          throw new Error((data && data.error && data.error.message) || "Upload failed");
+        }
         
         const audioUrl = data.secure_url;
         
@@ -32940,7 +33005,8 @@ async function uploadAndSendVoice(audioBlob, session) {
             uid: currentUser.uid,
             senderName: currentUserData.name || 'User',
             text: '',
-            audioUrl: audioUrl, // নতুন অডিও ফিল্ড
+            audioUrl: audioUrl,
+            audioBytes: blobToSend.size || 0,
             createdAt: firebase.firestore.FieldValue.serverTimestamp()
         };
 
@@ -32980,11 +33046,13 @@ async function uploadAndSendVoice(audioBlob, session) {
         showToast("Failed to send voice message");
     } finally {
         voiceUploadInFlight = false;
-        // Allow a fresh recording session after this send completes
         try {
           var sendBtn = document.querySelector('.gc-vr-send');
           if (sendBtn) { sendBtn.disabled = false; sendBtn.style.opacity = '1'; }
         } catch(e) {}
+        // Ensure next recording starts completely clean
+        try { mediaRecorder = null; } catch(e) {}
+        audioChunks = [];
     }
 }
 
