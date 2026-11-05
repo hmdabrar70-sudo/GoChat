@@ -32943,32 +32943,100 @@ async function uploadAndSendVoice(audioBlob, session) {
 // 🚀 SMART BACK BUTTON & HISTORY MANAGER
 // ==========================================
 let backPressTimer = null;
+let gcBackEventInProgress = false;
 
-// শুরুতে একটা ডামি হিস্ট্রি পুশ করে রাখা হলো
-history.pushState({ page: 'gochat_home' }, "", window.location.href);
+// Keep one guarded app-entry state. This remains the existing History/popstate
+// strategy; it deliberately does not introduce a competing native/JS back system.
+try {
+    history.pushState({ page: 'gochat_home', gcBackGuard: true }, "", window.location.href);
+} catch (e) {
+    console.warn('GoChat back-history initialization failed', e);
+}
 
 window.addEventListener('popstate', function(event) {
-    // যদি কোনো স্ক্রিন বা মডাল ওপেন থাকে, তবে সেটা ক্লোজ হবে
-    if (closeTopMostView()) {
-        // বের হওয়া ঠেকাতে আবার হিস্ট্রি পুশ করে দেওয়া হলো
-        history.pushState({ page: 'gochat_home' }, "", window.location.href);
+    // Ignore a duplicate/re-entrant popstate while the current layer is closing.
+    if (gcBackEventInProgress) return;
+    gcBackEventInProgress = true;
+    let consumed = false;
+    try {
+        consumed = closeTopMostView();
+    } catch (e) {
+        console.error('GoChat Back handling failed', e);
+    }
+
+    if (consumed) {
+        try { history.pushState({ page: 'gochat_home', gcBackGuard: true }, "", window.location.href); }
+        catch (e) { console.warn('Could not restore GoChat history guard', e); }
+        gcBackEventInProgress = false;
+        return;
+    }
+
+    // No in-app layer was open: preserve the existing double-press exit behavior.
+    if (backPressTimer) {
+        clearTimeout(backPressTimer);
+        backPressTimer = null;
+        gcBackEventInProgress = false;
     } else {
-        // যদি ইউজার মেইন ফিডে থাকে, তখন ডাবল ট্যাপ এক্সিট লজিক
-        if (backPressTimer) {
-            clearTimeout(backPressTimer);
-            // দ্বিতীয়বার চাপলে সত্যি বের হয়ে যাবে (ইতিমধ্যেই popstate হয়ে এক ধাপ পিছনে গেছে)
-        } else {
-            showToast("Press back again to exit");
-            // ভুল করে বের হওয়া ঠেকাতে আবার পুশ করা হলো
-            history.pushState({ page: 'gochat_home' }, "", window.location.href);
-            backPressTimer = setTimeout(() => {
-                backPressTimer = null;
-            }, 2000);
-        }
+        try { showToast("Press back again to exit"); } catch (e) {}
+        try { history.pushState({ page: 'gochat_home', gcBackGuard: true }, "", window.location.href); }
+        catch (e) { console.warn('Could not restore GoChat exit guard', e); }
+        backPressTimer = setTimeout(function() { backPressTimer = null; }, 2000);
+        gcBackEventInProgress = false;
     }
 });
 
 function closeTopMostView() {
+    // Phase 1 migration coverage: handle frequently used feature-level layers
+    // before their parent screens. Detection matches each UI's real open signal.
+    var shortComments = document.getElementById('gc-short-comments-screen');
+    if (shortComments && shortComments.classList.contains('open')) { if (typeof gcCloseShortsComments === 'function') gcCloseShortsComments(); else shortComments.classList.remove('open'); return true; }
+
+    var qrEditor = document.getElementById('qr-editor-modal');
+    if (qrEditor && qrEditor.classList.contains('open')) { if (typeof qrCloseEditor === 'function') qrCloseEditor(); else qrEditor.classList.remove('open'); return true; }
+    var qrManage = document.getElementById('qr-manage-screen');
+    if (qrManage && qrManage.classList.contains('open')) { if (typeof qrCloseManage === 'function') qrCloseManage(); else qrManage.classList.remove('open'); return true; }
+
+    var tagModal = document.getElementById('tag-modal');
+    if (tagModal && tagModal.classList.contains('open')) { if (typeof closeTagModal === 'function') closeTagModal(); else tagModal.classList.remove('open'); return true; }
+    var friendsModal = document.getElementById('friends-list-modal');
+    if (friendsModal && friendsModal.classList.contains('open')) { if (typeof closeFriendsListModal === 'function') closeFriendsListModal(); else friendsModal.classList.remove('open'); return true; }
+
+    var confirmOverlay = document.getElementById('gc-confirm-overlay');
+    if (confirmOverlay && confirmOverlay.classList.contains('open')) { if (typeof gcCloseConfirm === 'function') gcCloseConfirm(); else confirmOverlay.classList.remove('open'); return true; }
+    var reportOverlay = document.getElementById('gc-report-overlay');
+    if (reportOverlay && reportOverlay.classList.contains('open')) { if (typeof gcCloseReport === 'function') gcCloseReport(); else reportOverlay.classList.remove('open'); return true; }
+
+    var emailPrivacy = document.getElementById('gc-email-privacy-sheet');
+    if (emailPrivacy && !emailPrivacy.hidden && emailPrivacy.classList.contains('open')) { if (typeof gcCloseEmailPrivacy === 'function') gcCloseEmailPrivacy(); else { emailPrivacy.classList.remove('open'); emailPrivacy.hidden = true; } return true; }
+    var audienceSheet = document.getElementById('gc-audience-sheet');
+    if (audienceSheet && audienceSheet.classList.contains('open')) { if (typeof gcCloseAudienceSheet === 'function') gcCloseAudienceSheet(); else audienceSheet.classList.remove('open'); return true; }
+    var forwardSheet = document.getElementById('gc-fwd-sheet');
+    if (forwardSheet && forwardSheet.classList.contains('open')) { if (typeof gcCloseForwardSheet === 'function') gcCloseForwardSheet(); else forwardSheet.classList.remove('open'); return true; }
+
+    var locationScreen = document.getElementById('gc-loc-screen');
+    if (locationScreen && locationScreen.classList.contains('open')) { if (typeof gcCloseLocationPicker === 'function') gcCloseLocationPicker(); else locationScreen.classList.remove('open'); return true; }
+    var likedScreen = document.getElementById('gc-liked-screen');
+    if (likedScreen && likedScreen.classList.contains('open')) { if (typeof gcCloseLikedScreen === 'function') gcCloseLikedScreen(); else likedScreen.classList.remove('open'); return true; }
+    var hashtagScreen = document.getElementById('gc-hashtag-screen');
+    if (hashtagScreen && hashtagScreen.classList.contains('open')) { if (typeof gcCloseHashtag === 'function') gcCloseHashtag(); else hashtagScreen.classList.remove('open'); return true; }
+    var trendingScreen = document.getElementById('gc-trending-screen');
+    if (trendingScreen && trendingScreen.classList.contains('open')) { if (typeof gcCloseTrending === 'function') gcCloseTrending(); else trendingScreen.classList.remove('open'); return true; }
+
+    var avatarEditor = document.getElementById('gc-av-editor');
+    if (avatarEditor && avatarEditor.classList.contains('open')) { if (typeof gcCloseAvatarEditor === 'function') gcCloseAvatarEditor(); else avatarEditor.classList.remove('open'); return true; }
+    var coverEditor = document.getElementById('gc-cover-editor');
+    if (coverEditor && coverEditor.classList.contains('open')) { if (typeof gcCloseCoverEditor === 'function') gcCloseCoverEditor(); else coverEditor.classList.remove('open'); return true; }
+
+    var inviteScreen = document.getElementById('invite-friends-screen');
+    if (inviteScreen && inviteScreen.style.display === 'flex') { if (typeof closeInviteFriendsPage === 'function') closeInviteFriendsPage(); else inviteScreen.style.display = 'none'; return true; }
+    var blockedScreen = document.getElementById('blocked-accounts-screen');
+    if (blockedScreen && blockedScreen.style.display === 'flex') { if (typeof closeBlockedAccountsPage === 'function') closeBlockedAccountsPage(); else blockedScreen.style.display = 'none'; return true; }
+    var chatSettings = document.getElementById('chat-settings-screen');
+    if (chatSettings && chatSettings.style.display === 'flex') { if (typeof closeChatSettingsScreen === 'function') closeChatSettingsScreen(); else chatSettings.style.display = 'none'; return true; }
+
+    var leaderboard = document.getElementById('page-leaderboard');
+    if (leaderboard && leaderboard.classList.contains('open')) { if (typeof closeLeaderboard === 'function') closeLeaderboard(); else leaderboard.classList.remove('open'); return true; }
+
     var reactionDetails = document.getElementById('gc-react-detail-overlay');
     if(reactionDetails && reactionDetails.classList.contains('open')) { gcCloseMsgReactionDetails(); return true; }
 
@@ -33164,6 +33232,10 @@ function closeTopMostView() {
     return false;
 }
 
+
+// BACK NAVIGATION MIGRATION STATUS: Phase 1 complete in this file.
+// Covered here: core popstate guard + the explicitly registered feature layers above.
+// Remaining UI inventory/native APK verification is not yet complete.
 
 // ==========================================
 // 🚀 NOTIFICATION BATCH DELETE SYSTEM 🚀
