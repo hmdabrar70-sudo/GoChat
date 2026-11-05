@@ -3451,35 +3451,180 @@ transition:border-color 0.2s, box-shadow .2s;
 .gc-chat-plus-btn i{font-size:20px!important;transition:transform .2s;color:var(--text)!important;}
 .gc-chat-plus-btn.is-open i{transform:rotate(45deg);}
 .gc-chat-attach-panel{
-  display:none;position:absolute;left:12px;right:12px;bottom:100%;
-  margin-bottom:8px;padding:6px 0;
-  background:var(--surface);border:1px solid var(--border);
-  border-radius:18px;box-shadow:var(--shadow-lg);z-index:30;
+  display:none;
+  position:absolute;
+  left:8px;
+  right:8px;
+  bottom:100%;
+  width:auto;
+  max-width:calc(100% - 16px);
+  margin-bottom:8px;
+  padding:4px 0;
+  box-sizing:border-box;
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:18px;
+  box-shadow:var(--shadow-lg);
+  z-index:100050;
   animation:gcAttachIn .2s ease;
-  overflow:hidden;
+  overflow:visible;
 }
 .gc-chat-attach-panel.open{display:block;}
 @keyframes gcAttachIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
 .gc-chat-attach-item{
-  display:flex;align-items:center;justify-content:space-between;
-  gap:14px;width:100%;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  width:100%;
+  max-width:100%;
+  box-sizing:border-box;
+  min-width:0;
   background:none;border:none;cursor:pointer;color:var(--text);
-  font-family:inherit;padding:14px 18px;
-  font-size:16px;font-weight:650;text-align:left;
+  font-family:inherit;
+  padding:12px 16px;
+  font-size:15px;font-weight:650;text-align:left;
+  overflow:hidden;
 }
 .gc-chat-attach-item + .gc-chat-attach-item{
   border-top:1px solid var(--border);
 }
 .gc-chat-attach-item:active{background:var(--surface-2);}
-.gc-chat-attach-item span{font-size:16px;font-weight:650;color:var(--text);}
+.gc-chat-attach-item span{
+  font-size:15px;font-weight:650;color:var(--text);
+  flex:1;min-width:0;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
 .gc-chat-attach-item i,
 .gc-chat-attach-item .gc-mp-ico,
 .gc-chat-attach-item .gc-attach-ico{
   font-size:22px;color:var(--text);flex-shrink:0;
-  width:22px;height:22px;display:block;
+  width:22px;height:22px;min-width:22px;
+  display:block;
+  overflow:visible;
+}
+.gc-chat-attach-item .gc-attach-ico svg,
+.gc-chat-attach-item svg.gc-attach-ico{
+  width:22px;height:22px;display:block;flex-shrink:0;
 }
 .gc-chat-attach-ico{display:none;}
+/* Keep input bar from clipping the upward attach panel */
+#chat-input-area.chat-input-bar,
+#chat-input-area{
+  overflow:visible !important;
+}
 /* Chat list time + typing */
+
+/* Message status capsule · time + receipt in one compact chip */
+.gc-msg-status-capsule{
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  margin-top:6px;
+  padding:3px 8px;
+  border-radius:999px;
+  max-width:100%;
+  box-sizing:border-box;
+  background: rgba(0,0,0,0.06);
+  border: 1px solid rgba(0,0,0,0.06);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  font-size:10px;
+  font-weight:600;
+  line-height:1;
+  color: var(--text-muted);
+  flex-shrink:0;
+}
+body:not(.light-mode) .gc-msg-status-capsule{
+  background: rgba(255,255,255,0.08);
+  border-color: rgba(255,255,255,0.10);
+  color: rgba(240,240,245,0.78);
+}
+.chat-bubble.mine:not(.gc-media-only) .gc-msg-status-capsule{
+  background: rgba(255,255,255,0.18);
+  border-color: rgba(255,255,255,0.16);
+  color: rgba(255,255,255,0.95);
+}
+body:not(.light-mode) .chat-bubble.mine:not(.gc-media-only) .gc-msg-status-capsule{
+  background: rgba(0,0,0,0.22);
+  border-color: rgba(255,255,255,0.12);
+  color: rgba(255,255,255,0.95);
+}
+.chat-bubble.gc-media-only .gc-msg-status-capsule{
+  background: rgba(0,0,0,0.45);
+  border-color: rgba(255,255,255,0.12);
+  color: rgba(255,255,255,0.92);
+}
+.gc-msg-status-capsule .gc-msg-status-time{
+  font-size:10px; font-weight:600; letter-spacing:0.01em;
+  white-space:nowrap;
+}
+.gc-msg-status-capsule i{
+  font-size:12px; line-height:1;
+  opacity:0.95;
+}
+.gc-msg-status-capsule i.is-seen{
+  color:#4ade80;
+}
+.chat-bubble.mine:not(.gc-media-only) .gc-msg-status-capsule i.is-seen{
+  color:#bbf7d0;
+}
+.gc-msg-time-row.gc-msg-status-capsule{
+  margin-top:6px !important;
+  text-align:right;
+  justify-content:flex-end;
+}
+
+/* Grouped notification · stacked avatars + count badge */
+.notif-av-stack{
+  position:relative;
+  width:48px; height:48px;
+  flex-shrink:0;
+}
+.notif-av-stack .notif-av-main{
+  width:36px; height:36px;
+  border-radius:50%;
+  overflow:hidden;
+  position:absolute;
+  left:0; top:0;
+  border:2px solid var(--surface);
+  background:var(--surface-2);
+  z-index:2;
+}
+.notif-av-stack .notif-av-main img{
+  width:100%; height:100%; object-fit:cover; display:block;
+}
+.notif-av-stack .notif-av-second{
+  width:28px; height:28px;
+  border-radius:50%;
+  overflow:hidden;
+  position:absolute;
+  right:0; bottom:0;
+  border:2px solid var(--surface);
+  background:var(--surface-2);
+  z-index:1;
+}
+.notif-av-stack .notif-av-second img{
+  width:100%; height:100%; object-fit:cover; display:block;
+}
+.notif-av-stack .notif-av-count{
+  position:absolute;
+  right:-2px; top:-2px;
+  min-width:18px; height:18px;
+  padding:0 5px;
+  border-radius:999px;
+  background:var(--accent);
+  color:var(--bg);
+  font-size:10px; font-weight:800;
+  display:flex; align-items:center; justify-content:center;
+  z-index:3;
+  border:2px solid var(--surface);
+  box-sizing:border-box;
+}
+body:not(.light-mode) .notif-av-stack .notif-av-count{
+  color:#0a0a0f;
+}
+
 .msg-time{
   font-size:11px;font-weight:600;color:var(--text-muted);
   flex-shrink:0;margin-left:8px;white-space:nowrap;
@@ -18568,6 +18713,37 @@ notifUnsub = db.collection('notifications').where('toUid', '==', user.uid).onSna
                 userAvatarHtml = '<img src="'+escapeHTML(senderData.avatar)+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">';
             }
         }
+        /* Grouped notification · stacked avatars + count */
+        var _grpCount = (typeof data.count === 'number') ? data.count : 0;
+        var _grpUids = Array.isArray(data.actorUids) ? data.actorUids : [];
+        var _isGrouped = !!(data.grouped || _grpCount > 1 || _grpUids.length > 1);
+        if (_isGrouped && !isAnn) {
+          var _av1 = '', _av2 = '';
+          var _uid1 = _grpUids[_grpUids.length - 1] || data.fromUid || '';
+          var _uid2 = _grpUids.length > 1 ? _grpUids[_grpUids.length - 2] : '';
+          function _grpAvInner(uid){
+            if(!uid) return '';
+            if (typeof gcAvatarInnerHtml === 'function') {
+              var html = gcAvatarInnerHtml(uid, '', '');
+              if (html) return html;
+            }
+            try {
+              if (allUsersCache) {
+                var u = allUsersCache.find(function(x){ return x && x.id === uid; });
+                if (u && u.avatar) return '<img src="'+escapeHTML(u.avatar)+'" alt="">';
+              }
+            } catch(e){}
+            return '';
+          }
+          _av1 = _grpAvInner(_uid1);
+          _av2 = _uid2 ? _grpAvInner(_uid2) : '';
+          var _showCount = Math.max(_grpCount, _grpUids.length);
+          userAvatarHtml = '<div class="notif-av-stack">'
+            + '<div class="notif-av-main">' + (_av1 || '') + '</div>'
+            + (_av2 ? '<div class="notif-av-second">' + _av2 + '</div>' : '')
+            + (_showCount > 1 ? '<span class="notif-av-count">' + (_showCount > 99 ? '99+' : _showCount) + '</span>' : '')
+            + '</div>';
+        }
 
         var avClick = (data.fromUid && !isAnn)
           ? 'event.stopPropagation(); viewUserProfile(\''+data.fromUid+'\');'
@@ -18609,7 +18785,9 @@ notifUnsub = db.collection('notifications').where('toUid', '==', user.uid).onSna
         htmlParts.push(
         '<div class="notif-item '+(!data.read ? 'unread' : '')+'" data-type="'+data.type+'" data-id="'+data.id+'" onclick="if(typeof isNotifEditMode !== \'undefined\' && isNotifEditMode){toggleNotifSelection(\''+data.id+'\');}else{'+onClickAction+'}">' +
             '<div class="notif-av-wrap" onclick="'+avClick+'">' +
-              '<div class="avatar sm" style="width:48px;height:48px;flex-shrink:0;">'+userAvatarHtml+'</div>' +
+              (_isGrouped && !isAnn
+                ? userAvatarHtml
+                : '<div class="avatar sm" style="width:48px;height:48px;flex-shrink:0;">'+userAvatarHtml+'</div>') +
               '<span class="notif-type-badge '+meta.cls+'">'+((data.type==='like' && data.reaction && data.reaction!=='like' && typeof gcReactSvg==='function' && gcReactSvg(data.reaction,true)) ? gcReactSvg(data.reaction,true) : ('<i class="'+meta.icon+'" style="font-size:10px;"></i>'))+'</span>' +
             '</div>' +
             '<div class="notif-text">' +
@@ -22310,13 +22488,13 @@ safeText = safeText.replace(urlRegex, function(url) {
                 timeString = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
             }
             const _isMediaOnly = ((((m.images&&m.images.length)||m.imageUrl||m.videoUrl)&&!m.text)||m.sharedPostId);
-            let timeAndReceiptHtml = `<div class="gc-msg-time-row" style="font-size: 10px; text-align: right; margin-top: 5px; display: flex; justify-content: flex-end; gap: 4px; align-items: center;">
-                <span>${timeString}</span>`;
+            let timeAndReceiptHtml = `<div class="gc-msg-time-row gc-msg-status-capsule">
+                <span class="gc-msg-status-time">${timeString}</span>`;
             if(isMine){
                 if(m.read){
-                    timeAndReceiptHtml += `<i class="ph-light ph-circle" style="font-size: 14px; color: #4ade80;"></i>`;
+                    timeAndReceiptHtml += `<i class="ph-light ph-circle is-seen" aria-label="Seen"></i>`;
                 }else{
-                    timeAndReceiptHtml += `<i class="ph-light ph-check" style="font-size: 14px;"></i>`;
+                    timeAndReceiptHtml += `<i class="ph-light ph-check" aria-label="Sent"></i>`;
                 }
             }
             timeAndReceiptHtml += `</div>`;
@@ -24901,8 +25079,8 @@ async function deleteChat(chatId){
 if(typeof gcOpenConfirm === 'function'){
   gcOpenConfirm({
     title:'Clear Chat?',
-    text:'Clear this chat? This cannot be undone.',
-    icon:'ph-light ph-trash',
+    text:'Clear this chat for yourself? Messages will be removed from your view only. The other person keeps their history.',
+    icon:'ph-light ph-broom',
     yesLabel:'Clear',
     onYes:function(){ gcDoDeleteChat(chatId); }
   });
@@ -24910,17 +25088,20 @@ if(typeof gcOpenConfirm === 'function'){
 }
 return gcDoDeleteChat(chatId);
 }
+/* Per-user clear only — NEVER hard-delete shared messages or the chat doc */
 async function gcDoDeleteChat(chatId){
 closeAllDropdowns();
+if(!chatId) return;
 try{
-const batch=db.batch();
-const messagesSnap=await db.collection('chats').doc(chatId).collection('messages').get();
-messagesSnap.forEach(doc=>batch.delete(doc.ref));
-batch.delete(db.collection('chats').doc(chatId));
-await batch.commit();
-showToast('Chat cleared');
-loadMessages();
-}catch(e){showToast('Failed to clear chat');}
+  if(typeof clearChatForMe === 'function'){
+    await clearChatForMe(chatId);
+  } else {
+    showToast('Failed to clear chat');
+  }
+}catch(e){
+  console.error(e);
+  showToast('Failed to clear chat');
+}
 }
 
 
@@ -29091,19 +29272,25 @@ async function clearChatFromQP() {
 
 
 // ৩. Clear Chat (Delete for me) ফাংশন
-async function clearChatForMe() {
-    document.getElementById('chat-delete-menu').style.display = 'none';
-    if(typeof gcOpenConfirm==='function' && !window.__gcConfirmForceYes){
-      gcOpenConfirm({title:'Clear Chat?',text:'Clear this chat for yourself? Messages will be removed from your view only.',icon:'ph-light ph-broom',yesLabel:'Clear',onYes:function(){window.__gcConfirmForceYes=true;clearChatForMe();setTimeout(function(){window.__gcConfirmForceYes=false;},800);}});
+async function clearChatForMe(optChatId) {
+    try {
+      var menu = document.getElementById('chat-delete-menu');
+      if(menu) menu.style.display = 'none';
+    } catch(e) {}
+    // Confirm only when called from in-chat UI without an explicit chatId from list/select
+    // (list path already confirmed via deleteChat → gcDoDeleteChat)
+    if(optChatId == null && typeof gcOpenConfirm==='function' && !window.__gcConfirmForceYes){
+      gcOpenConfirm({title:'Clear Chat?',text:'Clear this chat for yourself? Messages will be removed from your view only. The other person keeps their history.',icon:'ph-light ph-broom',yesLabel:'Clear',onYes:function(){window.__gcConfirmForceYes=true;clearChatForMe();setTimeout(function(){window.__gcConfirmForceYes=false;},800);}});
       return;
     }
     
     showToast("Clearing chat...");
     try {
-        const chatId = currentChatId;
-        if(!chatId || !currentUser) throw new Error('No chat');
+        if(!currentUser) throw new Error('No user');
+        const chatId = optChatId || currentChatId;
+        if(!chatId) throw new Error('No chat');
         const clearMs = Date.now();
-        // Chat-level per-user clear marker (does not affect other participant)
+        // Chat-level per-user clear marker (does NOT affect other participant)
         try {
           var clearPatch = {};
           clearPatch['clearedAtBy.' + currentUser.uid] = clearMs;
@@ -29112,7 +29299,7 @@ async function clearChatForMe() {
 
         const messagesRef = db.collection('chats').doc(chatId).collection('messages');
         const snap = await messagesRef.get();
-        // Batch in chunks of 400
+        // Mark messages deletedFor current user only — never delete docs
         var docs = snap.docs || [];
         for (var bi = 0; bi < docs.length; bi += 400) {
           const batch = db.batch();
@@ -29122,7 +29309,7 @@ async function clearChatForMe() {
           await batch.commit();
         }
 
-        // Immediate local state invalidation — prevent deleted-msg flash on re-open
+        // Local state: only wipe UI if this is the open conversation
         try {
           if (window.__gcChatMsgState && window.__gcChatMsgState.chatId === chatId) {
             window.__gcChatMsgState.docs = [];
@@ -29133,8 +29320,15 @@ async function clearChatForMe() {
           window.__gcChatClearedAt[chatId] = clearMs;
         } catch(e) {}
 
-        var listEl = document.getElementById('chat-messages');
-        if (listEl) listEl.innerHTML = '<div style="text-align:center; padding:20px; color:var(--text-muted);">Chat cleared</div>';
+        if (currentChatId === chatId) {
+          var listEl = document.getElementById('chat-messages');
+          if (listEl) listEl.innerHTML = '<div style="text-align:center; padding:20px; color:var(--text-muted);">Chat cleared</div>';
+        }
+        // Refresh chat list preview if available
+        try {
+          if (typeof loadMessages === 'function') loadMessages();
+          else if (typeof window.__gcRerenderChatList === 'function') window.__gcRerenderChatList();
+        } catch(e) {}
         showToast("Chat cleared!");
     } catch (e) {
         console.error(e);
@@ -32423,36 +32617,102 @@ let recordSeconds = 0;
 
 // true = user hit Cancel — onstop must NOT upload
 let voiceRecordCancelled = false;
+// Prevent double-start / double-send of the same recording
+let voiceSessionId = 0;
+let voiceStopRequested = false;
+let voiceUploadInFlight = false;
+let voiceActiveStream = null;
 
 async function startVoiceRecord() {
+    // Already recording or a send is in progress — ignore
     try {
+      if (mediaRecorder && mediaRecorder.state === 'recording') return;
+      if (voiceUploadInFlight) {
+        showToast('Please wait, voice is sending...');
+        return;
+      }
+    } catch(e) {}
+
+    try {
+        // Stop any leftover stream/tracks from a previous session
+        try {
+          if (voiceActiveStream) {
+            voiceActiveStream.getTracks().forEach(function(t){ try{ t.stop(); }catch(e){} });
+            voiceActiveStream = null;
+          }
+        } catch(e) {}
+
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        mediaRecorder = new MediaRecorder(stream);
-        audioChunks = [];
+        voiceActiveStream = stream;
+        const session = ++voiceSessionId;
+        voiceStopRequested = false;
         voiceRecordCancelled = false;
+        audioChunks = [];
 
-        mediaRecorder.ondataavailable = event => {
+        // Prefer a widely supported mime type when available
+        var mime = '';
+        try {
+          if (window.MediaRecorder) {
+            if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) mime = 'audio/webm;codecs=opus';
+            else if (MediaRecorder.isTypeSupported('audio/webm')) mime = 'audio/webm';
+            else if (MediaRecorder.isTypeSupported('audio/mp4')) mime = 'audio/mp4';
+          }
+        } catch(e) {}
+        mediaRecorder = mime ? new MediaRecorder(stream, { mimeType: mime }) : new MediaRecorder(stream);
+
+        // Session-local chunk buffer — never reuse a previous recording's data
+        var sessionChunks = [];
+        audioChunks = sessionChunks;
+
+        mediaRecorder.ondataavailable = function(event) {
+            if (session !== voiceSessionId) return;
             if (voiceRecordCancelled) return;
-            if (event.data && event.data.size > 0) audioChunks.push(event.data);
+            if (event.data && event.data.size > 0) sessionChunks.push(event.data);
         };
 
-        mediaRecorder.onstop = async () => {
-            try { stream.getTracks().forEach(track => track.stop()); } catch(e) {}
+        mediaRecorder.onstop = async function() {
+            // Detach handler so a second stop cannot re-enter
+            try {
+              if (mediaRecorder) {
+                mediaRecorder.onstop = null;
+                mediaRecorder.ondataavailable = null;
+              }
+            } catch(e) {}
+            try {
+              if (stream) stream.getTracks().forEach(function(track){ try{ track.stop(); }catch(e){} });
+            } catch(e) {}
+            if (voiceActiveStream === stream) voiceActiveStream = null;
 
-            // Cancel হলে কখনোই আপলোড/সেন্ড নয়
-            if (voiceRecordCancelled) {
-                audioChunks = [];
-                return;
-            }
-            if (!audioChunks.length) return;
-
-            const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+            // Snapshot THIS session's chunks only, then wipe buffers
+            var chunks = sessionChunks.slice();
+            sessionChunks.length = 0;
             audioChunks = [];
-            await uploadAndSendVoice(audioBlob);
+
+            // Stale session / cancel → never upload
+            if (session !== voiceSessionId) return;
+            if (voiceRecordCancelled) return;
+            if (voiceUploadInFlight) return;
+            if (!chunks.length) return;
+
+            var blobType = (mime && mime.indexOf('mp4') !== -1) ? 'audio/mp4' : 'audio/webm';
+            var audioBlob = new Blob(chunks, { type: blobType });
+            chunks = null;
+            if (!audioBlob || audioBlob.size < 1) return;
+            await uploadAndSendVoice(audioBlob, session);
+            // Fully drop recorder after send path
+            try { mediaRecorder = null; } catch(e) {}
         };
 
-        // রেকর্ডিং শুরু করা
-        mediaRecorder.start();
+        // timeslice forces periodic ondataavailable so stop always has fresh data
+        try {
+          mediaRecorder.start(200);
+        } catch(e) {
+          try { mediaRecorder.start(); } catch(e2) {
+            showToast('Could not start recording');
+            resetRecordUI();
+            return;
+          }
+        }
         
         // UI: WhatsApp-style inline record bar
         var area = document.getElementById('chat-input-area');
@@ -32460,11 +32720,17 @@ async function startVoiceRecord() {
         var rec = document.getElementById('recording-ui');
         if(rec){ rec.style.display = 'flex'; rec.classList.add('open'); }
         try{ if(typeof gcCloseChatAttach==='function') gcCloseChatAttach(); }catch(e){}
+        // Disable send button until recording has a moment of audio; keep clickable for stop
+        try {
+          var sendBtn = document.querySelector('.gc-vr-send');
+          if (sendBtn) { sendBtn.disabled = false; sendBtn.style.opacity = '1'; }
+        } catch(e) {}
         
         // টাইমার শুরু
         recordSeconds = 0;
         var rt = document.getElementById('record-time');
         if(rt) rt.textContent = "00:00";
+        if (recordInterval) { try { clearInterval(recordInterval); } catch(e) {} }
         recordInterval = setInterval(() => {
             recordSeconds++;
             const mins = String(Math.floor(recordSeconds / 60)).padStart(2, '0');
@@ -32476,27 +32742,46 @@ async function startVoiceRecord() {
     } catch (err) {
         console.error(err);
         showToast("Microphone access denied. Please allow permission.");
+        resetRecordUI();
     }
 }
 
 function cancelVoiceRecord() {
     // MUST set flag BEFORE stop() — ondataavailable/onstop can fire sync
     voiceRecordCancelled = true;
+    voiceStopRequested = true;
     audioChunks = [];
     try {
         if (mediaRecorder && mediaRecorder.state !== "inactive") {
             mediaRecorder.stop();
         }
     } catch(e) {}
+    try {
+      if (voiceActiveStream) {
+        voiceActiveStream.getTracks().forEach(function(t){ try{ t.stop(); }catch(e){} });
+        voiceActiveStream = null;
+      }
+    } catch(e) {}
     resetRecordUI();
     showToast("Voice recording canceled");
 }
 
 function sendVoiceRecord() {
+    // One send per recording session only
+    if (voiceStopRequested || voiceUploadInFlight) return;
+    if (!mediaRecorder || mediaRecorder.state === 'inactive') return;
+    voiceStopRequested = true;
     voiceRecordCancelled = false;
+    // Disable send button immediately to block double-tap
     try {
-        if (mediaRecorder && mediaRecorder.state !== "inactive") {
-            mediaRecorder.stop(); // onstop → uploadAndSendVoice
+      var sendBtn = document.querySelector('.gc-vr-send');
+      if (sendBtn) { sendBtn.disabled = true; sendBtn.style.opacity = '0.5'; }
+    } catch(e) {}
+    try {
+        if (mediaRecorder && mediaRecorder.state === 'recording') {
+            // Flush any buffered audio before stop (important on some Android WebViews)
+            try { if (typeof mediaRecorder.requestData === 'function') mediaRecorder.requestData(); } catch(e) {}
+            mediaRecorder.stop(); // onstop → uploadAndSendVoice (once, this session only)
         }
     } catch(e) {}
     resetRecordUI();
@@ -32623,13 +32908,21 @@ function resetRecordUI() {
     if(ts) ts.style.display = '';
 }
 
-async function uploadAndSendVoice(audioBlob) {
-    if (!currentChatId || !checkRateLimit()) return;
+async function uploadAndSendVoice(audioBlob, session) {
+    if (!currentChatId) return;
+    if (!audioBlob || !audioBlob.size) return;
+    // Hard lock — never send the same recording twice
+    if (voiceUploadInFlight) return;
+    if (session != null && session !== voiceSessionId) return;
+    if (!checkRateLimit()) return;
+
+    voiceUploadInFlight = true;
     showToast("Sending voice message...");
     
     // Cloudinary তে আপলোড (Cloudinary অডিওর জন্য /video/upload এন্ডপয়েন্ট ব্যবহার করে)
     const formData = new FormData();
-    formData.append('file', audioBlob, 'voicemsg.webm');
+    var fname = (audioBlob.type && audioBlob.type.indexOf('mp4') !== -1) ? 'voicemsg.m4a' : 'voicemsg.webm';
+    formData.append('file', audioBlob, fname);
     formData.append('upload_preset', 'gochat'); 
     
     try {
@@ -32659,8 +32952,12 @@ async function uploadAndSendVoice(audioBlob) {
             
             currentReplyMsgId = null;
             replyToMsgData = null;
-            document.getElementById('reply-preview-container').innerHTML = '';
-            document.getElementById('chat-input').placeholder = 'Message...';
+            try {
+              var rpc = document.getElementById('reply-preview-container');
+              if (rpc) rpc.innerHTML = '';
+              var ci = document.getElementById('chat-input');
+              if (ci) ci.placeholder = 'Message...';
+            } catch(e) {}
         }
 
         await db.collection('chats').doc(currentChatId).collection('messages').add(msgData);
@@ -32681,6 +32978,13 @@ async function uploadAndSendVoice(audioBlob) {
     } catch (err) {
         console.error(err);
         showToast("Failed to send voice message");
+    } finally {
+        voiceUploadInFlight = false;
+        // Allow a fresh recording session after this send completes
+        try {
+          var sendBtn = document.querySelector('.gc-vr-send');
+          if (sendBtn) { sendBtn.disabled = false; sendBtn.style.opacity = '1'; }
+        } catch(e) {}
     }
 }
 
