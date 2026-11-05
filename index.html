@@ -32975,11 +32975,34 @@ function closeTopMostView() {
     var annV = document.getElementById('gc-official-announcement');
     if (annV && annV.style.display === 'flex') { if(typeof closeOfficialAnnouncement==='function') closeOfficialAnnouncement(); return true; }
 
+    // Export Chat full-screen (above chat) — close only this, stay in chat
+    var exportChat = document.getElementById('export-chat-modal');
+    if (exportChat) {
+      try { exportChat.remove(); } catch (e) { try { exportChat.style.display = 'none'; } catch (e2) {} }
+      return true;
+    }
+
+    // Advanced Privacy popup (chat) — close modal only, stay in chat
+    var advPriv = document.getElementById('advanced-privacy-modal');
+    if (advPriv && advPriv.classList.contains('open')) {
+      if (typeof closeAdvancedPrivacy === 'function') closeAdvancedPrivacy();
+      else advPriv.classList.remove('open');
+      return true;
+    }
+
     var cvv = document.getElementById('gc-chat-video-viewer');
     if (cvv && cvv.classList.contains('open')) { if(typeof gcCloseChatVideoViewer==='function') gcCloseChatVideoViewer(); return true; }
 
     var editPost = document.getElementById('edit-post-modal');
     if (editPost && editPost.classList.contains('open')) { if(typeof closeEditPostModal==='function') closeEditPostModal(); return true; }
+
+    // Threads-style bottom sheet (own profile ⋮ and other sheet menus)
+    var sheetOv = document.getElementById('gc-sheet-overlay');
+    if (sheetOv && sheetOv.classList.contains('open')) {
+      if (typeof gcCloseSheet === 'function') gcCloseSheet();
+      else sheetOv.classList.remove('open');
+      return true;
+    }
 
     // 0. Shorts full-screen (must restore feed scroll via gcCloseShorts)
     var shortsScr = document.getElementById('gc-shorts-screen');
@@ -32995,6 +33018,22 @@ function closeTopMostView() {
     // ২. Story Viewer
     const storyViewer = document.getElementById('story-viewer');
     if (storyViewer && storyViewer.classList.contains('open')) { closeStory(); return true; }
+
+    // Profile Insights full-screen
+    var insScr = document.getElementById('gc-insights-screen');
+    if (insScr && insScr.classList.contains('open')) {
+      if (typeof gcCloseInsights === 'function') gcCloseInsights();
+      else insScr.classList.remove('open');
+      return true;
+    }
+
+    // Request Profile page
+    var frScr = document.getElementById('gc-fr-screen');
+    if (frScr && frScr.classList.contains('open')) {
+      if (typeof gcCloseFollowRequests === 'function') gcCloseFollowRequests();
+      else frScr.classList.remove('open');
+      return true;
+    }
 
     // ৪. Bottom Sheets / Action Modals
     const deleteSheet = document.getElementById('delete-sheet-modal');
@@ -33038,6 +33077,22 @@ function closeTopMostView() {
 
     const galleryScreen = document.getElementById('gallery-screen');
     if (galleryScreen && galleryScreen.style.display === 'flex') { closeGallery(); return true; }
+
+    // Privacy settings nested pages → privacy screen → main settings → menu
+    try {
+      var privSub = document.querySelector('.gc-priv-subpage.open');
+      if (privSub) {
+        privSub.classList.remove('open');
+        privSub.setAttribute('aria-hidden', 'true');
+        return true;
+      }
+    } catch (e) {}
+    var settingsPrivacy = document.getElementById('settings-privacy-screen');
+    if (settingsPrivacy && settingsPrivacy.classList.contains('open')) {
+      if (typeof closeSettingsPrivacy === 'function') closeSettingsPrivacy();
+      else settingsPrivacy.classList.remove('open');
+      return true;
+    }
 
     const mainSettings = document.getElementById('main-settings-screen');
     if (mainSettings && mainSettings.style.display === 'flex') { closeMainSettingsScreen(); return true; }
@@ -38628,7 +38683,7 @@ function _frRow(uid, mode){
     ? (timeTxt ? ('Requested ' + escapeHTML(timeTxt)) : 'Follow request')
     : (timeTxt ? ('Followed you · ' + escapeHTML(timeTxt)) : 'New follower');
   return '<div class="gc-fr-item">' + av
-    + '<div class="gc-fr-info" onclick="gcCloseFollowRequests(); viewUserProfile(\'' + uid + '\')"><div class="gc-fr-name">' + escapeHTML(u.name || 'User') + '</div><div class="gc-fr-time">' + label + '</div></div>'
+    + '<div class="gc-fr-info" onclick="gcCloseFollowRequests(); viewUserProfile(\'' + uid + '\')"><div class="gc-fr-name">' + escapeHTML(u.name || 'User') + '</div><div class="gc-fr-time"><i class="ph-light ph-clock" style="font-size:12px;"></i> ' + label + '</div></div>'
     + btns + '</div>';
 }
 var html = '';
