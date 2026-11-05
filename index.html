@@ -32975,6 +32975,15 @@ function closeTopMostView() {
     var annV = document.getElementById('gc-official-announcement');
     if (annV && annV.style.display === 'flex') { if(typeof closeOfficialAnnouncement==='function') closeOfficialAnnouncement(); return true; }
 
+    // Verification (Elite/Verify profile) — nested steps via gcPayBack, then close overlay
+    var payOv = document.getElementById('gc-pay-overlay');
+    if (payOv && payOv.classList.contains('open')) {
+      if (typeof gcPayBack === 'function') gcPayBack();
+      else if (typeof gcPayClose === 'function') gcPayClose();
+      else payOv.classList.remove('open');
+      return true;
+    }
+
     // Export Chat full-screen (above chat) — close only this, stay in chat
     var exportChat = document.getElementById('export-chat-modal');
     if (exportChat) {
@@ -38847,6 +38856,20 @@ window.__gcPayStack = [];
 }
 function gcPayBack(){
   var stack = window.__gcPayStack || [];
+  var top = stack.length ? stack[stack.length - 1] : null;
+  // Terminal / review screens: leave verification entirely
+  if(top === 'status' || top === 'approved'){
+    gcPayClose();
+    return;
+  }
+  if(top === 'rejected'){
+    // one step to plans for retry, or close if stack is only rejected
+    if(stack.length <= 1){ gcPayClose(); return; }
+    stack.pop();
+    window.__gcPayStack = stack;
+    try{ gcPayShowPlans(true); }catch(e){ gcPayClose(); }
+    return;
+  }
   if(stack.length <= 1){
     gcPayClose();
     return;
@@ -39031,7 +39054,10 @@ gcPayShowStatus(ref.id);
 }catch(e){ showToast('❌ Failed to submit. Try again.'); }
 }
 function gcPayShowStatus(docId){
-if(window.__gcPayStack) gcPayPushScreen("status");
+window.__gcPayStack = window.__gcPayStack || [];
+if(window.__gcPayStack[window.__gcPayStack.length-1] !== 'status'){
+  window.__gcPayStack = ['status'];
+}
 
 document.getElementById('gc-pay-body').innerHTML = '<div class="gc-pay-screen gc-pay-center"><div class="gc-status-chip pending">⏳ PAYMENT UNDER REVIEW</div><p class="gc-pay-sub">Your payment is being verified. Usually activated within 1 hour.</p><div class="gc-pay-spinner"></div></div>';
 if(gcPayUnsub) gcPayUnsub();
@@ -39043,13 +39069,13 @@ else if(s === 'rejected') gcPayShowRejected(d.data().rejectReason || '');
 });
 }
 function gcPayShowApproved(){
-if(window.__gcPayStack) gcPayPushScreen("approved");
+window.__gcPayStack = ['approved'];
 
 if(gcPayUnsub){ gcPayUnsub(); gcPayUnsub = null; }
 document.getElementById('gc-pay-body').innerHTML = '<div class="gc-pay-screen"><div class="gc-pay-scroll gc-pay-center"><div class="gc-ceremony">👑</div><h2 class="gc-pay-title">Welcome to Elite!</h2><p class="gc-pay-sub">You are verified. The blue badge now shows next to your name on GoChat.</p></div><div class="gc-pay-foot"><button class="gc-pay-cta" onclick="gcPayClose()">Done</button></div></div>';
 }
 function gcPayShowRejected(reason){
-if(window.__gcPayStack) gcPayPushScreen("rejected");
+window.__gcPayStack = ['rejected'];
 
 if(gcPayUnsub){ gcPayUnsub(); gcPayUnsub = null; }
 document.getElementById('gc-pay-body').innerHTML = '<div class="gc-pay-screen"><div class="gc-pay-scroll gc-pay-center"><div class="gc-status-chip rejected">❌ PAYMENT REJECTED</div><p class="gc-pay-sub">' + escapeHTML(reason || 'We could not verify that payment. Double-check the TrxID and try again.') + '</p></div><div class="gc-pay-foot"><button class="gc-pay-cta" onclick="gcPayShowPlans()">Try Again</button></div></div>';
