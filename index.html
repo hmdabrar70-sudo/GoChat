@@ -18817,7 +18817,6 @@ function showPage(page) {
 
     // Same-tab re-tap no longer auto-refreshes — double-tap on nav handles refresh
 
-
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
     
@@ -18847,7 +18846,7 @@ function showPage(page) {
     if (page === 'friends') {
         document.body.classList.add('friends-mode');
         if (friendsTabs) friendsTabs.style.display = 'flex';
-        gcCloseHomeDrawer();
+        try{ if(typeof gcCloseHomeDrawer==='function') gcCloseHomeDrawer(); }catch(e){}
         try {
           var _tb = document.querySelector('#app-screen > .topbar') || document.querySelector('.topbar');
           if (_tb) _tb.classList.remove('nav-hidden-top');
@@ -18872,7 +18871,7 @@ function showPage(page) {
         document.body.classList.add('search-mode');
         if (searchBack) searchBack.style.display = 'flex';
         if (searchTitle) searchTitle.style.display = 'block';
-        gcCloseHomeDrawer();
+        try{ if(typeof gcCloseHomeDrawer==='function') gcCloseHomeDrawer(); }catch(e){}
         try {
           var _si = document.getElementById('search-input');
           if (_si) setTimeout(function(){ try{ _si.focus(); }catch(e){} }, 180);
@@ -18889,7 +18888,7 @@ function showPage(page) {
           if (_mtb) _mtb.classList.remove('nav-hidden-top');
         } catch(e) {}
         if (topbarLogo) topbarLogo.innerHTML = 'Inbox';
-        gcCloseHomeDrawer();
+        try{ if(typeof gcCloseHomeDrawer==='function') gcCloseHomeDrawer(); }catch(e){}
     } else if (page === 'notifications') {
         document.body.classList.add('notifications-mode');
         try {
@@ -18900,7 +18899,7 @@ function showPage(page) {
         } catch(e) {}
         if (topbarLogo) topbarLogo.innerHTML = 'Notifications';
         setTimeout(function(){ try{ gcInitNotifTabPill(); }catch(e){} }, 30);
-        gcCloseHomeDrawer();
+        try{ if(typeof gcCloseHomeDrawer==='function') gcCloseHomeDrawer(); }catch(e){}
     } else {
         if (topbarLogo) {
             topbarLogo.removeAttribute('onclick');
@@ -18921,10 +18920,10 @@ function showPage(page) {
                 drawerBtn.style.display = 'none';
             }
         }
-        if (page !== 'feed') gcCloseHomeDrawer();
+        if (page !== 'feed') { try{ if(typeof gcCloseHomeDrawer==='function') gcCloseHomeDrawer(); }catch(e){} }
     }
 
-        // সেটিংস আইকন হ্যান্ডেল করার লজিক
+    // সেটিংস আইকন হ্যান্ডেল করার লজিক
     const settingsIcon = document.getElementById('topbar-settings-btn');
     if (settingsIcon) settingsIcon.style.display = (page === 'profile') ? 'flex' : 'none';
 
@@ -18953,7 +18952,7 @@ function showPage(page) {
     // Leave notifications → exit edit mode & restore chrome
     if (page !== 'notifications') {
         if (typeof isNotifEditMode !== 'undefined' && isNotifEditMode) {
-            toggleNotifEditMode();
+            if(typeof toggleNotifEditMode === 'function') toggleNotifEditMode();
         }
         document.body.classList.remove('notif-edit-mode');
         const nTabs = document.querySelector('#page-notifications .activity-tabs-wrapper');
@@ -18968,7 +18967,7 @@ function showPage(page) {
       /* Avoid full re-subscribe/re-render jump when returning to Inbox */
       var _ml = document.getElementById('msg-list');
       var _hasLive = _ml && _ml.querySelector('.msg-item') && window.chatListUnsub;
-      if(!_hasLive) loadMessages();
+      if(!_hasLive && typeof loadMessages === 'function') loadMessages();
       else if(typeof window.__gcRerenderChatList === 'function'){
         try{ window.__gcRerenderChatList(); }catch(e){}
       }
@@ -18981,7 +18980,7 @@ function showPage(page) {
         && !notifLoading.querySelector('.notif-empty')
         && !notifLoading.querySelector('.gc-skeleton-notif')
         && !window.__gcNotifsLoadedOnce) {
-        notifLoading.innerHTML = gcSkeletonNotificationsHTML(5);
+        if(typeof gcSkeletonNotificationsHTML === 'function') notifLoading.innerHTML = gcSkeletonNotificationsHTML(5);
       } else if(notifLoading
         && window.__gcNotifsLoadedOnce
         && !notifLoading.querySelector('.notif-item')
@@ -18992,17 +18991,19 @@ function showPage(page) {
       }
     }
     if(page === 'profile') {
-      loadUserUI();
+      if(typeof loadUserUI === 'function') loadUserUI();
       // Only rebuild posts if list is empty — preserves scroll when returning
       try{
         var _mpl = document.getElementById('my-posts-list');
         var _hasPosts = _mpl && (_mpl.querySelector('[data-post-id]') || _mpl.querySelector('.grid-post-item') || _mpl.querySelector('.post-card'));
-        if(!_hasPosts) loadMyPosts();
-      }catch(e){ try{ loadMyPosts(); }catch(_e){} }
+        if(!_hasPosts && typeof loadMyPosts === 'function') loadMyPosts();
+      }catch(e){ try{ if(typeof loadMyPosts === 'function') loadMyPosts(); }catch(_e){} }
     }
-    if(page === 'friends') { loadFriendRequests(); loadAllFriends(); }
+    if(page === 'friends') { 
+      if(typeof loadFriendRequests === 'function') loadFriendRequests(); 
+      if(typeof loadAllFriends === 'function') loadAllFriends(); 
+    }
 
-    // Restore scroll for ANY page that previously saved a position
     try{
       window.__gcPageScroll = window.__gcPageScroll || {};
       var _tid = 'page-' + page;
@@ -19020,6 +19021,14 @@ function showPage(page) {
     }catch(e){
       try{ window.scrollTo({top: 0, behavior: 'auto'}); }catch(_e){}
     }
+
+    // 👇👇👇 নতুন নেভিগেশন হিস্ট্রি লজিক (অ্যান্ড্রয়েড ব্যাক বাটনের জন্য)
+    if (!window.__gcFromPopstate) {
+        try {
+            history.pushState({ page: page }, "", "#" + page);
+        } catch (e) {}
+    }
+    // 👆👆👆
 }
 
 
@@ -33220,13 +33229,29 @@ window.addEventListener('popstate', function(event) {
     // While any messaging layer remains open, always restore a history entry so
     // the next Android Back cannot exit the WebView/activity.
     var stillMsg = false;
-    try { stillMsg = gcMsgLayerOpen(); } catch (e) {}
+    try { stillMsg = typeof gcMsgLayerOpen === 'function' ? gcMsgLayerOpen() : false; } catch (e) {}
 
     if (consumed || stillMsg) {
         gcMsgHistGuardPush();
         gcBackEventInProgress = false;
         return;
     }
+
+    // 👇👇👇 নতুন লজিক: পপআপ না থাকলে চেক করো ইউজার অন্য কোনো পেজে (যেমন Profile/Messages) আছে কিনা
+    const activePageNode = document.querySelector('.page.active');
+    const activePageId = activePageNode ? activePageNode.id : '';
+
+    if (activePageId !== 'page-feed' && activePageId !== 'page-home') {
+        // ফিড ছাড়া অন্য পেজে থাকলে, ফিডে ফিরে যাও
+        window.__gcFromPopstate = true; 
+        if (typeof showPage === 'function') showPage('feed');
+        window.__gcFromPopstate = false;
+        
+        gcMsgHistGuardPush(); // ফিডে ফেরার পর আবার লক করে রাখো
+        gcBackEventInProgress = false;
+        return;
+    }
+    // 👆👆👆
 
     // No in-app layer was open: preserve the existing double-press exit behavior.
     if (backPressTimer) {
@@ -33240,6 +33265,26 @@ window.addEventListener('popstate', function(event) {
         gcBackEventInProgress = false;
     }
 });
+
+function gcMsgPushLayer(layerId) {
+  try {
+    history.pushState({ gcMsgLayer: layerId || 'msg', t: Date.now() }, '', window.location.href);
+  } catch (e) {}
+}
+
+function gcMsgHistGuardPush() {
+  try {
+    history.pushState({ page: 'gochat_home', gcBackGuard: true, t: Date.now() }, '', window.location.href);
+  } catch (e) {}
+}
+
+// Keep one guarded app-entry state. Messaging layers push additional entries via gcMsgPushLayer.
+try {
+    history.pushState({ page: 'gochat_home', gcBackGuard: true }, "", window.location.href);
+} catch (e) {
+    console.warn('GoChat back-history initialization failed', e);
+}
+
 
 function closeTopMostView() {
     // Phase 1 migration coverage: handle frequently used feature-level layers
