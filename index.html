@@ -27117,7 +27117,7 @@ const __pcUrls = (p.imgUrls && p.imgUrls.length) ? p.imgUrls : (p.imgUrl ? [p.im
 const __pcIsVid = !!(p.videoUrl) || __pcUrls.some(function(u){ u=String(u||''); return u.indexOf('/video/')!==-1 || /\.(mp4|webm|mov)(\?|$)/i.test(u); });
 const __pcIsImg = !__pcIsVid && __pcUrls.length > 0;
 const __pcKind = __pcIsVid ? 'media' : (__pcIsImg ? 'gallery' : 'status');
-return`<div class="post-card ${premiumPostClass}${pinnedClass}" data-post-id="${pid}" data-post-kind="${__pcKind}" data-hide-counts="${p.hideLikeCommentCount ? '1' : '0'}" style="cursor:pointer;" onclick="openSinglePostView('${pid}')">
+return`<div class="post-card ${premiumPostClass}${pinnedClass}" data-post-id="${pid}" data-post-kind="${__pcKind}" data-author-uid="${p.uid||''}" data-hide-counts="${p.hideLikeCommentCount ? '1' : '0'}" style="cursor:pointer;" onclick="openSinglePostView('${pid}')">
 <div class="post-header">
 <div class="tf-av-wrap" data-uid="${p.uid}">
 <div class="avatar" style="width:44px;height:44px;cursor:pointer;" onclick="event.stopPropagation();">${av}</div>
@@ -27446,7 +27446,7 @@ async function loadOtherUserPosts(uid){
                 media = '<img src="' + escapeHTML(imgUrls[0]) + '" alt="" loading="lazy" style="pointer-events:none;width:100%;height:auto;display:block;object-fit:cover;" onerror="this.style.opacity=.35">';
             }
             var viewBadge = (typeof gcGridViewCountBadge === 'function') ? gcGridViewCountBadge(p) : '';
-            gridHtml += '<div class="grid-post-item" data-post-id="' + p.id + '" data-post-kind="' + kind + '" role="button" tabindex="0" onclick="event.stopPropagation();if(typeof openSinglePostView===\'function\')openSinglePostView(\'' + p.id + '\');">' + media + multiIcon + viewBadge + '</div>';
+            gridHtml += '<div class="grid-post-item" data-post-id="' + p.id + '" data-post-kind="' + kind + '" data-author-uid="' + (p.uid || '') + '" role="button" tabindex="0" onclick="event.stopPropagation();if(typeof openSinglePostView===\'function\')openSinglePostView(\'' + p.id + '\');">' + media + multiIcon + viewBadge + '</div>';
         });
         gridHtml += '</div>';
         let html = gridHtml + '<div class="profile-status-feed" style="display:none;">' + statusHtml + '</div>';
@@ -33944,13 +33944,14 @@ function formatInsightNum(n){
     var type = opts.type || 'post';
     var id = opts.id;
     var ownerUid = opts.ownerUid || '';
+    var attempt = opts._attempt || 0;
     if (!id || !currentUser) return;
     if (ownerUid && ownerUid === currentUser.uid) return;
     if (alreadySession(type, id)) return;
     var key = type + ':' + id;
     if (_inflight[key]) return;
     _inflight[key] = true;
-    markSession(type, id); // prevent double fire even if write fails partially
+    var writeOk = false;
     try {
       if (type === 'story') {
         var sref = db.collection('stories').doc(id);
@@ -33958,12 +33959,13 @@ function formatInsightNum(n){
           views: firebase.firestore.FieldValue.arrayUnion(currentUser.uid),
           viewCount: firebase.firestore.FieldValue.increment(1)
         }, { merge: true });
+        writeOk = true;
         try {
           if (typeof activeStoryGroup !== 'undefined' && activeStoryGroup && activeStoryGroup[currentStoryIndex] && activeStoryGroup[currentStoryIndex].id === id) {
             var st = activeStoryGroup[currentStoryIndex];
             st.views = st.views || [];
             if (st.views.indexOf(currentUser.uid) === -1) st.views.push(currentUser.uid);
-            st.viewCount = (st.viewCount || st.views.length || 0) + 0;
+            st.viewCount = (st.viewCount || st.views.length || 0);
             var vw = document.getElementById('sv-views');
             if (vw) vw.textContent = String((st.views || []).length);
           }
@@ -33971,14 +33973,19 @@ function formatInsightNum(n){
       } else {
         // posts + shorts share posts collection
         var pref = db.collection('posts').doc(id);
+        var skippedSelf = false;
         await db.runTransaction(async function(tx){
           var snap = await tx.get(pref);
           if (!snap.exists) return;
           var data = snap.data() || {};
-          if (data.uid && data.uid === currentUser.uid) return;
-          var patch = {
-            views: firebase.firestore.FieldValue.increment(1)
-          };
+          if (data.uid && data.uid === currentUser.uid) { skippedSelf = true; return; }
+          var patch = {};
+          // views may be number (new) or array (legacy) — keep numeric Total Views
+          if (Array.isArray(data.views)) {
+            patch.views = data.views.length + 1;
+          } else {
+            patch.views = firebase.firestore.FieldValue.increment(1);
+          }
           var viewedBy = data.viewedBy || {};
           if (!viewedBy[currentUser.uid]) {
             patch['viewedBy.' + currentUser.uid] = true;
@@ -33986,9 +33993,23 @@ function formatInsightNum(n){
           }
           tx.update(pref, patch);
         });
+        if (!skippedSelf) writeOk = true;
       }
+      // Session marker ONLY after successful write — failed writes can retry later
+      if (writeOk) markSession(type, id);
     } catch(e){
-      console.warn('gcCommitContentView', type, id, e);
+      console.warn('gcCommitContentView', type, id, e && e.code, e && e.message);
+      // One short retry for transient network / contention (not for permission-denied)
+      try {
+        var code = (e && (e.code || e.name)) ? String(e.code || e.name) : '';
+        if (attempt < 1 && code && code.indexOf('permission') === -1 && code !== 'permission-denied') {
+          delete _inflight[key];
+          setTimeout(function(){
+            gcCommitContentView({ type: type, id: id, ownerUid: ownerUid, _attempt: attempt + 1 });
+          }, 1200);
+          return;
+        }
+      } catch(_r){}
     } finally {
       delete _inflight[key];
     }
@@ -34049,6 +34070,12 @@ function formatInsightNum(n){
         var pid = el.getAttribute('data-post-id');
         if (!pid) return;
         var owner = el.getAttribute('data-author-uid') || el.getAttribute('data-uid') || '';
+        if (!owner) {
+          try {
+            var av = el.querySelector('.tf-av-wrap[data-uid], [data-uid]');
+            if (av) owner = av.getAttribute('data-uid') || '';
+          } catch(_o){}
+        }
         var key = 'post:' + pid;
         if (en.isIntersecting && en.intersectionRatio >= 0.55) {
           if (alreadySession('post', pid)) return;
