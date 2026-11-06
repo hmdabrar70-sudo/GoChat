@@ -24558,16 +24558,26 @@ async function loadMessages(){
 
             // Per-user Clear Chat: hide conversation until a newer message arrives
             try {
+              function gcToMs(v){
+                if (v == null || v === '') return 0;
+                if (typeof v === 'number' && isFinite(v)) return v;
+                if (typeof v.toMillis === 'function') return v.toMillis();
+                if (typeof v.seconds === 'number') return v.seconds * 1000;
+                var n = Number(v);
+                return isFinite(n) ? n : 0;
+              }
               var clearedMap = data.clearedAtBy || {};
-              var myClearAt = clearedMap[currentUser.uid];
+              var myClearAt = 0;
+              try {
+                if (window.__gcChatClearedAt && window.__gcChatClearedAt[chatId]) {
+                  myClearAt = gcToMs(window.__gcChatClearedAt[chatId]);
+                }
+              } catch(_lc){}
+              if (!myClearAt) myClearAt = gcToMs(clearedMap[currentUser.uid]);
               if (myClearAt) {
                 var lastAt = data.lastAt || data.lastMsgAt || data.updatedAt || null;
-                var lastMs = 0;
-                if (lastAt) {
-                  if (typeof lastAt.toMillis === 'function') lastMs = lastAt.toMillis();
-                  else if (typeof lastAt === 'number') lastMs = lastAt;
-                  else if (lastAt.seconds) lastMs = lastAt.seconds * 1000;
-                }
+                var lastMs = gcToMs(lastAt);
+                // Stay hidden until activity is strictly newer than this user's clear time
                 if (!lastMs || lastMs <= myClearAt) return;
               }
             } catch (eHide) {}
@@ -29274,11 +29284,40 @@ async function clearChatForMe(optChatId) {
         if(!currentUser) throw new Error('No user');
         const chatId = optChatId || currentChatId;
         if(!chatId) throw new Error('No chat');
-        const clearMs = Date.now();
+
+        // Ensure clear timestamp is strictly after lastAt so list filter hides the entry
+        var clearMs = Date.now();
+        try {
+          var chatSnap = await db.collection('chats').doc(chatId).get();
+          if (chatSnap.exists) {
+            var _cd = chatSnap.data() || {};
+            var _la = _cd.lastAt || _cd.lastMsgAt || _cd.updatedAt;
+            var _lms = 0;
+            if (_la) {
+              if (typeof _la.toMillis === 'function') _lms = _la.toMillis();
+              else if (typeof _la === 'number') _lms = _la;
+              else if (_la.seconds) _lms = _la.seconds * 1000;
+            }
+            if (_lms && clearMs <= _lms) clearMs = _lms + 1;
+          }
+        } catch(_eLa) {}
+
+        // Local hide FIRST so list rerender is immediate even before network settles
+        try {
+          window.__gcChatClearedAt = window.__gcChatClearedAt || {};
+          window.__gcChatClearedAt[chatId] = clearMs;
+          if (window.__gcChatMsgState && window.__gcChatMsgState.chatId === chatId) {
+            window.__gcChatMsgState.docs = [];
+            window.__gcChatMsgState.clearedAt = clearMs;
+            window.__gcChatMsgState.initialDone = true;
+          }
+        } catch(e) {}
+
         // Chat-level per-user clear marker (does NOT affect other participant)
         try {
           var clearPatch = {};
           clearPatch['clearedAtBy.' + currentUser.uid] = clearMs;
+          clearPatch.hiddenFor = firebase.firestore.FieldValue.arrayUnion(currentUser.uid);
           await db.collection('chats').doc(chatId).set(clearPatch, { merge: true });
         } catch(e) { console.warn('clearedAtBy write', e); }
 
@@ -29294,26 +29333,14 @@ async function clearChatForMe(optChatId) {
           await batch.commit();
         }
 
-        // Local state: only wipe UI if this is the open conversation
-        try {
-          if (window.__gcChatMsgState && window.__gcChatMsgState.chatId === chatId) {
-            window.__gcChatMsgState.docs = [];
-            window.__gcChatMsgState.clearedAt = clearMs;
-            window.__gcChatMsgState.initialDone = true;
-          }
-          window.__gcChatClearedAt = window.__gcChatClearedAt || {};
-          window.__gcChatClearedAt[chatId] = clearMs;
-        } catch(e) {}
-
         if (currentChatId === chatId) {
           var listEl = document.getElementById('chat-messages');
           if (listEl) listEl.innerHTML = '<div style="text-align:center; padding:20px; color:var(--text-muted);">Chat cleared</div>';
-          // Leave conversation so list entry can disappear cleanly
           try {
             if (typeof closeChat === 'function') closeChat();
           } catch (eClose) {}
         }
-        // Refresh chat list — cleared chats are hidden until a newer message arrives
+        // Force list refresh — entry must disappear for current user only
         try {
           if (typeof window.__gcRerenderChatList === 'function') window.__gcRerenderChatList();
           else if (typeof loadMessages === 'function') loadMessages();
@@ -33175,6 +33202,94 @@ function closeTopMostView() {
 
     var cvv = document.getElementById('gc-chat-video-viewer');
     if (cvv && cvv.classList.contains('open')) { if(typeof gcCloseChatVideoViewer==='function') gcCloseChatVideoViewer(); return true; }
+
+    // —— Message feature nested layers (innermost first) ——
+    var gcBkChatImgCard = document.getElementById('gc-chat-img-card');
+    var gcBkChatImgScrim = document.getElementById('gc-chat-img-scrim');
+    if ((gcBkChatImgCard && gcBkChatImgCard.classList.contains('open')) || (gcBkChatImgScrim && gcBkChatImgScrim.classList.contains('open'))) {
+      try {
+        window.__gcChatImgQueue = [];
+        if (typeof gcRenderChatImgPreview === 'function') gcRenderChatImgPreview();
+        if (gcBkChatImgCard) gcBkChatImgCard.classList.remove('open');
+        if (gcBkChatImgScrim) gcBkChatImgScrim.classList.remove('open');
+      } catch (_ci) {}
+      return true;
+    }
+    var gcBkChatAttach = document.getElementById('gc-chat-attach-panel');
+    if (gcBkChatAttach && gcBkChatAttach.classList.contains('open')) {
+      if (typeof gcCloseChatAttach === 'function') gcCloseChatAttach();
+      else gcBkChatAttach.classList.remove('open');
+      return true;
+    }
+    var gcBkChatDelMenu = document.getElementById('chat-delete-menu');
+    if (gcBkChatDelMenu && gcBkChatDelMenu.style.display && gcBkChatDelMenu.style.display !== 'none') {
+      gcBkChatDelMenu.style.display = 'none';
+      return true;
+    }
+    try {
+      var gcBkOpenChatMenus = document.querySelectorAll('.chat-list-menu');
+      var gcBkClosedMenu = false;
+      gcBkOpenChatMenus.forEach(function(m){
+        if (m && m.style && m.style.display && m.style.display !== 'none') {
+          m.style.display = 'none';
+          gcBkClosedMenu = true;
+        }
+      });
+      if (gcBkClosedMenu) return true;
+    } catch (_cm) {}
+    var gcBkMentionDd = document.getElementById('chat-mention-dropdown');
+    if (gcBkMentionDd && gcBkMentionDd.style.display && gcBkMentionDd.style.display !== 'none') {
+      gcBkMentionDd.style.display = 'none';
+      return true;
+    }
+    if (document.body.classList.contains('msg-select-mode') || document.body.classList.contains('gc-msg-select-mode')) {
+      if (typeof closeSelectionMode === 'function') closeSelectionMode();
+      else {
+        document.body.classList.remove('msg-select-mode');
+        document.body.classList.remove('gc-msg-select-mode');
+      }
+      return true;
+    }
+    var gcBkChatPrivacy = document.getElementById('chat-privacy-screen');
+    if (gcBkChatPrivacy && gcBkChatPrivacy.style.display === 'flex') {
+      if (typeof closeChatPrivacyPage === 'function') closeChatPrivacyPage();
+      else gcBkChatPrivacy.style.display = 'none';
+      return true;
+    }
+    var gcBkGroupInfo = document.getElementById('group-info-modal');
+    if (gcBkGroupInfo && (gcBkGroupInfo.classList.contains('open') || gcBkGroupInfo.style.display === 'flex')) {
+      if (typeof closeGroupInfo === 'function') closeGroupInfo();
+      else { gcBkGroupInfo.classList.remove('open'); gcBkGroupInfo.style.display = 'none'; }
+      return true;
+    }
+    var gcBkGroupCreate = document.getElementById('create-group-modal') || document.getElementById('group-create-modal');
+    if (gcBkGroupCreate && (gcBkGroupCreate.classList.contains('open') || gcBkGroupCreate.style.display === 'flex')) {
+      if (typeof closeCreateGroup === 'function') closeCreateGroup();
+      else if (typeof closeGroupCreate === 'function') closeGroupCreate();
+      else { gcBkGroupCreate.classList.remove('open'); gcBkGroupCreate.style.display = 'none'; }
+      return true;
+    }
+    var gcBkQpModal = document.getElementById('quick-profile-modal');
+    if (gcBkQpModal) {
+      var gcBkQpOpen = gcBkQpModal.classList.contains('open') || gcBkQpModal.style.display === 'flex';
+      try { if (!gcBkQpOpen && window.getComputedStyle(gcBkQpModal).display === 'flex') gcBkQpOpen = true; } catch(_q) {}
+      if (gcBkQpOpen) {
+        if (typeof closeQuickProfile === 'function') closeQuickProfile();
+        else { gcBkQpModal.classList.remove('open'); gcBkQpModal.style.display = 'none'; }
+        return true;
+      }
+    }
+    var gcBkChatScreen = document.getElementById('chat-screen');
+    if (gcBkChatScreen && gcBkChatScreen.classList.contains('open')) {
+      if (typeof closeChat === 'function') closeChat();
+      else gcBkChatScreen.classList.remove('open');
+      return true;
+    }
+    var gcBkArchived = document.getElementById('archived-chats');
+    if (gcBkArchived && gcBkArchived.classList.contains('show')) {
+      gcBkArchived.classList.remove('show');
+      return true;
+    }
 
     var editPost = document.getElementById('edit-post-modal');
     if (editPost && editPost.classList.contains('open')) { if(typeof closeEditPostModal==='function') closeEditPostModal(); return true; }
