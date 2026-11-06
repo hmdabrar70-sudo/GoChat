@@ -5279,6 +5279,49 @@ border-radius:10px;padding:5px;
 backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
 box-shadow:0 4px 12px rgba(0,0,0,.25);
 }
+
+/* Profile grid · view count badge (Photos + Media tabs) — Insights views source */
+.gc-grid-view-count{
+  position:absolute;
+  left:8px;
+  bottom:8px;
+  z-index:3;
+  display:inline-flex;
+  align-items:center;
+  gap:4px;
+  padding:4px 8px;
+  border-radius:999px;
+  background:rgba(0,0,0,.58);
+  color:#fff;
+  font-size:12px;
+  font-weight:700;
+  font-variant-numeric:tabular-nums;
+  line-height:1;
+  letter-spacing:0.01em;
+  pointer-events:none;
+  backdrop-filter:blur(6px);
+  -webkit-backdrop-filter:blur(6px);
+  box-shadow:0 1px 4px rgba(0,0,0,.25);
+  max-width:calc(100% - 16px);
+  box-sizing:border-box;
+}
+.gc-grid-view-count svg{
+  width:14px;
+  height:14px;
+  display:block;
+  flex-shrink:0;
+  color:inherit;
+  fill:currentColor;
+}
+.gc-grid-view-count .gc-gvc-num{
+  display:block;
+  min-width:0.6em;
+}
+/* Keep pin above view badge if both present */
+.grid-post-item .grid-pin-icon{
+  bottom:34px;
+}
+
 .grid-pin-icon{
 position:absolute;bottom:8px;left:8px;z-index:2;
 color:#fff;font-size:15px;
@@ -20570,10 +20613,18 @@ function renderCurrentStory(){
 
     document.getElementById('story-progress-bar').innerHTML=activeStoryGroup.map((_,i)=>`<div class="story-progress-segment"><div class="story-progress-fill ${i===currentStoryIndex?'animating':''}" style="width:${i<currentStoryIndex?'100%':'0%'};"></div></div>`).join('');
     
-    if(s.uid!==currentUser.uid&&!(s.views||[]).includes(currentUser.uid)){
-        db.collection('stories').doc(s.id).update({
-            views:firebase.firestore.FieldValue.arrayUnion(currentUser.uid)
-        });
+    if(s.uid!==currentUser.uid){
+        try{
+          if(window.__gcLastStoryViewId && window.__gcLastStoryViewId !== s.id && typeof gcCancelContentView==='function'){
+            gcCancelContentView('story', window.__gcLastStoryViewId);
+          }
+          window.__gcLastStoryViewId = s.id;
+          if(typeof gcScheduleContentView==='function'){
+            gcScheduleContentView({ type:'story', id:s.id, ownerUid:s.uid });
+          }
+        }catch(_sv){}
+    } else {
+        try{ window.__gcLastStoryViewId = null; }catch(_e){}
     }
     try{ if(typeof gcRefreshStoryFloat==='function') gcRefreshStoryFloat(); }catch(e){}
 }
@@ -20645,6 +20696,12 @@ function prevStorySegment(){
 
 
 function closeStory(){
+    try{
+      if(window.__gcLastStoryViewId && typeof gcCancelContentView==='function'){
+        gcCancelContentView('story', window.__gcLastStoryViewId);
+      }
+      window.__gcLastStoryViewId = null;
+    }catch(e){}
     try{ if(typeof gcStopStoryFloat==='function') gcStopStoryFloat(); }catch(e){}
     try{ if(typeof gcCloseStoryLikers==='function') gcCloseStoryLikers(); }catch(e){}
     try { clearTimeout(storyTimer); } catch(e){}
@@ -24499,6 +24556,22 @@ async function loadMessages(){
             }
             if (!isMyChat) return;
 
+            // Per-user Clear Chat: hide conversation until a newer message arrives
+            try {
+              var clearedMap = data.clearedAtBy || {};
+              var myClearAt = clearedMap[currentUser.uid];
+              if (myClearAt) {
+                var lastAt = data.lastAt || data.lastMsgAt || data.updatedAt || null;
+                var lastMs = 0;
+                if (lastAt) {
+                  if (typeof lastAt.toMillis === 'function') lastMs = lastAt.toMillis();
+                  else if (typeof lastAt === 'number') lastMs = lastAt;
+                  else if (lastAt.seconds) lastMs = lastAt.seconds * 1000;
+                }
+                if (!lastMs || lastMs <= myClearAt) return;
+              }
+            } catch (eHide) {}
+
             if (data.isGroup && !archivedChats.includes(chatId)) {
                 chats.push({
                     id: chatId, otherUid: 'group', otherName: data.groupName || 'Group', otherAv: 'group_icon', data: data, isGroup: true,
@@ -24962,7 +25035,7 @@ async function deleteChat(chatId){
 if(typeof gcOpenConfirm === 'function'){
   gcOpenConfirm({
     title:'Clear Chat?',
-    text:'Clear this chat for yourself? Messages will be removed from your view only. The other person keeps their history.',
+    text:'This will permanently clear this conversation from your chat list and remove all messages from your view. You can message them again anytime; previous messages will not return.',
     icon:'ph-light ph-broom',
     yesLabel:'Clear',
     onYes:function(){ gcDoDeleteChat(chatId); }
@@ -27265,6 +27338,24 @@ function gcHydrateGridVideoThumbs(root){
 }
 window.gcHydrateGridVideoThumbs = gcHydrateGridVideoThumbs;
 
+
+/** Profile grid view-count badge — post.views / viewCount (Insights source of truth) */
+function gcGridViewCountBadge(p){
+  try{
+    var n = 0;
+    if(p){
+      if(typeof p.views === 'number' && isFinite(p.views)) n = p.views;
+      else if(typeof p.viewCount === 'number' && isFinite(p.viewCount)) n = p.viewCount;
+      else if(Array.isArray(p.views)) n = p.views.length;
+    }
+    n = Math.max(0, Math.floor(n));
+    var label = (typeof gcFmtCount === 'function') ? gcFmtCount(n) : String(n);
+    var eye = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><path d="M0 0h24v24H0z" fill="none"/><g fill="currentColor" fill-rule="evenodd" clip-rule="evenodd"><path d="M12 8.25C9.92893 8.25 8.25 9.92893 8.25 12C8.25 14.0711 9.92893 15.75 12 15.75C14.0711 15.75 15.75 14.0711 15.75 12C15.75 9.92893 14.0711 8.25 12 8.25ZM9.75 12C9.75 10.7574 10.7574 9.75 12 9.75C13.2426 9.75 14.25 10.7574 14.25 12C14.25 13.2426 13.2426 14.25 12 14.25C10.7574 14.25 9.75 13.2426 9.75 12Z"/><path d="M12 3.25C7.48587 3.25 4.44529 5.9542 2.68057 8.24686L2.64874 8.2882C2.24964 8.80653 1.88206 9.28392 1.63269 9.8484C1.36564 10.4529 1.25 11.1117 1.25 12C1.25 12.8883 1.36564 13.5471 1.63269 14.1516C1.88206 14.7161 2.24964 15.1935 2.64875 15.7118L2.68057 15.7531C4.44529 18.0458 7.48587 20.75 12 20.75C16.5141 20.75 19.5547 18.0458 21.3194 15.7531L21.3512 15.7118C21.7504 15.1935 22.1179 14.7161 22.3673 14.1516C22.6344 13.5471 22.75 12.8883 22.75 12C22.75 11.1117 22.6344 10.4529 22.3673 9.8484C22.1179 9.28391 21.7504 8.80652 21.3512 8.28818L21.3194 8.24686C19.5547 5.9542 16.5141 3.25 12 3.25ZM3.86922 9.1618C5.49864 7.04492 8.15036 4.75 12 4.75C15.8496 4.75 18.5014 7.04492 20.1308 9.1618C20.5694 9.73159 20.8263 10.0721 20.9952 10.4545C21.1532 10.812 21.25 11.2489 21.25 12C21.25 12.7511 21.1532 13.188 20.9952 13.5455C20.8263 13.9279 20.5694 14.2684 20.1308 14.8382C18.5014 16.9551 15.8496 19.25 12 19.25C8.15036 19.25 5.49864 16.9551 3.86922 14.8382C3.43064 14.2684 3.17374 13.9279 3.00476 13.5455C2.84684 13.188 2.75 12.7511 2.75 12C2.75 11.2489 2.84684 10.812 3.00476 10.4545C3.17374 10.0721 3.43063 9.73159 3.86922 9.1618Z"/></g></svg>';
+    return '<span class="gc-grid-view-count" aria-label="'+label+' views">'+eye+'<span class="gc-gvc-num">'+label+'</span></span>';
+  }catch(e){ return ''; }
+}
+window.gcGridViewCountBadge = gcGridViewCountBadge;
+
 async function loadOtherUserPosts(uid){
     const list=document.getElementById('other-user-posts-list');
     if(!list)return;
@@ -27354,7 +27445,8 @@ async function loadOtherUserPosts(uid){
             } else {
                 media = '<img src="' + escapeHTML(imgUrls[0]) + '" alt="" loading="lazy" style="pointer-events:none;width:100%;height:auto;display:block;object-fit:cover;" onerror="this.style.opacity=.35">';
             }
-            gridHtml += '<div class="grid-post-item" data-post-id="' + p.id + '" data-post-kind="' + kind + '" role="button" tabindex="0" onclick="event.stopPropagation();if(typeof openSinglePostView===\'function\')openSinglePostView(\'' + p.id + '\');">' + media + multiIcon + '</div>';
+            var viewBadge = (typeof gcGridViewCountBadge === 'function') ? gcGridViewCountBadge(p) : '';
+            gridHtml += '<div class="grid-post-item" data-post-id="' + p.id + '" data-post-kind="' + kind + '" role="button" tabindex="0" onclick="event.stopPropagation();if(typeof openSinglePostView===\'function\')openSinglePostView(\'' + p.id + '\');">' + media + multiIcon + viewBadge + '</div>';
         });
         gridHtml += '</div>';
         let html = gridHtml + '<div class="profile-status-feed" style="display:none;">' + statusHtml + '</div>';
@@ -29150,7 +29242,17 @@ async function blockFromQP() {
 
 async function clearChatFromQP() {
     closeQuickProfile();
-    await clearChatForMe(); 
+    var cid = currentChatId;
+    if (!cid) {
+      showToast('No chat selected');
+      return;
+    }
+    // Same path as Chat List three-dot Clear Chat
+    if (typeof deleteChat === 'function') {
+      await deleteChat(cid);
+    } else if (typeof clearChatForMe === 'function') {
+      await clearChatForMe(cid);
+    }
 }
 
 
@@ -29163,7 +29265,7 @@ async function clearChatForMe(optChatId) {
     // Confirm only when called from in-chat UI without an explicit chatId from list/select
     // (list path already confirmed via deleteChat → gcDoDeleteChat)
     if(optChatId == null && typeof gcOpenConfirm==='function' && !window.__gcConfirmForceYes){
-      gcOpenConfirm({title:'Clear Chat?',text:'Clear this chat for yourself? Messages will be removed from your view only. The other person keeps their history.',icon:'ph-light ph-broom',yesLabel:'Clear',onYes:function(){window.__gcConfirmForceYes=true;clearChatForMe();setTimeout(function(){window.__gcConfirmForceYes=false;},800);}});
+      gcOpenConfirm({title:'Clear Chat?',text:'This will permanently clear this conversation from your chat list and remove all messages from your view. You can message them again anytime; previous messages will not return.',icon:'ph-light ph-broom',yesLabel:'Clear',onYes:function(){window.__gcConfirmForceYes=true;clearChatForMe();setTimeout(function(){window.__gcConfirmForceYes=false;},800);}});
       return;
     }
     
@@ -29206,11 +29308,15 @@ async function clearChatForMe(optChatId) {
         if (currentChatId === chatId) {
           var listEl = document.getElementById('chat-messages');
           if (listEl) listEl.innerHTML = '<div style="text-align:center; padding:20px; color:var(--text-muted);">Chat cleared</div>';
+          // Leave conversation so list entry can disappear cleanly
+          try {
+            if (typeof closeChat === 'function') closeChat();
+          } catch (eClose) {}
         }
-        // Refresh chat list preview if available
+        // Refresh chat list — cleared chats are hidden until a newer message arrives
         try {
-          if (typeof loadMessages === 'function') loadMessages();
-          else if (typeof window.__gcRerenderChatList === 'function') window.__gcRerenderChatList();
+          if (typeof window.__gcRerenderChatList === 'function') window.__gcRerenderChatList();
+          else if (typeof loadMessages === 'function') loadMessages();
         } catch(e) {}
         showToast("Chat cleared!");
     } catch (e) {
@@ -33718,6 +33824,9 @@ function closePostInsights(){
 function renderPostInsights(p){
   function _cnt(x){ if(Array.isArray(x)) return x.length; if(typeof x === 'number' && isFinite(x)) return x; if(x && typeof x === 'object') return Object.keys(x).length; return 0; }
   const views    = _cnt(p.views) || p.viewCount || 0;
+  var uniqueViewers = _cnt(p.uniqueViewers);
+  if (!uniqueViewers && p.viewedBy && typeof p.viewedBy === 'object') uniqueViewers = Object.keys(p.viewedBy).length;
+  if (!uniqueViewers && Array.isArray(p.viewerIds)) uniqueViewers = p.viewerIds.length;
   const likes    = _cnt(p.likedBy) || _cnt(p.likes) || 0;
   const comments = _cnt(p.comments) || p.commentCount || 0;
   const shares   = _cnt(p.shares) || p.shareCount || 0;
@@ -33728,12 +33837,12 @@ function renderPostInsights(p){
   document.getElementById('pi-post-title').textContent = p.title ? ('“' + p.title + '”') : '(Photo post)';
   document.getElementById('pi-subtitle').textContent = 'Live performance • updated now';
 
-  // মেট্রিক কার্ড
+  // মেট্রিক কার্ড — Total Views ≠ Unique Viewers
   const cards = [
-    {ico:'ph-light ph-eye',          val:views,    lbl:'Views',    grad:'linear-gradient(135deg,#60a5fa,#2563eb)'},
-    {ico:'ph-light ph-heart',        val:likes,    lbl:'Likes',    grad:'linear-gradient(135deg,#fb7185,#e11d48)'},
-    {ico:'ph-light ph-chat-circle',  val:comments, lbl:'Comments', grad:'linear-gradient(135deg,#34d399,#059669)'},
-    {ico:'ph-light ph-link-break',val:shares,   lbl:'Shares',   grad:'linear-gradient(135deg,#fbbf24,#d97706)'}
+    {ico:'ph-light ph-eye',          val:views,         lbl:'Total Views',     grad:'linear-gradient(135deg,#60a5fa,#2563eb)'},
+    {ico:'ph-light ph-users',        val:uniqueViewers, lbl:'Unique Viewers',  grad:'linear-gradient(135deg,#a78bfa,#7c3aed)'},
+    {ico:'ph-light ph-heart',        val:likes,         lbl:'Likes',           grad:'linear-gradient(135deg,#fb7185,#e11d48)'},
+    {ico:'ph-light ph-chat-circle',  val:comments,      lbl:'Comments',        grad:'linear-gradient(135deg,#34d399,#059669)'}
   ];
   document.getElementById('pi-metrics').innerHTML = cards.map(c => `
     <div class="pi-card">
@@ -33776,27 +33885,215 @@ function formatInsightNum(n){
   return String(n);
 }
 
-// ৪. View Tracking — openSinglePostView কে wrap করে (owner বাদে) ভিউ বাড়াবে
-(function patchViewTracking(){
-  const _orig = window.openSinglePostView;
-  if(typeof _orig !== 'function') return;
-  window.openSinglePostView = function(pid, ...rest){
-    const ret = _orig.apply(this, [pid, ...rest]);
-    // এক session-এ এক পোস্ট একবারই গণনা (honest unique-ish view)
-    try{
-      const flag = 'pi_viewed_' + pid;
-      if(!sessionStorage.getItem(flag)){
-        db.collection('posts').doc(pid).get().then(d=>{
-          if(d.exists && d.data().uid !== currentUser.uid){
-            db.collection('posts').doc(pid).update({ views: firebase.firestore.FieldValue.increment(1) }).catch(()=>{});
-            sessionStorage.setItem(flag, '1');
-          }
-        }).catch(()=>{});
-      }
-    }catch(e){}
-    return ret;
+// ═══════════════════════════════════════════════════════
+// GoChat · Centralized Content View Tracking
+// Policy: min 5s visibility · once per browser session · no self-views
+// Types: post (photo/video/status), story, short (video posts in Shorts)
+// ═══════════════════════════════════════════════════════
+(function gcInstallViewTracking(){
+  if (window.__gcViewTrackingInstalled) return;
+  window.__gcViewTrackingInstalled = true;
+
+  var GC_VIEW_MIN_MS = 5000;
+  var _pending = {};   // key -> { timer, startedAt, el }
+  var _inflight = {};  // key -> true while writing
+
+  function sessKey(type, id){
+    return 'gc_view_' + type + '_' + id;
+  }
+  function alreadySession(type, id){
+    try { return sessionStorage.getItem(sessKey(type, id)) === '1'; } catch(e){ return false; }
+  }
+  function markSession(type, id){
+    try { sessionStorage.setItem(sessKey(type, id), '1'); } catch(e){}
+  }
+  function cancelPending(key){
+    var p = _pending[key];
+    if (!p) return;
+    try { clearTimeout(p.timer); } catch(e){}
+    delete _pending[key];
+  }
+
+  /** Schedule a view; commits only after GC_VIEW_MIN_MS continuous eligibility */
+  window.gcScheduleContentView = function(opts){
+    opts = opts || {};
+    var type = opts.type || 'post';
+    var id = opts.id;
+    var ownerUid = opts.ownerUid || '';
+    if (!id || !currentUser) return;
+    if (ownerUid && ownerUid === currentUser.uid) return;
+    if (alreadySession(type, id)) return;
+    var key = type + ':' + id;
+    if (_pending[key] || _inflight[key]) return;
+    _pending[key] = {
+      timer: setTimeout(function(){
+        delete _pending[key];
+        gcCommitContentView({ type: type, id: id, ownerUid: ownerUid });
+      }, GC_VIEW_MIN_MS),
+      startedAt: Date.now()
+    };
   };
+
+  window.gcCancelContentView = function(type, id){
+    if (!id) return;
+    cancelPending(type + ':' + id);
+  };
+
+  window.gcCommitContentView = async function(opts){
+    opts = opts || {};
+    var type = opts.type || 'post';
+    var id = opts.id;
+    var ownerUid = opts.ownerUid || '';
+    if (!id || !currentUser) return;
+    if (ownerUid && ownerUid === currentUser.uid) return;
+    if (alreadySession(type, id)) return;
+    var key = type + ':' + id;
+    if (_inflight[key]) return;
+    _inflight[key] = true;
+    markSession(type, id); // prevent double fire even if write fails partially
+    try {
+      if (type === 'story') {
+        var sref = db.collection('stories').doc(id);
+        await sref.set({
+          views: firebase.firestore.FieldValue.arrayUnion(currentUser.uid),
+          viewCount: firebase.firestore.FieldValue.increment(1)
+        }, { merge: true });
+        try {
+          if (typeof activeStoryGroup !== 'undefined' && activeStoryGroup && activeStoryGroup[currentStoryIndex] && activeStoryGroup[currentStoryIndex].id === id) {
+            var st = activeStoryGroup[currentStoryIndex];
+            st.views = st.views || [];
+            if (st.views.indexOf(currentUser.uid) === -1) st.views.push(currentUser.uid);
+            st.viewCount = (st.viewCount || st.views.length || 0) + 0;
+            var vw = document.getElementById('sv-views');
+            if (vw) vw.textContent = String((st.views || []).length);
+          }
+        } catch(eUi){}
+      } else {
+        // posts + shorts share posts collection
+        var pref = db.collection('posts').doc(id);
+        await db.runTransaction(async function(tx){
+          var snap = await tx.get(pref);
+          if (!snap.exists) return;
+          var data = snap.data() || {};
+          if (data.uid && data.uid === currentUser.uid) return;
+          var patch = {
+            views: firebase.firestore.FieldValue.increment(1)
+          };
+          var viewedBy = data.viewedBy || {};
+          if (!viewedBy[currentUser.uid]) {
+            patch['viewedBy.' + currentUser.uid] = true;
+            patch.uniqueViewers = firebase.firestore.FieldValue.increment(1);
+          }
+          tx.update(pref, patch);
+        });
+      }
+    } catch(e){
+      console.warn('gcCommitContentView', type, id, e);
+    } finally {
+      delete _inflight[key];
+    }
+  };
+
+  // Single post open: start 5s timer (cancel when screen closes)
+  function patchSinglePost(){
+    var _orig = window.openSinglePostView;
+    if (typeof _orig !== 'function') return;
+    window.openSinglePostView = function(pid){
+      var ret = _orig.apply(this, arguments);
+      try {
+        if (!pid || !currentUser) return ret;
+        // Resolve owner from DOM or fire-and-forget schedule after read
+        var card = document.querySelector('.post-card[data-post-id="'+pid+'"]');
+        var owner = '';
+        try {
+          db.collection('posts').doc(pid).get().then(function(d){
+            if (!d.exists) return;
+            owner = (d.data() || {}).uid || '';
+            if (owner === currentUser.uid) return;
+            // Only if single post screen still open
+            var scr = document.getElementById('single-post-screen');
+            if (scr && scr.classList.contains('open')) {
+              gcScheduleContentView({ type: 'post', id: pid, ownerUid: owner });
+            }
+          }).catch(function(){});
+        } catch(e){}
+      } catch(e){}
+      return ret;
+    };
+    var _close = window.closeSinglePost;
+    if (typeof _close === 'function' && !_close.__gcViewWrapped) {
+      window.closeSinglePost = function(){
+        try {
+          var openCard = document.querySelector('#single-post-container [data-post-id], #single-post-screen [data-post-id]');
+          if (openCard) {
+            var id = openCard.getAttribute('data-post-id');
+            if (id) gcCancelContentView('post', id);
+          }
+        } catch(e){}
+        return _close.apply(this, arguments);
+      };
+      window.closeSinglePost.__gcViewWrapped = true;
+    }
+  }
+  patchSinglePost();
+
+  // Feed / profile post cards — IntersectionObserver visibility ≥ ~60% for 5s
+  function bindFeedViewObserver(){
+    if (!('IntersectionObserver' in window)) return;
+    if (window.__gcPostViewIO) return;
+    var visibleSince = {};
+    window.__gcPostViewIO = new IntersectionObserver(function(entries){
+      entries.forEach(function(en){
+        var el = en.target;
+        if (!el || !el.getAttribute) return;
+        var pid = el.getAttribute('data-post-id');
+        if (!pid) return;
+        var owner = el.getAttribute('data-author-uid') || el.getAttribute('data-uid') || '';
+        var key = 'post:' + pid;
+        if (en.isIntersecting && en.intersectionRatio >= 0.55) {
+          if (alreadySession('post', pid)) return;
+          if (_pending[key]) return;
+          visibleSince[pid] = Date.now();
+          // Prefer owner from dataset; schedule may re-check in commit
+          gcScheduleContentView({ type: 'post', id: pid, ownerUid: owner });
+        } else {
+          cancelPending(key);
+          delete visibleSince[pid];
+        }
+      });
+    }, { root: null, threshold: [0.55, 0.75] });
+
+    function scan(){
+      try {
+        document.querySelectorAll('.post-card[data-post-id], .grid-post-item[data-post-id]').forEach(function(el){
+          if (el.dataset.gcViewObs === '1') return;
+          el.dataset.gcViewObs = '1';
+          window.__gcPostViewIO.observe(el);
+        });
+      } catch(e){}
+    }
+    setInterval(scan, 2500);
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', scan);
+    else scan();
+  }
+  bindFeedViewObserver();
+
+  // Shorts: when item stays ≥60% visible for 5s
+  window.gcOnShortVisible = function(itemEl, isVisible){
+    if (!itemEl) return;
+    var pid = itemEl.getAttribute('data-post-id');
+    if (!pid) return;
+    var owner = itemEl.getAttribute('data-short-author-uid') || '';
+    if (isVisible) {
+      gcScheduleContentView({ type: 'post', id: pid, ownerUid: owner });
+    } else {
+      gcCancelContentView('post', pid);
+    }
+  };
+
+  window.GC_VIEW_MIN_MS = GC_VIEW_MIN_MS;
 })();
+
 
 
 // ==========================================
@@ -36897,13 +37194,17 @@ snap.forEach(function(d){ posts.push({ id: d.id, ...d.data() }); });
 }catch(e){}
 function gcCount(x){ if(Array.isArray(x)) return x.length; if(typeof x === 'number' && isFinite(x)) return x; if(x && typeof x === 'object') return Object.keys(x).length; return 0; }
 function peng(p){ return gcCount(p.likes) + gcCount(p.comments) + gcCount(p.shares); }
-let totLikes = 0, totComments = 0, totShares = 0, vid = 0, pho = 0, txt = 0;
+let totLikes = 0, totComments = 0, totShares = 0, totContentViews = 0, totUniqueViewers = 0, vid = 0, pho = 0, txt = 0;
 const perDay = {};
 for(let i = 0; i < gcInsRange; i++){ perDay[new Date(now - i * 86400000).toDateString()] = 0; }
 const hourEng = new Array(24).fill(0);
 posts.forEach(function(p){
 const e = peng(p);
 totLikes += gcCount(p.likes); totComments += gcCount(p.comments); totShares += gcCount(p.shares);
+totContentViews += gcCount(p.views) || gcCount(p.viewCount) || 0;
+var uv = gcCount(p.uniqueViewers);
+if(!uv && p.viewedBy && typeof p.viewedBy === 'object') uv = Object.keys(p.viewedBy).length;
+totUniqueViewers += uv;
 const isVid = p.videoUrl || (p.imgUrls || []).some(function(u){ return (u || '').indexOf('/video/') !== -1; });
 if(isVid) vid++; else if((p.imgUrls || []).length) pho++; else txt++;
 const t = p.createdAt && p.createdAt.toMillis ? p.createdAt.toMillis() : 0;
@@ -36965,6 +37266,8 @@ const wPct = w0 > 0 ? Math.round((w1 - w0) / w0 * 100) : (w1 > 0 ? 100 : 0);
 let html = '<div class="gc-ins-grid">';
 html += gcInsCard('ph-users', 'Followers', followers, (deltaF > 0 ? '+' : '') + deltaF + ' in ' + gcInsRange + 'd', deltaF);
 html += gcInsCard('ph-eye', 'Profile Views', views, '', 0);
+html += gcInsCard('ph-chart-bar', 'Content Views', totContentViews, '', 0);
+html += gcInsCard('ph-users', 'Unique Viewers', totUniqueViewers, '', 0);
 html += gcInsCard('ph-heart', 'Total Likes', totLikes, '', 0);
 html += gcInsCard('ph-chat-circle', 'Comments', totComments, '', 0);
 html += gcInsCard('ph-link-break', 'Shares', totShares, '', 0);
@@ -37574,8 +37877,10 @@ function gcBindShortsObserver(){
           var p = video.play();
           if(p && p.catch) p.catch(function(){});
         }catch(e){}
+        try{ if(typeof gcOnShortVisible==='function') gcOnShortVisible(en.target, true); }catch(e){}
       } else {
         try{ video.pause(); }catch(e){}
+        try{ if(typeof gcOnShortVisible==='function') gcOnShortVisible(en.target, false); }catch(e){}
       }
     });
   }, { root: feed, threshold: [0.6] });
