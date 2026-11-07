@@ -5886,83 +5886,137 @@ body.light-mode{
 --bg:#ffffff;
 }
 
-/* 🚀 Update #27 · video-post: সিঙ্গেল ভিউ/গ্রিডে ভিডিও স্টাইল */
+/* ═══════════════════════════════════════════════════════
+   🚀 App-wide Video Display Sizing · AR-safe · no letterbox
+   Portrait / Square / Landscape keep original aspect ratio.
+   Containers shrink-wrap tall videos (no side black bars).
+   Grid thumbs & Shorts fullscreen intentionally use cover/full-bleed.
+   ═══════════════════════════════════════════════════════ */
+
+/* Bare <video> in post media (before gcVideoize wraps it) */
 .post-media-wrap video{
-width:100%;
-border-radius:18px;
-background:#000;
-display:block;
+  width:100%;
+  height:auto;
+  max-width:100%;
+  border-radius:18px;
+  background:transparent;
+  display:block;
+  object-fit:contain;
+  vertical-align:top;
 }
 
-/* =========================================
-🚀 Update #28 · custom-vplayer · 2026-08-07
-নিজস্ব Phosphor আইকনের ভিডিও প্লেয়ার কন্ট্রোল
-খুঁজতে: Ctrl+F → "custom-vplayer"
-========================================= */
-.gc-vplayer{position:relative;width:100%;max-height:440px;border-radius:16px;overflow:hidden;background:transparent;display:flex;align-items:center;justify-content:flex-start;}
-/* Default (Profile / Single) — keep previous moderate sizing */
-.gc-vplayer.gc-tall-video{width:fit-content;max-width:100%;height:auto;min-height:0;}
-.gc-vplayer.gc-tall-video video{width:auto;max-width:100%;height:auto;max-height:340px;display:block;object-fit:contain;border-radius:16px;background:#000;}
-.gc-vplayer.gc-wide-video{width:100%;}
-.gc-vplayer.gc-wide-video video{width:100%;height:auto;max-height:300px;display:block;object-fit:contain;border-radius:16px;background:#000;}
-.gc-vplayer video{display:block;object-fit:contain;border-radius:16px;}
-
-/* ═══ Home Feed only · aspect-ratio safe video sizing ═══
-   Original AR preserved (object-fit:contain). Max height caps so tall clips
-   do not dominate the feed. Shorts / profile grid untouched. */
-#page-feed .gc-vplayer,
-#feed-list .gc-vplayer{
+/* Base player shell — transparent, no forced black canvas */
+.gc-vplayer{
+  position:relative;
   width:100%;
   max-width:100%;
-  max-height:min(68vh, 460px);
-  margin:0 auto;
-  background:#000;
+  max-height:none;
+  border-radius:16px;
+  overflow:hidden;
+  background:transparent !important;
   display:flex;
   align-items:center;
   justify-content:center;
-  overflow:hidden;
-  border-radius:16px;
+  margin:0 auto;
 }
-#page-feed .gc-vplayer video,
-#feed-list .gc-vplayer video{
+.gc-vplayer video{
+  display:block;
   width:100%;
   height:auto;
   max-width:100%;
-  max-height:min(68vh, 460px);
   object-fit:contain;
   object-position:center center;
-  display:block;
-  background:#000;
   border-radius:16px;
+  background:transparent !important;
+  vertical-align:top;
+}
+
+/* ── Portrait (9:16 / tall) — shrink-wrap to video width ── */
+.gc-vplayer.gc-tall-video{
+  width:fit-content;
+  max-width:100%;
+  height:auto;
+  min-height:0;
+  margin-left:0;
+  margin-right:auto;
+  justify-content:flex-start;
+  background:transparent !important;
+}
+.gc-vplayer.gc-tall-video video{
+  width:auto !important;
+  max-width:100% !important;
+  height:auto !important;
+  max-height:min(65vh, 420px) !important;
+  object-fit:contain !important;
+  background:transparent !important;
+}
+
+/* ── Landscape (16:9 / wide) ── */
+.gc-vplayer.gc-wide-video{
+  width:100%;
+  max-width:100%;
+  background:transparent !important;
+}
+.gc-vplayer.gc-wide-video video{
+  width:100% !important;
+  height:auto !important;
+  max-height:min(52vw, 300px) !important;
+  object-fit:contain !important;
+  background:transparent !important;
+}
+
+/* ── Square (1:1) ── */
+.gc-vplayer.gc-square-video{
+  width:100%;
+  max-width:100%;
+  background:transparent !important;
+}
+.gc-vplayer.gc-square-video video{
+  width:100% !important;
+  height:auto !important;
+  max-height:min(100vw, 360px) !important;
+  object-fit:contain !important;
+  background:transparent !important;
+}
+
+/* Feed / profile posts / single post — same AR policy (no black letterbox) */
+#page-feed .gc-vplayer,
+#feed-list .gc-vplayer,
+#page-profile .gc-vplayer,
+#other-user-posts-list .gc-vplayer,
+#my-posts-list .gc-vplayer,
+.profile-posts .gc-vplayer,
+.post-card .gc-vplayer{
+  background:transparent !important;
 }
 #page-feed .gc-vplayer.gc-tall-video,
-#feed-list .gc-vplayer.gc-tall-video{
-  width:100%;
+#feed-list .gc-vplayer.gc-tall-video,
+#page-profile .gc-vplayer.gc-tall-video,
+#other-user-posts-list .gc-vplayer.gc-tall-video,
+#my-posts-list .gc-vplayer.gc-tall-video,
+.post-card .gc-vplayer.gc-tall-video{
+  width:fit-content;
   max-width:100%;
-  justify-content:center;
+  margin-left:0;
+  margin-right:auto;
+  justify-content:flex-start;
 }
-#page-feed .gc-vplayer.gc-tall-video video,
-#feed-list .gc-vplayer.gc-tall-video video{
-  width:auto;
-  max-width:100%;
-  height:auto;
-  max-height:min(65vh, 420px);
-  object-fit:contain;
+
+/* Fullscreen / immersive — black canvas is intentional */
+.gc-vplayer:fullscreen,
+.gc-vplayer:-webkit-full-screen{
+  background:#000 !important;
+  border-radius:0;
 }
-#page-feed .gc-vplayer.gc-wide-video video,
-#feed-list .gc-vplayer.gc-wide-video video{
-  width:100%;
-  height:auto;
-  max-height:min(52vw, 300px);
-  object-fit:contain;
+.gc-vplayer:fullscreen video,
+.gc-vplayer:-webkit-full-screen video{
+  width:100% !important;
+  height:100% !important;
+  max-height:none !important;
+  object-fit:contain !important;
+  background:#000 !important;
 }
-#page-feed .gc-vplayer.gc-square-video video,
-#feed-list .gc-vplayer.gc-square-video video{
-  width:100%;
-  height:auto;
-  max-height:min(100vw, 360px);
-  object-fit:contain;
-}
+
 .gc-vp-center{display:none !important;}
 .gc-vp-center i{font-size:28px;color:#1a1a2e;margin-left:3px;}
 .gc-vp-center.hide{opacity:0;pointer-events:none;transform:translate(-50%,-50%) scale(.8);}
@@ -11402,6 +11456,42 @@ i.ph.ph-dots-three{
 #msg-search-clear.search-clear-btn{
   right: 8px !important;
 }
+/* Chat · global user search results */
+.gc-msg-user-search-results{
+  padding: 4px 0 8px;
+  border-bottom: 1px solid var(--border);
+}
+.gc-msg-user-search-results .gc-msg-user-row{
+  display:flex; align-items:center; gap:12px;
+  padding:10px 16px; cursor:pointer;
+  transition: background .15s;
+}
+.gc-msg-user-search-results .gc-msg-user-row:active{
+  background: var(--surface-2);
+}
+.gc-msg-user-search-results .gc-msg-user-av{
+  width:44px; height:44px; border-radius:50%;
+  object-fit:cover; background:var(--surface-2); flex-shrink:0;
+}
+.gc-msg-user-search-results .gc-msg-user-av-init{
+  width:44px; height:44px; border-radius:50%;
+  background:var(--gradient); color:#fff;
+  display:flex; align-items:center; justify-content:center;
+  font-weight:800; font-size:16px; flex-shrink:0;
+}
+.gc-msg-user-search-results .gc-msg-user-meta{ flex:1; min-width:0; }
+.gc-msg-user-search-results .gc-msg-user-name{
+  font-size:14px; font-weight:700; color:var(--text);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.gc-msg-user-search-results .gc-msg-user-sub{
+  font-size:12px; color:var(--text-muted);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.gc-msg-user-search-results .gc-msg-user-empty{
+  padding:16px; text-align:center; color:var(--text-muted); font-size:13px;
+}
+
 
 
 /* ═══ Explore drawer · smoother open/close ═══ */
@@ -13967,14 +14057,14 @@ body:not(.light-mode) .sp-comment-compose button.is-ready{
 /* ═══ Chat video message + fullscreen viewer ═══ */
 .gc-chat-video-bubble{
   position:relative;display:block;max-width:240px;border-radius:14px;overflow:hidden;
-  background:#000;cursor:pointer;-webkit-tap-highlight-color:transparent;
+  background:transparent;cursor:pointer;-webkit-tap-highlight-color:transparent;
 }
 .gc-chat-video-bubble video{
-  display:block;width:100%;max-height:320px;object-fit:contain;background:#000;pointer-events:none;
+  display:block;width:100%;max-height:320px;object-fit:contain;background:transparent;pointer-events:none;
 }
 
 .gc-chat-video-bubble .gc-chat-video-poster{
-  position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000;z-index:1;pointer-events:none;
+  position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:transparent;z-index:1;pointer-events:none;
 }
 .gc-chat-video-bubble video{ position:relative; z-index:0; }
 .gc-chat-video-bubble .gc-chat-video-play{ z-index:2; }
@@ -14736,12 +14826,13 @@ l-137 -640 -193 -3 -193 -2 4 22 c2 13 67 314 144 671 l139 647 192 0 193 0
 <div class="gc-msg-search-wrap">
   <div class="search-input-wrap" style="position:relative;">
     <i class="ph-light ph-magnifying-glass"></i>
-    <input type="text" id="msg-search-input" placeholder="Search inbox" oninput="gcFilterChatList(this.value)" autocomplete="off" autocapitalize="none" spellcheck="false">
+    <input type="text" id="msg-search-input" placeholder="Search people" oninput="gcFilterChatList(this.value)" autocomplete="off" autocapitalize="none" spellcheck="false">
     <button type="button" id="msg-search-clear" class="search-clear-btn" onclick="gcClearChatSearch()" aria-label="Clear search">
       <i class="ph-light ph-x" style="font-size:16px;"></i>
     </button>
   </div>
 </div>
+<div id="msg-user-search-results" class="gc-msg-user-search-results" style="display:none;"></div>
 <div id="msg-list"></div>
 </div>
 
@@ -16796,17 +16887,6 @@ async function gcPrepareMediaFile(file, kind){
 }
 
 
-// 🚀 WELCOME MESSAGE SYSTEM — নতুন ইউজারকে অটো মেসেজ
-const GC_SYSTEM_UID = 'gachat_official';
-const GC_SYSTEM_NAME = 'GoChat Official';
-
-async function sendWelcomeMessage(newUid, userName) {
-    return false;
-}
-
-async function ensureWelcomeMessage() {
-    return;
-}
 
 function gcSkeletonPostHTML(count){
   var n = Math.max(1, Math.min(4, Number(count) || 2));
@@ -17860,9 +17940,7 @@ showActiveStatus:true,
 points: 0,
 lastSeen:firebase.firestore.FieldValue.serverTimestamp(),
 createdAt:firebase.firestore.FieldValue.serverTimestamp(),
-welcomeSent: false
 });
-sendWelcomeMessage(user.uid, defaultName);
 }catch(e){
   const code = e && e.code ? e.code : '';
   if(code === 'auth/email-already-in-use'){
@@ -18482,7 +18560,6 @@ try{
 }catch(e){}
 
 // 🚀 নতুন ইউজারের জন্য ওয়েলকাম মেসেজ (fallback)
-try { ensureWelcomeMessage(); } catch(e) {}
 // --- LOCKDOWN CHECK ---
 if (currentUserData.isBanned) {
     document.body.innerHTML = `
@@ -31300,8 +31377,7 @@ async function completeRegistration() {
             onboardingComplete: true,
             profileSetupComplete: true,
             createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-            welcomeSent: false
-        };
+                    };
 
         // If the optional profile photo was saved before account creation, it is already a stable Cloudinary URL.
         // The user document is created immediately so a brand-new account can never have a missing profile record.
@@ -31320,7 +31396,6 @@ async function completeRegistration() {
             }
         }catch(e){ console.warn('username index write failed:', e); }
 
-        try{ sendWelcomeMessage(user.uid, fullName); }catch(e){}
         showToast('Account created successfully!');
 
         // Clean up registration-only state.
@@ -40195,42 +40270,64 @@ v.addEventListener('ended', function(){ v.gcUserPaused = false; showControls(); 
 function gcApplyFeedVideoSizing(){
   try{
     if(!v.videoWidth || !v.videoHeight) return;
-    /* Home Feed only — leave Profile / Single / Shorts sizing alone */
-    var inHomeFeed = false;
+    /* Skip grid thumbs & Shorts — those use cover / full-bleed by design */
     try {
-      inHomeFeed = !!(wrap.closest && (wrap.closest('#page-feed') || wrap.closest('#feed-list')));
+      if (wrap.closest && (wrap.closest('.grid-post-item') || wrap.closest('#gc-shorts-feed') || wrap.closest('.gc-short-item'))) return;
     } catch (e) {}
-    if (!inHomeFeed) return;
     const ratio = v.videoHeight / v.videoWidth;
     const isSquare = Math.abs(ratio - 1) <= 0.08;
     const isTall = ratio > 1.08;
     wrap.classList.toggle('gc-tall-video', isTall);
     wrap.classList.toggle('gc-wide-video', !isTall && !isSquare);
     wrap.classList.toggle('gc-square-video', isSquare);
-    /* Natural AR; height follows width; capped so feed stays scrollable */
     var vh = window.innerHeight || 640;
     var vw = Math.min(window.innerWidth || 390, 520);
+    /* Clear any previous inline dims so CSS classes drive layout cleanly */
+    v.style.width = '';
+    v.style.height = '';
+    v.style.maxWidth = '';
+    v.style.maxHeight = '';
+    wrap.style.width = '';
+    wrap.style.height = '';
+    wrap.style.maxWidth = '';
     if (isTall) {
+      /* Portrait: size height first, width follows AR — no side letterbox */
       var tallCap = Math.round(Math.min(vh * 0.65, 420));
-      v.style.width = 'auto';
-      v.style.height = 'auto';
+      var natW = v.videoWidth, natH = v.videoHeight;
+      var scaledH = Math.min(tallCap, natH);
+      var scaledW = Math.round(scaledH * (natW / natH));
+      if (scaledW > vw) {
+        scaledW = vw;
+        scaledH = Math.round(scaledW * (natH / natW));
+      }
+      v.style.width = scaledW + 'px';
+      v.style.height = scaledH + 'px';
       v.style.maxWidth = '100%';
       v.style.maxHeight = tallCap + 'px';
+      wrap.style.width = 'fit-content';
+      wrap.style.maxWidth = '100%';
+      wrap.style.marginLeft = '0';
+      wrap.style.marginRight = 'auto';
+      wrap.style.justifyContent = 'flex-start';
     } else if (isSquare) {
       var sqCap = Math.round(Math.min(vw * 0.92, 360));
       v.style.width = '100%';
       v.style.height = 'auto';
       v.style.maxWidth = '100%';
       v.style.maxHeight = sqCap + 'px';
+      wrap.style.width = '100%';
     } else {
       var wideCap = Math.round(Math.min(vw * 0.52, 300));
       v.style.width = '100%';
       v.style.height = 'auto';
       v.style.maxWidth = '100%';
       v.style.maxHeight = wideCap + 'px';
+      wrap.style.width = '100%';
     }
     v.style.objectFit = 'contain';
     v.style.objectPosition = 'center center';
+    v.style.background = 'transparent';
+    wrap.style.background = 'transparent';
   }catch(e){}
 }
 v.addEventListener('loadedmetadata', function(){
@@ -41755,8 +41852,134 @@ async function gcConfirmForward(){
 window.gcConfirmForward = gcConfirmForward;
 
 
-// ═══ Messages · search chats (min 3 chars, list only) ═══
+
+
+// ═══ Messages · global user search → open chat ═══
 window.__gcChatSearchQ = window.__gcChatSearchQ || '';
+window.__gcMsgUserSearchTimer = null;
+window.__gcMsgUserSearchReq = 0;
+
+function gcMsgUserSearchChatId(uid){
+  if(!currentUser || !uid) return '';
+  return [currentUser.uid, uid].sort().join('_');
+}
+
+function gcMsgUserSearchRowHTML(u){
+  if(!u) return '';
+  var uid = u.id || u.uid || '';
+  if(!uid || (currentUser && uid === currentUser.uid)) return '';
+  var name = u.name || 'User';
+  var un = u.username ? ('@' + String(u.username).replace(/^@/, '')) : '';
+  var av = u.avatar || '';
+  var safeName = (typeof escapeHTML === 'function') ? escapeHTML(name) : name;
+  var safeUn = (typeof escapeHTML === 'function') ? escapeHTML(un) : un;
+  var safeAv = (typeof escapeHTML === 'function') ? escapeHTML(av) : av;
+  var avHtml = av
+    ? '<img class="gc-msg-user-av" src="' + safeAv + '" alt="">'
+    : '<div class="gc-msg-user-av-init">' + (name.charAt(0) || 'U').toUpperCase() + '</div>';
+  var badge = '';
+  try{
+    if(typeof getVerifiedBadge === 'function') badge += getVerifiedBadge(u.email, u.isVerified);
+    if(typeof getLeaderBadge === 'function') badge += getLeaderBadge(u.email, u.isLeader);
+  }catch(e){}
+  return '<div class="gc-msg-user-row" role="button" tabindex="0" data-uid="' + uid + '" data-name="' + safeName + '" data-avatar="' + safeAv + '">' +
+    avHtml +
+    '<div class="gc-msg-user-meta"><div class="gc-msg-user-name">' + safeName + ' ' + badge + '</div>' +
+    (un ? '<div class="gc-msg-user-sub">' + safeUn + '</div>' : '') +
+    '</div></div>';
+}
+
+function gcMsgUserSearchOpenChat(uid, name, avatar){
+  if(!uid || !currentUser) return;
+  var chatId = gcMsgUserSearchChatId(uid);
+  try{
+    if(typeof openChat === 'function'){
+      openChat(chatId, uid, name || 'User', avatar || '');
+    }
+  }catch(e){ console.error(e); }
+}
+
+function gcMsgUserSearchBindClicks(box){
+  if(!box || box.dataset.gcBound === '1') return;
+  box.dataset.gcBound = '1';
+  box.addEventListener('click', function(e){
+    var row = e.target.closest('.gc-msg-user-row');
+    if(!row) return;
+    e.preventDefault();
+    e.stopPropagation();
+    gcMsgUserSearchOpenChat(
+      row.getAttribute('data-uid'),
+      row.getAttribute('data-name') || 'User',
+      row.getAttribute('data-avatar') || ''
+    );
+  });
+}
+
+async function gcMsgUserSearchRun(q){
+  var box = document.getElementById('msg-user-search-results');
+  var list = document.getElementById('msg-list');
+  if(!box) return;
+  q = (q || '').trim();
+  if(q.length < 1){
+    box.style.display = 'none';
+    box.innerHTML = '';
+    if(list) list.style.display = '';
+    return;
+  }
+  if(list) list.style.display = 'none';
+  box.style.display = 'block';
+  box.innerHTML = '<div class="gc-msg-user-empty">Searching…</div>';
+  gcMsgUserSearchBindClicks(box);
+
+  var req = ++window.__gcMsgUserSearchReq;
+  var resultMap = {};
+  try{
+    var ql = q.toLowerCase();
+    // Reuse home-feed discovery: Firestore indexed fields + cache soft match
+    if(typeof db !== 'undefined' && db){
+      try{
+        var snaps = await Promise.all([
+          db.collection('users').where('nameLower', '>=', ql).where('nameLower', '<=', ql + '\uf8ff').limit(12).get().catch(function(){ return null; }),
+          db.collection('users').where('usernameLower', '>=', ql).where('usernameLower', '<=', ql + '\uf8ff').limit(12).get().catch(function(){ return null; })
+        ]);
+        snaps.forEach(function(snap){
+          if(!snap) return;
+          snap.forEach(function(doc){
+            var d = doc.data() || {};
+            d.id = doc.id;
+            resultMap[doc.id] = d;
+          });
+        });
+      }catch(e){}
+    }
+    try{
+      if(typeof fetchAllUsers === 'function') await fetchAllUsers();
+    }catch(e){}
+    try{
+      var cache = (typeof allUsersCache !== 'undefined' && allUsersCache) ? allUsersCache : [];
+      cache.forEach(function(u){
+        if(!u || !(u.id || u.uid)) return;
+        var id = u.id || u.uid;
+        var n = String(u.name || u.nameLower || '').toLowerCase();
+        var un = String(u.username || u.usernameLower || '').toLowerCase();
+        if((n && n.indexOf(ql) !== -1) || (un && un.indexOf(ql) !== -1)){
+          if(!resultMap[id]) resultMap[id] = Object.assign({ id: id }, u);
+        }
+      });
+    }catch(e){}
+  }catch(e){ console.warn('msg user search', e); }
+
+  if(req !== window.__gcMsgUserSearchReq) return;
+  var users = Object.keys(resultMap).map(function(k){ return resultMap[k]; })
+    .filter(function(u){ return u && (u.id || u.uid) && (!currentUser || (u.id || u.uid) !== currentUser.uid); })
+    .slice(0, 20);
+  if(!users.length){
+    box.innerHTML = '<div class="gc-msg-user-empty">No users found</div>';
+    return;
+  }
+  box.innerHTML = users.map(gcMsgUserSearchRowHTML).join('');
+}
+
 function gcFilterChatList(val){
   window.__gcChatSearchQ = (val || '');
   var btn = document.getElementById('msg-search-clear');
@@ -41764,12 +41987,23 @@ function gcFilterChatList(val){
     if(window.__gcChatSearchQ.length > 0) btn.classList.add('show');
     else btn.classList.remove('show');
   }
-  // Re-render from last snapshot map if available
+  var q = window.__gcChatSearchQ.trim();
+  if(window.__gcMsgUserSearchTimer) clearTimeout(window.__gcMsgUserSearchTimer);
+  if(q.length === 0){
+    var box = document.getElementById('msg-user-search-results');
+    var list = document.getElementById('msg-list');
+    if(box){ box.style.display = 'none'; box.innerHTML = ''; }
+    if(list) list.style.display = '';
+    try {
+      if (typeof window.__gcRerenderChatList === 'function') window.__gcRerenderChatList();
+    } catch(e){}
+    return;
+  }
+  // Also filter existing chat list when short query; global user results after 1+ chars
   try {
-    if (typeof window.__gcRerenderChatList === 'function') {
-      window.__gcRerenderChatList();
-    }
+    if (typeof window.__gcRerenderChatList === 'function') window.__gcRerenderChatList();
   } catch(e){}
+  window.__gcMsgUserSearchTimer = setTimeout(function(){ gcMsgUserSearchRun(q); }, 280);
 }
 function gcClearChatSearch(){
   var input = document.getElementById('msg-search-input');
@@ -41777,6 +42011,10 @@ function gcClearChatSearch(){
   window.__gcChatSearchQ = '';
   var btn = document.getElementById('msg-search-clear');
   if(btn) btn.classList.remove('show');
+  var box = document.getElementById('msg-user-search-results');
+  var list = document.getElementById('msg-list');
+  if(box){ box.style.display = 'none'; box.innerHTML = ''; }
+  if(list) list.style.display = '';
   try {
     if (typeof window.__gcRerenderChatList === 'function') {
       window.__gcRerenderChatList();
@@ -41785,6 +42023,8 @@ function gcClearChatSearch(){
 }
 window.gcFilterChatList = gcFilterChatList;
 window.gcClearChatSearch = gcClearChatSearch;
+window.gcMsgUserSearchOpenChat = gcMsgUserSearchOpenChat;
+
 
 
 function gcComingSoon(label){
