@@ -16413,7 +16413,7 @@ l-137 -640 -193 -3 -193 -2 4 22 c2 13 67 314 144 671 l139 647 192 0 193 0
             </div>
             <i class="ph-light ph-caret-right"></i>
         </div>
-        <div class="settings-list-item" onclick="closeChatSettingsScreen(); showPage('messages'); try{document.getElementById('archived-chats').classList.add('show'); loadArchivedMessages(); if(typeof gcMsgPushLayer==='function') gcMsgPushLayer('archived');}catch(e){}">
+        <div class="settings-list-item" onclick="closeChatSettingsScreen(); showPage('messages'); try{document.getElementById('archived-chats').classList.add('show'); loadArchivedMessages();}catch(e){}">
             <div style="display:flex; align-items:center; gap:16px;">
                 <span style="font-weight:600; font-size:15px;">Archived Inbox</span>
             </div>
@@ -18817,6 +18817,7 @@ function showPage(page) {
 
     // Same-tab re-tap no longer auto-refreshes — double-tap on nav handles refresh
 
+
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
     
@@ -18846,7 +18847,7 @@ function showPage(page) {
     if (page === 'friends') {
         document.body.classList.add('friends-mode');
         if (friendsTabs) friendsTabs.style.display = 'flex';
-        try{ if(typeof gcCloseHomeDrawer==='function') gcCloseHomeDrawer(); }catch(e){}
+        gcCloseHomeDrawer();
         try {
           var _tb = document.querySelector('#app-screen > .topbar') || document.querySelector('.topbar');
           if (_tb) _tb.classList.remove('nav-hidden-top');
@@ -18871,7 +18872,7 @@ function showPage(page) {
         document.body.classList.add('search-mode');
         if (searchBack) searchBack.style.display = 'flex';
         if (searchTitle) searchTitle.style.display = 'block';
-        try{ if(typeof gcCloseHomeDrawer==='function') gcCloseHomeDrawer(); }catch(e){}
+        gcCloseHomeDrawer();
         try {
           var _si = document.getElementById('search-input');
           if (_si) setTimeout(function(){ try{ _si.focus(); }catch(e){} }, 180);
@@ -18888,7 +18889,7 @@ function showPage(page) {
           if (_mtb) _mtb.classList.remove('nav-hidden-top');
         } catch(e) {}
         if (topbarLogo) topbarLogo.innerHTML = 'Inbox';
-        try{ if(typeof gcCloseHomeDrawer==='function') gcCloseHomeDrawer(); }catch(e){}
+        gcCloseHomeDrawer();
     } else if (page === 'notifications') {
         document.body.classList.add('notifications-mode');
         try {
@@ -18899,7 +18900,7 @@ function showPage(page) {
         } catch(e) {}
         if (topbarLogo) topbarLogo.innerHTML = 'Notifications';
         setTimeout(function(){ try{ gcInitNotifTabPill(); }catch(e){} }, 30);
-        try{ if(typeof gcCloseHomeDrawer==='function') gcCloseHomeDrawer(); }catch(e){}
+        gcCloseHomeDrawer();
     } else {
         if (topbarLogo) {
             topbarLogo.removeAttribute('onclick');
@@ -18920,10 +18921,10 @@ function showPage(page) {
                 drawerBtn.style.display = 'none';
             }
         }
-        if (page !== 'feed') { try{ if(typeof gcCloseHomeDrawer==='function') gcCloseHomeDrawer(); }catch(e){} }
+        if (page !== 'feed') gcCloseHomeDrawer();
     }
 
-    // সেটিংস আইকন হ্যান্ডেল করার লজিক
+        // সেটিংস আইকন হ্যান্ডেল করার লজিক
     const settingsIcon = document.getElementById('topbar-settings-btn');
     if (settingsIcon) settingsIcon.style.display = (page === 'profile') ? 'flex' : 'none';
 
@@ -18952,7 +18953,7 @@ function showPage(page) {
     // Leave notifications → exit edit mode & restore chrome
     if (page !== 'notifications') {
         if (typeof isNotifEditMode !== 'undefined' && isNotifEditMode) {
-            if(typeof toggleNotifEditMode === 'function') toggleNotifEditMode();
+            toggleNotifEditMode();
         }
         document.body.classList.remove('notif-edit-mode');
         const nTabs = document.querySelector('#page-notifications .activity-tabs-wrapper');
@@ -18967,7 +18968,7 @@ function showPage(page) {
       /* Avoid full re-subscribe/re-render jump when returning to Inbox */
       var _ml = document.getElementById('msg-list');
       var _hasLive = _ml && _ml.querySelector('.msg-item') && window.chatListUnsub;
-      if(!_hasLive && typeof loadMessages === 'function') loadMessages();
+      if(!_hasLive) loadMessages();
       else if(typeof window.__gcRerenderChatList === 'function'){
         try{ window.__gcRerenderChatList(); }catch(e){}
       }
@@ -18980,7 +18981,7 @@ function showPage(page) {
         && !notifLoading.querySelector('.notif-empty')
         && !notifLoading.querySelector('.gc-skeleton-notif')
         && !window.__gcNotifsLoadedOnce) {
-        if(typeof gcSkeletonNotificationsHTML === 'function') notifLoading.innerHTML = gcSkeletonNotificationsHTML(5);
+        notifLoading.innerHTML = gcSkeletonNotificationsHTML(5);
       } else if(notifLoading
         && window.__gcNotifsLoadedOnce
         && !notifLoading.querySelector('.notif-item')
@@ -18991,19 +18992,17 @@ function showPage(page) {
       }
     }
     if(page === 'profile') {
-      if(typeof loadUserUI === 'function') loadUserUI();
+      loadUserUI();
       // Only rebuild posts if list is empty — preserves scroll when returning
       try{
         var _mpl = document.getElementById('my-posts-list');
         var _hasPosts = _mpl && (_mpl.querySelector('[data-post-id]') || _mpl.querySelector('.grid-post-item') || _mpl.querySelector('.post-card'));
-        if(!_hasPosts && typeof loadMyPosts === 'function') loadMyPosts();
-      }catch(e){ try{ if(typeof loadMyPosts === 'function') loadMyPosts(); }catch(_e){} }
+        if(!_hasPosts) loadMyPosts();
+      }catch(e){ try{ loadMyPosts(); }catch(_e){} }
     }
-    if(page === 'friends') { 
-      if(typeof loadFriendRequests === 'function') loadFriendRequests(); 
-      if(typeof loadAllFriends === 'function') loadAllFriends(); 
-    }
+    if(page === 'friends') { loadFriendRequests(); loadAllFriends(); }
 
+    // Restore scroll for ANY page that previously saved a position
     try{
       window.__gcPageScroll = window.__gcPageScroll || {};
       var _tid = 'page-' + page;
@@ -19021,14 +19020,6 @@ function showPage(page) {
     }catch(e){
       try{ window.scrollTo({top: 0, behavior: 'auto'}); }catch(_e){}
     }
-
-    // 👇👇👇 নতুন নেভিগেশন হিস্ট্রি লজিক (অ্যান্ড্রয়েড ব্যাক বাটনের জন্য)
-    if (!window.__gcFromPopstate) {
-        try {
-            history.pushState({ page: page }, "", "#" + page);
-        } catch (e) {}
-    }
-    // 👆👆👆
 }
 
 
@@ -22735,10 +22726,7 @@ function openChat(chatId, otherUid, otherName, otherAvatar){
     }catch(e){}
     currentChatId=chatId;
     currentChatOtherUid=otherUid;
-    var _chatEl = document.getElementById('chat-screen');
-    var _chatWasOpen = !!( _chatEl && _chatEl.classList.contains('open') );
-    if (_chatEl) _chatEl.classList.add('open');
-    try { if (!_chatWasOpen && typeof gcMsgPushLayer === 'function') gcMsgPushLayer('chat-screen'); } catch (e) {}
+    document.getElementById('chat-screen').classList.add('open');
         // 🚀 NEW: চ্যাট ওপেন হলে সেভ করা ড্রাফট ফিরিয়ে আনা
     const savedDraft = localStorage.getItem('gochat_draft_' + chatId);
     document.getElementById('chat-input').value = savedDraft ? savedDraft : '';
@@ -22942,26 +22930,12 @@ function gcToggleChatAttach(){
   if(!panel) return;
   var open = panel.classList.toggle('open');
   if(btn) btn.classList.toggle('is-open', open);
-  try {
-    if (open && typeof gcMsgPushLayer === 'function') gcMsgPushLayer('chat-attach');
-    else if (!open && !window.__gcFromPopstateClose) {
-      window.__gcMsgHistSuppress = true;
-      history.back();
-    }
-  } catch (e) { window.__gcMsgHistSuppress = false; }
 }
 function gcCloseChatAttach(){
   var panel = document.getElementById('gc-chat-attach-panel');
   var btn = document.getElementById('gc-chat-plus-btn');
-  var wasOpen = !!(panel && panel.classList.contains('open'));
   if(panel) panel.classList.remove('open');
   if(btn) btn.classList.remove('is-open');
-  try {
-    if (wasOpen && !window.__gcFromPopstateClose) {
-      window.__gcMsgHistSuppress = true;
-      history.back();
-    }
-  } catch (e) { window.__gcMsgHistSuppress = false; }
 }
 function gcChatAttachAction(kind){
   gcCloseChatAttach();
@@ -23577,12 +23551,6 @@ showToast('Message deleted');
 function closeChat(){
   var leavingId = currentChatId;
   document.getElementById('chat-screen').classList.remove('open');
-  try {
-    if (!window.__gcFromPopstateClose) {
-      window.__gcMsgHistSuppress = true;
-      history.back();
-    }
-  } catch (e) { window.__gcMsgHistSuppress = false; }
   if(chatUnsub) try{ chatUnsub(); }catch(e){}
   chatUnsub = null;
   if(onlineUnsub) try{ onlineUnsub(); }catch(e){}
@@ -24069,7 +24037,6 @@ function gcOpenChatVideoViewer(url){
   vid.load();
   viewer.classList.add('open');
   viewer.setAttribute('aria-hidden','false');
-  try { if (typeof gcMsgPushLayer === 'function') gcMsgPushLayer('chat-video'); } catch (e) {}
   try{
     viewer.onclick = function(ev){
       if(ev && ev.target && (ev.target.id === 'gc-chat-video-viewer' || (ev.target.classList && ev.target.classList.contains('gc-cvv-stage')))){
@@ -24248,12 +24215,6 @@ function gcCloseChatVideoViewer(){
   if(menu) menu.classList.remove('open');
   if(vid){ try{ vid.pause(); }catch(e){} try{ vid.removeAttribute('src'); vid.load(); }catch(e){} }
   if(viewer){ viewer.classList.remove('open'); viewer.setAttribute('aria-hidden','true'); }
-  try {
-    if (!window.__gcFromPopstateClose) {
-      window.__gcMsgHistSuppress = true;
-      history.back();
-    }
-  } catch (e) { window.__gcMsgHistSuppress = false; }
   var list = document.getElementById('chat-messages');
   if(list && window.__gcChatVideoScroll != null){
     try{ list.scrollTop = window.__gcChatVideoScroll; }catch(e){}
@@ -29239,7 +29200,6 @@ function viewProfileFromChat() {
     }
     // পপ-আপ ওপেন করা
     document.getElementById('quick-profile-modal').classList.add('open');
-    try { if (typeof gcMsgPushLayer === 'function') gcMsgPushLayer('quick-profile'); } catch (e) {}
     try{
       var _qpData = (typeof gcActiveStatusOtherData !== 'undefined' && gcActiveStatusOtherData) ? gcActiveStatusOtherData : null;
       if(!_qpData && otherUser){
@@ -29260,12 +29220,6 @@ function closeQuickProfile() {
       var dot = document.getElementById('qp-online-dot');
       if(dot) dot.classList.remove('is-on');
     }catch(e){}
-    try {
-      if (!window.__gcFromPopstateClose) {
-        window.__gcMsgHistSuppress = true;
-        history.back();
-      }
-    } catch (e) { window.__gcMsgHistSuppress = false; }
 }
 
 // "View Profile" বাটনে ক্লিক করলে ফুল প্রোফাইলে যাবে
@@ -31444,7 +31398,6 @@ async function openGroupInfoModal(groupId) {
     var modal = document.getElementById('group-info-modal');
     if (!modal) { if (typeof showToast === 'function') showToast('Group info UI missing'); return; }
     modal.classList.add('open');
-    try { if (typeof gcMsgPushLayer === 'function') gcMsgPushLayer('group-info'); } catch (e) {}
     var addUi = document.getElementById('add-group-member-ui');
     if (addUi) addUi.style.display = 'none';
     window.__gcGroupMembersOpen = true;
@@ -31460,12 +31413,6 @@ function closeGroupInfoModal() {
     if (modal) modal.classList.remove('open');
     activeGroupId = null;
     activeGroupData = null;
-    try {
-      if (!window.__gcFromPopstateClose) {
-        window.__gcMsgHistSuppress = true;
-        history.back();
-      }
-    } catch (e) { window.__gcMsgHistSuppress = false; }
 }
 
 
@@ -31991,17 +31938,10 @@ function openAdvancedPrivacy() {
     const menu = document.getElementById('chat-delete-menu');
     if(menu) menu.style.display = 'none'; 
     document.getElementById('advanced-privacy-modal').classList.add('open');
-    try { if (typeof gcMsgPushLayer === 'function') gcMsgPushLayer('advanced-privacy'); } catch (e) {}
 }
 
 function closeAdvancedPrivacy() {
     document.getElementById('advanced-privacy-modal').classList.remove('open');
-    try {
-      if (!window.__gcFromPopstateClose) {
-        window.__gcMsgHistSuppress = true;
-        history.back();
-      }
-    } catch (e) { window.__gcMsgHistSuppress = false; }
 }
 
 //  Advanced Privacy Logic (Updated & Fixed)
@@ -32261,27 +32201,18 @@ window.gcGetMyInviteLink = gcGetMyInviteLink;
 // ==========================================
 // ১. পেজ ওপেন করার ফাংশন
 function openChatSettingsScreen(){
-    try { if (typeof gcMsgPushLayer === 'function') gcMsgPushLayer('chat-settings'); } catch (e) {}
-
     var el = document.getElementById('chat-settings-screen');
     if(el) el.style.display = 'flex';
 }
 function closeChatSettingsScreen(){
     var el = document.getElementById('chat-settings-screen');
     if(el) el.style.display = 'none';
-    try {
-      if (!window.__gcFromPopstateClose) {
-        window.__gcMsgHistSuppress = true;
-        history.back();
-      }
-    } catch (e) { window.__gcMsgHistSuppress = false; }
 }
 window.openChatSettingsScreen = openChatSettingsScreen;
 window.closeChatSettingsScreen = closeChatSettingsScreen;
 
 function openChatPrivacyPage() {
     document.getElementById('chat-privacy-screen').style.display = 'flex';
-    try { if (typeof gcMsgPushLayer === 'function') gcMsgPushLayer('chat-privacy'); } catch (e) {}
     
     // বর্তমান সেটিং লোড করা
     const currentSetting = currentUserData.chatPrivacy || 'public';
@@ -32295,12 +32226,6 @@ function openChatPrivacyPage() {
 // ২. পেজ ক্লোজ করার ফাংশন
 function closeChatPrivacyPage() {
     document.getElementById('chat-privacy-screen').style.display = 'none';
-    try {
-      if (!window.__gcFromPopstateClose) {
-        window.__gcMsgHistSuppress = true;
-        history.back();
-      }
-    } catch (e) { window.__gcMsgHistSuppress = false; }
 }
 
 // ৩. সেটিং সেভ করার ফাংশন
@@ -33152,54 +33077,9 @@ async function uploadAndSendVoice(audioBlob, session) {
 // ==========================================
 let backPressTimer = null;
 let gcBackEventInProgress = false;
-window.__gcMsgHistSuppress = false;
 
-// Message/Chat history helpers — push a history entry whenever a messaging
-// layer opens so Android/WebView Back closes layers instead of exiting the app.
-function gcMsgLayerOpen() {
-  try {
-    var cs = document.getElementById('chat-screen');
-    if (cs && cs.classList.contains('open')) return true;
-    var qp = document.getElementById('quick-profile-modal');
-    if (qp && qp.classList.contains('open')) return true;
-    var adv = document.getElementById('advanced-privacy-modal');
-    if (adv && adv.classList.contains('open')) return true;
-    var cvs = document.getElementById('gc-chat-video-viewer');
-    if (cvs && cvs.classList.contains('open')) return true;
-    var exp = document.getElementById('export-chat-modal');
-    if (exp) return true;
-    var ginfo = document.getElementById('group-info-modal');
-    if (ginfo && (ginfo.classList.contains('open') || ginfo.style.display === 'flex')) return true;
-    var cset = document.getElementById('chat-settings-screen');
-    if (cset && cset.style.display === 'flex') return true;
-    var cpriv = document.getElementById('chat-privacy-screen');
-    if (cpriv && cpriv.style.display === 'flex') return true;
-    var att = document.getElementById('gc-chat-attach-panel');
-    if (att && att.classList.contains('open')) return true;
-    var arch = document.getElementById('archived-chats');
-    if (arch && arch.classList.contains('show')) return true;
-    var imgCard = document.getElementById('gc-chat-img-card');
-    if (imgCard && imgCard.classList.contains('open')) return true;
-    var reactDet = document.getElementById('gc-react-detail-overlay');
-    if (reactDet && reactDet.classList.contains('open')) return true;
-    if (document.body.classList.contains('msg-select-mode')) return true;
-  } catch (e) {}
-  return false;
-}
-
-function gcMsgPushLayer(layerId) {
-  try {
-    history.pushState({ gcMsgLayer: layerId || 'msg', t: Date.now() }, '', window.location.href);
-  } catch (e) {}
-}
-
-function gcMsgHistGuardPush() {
-  try {
-    history.pushState({ page: 'gochat_home', gcBackGuard: true, t: Date.now() }, '', window.location.href);
-  } catch (e) {}
-}
-
-// Keep one guarded app-entry state. Messaging layers push additional entries via gcMsgPushLayer.
+// Keep one guarded app-entry state. This remains the existing History/popstate
+// strategy; it deliberately does not introduce a competing native/JS back system.
 try {
     history.pushState({ page: 'gochat_home', gcBackGuard: true }, "", window.location.href);
 } catch (e) {
@@ -33207,51 +33087,22 @@ try {
 }
 
 window.addEventListener('popstate', function(event) {
-    // UI-driven close called history.back() — do not close again.
-    if (window.__gcMsgHistSuppress) {
-        window.__gcMsgHistSuppress = false;
-        gcMsgHistGuardPush();
-        return;
-    }
     // Ignore a duplicate/re-entrant popstate while the current layer is closing.
     if (gcBackEventInProgress) return;
     gcBackEventInProgress = true;
     let consumed = false;
     try {
-        window.__gcFromPopstateClose = true;
         consumed = closeTopMostView();
     } catch (e) {
         console.error('GoChat Back handling failed', e);
-    } finally {
-        window.__gcFromPopstateClose = false;
     }
 
-    // While any messaging layer remains open, always restore a history entry so
-    // the next Android Back cannot exit the WebView/activity.
-    var stillMsg = false;
-    try { stillMsg = typeof gcMsgLayerOpen === 'function' ? gcMsgLayerOpen() : false; } catch (e) {}
-
-    if (consumed || stillMsg) {
-        gcMsgHistGuardPush();
+    if (consumed) {
+        try { history.pushState({ page: 'gochat_home', gcBackGuard: true }, "", window.location.href); }
+        catch (e) { console.warn('Could not restore GoChat history guard', e); }
         gcBackEventInProgress = false;
         return;
     }
-
-    // 👇👇👇 নতুন লজিক: পপআপ না থাকলে চেক করো ইউজার অন্য কোনো পেজে (যেমন Profile/Messages) আছে কিনা
-    const activePageNode = document.querySelector('.page.active');
-    const activePageId = activePageNode ? activePageNode.id : '';
-
-    if (activePageId !== 'page-feed' && activePageId !== 'page-home') {
-        // ফিড ছাড়া অন্য পেজে থাকলে, ফিডে ফিরে যাও
-        window.__gcFromPopstate = true; 
-        if (typeof showPage === 'function') showPage('feed');
-        window.__gcFromPopstate = false;
-        
-        gcMsgHistGuardPush(); // ফিডে ফেরার পর আবার লক করে রাখো
-        gcBackEventInProgress = false;
-        return;
-    }
-    // 👆👆👆
 
     // No in-app layer was open: preserve the existing double-press exit behavior.
     if (backPressTimer) {
@@ -33260,31 +33111,12 @@ window.addEventListener('popstate', function(event) {
         gcBackEventInProgress = false;
     } else {
         try { showToast("Press back again to exit"); } catch (e) {}
-        gcMsgHistGuardPush();
+        try { history.pushState({ page: 'gochat_home', gcBackGuard: true }, "", window.location.href); }
+        catch (e) { console.warn('Could not restore GoChat exit guard', e); }
         backPressTimer = setTimeout(function() { backPressTimer = null; }, 2000);
         gcBackEventInProgress = false;
     }
 });
-
-function gcMsgPushLayer(layerId) {
-  try {
-    history.pushState({ gcMsgLayer: layerId || 'msg', t: Date.now() }, '', window.location.href);
-  } catch (e) {}
-}
-
-function gcMsgHistGuardPush() {
-  try {
-    history.pushState({ page: 'gochat_home', gcBackGuard: true, t: Date.now() }, '', window.location.href);
-  } catch (e) {}
-}
-
-// Keep one guarded app-entry state. Messaging layers push additional entries via gcMsgPushLayer.
-try {
-    history.pushState({ page: 'gochat_home', gcBackGuard: true }, "", window.location.href);
-} catch (e) {
-    console.warn('GoChat back-history initialization failed', e);
-}
-
 
 function closeTopMostView() {
     // Phase 1 migration coverage: handle frequently used feature-level layers
@@ -35155,7 +34987,7 @@ function exportCurrentChat() {
 
     exportModal.innerHTML = `
         <div class="chat-topbar" style="position: sticky; top: 0; z-index: 10;">
-            <div class="chat-back" onclick="try{var m=document.getElementById('export-chat-modal');if(m)m.remove();if(!window.__gcFromPopstateClose){window.__gcMsgHistSuppress=true;history.back();}}catch(e){window.__gcMsgHistSuppress=false;}"><i class="ph-light ph-x"></i></div>
+            <div class="chat-back" onclick="document.getElementById('export-chat-modal').remove()"><i class="ph-light ph-x"></i></div>
             <div class="chat-name" style="font-weight: 800; font-size: 16px;">Exported Chat</div>
             <button class="btn-primary" style="margin:0; padding:6px 12px; width:auto; border-radius:20px; font-size:13px;" onclick="navigator.clipboard.writeText(document.getElementById('exported-chat-text').value); showToast('Copied to clipboard!');">Copy All</button>
         </div>
@@ -35166,7 +34998,6 @@ function exportCurrentChat() {
     `;
 
     document.body.appendChild(exportModal);
-    try { if (typeof gcMsgPushLayer === 'function') gcMsgPushLayer('export-chat'); } catch (e) {}
 }
 
 
