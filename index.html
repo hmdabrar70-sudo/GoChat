@@ -5735,18 +5735,18 @@ body.gc-splash-handoff .page.active{
     display: inline-block;
     transform-origin: center center;
 }
-.like-count-slot .like-count-num.is-falling{
-    position: absolute;
-    left: 0; top: 0;
-    animation: gcCountFallOut 0.38s cubic-bezier(0.55, 0.06, 0.68, 0.19) forwards;
-    pointer-events: none;
-}
+.like-count-slot .like-count-num.is-falling,
 .like-count-slot .like-count-num.is-dropping{
-    animation: gcCountDropIn 0.48s cubic-bezier(0.22, 1.15, 0.36, 1) both;
+    /* Like count animation removed — instant update */
+    animation: none !important;
+    position: static !important;
+    opacity: 1 !important;
+    transform: none !important;
 }
 .post-action-btn i.gc-like-pop,
 #sv-react-btn.gc-like-pop{
-    animation: gcLikeIconPop 0.4s cubic-bezier(0.22, 1.15, 0.36, 1) both;
+    animation: none !important;
+    transform: none !important;
 }
 
 @keyframes likeCountPop {
@@ -6427,24 +6427,30 @@ Liked Posts পেজ (মেনুর ওভারলে)
   isolation:isolate;
 }
 .gc-short-item video{
-  position:absolute;
-  left:50%; top:50%;
-  width:auto; height:auto;
-  max-width:100%; max-height:100%;
-  transform:translate(-50%,-50%);
-  object-fit:contain;
-  background:#000;
+  /* Full-screen contain — video fills the short page, AR preserved, no side/top black gap from artificial caps */
+  position:absolute !important;
+  inset:0 !important;
+  width:100% !important;
+  height:100% !important;
+  max-width:100% !important;
+  max-height:100% !important;
+  object-fit:contain !important;
+  background:#000 !important;
   border-radius:0;
-  display:block;
+  display:block !important;
+  transform:none !important;
+  left:auto !important;
+  top:auto !important;
+  margin:0 !important;
 }
-.gc-short-item.gc-short-tall-video video{
-  width:auto; height:auto;
-  max-width:100%; max-height:100%;
-}
+.gc-short-item.gc-short-tall-video video,
 .gc-short-item.gc-short-wide-video video,
 .gc-short-item.gc-short-square-video video{
-  width:100%; height:auto;
-  max-width:100%; max-height:100%;
+  width:100% !important;
+  height:100% !important;
+  max-width:100% !important;
+  max-height:100% !important;
+  object-fit:contain !important;
 }
 
 /* Shorts progress · Messenger video viewer track/fill/thumb styling reused */
@@ -14219,11 +14225,20 @@ body:not(.light-mode) .sp-comment-compose button.is-ready{
 .gc-cvv-menu.open{ display:none !important; }
 .gc-cvv-stage{
   flex:1;display:flex;align-items:center;justify-content:center;
-  padding:56px 12px 150px;box-sizing:border-box;min-height:0;
+  /* Match compose fullscreen: minimal padding; controls are absolute so stage can fill */
+  padding:0; box-sizing:border-box; min-height:0;
+  width:100%; position:relative;
 }
 .gc-cvv-stage video{
-  max-width:100%;max-height:100%;width:auto;height:auto;
-  object-fit:contain;background:#000;border-radius:0;
+  /* Same rules as .gc-compose-media-fs-stage video — fill available area, keep AR */
+  max-width:100%;
+  max-height:100%;
+  width:auto;
+  height:auto;
+  object-fit:contain;
+  background:#000;
+  border-radius:0;
+  display:block;
 }
 /* Bottom minimalist controls + progress (always docked) */
 .gc-cvv-controls{
@@ -16570,28 +16585,16 @@ l-137 -640 -193 -3 -193 -2 4 22 c2 13 67 314 144 671 l139 647 192 0 193 0
         <h2 style="font-size:22px; font-weight:800; color:var(--text);">Need Help?</h2>
         
         <p style="font-size:15px; color:var(--text-secondary); line-height:1.6; max-width:300px;">
-            Please click on the links below to tell us about your problem. We are here to help you!
+            Email us about your problem. We are here to help you!
         </p>
         
-        <!-- 🚀 Telegram Button -->
-        <a href="https://t.me/gochatoffialbd" target="_blank" style="text-decoration:none; width:100%; max-width:300px;">
-            <button class="btn-primary" style="margin:0; padding:16px; font-size:16px; background:linear-gradient(135deg, #2AABEE 0%, #229ED9 100%); box-shadow:0 8px 20px rgba(42, 171, 238, 0.3);">
-                <svg style="width:20px; height:20px; fill:white; margin-right:8px;" viewBox="0 0 24 24">
-                    <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.161c-.18 1.897-.962 6.502-1.359 8.627-.168.9-.5 1.201-.82 1.23-.697.064-1.226-.461-1.901-.903-1.056-.692-1.653-1.123-2.678-1.799-1.185-.781-.417-1.21.258-1.911.177-.184 3.247-2.977 3.307-3.23.007-.032.015-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.139-5.062 3.345-.479.329-.913.489-1.302.481-.428-.009-1.252-.242-1.866-.442-.751-.244-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.831-2.529 6.998-3.015 3.333-1.386 4.025-1.627 4.477-1.635.099-.002.321.023.465.141.121.099.154.232.17.325.015.093.034.305.019.471z"/>
-                </svg>
-                Contact on Telegram
+        <!-- Contact via Email -->
+        <a href="mailto:hbmabrar@gmail.com" style="text-decoration:none; width:100%; max-width:300px;">
+            <button class="btn-primary" style="margin:0; padding:16px; font-size:16px; display:flex; align-items:center; justify-content:center; gap:10px; width:100%;">                
+                Contact via email
             </button>
         </a>
 
-        <!-- 🚀 WhatsApp Button -->
-        <a href="https://wa.me/8801948303440" target="_blank" style="text-decoration:none; width:100%; max-width:300px;">
-            <button class="btn-primary" style="margin:0; padding:16px; font-size:16px; background:linear-gradient(135deg, #25D366 0%, #128C7E 100%); box-shadow:0 8px 20px rgba(37, 211, 102, 0.3);">
-                <svg style="width:20px; height:20px; fill:white; margin-right:8px;" viewBox="0 0 24 24">
-                    <path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.711 2.598 2.664-.698c1.009.572 1.918.846 3.031.846 3.18 0 5.767-2.587 5.767-5.766.001-3.182-2.585-5.769-5.766-5.769zm3.948 7.98c-.17.476-.834.874-1.36.96-.363.059-.82.085-2.38-.562-1.99-.824-3.278-2.76-3.378-2.893-.099-.133-.81-1.08-.81-2.059 0-.979.513-1.46.695-1.66.182-.2.398-.25.53-.25.133 0 .266.001.382.007.122.006.286-.046.447.341.17.408.58 1.413.63 1.514.05.101.084.219.017.353-.067.134-.1.218-.2.336-.1.118-.21.264-.3.353-.1.099-.204.207-.088.408.116.201.515.853 1.103 1.377.758.676 1.396.885 1.594.984.199.099.315.083.431-.05.116-.133.5-.58.632-.779.133-.199.266-.166.447-.099.182.067 1.155.546 1.354.645.199.099.331.149.381.232.05.083.05.48-.12.956z"/>
-                </svg>
-                Chat on WhatsApp
-            </button>
-        </a>
         
         <div style="margin-top:30px; padding:16px; background:var(--surface-2); border-radius:var(--radius-md); width:100%; max-width:300px;">
             <div style="font-size:12px; color:var(--text-muted); font-weight:600; margin-bottom:8px;">QUICK TIPS</div>
@@ -21394,65 +21397,29 @@ window.gcPaintStoryPendingInList = gcPaintStoryPendingInList;
 // ===== POSTS AND LIKE LOGIC =====
 // 🚀 সুপার ফাস্ট লাইক সিস্টেম (Optimistic UI Update) + Spam Notification Fix
 function gcPhysicsLikeCount(countSpan, nextNum){
+  /* Instant count update — no fall/drop animation, no delayed finish */
   if(!countSpan) return;
   var nextText = (typeof gcFmtCount === 'function') ? gcFmtCount(nextNum) : String(nextNum);
   countSpan.setAttribute('data-raw-count', String(nextNum));
-
-  var slot = countSpan;
-  if(!slot.classList.contains('like-count-slot')){
-    slot.classList.add('like-count-slot');
-  }
-  var oldNum = slot.querySelector('.like-count-num');
-  var oldText = '';
-  if(oldNum){
-    oldText = oldNum.textContent;
+  if(countSpan.hasAttribute('data-raw')) countSpan.setAttribute('data-raw', String(nextNum));
+  countSpan.classList.add('like-count');
+  var nums = countSpan.querySelectorAll('.like-count-num');
+  if(nums && nums.length){
+    nums[0].className = 'like-count-num';
+    nums[0].textContent = nextText;
+    for(var i=1; i<nums.length; i++){ try{ nums[i].remove(); }catch(e){} }
   } else {
-    oldText = (slot.textContent || '').trim();
-    slot.textContent = '';
-    oldNum = document.createElement('span');
-    oldNum.className = 'like-count-num';
-    oldNum.textContent = oldText || nextText;
-    slot.appendChild(oldNum);
+    countSpan.textContent = '';
+    var span = document.createElement('span');
+    span.className = 'like-count-num';
+    span.textContent = nextText;
+    countSpan.appendChild(span);
   }
-
-  if(String(oldText) === String(nextText)){
-    oldNum.textContent = nextText;
-    return;
-  }
-
-  var falling = oldNum;
-  falling.classList.remove('is-dropping');
-  falling.classList.add('is-falling');
-
-  var incoming = document.createElement('span');
-  incoming.className = 'like-count-num is-dropping';
-  incoming.textContent = nextText;
-  slot.appendChild(incoming);
-
-  var done = false;
-  function finish(){
-    if(done) return;
-    done = true;
-    try{
-      if(falling && falling.parentNode) falling.parentNode.removeChild(falling);
-      incoming.classList.remove('is-dropping');
-      var nums = slot.querySelectorAll('.like-count-num');
-      for(var ii=0; ii<nums.length; ii++){
-        if(nums[ii] !== incoming) try{ nums[ii].remove(); }catch(e){}
-      }
-      incoming.textContent = nextText;
-    }catch(e){}
-  }
-  try{ incoming.addEventListener('animationend', finish); }catch(e){}
-  setTimeout(finish, 520);
 }
 
 function gcLikeIconPhysics(icon){
-  if(!icon) return;
-  icon.classList.remove('gc-like-pop');
-  void icon.offsetWidth;
-  icon.classList.add('gc-like-pop');
-  setTimeout(function(){ try{ icon.classList.remove('gc-like-pop'); }catch(e){} }, 450);
+  /* Like icon pop animation removed */
+  return;
 }
 window.gcPhysicsLikeCount = gcPhysicsLikeCount;
 window.gcLikeIconPhysics = gcLikeIconPhysics;
@@ -21498,7 +21465,7 @@ async function toggleLike(pid) {
 
       // Optimistic UI once across all views
       if (typeof gcSyncEngagementUI === 'function') {
-        gcSyncEngagementUI(pid, { liked: nextLiked, count: nextCount, reaction: nextReact, animate: true });
+        gcSyncEngagementUI(pid, { liked: nextLiked, count: nextCount, reaction: nextReact, animate: false });
       }
 
       const ref = db.collection('posts').doc(pid);
@@ -21703,12 +21670,30 @@ async function gcFillCommentsPostPreview(pid){
     }catch(e){}
     var cap = String(p.title || p.text || '').replace(/\s+/g,' ').trim();
     if(cap.length > 90) cap = cap.slice(0, 87) + '…';
+    /* Static image thumb ONLY — never video element, never mute/play controls */
+    function isLikelyVideoUrl(u){
+      if(!u) return false;
+      var s = String(u).toLowerCase();
+      return /\.(mp4|webm|mov|m4v)(\?|$)/.test(s) || s.indexOf('/video/') !== -1 || s.indexOf('video/upload') !== -1;
+    }
     var thumb = '';
-    if(p.imgUrls && p.imgUrls[0]) thumb = p.imgUrls[0];
-    else if(p.imgUrl) thumb = p.imgUrl;
-    else if(p.videoThumb || p.poster) thumb = p.videoThumb || p.poster;
+    if(p.videoThumb) thumb = p.videoThumb;
+    else if(p.poster) thumb = p.poster;
+    else if(p.thumbnail) thumb = p.thumbnail;
+    else if(p.imgUrls && p.imgUrls.length){
+      for(var ti=0; ti<p.imgUrls.length; ti++){
+        if(p.imgUrls[ti] && !isLikelyVideoUrl(p.imgUrls[ti])){ thumb = p.imgUrls[ti]; break; }
+      }
+    }
+    if(!thumb && p.imgUrl && !isLikelyVideoUrl(p.imgUrl)) thumb = p.imgUrl;
+    var hasVideo = !!(p.videoUrl || (p.imgUrls && p.imgUrls.some && p.imgUrls.some(isLikelyVideoUrl)) || isLikelyVideoUrl(p.imgUrl));
     var avHtml = av ? '<img src="'+escapeHTML(av)+'" alt="">' : (typeof avatarInitial==='function' ? avatarInitial(name) : '');
-    var thHtml = thumb ? '<div class="gc-cs-preview-thumb"><img src="'+escapeHTML(thumb)+'" alt=""></div>' : '';
+    var thHtml = '';
+    if(thumb){
+      thHtml = '<div class="gc-cs-preview-thumb"><img src="'+escapeHTML(thumb)+'" alt=""></div>';
+    } else if(hasVideo){
+      thHtml = '<div class="gc-cs-preview-thumb gc-cs-preview-vid-ph" aria-hidden="true"><i class="ph-light ph-video-camera" style="font-size:18px;color:var(--text-muted);"></i></div>';
+    }
     box.innerHTML = '<div class="gc-cs-preview-av">'+avHtml+'</div>'
       + '<div class="gc-cs-preview-meta"><div class="gc-cs-preview-name">'+escapeHTML(name)+'</div>'
       + (cap ? '<div class="gc-cs-preview-cap">'+escapeHTML(cap)+'</div>' : '') + '</div>' + thHtml;
@@ -21728,6 +21713,15 @@ async function openCommentPanel(pid) {
     try{ if(typeof gcLockScroll==='function') gcLockScroll(); }catch(e){}
     try{ if(typeof gcFillCommentComposerAvatars==='function') gcFillCommentComposerAvatars(); }catch(e){}
     try{ if(typeof gcFillCommentsPostPreview==='function') gcFillCommentsPostPreview(pid); }catch(e){}
+    /* Stop any playing feed/single video so comment sheet never shows live playback/sound */
+    try{
+      document.querySelectorAll('video').forEach(function(v){
+        try{
+          if(!v.paused) v.pause();
+          v.gcUserPaused = true;
+        }catch(err){}
+      });
+    }catch(e){}
     if (commentPanelListener) commentPanelListener();
 
     // Unlock comment bar + apply reply privacy restriction
@@ -26901,7 +26895,7 @@ function openImageZoom(url, postId = null, isProfilePic = false, isOwnMedia = fa
                 zoomCurrentIdx = zoomImagesList.indexOf(e.target.src);
                 if (zoomCurrentIdx === -1) zoomCurrentIdx = 0;
                 
-                // 🚀 গ্যারান্টিড পোস্ট আইডি বের করার ম্যাজিক
+                // ?? গ্যারান্টিড পোস্ট আইডি বের করার ম্যাজিক
                 if (!zoomActivePostId) {
                     const likeBtn = postCard.querySelector('[onclick*="toggleLike"]');
                     if (likeBtn) {
@@ -38471,27 +38465,30 @@ function gcEnsureShortsScreen(){
 }
 function gcApplyShortVideoSizing(video, item){
   try{
-    if(!video || !item || !video.videoWidth || !video.videoHeight) return;
-    var ratio = video.videoHeight / video.videoWidth;
+    if(!video || !item) return;
+    var ratio = 1;
+    if(video.videoWidth && video.videoHeight){
+      ratio = video.videoHeight / video.videoWidth;
+    }
     var isTall = ratio > 1.05;
     var isSquare = Math.abs(ratio - 1) <= 0.05;
     item.classList.toggle('gc-short-tall-video', isTall);
     item.classList.toggle('gc-short-wide-video', !isTall && !isSquare);
     item.classList.toggle('gc-short-square-video', isSquare);
-    /* Match Home Feed's aspect-ratio behavior: never crop the source frame. */
-    if(isTall){
-      var cap = Math.min(560, Math.max(320, window.innerHeight ? window.innerHeight * 0.68 : 560));
-      video.style.width = 'auto';
-      video.style.height = 'auto';
-      video.style.maxHeight = Math.round(cap) + 'px';
-      video.style.maxWidth = '100%';
-    }else{
-      video.style.width = '100%';
-      video.style.height = 'auto';
-      video.style.maxHeight = 'none';
-      video.style.maxWidth = '100%';
-    }
+    /* Full-bleed contain: fill the short item, keep AR, no artificial height cap */
+    video.style.cssText = '';
+    video.style.position = 'absolute';
+    video.style.inset = '0';
+    video.style.width = '100%';
+    video.style.height = '100%';
+    video.style.maxWidth = '100%';
+    video.style.maxHeight = '100%';
     video.style.objectFit = 'contain';
+    video.style.background = '#000';
+    video.style.display = 'block';
+    video.style.transform = 'none';
+    video.style.left = 'auto';
+    video.style.top = 'auto';
   }catch(e){}
 }
 function gcUpdateShortsHeader(item){
@@ -42338,24 +42335,23 @@ window.gcCloseSheetSafe = gcCloseSheetSafe;
     span.setAttribute('data-raw-count', String(n));
     if(span.hasAttribute('data-raw')) span.setAttribute('data-raw', String(n));
     span.classList.add('like-count');
-    // Skip visual rewrite when count unchanged and no animation requested (stops 1↔2 flicker)
-    if(!animate && prevN === n){
-      var hasFalling = !!(span.querySelector && span.querySelector('.is-falling, .is-dropping'));
-      if(!hasFalling) return;
-    }
-    if(animate && typeof gcPhysicsLikeCount === 'function'){
-      gcPhysicsLikeCount(span, n);
+    var fmt = (typeof gcFmtCount === 'function') ? gcFmtCount(n) : String(n);
+    /* Instant update always — no animation path */
+    var num = span.querySelector('.like-count-num');
+    if(num){
+      span.querySelectorAll('.like-count-num').forEach(function(el, i){
+        if(i === 0){ el.className = 'like-count-num'; el.textContent = fmt; }
+        else try{ el.remove(); }catch(e){}
+      });
     } else {
-      var fmt = (typeof gcFmtCount === 'function') ? gcFmtCount(n) : String(n);
-      var num = span.querySelector('.like-count-num');
-      if(num){
-        // Clear leftover animation nodes
-        span.querySelectorAll('.like-count-num').forEach(function(el, i){
-          if(i === 0){ el.className = 'like-count-num'; el.textContent = fmt; }
-          else try{ el.remove(); }catch(e){}
-        });
-      } else {
+      /* clear any leftover falling nodes then set text */
+      try{
+        span.querySelectorAll('.is-falling, .is-dropping').forEach(function(el){ el.remove(); });
+      }catch(e){}
+      if(span.childElementCount === 0){
         span.textContent = fmt;
+      } else {
+        span.innerHTML = '<span class="like-count-num">'+fmt+'</span>';
       }
     }
   }
@@ -42669,7 +42665,7 @@ window.gcCloseSheetSafe = gcCloseSheetSafe;
             gcRollupNotifyRemove(__rmOwner, 'like', pid, uid);
           }
         }catch(e){}
-        gcSyncEngagementUI(pid, { liked: false, count: likes, reaction: null, animate: true });
+        gcSyncEngagementUI(pid, { liked: false, count: likes, reaction: null, animate: false });
         try{ if(typeof gcPaintShortReaction === 'function') gcPaintShortReaction(pid, null, false, likes); }catch(e){}
         return;
       }
