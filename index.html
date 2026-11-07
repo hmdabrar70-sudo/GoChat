@@ -5900,13 +5900,69 @@ display:block;
 খুঁজতে: Ctrl+F → "custom-vplayer"
 ========================================= */
 .gc-vplayer{position:relative;width:100%;max-height:440px;border-radius:16px;overflow:hidden;background:transparent;display:flex;align-items:center;justify-content:flex-start;}
-/* Feed / Profile / Single View — moderate Threads-like size. Full frame, no crop, no side letterbox box.
-   Shorts (.gc-shorts / .gc-short-item) is separate and not affected. */
+/* Default (Profile / Single) — keep previous moderate sizing */
 .gc-vplayer.gc-tall-video{width:fit-content;max-width:100%;height:auto;min-height:0;}
 .gc-vplayer.gc-tall-video video{width:auto;max-width:100%;height:auto;max-height:340px;display:block;object-fit:contain;border-radius:16px;background:#000;}
 .gc-vplayer.gc-wide-video{width:100%;}
 .gc-vplayer.gc-wide-video video{width:100%;height:auto;max-height:300px;display:block;object-fit:contain;border-radius:16px;background:#000;}
 .gc-vplayer video{display:block;object-fit:contain;border-radius:16px;}
+
+/* ═══ Home Feed only · aspect-ratio safe video sizing ═══
+   Original AR preserved (object-fit:contain). Max height caps so tall clips
+   do not dominate the feed. Shorts / profile grid untouched. */
+#page-feed .gc-vplayer,
+#feed-list .gc-vplayer{
+  width:100%;
+  max-width:100%;
+  max-height:min(68vh, 460px);
+  margin:0 auto;
+  background:#000;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  overflow:hidden;
+  border-radius:16px;
+}
+#page-feed .gc-vplayer video,
+#feed-list .gc-vplayer video{
+  width:100%;
+  height:auto;
+  max-width:100%;
+  max-height:min(68vh, 460px);
+  object-fit:contain;
+  object-position:center center;
+  display:block;
+  background:#000;
+  border-radius:16px;
+}
+#page-feed .gc-vplayer.gc-tall-video,
+#feed-list .gc-vplayer.gc-tall-video{
+  width:100%;
+  max-width:100%;
+  justify-content:center;
+}
+#page-feed .gc-vplayer.gc-tall-video video,
+#feed-list .gc-vplayer.gc-tall-video video{
+  width:auto;
+  max-width:100%;
+  height:auto;
+  max-height:min(65vh, 420px);
+  object-fit:contain;
+}
+#page-feed .gc-vplayer.gc-wide-video video,
+#feed-list .gc-vplayer.gc-wide-video video{
+  width:100%;
+  height:auto;
+  max-height:min(52vw, 300px);
+  object-fit:contain;
+}
+#page-feed .gc-vplayer.gc-square-video video,
+#feed-list .gc-vplayer.gc-square-video video{
+  width:100%;
+  height:auto;
+  max-height:min(100vw, 360px);
+  object-fit:contain;
+}
 .gc-vp-center{display:none !important;}
 .gc-vp-center i{font-size:28px;color:#1a1a2e;margin-left:3px;}
 .gc-vp-center.hide{opacity:0;pointer-events:none;transform:translate(-50%,-50%) scale(.8);}
@@ -33073,50 +33129,135 @@ async function uploadAndSendVoice(audioBlob, session) {
 }
 
 // ==========================================
-// 🚀 SMART BACK BUTTON & HISTORY MANAGER
+// 🚀 GCNav — Central Android / Browser Back Stack
+// Feature logic unchanged; history stack for system Back only.
 // ==========================================
-let backPressTimer = null;
-let gcBackEventInProgress = false;
+(function (global) {
+  var backPressTimer = null;
+  var inPop = false;
 
-// Keep one guarded app-entry state. This remains the existing History/popstate
-// strategy; it deliberately does not introduce a competing native/JS back system.
-try {
-    history.pushState({ page: 'gochat_home', gcBackGuard: true }, "", window.location.href);
-} catch (e) {
-    console.warn('GoChat back-history initialization failed', e);
-}
+  var GCNav = {
+    stack: [],
+    push: function (id, closer) {
+      try {
+        if (!id) return;
+        var top = this.stack[this.stack.length - 1];
+        if (top && top.id === id) return;
+        this.stack.push({
+          id: String(id),
+          closer: typeof closer === 'function' ? closer : null
+        });
+        history.pushState(
+          { gcNav: String(id), depth: this.stack.length, t: Date.now() },
+          '',
+          location.href
+        );
+      } catch (e) {}
+    },
+    didClose: function (id) {
+      try {
+        if (inPop) return;
+        id = String(id || '');
+        var i, removed = false;
+        for (i = this.stack.length - 1; i >= 0; i--) {
+          if (this.stack[i].id === id) {
+            this.stack.splice(i, 1);
+            removed = true;
+            break;
+          }
+        }
+        if (removed) {
+          inPop = true;
+          try { history.back(); } catch (e) {}
+          setTimeout(function () { inPop = false; }, 120);
+        }
+      } catch (e) { inPop = false; }
+    },
+    handlePop: function () {
+      if (inPop) {
+        inPop = false;
+        GCNav.ensureBuffer();
+        return true;
+      }
+      if (this.stack.length) {
+        var top = this.stack.pop();
+        inPop = true;
+        try {
+          if (top.closer) top.closer();
+          else if (typeof closeTopMostView === 'function') closeTopMostView();
+        } catch (e) {
+          console.error('GCNav closer failed', e);
+        }
+        inPop = false;
+        GCNav.ensureBuffer();
+        return true;
+      }
+      var consumed = false;
+      try {
+        inPop = true;
+        if (typeof closeTopMostView === 'function') consumed = !!closeTopMostView();
+      } catch (e) {
+        console.error('closeTopMostView failed', e);
+      }
+      inPop = false;
+      if (consumed) {
+        GCNav.ensureBuffer();
+        return true;
+      }
+      return false;
+    },
+    ensureBuffer: function () {
+      try {
+        history.pushState(
+          { gcNav: 'buffer', depth: this.stack.length, t: Date.now() },
+          '',
+          location.href
+        );
+      } catch (e) {}
+    },
+    clear: function () { this.stack = []; }
+  };
 
-window.addEventListener('popstate', function(event) {
-    // Ignore a duplicate/re-entrant popstate while the current layer is closing.
-    if (gcBackEventInProgress) return;
-    gcBackEventInProgress = true;
-    let consumed = false;
+  global.GCNav = GCNav;
+  global.gcMsgPushLayer = function (layerId) {
+    GCNav.push(layerId || 'layer', function () {
+      try { if (typeof closeTopMostView === 'function') closeTopMostView(); } catch (e) {}
+    });
+  };
+  global.gcMsgHistGuardPush = function () { GCNav.ensureBuffer(); };
+  global.gcMsgLayerOpen = function () { return GCNav.stack.length > 0; };
+
+  try {
+    history.pushState({ gcNav: 'root', depth: 0 }, '', location.href);
+  } catch (e) {
+    console.warn('GCNav root history init failed', e);
+  }
+
+  global.addEventListener('popstate', function () {
+    if (inPop) {
+      inPop = false;
+      GCNav.ensureBuffer();
+      return;
+    }
+    var handled = false;
     try {
-        consumed = closeTopMostView();
+      handled = GCNav.handlePop();
     } catch (e) {
-        console.error('GoChat Back handling failed', e);
+      console.error('GCNav popstate error', e);
     }
+    if (handled) return;
 
-    if (consumed) {
-        try { history.pushState({ page: 'gochat_home', gcBackGuard: true }, "", window.location.href); }
-        catch (e) { console.warn('Could not restore GoChat history guard', e); }
-        gcBackEventInProgress = false;
-        return;
-    }
-
-    // No in-app layer was open: preserve the existing double-press exit behavior.
     if (backPressTimer) {
-        clearTimeout(backPressTimer);
-        backPressTimer = null;
-        gcBackEventInProgress = false;
+      clearTimeout(backPressTimer);
+      backPressTimer = null;
     } else {
-        try { showToast("Press back again to exit"); } catch (e) {}
-        try { history.pushState({ page: 'gochat_home', gcBackGuard: true }, "", window.location.href); }
-        catch (e) { console.warn('Could not restore GoChat exit guard', e); }
-        backPressTimer = setTimeout(function() { backPressTimer = null; }, 2000);
-        gcBackEventInProgress = false;
+      try { if (typeof showToast === 'function') showToast('Press back again to exit'); } catch (e) {}
+      GCNav.ensureBuffer();
+      backPressTimer = setTimeout(function () { backPressTimer = null; }, 2000);
     }
-});
+  });
+})(window);
+
 
 function closeTopMostView() {
     // Phase 1 migration coverage: handle frequently used feature-level layers
@@ -33454,11 +33595,159 @@ function closeTopMostView() {
 }
 
 
-// BACK NAVIGATION MIGRATION STATUS: Phase 1 complete in this file.
-// Covered here: core popstate guard + the explicitly registered feature layers above.
-// Remaining UI inventory/native APK verification is not yet complete.
-
 // ==========================================
+// GCNav — wire open/close pairs (features unchanged)
+// ==========================================
+(function installGCNavBindings() {
+  if (!window.GCNav) return;
+
+  function wrapPair(openName, closeName, layerId, isOpenCheck) {
+    var openFn = window[openName];
+    var closeFn = window[closeName];
+    if (typeof openFn !== 'function' || typeof closeFn !== 'function') return;
+    window[openName] = function () {
+      var already = false;
+      try { if (typeof isOpenCheck === 'function') already = !!isOpenCheck(); } catch (e) {}
+      var result = openFn.apply(this, arguments);
+      try {
+        if (!already) {
+          GCNav.push(layerId, function () {
+            try { closeFn(); } catch (e) {}
+          });
+        }
+      } catch (e) {}
+      return result;
+    };
+    window[closeName] = function () {
+      var result = closeFn.apply(this, arguments);
+      try { GCNav.didClose(layerId); } catch (e) {}
+      return result;
+    };
+  }
+  function elOpen(id, mode) {
+    return function () {
+      var el = document.getElementById(id);
+      if (!el) return false;
+      if (mode === 'display-flex') return el.style.display === 'flex';
+      if (mode === 'show') return el.classList.contains('show');
+      return el.classList.contains('open');
+    };
+  }
+
+  wrapPair('openChat', 'closeChat', 'chat-screen', elOpen('chat-screen', 'open'));
+  wrapPair('openQuickProfile', 'closeQuickProfile', 'quick-profile', elOpen('quick-profile-modal', 'open'));
+  wrapPair('openAdvancedPrivacy', 'closeAdvancedPrivacy', 'advanced-privacy', elOpen('advanced-privacy-modal', 'open'));
+  wrapPair('openChatSettingsScreen', 'closeChatSettingsScreen', 'chat-settings', elOpen('chat-settings-screen', 'display-flex'));
+  wrapPair('openChatPrivacyPage', 'closeChatPrivacyPage', 'chat-privacy', elOpen('chat-privacy-screen', 'display-flex'));
+  wrapPair('openGroupInfoModal', 'closeGroupInfoModal', 'group-info', elOpen('group-info-modal', 'open'));
+  wrapPair('openCreateGroupModal', 'closeCreateGroupModal', 'create-group', elOpen('create-group-modal', 'open'));
+  wrapPair('gcOpenChatVideoViewer', 'gcCloseChatVideoViewer', 'chat-video', elOpen('gc-chat-video-viewer', 'open'));
+  wrapPair('openCreatePost', 'closeCreatePost', 'create-post', elOpen('create-post-screen', 'open'));
+  wrapPair('openSinglePostView', 'closeSinglePost', 'single-post', elOpen('single-post-screen', 'open'));
+  wrapPair('openCommentPanel', 'closeCommentPanel', 'comment-panel', elOpen('comment-panel', 'open'));
+  wrapPair('openImageZoom', 'closeImageZoom', 'image-zoom', function () {
+    var a = document.getElementById('image-zoom-modal');
+    var b = document.getElementById('gc-image-zoom');
+    return (a && a.classList.contains('open')) || (b && b.classList.contains('open'));
+  });
+  wrapPair('openFriendsListModal', 'closeFriendsListModal', 'friends-list', elOpen('friends-list-modal', 'open'));
+  wrapPair('openTagModal', 'closeTagModal', 'tag-modal', elOpen('tag-modal', 'open'));
+  wrapPair('openEditPostModal', 'closeEditPostModal', 'edit-post', elOpen('edit-post-modal', 'open'));
+  wrapPair('openSettingsPrivacy', 'closeSettingsPrivacy', 'settings-privacy', elOpen('settings-privacy-screen', 'open'));
+  wrapPair('openLeaderboard', 'closeLeaderboard', 'leaderboard', elOpen('page-leaderboard', 'open'));
+  wrapPair('openBlockedAccountsPage', 'closeBlockedAccountsPage', 'blocked-accounts', elOpen('blocked-accounts-screen', 'display-flex'));
+  wrapPair('openMainMenu', 'closeMainMenu', 'main-menu', function () {
+    var el = document.getElementById('main-menu-screen');
+    return el && el.style.display === 'flex';
+  });
+  wrapPair('openMainSettingsScreen', 'closeMainSettingsScreen', 'main-settings', function () {
+    var el = document.getElementById('main-settings-screen');
+    return el && el.style.display === 'flex';
+  });
+  wrapPair('gcOpenHomeDrawer', 'gcCloseHomeDrawer', 'home-drawer', function () {
+    var hd = document.getElementById('gc-home-drawer');
+    return hd && hd.classList.contains('open');
+  });
+  wrapPair('openOfficialAnnouncement', 'closeOfficialAnnouncement', 'announcement', function () {
+    var ov = document.getElementById('gc-official-announcement') || document.getElementById('official-announcement-overlay');
+    return ov && (ov.classList.contains('open') || ov.style.display === 'flex');
+  });
+  wrapPair('gcOpenCoverEditor', 'gcCloseCoverEditor', 'cover-editor', elOpen('gc-cover-editor', 'open'));
+  wrapPair('gcOpenAvatarEditor', 'gcCloseAvatarEditor', 'avatar-editor', elOpen('gc-avatar-editor', 'open'));
+
+  if (typeof window.closeStory === 'function') {
+    var _cs = window.closeStory;
+    window.closeStory = function () {
+      var r = _cs.apply(this, arguments);
+      try { GCNav.didClose('story-viewer'); } catch (e) {}
+      return r;
+    };
+  }
+  if (typeof window.closeUserProfile === 'function') {
+    var _cup = window.closeUserProfile;
+    window.closeUserProfile = function () {
+      var r = _cup.apply(this, arguments);
+      try { GCNav.didClose('other-profile'); } catch (e) {}
+      return r;
+    };
+  }
+
+  if (typeof window.showPage === 'function') {
+    var _showPage = window.showPage;
+    window.showPage = function (page) {
+      var prev = null;
+      try {
+        var active = document.querySelector('.page.active');
+        if (active && active.id) prev = active.id.replace(/^page-/, '');
+      } catch (e) {}
+      var result = _showPage.apply(this, arguments);
+      try {
+        if (page && page !== 'feed' && prev === 'feed') {
+          GCNav.push('tab-' + page, function () {
+            try { _showPage('feed'); } catch (e) {}
+          });
+        }
+        if (page === 'feed') {
+          GCNav.stack = GCNav.stack.filter(function (s) {
+            return String(s.id).indexOf('tab-') !== 0;
+          });
+        }
+      } catch (e) {}
+      return result;
+    };
+  }
+
+  if (typeof window.gcToggleChatAttach === 'function') {
+    var _tog = window.gcToggleChatAttach;
+    window.gcToggleChatAttach = function () {
+      var panel = document.getElementById('gc-chat-attach-panel');
+      var was = panel && panel.classList.contains('open');
+      var result = _tog.apply(this, arguments);
+      try {
+        var now = panel && panel.classList.contains('open');
+        if (!was && now) {
+          GCNav.push('chat-attach', function () {
+            try { if (typeof gcCloseChatAttach === 'function') gcCloseChatAttach(); } catch (e) {}
+          });
+        } else if (was && !now) {
+          GCNav.didClose('chat-attach');
+        }
+      } catch (e) {}
+      return result;
+    };
+  }
+  if (typeof window.gcCloseChatAttach === 'function') {
+    var _ca = window.gcCloseChatAttach;
+    window.gcCloseChatAttach = function () {
+      var r = _ca.apply(this, arguments);
+      try { GCNav.didClose('chat-attach'); } catch (e) {}
+      return r;
+    };
+  }
+
+  console.log('[GCNav] bindings installed');
+})();
+
 // 🚀 NOTIFICATION BATCH DELETE SYSTEM 🚀
 // ==========================================
 let isNotifEditMode = false;
@@ -39906,25 +40195,42 @@ v.addEventListener('ended', function(){ v.gcUserPaused = false; showControls(); 
 function gcApplyFeedVideoSizing(){
   try{
     if(!v.videoWidth || !v.videoHeight) return;
+    /* Home Feed only — leave Profile / Single / Shorts sizing alone */
+    var inHomeFeed = false;
+    try {
+      inHomeFeed = !!(wrap.closest && (wrap.closest('#page-feed') || wrap.closest('#feed-list')));
+    } catch (e) {}
+    if (!inHomeFeed) return;
     const ratio = v.videoHeight / v.videoWidth;
-    const isTall = ratio > 1.05;
+    const isSquare = Math.abs(ratio - 1) <= 0.08;
+    const isTall = ratio > 1.08;
     wrap.classList.toggle('gc-tall-video', isTall);
-    wrap.classList.toggle('gc-wide-video', !isTall);
-    /* Moderate Threads-like caps (Home/Profile/Single). Full frame, no crop. Shorts untouched. */
-    if(isTall){
-      const cap = 440;
-      v.style.maxHeight = cap + 'px';
+    wrap.classList.toggle('gc-wide-video', !isTall && !isSquare);
+    wrap.classList.toggle('gc-square-video', isSquare);
+    /* Natural AR; height follows width; capped so feed stays scrollable */
+    var vh = window.innerHeight || 640;
+    var vw = Math.min(window.innerWidth || 390, 520);
+    if (isTall) {
+      var tallCap = Math.round(Math.min(vh * 0.65, 420));
       v.style.width = 'auto';
       v.style.height = 'auto';
       v.style.maxWidth = '100%';
-      v.style.objectFit = 'contain';
-    }else{
+      v.style.maxHeight = tallCap + 'px';
+    } else if (isSquare) {
+      var sqCap = Math.round(Math.min(vw * 0.92, 360));
       v.style.width = '100%';
       v.style.height = 'auto';
-      v.style.maxHeight = '300px';
       v.style.maxWidth = '100%';
-      v.style.objectFit = 'contain';
+      v.style.maxHeight = sqCap + 'px';
+    } else {
+      var wideCap = Math.round(Math.min(vw * 0.52, 300));
+      v.style.width = '100%';
+      v.style.height = 'auto';
+      v.style.maxWidth = '100%';
+      v.style.maxHeight = wideCap + 'px';
     }
+    v.style.objectFit = 'contain';
+    v.style.objectPosition = 'center center';
   }catch(e){}
 }
 v.addEventListener('loadedmetadata', function(){
