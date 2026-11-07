@@ -2462,22 +2462,97 @@ body.gc-chat-popup-open #chat-messages{
 
 .comment-panel{
 display:none;position:fixed;inset:0;
-background:var(--bg);z-index:999;
-flex-direction:column;
+background:rgba(0,0,0,0.42);z-index:10060;
+flex-direction:column;justify-content:flex-end;
+align-items:stretch;
+padding:0; margin:0;
 }
-.comment-panel.open{display:flex;animation:slideUp 0.3s ease;}
-@keyframes slideUp{from{transform:translateY(100%);}to{transform:translateY(0);}}
+.comment-panel.open{display:flex;}
+.comment-panel .gc-cs-sheet{
+  background:var(--surface);
+  border-radius:18px 18px 0 0;
+  max-height:min(92vh, 920px);
+  height:min(88vh, 860px);
+  display:flex;flex-direction:column;
+  box-shadow:0 -8px 40px rgba(0,0,0,0.22);
+  transform:translateY(100%);
+  transition:transform 0.28s cubic-bezier(0.22,1,0.36,1);
+  overflow:hidden;
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+.comment-panel.open .gc-cs-sheet{ transform:translateY(0); }
+.comment-panel .gc-cs-handle{
+  width:40px;height:4px;border-radius:4px;
+  background:var(--border);margin:10px auto 4px;flex-shrink:0;
+}
 .comment-panel-header{
-background:var(--surface);
-border-bottom:none;
-padding:16px 20px;
-display:flex;align-items:center;gap:12px;
+background:transparent;
+border-bottom:1px solid var(--border);
+padding:6px 16px 12px;
+display:flex;align-items:center;gap:12px;flex-shrink:0;
 }
+.comment-panel-header .chat-name{ font-weight:800; font-size:16px; flex:1; }
+.comment-panel-header .chat-back{
+  width:36px;height:36px;border-radius:50%;border:none;
+  background:var(--surface-2);color:var(--text);
+  display:flex;align-items:center;justify-content:center;cursor:pointer;
+}
+.gc-cs-preview{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 16px;border-bottom:1px solid var(--border);
+  flex-shrink:0; min-height:0;
+}
+.gc-cs-preview-av{
+  width:36px;height:36px;border-radius:50%;overflow:hidden;flex-shrink:0;
+  background:var(--surface-2);
+}
+.gc-cs-preview-av img{ width:100%;height:100%;object-fit:cover;display:block; }
+.gc-cs-preview-meta{ flex:1; min-width:0; }
+.gc-cs-preview-name{ font-size:13px;font-weight:700;color:var(--text);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+.gc-cs-preview-cap{ font-size:12px;color:var(--text-muted);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis; margin-top:2px; }
+.gc-cs-preview-thumb{
+  width:40px;height:40px;border-radius:8px;overflow:hidden;flex-shrink:0;
+  background:var(--surface-2);
+}
+.gc-cs-preview-thumb img{ width:100%;height:100%;object-fit:cover;display:block; }
 .comment-list{
-flex:1;overflow-y:auto;
-padding:16px;
-display:flex;flex-direction:column;gap:12px;
+flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;
+padding:12px 0 8px;
+display:flex;flex-direction:column;gap:4px;
+min-height:0;
 }
+@keyframes slideUp{from{transform:translateY(100%);}to{transform:translateY(0);}}
+
+/* Comment like row: Name .... count Like  (stable, overflow-safe) */
+.gc-c-head-row{
+  display:flex; align-items:center; gap:8px;
+  width:100%; min-width:0;
+}
+.gc-c-head-row .comment-author,
+.gc-c-head-row .gc-c-name{
+  flex:1 1 auto; min-width:0;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  margin-bottom:0 !important; font-size:13px; font-weight:700;
+}
+.gc-c-like-action{
+  flex:0 0 auto; display:inline-flex; align-items:center; gap:6px;
+  margin-left:auto; max-width:46%;
+  font-size:12px; font-weight:700; color:var(--text-muted);
+  cursor:pointer; user-select:none; white-space:nowrap;
+  -webkit-tap-highlight-color:transparent;
+}
+.gc-c-like-action .gc-c-like-count{
+  font-variant-numeric:tabular-nums;
+  min-width:0; max-width:7.5em;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  text-align:right;
+}
+.gc-c-like-action .gc-c-like-label{ flex-shrink:0; }
+.gc-c-like-action.liked,
+.gc-c-like-action.liked .gc-c-like-label{ color:var(--danger, #e11d48); }
+
 .comment-item {
     background: transparent;
     border: none;
@@ -10081,15 +10156,27 @@ transition:background .2s;
 .gc-vplayer.gc-controls-hidden .gc-vp-bar{opacity:0;visibility:hidden;pointer-events:none;}
 /* Facebook-style mute — always visible (only mute control on video) */
 .gc-vplayer .gc-vp-mute-float{
-  position:absolute; right:10px; bottom:28px; z-index:4;
-  width:36px; height:36px; border-radius:50%;
-  border:none; padding:0; cursor:pointer;
+  position:absolute; right:10px; bottom:28px; z-index:6;
+  width:36px; height:36px; min-width:36px; min-height:36px;
+  border-radius:50%;
+  border:none; padding:0; margin:0; cursor:pointer;
   display:flex; align-items:center; justify-content:center;
   background:rgba(0,0,0,0.55); color:#fff;
   box-shadow:0 2px 8px rgba(0,0,0,0.25);
   opacity:1 !important; visibility:visible !important; pointer-events:auto !important;
+  /* Stable box — icon swap must never reflow player */
+  box-sizing:border-box;
+  flex-shrink:0;
+  line-height:0;
+  -webkit-tap-highlight-color:transparent;
+  touch-action:manipulation;
+  transform:translateZ(0);
 }
-.gc-vplayer .gc-vp-mute-float i{ font-size:18px; color:#fff; }
+.gc-vplayer .gc-vp-mute-float i{
+  font-size:18px !important; width:18px; height:18px;
+  color:#fff; display:block; line-height:1;
+  pointer-events:none;
+}
 .gc-vplayer .gc-vp-bar .gc-vp-mute{ display:none !important; }
 
 .gc-vp-full,.gc-vp-dl,.gc-vp-center{display:none !important;}
@@ -14105,20 +14192,24 @@ body:not(.light-mode) .sp-comment-compose button.is-ready{
 #gc-chat-video-viewer.open{ display:flex; }
 .gc-cvv-top{
   position:absolute;top:0;left:0;right:0;z-index:3;
-  display:flex;align-items:center;justify-content:space-between;
+  display:flex;align-items:center;justify-content:flex-end;
   padding:12px 14px;padding-top:max(12px, env(safe-area-inset-top));
-  background:linear-gradient(rgba(0,0,0,0.55), transparent);
+  background:transparent;
   pointer-events:none;
 }
-.gc-cvv-top button{
-  width:42px;height:42px;border-radius:50%;border:none;cursor:pointer;
-  background:rgba(255,255,255,0.12);color:#fff;
-  display:flex;align-items:center;justify-content:center;
+/* Reuse photo-viewer capsule chrome */
+.gc-cvv-top .zoom-actions-capsule{
+  position:static;
   pointer-events:auto;
 }
-.gc-cvv-top button svg{ width:22px;height:22px;display:block; }
-.gc-cvv-top button:active{ transform:scale(0.92); }
-.gc-cvv-menu-wrap{ position:relative; pointer-events:auto; }
+.gc-cvv-top .zoom-actions-capsule .zoom-cap-btn{
+  color:#fff !important;
+}
+.gc-cvv-top .zoom-actions-capsule .zoom-cap-btn svg{
+  width:20px;height:20px;display:block;
+  color:#fff; stroke:currentColor;
+}
+.gc-cvv-menu-wrap{ position:relative; pointer-events:auto; display:inline-flex; }
 .gc-cvv-menu{
   /* Hidden source items — opened via Threads-style gc-sheet (same as Photo Viewer) */
   display:none !important;position:absolute;right:0;top:44px;min-width:180px;
@@ -15661,16 +15752,15 @@ l-137 -640 -193 -3 -193 -2 4 22 c2 13 67 314 144 671 l139 647 192 0 193 0
 </div>
 </div>
 
-<div id="comment-panel" class="comment-panel">
+<div id="comment-panel" class="comment-panel" onclick="if(event.target===this)closeCommentPanel()">
+<div class="gc-cs-sheet" onclick="event.stopPropagation()">
+<div class="gc-cs-handle" aria-hidden="true"></div>
 <div class="comment-panel-header">
-<div style="display:flex;align-items:center;gap:12px;">
-<div class="chat-back" onclick="closeCommentPanel()"><i class="ph-light ph-x"></i></div>
-<div style="font-weight:800;font-size:18px;">Comments</div>
+<div class="chat-back" onclick="closeCommentPanel()" aria-label="Close"><i class="ph-light ph-x"></i></div>
+<div class="chat-name">Comments</div>
 </div>
-</div>
+<div id="gc-cs-preview" class="gc-cs-preview" style="display:none;"></div>
 <div id="comment-list" class="comment-list"></div>
-
-
 <div class="comment-input-bar">
     <div id="comment-composer-avatar" class="gc-comment-composer-avatar" aria-hidden="true"></div>
     <input type="text" id="comment-panel-input" placeholder="Write a comment..." oninput="if(typeof gcUpdateCommentSendState==='function') gcUpdateCommentSendState();" onkeypress="if(event.key==='Enter'){ if(typeof gcUpdateCommentSendState==='function' && !document.getElementById('comment-panel-send-btn').classList.contains('is-ready')) return; sendCommentWithImage(); }">
@@ -15679,7 +15769,8 @@ l-137 -640 -193 -3 -193 -2 4 22 c2 13 67 314 144 671 l139 647 192 0 193 0
     </button>
 </div>
 <div class="mention-dropdown" id="comment-mention-dropdown"></div>
-</div>
+</div><!-- /.gc-cs-sheet -->
+</div><!-- /#comment-panel -->
 <div id="chat-screen">
 <div class="chat-topbar">
 <div class="chat-back" onclick="closeChat()"><i class="ph-light ph-arrow-left"></i></div>
@@ -15896,17 +15987,19 @@ l-137 -640 -193 -3 -193 -2 4 22 c2 13 67 314 144 671 l139 647 192 0 193 0
 <!-- Chat video fullscreen viewer -->
 <div id="gc-chat-video-viewer" aria-hidden="true">
   <div class="gc-cvv-top">
-    <button type="button" onclick="gcCloseChatVideoViewer()" aria-label="Close">
-      <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M0 0h24v24H0z" fill="none"/><path fill="currentColor" d="M18.4765 4.46964C18.7694 4.17681 19.2442 4.17677 19.5371 4.46964C19.8298 4.76253 19.8298 5.23734 19.5371 5.53019L13.0634 12.0028L19.5302 18.4696C19.8229 18.7625 19.823 19.2373 19.5302 19.5302C19.2374 19.823 18.7626 19.8229 18.4697 19.5302L12.0029 13.0634L5.53705 19.5302C5.2442 19.823 4.76939 19.8229 4.47651 19.5302C4.18363 19.2373 4.18367 18.7625 4.47651 18.4696L10.9423 12.0028L4.46967 5.53019C4.17678 5.2373 4.17678 4.76253 4.46967 4.46964C4.76257 4.1768 5.23734 4.17677 5.53022 4.46964L12.0029 10.9423L18.4765 4.46964Z"/></svg>
-    </button>
-    <div class="gc-cvv-menu-wrap">
-      <button type="button" onclick="gcToggleChatVideoMenu(event)" aria-label="More">
-        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM12.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM18.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z"/></svg>
-      </button>
-      <div class="gc-cvv-menu" id="gc-cvv-menu">
-        <div class="chat-dropdown-item" onclick="gcShareChatVideo(event)"><span style="width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none"/><path fill="currentColor" fill-rule="evenodd" d="M10.7521 1.99364C10.7556 2.40784 10.4226 2.74646 10.0084 2.74997C8.29884 2.76447 7.03889 2.82006 6.06281 3.01125C5.10767 3.19835 4.47982 3.50532 3.99518 3.98996C3.42533 4.55981 3.09834 5.33078 2.92642 6.60954C2.75159 7.90987 2.75 9.61855 2.75 11.9974C2.75 14.3762 2.75159 16.0849 2.92642 17.3852C3.09834 18.664 3.42533 19.435 3.99518 20.0048C4.56503 20.5747 5.336 20.9017 6.61476 21.0736C7.91509 21.2484 9.62377 21.25 12.0026 21.25C14.3814 21.25 16.0901 21.2484 17.3905 21.0736C18.6692 20.9017 19.4402 20.5747 20.01 20.0048C20.4947 19.5202 20.8017 18.8923 20.9887 17.9372C21.1799 16.9611 21.2355 15.7012 21.25 13.9916C21.2535 13.5774 21.5922 13.2444 22.0064 13.2479C22.4206 13.2515 22.7535 13.5901 22.75 14.0043C22.7355 15.7087 22.6819 17.0968 22.4608 18.2255C22.2356 19.3752 21.8272 20.309 21.0707 21.0655C20.1757 21.9605 19.0354 22.3659 17.5903 22.5602C16.1785 22.75 14.369 22.75 12.06 22.75H11.9452C9.63623 22.75 7.82673 22.75 6.41488 22.5602C4.96979 22.3659 3.82952 21.9605 2.93452 21.0655C2.03952 20.1705 1.63408 19.0302 1.43979 17.5851C1.24998 16.1733 1.24999 14.3638 1.25 12.0548V11.94C1.24999 9.63101 1.24998 7.82151 1.43979 6.40967C1.63408 4.96458 2.03952 3.8243 2.93452 2.9293C3.69102 2.1728 4.62478 1.76443 5.77447 1.53923C6.90322 1.31813 8.29131 1.26448 9.99573 1.25003C10.4099 1.24652 10.7485 1.57944 10.7521 1.99364ZM16.4697 1.46967C16.7626 1.17678 17.2374 1.17678 17.5303 1.46967L22.5303 6.46967C22.8232 6.76256 22.8232 7.23744 22.5303 7.53033L17.5303 12.5303C17.2374 12.8232 16.7626 12.8232 16.4697 12.5303C16.1768 12.2374 16.1768 11.7626 16.4697 11.4697L20.1893 7.75H14C12.4485 7.75 11.5328 8.50701 11.212 8.82933L11.0199 9.02244L10.8293 9.21204C10.507 9.53279 9.75 10.4485 9.75 12V15C9.75 15.4142 9.41421 15.75 9 15.75C8.58579 15.75 8.25 15.4142 8.25 15V12C8.25 9.91622 9.27703 8.64063 9.77125 8.14881C9.77125 8.14881 9.77125 8.14881 9.77125 8.14881L9.96178 7.9592L10.1488 7.77125C10.6406 7.27703 11.9162 6.25 14 6.25H20.1893L16.4697 2.53033C16.1768 2.23744 16.1768 1.76256 16.4697 1.46967Z" clip-rule="evenodd"/></svg></span> Share via...</div>
-        <div class="chat-dropdown-item" onclick="gcSaveChatVideo(event)"><span style="width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none"/><g fill="currentColor"><path d="M12.5535 16.5061C12.4114 16.6615 12.2106 16.75 12 16.75C11.7894 16.75 11.5886 16.6615 11.4465 16.5061L7.44648 12.1311C7.16698 11.8254 7.18822 11.351 7.49392 11.0715C7.79963 10.792 8.27402 10.8132 8.55352 11.1189L11.25 14.0682V3C11.25 2.58579 11.5858 2.25 12 2.25C12.4142 2.25 12.75 2.58579 12.75 3V14.0682L15.4465 11.1189C15.726 10.8132 16.2004 10.792 16.5061 11.0715C16.8118 11.351 16.833 11.8254 16.5535 12.1311L12.5535 16.5061Z"/><path d="M3.75 15C3.75 14.5858 3.41422 14.25 3 14.25C2.58579 14.25 2.25 14.5858 2.25 15V15.0549C2.24998 16.4225 2.24996 17.5248 2.36652 18.3918C2.48754 19.2919 2.74643 20.0497 3.34835 20.6516C3.95027 21.2536 4.70814 21.5125 5.60825 21.6335C6.47522 21.75 7.57754 21.75 8.94513 21.75H15.0549C16.4225 21.75 17.5248 21.75 18.3918 21.6335C19.2919 21.5125 20.0497 21.2536 20.6517 20.6516C21.2536 20.0497 21.5125 19.2919 21.6335 18.3918C21.75 17.5248 21.75 16.4225 21.75 15.0549V15C21.75 14.5858 21.4142 14.25 21 14.25C20.5858 14.25 20.25 14.5858 20.25 15C20.25 16.4354 20.2484 17.4365 20.1469 18.1919C20.0482 18.9257 19.8678 19.3142 19.591 19.591C19.3142 19.8678 18.9257 20.0482 18.1919 20.1469C17.4365 20.2484 16.4354 20.25 15 20.25H9C7.56459 20.25 6.56347 20.2484 5.80812 20.1469C5.07435 20.0482 4.68577 19.8678 4.40901 19.591C4.13225 19.3142 3.9518 18.9257 3.85315 18.1919C3.75159 17.4365 3.75 16.4354 3.75 15Z"/></g></svg></span> Save video</div>
+    <div class="zoom-actions-capsule" onclick="event.stopPropagation()">
+      <div class="gc-cvv-menu-wrap">
+        <button type="button" class="zoom-cap-btn" onclick="gcToggleChatVideoMenu(event)" aria-label="More">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM12.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM18.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z"/></svg>
+        </button>
+        <div class="gc-cvv-menu" id="gc-cvv-menu">
+          <div class="chat-dropdown-item" onclick="gcShareChatVideo(event)"><i class="ph-light ph-export"></i> Share via...</div>
+          <div class="chat-dropdown-item" onclick="gcSaveChatVideo(event)"><i class="ph-light ph-download-simple"></i> Save video</div>
+        </div>
       </div>
+      <button type="button" class="zoom-cap-btn image-zoom-close" onclick="event.stopPropagation();gcCloseChatVideoViewer()" aria-label="Close">
+        <i class="ph-light ph-x"></i>
+      </button>
     </div>
   </div>
   <div class="gc-cvv-stage">
@@ -21563,17 +21656,81 @@ function gcSyncShortsCache(pid, likes, likedBy, reactions){
 }
 window.gcSyncShortsCache = gcSyncShortsCache;
 
-async function openCommentPanel(pid) {
-    // Home/feed comment → single post view (post + comments). Dedicated panel kept as fallback.
-    if(typeof openSinglePostView === 'function'){
-      try{ openSinglePostView(pid); return; }catch(e){}
+
+/* ═══ Post card click · feed does NOT open single view ═══ */
+function gcOnPostCardClick(event, pid){
+  try{
+    if(event && event.target && event.target.closest){
+      if(event.target.closest('.post-action-btn, .post-more-wrap, a, button, .gc-vplayer, .gc-vp-mute-float, .gc-see-more-btn')) return;
     }
+  }catch(e){}
+  /* Feed context → no single view */
+  try{
+    var inFeed = false;
+    if(event && event.target && event.target.closest){
+      if(event.target.closest('#page-feed, #feed-list, #page-home, .feed-list, #home-feed')) inFeed = true;
+    }
+    var feedPage = document.getElementById('page-feed');
+    if(feedPage && feedPage.classList.contains('active')) inFeed = true;
+    var homePage = document.getElementById('page-home');
+    if(homePage && homePage.classList.contains('active')) inFeed = true;
+    if(inFeed) return;
+  }catch(e){}
+  if(typeof openSinglePostView === 'function') openSinglePostView(pid);
+}
+window.gcOnPostCardClick = gcOnPostCardClick;
+
+function gcOpenCommentsSheet(pid){
+  if(typeof openCommentPanel === 'function') return openCommentPanel(pid);
+}
+window.gcOpenCommentsSheet = gcOpenCommentsSheet;
+
+async function gcFillCommentsPostPreview(pid){
+  var box = document.getElementById('gc-cs-preview');
+  if(!box || !pid) return;
+  try{
+    var doc = await db.collection('posts').doc(pid).get();
+    if(!doc.exists){ box.style.display = 'none'; return; }
+    var p = doc.data() || {};
+    var uid = p.uid || '';
+    var name = p.name || 'User';
+    var av = p.avatar || '';
+    try{
+      if((!av || !name || name==='User') && typeof allUsersCache !== 'undefined' && allUsersCache){
+        var u = allUsersCache.find(function(x){ return x && x.id === uid; });
+        if(u){ if(u.name) name = u.name; if(u.avatar) av = u.avatar; }
+      }
+    }catch(e){}
+    var cap = String(p.title || p.text || '').replace(/\s+/g,' ').trim();
+    if(cap.length > 90) cap = cap.slice(0, 87) + '…';
+    var thumb = '';
+    if(p.imgUrls && p.imgUrls[0]) thumb = p.imgUrls[0];
+    else if(p.imgUrl) thumb = p.imgUrl;
+    else if(p.videoThumb || p.poster) thumb = p.videoThumb || p.poster;
+    var avHtml = av ? '<img src="'+escapeHTML(av)+'" alt="">' : (typeof avatarInitial==='function' ? avatarInitial(name) : '');
+    var thHtml = thumb ? '<div class="gc-cs-preview-thumb"><img src="'+escapeHTML(thumb)+'" alt=""></div>' : '';
+    box.innerHTML = '<div class="gc-cs-preview-av">'+avHtml+'</div>'
+      + '<div class="gc-cs-preview-meta"><div class="gc-cs-preview-name">'+escapeHTML(name)+'</div>'
+      + (cap ? '<div class="gc-cs-preview-cap">'+escapeHTML(cap)+'</div>' : '') + '</div>' + thHtml;
+    box.style.display = 'flex';
+  }catch(e){
+    box.style.display = 'none';
+  }
+}
+window.gcFillCommentsPostPreview = gcFillCommentsPostPreview;
+
+async function openCommentPanel(pid) {
+    /* Independent Comments Bottom Sheet — does NOT open Single View */
+    if(!pid) return;
     activeCommentPostId = pid;
-    document.getElementById('comment-panel').classList.add('open');
+    var panel = document.getElementById('comment-panel');
+    if(panel) panel.classList.add('open');
+    try{ if(typeof gcLockScroll==='function') gcLockScroll(); }catch(e){}
     try{ if(typeof gcFillCommentComposerAvatars==='function') gcFillCommentComposerAvatars(); }catch(e){}
+    try{ if(typeof gcFillCommentsPostPreview==='function') gcFillCommentsPostPreview(pid); }catch(e){}
     if (commentPanelListener) commentPanelListener();
 
-    // Unlock comment bar + apply reply privacy restriction (merged from reply-privacy wrapper)
+    // Unlock comment bar + apply reply privacy restriction
     if (typeof gcUnlockCommentBar === 'function') gcUnlockCommentBar();
     setTimeout(function(){ if (typeof gcApplyReplyRestriction === 'function') gcApplyReplyRestriction(pid); }, 350);
     
@@ -21686,18 +21843,7 @@ function gcOpenCommentFromNotif(postId){
   if(!postId) return;
   if(typeof openSinglePostView === 'function') openSinglePostView(postId);
   setTimeout(function(){
-    const wrap = document.querySelector('#single-post-container .sp-comments-wrap');
-    if(wrap){
-      wrap.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      wrap.classList.add('gc-comment-highlight');
-      setTimeout(function(){ wrap.classList.remove('gc-comment-highlight'); }, 1800);
-    }
-    // Also open comment panel briefly highlight list
-    setTimeout(function(){
-      if(typeof openCommentPanel === 'function'){
-        // stay on single view; comments already inline
-      }
-    }, 300);
+    if(typeof openCommentPanel === 'function') openCommentPanel(postId);
   }, 450);
 }
 window.gcOpenCommentFromNotif = gcOpenCommentFromNotif;
@@ -21779,13 +21925,18 @@ function gcBuildOneCommentHTML(pid, c, idx, where){
     + '<div class="avatar sm" style="flex-shrink:0;cursor:default;margin-top:2px;" onclick="event.stopPropagation();">' + commentAvHtml + '</div>'
     + '<div style="flex:1;min-width:0;">'
     +   '<div style="background:var(--surface-2);padding:10px 14px;border-radius:4px 18px 18px 18px;display:inline-block;border:1px solid var(--border);max-width:100%;">'
-    +     '<div class="comment-author" style="cursor:pointer;font-size:13px;margin-bottom:4px;" onclick="event.stopPropagation();' + closeFn + '();viewUserProfile(\'' + c.uid + '\')">' + safeCName + commentBadge + '</div>'
+    +     '<div class="gc-c-head-row">'
+    +       '<div class="comment-author gc-c-name" style="cursor:pointer;" onclick="event.stopPropagation();' + closeFn + '();viewUserProfile(\'' + c.uid + '\')">' + safeCName + commentBadge + '</div>'
+    +       '<span class="gc-c-like-action' + (liked ? ' liked' : '') + '" onclick="event.stopPropagation();gcToggleCommentLike(\'' + pid + '\',' + idx + ')">'
+    +         (likeCount ? '<span class="gc-c-like-count">' + likeCount + '</span>' : '')
+    +         '<span class="gc-c-like-label">Like</span>'
+    +       '</span>'
+    +     '</div>'
     +     (safeCText ? '<div class="gc-c-body-text" style="font-size:14px;color:var(--text);line-height:1.4;">' + safeCText + '</div>' : '')
     +   '</div>'
     +   commentImageHtml
     +   '<div class="gc-c-meta">'
     +     (timeLabel ? '<span class="gc-c-time">' + timeLabel + '</span>' : '')
-    +     '<span class="gc-c-btn' + (liked ? ' liked' : '') + '" onclick="event.stopPropagation();gcToggleCommentLike(\'' + pid + '\',' + idx + ')"><i class="' + (liked ? 'ph-fill' : 'ph-bold') + ' ph-heart" style="font-size:14px;"></i>' + (likeCount ? likeCount : '') + '</span>'
     +     '<span class="gc-c-btn gc-reply-link" title="Reply" onclick="event.stopPropagation();' + replyClick + '">Reply</span>'
     +     '<button type="button" class="gc-c-more-btn" title="Options" onclick="event.stopPropagation();showCommentActions(\'' + pid + '\',' + idx + ',\'' + c.uid + '\')"><svg class="gc-dots-ico" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"  style="width:16px;height:16px;display:block;flex-shrink:0;"><path d="M144,128a16,16,0,1,1-16-16A16,16,0,0,1,144,128ZM60,112a16,16,0,1,0,16,16A16,16,0,0,0,60,112Zm136,0a16,16,0,1,0,16,16A16,16,0,0,0,196,112Z"/></svg></button>'
     +   '</div>'
@@ -25991,15 +26142,8 @@ async function openSinglePostView(pid) {
     const container = document.getElementById('single-post-container');
     // Already open on this post → do not rebuild (prevents like/count jump on repeated comment clicks)
     if (screen && screen.classList.contains('open') && container && window.__spLastPid === pid && container.querySelector('.post-card')) {
-      activeCommentPostId = pid;
-      try {
-        var head = container.querySelector('.sp-comments-wrap, .sp-comments-head');
-        if (head && head.scrollIntoView) head.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      } catch(e){}
-      try {
-        var inp = document.getElementById('sp-comment-input');
-        if (inp) setTimeout(function(){ try{ inp.focus(); }catch(e){} }, 50);
-      } catch(e){}
+      /* Already open — open comments sheet instead of scrolling embedded list */
+      if (typeof openCommentPanel === 'function') openCommentPanel(pid);
       return;
     }
     if(screen) screen.classList.add('open');
@@ -26008,14 +26152,10 @@ async function openSinglePostView(pid) {
     container.innerHTML = (typeof SKELETON_HTML !== 'undefined') ? SKELETON_HTML : '<div class="loading" style="padding:24px;text-align:center;">Loading...</div>';
     activeCommentPostId = pid;
 
-    // Show fixed comment bar
+    // Comments use independent bottom sheet — hide legacy fixed composer
     const compose = document.getElementById('sp-fixed-compose');
     if(compose){
-        compose.style.display = 'flex';
-        const inp = document.getElementById('sp-comment-input');
-        if(inp){ inp.value = ''; inp.disabled = false; }
-        try{ if(typeof gcFillCommentComposerAvatars==='function') gcFillCommentComposerAvatars(); }catch(e){}
-        if(typeof gcUpdateSpCommentSendState==='function') gcUpdateSpCommentSendState();
+        compose.style.display = 'none';
     }
 
     if (singlePostUnsub) { try { singlePostUnsub(); } catch(e){} singlePostUnsub = null; }
@@ -26123,14 +26263,8 @@ async function openSinglePostView(pid) {
             window.__spLastPid = pid;
             var fullScroll = container.scrollTop;
             container.innerHTML =
-                buildPostCardHTML({id: doc.id, ...data})
-                + '<div class="sp-comments-wrap">'
-                +   '<div class="sp-comments-head">'
-                +     '<div class="sp-comments-title">Comments</div>'
-                +     '<div class="sp-comments-count">' + countLabel + '</div>'
-                +   '</div>'
-                +   '<div class="sp-comments-list">' + gcBuildInlineCommentsHTML(pid, comments) + '</div>'
-                + '</div>';
+                buildPostCardHTML({id: doc.id, ...data});
+            /* Comments moved to independent bottom sheet — not embedded here */
             try { container.scrollTop = fullScroll; } catch(e){}
         });
     } catch(e) {
@@ -27260,7 +27394,7 @@ const __pcUrls = (p.imgUrls && p.imgUrls.length) ? p.imgUrls : (p.imgUrl ? [p.im
 const __pcIsVid = !!(p.videoUrl) || __pcUrls.some(function(u){ u=String(u||''); return u.indexOf('/video/')!==-1 || /\.(mp4|webm|mov)(\?|$)/i.test(u); });
 const __pcIsImg = !__pcIsVid && __pcUrls.length > 0;
 const __pcKind = __pcIsVid ? 'media' : (__pcIsImg ? 'gallery' : 'status');
-return`<div class="post-card ${premiumPostClass}${pinnedClass}" data-post-id="${pid}" data-post-kind="${__pcKind}" data-author-uid="${p.uid||''}" data-hide-counts="${p.hideLikeCommentCount ? '1' : '0'}" style="cursor:pointer;" onclick="openSinglePostView('${pid}')">
+return`<div class="post-card ${premiumPostClass}${pinnedClass}" data-post-id="${pid}" data-post-kind="${__pcKind}" data-author-uid="${p.uid||''}" data-hide-counts="${p.hideLikeCommentCount ? '1' : '0'}" style="cursor:pointer;" onclick="if(typeof gcOnPostCardClick==='function')gcOnPostCardClick(event,'${pid}')">
 <div class="post-header">
 <div class="tf-av-wrap" data-uid="${p.uid}">
 <div class="avatar" style="width:44px;height:44px;cursor:pointer;" onclick="event.stopPropagation();">${av}</div>
@@ -27315,7 +27449,7 @@ ${generatePollHTML(p)}
 </button>
 
 <!-- 🚀 নতুন কমেন্ট বাটন -->
-<button class="post-action-btn" data-action="comment" onclick="event.stopPropagation(); openSinglePostView('${pid}')">
+<button class="post-action-btn" data-action="comment" onclick="event.stopPropagation(); if(typeof gcOpenCommentsSheet==='function')gcOpenCommentsSheet('${pid}'); else if(typeof openCommentPanel==='function')openCommentPanel('${pid}')">
     ${typeof gcActionSvg==='function'?gcActionSvg('comment',24):'<i class="ph-light ph-chat-circle" style="font-size:24px;"></i>'}
     <span data-count="comments" data-raw-count="${typeof commentCountRaw!=='undefined'?commentCountRaw:commentCount}">${commentCount}</span>
 </button>
@@ -28608,9 +28742,13 @@ if(localStorage.getItem('theme') !== 'dark'){
 
 // Close comment panel function
 function closeCommentPanel(){
-document.getElementById('comment-panel').classList.remove('open');
-if(commentPanelListener)commentPanelListener();
+var panel = document.getElementById('comment-panel');
+if(panel) panel.classList.remove('open');
+if(commentPanelListener) try{ commentPanelListener(); }catch(e){}
 activeCommentPostId=null;
+try{ if(typeof gcUnlockScroll==='function') gcUnlockScroll(); }catch(e){}
+var prev = document.getElementById('gc-cs-preview');
+if(prev){ prev.style.display = 'none'; prev.innerHTML = ''; }
 }
 
 // Comment panel send button listener
@@ -33561,7 +33699,9 @@ function closeTopMostView() {
     if (commentPanel && commentPanel.classList.contains('open')) { closeCommentPanel(); return true; }
 
     const singlePost = document.getElementById('single-post-screen');
-    if (singlePost && singlePost.classList.contains('open')) { closeSinglePost(); return true; }
+        const cPanel = document.getElementById('comment-panel');
+    if (cPanel && cPanel.classList.contains('open')) { closeCommentPanel(); return true; }
+if (singlePost && singlePost.classList.contains('open')) { closeSinglePost(); return true; }
 
     const chatScreen = document.getElementById('chat-screen');
     if (chatScreen && chatScreen.classList.contains('open')) { closeChat(); return true; }
@@ -40101,14 +40241,21 @@ if(typeof window.gcGlobalMuted === 'undefined') window.gcGlobalMuted = true;
 function gcApplyGlobalMuteToAll(){
 document.querySelectorAll('.gc-vplayer video').forEach(function(v){
 try{
+/* Only change muted flag — never play/pause/reload */
 v.muted = !!window.gcGlobalMuted;
 var wrap = v.closest('.gc-vplayer');
-var ico = v.muted ? '<i class="ph-light ph-speaker-slash"></i>' : '<i class="ph-light ph-speaker-high"></i>';
 if(wrap){
   var btn = wrap.querySelector('.gc-vp-mute');
   var flt = wrap.querySelector('.gc-vp-mute-float');
-  if(btn) btn.innerHTML = ico;
-  if(flt) flt.innerHTML = ico;
+  var icoMuted = 'ph-light ph-speaker-slash';
+  var icoOn = 'ph-light ph-speaker-high';
+  function setIco(el){
+    if(!el) return;
+    var ic = el.querySelector('i');
+    if(ic){ ic.className = v.muted ? icoMuted : icoOn; }
+    else { el.innerHTML = v.muted ? '<i class="ph-light ph-speaker-slash"></i>' : '<i class="ph-light ph-speaker-high"></i>'; }
+  }
+  setIco(btn); setIco(flt);
 }
 }catch(e){}
 });
@@ -40200,18 +40347,41 @@ function syncMute(){
 }
 syncMute();
 function gcToggleMute(e){
-  if(e){ e.preventDefault(); e.stopPropagation(); }
-  try{ showControls(); }catch(err){}
+  if(e){
+    try{ e.preventDefault(); }catch(err){}
+    try{ e.stopPropagation(); }catch(err){}
+    try{ e.stopImmediatePropagation(); }catch(err){}
+  }
+  /* Cancel any pending surface tap → play/pause */
+  try{ gcCancelTapPause(); }catch(err){}
+  /* Mark brief mute interaction so IntersectionObserver ignores this frame */
+  wrap.__gcMuteGuardUntil = Date.now() + 400;
+  v.__gcMuteGuardUntil = Date.now() + 400;
+  /* Toggle sound ONLY — never touch play/pause/currentTime */
   window.gcGlobalMuted = !window.gcGlobalMuted;
   if(typeof gcApplyGlobalMuteToAll === 'function') gcApplyGlobalMuteToAll();
   else {
     v.muted = !!window.gcGlobalMuted;
     syncMute();
   }
+  try{ showControls(); }catch(err){}
 }
 if(muteFloat && !muteFloat.dataset.gcBound){
   muteFloat.dataset.gcBound = '1';
-  muteFloat.addEventListener('click', gcToggleMute);
+  /* Capture-phase: stop surface play/pause without blocking the mute action itself.
+     Do NOT preventDefault on touchstart/pointerdown — that cancels the subsequent click on mobile. */
+  function gcMuteStopBubble(e){
+    try{ e.stopPropagation(); }catch(err){}
+    try{ e.stopImmediatePropagation(); }catch(err){}
+  }
+  muteFloat.addEventListener('pointerdown', function(e){ gcMuteStopBubble(e); }, true);
+  muteFloat.addEventListener('touchstart', function(e){ gcMuteStopBubble(e); }, { capture:true, passive:true });
+  muteFloat.addEventListener('mousedown', function(e){ gcMuteStopBubble(e); }, true);
+  muteFloat.addEventListener('click', function(e){
+    gcMuteStopBubble(e);
+    try{ e.preventDefault(); }catch(err){}
+    gcToggleMute(e);
+  }, true);
 }
 let gcControlsTimer = null;
 function showControls(){
@@ -40249,6 +40419,10 @@ else pauseVideo();
 }, 280);
 }
 v.addEventListener('click', function(e){
+if(e.target && e.target.closest && e.target.closest('.gc-vp-mute-float, .gc-vp-mute, .gc-vp-btn, .gc-vp-track, .gc-vp-bar')){
+  try{ e.preventDefault(); e.stopPropagation(); }catch(err){}
+  return;
+}
 e.stopPropagation();
 gcScheduleTapToggle();
 });
@@ -40355,31 +40529,35 @@ wrap.addEventListener('click', function(e){ e.stopPropagation(); });
 window.gcVpObserver = new IntersectionObserver(function(entries){
 entries.forEach(function(en){
 const wrap = en.target; const v = wrap.querySelector('video'); if(!v) return;
-if(en.isIntersecting && en.intersectionRatio >= 0.6){
-// stop every other video
+/* Ignore brief layout blips right after mute toggle */
+var guardUntil = Math.max(wrap.__gcMuteGuardUntil || 0, v.__gcMuteGuardUntil || 0);
+if(Date.now() < guardUntil) return;
+if(en.isIntersecting && en.intersectionRatio >= 0.5){
+// stop every other playing feed video
 document.querySelectorAll('.gc-vplayer video').forEach(function(o){
-if(o !== v && !o.paused){ o.pause(); o.gcUserPaused = false; }
+if(o !== v && !o.paused){ o.pause(); /* keep o.gcUserPaused as-is */ }
 });
-// autoplay new one only if user didn't manually pause it
+// autoplay only if user didn't manually pause
 if(v.paused && !v.gcUserPaused){
-// Follow global sound preference (unmute once → next videos keep sound)
 v.muted = !!window.gcGlobalMuted;
-const muteBtn = wrap.querySelector('.gc-vp-mute');
-if(muteBtn) muteBtn.innerHTML = v.muted ? '<i class="ph-light ph-speaker-slash"></i>' : '<i class="ph-light ph-speaker-high"></i>';
 var pr = v.play();
 if(pr) pr.catch(function(){
-// Browser blocked unmuted autoplay → fall back muted for this play only
+// Browser blocked unmuted autoplay → muted fallback for this attempt only
 v.muted = true;
-if(muteBtn) muteBtn.innerHTML = '<i class="ph-light ph-speaker-slash"></i>';
+try{
+  var flt = wrap.querySelector('.gc-vp-mute-float i');
+  if(flt) flt.className = 'ph-light ph-speaker-slash';
+}catch(e){}
 v.play().catch(function(){});
 });
 }
-}else if(en.intersectionRatio < 0.4){
+}else if(en.intersectionRatio < 0.5){
 if(!v.paused) v.pause();
+/* Leaving viewport clears sticky user-pause so return can autoplay */
 v.gcUserPaused = false;
 }
 });
-}, {threshold:[0, 0.4, 0.6, 1]});
+}, { threshold: [0, 0.5, 1], root: null, rootMargin: '0px' });
 document.querySelectorAll('.gc-vplayer').forEach(function(w){ window.gcVpObserver.observe(w); });
 // পেজ বদলালে (feed ছাড়া) সব ভিডিও পজ — mute নয় (Sound button state অক্ষুণ্ণ)
 window.gcOrigShowPage65 = showPage;
