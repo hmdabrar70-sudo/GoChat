@@ -2468,6 +2468,67 @@ align-items:stretch;
 padding:0; margin:0;
 }
 .comment-panel.open{display:flex;}
+
+/* Comment panel · Shorts dark theme (layout shared, colors keep Shorts style) */
+.comment-panel.gc-cs-from-shorts{
+  background:rgba(0,0,0,0.55);
+  z-index: 100750 !important; /* above .gc-shorts-screen (100700) so panel opens immediately */
+}
+.comment-panel.gc-cs-from-shorts .comment-panel-header .chat-back{
+  /* Restore previous Shorts close button background */
+  background: rgba(255,255,255,.075) !important;
+  color: #fff !important;
+}
+.comment-panel.gc-cs-from-shorts .gc-cs-sheet{
+  background:#121212;
+  color:#fff;
+  box-shadow:0 -8px 40px rgba(0,0,0,0.5);
+}
+.comment-panel.gc-cs-from-shorts .comment-panel-header{
+  color:#fff;
+  border-bottom-color:rgba(255,255,255,0.08);
+}
+.comment-panel.gc-cs-from-shorts .comment-panel-header .chat-name{ color:#fff; }
+.comment-panel.gc-cs-from-shorts .comment-panel-header .chat-back,
+.comment-panel.gc-cs-from-shorts .gc-cs-close-ico{ color:#fff; }
+.comment-panel.gc-cs-from-shorts .gc-cs-handle{
+  background:rgba(255,255,255,0.28);
+}
+.comment-panel.gc-cs-from-shorts #gc-cs-preview, .gc-cs-preview{ display:none !important; }
+.gc-cs-preview-DISABLED{
+  border-bottom-color:rgba(255,255,255,0.08);
+}
+.comment-panel.gc-cs-from-shorts .gc-cs-preview-cap-only{ color:rgba(255,255,255,0.88); }
+.comment-panel.gc-cs-from-shorts .comment-list{ color:#fff; }
+.comment-panel.gc-cs-from-shorts .comment-input-bar{
+  background:#121212;
+  border-top:1px solid rgba(255,255,255,0.08);
+}
+.comment-panel.gc-cs-from-shorts .comment-input-bar input{
+  background:rgba(255,255,255,0.08);
+  border-color:rgba(255,255,255,0.12);
+  color:#fff;
+}
+.comment-panel.gc-cs-from-shorts .comment-input-bar input::placeholder{ color:rgba(255,255,255,0.4); }
+.comment-panel.gc-cs-from-shorts .empty-feed,
+.comment-panel.gc-cs-from-shorts .comment-list .empty-feed{ color:rgba(255,255,255,0.42); }
+
+
+.gc-c-opt-ico{
+  display:inline-flex; align-items:center; justify-content:center;
+  width:22px; height:22px; flex-shrink:0;
+  color:inherit; vertical-align:middle;
+}
+.gc-c-opt-ico svg{ width:20px; height:20px; display:block; }
+.gc-cs-close-ico{
+  display:inline-flex; align-items:center; justify-content:center;
+  width:22px; height:22px; color:inherit;
+}
+.gc-cs-close-ico svg{ width:20px; height:20px; display:block; }
+.comment-action-menu .chat-dropdown-item{
+  display:flex; align-items:center; gap:12px;
+}
+
 .comment-panel .gc-cs-sheet{
   background:var(--surface);
   border-radius:18px 18px 0 0;
@@ -7801,12 +7862,23 @@ MODERN USERNAME SYSTEM STYLES
     align-items: center;
     gap: 6px;
     padding: 8px 14px;
-    background: rgba(239, 68, 68, 0.1);
+    background: rgba(239, 68, 68, 0.18);
     color: #ef4444;
+    border: 1px solid rgba(239, 68, 68, 0.32);
     border-radius: 12px;
     font-size: 12px;
     font-weight: 700;
     margin-bottom: 16px;
+}
+body:not(.light-mode) .username-timer-badge {
+    background: rgba(239, 68, 68, 0.22);
+    color: #f87171;
+    border-color: rgba(239, 68, 68, 0.40);
+}
+body.light-mode .username-timer-badge {
+    background: rgba(239, 68, 68, 0.14);
+    color: #dc2626;
+    border-color: rgba(239, 68, 68, 0.28);
 }
 
 /* =========================================
@@ -15771,7 +15843,7 @@ l-137 -640 -193 -3 -193 -2 4 22 c2 13 67 314 144 671 l139 647 192 0 193 0
 <div class="gc-cs-sheet" onclick="event.stopPropagation()">
 <div class="gc-cs-handle" aria-hidden="true"></div>
 <div class="comment-panel-header">
-<div class="chat-back" onclick="closeCommentPanel()" aria-label="Close"><i class="ph-light ph-x"></i></div>
+<div class="chat-back" onclick="closeCommentPanel()" aria-label="Close"><span class="gc-cs-close-ico"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path fill="none" d="M0 0h24v24H0z"/><path fill="currentColor" d="M18.4765 4.46976C18.7694 4.17693 19.2442 4.17689 19.5371 4.46976C19.8298 4.76265 19.8298 5.23746 19.5371 5.53031L13.0634 12.003L19.5302 18.4698C19.8229 18.7626 19.823 19.2375 19.5302 19.5303C19.2374 19.8232 18.7626 19.8231 18.4697 19.5303L12.0029 13.0635L5.53705 19.5303C5.2442 19.8231 4.76939 19.823 4.47651 19.5303C4.18363 19.2374 4.18367 18.7627 4.47651 18.4698L10.9423 12.003L4.46967 5.53031C4.17678 5.23742 4.17678 4.76266 4.46967 4.46976C4.76257 4.17693 5.23734 4.17689 5.53022 4.46976L12.0029 10.9424L18.4765 4.46976Z"/></svg></span></div>
 <div class="chat-name">Comments</div>
 </div>
 <div id="gc-cs-preview" class="gc-cs-preview" style="display:none;"></div>
@@ -21659,45 +21731,12 @@ async function gcFillCommentsPostPreview(pid){
     var doc = await db.collection('posts').doc(pid).get();
     if(!doc.exists){ box.style.display = 'none'; return; }
     var p = doc.data() || {};
-    var uid = p.uid || '';
-    var name = p.name || 'User';
-    var av = p.avatar || '';
-    try{
-      if((!av || !name || name==='User') && typeof allUsersCache !== 'undefined' && allUsersCache){
-        var u = allUsersCache.find(function(x){ return x && x.id === uid; });
-        if(u){ if(u.name) name = u.name; if(u.avatar) av = u.avatar; }
-      }
-    }catch(e){}
+    /* Caption / emoji text only — max 1 line. No photo/video preview. */
     var cap = String(p.title || p.text || '').replace(/\s+/g,' ').trim();
-    if(cap.length > 90) cap = cap.slice(0, 87) + '…';
-    /* Static image thumb ONLY — never video element, never mute/play controls */
-    function isLikelyVideoUrl(u){
-      if(!u) return false;
-      var s = String(u).toLowerCase();
-      return /\.(mp4|webm|mov|m4v)(\?|$)/.test(s) || s.indexOf('/video/') !== -1 || s.indexOf('video/upload') !== -1;
-    }
-    var thumb = '';
-    if(p.videoThumb) thumb = p.videoThumb;
-    else if(p.poster) thumb = p.poster;
-    else if(p.thumbnail) thumb = p.thumbnail;
-    else if(p.imgUrls && p.imgUrls.length){
-      for(var ti=0; ti<p.imgUrls.length; ti++){
-        if(p.imgUrls[ti] && !isLikelyVideoUrl(p.imgUrls[ti])){ thumb = p.imgUrls[ti]; break; }
-      }
-    }
-    if(!thumb && p.imgUrl && !isLikelyVideoUrl(p.imgUrl)) thumb = p.imgUrl;
-    var hasVideo = !!(p.videoUrl || (p.imgUrls && p.imgUrls.some && p.imgUrls.some(isLikelyVideoUrl)) || isLikelyVideoUrl(p.imgUrl));
-    var avHtml = av ? '<img src="'+escapeHTML(av)+'" alt="">' : (typeof avatarInitial==='function' ? avatarInitial(name) : '');
-    var thHtml = '';
-    if(thumb){
-      thHtml = '<div class="gc-cs-preview-thumb"><img src="'+escapeHTML(thumb)+'" alt=""></div>';
-    } else if(hasVideo){
-      thHtml = '<div class="gc-cs-preview-thumb gc-cs-preview-vid-ph" aria-hidden="true"><i class="ph-light ph-video-camera" style="font-size:18px;color:var(--text-muted);"></i></div>';
-    }
-    box.innerHTML = '<div class="gc-cs-preview-av">'+avHtml+'</div>'
-      + '<div class="gc-cs-preview-meta"><div class="gc-cs-preview-name">'+escapeHTML(name)+'</div>'
-      + (cap ? '<div class="gc-cs-preview-cap">'+escapeHTML(cap)+'</div>' : '') + '</div>' + thHtml;
-    box.style.display = 'flex';
+    if(!cap){ box.style.display = 'none'; box.innerHTML = ''; return; }
+    if(cap.length > 100) cap = cap.slice(0, 97) + '…';
+    box.innerHTML = '<div class="gc-cs-preview-cap-only">'+escapeHTML(cap)+'</div>';
+    box.style.display = 'block';
   }catch(e){
     box.style.display = 'none';
   }
@@ -21712,16 +21751,12 @@ async function openCommentPanel(pid) {
     if(panel) panel.classList.add('open');
     try{ if(typeof gcLockScroll==='function') gcLockScroll(); }catch(e){}
     try{ if(typeof gcFillCommentComposerAvatars==='function') gcFillCommentComposerAvatars(); }catch(e){}
-    try{ if(typeof gcFillCommentsPostPreview==='function') gcFillCommentsPostPreview(pid); }catch(e){}
-    /* Stop any playing feed/single video so comment sheet never shows live playback/sound */
+    /* Preview disabled — top of comment panel stays empty */
     try{
-      document.querySelectorAll('video').forEach(function(v){
-        try{
-          if(!v.paused) v.pause();
-          v.gcUserPaused = true;
-        }catch(err){}
-      });
+      var __prev = document.getElementById('gc-cs-preview');
+      if(__prev){ __prev.style.display = 'none'; __prev.innerHTML = ''; }
     }catch(e){}
+    /* Do NOT pause videos — comment panel open/close must not affect playback */
     if (commentPanelListener) commentPanelListener();
 
     // Unlock comment bar + apply reply privacy restriction
@@ -26136,8 +26171,7 @@ async function openSinglePostView(pid) {
     const container = document.getElementById('single-post-container');
     // Already open on this post → do not rebuild (prevents like/count jump on repeated comment clicks)
     if (screen && screen.classList.contains('open') && container && window.__spLastPid === pid && container.querySelector('.post-card')) {
-      /* Already open — open comments sheet instead of scrolling embedded list */
-      if (typeof openCommentPanel === 'function') openCommentPanel(pid);
+      /* Already open on this post — do nothing (comment panel only via comment button) */
       return;
     }
     if(screen) screen.classList.add('open');
@@ -28737,7 +28771,11 @@ if(localStorage.getItem('theme') !== 'dark'){
 // Close comment panel function
 function closeCommentPanel(){
 var panel = document.getElementById('comment-panel');
-if(panel) panel.classList.remove('open');
+if(panel){
+  panel.classList.remove('open');
+  panel.classList.remove('gc-cs-from-shorts');
+  try{ panel.style.zIndex = ''; }catch(e){}
+}
 if(commentPanelListener) try{ commentPanelListener(); }catch(e){}
 activeCommentPostId=null;
 try{ if(typeof gcUnlockScroll==='function') gcUnlockScroll(); }catch(e){}
@@ -29681,11 +29719,11 @@ async function showCommentActions(pid, idx, commentUid) {
 
     let items = '<div style="font-weight:800; margin-bottom:15px; text-align:center;">Comment Options</div>';
     if (isAuthor) {
-        items += '<div class="chat-dropdown-item" id="gc-c-act-edit"><i class="ph-light ph-pencil-line"></i> Edit Comment</div>';
+        items += '<div class="chat-dropdown-item" id="gc-c-act-edit"><span class="gc-c-opt-ico"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path fill="none" d="M0 0h24v24H0z"/><path fill="currentColor" fill-rule="evenodd" d="M14.0992 2.39109C15.6207 0.869636 18.0875 0.869636 19.6089 2.39109C21.1304 3.91255 21.1304 6.37932 19.6089 7.90077L12.0149 15.4948C11.5869 15.9228 11.3255 16.1842 11.0342 16.4115C10.691 16.6792 10.3196 16.9087 9.92667 17.096C9.59315 17.2549 9.24244 17.3718 8.66818 17.5632L5.99553 18.4541L5.35386 18.668C4.77951 18.8594 4.14629 18.7099 3.7182 18.2818C3.2901 17.8537 3.14062 17.2205 3.33207 16.6462L4.43683 13.3318C4.62822 12.7576 4.7451 12.4069 4.90405 12.0734C5.09132 11.6804 5.32084 11.309 5.58856 10.9658C5.81578 10.6745 6.07719 10.4131 6.50525 9.98509L14.0992 2.39109ZM5.96092 16.8845L5.11556 16.0391L5.84398 13.8538C6.05606 13.2176 6.14366 12.9589 6.25814 12.7187C6.39854 12.4241 6.57061 12.1457 6.77132 11.8883C6.93497 11.6785 7.12718 11.4845 7.60141 11.0102L13.4924 5.11927C13.7355 5.72927 14.147 6.46549 14.8408 7.15927C15.5345 7.85306 16.2708 8.26447 16.8807 8.50764L10.9898 14.3986C10.5155 14.8728 10.3215 15.065 10.1117 15.2287C9.85436 15.4294 9.57594 15.6015 9.28134 15.7419C9.04113 15.8564 8.78244 15.944 8.14619 16.156L5.96092 16.8845ZM18.076 7.31241C17.9521 7.28522 17.7973 7.24432 17.6213 7.18325C17.1373 7.01532 16.5006 6.69778 15.9014 6.09861C15.3022 5.49944 14.9847 4.86276 14.8168 4.37873C14.7557 4.2027 14.7148 4.04787 14.6876 3.92404L15.1599 3.45175C16.0956 2.51608 17.6126 2.51608 18.5483 3.45175C19.4839 4.38742 19.4839 5.90444 18.5483 6.84011L18.076 7.31241ZM3.25002 22C3.25002 21.5858 3.58581 21.25 4.00002 21.25H20V22.75H4.00002C3.58581 22.75 3.25002 22.4142 3.25002 22Z" clip-rule="evenodd"/></svg></span> Edit Comment</div>';
     }
-    items += '<div class="chat-dropdown-item" id="gc-c-act-copy"><i class="ph-light ph-copy"></i> Copy</div>';
+    items += '<div class="chat-dropdown-item" id="gc-c-act-copy"><span class="gc-c-opt-ico"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path fill="none" d="M0 0h24v24H0z"/><path fill="currentColor" fill-rule="evenodd" d="M15 1.25H10.9436C9.10583 1.24998 7.65019 1.24997 6.51098 1.40314C5.33856 1.56076 4.38961 1.89288 3.64124 2.64124C2.89288 3.38961 2.56076 4.33856 2.40314 5.51098C2.24997 6.65019 2.24998 8.10582 2.25 9.94357V16C2.25 17.8722 3.62205 19.424 5.41551 19.7047C5.55348 20.4687 5.81753 21.1208 6.34835 21.6517C6.95027 22.2536 7.70814 22.5125 8.60825 22.6335C9.47522 22.75 10.5775 22.75 11.9451 22.75H15.0549C16.4225 22.75 17.5248 22.75 18.3918 22.6335C19.2919 22.5125 20.0497 22.2536 20.6517 21.6517C21.2536 21.0497 21.5125 20.2919 21.6335 19.3918C21.75 18.5248 21.75 17.4225 21.75 16.0549V10.9451C21.75 9.57754 21.75 8.47522 21.6335 7.60825C21.5125 6.70814 21.2536 5.95027 20.6517 5.34835C20.1208 4.81753 19.4687 4.55348 18.7047 4.41551C18.424 2.62205 16.8722 1.25 15 1.25ZM17.1293 4.27117C16.8265 3.38623 15.9876 2.75 15 2.75H11C9.09318 2.75 7.73851 2.75159 6.71085 2.88976C5.70476 3.02502 5.12511 3.27869 4.7019 3.7019C4.27869 4.12511 4.02502 4.70476 3.88976 5.71085C3.75159 6.73851 3.75 8.09318 3.75 10V16C3.75 16.9876 4.38624 17.8265 5.27117 18.1293C5.24998 17.5194 5.24999 16.8297 5.25 16.0549V10.9451C5.24998 9.57754 5.24996 8.47522 5.36652 7.60825C5.48754 6.70814 5.74643 5.95027 6.34835 5.34835C6.95027 4.74643 7.70814 4.48754 8.60825 4.36652C9.47522 4.24996 10.5775 4.24998 11.9451 4.25H15.0549C15.8297 4.24999 16.5194 4.24998 17.1293 4.27117ZM7.40901 6.40901C7.68577 6.13225 8.07435 5.9518 8.80812 5.85315C9.56347 5.75159 10.5646 5.75 12 5.75H15C16.4354 5.75 17.4365 5.75159 18.1919 5.85315C18.9257 5.9518 19.3142 6.13225 19.591 6.40901C19.8678 6.68577 20.0482 7.07435 20.1469 7.80812C20.2484 8.56347 20.25 9.56458 20.25 11V16C20.25 17.4354 20.2484 18.4365 20.1469 19.1919C20.0482 19.9257 19.8678 20.3142 19.591 20.591C19.3142 20.8678 18.9257 21.0482 18.1919 21.1469C17.4365 21.2484 16.4354 21.25 15 21.25H12C10.5646 21.25 9.56347 21.2484 8.80812 21.1469C8.07435 21.0482 7.68577 20.8678 7.40901 20.591C7.13225 20.3142 6.9518 19.9257 6.85315 19.1919C6.75159 18.4365 6.75 17.4354 6.75 16V11C6.75 9.56458 6.75159 8.56347 6.85315 7.80812C6.9518 7.07435 7.13225 6.68577 7.40901 6.40901Z" clip-rule="evenodd"/></svg></span> Copy</div>';
     if (isAuthor || isPostOwner) {
-        items += '<div class="chat-dropdown-item danger" id="gc-c-act-del"><i class="ph-light ph-trash"></i> Delete Comment</div>';
+        items += '<div class="chat-dropdown-item danger" id="gc-c-act-del"><span class="gc-c-opt-ico"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path fill="none" d="M0 0h24v24H0z"/><g fill="currentColor"><path d="M12 2.75C11.0215 2.75 10.1871 3.37503 9.87787 4.24993C9.73983 4.64047 9.31134 4.84517 8.9208 4.70713C8.53026 4.56909 8.32557 4.1406 8.46361 3.75007C8.97804 2.29459 10.3661 1.25 12 1.25C13.634 1.25 15.022 2.29459 15.5365 3.75007C15.6745 4.1406 15.4698 4.56909 15.0793 4.70713C14.6887 4.84517 14.2602 4.64047 14.1222 4.24993C13.813 3.37503 12.9785 2.75 12 2.75Z"/><path d="M2.75 6C2.75 5.58579 3.08579 5.25 3.5 5.25H20.5001C20.9143 5.25 21.2501 5.58579 21.2501 6C21.2501 6.41421 20.9143 6.75 20.5001 6.75H3.5C3.08579 6.75 2.75 6.41421 2.75 6Z"/><path d="M5.91508 8.45011C5.88753 8.03681 5.53015 7.72411 5.11686 7.75166C4.70356 7.77921 4.39085 8.13659 4.41841 8.54989L4.88186 15.5016C4.96735 16.7844 5.03641 17.8205 5.19838 18.6336C5.36678 19.4789 5.6532 20.185 6.2448 20.7384C6.83639 21.2919 7.55994 21.5307 8.41459 21.6425C9.23663 21.75 10.2751 21.75 11.5607 21.75H12.4395C13.7251 21.75 14.7635 21.75 15.5856 21.6425C16.4402 21.5307 17.1638 21.2919 17.7554 20.7384C18.347 20.185 18.6334 19.4789 18.8018 18.6336C18.9637 17.8205 19.0328 16.7844 19.1183 15.5016L19.5818 8.54989C19.6093 8.13659 19.2966 7.77921 18.8833 7.75166C18.47 7.72411 18.1126 8.03681 18.0851 8.45011L17.6251 15.3492C17.5353 16.6971 17.4712 17.6349 17.3307 18.3405C17.1943 19.025 17.004 19.3873 16.7306 19.6431C16.4572 19.8988 16.083 20.0647 15.391 20.1552C14.6776 20.2485 13.7376 20.25 12.3868 20.25H11.6134C10.2626 20.25 9.32255 20.2485 8.60915 20.1552C7.91715 20.0647 7.54299 19.8988 7.26957 19.6431C6.99616 19.3873 6.80583 19.025 6.66948 18.3405C6.52891 17.6349 6.46488 16.6971 6.37503 15.3492L5.91508 8.45011Z"/><path d="M9.42546 10.2537C9.83762 10.2125 10.2051 10.5132 10.2464 10.9254L10.7464 15.9254C10.7876 16.3375 10.4869 16.7051 10.0747 16.7463C9.66256 16.7875 9.29502 16.4868 9.25381 16.0746L8.75381 11.0746C8.71259 10.6625 9.0133 10.2949 9.42546 10.2537Z"/><path d="M15.2464 11.0746C15.2876 10.6625 14.9869 10.2949 14.5747 10.2537C14.1626 10.2125 13.795 10.5132 13.7538 10.9254L13.2538 15.9254C13.2126 16.3375 13.5133 16.7051 13.9255 16.7463C14.3376 16.7875 14.7051 16.4868 14.7464 16.0746L15.2464 11.0746Z"/></g></svg></span> Delete Comment</div>';
     }
     items += '<div style="margin-top:10px; padding:10px; text-align:center; color:var(--text-muted); cursor:pointer;" id="gc-c-act-cancel">Cancel</div>';
     menu.innerHTML = items;
@@ -34768,14 +34806,29 @@ async function openShareModal(postId, postTitle, postImg) {
     }
 
     currentSharePostData = { id: postId, title: title || '', img: img || '' };
-    document.getElementById('share-post-modal').classList.add('open');
+    var shareModal = document.getElementById('share-post-modal');
+    if(shareModal){
+      /* Above Shorts screen (100700) when sharing from Shorts */
+      var shortsOpen = false;
+      try{
+        var ss = document.getElementById('gc-shorts-screen');
+        shortsOpen = !!(ss && ss.classList.contains('open'));
+      }catch(e){}
+      shareModal.style.zIndex = shortsOpen ? '100760' : '';
+      shareModal.classList.add('open');
+    }
     document.getElementById('share-chat-list').innerHTML = gcModernLoader('Loading chats', 'list');
     loadShareChatList();
 }
 
 function closeShareModal() {
-    document.getElementById('share-post-modal').classList.remove('open');
-    document.getElementById('share-search-input').value = '';
+    var shareModal = document.getElementById('share-post-modal');
+    if(shareModal){
+      shareModal.classList.remove('open');
+      try{ shareModal.style.zIndex = ''; }catch(e){}
+    }
+    var si = document.getElementById('share-search-input');
+    if(si) si.value = '';
     currentSharePostData = null;
 }
 
@@ -37744,9 +37797,14 @@ scr.innerHTML = '<div class="gc-ins-head"><div class="chat-back" onclick="gcClos
 document.body.appendChild(scr);
 }
 scr.classList.add('open');
+try{ if(typeof gcLockScroll==='function') gcLockScroll(); }catch(e){};
 gcLoadInsights().catch(function(e){ console.error(e); const b=document.getElementById('gc-ins-body'); if(b) b.innerHTML='<div style="text-align:center;padding:40px;color:var(--danger);">Failed to load insights. Pull to retry.</div>'; });
 }
-function gcCloseInsights(){ const s = document.getElementById('gc-insights-screen'); if(s) s.classList.remove('open'); }
+function gcCloseInsights(){
+  const s = document.getElementById('gc-insights-screen');
+  if(s) s.classList.remove('open');
+  try{ if(typeof gcUnlockScroll==='function') gcUnlockScroll(); }catch(e){}
+}
 function gcInsSetRange(r){
 gcInsRange = r;
 document.getElementById('gc-ins-7').classList.toggle('active', r === 7);
@@ -39150,37 +39208,16 @@ async function gcShortsCommentToggleReplies(pid, idx){
 }
 
 function gcOpenShortsComments(pid){
+  /* Reuse shared Comments Bottom Sheet; keep Shorts dark color theme */
   if(!pid) return;
   if(!currentUser){ showToast('Login first!'); return; }
-  var scr=gcEnsureShortsCommentsScreen();
-  var countEl=document.getElementById('gc-short-comments-count');
-  var input=document.getElementById('gc-short-comments-input');
-  if(window.__gcShortsCommentUnsub){ try{window.__gcShortsCommentUnsub();}catch(e){} window.__gcShortsCommentUnsub=null; }
-  window.__gcShortsCommentPostId=pid;
-  if(countEl) countEl.textContent='0';
-  if(input) input.value='';
-  gcShortsCommentSyncSend();
-  /* Pause only the active Short while its comment sheet is open. */
-  window.__gcShortsCommentResumeVideo=null;
-  try{
-    var active=document.querySelector('#gc-shorts-feed .gc-short-item video:not([data-gc-no-resume])');
-    if(active && !active.paused){
-      window.__gcShortsCommentResumeVideo=active;
-      active.pause();
-    }
-  }catch(e){}
-  scr.classList.add('open');
-  try{
-    window.__gcShortsCommentUnsub=db.collection('posts').doc(pid).onSnapshot(function(doc){
-      if(window.__gcShortsCommentPostId!==pid) return;
-      var comments=doc.exists && Array.isArray(doc.data().comments) ? doc.data().comments : [];
-      if(countEl) countEl.textContent=String(comments.length);
-      gcShortsUpdateCommentCount(pid,comments.length);
-      gcShortsCommentRenderList(pid,comments);
-    });
-  }catch(e){
-    console.error('gcOpenShortsComments',e);
+  var panel = document.getElementById('comment-panel');
+  if(panel){
+    panel.classList.add('gc-cs-from-shorts');
+    panel.style.zIndex = '100750';
   }
+  if(typeof openCommentPanel === 'function') openCommentPanel(pid);
+  else if(typeof gcOpenCommentsSheet === 'function') gcOpenCommentsSheet(pid);
 }
 
 function gcCloseShortsComments(){
