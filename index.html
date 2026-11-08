@@ -6113,6 +6113,34 @@ body.light-mode{
 }
 
 /* Base player shell — transparent, no forced black canvas */
+
+/* ═══ Video skeleton loading (feed/single/profile — not Shorts) ═══ */
+.gc-vplayer{ position:relative; }
+.gc-vid-skeleton{
+  position:absolute; inset:0; z-index:3;
+  border-radius:inherit;
+  pointer-events:none;
+  background-color:var(--surface-2, #171923);
+  background-image:linear-gradient(100deg,
+    rgba(255,255,255,0) 20%,
+    rgba(255,255,255,.08) 42%,
+    rgba(255,255,255,0) 64%);
+  background-size:220% 100%;
+  animation:gcMediaShimmer 1.35s ease-in-out infinite;
+}
+body.light-mode .gc-vid-skeleton{
+  background-color:#e8eaed;
+  background-image:linear-gradient(100deg,
+    rgba(255,255,255,0) 20%,
+    rgba(255,255,255,.55) 42%,
+    rgba(255,255,255,0) 64%);
+}
+.gc-vplayer.gc-vid-ready .gc-vid-skeleton,
+.gc-vplayer.gc-vid-error .gc-vid-skeleton{ display:none !important; }
+/* Shorts: never apply this skeleton system */
+#gc-shorts-feed .gc-vid-skeleton,
+.gc-short-item .gc-vid-skeleton{ display:none !important; }
+
 .gc-vplayer{
   position:relative;
   width:100%;
@@ -6782,11 +6810,50 @@ Liked Posts পেজ (মেনুর ওভারলে)
   cursor:pointer;
   padding:0;
   font-family:inherit;
-  filter:drop-shadow(0 1px 4px rgba(0,0,0,.55));
+  filter:none;
+}
+/* Permanent dark circular bg — independent of global light/dark theme */
+.gc-short-act .gc-act-ico,
+.gc-short-act > svg,
+.gc-short-act > i{
+  width:44px;
+  height:44px;
+  border-radius:50%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:rgba(0,0,0,.45) !important;
+  backdrop-filter:blur(8px);
+  -webkit-backdrop-filter:blur(8px);
+  box-shadow:0 2px 8px rgba(0,0,0,.35);
+  color:#fff;
+  flex-shrink:0;
+}
+.gc-short-act > svg{
+  padding:10px;
+  box-sizing:border-box;
+}
+.gc-short-act > i{
+  font-size:22px;
+  line-height:1;
+}
+.gc-short-act .gc-act-ico{
+  /* inner svg from gcActionSvg often wraps */
+}
+.gc-short-act .gc-act-ico svg{
+  width:24px;
+  height:24px;
+  display:block;
 }
 .gc-short-act i{
-  font-size:30px;
+  font-size:22px;
   line-height:1;
+}
+/* Three-dot action on Shorts — same bg language */
+.gc-short-act[data-s-act="more"] .gc-act-ico,
+.gc-short-act[data-s-act="more"] > svg,
+.gc-short-act[data-s-act="more"] > i{
+  background:rgba(0,0,0,.45) !important;
 }
 .gc-short-act span{
   font-size:12px;
@@ -6798,7 +6865,8 @@ Liked Posts পেজ (মেনুর ওভারলে)
 /* Shorts like/reaction state — keep the selected state unmistakably visible */
 .gc-short-act[data-s-act="like"].liked .gc-act-ico{
   color:#1DA1F2 !important;
-  filter:drop-shadow(0 2px 5px rgba(29,161,242,.38));
+  filter:none;
+  background:rgba(0,0,0,.45) !important;
 }
 .gc-short-act[data-s-act="like"].liked{
   color:#1DA1F2;
@@ -37719,8 +37787,6 @@ try{ toggleMuteFeed(uid); }catch(e){}
 // 🚀 Update #38 · full-block-system · 2026-08-08
 // ব্লক = সত্যিকারের ব্লক (প্রোফাইল/ফিড/সার্চ/চ্যাট)
 // খুঁজতে: Ctrl+F → "full-block-system"
-
-
 // ═══════════════════════════════════════════════════════
 function gcIsBlockedByMe(uid){
 return !!(currentUserData && (currentUserData.blockedUsers || []).includes(uid));
@@ -37868,8 +37934,6 @@ if(!ov || !ov.classList.contains('open')) gcShowBanScreen(currentUser.uid, true)
 // 🚀 Update #41 · profile-insights · 2026-08-08
 // ফুল ক্রিয়েটর ড্যাশবোর্ড (SVG চার্ট + লাইভ ডেটা)
 // খুঁজতে: Ctrl+F → "profile-insights"
-
-
 // ═══════════════════════════════════════════════════════
 let gcInsRange = 7;
 // Insights বাটন হুক (পুরনো "coming soon" টোস্ট সরিয়ে)
@@ -38102,8 +38166,6 @@ body.innerHTML = html;
 // ?? Update #43 · switch-account · 2026-08-08
 // মাল্টি একাউন্ট সুইচ সিস্টেম। 
 // খুঁজতে: Ctrl+F → "switch-account"
-
-
 // ═══════════════════════════════════════════════════════
 
 
@@ -38803,6 +38865,8 @@ function gcRenderShortsList(posts){
       +   (typeof gcActionSvg==='function'?gcActionSvg('comment',24):'<i class="ph-light ph-chat-circle"></i>')+'<span data-s-comments>'+fmtC+'</span></button>'
       +   '<button type="button" class="gc-short-act" data-s-act="share" onclick="event.stopPropagation(); if(typeof openShareModal===\'function\') openShareModal(\''+escapeHTML(pid)+'\',\''+escapeHTML((title||'').replace(/'/g,''))+'\',\''+escapeHTML(vurl)+'\');">'
       +   (typeof gcActionSvg==='function'?gcActionSvg('share',24):'<i class="ph-light ph-paper-plane-tilt"></i>')+'<span data-s-shares>'+fmtS+'</span></button>'
+      +   '<button type="button" class="gc-short-act" data-s-act="more" aria-label="More" onclick="event.stopPropagation(); if(typeof gcOpenShortsPostMenu===\'function\') gcOpenShortsPostMenu(\''+escapeHTML(pid)+'\');">'
+      +   '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" width="24" height="24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM12.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM18.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z"/></svg></button>'
       + '</div></div>';
 
   });
@@ -39363,6 +39427,48 @@ function gcOpenCreateFromShorts(){
   }catch(e){ console.error('gcOpenCreateFromShorts', e); }
 }
 window.gcOpenCreateFromShorts = gcOpenCreateFromShorts;
+
+
+/** Open the same Feed post three-dot menu from Shorts (no duplicate menu system). */
+function gcOpenShortsPostMenu(pid){
+  if(!pid) return;
+  try{ if(typeof event!=='undefined' && event && event.stopPropagation) event.stopPropagation(); }catch(e){}
+  var existing = document.querySelector('[id^="post-drop-'+pid+'_"]');
+  if(existing && typeof togglePostDropdown === 'function'){
+    togglePostDropdown(existing.id);
+    return;
+  }
+  var posts = window.__gcShortsPosts || [];
+  var p = null;
+  for(var i=0;i<posts.length;i++){ if(posts[i] && posts[i].id === pid){ p = posts[i]; break; } }
+  if(!p && typeof allPostsCache !== 'undefined' && allPostsCache){
+    try{ p = allPostsCache.find(function(x){ return x && x.id === pid; }); }catch(e){}
+  }
+  if(!p){ p = { id: pid, uid: '' }; }
+  var host = document.getElementById('gc-shorts-post-menu-host');
+  if(!host){
+    host = document.createElement('div');
+    host.id = 'gc-shorts-post-menu-host';
+    host.style.cssText = 'position:absolute;left:-9999px;top:0;width:1px;height:1px;overflow:hidden;';
+    document.body.appendChild(host);
+  }
+  var dropId = 'shorts-drop-' + pid;
+  var isOwn = !!(currentUser && p.uid && currentUser.uid === p.uid);
+  var items = '';
+  if(isOwn){
+    var pinText = p.isPinned ? 'Unpin Post' : 'Pin Post';
+    items += '<div class="chat-dropdown-item" onclick="event.stopPropagation(); openPostInsights(\''+pid+'\')"><i class="ph-light ph-chart-bar" style="font-size:22px;"></i> Insights</div>';
+    items += '<div class="chat-dropdown-item" onclick="event.stopPropagation(); pinPost(\''+pid+'\')"><i class="ph-light ph-push-pin" style="font-size:22px;"></i> '+pinText+'</div>';
+    items += '<div class="chat-dropdown-item" onclick="event.stopPropagation(); openEditPostModal(\''+pid+'\')"><i class="ph-light ph-pencil-simple" style="font-size:22px;"></i> Edit Post</div>';
+    items += '<div class="chat-dropdown-item danger" onclick="event.stopPropagation(); deletePost(\''+pid+'\')"><i class="ph-light ph-trash" style="font-size:22px;"></i> Delete Post</div>';
+  } else {
+    items += '<div class="chat-dropdown-item danger" onclick="event.stopPropagation(); if(typeof gcOpenReportSheet===\'function\') gcOpenReportSheet(\''+pid+'\')"><i class="ph-light ph-flag" style="font-size:22px;"></i> Report</div>';
+  }
+  host.innerHTML = '<div id="'+dropId+'" class="post-dropdown-menu" onclick="event.stopPropagation();">'+items+'</div>';
+  if(typeof togglePostDropdown === 'function') togglePostDropdown(dropId);
+  else if(typeof gcOpenSheetFromMenu === 'function') gcOpenSheetFromMenu(document.getElementById(dropId));
+}
+window.gcOpenShortsPostMenu = gcOpenShortsPostMenu;
 
 function gcOpenShorts(){
   /* Capture scroll BEFORE closing drawer (drawer unlock must not zero it) */
@@ -40444,6 +40550,28 @@ var muteIcon = v.muted ? 'ph-light ph-speaker-slash' : 'ph-light ph-speaker-high
 wrap.insertAdjacentHTML('beforeend', '<div class="gc-vp-bar"><span class="gc-vp-cur">0:00</span><div class="gc-vp-track"><div class="gc-vp-fill"></div></div><span class="gc-vp-dur">0:00</span></div>');
 /* Mute: only Facebook-style always-visible float button (no bar mute) */
 wrap.insertAdjacentHTML('beforeend', '<button type="button" class="gc-vp-mute-float" aria-label="Mute"><i class="ph-light ' + muteIcon + '"></i></button>');
+/* Skeleton while first frame loads — not a click-to-play placeholder */
+if(!wrap.closest || !wrap.closest('#gc-shorts-feed, .gc-short-item')){
+  var sk = document.createElement('div');
+  sk.className = 'gc-vid-skeleton';
+  sk.setAttribute('aria-hidden', 'true');
+  wrap.appendChild(sk);
+  function gcMarkVidReady(){
+    wrap.classList.add('gc-vid-ready');
+    var s2 = wrap.querySelector('.gc-vid-skeleton');
+    if(s2) try{ s2.remove(); }catch(e){}
+  }
+  function gcMarkVidErr(){
+    wrap.classList.add('gc-vid-error');
+    var s3 = wrap.querySelector('.gc-vid-skeleton');
+    if(s3) try{ s3.remove(); }catch(e){}
+  }
+  v.addEventListener('loadeddata', gcMarkVidReady, { once:true });
+  v.addEventListener('canplay', gcMarkVidReady, { once:true });
+  v.addEventListener('error', gcMarkVidErr, { once:true });
+  /* If metadata already available (cached) */
+  if(v.readyState >= 2) gcMarkVidReady();
+}
 img.replaceWith(wrap);
 gcBindVPlayer(wrap);
 if(window.gcVpObserver) window.gcVpObserver.observe(wrap);
