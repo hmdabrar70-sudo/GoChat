@@ -3641,6 +3641,8 @@ font-size:15px;
 line-height:1.5;
 word-wrap:break-word;
 position:relative;
+display:flex;
+flex-direction:column;
 }
 .chat-bubble.mine{
 /* Own messages: solid cyan · 2026-09-09 */
@@ -3653,11 +3655,15 @@ border-bottom-right-radius:6px;
 box-shadow:none !important;
 }
 .chat-bubble.theirs{
-background:var(--surface);
-border:1px solid var(--border);
-color:var(--text);
+/* Other messages: fixed orange — same in light & dark mode */
+background:#FF8C42 !important;
+background-color:#FF8C42 !important;
+background-image:none !important;
+border:none !important;
+color:#fff !important;
 align-self:flex-start;
 border-bottom-left-radius:6px;
+box-shadow:none !important;
 }
 .chat-bubble img{
 max-width:100%;
@@ -3814,8 +3820,27 @@ body:not(.light-mode) .chat-bubble.mine:not(.gc-media-only) .gc-msg-status-capsu
 }
 .gc-msg-time-row.gc-msg-status-capsule{
   margin-top:6px !important;
+  display:inline-flex !important;
+  align-items:center;
+  gap:5px;
+  width:auto;
+  max-width:100%;
+}
+/* Own messages: timer always bottom-right */
+.chat-bubble.mine .gc-msg-time-row.gc-msg-status-capsule{
+  align-self:flex-end !important;
+  margin-left:auto !important;
+  margin-right:0 !important;
   text-align:right;
   justify-content:flex-end;
+}
+/* Other messages: timer always bottom-left */
+.chat-bubble.theirs .gc-msg-time-row.gc-msg-status-capsule{
+  align-self:flex-start !important;
+  margin-left:0 !important;
+  margin-right:auto !important;
+  text-align:left;
+  justify-content:flex-start;
 }
 
 /* Grouped notification · stacked avatars + count badge */
@@ -7842,21 +7867,21 @@ body:has(#page-other-profile.open){
 }
 .msg:not(.mine) .gc-voice-player .gc-vp-play,
 .chat-bubble:not(.mine) .gc-voice-player .gc-vp-play{
-    background:var(--accent); color:var(--bg);
+    background:rgba(255,255,255,0.28) !important; color:#fff !important;
 }
 .msg:not(.mine) .gc-voice-player .gc-vp-bar,
 .chat-bubble:not(.mine) .gc-voice-player .gc-vp-bar{
-    background:var(--border) !important;
+    background:rgba(255,255,255,0.45) !important;
     background-image:none !important;
     position:relative !important;
 }
 .msg:not(.mine) .gc-voice-player .gc-vp-bar > i,
 .chat-bubble:not(.mine) .gc-voice-player .gc-vp-bar > i{
-    background:var(--accent);
+    background:#0a0a0f !important;
 }
 .msg:not(.mine) .gc-voice-player .gc-vp-time,
 .chat-bubble:not(.mine) .gc-voice-player .gc-vp-time{
-    color:var(--text-secondary);
+    color:rgba(255,255,255,0.95) !important;
 }
 /* WhatsApp-style inline voice record bar */
 #recording-ui.gc-voice-rec-bar,
@@ -11059,12 +11084,23 @@ Edit Profile-এ পার্টনার সিলেক্ট বাটন
 #sv-like-hit.is-openable{ cursor:pointer; }
 
 
-/* ═══ Own bubbles: ONE solid #00BFFF — no second layer, no transparency ═══ */
+/* ═══ Own bubbles: solid #00BFFF · Other: solid #FF8C42 — fixed both themes ═══ */
 .chat-bubble.mine,
 .chat-bubble.mine.gc-voice-bubble,
 .chat-bubble.mine.gc-has-voice{
   background:#00BFFF !important;
   background-color:#00BFFF !important;
+  background-image:none !important;
+  color:#ffffff !important;
+  box-shadow:none !important;
+  border:none !important;
+  overflow:hidden !important;
+}
+.chat-bubble.theirs,
+.chat-bubble.theirs.gc-voice-bubble,
+.chat-bubble.theirs.gc-has-voice{
+  background:#FF8C42 !important;
+  background-color:#FF8C42 !important;
   background-image:none !important;
   color:#ffffff !important;
   box-shadow:none !important;
@@ -11123,10 +11159,13 @@ Edit Profile-এ পার্টনার সিলেক্ট বাটন
   background:#ffffff !important;
   background-color:#ffffff !important;
 }
-.chat-bubble.theirs .gc-voice-player .gc-vp-bar,
+.chat-bubble.theirs .gc-voice-player .gc-vp-bar{
+  background:rgba(255,255,255,0.45) !important;
+  background-color:rgba(255,255,255,0.45) !important;
+}
 .gc-voice-player .gc-vp-bar{
-  background:var(--border) !important;
-  background-color:var(--border) !important;
+  background:rgba(255,255,255,0.45) !important;
+  background-color:rgba(255,255,255,0.45) !important;
 }
 .chat-bubble.mine .gc-voice-player .gc-vp-bar > i{
   display:block !important;
@@ -11157,23 +11196,24 @@ Edit Profile-এ পার্টনার সিলেক্ট বাটন
   opacity:1 !important;
 }
 .chat-bubble.theirs .gc-voice-player .gc-vp-play{
-  background:var(--accent) !important;
-  color:var(--bg) !important;
+  background:rgba(255,255,255,0.28) !important;
+  color:#fff !important;
   box-shadow:none !important;
+}
+.chat-bubble.theirs .gc-voice-player .gc-vp-play i{
+  color:#FF8C42 !important;
 }
 /* Duration + meta — no plate, inherit bubble color */
 .chat-bubble.mine .gc-voice-player .gc-vp-meta,
-.chat-bubble.mine .gc-voice-player .gc-vp-time{
+.chat-bubble.mine .gc-voice-player .gc-vp-time,
+.chat-bubble.theirs .gc-voice-player .gc-vp-meta,
+.chat-bubble.theirs .gc-voice-player .gc-vp-time{
   background:transparent !important;
   background-color:transparent !important;
   background-image:none !important;
   color:#ffffff !important;
   opacity:1 !important;
   position:relative !important;
-}
-.chat-bubble.theirs .gc-voice-player .gc-vp-time{
-  color:var(--text-secondary) !important;
-  background:transparent !important;
 }
 /* Timestamp row — inherit, no second band */
 .chat-bubble.mine .gc-msg-time-row,
@@ -11318,7 +11358,7 @@ body.light-mode .gc-email-privacy-opt.gc-email-priv-active{
 .gc-img-grid.n1 .gc-img-cell{max-height:280px;min-height:120px;}
 .gc-img-cell img{width:100%;height:100%;object-fit:cover;display:block;margin:0!important;border-radius:0!important;cursor:pointer;}
 .gc-img-more{position:absolute;inset:0;background:rgba(0,0,0,.55);color:#fff;font-weight:800;font-size:22px;display:flex;align-items:center;justify-content:center;pointer-events:none;}
-.chat-bubble.gc-media-only{background:transparent!important;border:none!important;box-shadow:none!important;padding:4px 0!important;color:var(--text)!important;max-width:min(78%,280px);}
+.chat-bubble.gc-media-only{box-shadow:none!important;color:#fff!important;max-width:min(78%,260px);}
 
 /* GoChat chat image sending — optimistic processing bubble */
 .gc-chat-upload-bubble{display:flex;justify-content:flex-end;width:100%;margin:4px 0;}
@@ -12121,54 +12161,61 @@ i.ph.ph-dots-three{
 }
 
 
-/* Own image-only messages · no cyan bubble behind photo */
+/* Media-only messages: thin colored plate matching bubble color */
 .chat-bubble.mine.gc-media-only{
-  background: transparent !important;
-  background-color: transparent !important;
+  background: #00BFFF !important;
+  background-color: #00BFFF !important;
   background-image: none !important;
-  padding: 0 !important;
+  padding: 5px !important;
   box-shadow: none !important;
   border: none !important;
-  max-width: min(78%, 280px) !important;
+  max-width: min(78%, 260px) !important;
+  overflow: hidden !important;
 }
 .chat-bubble.mine.gc-media-only img{
   margin: 0 !important;
-  border-radius: 16px !important;
+  border-radius: 12px !important;
   display: block;
   max-width: 100%;
 }
 .chat-bubble.theirs.gc-media-only{
-  background: transparent !important;
+  background: #FF8C42 !important;
+  background-color: #FF8C42 !important;
+  background-image: none !important;
   border: none !important;
-  padding: 0 !important;
+  padding: 5px !important;
+  max-width: min(78%, 260px) !important;
+  overflow: hidden !important;
 }
 .chat-bubble.theirs.gc-media-only img{
   margin: 0 !important;
-  border-radius: 16px !important;
+  border-radius: 12px !important;
 }
 
 
-/* Chat media · theme-aware timestamp (not white-on-white / random grays) */
+/* Timestamps: always readable on colored bubbles (cyan / orange) */
+.chat-bubble .gc-msg-time-row,
+.chat-bubble.mine .gc-msg-time-row,
+.chat-bubble.theirs .gc-msg-time-row,
 .chat-bubble.gc-media-only .gc-msg-time-row,
 .chat-bubble.mine.gc-media-only .gc-msg-time-row,
 .chat-bubble.theirs.gc-media-only .gc-msg-time-row{
-  color: var(--text-muted) !important;
-  opacity: 1 !important;
-  margin-top: 6px !important;
-  background: transparent !important;
-}
-.chat-bubble.gc-media-only .gc-msg-time-row span,
-.chat-bubble.gc-media-only .gc-msg-time-row i.ph-check{
-  color: var(--text-muted) !important;
-}
-/* Text bubbles keep high-contrast time on cyan */
-.chat-bubble.mine:not(.gc-media-only) .gc-msg-time-row{
   color: rgba(255,255,255,0.95) !important;
   opacity: 1 !important;
+  margin-top: 4px !important;
 }
-.chat-bubble.theirs:not(.gc-media-only) .gc-msg-time-row{
-  color: var(--text-muted) !important;
-  opacity: 1 !important;
+.chat-bubble .gc-msg-time-row span,
+.chat-bubble .gc-msg-time-row i,
+.chat-bubble.gc-media-only .gc-msg-time-row span,
+.chat-bubble.gc-media-only .gc-msg-time-row i.ph-check{
+  color: rgba(255,255,255,0.95) !important;
+}
+.chat-bubble.mine .gc-msg-status-capsule,
+.chat-bubble.theirs .gc-msg-status-capsule,
+.chat-bubble.gc-media-only .gc-msg-status-capsule{
+  background: rgba(0,0,0,0.18) !important;
+  border-color: rgba(255,255,255,0.12) !important;
+  color: rgba(255,255,255,0.95) !important;
 }
 
 
@@ -12246,26 +12293,22 @@ i.ph.ph-dots-three{
 }
 
 
-/* Light mode · media timestamp must be readable on white canvas */
+/* Media timestamps sit on cyan/orange plate — always white */
 body.light-mode .chat-bubble.gc-media-only .gc-msg-time-row,
 body.light-mode .chat-bubble.mine.gc-media-only .gc-msg-time-row,
 body.light-mode .chat-bubble.theirs.gc-media-only .gc-msg-time-row,
 body.light-mode .chat-bubble.gc-media-only .gc-msg-time-row span,
-body.light-mode .chat-bubble.gc-media-only .gc-msg-time-row i{
-  color: #5a5a70 !important;
-  opacity: 1 !important;
-  font-weight: 600 !important;
-}
+body.light-mode .chat-bubble.gc-media-only .gc-msg-time-row i,
 body:not(.light-mode) .chat-bubble.gc-media-only .gc-msg-time-row,
 body:not(.light-mode) .chat-bubble.gc-media-only .gc-msg-time-row span,
 body:not(.light-mode) .chat-bubble.gc-media-only .gc-msg-time-row i{
-  color: #a0a0b5 !important;
+  color: rgba(255,255,255,0.95) !important;
   opacity: 1 !important;
+  font-weight: 600 !important;
 }
-/* Time row sits outside photo edge for clarity */
 .chat-bubble.gc-media-only .gc-msg-time-row{
-  margin-top: 6px !important;
-  padding: 0 2px !important;
+  margin-top: 4px !important;
+  padding: 0 !important;
   text-shadow: none !important;
 }
 
@@ -14403,13 +14446,59 @@ body:not(.light-mode) .sp-comment-compose button.is-ready{
 .gc-cvv-menu .chat-dropdown-item i{ color:var(--text); }
 .gc-chat-upload-item video{ width:100%;height:100%;object-fit:cover;display:block;background:#000; }
 .gc-chat-video-play{
-  position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
-  width:48px;height:48px;border-radius:50%;
-  background:rgba(0,0,0,0.55);border:2px solid rgba(255,255,255,0.9);
+  position:absolute;top:8px;right:8px;left:auto;transform:none;
+  width:28px;height:28px;border-radius:50%;
+  background:rgba(0,0,0,0.55);border:none;
   display:flex;align-items:center;justify-content:center;pointer-events:none;
-  color:#fff;
+  color:#fff;z-index:2;
 }
-.gc-chat-video-play svg{ width:22px;height:22px;margin-left:2px; }
+.chat-bubble.theirs .gc-chat-video-play{ right:auto; left:8px; }
+.gc-chat-video-play svg{ width:12px;height:12px;margin-left:1px; }
+/* Shared post attachment card — clean Messenger-style */
+.gc-share-card{
+  width:100%; max-width:240px; border-radius:14px; overflow:hidden;
+  background:rgba(0,0,0,0.12); cursor:pointer; -webkit-tap-highlight-color:transparent;
+}
+.gc-share-head{
+  display:flex; align-items:center; gap:8px; padding:8px 10px 6px;
+}
+.gc-share-av{
+  width:28px; height:28px; border-radius:50%; object-fit:cover; flex-shrink:0;
+  background:rgba(255,255,255,0.2);
+}
+.gc-share-av-fallback{ background:rgba(255,255,255,0.25); }
+.gc-share-meta{ min-width:0; flex:1; }
+.gc-share-name{
+  font-size:13px; font-weight:700; color:#fff; white-space:nowrap;
+  overflow:hidden; text-overflow:ellipsis; line-height:1.2;
+}
+.gc-share-user{
+  font-size:11px; font-weight:500; color:rgba(255,255,255,0.75);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; line-height:1.2;
+}
+.gc-share-media{
+  position:relative; width:100%; background:#111; overflow:hidden;
+  border-radius:0 0 10px 10px;
+}
+.gc-share-media img{
+  display:block; width:100%; height:180px; object-fit:cover; margin:0 !important;
+  border-radius:0 !important;
+}
+.gc-share-play{
+  position:absolute; top:8px; width:28px; height:28px; border-radius:50%;
+  background:rgba(0,0,0,0.55); display:flex; align-items:center; justify-content:center;
+  pointer-events:none; z-index:2;
+}
+.chat-bubble.mine .gc-share-card,
+.chat-bubble.theirs .gc-share-card{ background:rgba(0,0,0,0.14); }
+.chat-bubble .gc-chat-video-bubble{
+  max-width:100%; border-radius:12px;
+}
+.chat-bubble .gc-chat-video-bubble .gc-chat-video-poster{
+  max-height:220px; border-radius:12px;
+}
+.chat-bubble .gc-img-grid,
+.chat-bubble .gc-img-stack{ border-radius:12px; overflow:hidden; }
 .gc-chat-video-dur{
   position:absolute;right:8px;bottom:8px;padding:2px 8px;border-radius:10px;
   background:rgba(0,0,0,0.55);color:#fff;font-size:11px;font-weight:700;
@@ -22874,32 +22963,35 @@ safeText = safeText.replace(urlRegex, function(url) {
                        if (m.sharedPostId) {
                 const rawImg = m.sharedPostImg || '';
                 const safeImg = rawImg ? escapeHTML(rawImg) : '';
-                const safeTitle = escapeHTML(m.sharedPostTitle || 'View Post');
                 const isVidShare = !!(rawImg && (rawImg.indexOf('/video/') !== -1 || /\.mp4(\?|$)/i.test(rawImg) || /\.webm(\?|$)/i.test(rawImg)));
-                let shareMedia = '';
+                var spName = escapeHTML(m.sharedPostAuthorName || m.sharedPostTitle || 'Post');
+                var spUser = escapeHTML(m.sharedPostAuthorUser || m.sharedPostUsername || '');
+                var spAv = escapeHTML(m.sharedPostAuthorAvatar || '');
+                var playCorner = isMine ? 'right:8px;' : 'left:8px;';
+                var shareMedia = '';
                 if(safeImg){
-                  if(isVidShare){
-                    /* Static poster only — never inline video player in chat */
-                    var posterSrc = safeImg;
-                    if(rawImg.indexOf('/video/upload/') !== -1){
-                      posterSrc = escapeHTML(rawImg.replace('/video/upload/', '/video/upload/so_0,f_jpg,w_400,h_240,c_fill/').replace(/\.(mp4|webm)(\?.*)?$/i, '.jpg'));
-                    }
-                    shareMedia = '<div style="position:relative;width:100%;height:120px;background:#111;overflow:hidden;">'
-                      + '<img src="'+posterSrc+'" alt="" style="width:100%;height:120px;object-fit:cover;display:block;" loading="lazy" onerror="this.style.opacity=0">'
-                      + '<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;"><div style="width:40px;height:40px;border-radius:50%;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="#fff"><path d="M8 5.14v13.72a1 1 0 0 0 1.5.86l11-6.86a1 1 0 0 0 0-1.72l-11-6.86a1 1 0 0 0-1.5.86z"/></svg></div></div>'
-                      + '</div>';
-                  } else {
-                    shareMedia = '<img src="'+safeImg+'" style="width:100%; height:120px; object-fit:cover; margin:0; border-radius:0; display:block;" loading="lazy">';
+                  var posterSrc = safeImg;
+                  if(isVidShare && rawImg.indexOf('/video/upload/') !== -1){
+                    posterSrc = escapeHTML(rawImg.replace('/video/upload/', '/video/upload/so_0,f_jpg,w_480,h_360,c_fill/').replace(/\.(mp4|webm)(\?.*)?$/i, '.jpg'));
                   }
+                  shareMedia = '<div class="gc-share-media">'
+                    + '<img src="'+posterSrc+'" alt="" loading="lazy" onerror="this.style.opacity=0">'
+                    + (isVidShare
+                        ? ('<div class="gc-share-play" style="'+playCorner+'"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="#fff"><path d="M8 5.14v13.72a1 1 0 0 0 1.5.86l11-6.86a1 1 0 0 0 0-1.72l-11-6.86a1 1 0 0 0-1.5.86z"/></svg></div>')
+                        : '')
+                    + '</div>';
                 }
-                content = `
-                <div onclick="closeChat(); openSinglePostView('${m.sharedPostId}')" style="cursor:pointer; background:var(--surface-2); border:1px solid var(--border); border-radius:12px; overflow:hidden; width:220px; margin-bottom:4px; box-shadow:var(--shadow-sm);">
-                    ${shareMedia}
-                    <div style="padding:10px; font-size:13px; font-weight:700; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
-                      <i class="ph-light ph-link-break" style="color:var(--accent); vertical-align:middle; margin-right:4px;"></i>${safeTitle}
-                    </div>
-                </div>`;
-                if(m.text) content += `<div style="margin-top:6px;">${safeText}</div>`;
+                var avHtml = spAv
+                  ? ('<img class="gc-share-av" src="'+spAv+'" alt="">')
+                  : ('<div class="gc-share-av gc-share-av-fallback"></div>');
+                content = '<div class="gc-share-card" onclick="event.stopPropagation();closeChat();openSinglePostView(\''+m.sharedPostId+'\')">'
+                  + '<div class="gc-share-head">'+avHtml
+                  + '<div class="gc-share-meta"><div class="gc-share-name">'+spName+'</div>'
+                  + (spUser ? ('<div class="gc-share-user">@'+spUser.replace(/^@/,'')+'</div>') : '')
+                  + '</div></div>'
+                  + shareMedia
+                  + '</div>';
+                /* Don't show the generic "Shared a post" text under the card */
             } else if (m.sharedStoryId || m.sharedStoryImg || m.sharedStoryVideo) {
                 // Story reply card — static media only (no inline video playback)
                 const sImg = m.sharedStoryImg ? escapeHTML(m.sharedStoryImg) : '';
@@ -22957,11 +23049,11 @@ safeText = safeText.replace(urlRegex, function(url) {
                 let repText = m.replyText ? escapeHTML(m.replyText) : 'Replying to a message';
                 if(repText.length > 50) repText = repText.substring(0, 50) + '...';
                 
-                // নিজের এবং অন্যের মেসেজের জন্য আলাদা ডিজাইন
-                let repBg = isMine ? 'rgba(0,0,0,0.25)' : 'var(--surface-2)';
-                let borderCol = isMine ? 'rgba(255,255,255,0.8)' : 'var(--accent)';
-                let nameCol = isMine ? '#fff' : 'var(--accent)';
-                let textCol = isMine ? 'rgba(255,255,255,0.8)' : 'var(--text-secondary)';
+                // নিজের এবং অন্যের মেসেজের জন্য আলাদা ডিজাইন (both on solid color bubbles)
+                let repBg = 'rgba(0,0,0,0.22)';
+                let borderCol = 'rgba(255,255,255,0.85)';
+                let nameCol = '#fff';
+                let textCol = 'rgba(255,255,255,0.85)';
                 
                 replyHtml=`<div onclick="scrollToMessage('${m.replyTo}')" style="cursor:pointer; opacity:0.95; margin-bottom:8px; padding:8px 12px; background:${repBg}; border-radius:8px; border-left:3px solid ${borderCol}; display:flex; flex-direction:column; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
                     <strong style="color:${nameCol}; font-size:11px; margin-bottom:3px; letter-spacing:0.3px;">${repName}</strong>
@@ -35010,9 +35102,13 @@ async function openShareModal(postId, postTitle, postImg) {
     // Firestore rejects undefined — always use string/null
     let title = (postTitle != null && postTitle !== undefined) ? String(postTitle) : '';
     let img = (postImg != null && postImg !== undefined) ? String(postImg) : '';
+    let authorName = '';
+    let authorUser = '';
+    let authorAvatar = '';
+    let authorUid = '';
 
-    // Zoom / partial callers often pass only id — hydrate from post doc
-    if ((!title || !img) && typeof db !== 'undefined') {
+    // Zoom / partial callers often pass only id — hydrate from post doc + author
+    if (typeof db !== 'undefined') {
         try {
             const snap = await db.collection('posts').doc(postId).get();
             if (snap.exists) {
@@ -35022,12 +35118,33 @@ async function openShareModal(postId, postTitle, postImg) {
                     if (Array.isArray(d.imageUrls) && d.imageUrls[0]) img = d.imageUrls[0];
                     else if (d.imageUrl) img = d.imageUrl;
                     else if (Array.isArray(d.images) && d.images[0]) img = d.images[0];
+                    else if (d.videoUrl) img = d.videoUrl;
+                }
+                authorUid = d.uid || d.userId || '';
+                authorName = d.userName || d.authorName || d.name || '';
+                authorUser = d.username || d.userName || '';
+                authorAvatar = d.userAvatar || d.avatar || '';
+                if (authorUid && (!authorName || !authorAvatar) && typeof allUsersCache !== 'undefined' && allUsersCache) {
+                    var _au = allUsersCache.find(function(u){ return u.id === authorUid; });
+                    if (_au) {
+                        if (!authorName) authorName = _au.name || '';
+                        if (!authorUser) authorUser = _au.username || '';
+                        if (!authorAvatar) authorAvatar = _au.avatar || '';
+                    }
                 }
             }
         } catch (e) { /* keep empty strings */ }
     }
 
-    currentSharePostData = { id: postId, title: title || '', img: img || '' };
+    currentSharePostData = {
+      id: postId,
+      title: title || '',
+      img: img || '',
+      authorName: authorName || '',
+      authorUser: authorUser || '',
+      authorAvatar: authorAvatar || '',
+      authorUid: authorUid || ''
+    };
     var shareModal = document.getElementById('share-post-modal');
     if(shareModal){
       /* Above Shorts screen (100700) when sharing from Shorts */
@@ -35165,6 +35282,10 @@ async function sendSharedPost(chatId, otherUid, btn) {
         sharedPostId: currentSharePostData.id,
         sharedPostTitle: currentSharePostData.title || '',
         sharedPostImg: currentSharePostData.img || '',
+        sharedPostAuthorName: currentSharePostData.authorName || '',
+        sharedPostAuthorUser: currentSharePostData.authorUser || '',
+        sharedPostAuthorAvatar: currentSharePostData.authorAvatar || '',
+        sharedPostAuthorUid: currentSharePostData.authorUid || '',
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
     };
     
