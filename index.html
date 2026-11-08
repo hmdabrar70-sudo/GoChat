@@ -14300,9 +14300,12 @@ body:not(.light-mode) .sp-comment-compose button.is-ready{
 }
 
 .gc-chat-video-bubble .gc-chat-video-poster{
-  position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:transparent;z-index:1;pointer-events:none;
+  position:relative;display:block;width:100%;max-height:320px;object-fit:contain;background:#000;z-index:1;pointer-events:none;
 }
-.gc-chat-video-bubble video{ position:relative; z-index:0; }
+.gc-chat-video-bubble .gc-chat-video-poster-empty{
+  width:100%;height:180px;background:#111;
+}
+.gc-chat-video-bubble video{ display:none !important; } /* never inline-play in chat */
 .gc-chat-video-bubble .gc-chat-video-play{ z-index:2; }
 .gc-chat-img-thumb video,
 .gc-chat-img-thumb img{ width:100%;height:100%;object-fit:cover;display:block;background:#000; }
@@ -17364,6 +17367,64 @@ const data=await res.json();
 if(data.secure_url)return data.secure_url;
 throw new Error((data && data.error && data.error.message) ? data.error.message : 'Upload failed');
 }
+
+
+/* ═══ GoChat · Join Date (system-controlled, always public) ═══ */
+function gcParseJoinDate(raw){
+  if(raw == null || raw === '') return null;
+  try{
+    var d = null;
+    if(raw && typeof raw.toDate === 'function') d = raw.toDate();
+    else if(raw && typeof raw.toMillis === 'function') d = new Date(raw.toMillis());
+    else if(raw && typeof raw.seconds === 'number') d = new Date(raw.seconds * 1000);
+    else if(raw && typeof raw._seconds === 'number') d = new Date(raw._seconds * 1000);
+    else if(typeof raw === 'number' && isFinite(raw)) d = new Date(raw < 1e12 ? raw * 1000 : raw);
+    else if(typeof raw === 'string' && raw) d = new Date(raw);
+    else if(raw instanceof Date) d = raw;
+    if(d && !isNaN(d.getTime()) && d.getFullYear() > 2000) return d;
+  }catch(e){}
+  return null;
+}
+function gcJoinDateFromUser(u, opts){
+  opts = opts || {};
+  if(!u) return null;
+  var raw = u.createdAt || u.joinedAt || u.created_at || u.joinDate || u.registeredAt || u.accountCreated || null;
+  var d = gcParseJoinDate(raw);
+  if(!d && opts.allowAuthFallback && typeof currentUser !== 'undefined' && currentUser && currentUser.metadata && currentUser.metadata.creationTime){
+    try{ d = new Date(currentUser.metadata.creationTime); }catch(e){ d = null; }
+    if(d && (isNaN(d.getTime()) || d.getFullYear() <= 2000)) d = null;
+  }
+  return d;
+}
+function gcJoinDateHtml(u, opts){
+  var d = gcJoinDateFromUser(u, opts);
+  if(!d) return '';
+  var month = d.toLocaleString('default', { month: 'long' });
+  var year = d.getFullYear();
+  var day = d.getDate();
+  return '<div class="detail-item gc-join-date-item"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" style="width:20px;height:20px;flex-shrink:0;display:block;" aria-hidden="true"><g fill="currentColor"><path d="M15.9326 20.3457C15.8848 20.6589 15.8028 20.9022 15.6631 21.1113C15.5172 21.3296 15.3296 21.5172 15.1113 21.6631C14.6069 22.0001 13.9043 22 12.5 22H11.5C10.0955 22 9.39312 22.0001 8.88867 21.6631C8.67033 21.5172 8.48281 21.3297 8.33691 21.1113C8.19714 20.9021 8.11526 20.6589 8.06738 20.3457C8.22991 20.3708 8.39466 20.3912 8.56152 20.4082C9.46612 20.5002 10.5838 20.5 11.9229 20.5H12.0762C13.4152 20.5 14.5329 20.5002 15.4375 20.4082C15.6045 20.3912 15.77 20.3709 15.9326 20.3457Z"/><path fill-rule="evenodd" d="M12 5C14.8089 5 16.2138 4.99971 17.2227 5.67383C17.6593 5.96562 18.0344 6.34068 18.3262 6.77734C19.0003 7.78624 19 9.19108 19 12C19 14.8089 19.0003 16.2138 18.3262 17.2227C18.0344 17.6593 17.6593 18.0344 17.2227 18.3262C16.2138 19.0003 14.8089 19 12 19C9.19108 19 7.78624 19.0003 6.77734 18.3262C6.34068 18.0344 5.96562 17.6593 5.67383 17.2227C4.99971 16.2138 5 14.8089 5 12C5 9.19108 4.99971 7.78624 5.67383 6.77734C5.96562 6.34068 6.34068 5.96562 6.77734 5.67383C7.78624 4.99971 9.19108 5 12 5ZM12 8.25C11.5858 8.25 11.25 8.58579 11.25 9V12.0771C11.2501 12.2811 11.3335 12.4758 11.4805 12.6172L13.4805 14.541C13.7791 14.8278 14.254 14.818 14.541 14.5195C14.8278 14.2209 14.818 13.746 14.5195 13.459L12.75 11.7578V9C12.75 8.58579 12.4142 8.25 12 8.25Z" clip-rule="evenodd"/><path d="M12.5 2C13.9043 2 14.6069 1.99987 15.1113 2.33691C15.3296 2.48281 15.5172 2.67035 15.6631 2.88867C15.8028 3.09784 15.8847 3.34116 15.9326 3.6543C15.77 3.62914 15.6045 3.60878 15.4375 3.5918C14.5329 3.4998 13.4152 3.49997 12.0762 3.5H11.9229C10.5838 3.49997 9.46612 3.49977 8.56152 3.5918C8.39467 3.60878 8.2299 3.62916 8.06738 3.6543C8.11527 3.34117 8.19716 3.09783 8.33691 2.88867C8.48282 2.67035 8.67034 2.4828 8.88867 2.33691C9.39311 1.99989 10.0956 2 11.5 2H12.5Z"/></g></svg> Joined <strong>'+month+' '+day+', '+year+'</strong></div>';
+}
+window.gcParseJoinDate = gcParseJoinDate;
+window.gcJoinDateFromUser = gcJoinDateFromUser;
+window.gcJoinDateHtml = gcJoinDateHtml;
+/* One-time self-heal: persist Auth creationTime into users.createdAt when missing */
+function gcEnsureOwnJoinDate(){
+  try{
+    if(!currentUser || !currentUser.uid) return;
+    var has = currentUserData && (currentUserData.createdAt || currentUserData.joinedAt);
+    if(has) return;
+    var meta = currentUser.metadata && currentUser.metadata.creationTime;
+    if(!meta) return;
+    var ms = new Date(meta).getTime();
+    if(!ms || isNaN(ms)) return;
+    if(window.__gcJoinDateHealed) return;
+    window.__gcJoinDateHealed = true;
+    db.collection('users').doc(currentUser.uid).set({ createdAt: firebase.firestore.Timestamp.fromMillis(ms) }, { merge: true }).then(function(){
+      if(currentUserData) currentUserData.createdAt = firebase.firestore.Timestamp.fromMillis(ms);
+    }).catch(function(){});
+  }catch(e){}
+}
+window.gcEnsureOwnJoinDate = gcEnsureOwnJoinDate;
 
 async function fetchAllUsers(forceRefresh=false){
 const now = Date.now();
@@ -22303,7 +22364,16 @@ async function viewUserProfile(uid){
       const postsEl=document.getElementById('other-user-posts-list'); if(postsEl) postsEl.innerHTML='<div class="empty-feed">This profile is not available.</div>';
       return;
     }
-    const u = doc.data();
+    const u = doc.data() || {};
+    try{
+      if(!(u.createdAt || u.joinedAt || u.created_at || u.joinDate) && typeof allUsersCache !== 'undefined' && allUsersCache){
+        var _cu = allUsersCache.find(function(x){ return x && x.id === uid; });
+        if(_cu){
+          if(_cu.createdAt) u.createdAt = _cu.createdAt;
+          else if(_cu.joinedAt) u.joinedAt = _cu.joinedAt;
+        }
+      }
+    }catch(_eJoin){}
     if(otherPage) otherPage.classList.remove('gc-loading-profile');
 
     if(typeof gcIsBanned === 'function' && gcIsBanned(uid, u)){
@@ -22424,26 +22494,7 @@ ${gcDisplayName}
         const otherDobDisp = (typeof gcFormatDobDisplay === 'function') ? gcFormatDobDisplay(u.dob) : null;
         if(otherDobDisp) basicHtml += `<div class="detail-item"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" style="width:20px;height:20px;flex-shrink:0;display:block;" aria-hidden="true"><path fill="currentColor" d="m15 1.784-.796.795a1.125 1.125 0 1 0 1.591 0L15 1.784ZM12 1.784l-.796.795a1.125 1.125 0 1 0 1.591 0L12 1.784ZM9 1.784l-.796.795a1.125 1.125 0 1 0 1.591 0L9 1.784ZM9.75 7.547c.498-.021.998-.035 1.5-.042V6.75a.75.75 0 0 1 1.5 0v.755c.502.007 1.002.021 1.5.042V6.75a.75.75 0 0 1 1.5 0v.88l.307.022c1.55.117 2.693 1.427 2.693 2.946v1.018a62.182 62.182 0 0 0-13.5 0v-1.018c0-1.519 1.143-2.829 2.693-2.946l.307-.022v-.88a.75.75 0 0 1 1.5 0v.797ZM12 12.75c-2.472 0-4.9.184-7.274.54-1.454.217-2.476 1.482-2.476 2.916v.384a4.104 4.104 0 0 1 2.585.364 2.605 2.605 0 0 0 2.33 0 4.104 4.104 0 0 1 3.67 0 2.605 2.605 0 0 0 2.33 0 4.104 4.104 0 0 1 3.67 0 2.605 2.605 0 0 0 2.33 0 4.104 4.104 0 0 1 2.585-.364v-.384c0-1.434-1.022-2.7-2.476-2.917A49.138 49.138 0 0 0 12 12.75ZM21.75 18.131a2.604 2.604 0 0 0-1.915.165 4.104 4.104 0 0 1-3.67 0 2.605 2.605 0 0 0-2.33 0 4.104 4.104 0 0 1-3.67 0 2.605 2.605 0 0 0-2.33 0 4.104 4.104 0 0 1-3.67 0 2.604 2.604 0 0 0-1.915-.165v2.494c0 1.035.84 1.875 1.875 1.875h15.75c1.035 0 1.875-.84 1.875-1.875v-2.494Z"/></svg> <strong>${escapeHTML(otherDobDisp)}</strong></div>`;
     }
-    (function(){
-        // Join date for OTHER profiles — same robust parser as own profile
-        var raw = u.createdAt || u.joinedAt || u.created_at || u.joinDate || null;
-        var joinedDate = null;
-        try{
-          if(raw && typeof raw.toDate === 'function') joinedDate = raw.toDate();
-          else if(raw && typeof raw.toMillis === 'function') joinedDate = new Date(raw.toMillis());
-          else if(raw && typeof raw.seconds === 'number') joinedDate = new Date(raw.seconds * 1000);
-          else if(raw && typeof raw._seconds === 'number') joinedDate = new Date(raw._seconds * 1000);
-          else if(typeof raw === 'number') joinedDate = new Date(raw < 1e12 ? raw * 1000 : raw);
-          else if(typeof raw === 'string' && raw) joinedDate = new Date(raw);
-          else if(raw instanceof Date) joinedDate = raw;
-        }catch(e){ joinedDate = null; }
-        if(joinedDate && !isNaN(joinedDate.getTime()) && joinedDate.getFullYear() > 2000){
-          var month = joinedDate.toLocaleString('default', { month: 'long' });
-          var year = joinedDate.getFullYear();
-          var day = joinedDate.getDate();
-          basicHtml += '<div class="detail-item"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" style="width:20px;height:20px;flex-shrink:0;display:block;" aria-hidden="true"><g fill="currentColor"><path d="M15.9326 20.3457C15.8848 20.6589 15.8028 20.9022 15.6631 21.1113C15.5172 21.3296 15.3296 21.5172 15.1113 21.6631C14.6069 22.0001 13.9043 22 12.5 22H11.5C10.0955 22 9.39312 22.0001 8.88867 21.6631C8.67033 21.5172 8.48281 21.3297 8.33691 21.1113C8.19714 20.9021 8.11526 20.6589 8.06738 20.3457C8.22991 20.3708 8.39466 20.3912 8.56152 20.4082C9.46612 20.5002 10.5838 20.5 11.9229 20.5H12.0762C13.4152 20.5 14.5329 20.5002 15.4375 20.4082C15.6045 20.3912 15.77 20.3709 15.9326 20.3457Z"/><path fill-rule="evenodd" d="M12 5C14.8089 5 16.2138 4.99971 17.2227 5.67383C17.6593 5.96562 18.0344 6.34068 18.3262 6.77734C19.0003 7.78624 19 9.19108 19 12C19 14.8089 19.0003 16.2138 18.3262 17.2227C18.0344 17.6593 17.6593 18.0344 17.2227 18.3262C16.2138 19.0003 14.8089 19 12 19C9.19108 19 7.78624 19.0003 6.77734 18.3262C6.34068 18.0344 5.96562 17.6593 5.67383 17.2227C4.99971 16.2138 5 14.8089 5 12C5 9.19108 4.99971 7.78624 5.67383 6.77734C5.96562 6.34068 6.34068 5.96562 6.77734 5.67383C7.78624 4.99971 9.19108 5 12 5ZM12 8.25C11.5858 8.25 11.25 8.58579 11.25 9V12.0771C11.2501 12.2811 11.3335 12.4758 11.4805 12.6172L13.4805 14.541C13.7791 14.8278 14.254 14.818 14.541 14.5195C14.8278 14.2209 14.818 13.746 14.5195 13.459L12.75 11.7578V9C12.75 8.58579 12.4142 8.25 12 8.25Z" clip-rule="evenodd"/><path d="M12.5 2C13.9043 2 14.6069 1.99987 15.1113 2.33691C15.3296 2.48281 15.5172 2.67035 15.6631 2.88867C15.8028 3.09784 15.8847 3.34116 15.9326 3.6543C15.77 3.62914 15.6045 3.60878 15.4375 3.5918C14.5329 3.4998 13.4152 3.49997 12.0762 3.5H11.9229C10.5838 3.49997 9.46612 3.49977 8.56152 3.5918C8.39467 3.60878 8.2299 3.62916 8.06738 3.6543C8.11527 3.34117 8.19716 3.09783 8.33691 2.88867C8.48282 2.67035 8.67034 2.4828 8.88867 2.33691C9.39311 1.99989 10.0956 2 11.5 2H12.5Z"/></g></svg> Joined <strong>'+month+' '+day+', '+year+'</strong></div>';
-        }
-    })();
+    basicHtml += (typeof gcJoinDateHtml === 'function' ? gcJoinDateHtml(u, { allowAuthFallback: false }) : '');
     if(u.relationship){
         let partnerChip = '';
         if(u.partnerStatus === 'confirmed' && u.partnerUid){
@@ -22772,7 +22823,7 @@ safeText = safeText.replace(urlRegex, function(url) {
                 if(m.text) content += `<div style="margin-top:6px;">${safeText}</div>`;
             } else if(m.videoUrl){
                 const vUrl = escapeHTML(m.videoUrl);
-                const vBubble = (typeof gcBuildChatVideoBubble==='function') ? gcBuildChatVideoBubble(m.videoUrl, m.videoThumb || m.poster || m.thumbnail || '') : (function(){ var pt=escapeHTML(m.videoThumb||m.poster||m.thumbnail||''); var pi=pt?('<img class="gc-chat-video-poster" src="'+pt+'" alt="">'):''; var pa=pt?(' poster="'+pt+'"'):''; return '<div class="gc-chat-video-bubble" onclick="event.stopPropagation();gcOpenChatVideoViewer(\''+vUrl+'\')">'+pi+'<video src="'+vUrl+'"'+pa+' preload="metadata" muted playsinline></video><div class="gc-chat-video-play"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.14v13.72a1 1 0 0 0 1.5.86l11-6.86a1 1 0 0 0 0-1.72l-11-6.86a1 1 0 0 0-1.5.86z"/></svg></div></div>'; })();
+                const vBubble = (typeof gcBuildChatVideoBubble==='function') ? gcBuildChatVideoBubble(m.videoUrl, m.videoThumb || m.poster || m.thumbnail || '') : (function(){ var pt=escapeHTML(m.videoThumb||m.poster||m.thumbnail||''); var pi=pt?('<img class="gc-chat-video-poster" src="'+pt+'" alt="">'):''; var pa=pt?(' poster="'+pt+'"'):''; return '<div class="gc-chat-video-bubble" data-gc-static-video="1" onclick="event.stopPropagation();gcOpenChatVideoViewer(\''+vUrl+'\')">'+pi+'<div class="gc-chat-video-play" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.14v13.72a1 1 0 0 0 1.5.86l11-6.86a1 1 0 0 0 0-1.72l-11-6.86a1 1 0 0 0-1.5.86z"/></svg></div></div>'; })();
                 content = (m.text ? `<div style="margin-bottom:6px;">${safeText}</div>` : '') + vBubble;
             } else if((m.images && m.images.length) || m.imageUrl){
                 const imgList = (m.images && m.images.length) ? m.images : [m.imageUrl];
@@ -24399,18 +24450,15 @@ function gcBuildChatVideoBubble(url, poster){
   if(!url) return '';
   var u = escapeHTML(url);
   var p = poster ? escapeHTML(String(poster)) : '';
-  var posterAttr = p ? (' poster="'+p+'"') : '';
-  var posterImg = p ? ('<img class="gc-chat-video-poster" src="'+p+'" alt="" loading="lazy">') : '';
-  return '<div class="gc-chat-video-bubble" onclick="event.stopPropagation();gcOpenChatVideoViewer(\''+u+'\')">'
+  /* Static attachment preview only — no <video> element, no inline playback/controls */
+  var posterImg = p
+    ? ('<img class="gc-chat-video-poster" src="'+p+'" alt="" loading="lazy" draggable="false">')
+    : ('<div class="gc-chat-video-poster gc-chat-video-poster-empty" aria-hidden="true"></div>');
+  return '<div class="gc-chat-video-bubble" data-gc-static-video="1" onclick="event.stopPropagation();gcOpenChatVideoViewer(\''+u+'\')">'
     + posterImg
-    +'<video src="'+u+'"'+posterAttr+' preload="metadata" muted playsinline></video>'
-    +'<div class="gc-chat-video-play"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.14v13.72a1 1 0 0 0 1.5.86l11-6.86a1 1 0 0 0 0-1.72l-11-6.86a1 1 0 0 0-1.5.86z"/></svg></div>'
+    +'<div class="gc-chat-video-play" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.14v13.72a1 1 0 0 0 1.5.86l11-6.86a1 1 0 0 0 0-1.72l-11-6.86a1 1 0 0 0-1.5.86z"/></svg></div>'
     +'</div>';
 }
-window.gcBuildChatVideoBubble = gcBuildChatVideoBubble;
-
-window.__gcChatVideoScroll = null;
-window.__gcChatVideoUrl = '';
 
 function gcOpenChatVideoViewer(url){
   if(!url) return;
@@ -27874,6 +27922,7 @@ async function loadOtherUserPosts(uid){
 
 function loadUserUI(){
     if(!currentUser||!currentUserData) return;
+    try{ if(typeof gcEnsureOwnJoinDate==='function') gcEnsureOwnJoinDate(); }catch(_e){}
     
     const name = currentUserData.name || currentUser.email.split('@')[0] || 'User';
     const avHtml = currentUserData.avatar ? `<img src="${currentUserData.avatar}">` : (typeof gcAvatarInnerHtml==='function'?gcAvatarInnerHtml(currentUser&&currentUser.uid,currentUserData&&currentUserData.avatar,name):'');
@@ -27998,28 +28047,7 @@ if(currentUserData.dob){
             basicHtml += `<div class="detail-item"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" style="width:20px;height:20px;flex-shrink:0;display:block;" aria-hidden="true"><path fill="currentColor" d="m15 1.784-.796.795a1.125 1.125 0 1 0 1.591 0L15 1.784ZM12 1.784l-.796.795a1.125 1.125 0 1 0 1.591 0L12 1.784ZM9 1.784l-.796.795a1.125 1.125 0 1 0 1.591 0L9 1.784ZM9.75 7.547c.498-.021.998-.035 1.5-.042V6.75a.75.75 0 0 1 1.5 0v.755c.502.007 1.002.021 1.5.042V6.75a.75.75 0 0 1 1.5 0v.88l.307.022c1.55.117 2.693 1.427 2.693 2.946v1.018a62.182 62.182 0 0 0-13.5 0v-1.018c0-1.519 1.143-2.829 2.693-2.946l.307-.022v-.88a.75.75 0 0 1 1.5 0v.797ZM12 12.75c-2.472 0-4.9.184-7.274.54-1.454.217-2.476 1.482-2.476 2.916v.384a4.104 4.104 0 0 1 2.585.364 2.605 2.605 0 0 0 2.33 0 4.104 4.104 0 0 1 3.67 0 2.605 2.605 0 0 0 2.33 0 4.104 4.104 0 0 1 3.67 0 2.605 2.605 0 0 0 2.33 0 4.104 4.104 0 0 1 2.585-.364v-.384c0-1.434-1.022-2.7-2.476-2.917A49.138 49.138 0 0 0 12 12.75ZM21.75 18.131a2.604 2.604 0 0 0-1.915.165 4.104 4.104 0 0 1-3.67 0 2.605 2.605 0 0 0-2.33 0 4.104 4.104 0 0 1-3.67 0 2.605 2.605 0 0 0-2.33 0 4.104 4.104 0 0 1-3.67 0 2.604 2.604 0 0 0-1.915-.165v2.494c0 1.035.84 1.875 1.875 1.875h15.75c1.035 0 1.875-.84 1.875-1.875v-2.494Z"/></svg> <strong>${escapeHTML(myDobDisp)}</strong>${privLockIcon}</div>`;
         }
     }
-    (function(){
-        var raw = currentUserData.createdAt || currentUserData.joinedAt || currentUserData.created_at || currentUserData.joinDate || null;
-        var joinedDate = null;
-        try{
-          if(raw && typeof raw.toDate === 'function') joinedDate = raw.toDate();
-          else if(raw && typeof raw.toMillis === 'function') joinedDate = new Date(raw.toMillis());
-          else if(raw && typeof raw.seconds === 'number') joinedDate = new Date(raw.seconds * 1000);
-          else if(raw && typeof raw._seconds === 'number') joinedDate = new Date(raw._seconds * 1000);
-          else if(typeof raw === 'number') joinedDate = new Date(raw < 1e12 ? raw * 1000 : raw);
-          else if(typeof raw === 'string' && raw) joinedDate = new Date(raw);
-          else if(raw instanceof Date) joinedDate = raw;
-          if((!joinedDate || isNaN(joinedDate.getTime())) && currentUser && currentUser.metadata && currentUser.metadata.creationTime){
-            joinedDate = new Date(currentUser.metadata.creationTime);
-          }
-        }catch(e){ joinedDate = null; }
-        if(joinedDate && !isNaN(joinedDate.getTime()) && joinedDate.getFullYear() > 2000){
-          var month = joinedDate.toLocaleString('default', { month: 'long' });
-          var year = joinedDate.getFullYear();
-          var day = joinedDate.getDate();
-          basicHtml += '<div class="detail-item"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" style="width:20px;height:20px;flex-shrink:0;display:block;" aria-hidden="true"><g fill="currentColor"><path d="M15.9326 20.3457C15.8848 20.6589 15.8028 20.9022 15.6631 21.1113C15.5172 21.3296 15.3296 21.5172 15.1113 21.6631C14.6069 22.0001 13.9043 22 12.5 22H11.5C10.0955 22 9.39312 22.0001 8.88867 21.6631C8.67033 21.5172 8.48281 21.3297 8.33691 21.1113C8.19714 20.9021 8.11526 20.6589 8.06738 20.3457C8.22991 20.3708 8.39466 20.3912 8.56152 20.4082C9.46612 20.5002 10.5838 20.5 11.9229 20.5H12.0762C13.4152 20.5 14.5329 20.5002 15.4375 20.4082C15.6045 20.3912 15.77 20.3709 15.9326 20.3457Z"/><path fill-rule="evenodd" d="M12 5C14.8089 5 16.2138 4.99971 17.2227 5.67383C17.6593 5.96562 18.0344 6.34068 18.3262 6.77734C19.0003 7.78624 19 9.19108 19 12C19 14.8089 19.0003 16.2138 18.3262 17.2227C18.0344 17.6593 17.6593 18.0344 17.2227 18.3262C16.2138 19.0003 14.8089 19 12 19C9.19108 19 7.78624 19.0003 6.77734 18.3262C6.34068 18.0344 5.96562 17.6593 5.67383 17.2227C4.99971 16.2138 5 14.8089 5 12C5 9.19108 4.99971 7.78624 5.67383 6.77734C5.96562 6.34068 6.34068 5.96562 6.77734 5.67383C7.78624 4.99971 9.19108 5 12 5ZM12 8.25C11.5858 8.25 11.25 8.58579 11.25 9V12.0771C11.2501 12.2811 11.3335 12.4758 11.4805 12.6172L13.4805 14.541C13.7791 14.8278 14.254 14.818 14.541 14.5195C14.8278 14.2209 14.818 13.746 14.5195 13.459L12.75 11.7578V9C12.75 8.58579 12.4142 8.25 12 8.25Z" clip-rule="evenodd"/><path d="M12.5 2C13.9043 2 14.6069 1.99987 15.1113 2.33691C15.3296 2.48281 15.5172 2.67035 15.6631 2.88867C15.8028 3.09784 15.8847 3.34116 15.9326 3.6543C15.77 3.62914 15.6045 3.60878 15.4375 3.5918C14.5329 3.4998 13.4152 3.49997 12.0762 3.5H11.9229C10.5838 3.49997 9.46612 3.49977 8.56152 3.5918C8.39467 3.60878 8.2299 3.62916 8.06738 3.6543C8.11527 3.34117 8.19716 3.09783 8.33691 2.88867C8.48282 2.67035 8.67034 2.4828 8.88867 2.33691C9.39311 1.99989 10.0956 2 11.5 2H12.5Z"/></g></svg> Joined <strong>'+month+' '+day+', '+year+'</strong></div>';
-        }
-    })();
+    basicHtml += (typeof gcJoinDateHtml === 'function' ? gcJoinDateHtml(currentUserData, { allowAuthFallback: true }) : '');
     if(currentUserData.relationship){
         let partnerChip = '';
         if(currentUserData.partnerStatus === 'confirmed' && currentUserData.partnerUid){
@@ -34913,52 +34941,57 @@ function closeShareModal() {
 // 🚀 চ্যাট লিস্ট লোড করার আপডেট ফাংশন (লাইভ ছবি সহ)
 async function loadShareChatList() {
     const list = document.getElementById('share-chat-list');
-    if (!allUsersCache) await fetchAllUsers(); // ছবি আনার জন্য ডাটাবেস ক্যাশ লোড করা
+    if (!list) return;
+    if (!currentUser) {
+        list.innerHTML = '<div style="text-align:center; padding:20px; color:var(--text-muted);">Sign in to share.</div>';
+        return;
+    }
+    if (!allUsersCache) await fetchAllUsers();
     
     try {
-        const snap = await db.collection('chats').get();
-        let chats = [];
-        
-        snap.forEach(d => {
-            const data = d.data();
-            const chatId = d.id;
-            
-            let isMyChat = false;
-            if (data.isGroup && data.members && data.members.includes(currentUser.uid)) {
-                isMyChat = true;
-            } else if (!data.isGroup && chatId.includes(currentUser.uid)) {
-                isMyChat = true;
-            }
+        /* Security rules require filtered queries (same as loadMessages) — never chats.get() */
+        var chatMap = {};
+        function ingest(snap) {
+            snap.forEach(function(d) {
+                chatMap[d.id] = d.data() || {};
+            });
+        }
+        var qUsers = await db.collection('chats').where('users', 'array-contains', currentUser.uid).get();
+        ingest(qUsers);
+        try {
+            var qMembers = await db.collection('chats').where('members', 'array-contains', currentUser.uid).get();
+            ingest(qMembers);
+        } catch (eMem) { /* groups may use members field */ }
 
-            if (!isMyChat) return;
+        var chats = [];
+        var blockedUsers = (currentUserData && currentUserData.blockedUsers) || [];
 
+        Object.keys(chatMap).forEach(function(chatId) {
+            var data = chatMap[chatId] || {};
             if (data.isGroup) {
+                if (data.members && data.members.indexOf(currentUser.uid) === -1) return;
                 chats.push({
                     id: chatId, uid: 'group', name: data.groupName || 'Group', avatar: data.groupAvatar || '', isGroup: true
                 });
             } else {
-                const parts = chatId.split('_');
-                if (parts.length === 2) {
-                    const otherUid = parts[0] === currentUser.uid ? parts[1] : parts[0];
-                    const blockedUsers = currentUserData?.blockedUsers || [];
-                    if (!blockedUsers.includes(otherUid)) {
-                        // 🚀 লাইভ ছবি এবং নাম আনা হচ্ছে
-                        const liveUser = allUsersCache ? allUsersCache.find(u => u.id === otherUid) : null;
-                        const finalAv = liveUser ? liveUser.avatar : (data.avatars?.[otherUid] || '');
-                        const finalName = liveUser ? liveUser.name : (data.names?.[otherUid] || 'User');
-                        
-                        chats.push({
-                            id: chatId, uid: otherUid, name: finalName, avatar: finalAv, isGroup: false
-                        });
-                    }
-                }
+                var parts = chatId.split('_');
+                if (parts.length !== 2) return;
+                if (parts[0] !== currentUser.uid && parts[1] !== currentUser.uid) return;
+                var otherUid = parts[0] === currentUser.uid ? parts[1] : parts[0];
+                if (blockedUsers.indexOf(otherUid) !== -1) return;
+                var liveUser = allUsersCache ? allUsersCache.find(function(u){ return u && u.id === otherUid; }) : null;
+                var finalAv = liveUser ? (liveUser.avatar || '') : ((data.avatars && data.avatars[otherUid]) || '');
+                var finalName = liveUser ? (liveUser.name || 'User') : ((data.names && data.names[otherUid]) || 'User');
+                chats.push({
+                    id: chatId, uid: otherUid, name: finalName, avatar: finalAv, isGroup: false
+                });
             }
         });
 
-        allShareChats = chats; 
+        allShareChats = chats;
         renderShareChatList(chats);
-        
     } catch(e) {
+        console.error('loadShareChatList', e);
         list.innerHTML = '<div style="text-align:center; padding:20px; color:var(--danger);">Failed to load chats.</div>';
     }
 }
@@ -38079,9 +38112,9 @@ body.innerHTML = html;
   if (window.__gcSheetDragInit) return;
   window.__gcSheetDragInit = true;
 
-  const SHEET_SEL = '.gc-sw-sheet, .gc-sheet, .gc-rp-sheet, .gc-report-sheet, .gc-cf-sheet, .gc-un-sheet, .gc-dob-sheet, .mf-sheet, .gc-fwd-box, .modal-overlay > .modal-box, .modal-overlay.open > .modal-box, [data-gc-sheet]';
-  const HANDLE_SEL = '.gc-sw-handle, .gc-sheet-handle, .gc-rp-handle, .gc-report-handle, .gc-cf-handle, .mf-handle, .gc-dob-handle, .gc-fwd-handle, [data-gc-sheet-handle]';
-  const OVERLAY_SEL = '.gc-sw-overlay, .gc-sheet-overlay, .gc-rp-overlay, .gc-report-overlay, .gc-cf-overlay, #gc-sheet-overlay, #gc-unfollow-overlay, .gc-dob-overlay, .mf-overlay, #gc-fwd-sheet, .modal-overlay.open, .modal-overlay';
+  const SHEET_SEL = '.gc-sw-sheet, .gc-sheet, .gc-rp-sheet, .gc-report-sheet, .gc-cf-sheet, .gc-un-sheet, .gc-dob-sheet, .mf-sheet, .gc-fwd-box, .modal-overlay > .modal-box, .modal-overlay.open > .modal-box, [data-gc-sheet], .gc-cs-sheet, .comment-panel .gc-cs-sheet';
+  const HANDLE_SEL = '.gc-sw-handle, .gc-sheet-handle, .gc-rp-handle, .gc-report-handle, .gc-cf-handle, .mf-handle, .gc-dob-handle, .gc-fwd-handle, [data-gc-sheet-handle], .gc-cs-handle';
+  const OVERLAY_SEL = '.gc-sw-overlay, .gc-sheet-overlay, .gc-rp-overlay, .gc-report-overlay, .gc-cf-overlay, #gc-sheet-overlay, #gc-unfollow-overlay, .gc-dob-overlay, .mf-overlay, #gc-fwd-sheet, .modal-overlay.open, .modal-overlay, #comment-panel, .comment-panel';
 
   let drag = null; // { sheet, overlay, startY, lastY, lastT, moved }
 
@@ -38108,7 +38141,11 @@ body.innerHTML = html;
         }
         // known close helpers — cover all sheet types
         try{
-          if(overlay.id === 'gc-sheet-overlay' && typeof gcCloseSheet === 'function') gcCloseSheet();
+          if(overlay.id === 'comment-panel' || (overlay.classList && overlay.classList.contains('comment-panel'))){
+            if(typeof closeCommentPanel === 'function') closeCommentPanel();
+            else { overlay.classList.remove('open'); }
+          }
+          else if(overlay.id === 'gc-sheet-overlay' && typeof gcCloseSheet === 'function') gcCloseSheet();
           else if(overlay.id === 'gc-fwd-sheet' && typeof gcCloseForwardSheet === 'function') gcCloseForwardSheet();
           else if(overlay.classList){
             overlay.classList.remove('open','show','active');
@@ -40639,37 +40676,52 @@ wrap.addEventListener('click', function(e){ e.stopPropagation(); });
 }
 // অটো-প্লে: একসাথে একটাই চলে; নতুন ইন-ভিউ → পুরনো পজ, নতুন প্লে (muted)
 window.gcVpObserver = new IntersectionObserver(function(entries){
+/* Track latest ratio per player; always play the single most-visible eligible video */
+window.__gcVpRatioMap = window.__gcVpRatioMap || new Map();
 entries.forEach(function(en){
-const wrap = en.target; const v = wrap.querySelector('video'); if(!v) return;
-/* Ignore brief layout blips right after mute toggle */
-var guardUntil = Math.max(wrap.__gcMuteGuardUntil || 0, v.__gcMuteGuardUntil || 0);
-if(Date.now() < guardUntil) return;
-if(en.isIntersecting && en.intersectionRatio >= 0.5){
-// stop every other playing feed video
+  var wrap = en.target;
+  if(!wrap || !wrap.classList || !wrap.classList.contains('gc-vplayer')) return;
+  /* Never manage chat / shorts / story / preview videos here */
+  if(wrap.closest && wrap.closest('.gc-chat-video-bubble, #chat-messages, #chat-screen, .gc-shorts-screen, #gc-story-viewer, .gc-story-preview-mask')){
+    window.__gcVpRatioMap.delete(wrap);
+    return;
+  }
+  window.__gcVpRatioMap.set(wrap, en.isIntersecting ? (en.intersectionRatio || 0) : 0);
+});
+var best = null, bestR = 0;
+window.__gcVpRatioMap.forEach(function(r, wrap){
+  if(!wrap.isConnected){ window.__gcVpRatioMap.delete(wrap); return; }
+  var v = wrap.querySelector('video');
+  if(!v) return;
+  var guardUntil = Math.max(wrap.__gcMuteGuardUntil || 0, v.__gcMuteGuardUntil || 0);
+  if(Date.now() < guardUntil) return;
+  if(r > bestR){ bestR = r; best = wrap; }
+});
+/* Stable threshold: need meaningful visibility; hysteresis to reduce flicker */
+var PLAY_MIN = 0.45;
 document.querySelectorAll('.gc-vplayer video').forEach(function(o){
-if(o !== v && !o.paused){ o.pause(); /* keep o.gcUserPaused as-is */ }
+  if(!o || o.paused) return;
+  if(o.closest && o.closest('.gc-chat-video-bubble, #chat-messages, #chat-screen, .gc-shorts-screen')) return;
+  var ow = o.closest ? o.closest('.gc-vplayer') : null;
+  if(best && ow === best && bestR >= PLAY_MIN) return;
+  try{ o.pause(); }catch(e){}
 });
-// autoplay only if user didn't manually pause
-if(v.paused && !v.gcUserPaused){
-v.muted = !!window.gcGlobalMuted;
-var pr = v.play();
-if(pr) pr.catch(function(){
-// Browser blocked unmuted autoplay → muted fallback for this attempt only
-v.muted = true;
-try{
-  var flt = wrap.querySelector('.gc-vp-mute-float i');
-  if(flt) flt.className = 'ph-light ph-speaker-slash';
-}catch(e){}
-v.play().catch(function(){});
-});
+if(best && bestR >= PLAY_MIN){
+  var v = best.querySelector('video');
+  if(v && v.paused && !v.gcUserPaused){
+    v.muted = !!window.gcGlobalMuted;
+    var pr = v.play();
+    if(pr) pr.catch(function(){
+      v.muted = true;
+      try{
+        var flt = best.querySelector('.gc-vp-mute-float i');
+        if(flt){ flt.className = 'ph-fill ph-speaker-slash'; }
+      }catch(e){}
+      try{ v.play(); }catch(e2){}
+    });
+  }
 }
-}else if(en.intersectionRatio < 0.5){
-if(!v.paused) v.pause();
-/* Leaving viewport clears sticky user-pause so return can autoplay */
-v.gcUserPaused = false;
-}
-});
-}, { threshold: [0, 0.5, 1], root: null, rootMargin: '0px' });
+}, { threshold: [0, 0.25, 0.45, 0.5, 0.6, 0.75, 1], root: null, rootMargin: '0px' });
 document.querySelectorAll('.gc-vplayer').forEach(function(w){ window.gcVpObserver.observe(w); });
 // পেজ বদলালে (feed ছাড়া) সব ভিডিও পজ — mute নয় (Sound button state অক্ষুণ্ণ)
 window.gcOrigShowPage65 = showPage;
