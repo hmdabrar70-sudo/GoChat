@@ -352,15 +352,105 @@ svg.gc-app-logo{
   justify-content:center;
   width:108px;
   height:108px;
-  margin:0 auto 20px;
+  margin:0 auto 28px;
   flex-shrink:0;
-  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.28)) drop-shadow(0 6px 14px rgba(0,0,0,0.18));
+  /* Slightly rounded square — not a circle; no drop shadow */
+  border-radius:22px;
+  overflow:hidden;
+  filter: none !important;
+  box-shadow: none !important;
+  background: transparent;
 }
 .auth-logo .gc-app-logo{
   width:108px;
   height:108px;
-  filter: drop-shadow(0 1px 2px rgba(255,255,255,0.35));
+  display:block;
+  border-radius:22px;
+  filter: none !important;
+  box-shadow: none !important;
 }
+/* Dark mode: invert monochrome mark so square+glyph stay visible on dark canvas */
+body:not(.light-mode) .auth-logo .gc-app-logo,
+body.dark-mode .auth-logo .gc-app-logo{
+  filter: invert(1) !important;
+}
+body.light-mode .auth-logo .gc-app-logo{
+  filter: none !important;
+}
+
+/* Auth password eye — SVG, no ripple/background flash */
+.gc-auth-eye-btn{
+  position: absolute;
+  right: 10px;
+  top: 0;
+  height: 52px;
+  width: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  outline: none !important;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  color: #666;
+  font-size: 22px;
+  z-index: 10;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-appearance: none;
+  appearance: none;
+  border-radius: 0;
+}
+.gc-auth-eye-btn:hover,
+.gc-auth-eye-btn:focus,
+.gc-auth-eye-btn:focus-visible,
+.gc-auth-eye-btn:active{
+  background: transparent !important;
+  box-shadow: none !important;
+  outline: none !important;
+  opacity: 0.85;
+}
+.gc-auth-eye-btn svg{
+  width: 22px;
+  height: 22px;
+  display: block;
+  pointer-events: none;
+}
+body:not(.light-mode) .gc-auth-eye-btn,
+body.dark-mode .gc-auth-eye-btn{
+  color: #c8c8d4;
+}
+body.light-mode .gc-auth-eye-btn{
+  color: #666;
+}
+/* Inputs without leading icons — restore normal horizontal padding */
+
+/* Auth inputs: no leading icons (JS inject disabled + force hide) */
+#auth-screen .lx-field-ico,
+#login-form .lx-field-ico,
+#registration-steps .lx-field-ico{
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  position: absolute !important;
+  left: -9999px !important;
+}
+#auth-screen .auth-input-group input,
+#login-form .auth-input-group input,
+#registration-steps .auth-input-group input{
+  padding-left: 18px !important;
+  padding-right: 18px !important;
+}
+#auth-screen .auth-input-group input[type="password"],
+#login-form .auth-input-group input[type="password"]{
+  padding-right: 48px !important; /* room for eye toggle only */
+}
+
+
 .topbar-logo{
   display:flex;
   align-items:center;
@@ -8926,7 +9016,7 @@ body:not(.light-mode) .act-tab.active .notif-tab-count{
 }
 .auth-input-group input{
   width:100% !important; box-sizing:border-box !important;
-  padding:16px 16px 16px 50px !important; border-radius:16px !important;
+  padding:16px 18px !important; border-radius:16px !important;
   /* Google-style transparent glass */
   background: rgba(255, 255, 255, 0.22) !important;
   backdrop-filter: blur(12px) saturate(140%);
@@ -9007,11 +9097,11 @@ body:not(.light-mode) .act-tab.active .notif-tab-count{
   left: 0;
   right: 0;
   z-index: 60;
-  /* Tighter top — back sits closer to status bar */
-  height: calc(40px + env(safe-area-inset-top, 0px));
-  min-height: calc(40px + env(safe-area-inset-top, 0px));
-  padding: 0 4px;
-  padding-top: env(safe-area-inset-top, 0px);
+  /* Match home feed .topbar size (padding 14px 18px + ~40px control row) */
+  height: auto;
+  min-height: calc(68px + env(safe-area-inset-top, 0px));
+  padding: 14px 18px;
+  padding-top: calc(14px + env(safe-area-inset-top, 0px));
   display: flex;
   align-items: center;
   box-sizing: border-box;
@@ -9022,36 +9112,61 @@ body:not(.light-mode) .act-tab.active .notif-tab-count{
 }
 .auth-reg-topbar .auth-reg-back{
   margin-top: 0;
+  margin-bottom: 0;
   align-self: center;
 }
 .auth-reg-back{
-  width: 36px;
+  /* Text "Back" — capsule outline (same language as Create New Account) */
+  width: auto;
+  min-width: 0;
   height: 36px;
-  border: none;
-  border-radius: 0;
-  background: transparent !important;
+  border: 2px solid transparent;
+  border-radius: 999px;
+  /* thin gradient ring, transparent middle — matches .btn-auth-create */
+  background:
+    linear-gradient(#ffffff, #ffffff) padding-box,
+    linear-gradient(135deg, #c1f600 0%, #8fd400 42%, #00545f 100%) border-box;
   box-shadow: none !important;
-  color: #1a1a2e;
-  display: flex;
+  color: #1a1a2e !important;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  padding: 0;
+  padding: 0 16px;
   margin: 0;
   flex-shrink: 0;
-  -webkit-tap-highlight-color: transparent;
-}
-.auth-reg-back i{
-  font-size: 22px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
   line-height: 1;
-  color: inherit;
+  -webkit-tap-highlight-color: transparent;
+  outline: none;
 }
-.auth-reg-back:active{ opacity: .55; }
+.auth-reg-back:focus,
+.auth-reg-back:focus-visible{
+  outline: none !important;
+}
+.auth-reg-back:active{
+  transform: scale(0.97);
+  opacity: 0.92;
+}
+.auth-reg-back i{ display: none !important; }
+/* Dark theme: dark fill under gradient border, light label */
+body:not(.light-mode) .auth-reg-back,
 body.dark-mode .auth-reg-back,
 html.dark .auth-reg-back,
 .dark .auth-reg-back{
-  background: transparent !important;
-  color: #f0f0f5;
+  background:
+    linear-gradient(#0a0a0f, #0a0a0f) padding-box,
+    linear-gradient(135deg, #c1f600 0%, #8fd400 42%, #00545f 100%) border-box;
+  color: #f0f0f5 !important;
+}
+body.light-mode .auth-reg-back{
+  background:
+    linear-gradient(#ffffff, #ffffff) padding-box,
+    linear-gradient(135deg, #c1f600 0%, #8fd400 42%, #00545f 100%) border-box;
+  color: #1a1a2e !important;
 }
 
 /* Registration steps: shared layout so step1 & step2 align */
@@ -9070,7 +9185,8 @@ html.dark .auth-reg-back,
   min-height: min(58vh, 460px);
   width: 100%;
   box-sizing: border-box;
-  padding-top: 8px;
+  /* Clear gap below create-account topbar (all steps) */
+  padding-top: 24px;
 }
 #registration-steps #step-1,
 #registration-steps #step-2{
@@ -9091,7 +9207,7 @@ html.dark .auth-reg-back,
   align-items:center;
   text-align:center;
   min-height:min(68vh,560px);
-  padding-top:8px;
+  padding-top:24px;
 }
 .gc-reg-avatar-title{
   margin-top:4px;
@@ -14819,16 +14935,20 @@ l-137 -640 -193 -3 -193 -2 4 22 c2 13 67 314 144 671 l139 647 192 0 193 0
     <div class="auth-box">
         
         <div id="login-form" style="display: block;">
+            <div class="auth-logo" id="auth-login-logo" aria-hidden="true">
+<svg class="gc-app-logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="108" height="108" aria-hidden="true" focusable="false">
+<path d="M0 0 C168.96 0 337.92 0 512 0 C512 168.96 512 337.92 512 512 C343.04 512 174.08 512 0 512 C0 343.04 0 174.08 0 0 Z M167.51 162.68 C151.02 181.87 142.2 205.57 144 231 C145.4 242.48 148.65 254.31 155.69 263.69 C157 267 157 267 156.27 269.44 C155.4 271.32 154.48 273.18 153.52 275.02 C151.96 278.07 150.83 281.07 149.75 284.31 C149.28 285.73 149.28 285.73 148.8 287.18 C143.45 306.11 147.69 325.46 156.86 342.36 C159.72 347.37 163.12 351.75 167 356 C167.52 356.61 168.03 357.22 168.57 357.84 C181.18 371.75 200.56 378.52 218.87 379.9 C244.59 380.73 267.82 372.23 287 355 C298.16 344.23 305.22 329.3 306.2 313.81 C306.46 295.64 300.77 279.25 288 266 C282.47 260.93 276.11 255.66 269 253 C267.51 253.5 267.51 253.5 266 254 C266.16 254.63 266.32 255.26 266.49 255.91 C267.18 260.12 267.14 264.24 267.12 268.5 C267.13 269.34 267.13 270.18 267.14 271.05 C267.13 275.16 267.04 278.99 266 283 C265.09 282.2 264.19 281.39 263.25 280.56 C254.11 272.8 244.56 266.4 234.25 260.33 C228.85 257.15 223.7 253.86 218.68 250.11 C217.06 248.82 217.06 248.82 215 249 C215 248.34 215 247.68 215 247 C212.36 244.6 212.36 244.6 209 244 C209 243.34 209 242.68 209 242 C207.81 240.91 206.57 239.88 205.31 238.88 C197.03 231.77 192.69 222.18 191.65 211.32 C191.15 189.02 201.38 169.25 216.27 153.21 C227.56 141.58 241.21 135.16 256 129 C256 128.67 256 128.34 256 128 C220.78 127.07 191.88 136.44 167.51 162.68 Z M219.81 156.25 C206.65 171.75 202.84 189.21 204 209 C205.73 222.62 212.9 234.96 222 245 C223.05 246.17 223.05 246.17 224.12 247.37 C230.63 254.26 238.07 259.68 247 263 C246.8 262.08 246.59 261.16 246.38 260.22 C244.28 250.66 242.8 241.8 243 232 C246.73 232 249.3 235.81 251.91 238.25 C253.8 240.21 253.8 240.21 256 240 C256 240.66 256 241.32 256 242 C257.53 243.24 257.53 243.24 259.56 244.43 C260.33 244.91 261.1 245.39 261.89 245.88 C262.73 246.4 263.57 246.91 264.44 247.44 C266.19 248.53 267.94 249.62 269.69 250.71 C270.58 251.26 271.47 251.81 272.39 252.38 C299.06 268.94 299.06 268.94 307.73 277.79 C309.71 280.23 309.71 280.23 312 280 C312.28 280.71 312.55 281.42 312.84 282.16 C314.38 285.93 316.13 289.6 317.88 293.28 C322 303.27 320.99 315.34 317.19 325.23 C316.8 326.14 316.41 327.06 316 328 C315.64 328.86 315.28 329.72 314.9 330.61 C311.88 337.2 307.68 342.5 303 348 C302.26 348.94 302.26 348.94 301.5 349.9 C287.9 366.9 266.2 375.69 246 382 C246 382.33 246 382.66 246 383 C276.95 388.32 307.44 379.83 333.02 362.32 C334 361.55 334.99 360.79 336 360 C336 359.34 336 358.68 336 358 C336.56 357.77 337.13 357.54 337.71 357.3 C350.03 350.33 360.7 331.1 364.59 318.02 C370.03 298.26 369.42 278.55 360 260 C358.87 258.2 357.72 256.41 356.56 254.62 C353.95 250.41 353.95 250.41 354.38 246.88 C354.91 245.93 355.45 244.98 356 244 C360.93 234.8 364.54 224.52 365 214 C365.05 213 365.1 212 365.16 210.97 C365.53 197.23 363.18 184.36 357 172 C356.51 171.02 356.02 170.03 355.51 169.02 C345.49 150.51 328.96 138.09 309.07 131.68 C277.46 122.53 242.27 132.32 219.81 156.25 Z " fill="#000000" transform="translate(0,0)"/>
+<path d="M0 0 C1.05 0.5 2.1 0.99 3.19 1.5 C9.14 6.79 13.59 14.66 14.2 22.66 C14.32 30.3 13.45 37.1 10 44 C2.44 41.63 -4.85 38.71 -12.15 35.66 C-14.16 34.82 -16.18 34 -18.19 33.18 C-29.75 28.39 -42.15 23.06 -51 14 C-51.67 11.83 -51.67 11.83 -52 10 C-37.2 -2.03 -18 -9.03 0 0 Z " fill="#000000" transform="translate(314,180)"/>
+<path d="M0 0 C0.51 0.22 1.02 0.44 1.55 0.67 C3.11 1.34 4.68 2.02 6.25 2.69 C8.11 3.49 9.96 4.29 11.82 5.09 C17 7.32 22.19 9.49 27.42 11.58 C28.48 12 29.53 12.43 30.62 12.87 C32.66 13.69 34.69 14.49 36.74 15.28 C43.08 17.85 49.36 20.83 54 26 C54 27.32 54 28.64 54 30 C45.86 34.34 38.12 38.19 29 40 C27.83 40.25 27.83 40.25 26.64 40.5 C19.39 41.7 13.41 39.72 7.25 35.88 C2.42 32.19 -0.12 26.65 -2 21 C-2.12 18.75 -2.18 16.5 -2.19 14.25 C-2.2 13.06 -2.22 11.87 -2.23 10.64 C-1.98 6.74 -1.2 3.7 0 0 Z " fill="#000000" transform="translate(186,291)"/>
+</svg>
+
+            </div>
             <div class="auth-input-group">
-                <i class="ph-light ph-user-circle lx-field-ico"></i>
                 <input type="text" id="auth-email" placeholder="Email or username" autocomplete="username" autocapitalize="none" spellcheck="false">
             </div>
             <div class="auth-input-group" style="position: relative;">
-                <i class="ph-light ph-password lx-field-ico"></i>
                 <input type="password" id="auth-password" placeholder="Password" autocomplete="current-password">
-                <i id="toggle-eye" class="ph-light ph-eye-closed" 
-                   style="position: absolute; right: 10px; top: 0; height: 52px; display: flex; align-items: center; cursor: pointer; color: #888; font-size: 20px; z-index: 10;" 
-                   onclick="togglePasswordVisibility()"></i>
+                <button type="button" id="toggle-eye" class="gc-auth-eye-btn" aria-label="Show password" onclick="togglePasswordVisibility()"><span class="gc-auth-eye-closed" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path d="M0 0h24v24H0z" fill="none"/><path fill="currentColor" fill-rule="evenodd" d="M22.2954 6.31065C22.6761 6.47382 22.8524 6.91473 22.6893 7.29545L21.9999 7.00001C22.6893 7.29545 22.6894 7.29527 22.6893 7.29545L22.6886 7.29713L22.6875 7.29961L22.6843 7.30697L22.6736 7.33105C22.6646 7.35118 22.6518 7.3794 22.6352 7.41508C22.6019 7.48643 22.5533 7.58776 22.4888 7.71416C22.3599 7.96681 22.1675 8.32069 21.9084 8.73647C21.4828 9.41951 20.8724 10.2777 20.0619 11.1302L21.0303 12.0985C21.3231 12.3914 21.3231 12.8663 21.0303 13.1592C20.7374 13.4521 20.2625 13.4521 19.9696 13.1592L18.969 12.1586C18.3093 12.7113 17.5528 13.23 16.695 13.6562L17.6286 15.091C17.8545 15.4382 17.7562 15.9027 17.409 16.1286C17.0618 16.3546 16.5972 16.2562 16.3713 15.909L15.2821 14.2352C14.5028 14.4897 13.659 14.6626 12.7499 14.7246V16.5C12.7499 16.9142 12.4141 17.25 11.9999 17.25C11.5857 17.25 11.2499 16.9142 11.2499 16.5V14.7246C10.3689 14.6645 9.54909 14.5002 8.78982 14.2584L7.71575 15.9091C7.48984 16.2563 7.02526 16.3546 6.67807 16.1287C6.33089 15.9028 6.23257 15.4382 6.45847 15.091L7.37089 13.6888C6.5065 13.2667 5.74381 12.7502 5.07842 12.1983L4.11744 13.1592C3.82455 13.4521 3.34968 13.4521 3.05678 13.1592C2.76389 12.8664 2.76389 12.3915 3.05678 12.0986L3.98055 11.1748C3.15599 10.3151 2.53525 9.44656 2.10277 8.75468C1.83984 8.33404 1.6446 7.97566 1.51388 7.7197C1.44848 7.59164 1.3991 7.48895 1.36537 7.41665C1.3485 7.38048 1.33553 7.35189 1.32641 7.33149L1.31562 7.3071L1.31238 7.29966L1.31129 7.29714L1.31088 7.29619C1.31081 7.29602 1.31056 7.29545 1.99992 7.00001L1.31088 7.29619C1.14772 6.91547 1.32376 6.47382 1.70448 6.31065C2.08489 6.14762 2.52539 6.32356 2.68888 6.70363C2.68894 6.70376 2.68882 6.7035 2.68888 6.70363L2.68983 6.70582L2.69591 6.71953C2.7018 6.73273 2.7114 6.75392 2.72472 6.78249C2.75139 6.83965 2.79296 6.92626 2.84976 7.03748C2.96345 7.2601 3.13762 7.58028 3.37472 7.95961C3.85033 8.72048 4.57157 9.7071 5.55561 10.6216C6.42151 11.4263 7.48259 12.1676 8.75165 12.6558C9.70614 13.023 10.7854 13.25 11.9999 13.25C13.2416 13.25 14.342 13.0128 15.3124 12.6308C16.5738 12.1343 17.6277 11.3883 18.4866 10.582C19.4562 9.67198 20.1668 8.69517 20.6354 7.94321C20.869 7.56832 21.0405 7.25228 21.1525 7.03268C21.2085 6.92296 21.2494 6.83758 21.2757 6.78125C21.2888 6.7531 21.2983 6.73224 21.3041 6.71925L21.31 6.70577L21.3106 6.70457C21.3106 6.70447 21.3105 6.70467 21.3106 6.70457M22.2954 6.31065C21.9147 6.14753 21.4738 6.32405 21.3106 6.70457ZM2.68888 6.70363C2.68894 6.70376 2.68882 6.7035 2.68888 6.70363Z" clip-rule="evenodd"/></svg></span><span class="gc-auth-eye-open" aria-hidden="true" hidden><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path d="M0 0h24v24H0z" fill="none"/><g fill="currentColor" fill-rule="evenodd" clip-rule="evenodd"><path d="M12 8.25C9.92893 8.25 8.25 9.92893 8.25 12C8.25 14.0711 9.92893 15.75 12 15.75C14.0711 15.75 15.75 14.0711 15.75 12C15.75 9.92893 14.0711 8.25 12 8.25ZM9.75 12C9.75 10.7574 10.7574 9.75 12 9.75C13.2426 9.75 14.25 10.7574 14.25 12C14.25 13.2426 13.2426 14.25 12 14.25C10.7574 14.25 9.75 13.2426 9.75 12Z"/><path d="M12 3.25C7.48587 3.25 4.44529 5.9542 2.68057 8.24686L2.64874 8.2882C2.24964 8.80653 1.88206 9.28392 1.63269 9.8484C1.36564 10.4529 1.25 11.1117 1.25 12C1.25 12.8883 1.36564 13.5471 1.63269 14.1516C1.88206 14.7161 2.24964 15.1935 2.64875 15.7118L2.68057 15.7531C4.44529 18.0458 7.48587 20.75 12 20.75C16.5141 20.75 19.5547 18.0458 21.3194 15.7531L21.3512 15.7118C21.7504 15.1935 22.1179 14.7161 22.3673 14.1516C22.6344 13.5471 22.75 12.8883 22.75 12C22.75 11.1117 22.6344 10.4529 22.3673 9.8484C22.1179 9.28391 21.7504 8.80652 21.3512 8.28818L21.3194 8.24686C19.5547 5.9542 16.5141 3.25 12 3.25ZM3.86922 9.1618C5.49864 7.04492 8.15036 4.75 12 4.75C15.8496 4.75 18.5014 7.04492 20.1308 9.1618C20.5694 9.73159 20.8263 10.0721 20.9952 10.4545C21.1532 10.812 21.25 11.2489 21.25 12C21.25 12.7511 21.1532 13.188 20.9952 13.5455C20.8263 13.9279 20.5694 14.2684 20.1308 14.8382C18.5014 16.9551 15.8496 19.25 12 19.25C8.15036 19.25 5.49864 16.9551 3.86922 14.8382C3.43064 14.2684 3.17374 13.9279 3.00476 13.5455C2.84684 13.188 2.75 12.7511 2.75 12C2.75 11.2489 2.84684 10.812 3.00476 10.4545C3.17374 10.0721 3.43063 9.73159 3.86922 9.1618Z"/></g></svg></span></button>
             </div>
             <button class="btn-auth-primary" onclick="loginWithEmail()">Log In</button>
             <div class="auth-create-wrap">
@@ -14839,38 +14959,32 @@ l-137 -640 -193 -3 -193 -2 4 22 c2 13 67 314 144 671 l139 647 192 0 193 0
 
         <div id="registration-steps" style="display:none;">
             <div class="auth-reg-topbar" id="auth-reg-topbar">
-                <button type="button" class="auth-reg-back" id="auth-reg-back-btn" onclick="backToLogin()" aria-label="Back"><i class="ph-light ph-arrow-left"></i></button>
+                <button type="button" class="auth-reg-back" id="auth-reg-back-btn" onclick="backToLogin()" aria-label="Back">Back</button>
             </div>
             <div id="step-1" class="auth-reg-body">
                 <div class="auth-input-group">
-                    <i class="ph-light ph-identification-card lx-field-ico"></i>
                     <input type="text" id="reg-fname" placeholder="Full Name" autocomplete="name" oninput="gcOnRegNameInput()">
                     <div id="reg-fname-warn" class="gc-name-warn" aria-live="polite" style="padding-left:4px;"></div>
                 </div>
                 <div class="auth-input-group" id="reg-username-group">
-                    <i class="ph-light ph-at lx-field-ico"></i>
                     <input type="text" id="reg-username" placeholder="Username" autocomplete="username" autocapitalize="none" spellcheck="false"
                         maxlength="24"
                         oninput="gcOnRegUsernameInput()">
                     <div id="reg-username-status" style="font-size:12px;font-weight:600;margin-top:6px;min-height:16px;padding-left:4px;"></div>
                 </div>
                 <div class="auth-input-group" id="reg-dob-group" onclick="gcOpenBirthdayPicker('register')" style="cursor:pointer;">
-                    <i class="ph-light ph-cake lx-field-ico"></i>
                     <input type="text" id="reg-dob-display" placeholder="Birthday" readonly style="cursor:pointer;">
                 </div>
                 <div class="auth-input-group">
-                    <i class="ph-light ph-envelope-simple lx-field-ico"></i>
                     <input type="email" id="reg-email" placeholder="Email" autocomplete="email">
                 </div>
                 <button class="btn-auth-primary" id="reg-next-btn" onclick="goToStep2()">Next</button>
             </div>
             <div id="step-2" class="auth-reg-body" style="display:none;">
                 <div class="auth-input-group">
-                    <i class="ph-light ph-password lx-field-ico"></i>
                     <input type="password" id="reg-pass" placeholder="Password" autocomplete="new-password">
                 </div>
                 <div class="auth-input-group">
-                    <i class="ph-light ph-password lx-field-ico"></i>
                     <input type="password" id="reg-confirm" placeholder="Confirm Password" autocomplete="new-password">
                 </div>
                 <button class="btn-auth-primary" onclick="goToStep3()">Next</button>
@@ -29394,16 +29508,21 @@ async function deleteChatForEveryone() {
 }
 // ===== Password Visibility Toggle =====
 function togglePasswordVisibility() {
-    // আপনার কোডের auth-password আইডিটা ব্যবহার করা হলো
-    const passwordInput = document.getElementById('auth-password');
-    const eyeIcon = document.getElementById('toggle-eye');
-
+    var passwordInput = document.getElementById('auth-password');
+    var btn = document.getElementById('toggle-eye');
+    if (!passwordInput || !btn) return;
+    var openEl = btn.querySelector('.gc-auth-eye-open');
+    var closedEl = btn.querySelector('.gc-auth-eye-closed');
     if (passwordInput.type === 'password') {
-        passwordInput.type = 'text'; // পাসওয়ার্ড দেখাবে
-        eyeIcon.className = 'ph-light ph-eye-slash'; // চোখটা কাটা দেখাবে
+        passwordInput.type = 'text';
+        if (closedEl) closedEl.hidden = true;
+        if (openEl) openEl.hidden = false;
+        btn.setAttribute('aria-label', 'Hide password');
     } else {
-        passwordInput.type = 'password'; // আবার হাইড করে দেবে
-        eyeIcon.className = 'ph-light ph-eye-closed'; // স্বাভাবিক চোখ হয়ে যাবে
+        passwordInput.type = 'password';
+        if (openEl) openEl.hidden = true;
+        if (closedEl) closedEl.hidden = false;
+        btn.setAttribute('aria-label', 'Show password');
     }
 }
 // ═══ FEATURE: group-chat · create from Inbox chat-list contacts · 2026-10-17 ═══
@@ -35584,22 +35703,7 @@ function closeStoryCreatorModal() {
       p.innerHTML = h; screen.insertBefore(p, screen.firstChild);
     }
 
-    // ৫. ইনপুটে আইকন — আগে থেকে Phosphor আইকন থাকলে স্কিপ (ডুপ্লিকেট নয়)
-    document.querySelectorAll('#login-form .auth-input-group, #registration-steps .auth-input-group').forEach(grp => {
-      if(grp.querySelector('.lx-field-ico')) return;
-      const lbl = (grp.querySelector('label')?.textContent || '').toLowerCase();
-      const ph = (grp.querySelector('input')?.placeholder || '').toLowerCase();
-      const inp = grp.querySelector('input'); if(!inp) return;
-      grp.style.position = 'relative';
-      const ico = document.createElement('i');
-      ico.className = 'lx-field-ico';
-      if(/user\s*name|username/.test(lbl+ph)) ico.className += ' ph-light ph-at';
-      else if(/pass/.test(lbl+ph)) ico.className += ' ph-light ph-lock';
-      else if(/email|mail/.test(lbl+ph)) ico.className += ' ph-light ph-envelope-simple';
-      else if(/last/.test(lbl+ph)) ico.className += ' ph-light ph-user-circle';
-      else ico.className += ' ph-light ph-user-circle';
-      grp.insertBefore(ico, inp);
-    });
+    // Auth field icons disabled (text-only inputs)
 
     // Auth form polish — register link
     const forms = [document.getElementById('login-form'), document.getElementById('registration-steps')].filter(Boolean);
