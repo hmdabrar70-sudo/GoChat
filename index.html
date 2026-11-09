@@ -33692,135 +33692,209 @@ async function uploadAndSendVoice(audioBlob, session) {
 }
 
 // ==========================================
-// 🚀 GCNav — Central Android / Browser Back Stack
-// Feature logic unchanged; history stack for system Back only.
+// 🚀 GCNav — Central Android / Browser Back handler (v2)
+//
+// Design: the browser history is kept at a constant shape [base, sentinel].
+// Every system Back press pops the sentinel -> `popstate` fires -> we close the
+// top-most layer (closeTopMostView, which inspects the real DOM state) and
+// immediately re-arm the sentinel. Because closing is driven by what is
+// actually open on screen, it works for every page / pop-up / sheet, whether
+// it was closed by the app's own buttons or by the system Back button, and the
+// history can never get out of sync with the UI.
+// At the root (Home feed, nothing open): "Press back again to exit".
 // ==========================================
 (function (global) {
-  var backPressTimer = null;
-  var inPop = false;
+  // ---------------------------------------------------------------------
+  // WHY A RESERVOIR OF GUARD ENTRIES?
+  // Chrome / Android WebView / PWAs apply a "history manipulation
+  // intervention": history entries added WITHOUT a user gesture are skipped by
+  // the Back button. Re-pushing a guard entry inside the popstate handler (i.e.
+  // from a Back press, which is not a tap) therefore produced a skippable
+  // entry, so the 2nd Back press jumped straight out of the app.
+  //
+  // Fix: history = [base, g1, g2 … gN]. The guard entries are pushed only from
+  // real touches/clicks (so they are never skipped) and there are many of them,
+  // so consecutive Back presses just pop one each with nothing to push at Back
+  // time. Every Back press closes exactly one layer (closeTopMostView reads the
+  // real DOM state, so it covers every page / pop-up). Each later tap quietly
+  // tops the reservoir back up.
+  // ---------------------------------------------------------------------
+  var GUARD = 30;            // reservoir depth (browsers keep ~50 entries)
+  var LOW_WATER = 3;         // best-effort refill (without gesture) below this
+  var EXIT_WINDOW_MS = 2000;
+  var exitTimer = null;
+  var handling = false;
+  var userActive = false;    // true while inside a real user-gesture event
+
+  function stateIndex() {
+    try {
+      var st = history.state;
+      if (st && st.gcNav === 'guard') return st.i | 0;
+    } catch (e) {}
+    return 0;               // base entry, or an entry we did not create
+  }
+  function fill(target) {
+    try {
+      for (var i = stateIndex() + 1; i <= target; i++) {
+        // t = "trusted": pushed during a real user gesture (never skipped)
+        history.pushState({ gcNav: 'guard', i: i, t: userActive }, '', location.href);
+      }
+    } catch (e) {}
+  }
+  // Called from real user gestures: (re)build the full reservoir.
+  function topUp() {
+    try {
+      var st = history.state;
+      if (!(st && (st.gcNav === 'guard' || st.gcNav === 'base'))) {
+        history.replaceState({ gcNav: 'base' }, '', location.href);
+        st = history.state;
+      }
+      var idx = stateIndex();
+      var trusted = st.gcNav === 'base' || st.t === true;
+      if (!trusted) fill(idx + GUARD);          // entries made without a gesture may be skipped → stack fresh ones on top
+      else if (idx < GUARD) fill(GUARD);
+    } catch (e) {}
+  }
+  function clearExitTimer() {
+    if (exitTimer) { clearTimeout(exitTimer); exitTimer = null; }
+  }
+  function leaveApp() {
+    try {
+      var cap = global.Capacitor && global.Capacitor.Plugins && global.Capacitor.Plugins.App;
+      if (cap && typeof cap.exitApp === 'function') { cap.exitApp(); return; }
+    } catch (e) {}
+    try {
+      if (global.Android && typeof global.Android.exitApp === 'function') { global.Android.exitApp(); return; }
+    } catch (e) {}
+    // Browser / PWA / TWA: jump back past the whole reservoir and the base entry.
+    try { history.go(-(stateIndex() + 1)); } catch (e) { try { history.back(); } catch (e2) {} }
+  }
 
   var GCNav = {
+    // Bookkeeping only (kept so the existing open/close wrappers keep working).
     stack: [],
     push: function (id, closer) {
       try {
         if (!id) return;
         var top = this.stack[this.stack.length - 1];
-        if (top && top.id === id) return;
-        this.stack.push({
-          id: String(id),
-          closer: typeof closer === 'function' ? closer : null
-        });
-        history.pushState(
-          { gcNav: String(id), depth: this.stack.length, t: Date.now() },
-          '',
-          location.href
-        );
+        if (top && top.id === String(id)) return;
+        this.stack.push({ id: String(id), closer: typeof closer === 'function' ? closer : null });
+        if (userActive) topUp();
       } catch (e) {}
     },
     didClose: function (id) {
       try {
-        if (inPop) return;
         id = String(id || '');
-        var i, removed = false;
-        for (i = this.stack.length - 1; i >= 0; i--) {
-          if (this.stack[i].id === id) {
-            this.stack.splice(i, 1);
-            removed = true;
-            break;
-          }
+        for (var i = this.stack.length - 1; i >= 0; i--) {
+          if (this.stack[i].id === id) { this.stack.splice(i, 1); break; }
         }
-        if (removed) {
-          inPop = true;
-          try { history.back(); } catch (e) {}
-          setTimeout(function () { inPop = false; }, 120);
-        }
-      } catch (e) { inPop = false; }
-    },
-    handlePop: function () {
-      if (inPop) {
-        inPop = false;
-        GCNav.ensureBuffer();
-        return true;
-      }
-      if (this.stack.length) {
-        var top = this.stack.pop();
-        inPop = true;
-        try {
-          if (top.closer) top.closer();
-          else if (typeof closeTopMostView === 'function') closeTopMostView();
-        } catch (e) {
-          console.error('GCNav closer failed', e);
-        }
-        inPop = false;
-        GCNav.ensureBuffer();
-        return true;
-      }
-      var consumed = false;
-      try {
-        inPop = true;
-        if (typeof closeTopMostView === 'function') consumed = !!closeTopMostView();
-      } catch (e) {
-        console.error('closeTopMostView failed', e);
-      }
-      inPop = false;
-      if (consumed) {
-        GCNav.ensureBuffer();
-        return true;
-      }
-      return false;
-    },
-    ensureBuffer: function () {
-      try {
-        history.pushState(
-          { gcNav: 'buffer', depth: this.stack.length, t: Date.now() },
-          '',
-          location.href
-        );
       } catch (e) {}
     },
-    clear: function () { this.stack = []; }
+    ensureBuffer: topUp,
+    arm: topUp,
+    clear: function () { this.stack = []; },
+    back: function () {
+      var consumed = false;
+      try {
+        if (typeof closeTopMostView === 'function') consumed = !!closeTopMostView();
+      } catch (e) { console.error('GCNav closeTopMostView failed', e); }
+      if (consumed) this.stack.pop();
+      return consumed;
+    }
   };
 
   global.GCNav = GCNav;
-  global.gcMsgPushLayer = function (layerId) {
-    GCNav.push(layerId || 'layer', function () {
-      try { if (typeof closeTopMostView === 'function') closeTopMostView(); } catch (e) {}
-    });
-  };
-  global.gcMsgHistGuardPush = function () { GCNav.ensureBuffer(); };
+  global.gcMsgPushLayer = function (layerId) { GCNav.push(layerId || 'layer'); };
+  global.gcMsgHistGuardPush = function () { if (userActive) topUp(); };
   global.gcMsgLayerOpen = function () { return GCNav.stack.length > 0; };
 
-  try {
-    history.pushState({ gcNav: 'root', depth: 0 }, '', location.href);
-  } catch (e) {
-    console.warn('GCNav root history init failed', e);
+  // --- user gestures: the only place guard entries are (re)built ---
+  function onGesture() {
+    userActive = true;
+    try { topUp(); } finally { userActive = false; }
+  }
+  ['pointerdown', 'touchstart', 'mousedown', 'click', 'keydown'].forEach(function (evt) {
+    global.addEventListener(evt, onGesture, { capture: true, passive: true });
+  });
+
+  // --- optional on-screen diagnostics: open the app with ?gcnav=debug ---
+  var dbg = null;
+  function debug(msg) {
+    try {
+      if (!/[?&]gcnav=debug/.test(location.search)) return;
+      if (!dbg) {
+        dbg = document.createElement('div');
+        dbg.style.cssText = 'position:fixed;left:4px;bottom:70px;z-index:2147483647;background:rgba(0,0,0,.75);color:#0f0;font:11px monospace;padding:4px 6px;border-radius:6px;pointer-events:none;max-width:70vw';
+        document.body.appendChild(dbg);
+      }
+      dbg.textContent = msg + ' | idx=' + stateIndex() + ' len=' + history.length;
+    } catch (e) {}
   }
 
   global.addEventListener('popstate', function () {
-    if (inPop) {
-      inPop = false;
-      GCNav.ensureBuffer();
-      return;
-    }
-    var handled = false;
+    if (handling) return;
+    handling = true;
     try {
-      handled = GCNav.handlePop();
+      var closed = GCNav.back();           // close ONE page / pop-up / tab
+      if (closed) {
+        clearExitTimer();
+        debug('closed');
+      } else if (exitTimer) {              // root + 2nd press inside window → exit
+        clearExitTimer();
+        debug('exit');
+        leaveApp();
+        return;
+      } else {                             // root: ask for confirmation
+        try { if (typeof showToast === 'function') showToast('Press back again to exit'); } catch (e) {}
+        exitTimer = setTimeout(function () { exitTimer = null; }, EXIT_WINDOW_MS);
+        debug('root');
+      }
+      // Safety net only (no gesture here, so the browser may ignore it):
+      if (stateIndex() < LOW_WATER) fill(GUARD + stateIndex());
     } catch (e) {
       console.error('GCNav popstate error', e);
-    }
-    if (handled) return;
-
-    if (backPressTimer) {
-      clearTimeout(backPressTimer);
-      backPressTimer = null;
-    } else {
-      try { if (typeof showToast === 'function') showToast('Press back again to exit'); } catch (e) {}
-      GCNav.ensureBuffer();
-      backPressTimer = setTimeout(function () { backPressTimer = null; }, 2000);
+    } finally {
+      handling = false;
     }
   });
+
+  // The reservoir is built on the first touch/click (see onGesture).
+  try {
+    history.replaceState({ gcNav: 'base' }, '', location.href);
+    debug('init');
+  } catch (e) { console.warn('GCNav init failed', e); }
 })(window);
 
+// Fallback for pop-ups that closeTopMostView() has no dedicated rule for.
+// Closes the top-most visible one (highest z-index). Ban/blocked screens and the
+// voice-recording bar are deliberately excluded.
+function gcCloseGenericTopLayer() {
+  try {
+    var sels = ['#gc-fp-screen', '#gc-ins-screen', '#gc-mr-screen', '#gc-profile-select-sheet',
+      '#gc-username-screen', '#sv-likers-sheet', '.gc-ann-viewer', '.gc-cf-overlay',
+      '.gc-chat-tools-mask', '.gc-compose-media-fs', '.gc-cvv-menu', '.gc-fl-screen',
+      '.gc-fp-screen', '.gc-ht-screen', '.gc-ins-screen', '.gc-lb-page', '.gc-msg-more-menu',
+      '.gc-react-filter-pop', '.gc-react-popup', '.gc-react-sheet-mask', '.gc-rel-mask',
+      '.gc-rp-overlay', '.gc-shorts-filter-pop', '.gc-story-preview-mask', '.gc-sw-overlay',
+      '.gc-unfollow-overlay', '.modal-overlay', '.post-dropdown-menu', '.profile-menu',
+      '.settings-menu', '.qr-chips-popup', '.story-viewer-modal'];
+    var list = document.querySelectorAll(sels.map(function (x) { return x + '.open'; }).join(','));
+    var best = null, bestZ = -Infinity;
+    for (var i = 0; i < list.length; i++) {
+      var el = list[i];
+      var cs = window.getComputedStyle(el);
+      if (cs.display === 'none' || cs.visibility === 'hidden') continue;
+      var z = parseInt(cs.zIndex, 10); if (isNaN(z)) z = 0;
+      if (z >= bestZ) { best = el; bestZ = z; }
+    }
+    if (best) {
+      best.classList.remove('open');
+      best.setAttribute('aria-hidden', 'true');
+      return true;
+    }
+  } catch (e) {}
+  return false;
+}
 
 function closeTopMostView() {
     // Phase 1 migration coverage: handle frequently used feature-level layers
@@ -34149,7 +34223,11 @@ if (singlePost && singlePost.classList.contains('open')) { closeSinglePost(); re
       }
     } catch (e) {}
 
-    // ৭. Bottom Navigation Pages (Back to Feed)
+    // 7d. Any remaining pop-up without a dedicated rule above
+    if (gcCloseGenericTopLayer()) return true;
+
+    // ৭. Bottom Navigation Pages (Back to previously visited tab, then Feed)
+    try { if (typeof gcTabBack === 'function' && gcTabBack()) return true; } catch (e) {}
     const feedPage = document.getElementById('page-feed');
     if (feedPage && !feedPage.classList.contains('active')) {
         showPage('feed'); return true;
@@ -34311,6 +34389,49 @@ if (singlePost && singlePost.classList.contains('open')) { closeSinglePost(); re
   }
 
   console.log('[GCNav] bindings installed');
+})();
+
+// ==========================================
+// GCNav — bottom-tab history: Back returns to the tab you came from
+// (e.g. Feed → Messages → Notifications → Back → Messages → Back → Feed)
+// ==========================================
+(function installGCTabTrail() {
+  var trail = [];
+  var restoring = false;
+  function currentTab() {
+    try {
+      var a = document.querySelector('.page.active');
+      return a && a.id ? a.id.replace(/^page-/, '') : null;
+    } catch (e) { return null; }
+  }
+  if (typeof window.showPage === 'function') {
+    var _sp = window.showPage;
+    window.showPage = function (page) {
+      var prev = currentTab();
+      var r = _sp.apply(this, arguments);
+      try {
+        if (page === 'feed') {
+          trail.length = 0;
+        } else if (!restoring && prev && page && prev !== page) {
+          if (trail[trail.length - 1] !== prev) trail.push(prev);
+          if (trail.length > 30) trail.shift();
+        }
+      } catch (e) {}
+      return r;
+    };
+  }
+  window.gcTabBack = function () {
+    var cur = currentTab();
+    while (trail.length) {
+      var t = trail.pop();
+      if (t && t !== cur && t !== 'feed') {
+        restoring = true;
+        try { window.showPage(t); } finally { restoring = false; }
+        return true;
+      }
+    }
+    return false;
+  };
 })();
 
 // 🚀 NOTIFICATION BATCH DELETE SYSTEM 🚀
