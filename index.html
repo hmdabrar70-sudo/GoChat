@@ -7620,9 +7620,46 @@ background:rgba(0,0,0,.28);color:#fff;font-size:18px;pointer-events:none;
 .gc-pay-overlay{position:fixed;inset:0;background:var(--bg);backdrop-filter:none;-webkit-backdrop-filter:none;z-index:102000;display:none;align-items:stretch;justify-content:stretch;padding:0;}
 .gc-pay-overlay.open{display:flex;}
 .gc-pay-box{width:100%;max-width:none;max-height:none;height:100%;height:100dvh;overflow-y:auto;background:var(--bg);border:none;border-radius:0;box-shadow:none;}
-.gc-pay-head{display:flex;align-items:center;justify-content:space-between;padding:18px 22px 12px;}
-.gc-pay-brand{display:flex;align-items:center;gap:8px;font-weight:800;font-size:17px;color:#e8c074;}
-.gc-pay-close{background:transparent;border:none;width:36px;height:36px;border-radius:50%;color:var(--text-muted);display:flex;align-items:center;justify-content:center;cursor:pointer;}
+.gc-pay-head{display:flex;align-items:center;justify-content:flex-start;padding:14px 18px 12px;position:relative;min-height:56px;box-sizing:border-box;}
+.gc-pay-brand{position:absolute;left:50%;transform:translateX(-50%);margin:0;padding:0 72px;box-sizing:border-box;max-width:100%;width:100%;text-align:center;pointer-events:none;font-weight:800;font-size:17px;color:#e8c074;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;z-index:1;}
+.gc-pay-close,
+button.gc-pay-close.gc-text-close-btn{
+  position:relative;z-index:2;
+  display:inline-flex !important;align-items:center;justify-content:center;
+  box-sizing:border-box;height:36px;min-width:64px;padding:0 14px;margin:0;
+  border:none !important;border-radius:999px !important;
+  font-family:inherit;font-size:14px;font-weight:700;letter-spacing:0.01em;line-height:1;
+  cursor:pointer;flex-shrink:0;-webkit-tap-highlight-color:transparent;outline:none;
+  box-shadow:none !important;width:auto !important;
+  background:#F0F2F5 !important;color:#252535 !important;
+}
+body:not(.light-mode) .gc-pay-close,
+body.dark-mode .gc-pay-close,
+body:not(.light-mode) button.gc-pay-close.gc-text-close-btn,
+body.dark-mode button.gc-pay-close.gc-text-close-btn{
+  background:#292936 !important;color:#F0F0F5 !important;
+}
+body.light-mode .gc-pay-close,
+body.light-mode button.gc-pay-close.gc-text-close-btn{
+  background:#F0F2F5 !important;color:#252535 !important;
+}
+.gc-pay-close:active{opacity:0.82;transform:scale(0.97);}
+.gc-pay-close.gc-pay-is-back{
+  background:rgba(232,192,116,0.18) !important;
+  color:#b8860b !important;
+  border:1px solid rgba(232,192,116,0.35) !important;
+}
+body:not(.light-mode) .gc-pay-close.gc-pay-is-back,
+body.dark-mode .gc-pay-close.gc-pay-is-back{
+  background:rgba(232,192,116,0.16) !important;
+  color:#f0d78c !important;
+  border:1px solid rgba(232,192,116,0.28) !important;
+}
+body.light-mode .gc-pay-close.gc-pay-is-back{
+  background:rgba(217,119,6,0.12) !important;
+  color:#9a6700 !important;
+  border:1px solid rgba(217,119,6,0.25) !important;
+}
 .gc-pay-rail{height:3px;background:rgba(232,192,116,.12);}
 .gc-pay-rail i{display:block;height:100%;width:40%;background:linear-gradient(90deg,#fbbf24,#d97706,#fbbf24);background-size:200% 100%;animation:gcPayFoil 5s linear infinite;}
 @keyframes gcPayFoil{0%{background-position:0% 0;}100%{background-position:200% 0;}}
@@ -9811,27 +9848,6 @@ transition:transform .2s ease, filter .3s ease;
 @keyframes mfRowIn{ from{ opacity:0; transform:translateY(10px);} to{ opacity:1; transform:none;} }
 
 
-/* ═══════════════════════════════════════════════════════
-   🚀 NEW FEATURE  ·  quick-reply-templates  ·  2026-08-02
-   Quick Reply Templates (সেটিংস + চ্যাট স্ক্রিনে চিপস)
-   localStorage-ভিত্তিক · Firebase খরচ শূন্য
-   খুঁজতে:  Ctrl+F → "quick-reply-templates"
-   ═══════════════════════════════════════════════════════ */
-
-/* চ্যাট স্ক্রিনে ⚡ বাটন */
-.qr-trigger{
-  width:40px; height:40px; border-radius:50%; flex-shrink:0;
-  display:flex; align-items:center; justify-content:center; cursor:pointer;
-  background:linear-gradient(135deg, color-mix(in srgb, var(--accent) 20%, var(--surface-2)), var(--surface-2));
-  border:1px solid color-mix(in srgb, var(--accent) 35%, var(--border));
-  color:var(--accent); transition:transform .2s cubic-bezier(.34,1.56,.64,1), background .2s, box-shadow .25s;
-  animation:qrBtnPop .4s cubic-bezier(.34,1.56,.64,1) backwards;
-}
-.qr-trigger:hover{ transform:translateY(-2px) scale(1.08); box-shadow:0 10px 22px -8px color-mix(in srgb, var(--accent) 60%, transparent); }
-.qr-trigger:active{ transform:scale(.86); }
-.qr-trigger .material-symbols-outlined{ font-size:20px; }
-.qr-trigger i{ font-size:22px; line-height:1; }
-
 /* Chat Tools shortcut panel */
 .gc-chat-tools-mask{
   display:none; position:fixed; inset:0; z-index:100250;
@@ -9872,155 +9888,6 @@ transition:transform .2s ease, filter .3s ease;
 .gc-chat-tools-item:active{ transform:scale(.98); }
 .gc-chat-tools-item i{ font-size:22px; width:26px; text-align:center; }
 .gc-chat-tools-chev{ margin-left:auto; color:var(--text-muted); font-size:16px; }
-
-/* চিপস পপআপ */
-.qr-chips-popup{
-  position:fixed; left:12px; right:12px; bottom:88px; z-index:100300;
-  max-width:520px; margin:0 auto;
-  background:var(--surface); border:1px solid var(--border); border-radius:20px;
-  box-shadow:0 20px 50px -20px rgba(0,0,0,.6);
-  max-height:min(320px, 50vh); overflow-y:auto; overflow-x:hidden;
-  animation:qrChipsIn .35s cubic-bezier(.22,1,.36,1);
-  display:none;
-}
-.qr-chips-popup.open{ display:block; }
-.qr-chips-header{
-  display:flex; align-items:center; justify-content:space-between;
-  padding:14px 16px; border-bottom:1px solid var(--border);
-  background:linear-gradient(135deg, color-mix(in srgb, var(--accent) 8%, var(--surface-2)), var(--surface-2));
-  border-radius:20px 20px 0 0;
-}
-.qr-chips-header .qr-title{ font-size:15px; font-weight:800; color:var(--text); display:flex; align-items:center; gap:7px; }
-.qr-chips-header .qr-title .material-symbols-outlined{ font-size:18px; color:var(--accent); }
-.qr-chips-header .qr-close{
-  width:28px; height:28px; border-radius:50%; border:none; background:var(--surface-2); color:var(--text-muted);
-  cursor:pointer; display:flex; align-items:center; justify-content:center; transition:transform .2s, background .2s;
-}
-.qr-chips-header .qr-close:hover{ background:var(--card); }
-.qr-chips-header .qr-close:active{ transform:scale(.86) rotate(90deg); }
-.qr-chips-list{ padding:10px; display:flex; flex-direction:column; gap:8px; }
-.qr-chip-item{
-  display:flex; align-items:center; justify-content:space-between; gap:12px;
-  padding:12px 14px; border-radius:14px; cursor:pointer;
-  background:var(--surface-2); border:1px solid var(--border);
-  transition:transform .18s, background .2s, border-color .2s;
-  animation:qrChipIn .3s cubic-bezier(.22,1,.36,1) backwards;
-}
-.qr-chip-item:hover{ transform:translateX(4px); background:var(--surface); border-color:color-mix(in srgb, var(--accent) 40%, var(--border)); }
-.qr-chip-item:active{ transform:scale(.98); }
-.qr-chip-item .qr-text{ flex:1; min-width:0; font-size:13.5px; color:var(--text); font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.qr-chip-item .qr-actions{ display:flex; gap:6px; }
-.qr-chip-item .qr-del{
-  width:26px; height:26px; border-radius:50%; border:none; background:transparent; color:var(--text-muted);
-  cursor:pointer; display:flex; align-items:center; justify-content:center; transition:background .2s, color .2s;
-}
-.qr-chip-item .qr-del:hover{ background:rgba(255,77,106,.12); color:var(--danger); }
-.qr-chips-empty{ text-align:center; padding:24px 16px; color:var(--text-muted); font-size:13px; }
-.qr-chips-empty .material-symbols-outlined{ font-size:32px; opacity:.4; margin-bottom:8px; }
-.qr-chips-footer{
-  padding:10px 16px 14px; border-top:1px solid var(--border);
-  display:flex; gap:8px; justify-content:flex-end;
-}
-.qr-chips-footer button{
-  padding:9px 16px; border-radius:12px; border:none; cursor:pointer; font-size:13px; font-weight:700;
-  transition:transform .18s, background .2s;
-}
-.qr-chips-footer .qr-manage{ background:var(--surface-2); color:var(--text); }
-.qr-chips-footer .qr-manage:hover{ background:var(--card); }
-.qr-chips-footer .qr-manage:active{ transform:scale(.95); }
-
-/* ম্যানেজ স্ক্রিন (সেটিংসে) */
-.qr-manage-screen{
-  display:none; position:fixed; inset:0; background:var(--bg); z-index:100250; flex-direction:column;
-  animation:qrManageIn .35s cubic-bezier(.22,1,.36,1);
-}
-.qr-manage-screen.open{ display:flex; }
-.qr-manage-head{
-  display:flex; align-items:center; gap:12px; padding:16px 18px; border-bottom:1px solid var(--border);
-  background:var(--surface); position:sticky; top:0; z-index:10;
-}
-.qr-manage-head .qr-back{
-  width:38px; height:38px; border-radius:50%; border:none; background:var(--surface-2); color:var(--text);
-  cursor:pointer; display:flex; align-items:center; justify-content:center; transition:transform .2s;
-}
-.qr-manage-head .qr-back:active{ transform:scale(.86) rotate(-90deg); }
-.qr-manage-head .qr-title{ font-size:19px; font-weight:800; color:var(--text); flex:1; }
-.qr-manage-head .qr-add{
-  padding:9px 16px; border-radius:20px; border:none; background:var(--accent); color:var(--bg);
-  font-size:13px; font-weight:800; cursor:pointer; display:flex; align-items:center; gap:6px;
-  transition:transform .2s, box-shadow .25s;
-}
-.qr-manage-head .qr-add:hover{ transform:translateY(-1px); box-shadow:0 8px 18px -8px color-mix(in srgb, var(--accent) 70%, transparent); }
-.qr-manage-head .qr-add:active{ transform:scale(.94); }
-.qr-manage-list{ flex:1; overflow-y:auto; padding:16px; display:flex; flex-direction:column; gap:10px; }
-.qr-manage-item{
-  display:flex; align-items:flex-start; gap:12px; padding:14px; border-radius:16px;
-  background:var(--surface-2); border:1px solid var(--border);
-  transition:transform .18s, background .2s, border-color .2s;
-  animation:qrManageItemIn .35s cubic-bezier(.22,1,.36,1) backwards;
-}
-.qr-manage-item:hover{ transform:translateX(4px); background:var(--surface); border-color:color-mix(in srgb, var(--accent) 35%, var(--border)); }
-.qr-manage-item .qr-m-text{ flex:1; min-width:0; }
-.qr-manage-item .qr-m-text .qr-m-txt{ font-size:14px; color:var(--text); font-weight:500; margin-bottom:4px; word-break:break-word; }
-.qr-manage-item .qr-m-text .qr-m-meta{ font-size:11px; color:var(--text-muted); }
-.qr-manage-item .qr-m-actions{ display:flex; gap:6px; }
-.qr-manage-item .qr-m-btn{
-  width:32px; height:32px; border-radius:50%; border:none; background:transparent; color:var(--text-muted);
-  cursor:pointer; display:flex; align-items:center; justify-content:center; transition:background .2s, color .2s, transform .2s;
-}
-.qr-manage-item .qr-m-btn:hover{ background:var(--surface); }
-.qr-manage-item .qr-m-btn.qr-edit:hover{ color:var(--accent); }
-.qr-manage-item .qr-m-btn.qr-delete:hover{ background:rgba(255,77,106,.12); color:var(--danger); }
-.qr-manage-item .qr-m-btn:active{ transform:scale(.86); }
-.qr-manage-empty{ text-align:center; padding:60px 20px; color:var(--text-muted); }
-.qr-manage-empty .material-symbols-outlined{ font-size:48px; opacity:.35; margin-bottom:12px; }
-.qr-manage-empty .qr-e-t{ font-size:15px; font-weight:700; color:var(--text-secondary); margin-bottom:6px; }
-.qr-manage-empty .qr-e-s{ font-size:13px; line-height:1.5; }
-
-/* এডিট/অ্যাড মডাল */
-.qr-editor-modal{
-  display:none; position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:100260; align-items:center; justify-content:center; padding:20px;
-}
-.qr-editor-modal.open{ display:flex; }
-.qr-editor-box{
-  width:100%; max-width:420px; background:var(--surface); border:1px solid var(--border); border-radius:24px;
-  box-shadow:0 40px 90px -30px rgba(0,0,0,.6); overflow:hidden; animation:qrEditorIn .35s cubic-bezier(.22,1,.36,1);
-}
-.qr-editor-head{
-  display:flex; align-items:center; justify-content:space-between; padding:16px 18px; border-bottom:1px solid var(--border);
-  background:linear-gradient(135deg, color-mix(in srgb, var(--accent) 8%, var(--surface-2)), var(--surface-2));
-}
-.qr-editor-head .qr-e-title{ font-size:17px; font-weight:800; color:var(--text); }
-.qr-editor-head .qr-e-close{
-  width:32px; height:32px; border-radius:50%; border:none; background:var(--surface-2); color:var(--text-muted);
-  cursor:pointer; display:flex; align-items:center; justify-content:center; transition:transform .2s;
-}
-.qr-editor-head .qr-e-close:active{ transform:scale(.86) rotate(90deg); }
-.qr-editor-body{ padding:18px; }
-.qr-editor-body textarea{
-  width:100%; min-height:120px; padding:14px; border-radius:14px; border:1.5px solid var(--border);
-  background:var(--surface-2); color:var(--text); font-size:14.5px; font-family:inherit; resize:vertical; outline:none;
-  transition:border-color .25s, box-shadow .25s;
-}
-.qr-editor-body textarea:focus{ border-color:var(--accent); box-shadow:0 0 0 4px var(--accent-glow); }
-.qr-editor-footer{ padding:14px 18px 18px; display:flex; gap:10px; justify-content:flex-end; }
-.qr-editor-footer button{
-  padding:11px 20px; border-radius:14px; border:none; cursor:pointer; font-size:14px; font-weight:700;
-  transition:transform .18s, background .2s;
-}
-.qr-editor-footer .qr-cancel{ background:var(--surface-2); color:var(--text); }
-.qr-editor-footer .qr-cancel:hover{ background:var(--card); }
-.qr-editor-footer .qr-cancel:active{ transform:scale(.95); }
-.qr-editor-footer .qr-save{ background:var(--accent); color:var(--bg); }
-.qr-editor-footer .qr-save:hover{ transform:translateY(-1px); box-shadow:0 8px 18px -8px color-mix(in srgb, var(--accent) 70%, transparent); }
-.qr-editor-footer .qr-save:active{ transform:scale(.94); }
-
-@keyframes qrBtnPop{ from{ opacity:0; transform:scale(.3);} to{ opacity:1; transform:scale(1);} }
-@keyframes qrChipsIn{ from{ opacity:0; transform:translateY(12px) scale(.96);} to{ opacity:1; transform:none;} }
-@keyframes qrChipIn{ from{ opacity:0; transform:translateX(-8px);} to{ opacity:1; transform:none;} }
-@keyframes qrManageIn{ from{ opacity:0; transform:translateX(100%);} to{ opacity:1; transform:none;} }
-@keyframes qrManageItemIn{ from{ opacity:0; transform:translateY(10px);} to{ opacity:1; transform:none;} }
-@keyframes qrEditorIn{ from{ opacity:0; transform:translateY(20px) scale(.96);} to{ opacity:1; transform:none;} }
 
 /* =========================================
 🚀 NEW FEATURE · unfollow-confirm · 2026-08-06 (Update #6)
@@ -16362,7 +16229,7 @@ l-137 -640 -193 -3 -193 -2 4 22 c2 13 67 314 144 671 l139 647 192 0 193 0
 <!-- 🚀 NEW: Reply Preview Container (Absolute Position) -->
 <div id="reply-preview-container" style="position: absolute; bottom: 100%; left: 0; width: 100%; padding: 0 16px; box-sizing: border-box; z-index: 20;"></div>
 
-<!-- 🚀 Attach panel (+ menu) · Photo / Voice / Quick Replies -->
+<!-- 🚀 Attach panel (+ menu) · Photo / Voice -->
 <div class="gc-chat-attach-panel" id="gc-chat-attach-panel">
   <button type="button" class="gc-chat-attach-item" onclick="gcChatAttachAction('gallery')">
     <span>Gallery</span>
@@ -16372,10 +16239,7 @@ l-137 -640 -193 -3 -193 -2 4 22 c2 13 67 314 144 671 l139 647 192 0 193 0
     <span>Voice</span>
     <svg class="gc-attach-ico" xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M0 0h24v24H0z" fill="none"/><path fill="currentColor" fill-rule="evenodd" d="M6.25 8C6.25 4.82436 8.82436 2.25 12 2.25C15.1756 2.25 17.75 4.82436 17.75 8V11C17.75 14.1756 15.1756 16.75 12 16.75C8.82436 16.75 6.25 14.1756 6.25 11V8ZM12 3.75C9.65279 3.75 7.75 5.65279 7.75 8V11C7.75 13.3472 9.65279 15.25 12 15.25C14.0913 15.25 15.8298 13.7395 16.184 11.75L13 11.75C12.5858 11.75 12.25 11.4142 12.25 11C12.25 10.5858 12.5858 10.25 13 10.25L16.25 10.25V8.75H13C12.5858 8.75 12.25 8.41421 12.25 8C12.25 7.58579 12.5858 7.25 13 7.25H16.184C15.8298 5.26049 14.0913 3.75 12 3.75ZM4 9.25C4.41421 9.25 4.75 9.58579 4.75 10V11C4.75 15.0041 7.99594 18.25 12 18.25C16.0041 18.25 19.25 15.0041 19.25 11V10C19.25 9.58579 19.5858 9.25 20 9.25C20.4142 9.25 20.75 9.58579 20.75 10V11C20.75 15.5798 17.2314 19.3379 12.75 19.7183V22C12.75 22.4142 12.4142 22.75 12 22.75C11.5858 22.75 11.25 22.4142 11.25 22V19.7183C6.7686 19.3379 3.25 15.5798 3.25 11V10C3.25 9.58579 3.58579 9.25 4 9.25Z" clip-rule="evenodd"/></svg>
   </button>
-  <button type="button" class="gc-chat-attach-item" onclick="event.stopPropagation(); gcChatAttachAction('quick')">
-    <span>Quick reply</span>
-    <svg class="gc-attach-ico" xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M0 0h24v24H0z" fill="none"/><path fill="currentColor" fill-rule="evenodd" d="M20.5279 10.3736C20.1572 9.73163 19.4779 9.5206 18.8294 9.42992C18.1757 9.33852 17.3008 9.33855 16.2426 9.33858L16.1824 9.33858C15.5523 9.33858 15.1403 9.33237 14.8402 9.29064C14.5688 9.2529 14.4825 9.19704 14.4456 9.16446C14.4187 9.13635 14.3706 9.07063 14.3379 8.83366C14.2993 8.55425 14.2976 8.1711 14.2976 7.55704V7.18255C14.2977 5.59503 14.2977 4.32329 14.1755 3.4166C14.0608 2.56554 13.7882 1.60969 12.844 1.32035C11.9164 1.03608 11.1384 1.64564 10.5337 2.27405C9.88942 2.9435 9.12413 3.97895 8.16596 5.27538L5.02896 9.51969C4.41863 10.3454 3.90984 11.0337 3.60669 11.6029C3.3028 12.1735 3.08164 12.8509 3.41872 13.5268L3.41989 13.5293L3.42344 13.5365L3.42748 13.5445L3.43146 13.5522L3.4358 13.5603L3.44023 13.5685L3.44441 13.576L3.44884 13.5838L3.45289 13.5907L3.45438 13.5931C3.82188 14.2296 4.49825 14.4524 5.1526 14.5523C5.82693 14.6553 6.72671 14.6619 7.81795 14.6619C8.45456 14.6619 8.86048 14.6633 9.1586 14.7013C9.42195 14.7349 9.50071 14.7867 9.53447 14.8165C9.56438 14.8478 9.61682 14.9207 9.6538 15.1663C9.69612 15.4473 9.70276 15.8364 9.70275 16.4435L9.70274 16.8178C9.7027 18.4053 9.70266 19.6771 9.82483 20.5838C9.9395 21.4349 10.2121 22.3907 11.1563 22.6801C12.0839 22.9644 12.8619 22.3548 13.4667 21.7264C14.1109 21.0569 14.8762 20.0215 15.8344 18.725L18.9338 14.5317C19.5646 13.6783 20.0834 12.9652 20.3893 12.3718C20.6887 11.7911 20.8976 11.1097 20.5636 10.44L20.5624 10.4376L20.5589 10.4303L20.5548 10.4223L20.5508 10.4146L20.5465 10.4064L20.542 10.3982L20.5378 10.3907L20.5334 10.3829L20.5293 10.3759L20.5279 10.3736ZM11.6145 3.31416C11.0465 3.90435 10.3387 4.85927 9.335 6.21733L6.27286 10.3604C5.61517 11.2502 5.17513 11.849 4.93062 12.3081C4.81161 12.5315 4.76693 12.6725 4.75421 12.7578C4.74635 12.8105 4.75115 12.8343 4.75742 12.8496C4.78161 12.8852 4.88663 12.9943 5.379 13.0695C5.9169 13.1516 6.69032 13.1619 7.81795 13.1619L7.86392 13.1619C8.44106 13.1618 8.94393 13.1618 9.3483 13.2134C9.78148 13.2686 10.2118 13.3942 10.568 13.7293L10.5739 13.7348L10.5796 13.7404C10.9296 14.0839 11.0719 14.5099 11.1371 14.9429C11.1994 15.3568 11.2028 15.8658 11.2028 16.4435L11.2027 16.753C11.2027 18.42 11.2044 19.5894 11.3114 20.3835C11.3647 20.7789 11.4363 21.0108 11.505 21.1404C11.5564 21.2374 11.586 21.2438 11.5943 21.2456L11.5958 21.2459L11.5973 21.2464C11.6078 21.25 11.6446 21.2628 11.7583 21.2056C11.9003 21.1341 12.1032 20.98 12.3858 20.6863C12.9538 20.0961 13.6616 19.1412 14.6654 17.7831L17.7275 13.6401C18.3815 12.7553 18.8172 12.1478 19.0561 11.6845C19.2608 11.2873 19.2385 11.1528 19.2249 11.1171C19.2024 11.0843 19.1016 10.9826 18.6217 10.9155C18.0846 10.8404 17.3161 10.8386 16.1824 10.8386C15.5796 10.8386 15.0567 10.8352 14.6336 10.7763C14.1968 10.7156 13.7655 10.5841 13.4123 10.252L13.4065 10.2465L13.4008 10.2409C13.0476 9.89419 12.9114 9.46874 12.852 9.03887C12.7975 8.64454 12.7976 8.15622 12.7976 7.60538L12.7976 7.24733C12.7976 5.58044 12.7959 4.41099 12.6889 3.61692C12.6356 3.22153 12.564 2.98959 12.4954 2.86008C12.4439 2.76301 12.4143 2.75666 12.406 2.75487L12.4045 2.75451L12.403 2.75401C12.3925 2.7504 12.3557 2.73767 12.242 2.79487C12.1 2.86633 11.8972 3.02042 11.6145 3.31416Z" clip-rule="evenodd"/></svg>
-  </button>
+  
 </div>
 
 
@@ -17347,37 +17211,6 @@ l-137 -640 -193 -3 -193 -2 4 22 c2 13 67 314 144 671 l139 647 192 0 193 0
 </div>
 
 
-<!-- ═══════════════════════════════════════════════════════
-     🚀 NEW FEATURE  ·  quick-reply-templates  ·  2026-08-02
-     Quick Replies Manage Screen + Editor Modal
-     ═══════════════════════════════════════════════════════ -->
-
-<!-- Manage Screen (সেটিংসের ভেতরে) -->
-<div id="qr-manage-screen" class="qr-manage-screen">
-  <div class="qr-manage-head">
-    <button class="qr-back" onclick="qrCloseManage()"><i class="ph-light ph-arrow-left"></i></button>
-    <div class="qr-title">Quick Replies</div>
-    <button class="qr-add" onclick="qrOpenEditor()"><i class="ph-light ph-plus"></i> New</button>
-  </div>
-  <div class="qr-manage-list" id="qr-manage-list"></div>
-</div>
-
-<!-- Editor Modal -->
-<div class="qr-editor-modal" id="qr-editor-modal" onclick="if(event.target===this) qrCloseEditor()">
-  <div class="qr-editor-box">
-    <div class="qr-editor-head">
-      <div class="qr-e-title" id="qr-editor-title">New Quick Reply</div>
-      <button class="qr-e-close" onclick="qrCloseEditor()"><i class="ph-light ph-x"></i></button>
-    </div>
-    <div class="qr-editor-body">
-      <textarea id="qr-editor-text" placeholder="Type your quick reply here...&#10;Example: ধন্যবাদ! পরে কথা বলি।"></textarea>
-    </div>
-    <div class="qr-editor-footer">
-      <button class="qr-cancel" onclick="qrCloseEditor()">Cancel</button>
-      <button class="qr-save" onclick="qrSaveTemplate()">Save</button>
-    </div>
-  </div>
-</div>
 <script>
 /* ═══════════════════════════════════════════════════════
    GoChat · app.js · application logic
@@ -23835,12 +23668,6 @@ function gcChatAttachAction(kind){
     }
   } else if(kind === 'voice'){
     if(typeof startVoiceRecord === 'function') startVoiceRecord();
-  } else if(kind === 'quick'){
-    // slight delay so attach panel close + same-click outside listener do not fight
-    setTimeout(function(){
-      if(typeof qrToggleChips === 'function') qrToggleChips();
-      else if(typeof gcOpenChatTools === 'function') gcOpenChatTools();
-    }, 30);
   }
 }
 window.gcToggleChatAttach = gcToggleChatAttach;
@@ -25320,17 +25147,7 @@ function showInAppMessageNotification(chatId, data) {
         openChat(chatId, otherUid, senderName, data.isGroup ? '' : (data.avatars ? data.avatars[otherUid] : ''));
     };
 
-    const replyBar = document.createElement('div');
-    replyBar.className = 'msg-popup-reply-bar';
-    replyBar.innerHTML = `
-        <input type="text" placeholder="Reply to ${escapeHTML(senderName)}..." onclick="event.stopPropagation();" onkeypress="if(event.key==='Enter'){event.stopPropagation(); sendQuickReply('${chatId}', '${otherUid}', this.value, this);}">
-        <button onclick="event.stopPropagation(); sendQuickReply('${chatId}', '${otherUid}', this.previousElementSibling.value, this)">
-            <i class="ph-light ph-paper-plane-tilt" style="font-size:16px;"></i>
-        </button>
-    `;
-
     popup.appendChild(topContent);
-    popup.appendChild(replyBar);
     container.appendChild(popup);
 
     let startY = 0;
@@ -25359,49 +25176,6 @@ function showInAppMessageNotification(chatId, data) {
 }
 
 // কুইক রিপ্লাই পাঠানোর লজিক
-async function sendQuickReply(chatId, otherUid, text, btnElement) {
-    text = text.trim();
-    if(!text || !currentUser) return;
-    
-    // সেন্ডিং অ্যানিমেশন
-    btnElement.disabled = true;
-    btnElement.innerHTML = '<i class="ph-light ph-circle" style="font-size:16px; animation:spin 1s linear infinite;"></i>';
-
-    const msgData = {
-        uid: currentUser.uid,
-        senderName: currentUserData.name || 'User',
-        text: text,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    };
-    
-    try {
-        await db.collection('chats').doc(chatId).collection('messages').add(msgData);
-        
-        let lastText = text;
-        if (otherUid === 'group') {
-            lastText = (currentUserData.name || 'User') + ": " + text;
-        }
-
-        await db.collection('chats').doc(chatId).set({
-            lastMsg: lastText,
-            lastAt: firebase.firestore.FieldValue.serverTimestamp(),
-            lastSender: currentUser.uid,
-            isRead: false
-        }, { merge: true });
-
-        // মেসেজ গেলে পপআপ নিজে থেকেই হাইড হয়ে যাবে
-        const popup = btnElement.closest('.msg-popup');
-        if(popup) {
-            popup.classList.add('hide');
-            setTimeout(() => popup.remove(), 400);
-        }
-        showToast("Reply sent!");
-    } catch(e) {
-        showToast("Failed to send reply");
-        btnElement.disabled = false;
-        btnElement.innerHTML = '<i class="ph-light ph-paper-plane-tilt" style="font-size:16px;"></i>';
-    }
-}
 
 // ===== STRICT & SECURE loadMessages FUNCTION =====
 // Firestore rules require filtered queries (array-contains on users/members).
@@ -34125,10 +33899,8 @@ function gcLegacyCloseLayers() {
     var shortComments = document.getElementById('gc-short-comments-screen');
     if (shortComments && shortComments.classList.contains('open')) { if (typeof gcCloseShortsComments === 'function') gcCloseShortsComments(); else shortComments.classList.remove('open'); return true; }
 
-    var qrEditor = document.getElementById('qr-editor-modal');
-    if (qrEditor && qrEditor.classList.contains('open')) { if (typeof qrCloseEditor === 'function') qrCloseEditor(); else qrEditor.classList.remove('open'); return true; }
-    var qrManage = document.getElementById('qr-manage-screen');
-    if (qrManage && qrManage.classList.contains('open')) { if (typeof qrCloseManage === 'function') qrCloseManage(); else qrManage.classList.remove('open'); return true; }
+    
+    
 
     var tagModal = document.getElementById('tag-modal');
     if (tagModal && tagModal.classList.contains('open')) { if (typeof closeTagModal === 'function') closeTagModal(); else tagModal.classList.remove('open'); return true; }
@@ -34866,8 +34638,6 @@ function closeTopMostView() {
   L('#delete-sheet-modal', call('closeDeleteSheet'));
   L('#tag-modal', call('closeTagModal'));
   L('#edit-post-modal', call('closeEditPostModal'));
-  L('#qr-editor-modal', call('qrCloseEditor'));
-  L('#qr-manage-screen', call('qrCloseManage'));
   L('#badge-info-modal', call('closeBadgeInfo'));
 
   // Posts / profiles
@@ -36755,55 +36525,7 @@ function exportCurrentChat() {
 
 
 // ═══════════════════════════════════════════════════════
-// 🚀 NEW FEATURE  ·  quick-reply-templates  ·  2026-08-02
-// Quick Reply Templates (localStorage-ভিত্তিক)
-// খুঁজতে:  Ctrl+F → "quick-reply-templates" / নতুন কুইক রিপ্লাই সিস্টেম।  
-
-
-// ══════════════════════════════════════════════════════
-const QR_STORAGE_KEY = 'gochat_quick_replies';
-let qrEditIndex = null;
-
-/* ---------- ডাটা ম্যানেজমেন্ট ---------- */
-function qrGetTemplates(){
-  try{
-    const data = localStorage.getItem(QR_STORAGE_KEY);
-    return data ? JSON.parse(data) : [];
-  }catch(e){ return []; }
-}
-function qrSaveTemplates(templates){
-  try{
-    localStorage.setItem(QR_STORAGE_KEY, JSON.stringify(templates));
-  }catch(e){ showToast('Failed to save template'); }
-}
-function qrAddTemplate(text){
-  const templates = qrGetTemplates();
-  templates.push({ text, createdAt: Date.now() });
-  qrSaveTemplates(templates);
-}
-function qrDeleteTemplate(index){
-  const templates = qrGetTemplates();
-  templates.splice(index, 1);
-  qrSaveTemplates(templates);
-}
-function qrUpdateTemplate(index, text){
-  const templates = qrGetTemplates();
-  if(templates[index]) templates[index].text = text;
-  qrSaveTemplates(templates);
-}
-
-/* ---------- চ্যাট স্ক্রিনে ⋯ shortcut বাটন ইনজেক্ট ---------- */
-/* + menu (Photo / Voice / Quick) is the primary hub now — skip extra dots button */
-function qrInjectChatButton(){
-  try{
-    var inputBar = document.querySelector('.chat-input-bar');
-    if(!inputBar) return;
-    var old = inputBar.querySelector('.qr-trigger');
-    if(old) old.remove();
-  }catch(e){}
-}
-
-/* ---------- Chat Tools popup (shortcut hub) ---------- */
+// Chat tools (Quick Reply templates removed)
 function gcEnsureChatTools(){
   let ov = document.getElementById('gc-chat-tools');
   if(ov) return ov;
@@ -36817,12 +36539,7 @@ function gcEnsureChatTools(){
     +     '<button type="button" class="gc-chat-tools-x" onclick="gcCloseChatTools()" aria-label="Close"><i class="ph-light ph-x"></i></button>'
     +   '</div>'
     +   '<div class="gc-chat-tools-list">'
-    +     '<button type="button" class="gc-chat-tools-item" onclick="gcCloseChatTools(); qrToggleChips();">'
-    +       '<i class="ph-light ph-lightning" style="color:var(--warning);"></i>'
-    +       '<span>Quick Replies</span>'
-    +       '<i class="ph-light ph-caret-right gc-chat-tools-chev"></i>'
-    +     '</button>'
-    +     '<!-- Future tools go here -->'
+    +     '<div style="padding:16px;text-align:center;color:var(--text-muted);font-size:13px;">No tools available</div>'
     +   '</div>'
     + '</div>';
   ov.addEventListener('click', function(e){ if(e.target === ov) gcCloseChatTools(); });
@@ -36832,9 +36549,6 @@ function gcEnsureChatTools(){
 function gcOpenChatTools(){
   const ov = gcEnsureChatTools();
   ov.classList.add('open');
-  // close chips if open
-  const chips = document.getElementById('qr-chips-popup');
-  if(chips) chips.classList.remove('open');
 }
 function gcCloseChatTools(){
   const ov = document.getElementById('gc-chat-tools');
@@ -36843,251 +36557,6 @@ function gcCloseChatTools(){
 window.gcOpenChatTools = gcOpenChatTools;
 window.gcCloseChatTools = gcCloseChatTools;
 
-/* ---------- চিপস পপআপ ---------- */
-function qrToggleChips(e){
-  if(e && e.stopPropagation) e.stopPropagation();
-  if(e && e.preventDefault) e.preventDefault();
-  const popup = document.getElementById('qr-chips-popup');
-  if(!popup){ qrBuildChipsPopup(); }
-  const p = document.getElementById('qr-chips-popup');
-  if(!p) return;
-  if(p.classList.contains('open')){
-    p.classList.remove('open');
-    window.__gcQrIgnoreOutsideUntil = 0;
-  } else {
-    qrRenderChips();
-    // ignore outside-click for a short window so the same click that opened attach/quick does not close it
-    window.__gcQrIgnoreOutsideUntil = Date.now() + 350;
-    // open after current event finishes bubbling
-    setTimeout(function(){
-      p.classList.add('open');
-    }, 10);
-  }
-}
-function qrBuildChipsPopup(){
-  if(document.getElementById('qr-chips-popup')) return;
-  
-  const popup = document.createElement('div');
-  popup.id = 'qr-chips-popup';
-  popup.className = 'qr-chips-popup';
-  popup.innerHTML = `
-    <div class="qr-chips-header">
-      <div class="qr-title"><i class="ph-light ph-lightning"></i> Quick Replies</div>
-      <button class="qr-close" onclick="qrToggleChips(event)"><i class="ph-light ph-x"></i></button>
-    </div>
-    <div class="qr-chips-list" id="qr-chips-list"></div>
-    <div class="qr-chips-footer">
-      <button class="qr-manage" onclick="qrOpenManage()">Manage</button>
-    </div>
-  `;
-  
-  // body-এ fixed পজিশনে — chat-screen overflow/stacking-এ হারাবে না
-  document.body.appendChild(popup);
-  
-  if(!window.__gcQrOutsideBound){
-    window.__gcQrOutsideBound = true;
-    document.addEventListener('click', function(e){
-      var p = document.getElementById('qr-chips-popup');
-      if(!p || !p.classList.contains('open')) return;
-      if(window.__gcQrIgnoreOutsideUntil && Date.now() < window.__gcQrIgnoreOutsideUntil) return;
-      if(p.contains(e.target)) return;
-      if(e.target.closest('.qr-trigger')) return;
-      if(e.target.closest('.gc-chat-attach-item')) return;
-      if(e.target.closest('.gc-chat-attach-panel')) return;
-      if(e.target.closest('#gc-chat-plus-btn')) return;
-      if(e.target.closest('#qr-chips-popup')) return;
-      p.classList.remove('open');
-    });
-  }
-}
-function qrRenderChips(){
-  const list = document.getElementById('qr-chips-list');
-  if(!list) return;
-  
-  const templates = qrGetTemplates();
-  if(templates.length === 0){
-    list.innerHTML = `<div class="qr-chips-empty"><i class="ph-light ph-tray"></i><div>No quick replies yet</div></div>`;
-    return;
-  }
-  
-  list.innerHTML = templates.map((t, i) => `
-    <div class="qr-chip-item" style="animation-delay:${i*0.04}s" onclick="qrUseTemplate(${i})">
-      <div class="qr-text">${escapeHTML(t.text)}</div>
-      <div class="qr-actions">
-        <button class="qr-del" onclick="event.stopPropagation(); qrDeleteFromChips(${i})"><i class="ph-light ph-trash"></i></button>
-      </div>
-    </div>
-  `).join('');
-}
-function qrUseTemplate(index){
-  const templates = qrGetTemplates();
-  if(!templates[index]) return;
-  
-  const input = document.getElementById('chat-input');
-  if(input){
-    input.value = templates[index].text;
-    input.focus();
-    // ক্যারেক্টার শেষে নিয়ে যাওয়া
-    const len = input.value.length;
-    input.setSelectionRange(len, len);
-  }
-  
-  document.getElementById('qr-chips-popup').classList.remove('open');
-  showToast('Template inserted');
-}
-function qrDeleteFromChips(index){
-  qrDeleteTemplate(index);
-  qrRenderChips();
-  showToast('Template deleted');
-}
-
-/* ---------- Manage Screen (সেটিংস) ---------- */
-function qrOpenManage(){
-  document.getElementById('qr-chips-popup').classList.remove('open');
-  const screen = document.getElementById('qr-manage-screen');
-  screen.classList.add('open');
-  qrRenderManageList();
-}
-function qrCloseManage(){
-  document.getElementById('qr-manage-screen').classList.remove('open');
-}
-function qrRenderManageList(){
-  const list = document.getElementById('qr-manage-list');
-  if(!list) return;
-  
-  const templates = qrGetTemplates();
-  if(templates.length === 0){
-    list.innerHTML = `
-      <div class="qr-manage-empty">
-        <i class="ph-light ph-lightning" style="font-size:48px;opacity:.35;"></i>
-        <div class="qr-e-t">No quick replies yet</div>
-        <div class="qr-e-s">Tap "New" to create your first quick reply template.</div>
-      </div>
-    `;
-    return;
-  }
-  
-  list.innerHTML = templates.map((t, i) => `
-    <div class="qr-manage-item" style="animation-delay:${i*0.04}s">
-      <div class="qr-m-text">
-        <div class="qr-m-txt">${escapeHTML(t.text)}</div>
-        <div class="qr-m-meta">${new Date(t.createdAt).toLocaleString()}</div>
-      </div>
-      <div class="qr-m-actions">
-        <button class="qr-m-btn qr-edit" onclick="qrEditItem(${i})"><i class="ph-light ph-pencil-line"></i></button>
-        <button class="qr-m-btn qr-delete" onclick="qrDeleteItem(${i})"><i class="ph-light ph-trash"></i></button>
-      </div>
-    </div>
-  `).join('');
-}
-function qrEditItem(index){
-  qrEditIndex = index;
-  const templates = qrGetTemplates();
-  const modal = document.getElementById('qr-editor-modal');
-  const title = document.getElementById('qr-editor-title');
-  const text = document.getElementById('qr-editor-text');
-  
-  title.textContent = 'Edit Quick Reply';
-  text.value = templates[index].text;
-  modal.classList.add('open');
-}
-function qrDeleteItem(index){
-  if(typeof gcOpenConfirm==='function'){
-    gcOpenConfirm({title:'Delete Quick Reply?',text:'Delete this quick reply template?',icon:'ph-light ph-trash',yesLabel:'Delete',onYes:function(){qrDeleteTemplate(index);qrRenderManageList();showToast('Template deleted');}});
-    return;
-  }
-  qrDeleteTemplate(index);
-  qrRenderManageList();
-  showToast('Template deleted');
-}
-
-/* ---------- Editor Modal ---------- */
-function qrOpenEditor(index = null){
-  qrEditIndex = index;
-  const modal = document.getElementById('qr-editor-modal');
-  const title = document.getElementById('qr-editor-title');
-  const text = document.getElementById('qr-editor-text');
-  
-  if(index === null){
-    title.textContent = 'New Quick Reply';
-    text.value = '';
-  }
-  
-  modal.classList.add('open');
-  setTimeout(() => text.focus(), 100);
-}
-function qrCloseEditor(){
-  document.getElementById('qr-editor-modal').classList.remove('open');
-  qrEditIndex = null;
-}
-function qrSaveTemplate(){
-  const text = document.getElementById('qr-editor-text').value.trim();
-  if(!text){ showToast('Please enter some text'); return; }
-  if(text.length > 200){ showToast('Text is too long (max 200 chars)'); return; }
-  
-  if(qrEditIndex !== null){
-    qrUpdateTemplate(qrEditIndex, text);
-    showToast('Template updated');
-  }else{
-    qrAddTemplate(text);
-    showToast('Template saved');
-  }
-  
-  qrCloseEditor();
-  qrRenderManageList();
-}
-
-/* ---------- সেটিংস মেনুতে লিংক যোগ ---------- */
-function qrAddToSettings(){
-  const menu = document.querySelector('.settings-list');
-  if(!menu || menu.querySelector('.qr-settings-item')) return;
-  
-  const item = document.createElement('div');
-  item.className = 'setting-item qr-settings-item';
-  item.innerHTML = '<i class="ph-light ph-lightning"></i> Quick Replies';
-  item.onclick = () => qrOpenManage();
-  
-  // কোন জায়গায় বসাতে হবে খোঁজা
-  const refItem = [...menu.querySelectorAll('.setting-item')].find(i => /notification|privacy/i.test(i.textContent));
-  if(refItem){ refItem.parentNode.insertBefore(item, refItem); }
-  else{ menu.appendChild(item); }
-}
-
-/* ---------- Boot ---------- */
-(function qrBoot(){
-  // সেটিংসে লিংক যোগ
-  const addSettings = () => {
-    if(document.querySelector('.settings-list')) qrAddToSettings();
-  };
-  
-  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', addSettings); else addSettings();
-  setTimeout(addSettings, 800);
-  
-  // চ্যাট খোলার সময় বাটন ইনজেক্ট
-  if(typeof window.openChat === 'function' && !window.openChat.__qrWrapped){
-    const orig = window.openChat;
-    window.openChat = function(...args){
-      const r = orig.apply(this, args);
-      setTimeout(() => qrInjectChatButton(), 300);
-      return r;
-    };
-    window.openChat.__qrWrapped = true;
-  }
-  
-  document.addEventListener('keydown', (e) => {
-    if(e.key === 'Escape'){
-      const chips = document.getElementById('qr-chips-popup');
-      if(chips && chips.classList.contains('open')) chips.classList.remove('open');
-      const manage = document.getElementById('qr-manage-screen');
-      if(manage && manage.classList.contains('open')) qrCloseManage();
-      const editor = document.getElementById('qr-editor-modal');
-      if(editor && editor.classList.contains('open')) qrCloseEditor();
-    }
-  });
-})();
-
-
-// ═══════════════════════════════════════════════════════
 // 🚀 NEW DESIGN · threads-bottom-sheet · 2026-08-06 (Update #5)
 // Threads স্টাইল বটম-শিট মেনু সিস্টেম (ফাইনাল প্যাকেজ)
 // খুঁজতে: Ctrl+F → "threads-bottom-sheet"
@@ -41135,6 +40604,27 @@ const GC_ELITE_PLANS = [
 const GC_BKASH_NUMBER = '01948303440';
 let gcPayPlan = null;
 let gcPayUnsub = null;
+
+function gcPaySyncNavBtn(){
+  try{
+    var btn = document.getElementById('gc-pay-back-btn');
+    if(!btn) return;
+    var stack = window.__gcPayStack || [];
+    var top = stack.length ? stack[stack.length - 1] : 'landing';
+    var isFirst = (top === 'landing');
+    if(isFirst){
+      btn.textContent = 'Close';
+      btn.setAttribute('aria-label', 'Close');
+      btn.classList.remove('gc-pay-is-back');
+    } else {
+      btn.textContent = 'Back';
+      btn.setAttribute('aria-label', 'Back');
+      btn.classList.add('gc-pay-is-back');
+    }
+  }catch(e){}
+}
+window.gcPaySyncNavBtn = gcPaySyncNavBtn;
+
 function gcPayOpen(){
 if(!currentUser){ showToast('Login first!'); return; }
 let ov = document.getElementById('gc-pay-overlay');
@@ -41144,8 +40634,9 @@ ov.id = 'gc-pay-overlay';
 ov.className = 'gc-pay-overlay';
 document.body.appendChild(ov);
 }
-ov.innerHTML = '<div class="gc-pay-box"><div class="gc-pay-head"><div class="gc-pay-brand">Verify your profile</div><button type="button" class="gc-pay-close" id="gc-pay-back-btn" onclick="gcPayBack()" aria-label="Back"><i class="ph-light ph-arrow-left"></i></button></div><div class="gc-pay-rail"><i></i></div><div id="gc-pay-body" class="gc-pay-body"></div></div>';
+ov.innerHTML = '<div class="gc-pay-box"><div class="gc-pay-head"><button type="button" class="gc-pay-close gc-text-close-btn" id="gc-pay-back-btn" onclick="gcPayBack()" aria-label="Close">Close</button><div class="gc-pay-brand">Verify your profile</div></div><div class="gc-pay-rail"><i></i></div><div id="gc-pay-body" class="gc-pay-body"></div></div>';
 ov.classList.add('open');
+try{ gcPaySyncNavBtn(); }catch(e){}
 gcPayCheckPending();
 }
 function gcPayClose(){
@@ -41204,6 +40695,7 @@ gcPayShowLanding();
 function gcPayShowLanding(fromBack){
 if(!fromBack){ window.__gcPayStack = ['landing']; }
 else { window.__gcPayStack = ['landing']; }
+try{ gcPaySyncNavBtn(); }catch(e){}
 
 const badgeSvg = '<svg viewBox="0 0 24 24" aria-hidden="true" width="20" height="20"><defs><linearGradient id="gcPayVGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#c1f600"/><stop offset="55%" stop-color="#2a9a6a"/><stop offset="100%" stop-color="#00545f"/></linearGradient></defs><path d="M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.998-3.918-3.998-.47 0-.92.084-1.336.25C14.818 2.415 13.51 1.5 12 1.5s-2.816.917-3.337 2.25c-.416-.165-.866-.25-1.336-.25-2.21 0-3.918 1.792-3.918 4 0 .495.084.965.238 1.4-1.273.65-2.148 2.02-2.148 3.6 0 1.46.827 2.766 2.044 3.462-.014.116-.022.234-.022.35 0 2.21 1.71 3.998 3.918 3.998.47 0 .92-.084 1.336-.25C9.182 21.585 10.49 22.5 12 22.5s2.816-.917 3.337-2.25c.416.165.866.25 1.336.25 2.21 0 3.918-1.792 3.918-4 0-.116-.008-.234-.022-.35 1.217-.696 2.044-2.002 2.044-3.462z" fill="url(#gcPayVGrad)"></path><g transform="translate(2.81, 3.38) scale(0.75)"><path d="M9.5 17.5l-5-5 1.5-1.5 3.5 3.5 9-9 1.5 1.5-10.5 10.5z" fill="#ffffff"></path></g></svg>';
 const perkVerified = '<svg class="gc-pay-perk-verified" viewBox="0 0 24 24" width="28" height="28"><defs><linearGradient id="gcPayVGrad2" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#c1f600"/><stop offset="55%" stop-color="#2a9a6a"/><stop offset="100%" stop-color="#00545f"/></linearGradient></defs><path d="M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.998-3.918-3.998-.47 0-.92.084-1.336.25C14.818 2.415 13.51 1.5 12 1.5s-2.816.917-3.337 2.25c-.416-.165-.866-.25-1.336-.25-2.21 0-3.918 1.792-3.918 4 0 .495.084.965.238 1.4-1.273.65-2.148 2.02-2.148 3.6 0 1.46.827 2.766 2.044 3.462-.014.116-.022.234-.022.35 0 2.21 1.71 3.998 3.918 3.998.47 0 .92-.084 1.336-.25C9.182 21.585 10.49 22.5 12 22.5s2.816-.917 3.337-2.25c.416.165.866.25 1.336.25 2.21 0 3.918-1.792 3.918-4 0-.116-.008-.234-.022-.35 1.217-.696 2.044-2.002 2.044-3.462z" fill="url(#gcPayVGrad2)"></path><g transform="translate(2.81, 3.38) scale(0.75)"><path d="M9.5 17.5l-5-5 1.5-1.5 3.5 3.5 9-9 1.5 1.5-10.5 10.5z" fill="#ffffff"></path></g></svg>';
@@ -41241,6 +40733,7 @@ At the same time, your profile will be considered verified.</p>
 }
 function gcPayShowPlans(fromBack){
 if(!fromBack) gcPayPushScreen('plans');
+try{ gcPaySyncNavBtn(); }catch(e){}
 
 gcPayPlan = null;
 document.getElementById('gc-pay-body').innerHTML = '<div class="gc-pay-screen"><div class="gc-pay-scroll"><h3 class="gc-pay-h">Select a Plan</h3>' +
@@ -41265,6 +40758,7 @@ if(nx){ nx.style.opacity = '1'; nx.style.pointerEvents = 'auto'; }
 }
 function gcPayShowPayment(fromBack){
 if(!fromBack) gcPayPushScreen('payment');
+try{ gcPaySyncNavBtn(); }catch(e){}
 
 if(!gcPayPlan) return;
 const hasUsername = !!(currentUserData && currentUserData.username && currentUserData.username.trim() !== '');
@@ -41357,6 +40851,7 @@ function gcPayShowStatus(docId){
 window.__gcPayStack = window.__gcPayStack || [];
 if(window.__gcPayStack[window.__gcPayStack.length-1] !== 'status'){
   window.__gcPayStack = ['status'];
+try{ gcPaySyncNavBtn(); }catch(e){}
 }
 
 document.getElementById('gc-pay-body').innerHTML = '<div class="gc-pay-screen gc-pay-center"><div class="gc-status-chip pending">⏳ PAYMENT UNDER REVIEW</div><p class="gc-pay-sub">Your payment is being verified. Usually activated within 1 hour.</p><div class="gc-pay-spinner"></div></div>';
@@ -41370,12 +40865,14 @@ else if(s === 'rejected') gcPayShowRejected(d.data().rejectReason || '');
 }
 function gcPayShowApproved(){
 window.__gcPayStack = ['approved'];
+try{ gcPaySyncNavBtn(); }catch(e){}
 
 if(gcPayUnsub){ gcPayUnsub(); gcPayUnsub = null; }
 document.getElementById('gc-pay-body').innerHTML = '<div class="gc-pay-screen"><div class="gc-pay-scroll gc-pay-center"><div class="gc-ceremony">👑</div><h2 class="gc-pay-title">Welcome to Elite!</h2><p class="gc-pay-sub">You are verified. The blue badge now shows next to your name on GoChat.</p></div><div class="gc-pay-foot"><button class="gc-pay-cta" onclick="gcPayClose()">Done</button></div></div>';
 }
 function gcPayShowRejected(reason){
 window.__gcPayStack = ['rejected'];
+try{ gcPaySyncNavBtn(); }catch(e){}
 
 if(gcPayUnsub){ gcPayUnsub(); gcPayUnsub = null; }
 document.getElementById('gc-pay-body').innerHTML = '<div class="gc-pay-screen"><div class="gc-pay-scroll gc-pay-center"><div class="gc-status-chip rejected">❌ PAYMENT REJECTED</div><p class="gc-pay-sub">' + escapeHTML(reason || 'We could not verify that payment. Double-check the TrxID and try again.') + '</p></div><div class="gc-pay-foot"><button class="gc-pay-cta" onclick="gcPayShowPlans()">Try Again</button></div></div>';
