@@ -15061,7 +15061,7 @@ l-137 -640 -193 -3 -193 -2 4 22 c2 13 67 314 144 671 l139 647 192 0 193 0
 
         <div id="registration-steps" style="display:none;">
             <div class="auth-reg-topbar" id="auth-reg-topbar">
-                <button type="button" class="auth-reg-back" id="auth-reg-back-btn" onclick="backToLogin()" aria-label="Back">Back</button>
+                <button type="button" class="auth-reg-back" id="auth-reg-back-btn" onclick="gcRegGoBack()" aria-label="Back">Back</button>
             </div>
             <div id="step-1" class="auth-reg-body">
                 <div class="auth-input-group">
@@ -20195,7 +20195,7 @@ await db.collection('users').doc(uid).update({
 friends:firebase.firestore.FieldValue.arrayRemove(currentUser.uid)
 });
 showToast("Unfollowed");
-closeUserProfile();
+closeUserProfile(true);
 }
 
 function switchFriendsTab(tab) {
@@ -22678,6 +22678,7 @@ async function viewUserProfile(uid){
     } catch(e){}
     if(currentUser && uid === currentUser.uid && !window.gcViewAsMode){
         try { document.getElementById('page-other-profile').classList.remove('open'); } catch(e){}
+        window.__gcProfileStack = [];
         showPage('profile');
         return;
     }
@@ -22697,6 +22698,16 @@ async function viewUserProfile(uid){
     const reqId = window._gcProfileReq;
 
     // Open immediately so partner-chip / nested profile switches feel instant
+    // Profile history: profile A -> profile B -> Back returns to A (not straight out)
+    try {
+        var _opEl = document.getElementById('page-other-profile');
+        if (_opEl && _opEl.classList.contains('open') && currentOtherProfileUid && currentOtherProfileUid !== uid && !window.__gcProfileGoingBack) {
+            (window.__gcProfileStack = window.__gcProfileStack || []).push({ uid: currentOtherProfileUid, viewAs: !!window.gcViewAsMode });
+            if (window.__gcProfileStack.length > 20) window.__gcProfileStack.shift();
+        } else if (!(_opEl && _opEl.classList.contains('open')) && !window.__gcProfileGoingBack) {
+            window.__gcProfileStack = [];
+        }
+    } catch (_ps) {}
     currentOtherProfileUid = uid;
     const otherPage = document.getElementById('page-other-profile');
     if(otherPage){
@@ -22951,7 +22962,7 @@ ${gcDisplayName}
     document.getElementById('other-profile-btns').innerHTML=`
         <div style="display:flex; justify-content:center; gap:8px; width:100%; margin-top:16px; flex-wrap:nowrap;">
             ${btnHtml}
-            <button class="icon-btn gc-op-btn-message" style="flex:1; border-radius:30px; padding:10px 0; display:flex; justify-content:center; align-items:center; gap:4px; font-size:13px; font-weight:700;" onclick="closeUserProfile(); openChat('${[currentUser.uid,uid].sort().join('_')}','${uid}','${safeName}','${u.avatar||''}')">
+            <button class="icon-btn gc-op-btn-message" style="flex:1; border-radius:30px; padding:10px 0; display:flex; justify-content:center; align-items:center; gap:4px; font-size:13px; font-weight:700;" onclick="closeUserProfile(true); openChat('${[currentUser.uid,uid].sort().join('_')}','${uid}','${safeName}','${u.avatar||''}')">
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 256 256" fill="currentColor" style="width:18px;height:18px;flex-shrink:0;display:block;"><path d="M140,128a12,12,0,1,1-12-12A12,12,0,0,1,140,128ZM84,116a12,12,0,1,0,12,12A12,12,0,0,0,84,116Zm88,0a12,12,0,1,0,12,12A12,12,0,0,0,172,116Zm60,12A104,104,0,0,1,79.12,219.82L45.07,231.17a16,16,0,0,1-20.24-20.24l11.35-34.05A104,104,0,1,1,232,128Zm-16,0A88,88,0,1,0,51.81,172.06a8,8,0,0,1,.66,6.54L40,216,77.4,203.53a7.85,7.85,0,0,1,2.53-.42,8,8,0,0,1,4,1.08A88,88,0,0,0,216,128Z"></path></svg> Message
             </button>
             <button class="icon-btn gc-op-btn-rank" style="flex:1; border-radius:30px; padding:10px 0; display:flex; justify-content:center; align-items:center; gap:4px; font-size:13px; font-weight:700;" onclick="openLeaderboard()">
@@ -23027,7 +23038,18 @@ if (window.gcViewAsMode && currentUser && uid === currentUser.uid) {
   }
 }
 
-function closeUserProfile(){
+function closeUserProfile(force){
+// Back (system or in-app) steps through the profiles you visited; force===true closes everything.
+try {
+    var _st = window.__gcProfileStack;
+    if (force !== true && _st && _st.length) {
+        var _prev = _st.pop();
+        window.__gcProfileGoingBack = true;
+        try { viewUserProfile(_prev.uid); } finally { window.__gcProfileGoingBack = false; }
+        return;
+    }
+    window.__gcProfileStack = [];
+} catch (_e) {}
 document.getElementById('page-other-profile').classList.remove('open');
 currentOtherProfileUid=null;
 window.gcViewAsMode = false; // 🚀 view-as-feature · 2026-09-05 — সবসময় বন্ধ করার সময় রিসেট
@@ -23048,7 +23070,7 @@ function gcOpenViewAsProfile(){
 window.gcOpenViewAsProfile = gcOpenViewAsProfile;
 
 function gcExitViewAs(){
-    closeUserProfile(); // এটাই window.gcViewAsMode = false করে দেয়
+    closeUserProfile(true); // এটাই window.gcViewAsMode = false করে দেয়
     showPage('profile');
 }
 window.gcExitViewAs = gcExitViewAs;
@@ -31345,7 +31367,7 @@ function showRegister() {
     if (s3) s3.style.display = 'none';
     if (typeof gcResetRegistrationAvatar === 'function') gcResetRegistrationAvatar();
     var bk = document.getElementById('auth-reg-back-btn');
-    if (bk) bk.setAttribute('onclick', 'backToLogin()');
+    if (bk) bk.setAttribute('onclick', 'gcRegGoBack()');
 }
 
 function backToLogin() {
@@ -31902,15 +31924,30 @@ function goToStep2() {
     document.getElementById('step-2').style.display = 'flex';
     document.getElementById('step-3').style.display = 'none';
     var bk = document.getElementById('auth-reg-back-btn');
-    if (bk) bk.setAttribute('onclick', 'goToStep1()');
+    if (bk) bk.setAttribute('onclick', 'gcRegGoBack()');
 }
+
+/* Single "one step back" for the registration wizard — used by the in-app Back
+   button AND by the Android system Back button (step 3 → 2 → 1 → login). */
+function gcRegGoBack() {
+    function shown(id){ var e = document.getElementById(id); return !!e && window.getComputedStyle(e).display !== 'none'; }
+    if (shown('step-3')) {
+        document.getElementById('step-3').style.display = 'none';
+        document.getElementById('step-2').style.display = 'flex';
+    } else if (shown('step-2')) {
+        goToStep1();
+    } else {
+        backToLogin();
+    }
+}
+window.gcRegGoBack = gcRegGoBack;
 
 function goToStep1() {
     document.getElementById('step-2').style.display = 'none';
     document.getElementById('step-3').style.display = 'none';
     document.getElementById('step-1').style.display = 'flex';
     var bk = document.getElementById('auth-reg-back-btn');
-    if (bk) bk.setAttribute('onclick', 'backToLogin()');
+    if (bk) bk.setAttribute('onclick', 'gcRegGoBack()');
 }
 window.goToStep1 = goToStep1;
 
@@ -31924,7 +31961,7 @@ function goToStep3(){
     document.getElementById('step-2').style.display = 'none';
     document.getElementById('step-3').style.display = 'flex';
     var bk = document.getElementById('auth-reg-back-btn');
-    if (bk) bk.setAttribute('onclick', 'goToStep2()');
+    if (bk) bk.setAttribute('onclick', 'gcRegGoBack()');
 }
 window.goToStep3 = goToStep3;
 
@@ -32042,7 +32079,7 @@ async function completeRegistration() {
             document.getElementById('step-3').style.display = 'none';
             document.getElementById('step-1').style.display = 'flex';
             var bk0 = document.getElementById('auth-reg-back-btn');
-            if(bk0) bk0.setAttribute('onclick', 'backToLogin()');
+            if(bk0) bk0.setAttribute('onclick', 'gcRegGoBack()');
             gcSetRegUsernameUI('bad', 'This username is already taken');
             window.gcRegUsernameOk = false;
             return;
@@ -34082,38 +34119,7 @@ async function uploadAndSendVoice(audioBlob, session) {
   } catch (e) { console.warn('GCNav init failed', e); }
 })(window);
 
-// Fallback for pop-ups that closeTopMostView() has no dedicated rule for.
-// Closes the top-most visible one (highest z-index). Ban/blocked screens and the
-// voice-recording bar are deliberately excluded.
-function gcCloseGenericTopLayer() {
-  try {
-    var sels = ['#gc-fp-screen', '#gc-ins-screen', '#gc-mr-screen', '#gc-profile-select-sheet',
-      '#gc-username-screen', '#sv-likers-sheet', '.gc-ann-viewer', '.gc-cf-overlay',
-      '.gc-chat-tools-mask', '.gc-compose-media-fs', '.gc-cvv-menu', '.gc-fl-screen',
-      '.gc-fp-screen', '.gc-ht-screen', '.gc-ins-screen', '.gc-lb-page', '.gc-msg-more-menu',
-      '.gc-react-filter-pop', '.gc-react-popup', '.gc-react-sheet-mask', '.gc-rel-mask',
-      '.gc-rp-overlay', '.gc-shorts-filter-pop', '.gc-story-preview-mask', '.gc-sw-overlay',
-      '.gc-unfollow-overlay', '.modal-overlay', '.post-dropdown-menu', '.profile-menu',
-      '.settings-menu', '.qr-chips-popup', '.story-viewer-modal'];
-    var list = document.querySelectorAll(sels.map(function (x) { return x + '.open'; }).join(','));
-    var best = null, bestZ = -Infinity;
-    for (var i = 0; i < list.length; i++) {
-      var el = list[i];
-      var cs = window.getComputedStyle(el);
-      if (cs.display === 'none' || cs.visibility === 'hidden') continue;
-      var z = parseInt(cs.zIndex, 10); if (isNaN(z)) z = 0;
-      if (z >= bestZ) { best = el; bestZ = z; }
-    }
-    if (best) {
-      best.classList.remove('open');
-      best.setAttribute('aria-hidden', 'true');
-      return true;
-    }
-  } catch (e) {}
-  return false;
-}
-
-function closeTopMostView() {
+function gcLegacyCloseLayers() {
     // Phase 1 migration coverage: handle frequently used feature-level layers
     // before their parent screens. Detection matches each UI's real open signal.
     var shortComments = document.getElementById('gc-short-comments-screen');
@@ -34237,7 +34243,7 @@ function closeTopMostView() {
       gcBkMentionDd.style.display = 'none';
       return true;
     }
-    if (document.body.classList.contains('msg-select-mode') || document.body.classList.contains('gc-msg-select-mode')) {
+    if (typeof isMsgSelectionMode !== 'undefined' && isMsgSelectionMode) {
       if (typeof closeSelectionMode === 'function') closeSelectionMode();
       else {
         document.body.classList.remove('msg-select-mode');
@@ -34408,6 +34414,25 @@ if (singlePost && singlePost.classList.contains('open')) { closeSinglePost(); re
       }
     } catch (e) {}
 
+    // 7c. Home Menu Drawer (back → close drawer, stay on Home Feed)
+    try {
+      var hd = document.getElementById('gc-home-drawer');
+      var hdm = document.getElementById('gc-home-drawer-mask');
+      if ((hd && hd.classList.contains('open')) || (hdm && hdm.classList.contains('open'))) {
+        if (typeof gcCloseHomeDrawer === 'function') gcCloseHomeDrawer();
+        else {
+          if (hd) hd.classList.remove('open');
+          if (hdm) hdm.classList.remove('open');
+        }
+        return true;
+      }
+    } catch (e) {}
+
+
+    return false;
+}
+
+function gcLegacyClosePages() {
     // 7b. Connectors · Following / friends page (back → reopen Menu Drawer on Home Feed)
     try {
       var friendsPage = document.getElementById('page-friends');
@@ -34426,23 +34451,6 @@ if (singlePost && singlePost.classList.contains('open')) { closeSinglePost(); re
       }
     } catch (e) {}
 
-    // 7c. Home Menu Drawer (back → close drawer, stay on Home Feed)
-    try {
-      var hd = document.getElementById('gc-home-drawer');
-      var hdm = document.getElementById('gc-home-drawer-mask');
-      if ((hd && hd.classList.contains('open')) || (hdm && hdm.classList.contains('open'))) {
-        if (typeof gcCloseHomeDrawer === 'function') gcCloseHomeDrawer();
-        else {
-          if (hd) hd.classList.remove('open');
-          if (hdm) hdm.classList.remove('open');
-        }
-        return true;
-      }
-    } catch (e) {}
-
-    // 7d. Any remaining pop-up without a dedicated rule above
-    if (gcCloseGenericTopLayer()) return true;
-
     // ৭. Bottom Navigation Pages (Back to previously visited tab, then Feed)
     try { if (typeof gcTabBack === 'function' && gcTabBack()) return true; } catch (e) {}
     const feedPage = document.getElementById('page-feed');
@@ -34453,6 +34461,514 @@ if (singlePost && singlePost.classList.contains('open')) { closeSinglePost(); re
     // কিছু ওপেন না থাকলে false রিটার্ন করবে (অর্থাৎ ইউজার মেইন ফিডে আছে)
     return false;
 }
+
+
+// ============================================================================
+// 🧭 GCLayers · GCNav rules — THE ONE NAVIGATION FRAMEWORK (read before adding UI)
+// ============================================================================
+// WHAT IT GUARANTEES
+//   • The Android/system Back button and every in-app Back/Close button end up
+//     in the SAME place: closeTopMostView(). One press = one layer/step closed.
+//   • Any pop-up / sheet / page / full-screen view that follows the rules below
+//     is picked up AUTOMATICALLY — no edits to this file are needed.
+//
+// RULES FOR NEW PAGES & POP-UPS  (full text: BACK-NAVIGATION-GUIDELINES.md)
+//   1. Make it an overlay: position:fixed (or absolute for small popovers) with
+//      a z-index, and show/hide it by toggling the class  .open  (preferred) or
+//      .show, or by inline style display:flex|block|grid.
+//   2. Give it ONE close function (e.g. closeMyThing()) and use it for EVERY way
+//      of closing (X button, back arrow, mask tap, Save…). Declare it on the
+//      element:  data-gc-close="closeMyThing"  — Back then calls exactly that.
+//      (No data-gc-close? Back falls back to a visible Close/Back button inside
+//       the element, then to hiding it. Still works, but explicit is better.)
+//   3. Never touch window.history / popstate / location.hash for navigation.
+//   4. Multi-step flows or in-page modes (wizard steps, edit/select mode, inner
+//      tabs that act like steps): register them once:
+//         GCNav.registerMode('my-mode', function(){ return isActive; },
+//                            function(){ exitIt(); }, { within: '#my-screen' });
+//      Several steps inside ONE screen? add  steps:true  — exit() must go ONE step
+//      back each call (the mode stays active until the first step).
+//   5. Custom visibility logic the detector cannot see?  Register explicitly:
+//         GCNav.registerLayer('#my-thing', closeFn, { isOpen: function(el){…} });
+//   6. Not a dismissible layer (toast, banner, forced/ban screen)? Add the
+//      attribute  data-gc-nolayer  so Back ignores it.
+//   Debug in the console: GCNav.audit()  → lists what Back would close, in order.
+// ============================================================================
+(function (global) {
+  var STATE_CLASSES = ['open', 'show', 'is-open', 'opened'];
+  var STATE_SEL = STATE_CLASSES.map(function (c) { return '.' + c; }).join(',');
+  var INLINE_SEL = ['flex', 'block', 'grid'].map(function (d) {
+    return '[style*="display: ' + d + '"],[style*="display:' + d + '"]';
+  }).join(',');
+  // Things that look like layers but must never be closed by Back.
+  var DENY_RE = /toast|banner|posted-bar|rec-bar|ban-overlay|blocked-overlay|splash|loader|spinner|skeleton|tooltip|topbar|bottom-nav|search-clear|tag-preview|tag-sug|name-warn|un-check|selection-bar|dl-overlay|offline|net-banner/i;
+  var DENY_IDS = { 'app-screen': 1, 'auth-screen': 1 };
+  var SAFE_CALL_RE = /(close|back|dismiss|hide|cancel|exit|collapse)/i;
+  var DANGER_RE = /delete|remove|confirm|save|send|submit|post|logout|signout|sign-out|block|report|unfollow|clear|subscription|pay|buy|purchase/i;
+  var STOP = {};
+  ('open show active flex none block grid function return var const let if else typeof try catch style display ' +
+   'classList contains remove add document getElementById querySelector querySelectorAll setAttribute getAttribute ' +
+   'true false window forEach length hidden null undefined this new in of for while').split(' ')
+    .forEach(function (w) { STOP[w] = 1; });
+
+  var layerRegistry = [];     // {target, close, isOpen}
+  var modeRegistry = [];      // {name, isActive, exit, within}
+  var attempts = (typeof WeakMap === 'function') ? new WeakMap() : null;
+  var ignoredUntil = (typeof WeakMap === 'function') ? new WeakMap() : null;
+  var legacyTokens = null;
+
+  function legacyTokenSet() {
+    if (legacyTokens) return legacyTokens;
+    legacyTokens = {};
+    try {
+      var src = '';
+      ['gcLegacyCloseLayers', 'gcLegacyClosePages'].forEach(function (n) {
+        if (typeof global[n] === 'function') src += global[n].toString();
+      });
+      (src.match(/[A-Za-z][\w-]*/g) || []).forEach(function (w) { if (!STOP[w]) legacyTokens[w] = 1; });
+    } catch (e) {}
+    return legacyTokens;
+  }
+  function isKnown(el) {
+    var t = legacyTokenSet();
+    if (el.id && t[el.id]) return true;
+    var cl = el.classList;
+    for (var i = 0; cl && i < cl.length; i++) { if (!STOP[cl[i]] && t[cl[i]]) return true; }
+    return false;
+  }
+  function hasStateClass(el) {
+    for (var i = 0; i < STATE_CLASSES.length; i++) { if (el.classList.contains(STATE_CLASSES[i])) return true; }
+    return false;
+  }
+  function defaultIsOpen(el) {
+    return hasStateClass(el) || /display\s*:\s*(flex|block|grid)/.test(el.getAttribute('style') || '');
+  }
+  function registeredFor(el) {
+    for (var i = 0; i < layerRegistry.length; i++) {
+      var r = layerRegistry[i];
+      try {
+        if (typeof r.target === 'string' ? el.matches(r.target) : r.target === el) return r;
+      } catch (e) {}
+    }
+    return null;
+  }
+  function zOf(el) {
+    var z = 0, n = el;
+    while (n && n !== document.body && n.nodeType === 1) {
+      var cs = global.getComputedStyle(n);
+      var v = parseInt(cs.zIndex, 10);
+      if (!isNaN(v) && cs.position !== 'static') z = Math.max(z, v);
+      n = n.parentElement;
+    }
+    return z;
+  }
+  function isVisible(el) {
+    var cs = global.getComputedStyle(el);
+    if (cs.display === 'none' || cs.visibility === 'hidden' || parseFloat(cs.opacity) < 0.05) return false;
+    var r = el.getBoundingClientRect();
+    if (r.width < 20 || r.height < 20) return false;
+    if (r.bottom <= 0 || r.right <= 0 || r.top >= global.innerHeight || r.left >= global.innerWidth) return false;
+    return true;
+  }
+  function sig(el) {
+    return [el.isConnected ? 1 : 0, el.className, el.getAttribute('style') || '', el.hidden ? 1 : 0,
+      el.getAttribute('aria-hidden') || ''].join('|');
+  }
+  function candidates() {
+    var seen = [];
+    function add(el) { if (el && seen.indexOf(el) < 0) seen.push(el); }
+    [].forEach.call(document.querySelectorAll(STATE_SEL + ',[data-gc-layer],' + INLINE_SEL), add);
+    layerRegistry.forEach(function (r) {
+      if (typeof r.target === 'string') {
+        [].forEach.call(document.querySelectorAll(r.target), function (el) {
+          try { if (!r.isOpen || r.isOpen(el)) add(el); } catch (e) {}
+        });
+      } else if (r.target && r.target.isConnected && (!r.isOpen || r.isOpen(r.target))) add(r.target);
+    });
+    return seen;
+  }
+
+  // All currently visible layers, top-most first.
+  function visible() {
+    var out = [], now = Date.now();
+    candidates().forEach(function (el, idx) {
+      try {
+        if (el === document.body || el === document.documentElement) return;
+        if (DENY_IDS[el.id]) return;
+        if (el.closest('[data-gc-nolayer],.topbar,.bottom-nav,#main-bottom-nav')) return;
+        var reg = registeredFor(el);
+        var explicit = !!reg || el.hasAttribute('data-gc-layer');
+        var tag = (el.id || '') + ' ' + (typeof el.className === 'string' ? el.className : '');
+        if (!explicit && DENY_RE.test(tag)) return;
+        if (ignoredUntil && ignoredUntil.get(el) > now) return;
+        var cs = global.getComputedStyle(el);
+        var stateful = hasStateClass(el);
+        var inline = /display\s*:\s*(flex|block|grid)/.test(el.getAttribute('style') || '');
+        var z = zOf(el);
+        if (!explicit) {
+          if (!stateful && !inline) return;
+          var ok = cs.position === 'fixed' || (cs.position === 'absolute' && stateful && z >= 5);
+          if (!ok) return;
+          if (!stateful) {            // inline-only layers must be real full screens (not bars / FABs)
+            var r0 = el.getBoundingClientRect();
+            if (r0.width < global.innerWidth * 0.85 || r0.height < global.innerHeight * 0.85) return;
+          }
+        }
+        if (!isVisible(el)) return;
+        out.push({ el: el, z: z, order: idx, known: isKnown(el) && !reg, reg: reg });
+      } catch (e) {}
+    });
+    out.sort(function (a, b) {
+      if (a.z !== b.z) return b.z - a.z;
+      if (a.el !== b.el) {
+        if (a.el.contains(b.el)) return 1;            // descendant sits above its ancestor
+        if (b.el.contains(a.el)) return -1;
+        var p = a.el.compareDocumentPosition(b.el);
+        if (p & 4) return 1;                           // b follows a in DOM → b is above
+        if (p & 2) return -1;
+      }
+      return 0;
+    });
+    return out;
+  }
+
+  function findCloseButton(el) {
+    var own = el.getAttribute('onclick');
+    if (own && callsAreSafe(own)) return el;           // mask: onclick="if(event.target===this)closeX()"
+    var explicit = el.querySelectorAll('[data-gc-back],[data-gc-close],.gc-back,.back-btn,.chat-back,.close-btn,.modal-close,.sheet-close,.gc-close,[aria-label="Close"],[aria-label="Back"]');
+    for (var i = 0; i < explicit.length; i++) { if (isVisible(explicit[i]) && !explicit[i].disabled && explicit[i] !== el) return explicit[i]; }
+    var withClick = el.querySelectorAll('[onclick]');
+    for (var j = 0; j < withClick.length; j++) {
+      var b = withClick[j];
+      if (!b.disabled && callsAreSafe(b.getAttribute('onclick')) && isVisible(b)) return b;
+    }
+    return null;
+  }
+  function callsAreSafe(src) {
+    if (!src || DANGER_RE.test(src)) return false;
+    var calls = (src.match(/[A-Za-z_$][\w$.]*\s*\(/g) || []).map(function (c) { return c.replace(/\s*\($/, ''); })
+      .filter(function (c) { return c !== 'if' && c !== 'event.stopPropagation' && c !== 'stopPropagation'; });
+    if (!calls.length) return false;
+    return calls.every(function (c) { return SAFE_CALL_RE.test(c); });
+  }
+  function hide(el) {
+    var before = sig(el);
+    STATE_CLASSES.forEach(function (c) { el.classList.remove(c); });
+    try { el.setAttribute('aria-hidden', 'true'); } catch (e) {}
+    if (/display\s*:\s*(flex|block|grid)/.test(el.getAttribute('style') || '')) el.style.display = 'none';
+    if (sig(el) === before && ignoredUntil) { ignoredUntil.set(el, Date.now() + 10000); return false; }
+    return true;
+  }
+  // Close one layer. Returns true if something was done.
+  function closeLayer(layer) {
+    var el = layer.el;
+    if (!el || !el.isConnected) return false;
+    var before = sig(el), now = Date.now();
+    var rec = attempts && attempts.get(el);
+    var regE = layer.reg || registeredFor(el);
+    // Force-hide ONLY auto-detected layers whose guessed close button did nothing twice in a row.
+    // Layers with an explicit closer (registerLayer / data-gc-close) are authoritative — their closer
+    // may legitimately step "inside" the same element (profile history, wizards), so never override it.
+    var retry = !!(rec && rec.sig === before && now - rec.t < 4000) && !regE && !el.getAttribute('data-gc-close');
+    var tried = false;
+    if (!retry) {
+      try {
+        var reg = layer.reg || registeredFor(el);
+        var attr = el.getAttribute('data-gc-close');
+        var viaReg = false;
+        if (reg && typeof reg.close === 'function') { viaReg = reg.close(el) !== false; tried = viaReg; }
+        if (viaReg) { /* handled by the feature's own closer */ }
+        else if (attr && typeof global[attr] === 'function') { global[attr](el); tried = true; }
+        else {
+          var btn = findCloseButton(el);
+          if (btn) { btn.click(); tried = true; }
+        }
+      } catch (e) { console.error('GCLayers close error', e); }
+    }
+    if (tried) {
+      if (attempts) attempts.set(el, { sig: before, t: now });
+      return true;           // (a changed signature, or an async close, both count)
+    }
+    return hide(el);         // last resort: guarantee Back can never get stuck
+  }
+
+  function runModes(topEl) {
+    var now = Date.now();
+    for (var i = modeRegistry.length - 1; i >= 0; i--) {
+      var m = modeRegistry[i];
+      try {
+        if (m.stuckUntil && m.stuckUntil > now) continue;       // exit() did not clear the mode: never trap Back
+        if (m.within) {
+          var scope = document.querySelector(m.within);
+          if (!scope || !isVisible(scope)) continue;
+          if (topEl && !(scope === topEl || scope.contains(topEl) || topEl.contains(scope))) continue;
+        } else if (topEl) { continue; }
+        if (m.isActive()) {
+          m.exit();
+          if (!m.steps && m.isActive()) m.stuckUntil = now + 3000;   // single-step mode that did not clear itself → never trap Back
+          return true;
+        }
+      } catch (e) { console.error('GCNav mode error', m.name, e); }
+    }
+    return false;
+  }
+
+  var API = {
+    visible: visible,
+    close: closeLayer,
+    closeAny: function () {
+      var l = visible();
+      for (var i = 0; i < l.length; i++) { if (closeLayer(l[i])) return true; }
+      return false;
+    },
+    registerLayer: function (target, closeFn, opts) {
+      layerRegistry.push({
+        target: target, close: closeFn,
+        isOpen: (opts && opts.isOpen) || defaultIsOpen,
+        multiStep: !!(opts && opts.multiStep)      // Back walks inner steps; never force-hide
+      });
+    },
+    registerMode: function (name, isActive, exit, opts) {
+      modeRegistry.push({ name: name, isActive: isActive, exit: exit, within: opts && opts.within, steps: !!(opts && opts.steps) });
+    },
+    exitMode: function (topEl) { return runModes(topEl || null); },
+    audit: function () {
+      var rows = visible().map(function (l, i) {
+        return { order: i + 1, id: l.el.id || '(no id)', cls: String(l.el.className).slice(0, 40), z: l.z,
+          handledBy: l.reg ? 'registerLayer' : (l.el.getAttribute('data-gc-close') ? 'data-gc-close' :
+            (l.known ? 'legacy rule' : 'auto (' + (findCloseButton(l.el) ? 'close button' : 'hide') + ')')) };
+      });
+      try { console.table(rows); } catch (e) {}
+      return rows;
+    }
+  };
+  global.GCLayers = API;
+  global.GCNav = global.GCNav || {};
+  global.GCNav.registerLayer = API.registerLayer;
+  global.GCNav.registerMode = API.registerMode;
+  global.GCNav.audit = API.audit;
+  global.GCNav.exitMode = API.exitMode;
+})(window);
+
+// ---------------------------------------------------------------------------
+// Signed-out screens (login · registration steps · forgot password …)
+// ---------------------------------------------------------------------------
+function gcAuthVisible() {
+  try {
+    var a = document.getElementById('auth-screen');
+    if (!a || window.getComputedStyle(a).display === 'none') return false;
+    var app = document.getElementById('app-screen');
+    return !app || window.getComputedStyle(app).display === 'none';
+  } catch (e) { return false; }
+}
+function gcAuthBack() {
+  if (!gcAuthVisible()) return false;
+  // 1) a pop-up above the login/registration form (forgot password, dialogs…)
+  var fp = document.getElementById('gc-fp-screen');
+  if (fp && fp.classList.contains('open')) {
+    if (typeof gcCloseForgotPassword === 'function') gcCloseForgotPassword(); else fp.classList.remove('open');
+    return true;
+  }
+  var layers = GCLayers.visible();
+  for (var i = 0; i < layers.length; i++) { if (GCLayers.close(layers[i])) return true; }
+  // 2) registration wizard: step 3 → 2 → 1 → login (same function as the in-app Back button)
+  var reg = document.getElementById('registration-steps');
+  if (reg && window.getComputedStyle(reg).display !== 'none') { gcRegGoBack(); return true; }
+  return false;     // login form = root → "press back again to exit"
+}
+
+// ---------------------------------------------------------------------------
+// THE back handler used by the system Back button AND by in-app logic.
+// Order:  signed-out screens → layer above everything legacy knows → legacy
+// explicit closers → any other visible layer → in-page modes → pages/tabs.
+// ---------------------------------------------------------------------------
+function closeTopMostView() {
+  try { if (gcAuthBack()) return true; } catch (e) { console.error('auth back', e); }
+  if (gcAuthVisible()) return false;      // never run app rules behind the login screen
+  var layers = [];
+  try { layers = GCLayers.visible(); } catch (e) { console.error('layers', e); }
+  var top = layers[0] || null;
+  // in-layer modes first (e.g. gallery edit mode inside the gallery screen)
+  try { if (top && GCLayers.exitMode(top.el)) return true; } catch (e) {}
+  // a new / registered layer sitting above everything the legacy rules know about
+  if (top && !top.known) { try { if (GCLayers.close(top)) return true; } catch (e) { console.error(e); } }
+  // legacy explicit rules (each calls the feature's own close function)
+  try { if (gcLegacyCloseLayers()) return true; } catch (e) { console.error('legacy layers', e); }
+  // anything else still visible
+  try {
+    layers = GCLayers.visible();
+    for (var i = 0; i < layers.length; i++) { if (GCLayers.close(layers[i])) return true; }
+  } catch (e) { console.error(e); }
+  // in-page modes (edit / selection) then pages & tab history
+  try { if (GCLayers.exitMode(null)) return true; } catch (e) {}
+  try { return !!gcLegacyClosePages(); } catch (e) { console.error('legacy pages', e); }
+  return false;
+}
+
+// ---------------------------------------------------------------------------
+// Core layer registry — every existing pop-up/page of the app, with its OWN close
+// function. The engine orders them by z-index (true visual top first), so Back
+// always closes what the user actually sees on top, regardless of how many
+// features are stacked. (New features do NOT need to be listed here — see rules.)
+// ---------------------------------------------------------------------------
+(function gcRegisterCoreLayers() {
+  function call(name) {
+    var args = [].slice.call(arguments, 1);
+    return function (el) {
+      var f = window[name];
+      if (typeof f !== 'function') return false;          // → engine falls back to auto-close
+      f.apply(null, args);
+      return true;
+    };
+  }
+  function firstOf(names) {
+    return function () {
+      for (var i = 0; i < names.length; i++) {
+        if (typeof window[names[i]] === 'function') { window[names[i]](); return true; }
+      }
+      return false;
+    };
+  }
+  function shown(el) { var d = el.style && el.style.display; return !!d && d !== 'none'; }
+  function dropRemove(cls) { return function (el) { el.classList.remove(cls); return true; }; }
+  var L = GCNav.registerLayer;
+
+  // Feed-level features
+  L('#gc-home-drawer', call('gcCloseHomeDrawer'));
+  L('#gc-home-drawer-mask', call('gcCloseHomeDrawer'));
+  L('#gc-short-comments-screen', call('gcCloseShortsComments'));
+  L('#gc-shorts-screen', call('gcCloseShorts'));
+  L('#gc-trending-screen', call('gcCloseTrending'));
+  L('#gc-hashtag-screen', call('gcCloseHashtag'));
+  L('#page-leaderboard', call('closeLeaderboard'));
+  L('#gc-liked-screen', call('gcCloseLikedScreen'));
+  L('#page-suggestions', call('closeSuggestionsSheet'),
+    { isOpen: function (el) { return shown(el) || el.classList.contains('open') || document.body.classList.contains('gc-suggestions-open'); } });
+  L('#friends-list-modal', call('closeFriendsListModal'));
+  L('#gc-fr-screen', call('gcCloseFollowRequests'));
+  L('#gc-insights-screen', call('gcCloseInsights'));
+  L('#post-insights-modal', call('closePostInsights'));
+  L('#gc-sheet-overlay', call('gcCloseSheet'));
+  L('#story-viewer', call('closeStory'));
+  L('#image-zoom-modal', call('closeImageZoom'));
+  L('#gc-react-detail-overlay', call('gcCloseMsgReactionDetails'));
+  L('#gc-official-announcement', call('closeOfficialAnnouncement'));
+  L('#gc-confirm-overlay', call('gcCloseConfirm'));
+  L('#gc-report-overlay', call('gcCloseReport'));
+  L('#gc-audience-sheet', call('gcCloseAudienceSheet'));
+  L('#gc-loc-screen', call('gcCloseLocationPicker'));
+  L('#gc-email-privacy-sheet', call('gcCloseEmailPrivacy'));
+  L('#gc-profile-select-sheet', call('gcCloseProfileSelect'));
+  L('#gc-dob-privacy-modal', call('gcCloseDobPrivacyPopup'));
+  L('#share-post-modal', call('closeShareModal'));
+  L('#following-privacy-modal', call('closeFollowingPrivacy'));
+  L('#logout-confirm-modal', call('closeLogoutModal'));
+  L('#delete-sheet-modal', call('closeDeleteSheet'));
+  L('#tag-modal', call('closeTagModal'));
+  L('#edit-post-modal', call('closeEditPostModal'));
+  L('#qr-editor-modal', call('qrCloseEditor'));
+  L('#qr-manage-screen', call('qrCloseManage'));
+  L('#badge-info-modal', call('closeBadgeInfo'));
+
+  // Posts / profiles
+  L('#comment-panel', call('closeCommentPanel'));
+  L('#single-post-screen', call('closeSinglePost'));
+  L('#page-other-profile', call('closeUserProfile'));
+  L('#create-post-screen', call('closeCreatePost'));
+  L('#quick-profile-modal', call('closeQuickProfile'));
+
+  // Edit profile & its sub-pages
+  L('#gc-av-editor', call('gcCloseAvatarEditor'));
+  L('#gc-cover-editor', call('gcCloseCoverEditor'));
+  L('#ep-section-personal', call('gcCloseEpSection', 'personal'));
+  L('#ep-section-work', call('gcCloseEpSection', 'work'));
+  L('#ep-section-education', call('gcCloseEpSection', 'education'));
+  L('#ep-section-skills', call('gcCloseEpSection', 'skills'));
+  L('#edit-profile-screen', call('closeProfileEdit'));
+  L('#gallery-screen', call('closeGallery'));
+
+  // Settings & menus
+  L('.gc-priv-subpage', function (el) { el.classList.remove('open'); el.setAttribute('aria-hidden', 'true'); return true; });
+  L('#settings-privacy-screen', call('closeSettingsPrivacy'));
+  L('#main-settings-screen', call('closeMainSettingsScreen'));
+  L('#main-menu-screen', call('closeMainMenu'));
+  L('#invite-friends-screen', call('closeInviteFriendsPage'));
+  L('#blocked-accounts-screen', call('closeBlockedAccountsPage'));
+  L('#support-screen', call('closeSupportPage'));
+  L('#gc-username-screen', call('gcCloseUsernameScreen'));
+
+  // Chat & its pop-ups
+  L('#chat-screen', call('closeChat'));
+  L('#chat-settings-screen', call('closeChatSettingsScreen'));
+  L('#chat-privacy-screen', call('closeChatPrivacyPage'));
+  L('#advanced-privacy-modal', call('closeAdvancedPrivacy'));
+  L('#group-info-modal', firstOf(['closeGroupInfoModal', 'closeGroupInfo']));
+  L('#create-group-modal', firstOf(['closeCreateGroupModal', 'closeCreateGroup', 'closeGroupCreate']));
+  L('#gc-fwd-sheet', call('gcCloseForwardSheet'));
+  L('#gc-chat-video-viewer', call('gcCloseChatVideoViewer'));
+  L('#gc-chat-attach-panel', call('gcCloseChatAttach'));
+  L('#conversation-media-screen', firstOf(['closeConversationMedia']));
+  GCNav.__chatImgClose = function () {
+    try {
+      window.__gcChatImgQueue = [];
+      if (typeof gcRenderChatImgPreview === 'function') gcRenderChatImgPreview();
+      ['gc-chat-img-card', 'gc-chat-img-scrim'].forEach(function (id) {
+        var e = document.getElementById(id); if (e) e.classList.remove('open');
+      });
+    } catch (e) {}
+    return true;
+  };
+  L('#gc-chat-img-card', function () { return GCNav.__chatImgClose(); });
+  L('#gc-chat-img-scrim', function (el) { var c = document.getElementById('gc-chat-img-card'); var f = null; /* same closer as the card */ return GCNav.__chatImgClose ? GCNav.__chatImgClose() : false; });
+  L('#export-chat-modal', function (el) { try { el.remove(); } catch (e) { el.style.display = 'none'; } return true; },
+    { isOpen: function () { return true; } });
+  L('#archived-chats', dropRemove('show'), { isOpen: function (el) { return el.classList.contains('show'); } });
+  // Tiny menus that are toggled with inline display
+  function inlineShown(el) { return shown(el); }
+  function hideInline(el) { el.style.display = 'none'; return true; }
+  L('#chat-delete-menu', hideInline, { isOpen: inlineShown });
+  L('.chat-list-menu', hideInline, { isOpen: inlineShown });
+  L('#chat-mention-dropdown', hideInline, { isOpen: inlineShown });
+
+  // Multi-step overlay: Back walks its inner steps first (see gcPayBack)
+  L('#gc-pay-overlay', function () {
+    if (typeof gcPayBack === 'function') { gcPayBack(); return true; }
+    if (typeof gcPayClose === 'function') { gcPayClose(); return true; }
+    return false;
+  }, { multiStep: true });
+
+  // Forgot-password page (signed-out)
+  L('#gc-fp-screen', call('gcCloseForgotPassword'));
+})();
+
+// ---------------------------------------------------------------------------
+// In-page modes: Back leaves the mode before it leaves the page.
+// ---------------------------------------------------------------------------
+(function gcRegisterCoreModes() {
+  var M = GCNav.registerMode;
+  M('chat-message-selection',                       // selecting messages INSIDE a chat
+    function () { return typeof isMsgSelectionMode !== 'undefined' && !!isMsgSelectionMode; },
+    function () { closeSelectionMode(); }, { within: '#chat-screen' });
+  M('chat-list-selection',                          // multi-select in the Messages list
+    function () { return document.body.classList.contains('msg-select-mode'); },
+    function () {
+      if (typeof gcExitChatSelectMode === 'function') gcExitChatSelectMode();
+      else document.body.classList.remove('msg-select-mode');
+    });
+  M('gallery-edit',
+    function () { return typeof isGalleryEditMode !== 'undefined' && !!isGalleryEditMode; },
+    function () { toggleGalleryEditMode(); }, { within: '#gallery-screen' });
+  M('username-edit',
+    function () { var p = document.getElementById('gc-un-edit-panel'); return !!p && p.classList.contains('show'); },
+    function () { gcUsernameToggleEdit(); }, { within: '#gc-username-screen' });
+  M('notifications-edit',
+    function () { return typeof isNotifEditMode !== 'undefined' && !!isNotifEditMode; },
+    function () { toggleNotifEditMode(); });
+  M('friends-edit',
+    function () { return typeof isFriendsEditMode !== 'undefined' && !!isFriendsEditMode; },
+    function () { toggleFriendsEditMode(); });
+})();
+
 
 
 // ==========================================
@@ -35997,7 +36513,7 @@ function mfFilter(q){
 }
 function mfViewFromList(uid){
   mfCloseSheet();
-  if(typeof closeUserProfile === 'function') closeUserProfile();
+  if(typeof closeUserProfile === 'function') closeUserProfile(true);
   setTimeout(() => { if(typeof viewUserProfile === 'function') viewUserProfile(uid); }, 120);
 }
 
