@@ -15186,6 +15186,37 @@ input.gc-edu-search,
   border-radius: 999px !important;
 }
 
+
+/* ═══ Blocking System 2.0 · bottom sheet ═══ */
+.gc-block-sheet{display:none;position:fixed;inset:0;z-index:100120;align-items:flex-end;justify-content:center;}
+.gc-block-sheet.open{display:flex;}
+.gc-block-sheet-mask{position:absolute;inset:0;background:rgba(0,0,0,.45);}
+.gc-block-sheet-panel{position:relative;width:100%;max-width:520px;max-height:92vh;overflow:auto;background:var(--surface);border-radius:22px 22px 0 0;padding:10px 18px calc(18px + env(safe-area-inset-bottom,0px));box-shadow:0 -8px 40px rgba(0,0,0,.25);animation:gcBlockSheetUp .28s ease;}
+@keyframes gcBlockSheetUp{from{transform:translateY(100%);}to{transform:translateY(0);}}
+.gc-block-sheet-handle{width:42px;height:4px;border-radius:99px;background:var(--border);margin:4px auto 14px;}
+.gc-block-sheet-head{text-align:center;margin-bottom:14px;}
+.gc-block-sheet-icon{width:48px;height:48px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:var(--surface-2);color:var(--text);font-size:24px;margin-bottom:8px;}
+.gc-block-sheet-title{font-size:18px;font-weight:800;color:var(--text);}
+.gc-block-sheet-sub{font-size:13px;color:var(--text-muted);margin-top:4px;line-height:1.4;}
+.gc-block-opt{display:flex;gap:12px;align-items:flex-start;padding:14px;border-radius:16px;border:1.5px solid var(--border);background:var(--surface-2);margin-bottom:10px;cursor:pointer;transition:border-color .15s,background .15s;}
+.gc-block-opt.selected{border-color:var(--accent);background:var(--accent-glow);}
+.gc-block-opt[data-type="message_only"].selected{border-color:#3b82f6;box-shadow:0 0 0 1px rgba(59,130,246,.25);}
+.gc-block-opt[data-type="full"].selected{border-color:var(--danger);box-shadow:0 0 0 1px rgba(255,77,106,.2);}
+.gc-block-opt-radio{width:20px;height:20px;border-radius:50%;border:2px solid var(--border);flex-shrink:0;margin-top:2px;position:relative;}
+.gc-block-opt.selected .gc-block-opt-radio{border-color:var(--accent);background:var(--accent);}
+.gc-block-opt[data-type="message_only"].selected .gc-block-opt-radio{border-color:#3b82f6;background:#3b82f6;}
+.gc-block-opt[data-type="full"].selected .gc-block-opt-radio{border-color:var(--danger);background:var(--danger);}
+.gc-block-opt.selected .gc-block-opt-radio::after{content:'';position:absolute;inset:4px;border-radius:50%;background:#fff;}
+.gc-block-opt-title{font-size:14px;font-weight:800;color:var(--text);display:flex;align-items:center;gap:6px;margin-bottom:4px;}
+.gc-block-opt-desc{font-size:12px;color:var(--text-secondary);line-height:1.45;}
+.gc-block-info{font-size:11.5px;color:var(--text-muted);line-height:1.55;padding:10px 12px;border-radius:12px;background:var(--surface-2);margin:6px 0 14px;}
+.gc-block-sheet-primary{width:100%;border:none;border-radius:999px;padding:14px;font-weight:800;font-size:15px;font-family:inherit;cursor:pointer;background:var(--text);color:var(--bg);}
+.gc-block-sheet-primary:disabled{opacity:.4;cursor:not-allowed;}
+body.light-mode .gc-block-sheet-primary{background:#1a1a2e;color:#fff;}
+body:not(.light-mode) .gc-block-sheet-primary{background:#f0f0f5;color:#0a0a0f;}
+.gc-block-sheet-cancel{width:100%;margin-top:8px;border:none;background:transparent;color:var(--text-muted);font-weight:700;font-size:14px;padding:12px;cursor:pointer;font-family:inherit;}
+.gc-chat-blocked{opacity:.55;}
+
 </style>
 </head>
 <body>
@@ -18810,7 +18841,7 @@ nameLower:normalizeUserSearchText(defaultName),
 email:user.email,avatar:'',bio:'',
 location:'',hometown:'',relationship:'',gender:'',
 friends:[],sentRequests:[],receivedRequests:[],
-blockedUsers:[],mutedChats:[],pinnedChats:[],archivedChats:[],
+blockedUsers:[],blockMeta:{},mutedChats:[],pinnedChats:[],archivedChats:[],
 online:true,
 showActiveStatus:true,
 points: 0,
@@ -22863,7 +22894,7 @@ async function viewUserProfile(uid){
         if(typeof gcShowBanScreen === 'function') gcShowBanScreen(uid, false);
         return;
     }
-    if(typeof gcIsBlockedByMe === 'function' && gcIsBlockedByMe(uid)){
+    if(typeof gcEffectiveBlock === 'function' && gcEffectiveBlock(uid) === 'full'){
         if(typeof gcShowBlockedError === 'function') gcShowBlockedError(uid);
         return;
     }
@@ -22961,8 +22992,17 @@ async function viewUserProfile(uid){
         return;
     }
     if(currentUser && (u.blockedUsers || []).includes(currentUser.uid)){
-        if(typeof gcShowBlockedError === 'function') gcShowBlockedError(uid);
-        return;
+        try{ window.__otherProfileBlockedUsers = u.blockedUsers || []; }catch(e){}
+        var theirType = 'full';
+        try{
+          var bm = (u.blockMeta && u.blockMeta[currentUser.uid]) || null;
+          if(bm && bm.type === 'message_only') theirType = 'message_only';
+        }catch(e){}
+        if(theirType === 'full'){
+          if(typeof gcShowBlockedError === 'function') gcShowBlockedError(uid);
+          return;
+        }
+        // message_only from them: allow profile view
     }
 
     // Profile views (merged from insights wrapper)
@@ -24623,6 +24663,11 @@ const inp=document.getElementById('chat-input');
 const text=inp.value.trim();
 if(!text||!currentChatId||!checkRateLimit())return;
 
+// Blocking System 2.0 — 1:1 message/edit gate (groups exempt)
+if(currentChatOtherUid && currentChatOtherUid !== 'group' && typeof gcAssertCanMessage === 'function'){
+  if(!gcAssertCanMessage(currentChatOtherUid)) return;
+}
+
 // Edit mode: update existing message instead of creating a new one
 if(typeof editingMessageId !== 'undefined' && editingMessageId){
     const msgId = editingMessageId;
@@ -24924,6 +24969,7 @@ function gcFinishPendingChatImageJob(job){
 }
 
 async function sendChatImage(input){
+if(currentChatOtherUid && currentChatOtherUid !== 'group' && typeof gcAssertCanMessage === 'function' && !gcAssertCanMessage(currentChatOtherUid)) return;
   if(!input||!input.files||!input.files.length||!currentChatId) return;
   var files=Array.prototype.slice.call(input.files,0,10).filter(function(f){ return f&&f.type&&f.type.indexOf('image/')===0; });
   if(input.files&&input.files.length>10) showToast('Maximum 10 images');
@@ -24973,6 +25019,7 @@ async function sendChatImage(input){
 }
 
 async function sendChatVideo(input){
+if(currentChatOtherUid && currentChatOtherUid !== 'group' && typeof gcAssertCanMessage === 'function' && !gcAssertCanMessage(currentChatOtherUid)) return;
   if(!input||!input.files||!input.files.length||!currentChatId) return;
   var raw = Array.prototype.slice.call(input.files || []);
   try{ input.value=''; }catch(e){}
@@ -29511,17 +29558,29 @@ async function loadBlockedUsers() {
     
     let html = '';
     snapshots.forEach((doc, index) => {
+      const uid = blocked[index];
+      const bType = (typeof gcMyBlockType === 'function' ? gcMyBlockType(uid) : null) || 'full';
+      const typeLabel = bType === 'message_only' ? 'Messaging Only' : 'Full Block';
+      const typeColor = bType === 'message_only' ? 'var(--accent)' : 'var(--danger)';
       if (doc.exists) {
         const u = doc.data();
-        const safeName = escapeHTML(u.name);
-        const avHtml = u.avatar ? `<img src="${u.avatar}">` : avatarInitial(u.name);
-        const uid = blocked[index];
-        
-        // আপনার লজিক অনুযায়ী ছবি, নাম এবং আনব্লক বাটন
+        const safeName = escapeHTML(u.name || 'User');
+        // Message-only: show real avatar; Full: default silhouette (no original photo)
+        const avHtml = (bType === 'message_only' && u.avatar) ? ('<img src="'+u.avatar+'">') : avatarInitial(u.name || 'U');
         html += `<div class="msg-item" style="margin:0; padding:10px; border-radius:12px; border:1px solid var(--border);">
           <div class="avatar sm">${avHtml}</div>
-          <div class="msg-info" style="margin-left:10px;">
+          <div class="msg-info" style="margin-left:10px;flex:1;min-width:0;">
             <div class="msg-name" style="font-size:14px;">${safeName}</div>
+            <div style="font-size:11px;font-weight:700;color:${typeColor};margin-top:2px;">${typeLabel}</div>
+          </div>
+          <button class="btn-outline" style="padding:6px 12px; font-size:11px; margin:0; border-color:var(--success); color:var(--success);" onclick="unblockUserFromList('${uid}')">Unblock</button>
+        </div>`;
+      } else {
+        html += `<div class="msg-item" style="margin:0; padding:10px; border-radius:12px; border:1px solid var(--border);">
+          <div class="avatar sm">${avatarInitial('U')}</div>
+          <div class="msg-info" style="margin-left:10px;flex:1;min-width:0;">
+            <div class="msg-name" style="font-size:14px;">Unavailable</div>
+            <div style="font-size:11px;font-weight:700;color:${typeColor};margin-top:2px;">${typeLabel}</div>
           </div>
           <button class="btn-outline" style="padding:6px 12px; font-size:11px; margin:0; border-color:var(--success); color:var(--success);" onclick="unblockUserFromList('${uid}')">Unblock</button>
         </div>`;
@@ -29539,19 +29598,8 @@ async function unblockUserFromList(uid) {
     gcOpenConfirm({title:'Unblock User?',text:'Are you sure you want to unblock this user?',icon:'ph-light ph-prohibit',yesLabel:'Unblock',onYes:function(){window.__gcConfirmForceYes=true;unblockUserFromList(uid);setTimeout(function(){window.__gcConfirmForceYes=false;},800);}});
     return;
   }
-  
-  // ফায়ারবেস থেকে ব্লক রিমুভ করা
-  await db.collection('users').doc(currentUser.uid).update({
-    blockedUsers: firebase.firestore.FieldValue.arrayRemove(uid)
-  });
-  
-  // লোকাল ডাটা আপডেট করা
-  currentUserData.blockedUsers = currentUserData.blockedUsers.filter(id => id !== uid);
-  
-  showToast('User Unblocked Successfully!');
-  
-  // লিস্ট রিলোড করা যাতে আনব্লক করা মানুষটি লিস্ট থেকে সরে যায়
-  loadBlockedUsers(); 
+  await gcUnblockUser(uid);
+  try{ loadBlockedUsers(); }catch(e){}
 }
 
 // --- Scroll to Hide Navigation Logic (top bar + bottom nav together) ---
@@ -30330,26 +30378,13 @@ async function clearChatForMe(optChatId) {
 
 // ৪. Block User ফাংশন
 async function blockUserFromChat() {
-    document.getElementById('chat-delete-menu').style.display = 'none';
+    try{ document.getElementById('chat-delete-menu').style.display = 'none'; }catch(e){}
     if (currentChatOtherUid === 'group') {
         showToast("Cannot block a group.");
         return;
     }
-    if(typeof gcOpenConfirm==='function' && !window.__gcConfirmForceYes){
-      gcOpenConfirm({title:'Block User?',text:'Are you sure you want to block this user?',icon:'ph-light ph-prohibit',yesLabel:'Block',onYes:function(){window.__gcConfirmForceYes=true;blockUserFromChat();setTimeout(function(){window.__gcConfirmForceYes=false;},800);}});
-      return;
-    }
-    
-    try {
-        await db.collection('users').doc(currentUser.uid).update({
-            blockedUsers: firebase.firestore.FieldValue.arrayUnion(currentChatOtherUid)
-        });
-        showToast("User blocked successfully");
-        closeChat(); // ব্লক করার পর চ্যাট থেকে বের করে দেবে
-        loadMessages(); // চ্যাট লিস্ট আপডেট করবে
-    } catch (e) {
-        showToast("Failed to block user");
-    }
+    if(!currentChatOtherUid){ showToast('No user selected'); return; }
+    gcOpenBlockSheet(currentChatOtherUid);
 }
 
 // ===== FIXED COMMENT ACTIONS =====
@@ -33949,6 +33984,7 @@ function resetRecordUI() {
 }
 
 async function uploadAndSendVoice(audioBlob, session) {
+if(currentChatOtherUid && currentChatOtherUid !== 'group' && typeof gcAssertCanMessage === 'function' && !gcAssertCanMessage(currentChatOtherUid)) return;
     if (!currentChatId) return;
     if (!audioBlob || !audioBlob.size) return;
     // Reject tiny/empty recordings (often means MediaRecorder produced no real audio)
@@ -36804,6 +36840,10 @@ awardPoints(__cOwner, 5);
 // =========================================
 function exportCurrentChat() {
     if (!currentChatId) return;
+    if(currentChatOtherUid && currentChatOtherUid !== 'group' && typeof gcCanMessageUser === 'function' && !gcCanMessageUser(currentChatOtherUid)){
+      showToast('Chat export is unavailable while messaging is blocked.');
+      return;
+    }
     
     const menu = document.getElementById('chat-delete-menu');
     if(menu) menu.style.display = 'none';
@@ -38617,87 +38657,426 @@ try{ toggleMuteFeed(uid); }catch(e){}
 
 
 // ═══════════════════════════════════════════════════════
-// 🚀 Update #38 · full-block-system · 2026-08-08
-// ব্লক = সত্যিকারের ব্লক (প্রোফাইল/ফিড/সার্চ/চ্যাট)
-// খুঁজতে: Ctrl+F → "full-block-system"
+// 🚀 Update #38 · Blocking System 2.0 · message_only | full
+// Canonical API: gcBlockUser(uid,type), gcUnblockUser(uid), gcEffectiveBlock(uid)
+// Legacy blockedUsers entries without blockMeta → treated as full
 // ═══════════════════════════════════════════════════════
+
+function gcBlockMetaOf(userData, uid){
+  try{
+    if(!userData || !uid) return null;
+    var meta = userData.blockMeta || {};
+    var m = meta[uid];
+    if(m && (m.type === 'message_only' || m.type === 'full')) return m.type;
+    // Legacy: listed in blockedUsers without meta → full
+    if((userData.blockedUsers || []).indexOf(uid) !== -1) return 'full';
+    return null;
+  }catch(e){ return null; }
+}
+
 function gcIsBlockedByMe(uid){
-return !!(currentUserData && (currentUserData.blockedUsers || []).includes(uid));
+  return !!(currentUserData && (currentUserData.blockedUsers || []).includes(uid));
 }
+
 function gcDidBlockMe(uid){
-const u = (window.allUsersCache || []).find(function(x){ return x.id === uid; });
-return !!(u && u.blockedUsers && u.blockedUsers.includes(currentUser.uid));
+  try{
+    var u = (window.allUsersCache || []).find(function(x){ return x && x.id === uid; });
+    if(u && u.blockedUsers && u.blockedUsers.includes(currentUser.uid)) return true;
+    // Fallback: other profile doc sometimes cached on window
+    if(window.__otherProfileUid === uid && window.__otherProfileBlockedUsers){
+      return (window.__otherProfileBlockedUsers || []).indexOf(currentUser.uid) !== -1;
+    }
+  }catch(e){}
+  return false;
 }
+
+function gcMyBlockType(uid){
+  return gcBlockMetaOf(currentUserData, uid);
+}
+
+function gcTheirBlockType(uid){
+  try{
+    var u = (window.allUsersCache || []).find(function(x){ return x && x.id === uid; });
+    if(u) return gcBlockMetaOf(u, currentUser && currentUser.uid);
+  }catch(e){}
+  return null;
+}
+
+/** Effective relationship: 'full' | 'message_only' | null (priority: full > message_only) */
+function gcEffectiveBlock(uid){
+  if(!uid || !currentUser || uid === currentUser.uid) return null;
+  var a = gcMyBlockType(uid);
+  var b = gcTheirBlockType(uid);
+  if(a === 'full' || b === 'full') return 'full';
+  if(a === 'message_only' || b === 'message_only') return 'message_only';
+  // Cache miss on their side: if they blocked us we may only know via profile fetch
+  if(gcDidBlockMe(uid)) return 'full'; // conservative when type unknown
+  return null;
+}
+
+function gcCanMessageUser(uid){
+  if(!uid || uid === 'group') return true; // groups never blocked by personal block
+  var e = gcEffectiveBlock(uid);
+  return e !== 'full' && e !== 'message_only';
+}
+
+function gcCanViewProfileSocial(uid){
+  return gcEffectiveBlock(uid) !== 'full';
+}
+
 function gcBlockedEither(uid){
-return gcIsBlockedByMe(uid) || gcDidBlockMe(uid);
+  // Backward-compat: any effective block
+  return !!gcEffectiveBlock(uid);
 }
+
 function gcShowBlockedError(uid){
-let ov = document.getElementById('gc-blocked-overlay');
-if(!ov){ ov = document.createElement('div'); ov.id = 'gc-blocked-overlay'; ov.className = 'gc-blocked-overlay'; document.body.appendChild(ov); }
-const iBlocked = gcIsBlockedByMe(uid);
-ov.innerHTML = '<div class="gc-blocked-card">' +
-'<div class="gc-blocked-icon"><i class="' + (iBlocked ? 'ph-light ph-prohibit' : 'ph-light ph-user-circle') + '"></i></div>' +
-'<div class="gc-blocked-title">' + (iBlocked ? 'You blocked this user' : 'Account unavailable') + '</div>' +
-'<div class="gc-blocked-text">' + (iBlocked ? 'You can\'t see their profile, posts or messages until you unblock them.' : 'This account has restricted you from viewing their content.') + '</div>' +
-(iBlocked ? '<button class="gc-blocked-btn primary" onclick="gcUnblockFromError(\'' + uid + '\')">Unblock</button>' : '') +
-'<button class="gc-blocked-btn" onclick="gcCloseBlockedError()">Go Back</button></div>';
-ov.classList.add('open');
+  var ov = document.getElementById('gc-blocked-overlay');
+  if(!ov){ ov = document.createElement('div'); ov.id = 'gc-blocked-overlay'; ov.className = 'gc-blocked-overlay'; document.body.appendChild(ov); }
+  var mine = gcMyBlockType(uid);
+  var eff = gcEffectiveBlock(uid);
+  var iBlocked = !!mine;
+  var title, text;
+  if(eff === 'full' && !iBlocked){
+    title = 'Profile unavailable';
+    text = "This profile isn't available right now. The profile may be unavailable or its visibility may be restricted.";
+  } else if(mine === 'message_only'){
+    title = 'You blocked messages';
+    text = "You can't send private messages to this user until you unblock them. Profiles and social features stay available.";
+  } else if(iBlocked){
+    title = 'You blocked this user';
+    text = "You can't see their profile, posts or messages until you unblock them.";
+  } else {
+    title = 'Account unavailable';
+    text = "This account has restricted you from viewing their content.";
+  }
+  ov.innerHTML = '<div class="gc-blocked-card">' +
+    '<div class="gc-blocked-icon"><i class="' + (iBlocked ? 'ph-light ph-prohibit' : 'ph-light ph-user-circle') + '"></i></div>' +
+    '<div class="gc-blocked-title">' + title + '</div>' +
+    '<div class="gc-blocked-text">' + text + '</div>' +
+    (iBlocked ? '<button class="gc-blocked-btn primary" onclick="gcUnblockUser(\'' + uid + '\').then(function(){gcCloseBlockedError();})">Unblock</button>' : '') +
+    '<button class="gc-blocked-btn" onclick="gcCloseBlockedError()">Go Back</button></div>';
+  ov.classList.add('open');
 }
+
 function gcCloseBlockedError(){
-const ov = document.getElementById('gc-blocked-overlay');
-if(ov) ov.classList.remove('open');
+  var ov = document.getElementById('gc-blocked-overlay');
+  if(ov) ov.classList.remove('open');
 }
+
+/** Assert 1:1 messaging allowed; returns false and shows toast if not */
+function gcAssertCanMessage(uid){
+  if(!uid || uid === 'group') return true;
+  if(gcCanMessageUser(uid)) return true;
+  var eff = gcEffectiveBlock(uid);
+  showToast(eff === 'full'
+    ? 'You can\'t message this account.'
+    : 'Messaging is blocked between you and this user.');
+  try{ gcApplyChatComposerLock(uid); }catch(e){}
+  return false;
+}
+
+function gcApplyChatComposerLock(otherUid){
+  try{
+    if(!otherUid || otherUid === 'group') {
+      var bar = document.getElementById('chat-input-bar') || document.querySelector('.chat-input-bar');
+      if(bar) bar.classList.remove('gc-composer-locked');
+      return;
+    }
+    var locked = !gcCanMessageUser(otherUid);
+    var root = document.getElementById('chat-screen') || document.getElementById('page-chat') || document.body;
+    var input = document.getElementById('chat-input');
+    var sendBtn = document.getElementById('chat-send-btn') || document.querySelector('[onclick*="sendMsg"]');
+    var attach = document.querySelectorAll('#chat-screen input[type=file], #chat-screen .chat-attach, #chat-screen [onclick*="sendChat"], #chat-screen [onclick*="startVoice"], #chat-screen [onclick*="recordVoice"]');
+    if(input){
+      input.disabled = !!locked;
+      input.placeholder = locked ? 'Messaging unavailable' : (input.getAttribute('data-ph') || input.placeholder || 'Message...');
+      if(!input.getAttribute('data-ph') && !locked) input.setAttribute('data-ph', 'Message...');
+    }
+    if(sendBtn) sendBtn.style.pointerEvents = locked ? 'none' : '';
+    attach.forEach(function(el){ el.style.pointerEvents = locked ? 'none' : ''; el.style.opacity = locked ? '0.4' : ''; });
+    var note = document.getElementById('gc-chat-block-note');
+    if(locked){
+      if(!note){
+        note = document.createElement('div');
+        note.id = 'gc-chat-block-note';
+        note.style.cssText = 'text-align:center;padding:8px 14px;font-size:12px;font-weight:600;color:var(--text-muted);background:var(--surface-2);border-top:1px solid var(--border);';
+        var parent = (input && input.parentElement && input.parentElement.parentElement) || document.getElementById('chat-footer');
+        if(parent) parent.insertBefore(note, parent.firstChild);
+      }
+      note.textContent = 'Messaging is unavailable. Previous messages are still visible.';
+      note.style.display = 'block';
+    } else if(note){
+      note.style.display = 'none';
+    }
+  }catch(e){}
+}
+
+async function gcBlockUser(uid, type){
+  if(!currentUser || !uid){ showToast('Not signed in'); return false; }
+  if(uid === currentUser.uid){ showToast('You can\'t block yourself'); return false; }
+  if(type !== 'message_only' && type !== 'full'){ showToast('Invalid block type'); return false; }
+  try{
+    var updates = {
+      blockedUsers: firebase.firestore.FieldValue.arrayUnion(uid),
+      ['blockMeta.' + uid]: { type: type, at: firebase.firestore.FieldValue.serverTimestamp() }
+    };
+    await db.collection('users').doc(currentUser.uid).update(updates);
+    if(!currentUserData.blockedUsers) currentUserData.blockedUsers = [];
+    if(currentUserData.blockedUsers.indexOf(uid) === -1) currentUserData.blockedUsers.push(uid);
+    if(!currentUserData.blockMeta) currentUserData.blockMeta = {};
+    currentUserData.blockMeta[uid] = { type: type, at: new Date() };
+
+    if(type === 'full'){
+      // Reciprocal unfollow — best-effort both sides
+      try{
+        await db.collection('users').doc(currentUser.uid).update({
+          following: firebase.firestore.FieldValue.arrayRemove(uid)
+        });
+        if(currentUserData.following) currentUserData.following = currentUserData.following.filter(function(id){ return id !== uid; });
+      }catch(e1){}
+      try{
+        await db.collection('users').doc(uid).update({
+          followers: firebase.firestore.FieldValue.arrayRemove(currentUser.uid)
+        });
+      }catch(e2){}
+      try{
+        // Also remove them following me / me in their following if possible
+        await db.collection('users').doc(uid).update({
+          following: firebase.firestore.FieldValue.arrayRemove(currentUser.uid)
+        });
+      }catch(e3){}
+      try{
+        await db.collection('users').doc(currentUser.uid).update({
+          followers: firebase.firestore.FieldValue.arrayRemove(uid)
+        });
+        if(currentUserData.followers) currentUserData.followers = currentUserData.followers.filter(function(id){ return id !== uid; });
+      }catch(e4){}
+    }
+
+    try{ if(typeof gcApplyBlockFilter === 'function') gcApplyBlockFilter(); }catch(e){}
+    try{ gcApplyChatComposerLock(uid); }catch(e){}
+    try{ if(typeof loadMessages === 'function') loadMessages(); }catch(e){}
+    showToast(type === 'full' ? 'Blocked on GoChat' : 'Messages blocked');
+    return true;
+  }catch(e){
+    console.error('gcBlockUser', e);
+    showToast('Failed to block user');
+    return false;
+  }
+}
+
+async function gcUnblockUser(uid){
+  if(!currentUser || !uid) return false;
+  try{
+    var updates = {
+      blockedUsers: firebase.firestore.FieldValue.arrayRemove(uid),
+      ['blockMeta.' + uid]: firebase.firestore.FieldValue.delete()
+    };
+    await db.collection('users').doc(currentUser.uid).update(updates);
+    if(currentUserData.blockedUsers) currentUserData.blockedUsers = currentUserData.blockedUsers.filter(function(id){ return id !== uid; });
+    if(currentUserData.blockMeta) delete currentUserData.blockMeta[uid];
+    try{ if(typeof gcApplyBlockFilter === 'function') gcApplyBlockFilter(); }catch(e){}
+    try{ gcApplyChatComposerLock(uid); }catch(e){}
+    try{ if(typeof loadBlockedUsers === 'function') loadBlockedUsers(); }catch(e){}
+    try{ if(typeof loadMessages === 'function') loadMessages(); }catch(e){}
+    showToast('User unblocked');
+    return true;
+  }catch(e){
+    console.error('gcUnblockUser', e);
+    showToast('Failed to unblock');
+    return false;
+  }
+}
+
+// Public aliases expected by existing HTML
+async function blockCurrentUser(){
+  var uid = (typeof currentOtherProfileUid !== 'undefined' && currentOtherProfileUid)
+    || (typeof currentChatOtherUid !== 'undefined' && currentChatOtherUid)
+    || null;
+  if(!uid || uid === 'group'){ showToast('No user selected'); return; }
+  gcOpenBlockSheet(uid);
+}
+async function unblockUser(uid){
+  if(!uid) return;
+  if(typeof gcOpenConfirm === 'function' && !window.__gcConfirmForceYes){
+    gcOpenConfirm({
+      title:'Unblock User?',
+      text:'They will be able to message you again if they have not blocked you.',
+      icon:'ph-light ph-lock-open',
+      yesLabel:'Unblock',
+      onYes:function(){ window.__gcConfirmForceYes=true; unblockUser(uid); setTimeout(function(){ window.__gcConfirmForceYes=false; },800); }
+    });
+    return;
+  }
+  await gcUnblockUser(uid);
+}
+
+// ── Bottom sheet UI ───────────────────────────────────
+function gcEnsureBlockSheet(){
+  if(document.getElementById('gc-block-sheet')) return;
+  var wrap = document.createElement('div');
+  wrap.id = 'gc-block-sheet';
+  wrap.className = 'gc-block-sheet';
+  wrap.innerHTML = ''+
+    '<div class="gc-block-sheet-mask" onclick="gcCloseBlockSheet()"></div>'+
+    '<div class="gc-block-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="gc-block-sheet-title">'+
+      '<div class="gc-block-sheet-handle"></div>'+
+      '<div class="gc-block-sheet-head">'+
+        '<div class="gc-block-sheet-icon"><i class="ph-light ph-shield-warning"></i></div>'+
+        '<div id="gc-block-sheet-title" class="gc-block-sheet-title">Block User</div>'+
+        '<div class="gc-block-sheet-sub">Choose how you want to restrict this user.</div>'+
+      '</div>'+
+      '<div class="gc-block-opt" data-type="message_only" onclick="gcSelectBlockOpt(this)">'+
+        '<div class="gc-block-opt-radio"></div>'+
+        '<div class="gc-block-opt-body">'+
+          '<div class="gc-block-opt-title"><i class="ph-light ph-chat-circle-dots"></i> Block Messages Only</div>'+
+          '<div class="gc-block-opt-desc">Neither of you will be able to send new private messages or see each other\'s activity status. Your profiles and social interactions will remain unchanged.</div>'+
+        '</div>'+
+      '</div>'+
+      '<div class="gc-block-opt" data-type="full" onclick="gcSelectBlockOpt(this)">'+
+        '<div class="gc-block-opt-radio"></div>'+
+        '<div class="gc-block-opt-body">'+
+          '<div class="gc-block-opt-title"><i class="ph-light ph-prohibit"></i> Block on GoChat</div>'+
+          '<div class="gc-block-opt-desc">Neither of you will be able to find, view, or interact with each other on GoChat. Existing follow connections will be removed.</div>'+
+        '</div>'+
+      '</div>'+
+      '<div class="gc-block-info">'+
+        '<div>• Existing chat history stays available on both sides.</div>'+
+        '<div>• Neither mode deletes previously sent messages.</div>'+
+        '<div>• Chat export is disabled while a block is active.</div>'+
+        '<div>• Full Block removes follows; unblocking does not restore them.</div>'+
+      '</div>'+
+      '<button type="button" class="gc-block-sheet-primary" id="gc-block-sheet-go" disabled onclick="gcConfirmBlockSheet()">Continue</button>'+
+      '<button type="button" class="gc-block-sheet-cancel" onclick="gcCloseBlockSheet()">Cancel</button>'+
+    '</div>';
+  document.body.appendChild(wrap);
+}
+
+var __gcBlockSheetUid = null;
+var __gcBlockSheetType = null;
+
+function gcOpenBlockSheet(uid){
+  if(!uid || uid === 'group'){ showToast('Cannot block a group'); return; }
+  gcEnsureBlockSheet();
+  __gcBlockSheetUid = uid;
+  __gcBlockSheetType = null;
+  document.querySelectorAll('#gc-block-sheet .gc-block-opt').forEach(function(el){ el.classList.remove('selected'); });
+  var go = document.getElementById('gc-block-sheet-go');
+  if(go){ go.disabled = true; go.textContent = 'Continue'; }
+  document.getElementById('gc-block-sheet').classList.add('open');
+}
+
+function gcCloseBlockSheet(){
+  var el = document.getElementById('gc-block-sheet');
+  if(el) el.classList.remove('open');
+  __gcBlockSheetUid = null;
+  __gcBlockSheetType = null;
+}
+
+function gcSelectBlockOpt(el){
+  document.querySelectorAll('#gc-block-sheet .gc-block-opt').forEach(function(x){ x.classList.remove('selected'); });
+  el.classList.add('selected');
+  __gcBlockSheetType = el.getAttribute('data-type');
+  var go = document.getElementById('gc-block-sheet-go');
+  if(go){
+    go.disabled = false;
+    go.textContent = __gcBlockSheetType === 'full' ? 'Block on GoChat' : 'Block Messages';
+  }
+}
+
+function gcConfirmBlockSheet(){
+  var uid = __gcBlockSheetUid;
+  var type = __gcBlockSheetType;
+  if(!uid || !type) return;
+  var title = type === 'full' ? 'Block on GoChat?' : 'Block Messages Only?';
+  var text = type === 'full'
+    ? 'You and this user will be fully isolated on GoChat. Follows will be removed. Chat history is kept but new messages and export are disabled.'
+    : 'Neither of you will be able to send new private messages. Profiles and social features stay available. Chat history is kept.';
+  if(typeof gcOpenConfirm === 'function'){
+    gcOpenConfirm({
+      title: title,
+      text: text,
+      icon: 'ph-light ph-prohibit',
+      yesLabel: type === 'full' ? 'Block on GoChat' : 'Block Messages',
+      onYes: function(){
+        gcCloseBlockSheet();
+        gcBlockUser(uid, type).then(function(ok){
+          if(ok){
+            try{ if(typeof closeChat === 'function' && currentChatOtherUid === uid) closeChat(); }catch(e){}
+            try{ if(typeof closeQuickProfile === 'function') closeQuickProfile(); }catch(e){}
+            try{ if(typeof loadMessages === 'function') loadMessages(); }catch(e){}
+          }
+        });
+      }
+    });
+  } else {
+    gcCloseBlockSheet();
+    gcBlockUser(uid, type);
+  }
+}
+
 function gcUnblockFromError(uid){
-gcCloseBlockedError();
-if(typeof unblockUser === 'function') unblockUser(uid);
+  gcCloseBlockedError();
+  gcUnblockUser(uid);
 }
-// ১) প্রোফাইল গেট
-// ২) চ্যাট গেট
+
+// Wrap openChat — block gate + composer lock (preserve prior wrappers)
 if(!window.gcBlockChatWrapped){
-window.gcBlockChatWrapped = true;
-window.gcOrigOpenChat = openChat;
-openChat = function(chatId, otherUid){
-if(otherUid && gcBlockedEither(otherUid)){ gcShowBlockedError(otherUid); return; }
-return window.gcOrigOpenChat.apply(this, arguments);
-};
+  window.gcBlockChatWrapped = true;
+  window.gcOrigOpenChat = openChat;
+  openChat = function(chatId, otherUid){
+    if(otherUid && otherUid !== 'group' && !gcCanViewProfileSocial(otherUid) && gcEffectiveBlock(otherUid) === 'full'){
+      // Full block: still allow opening existing chat history (read-only), do not hard-deny
+    }
+    var r = window.gcOrigOpenChat.apply(this, arguments);
+    try{
+      setTimeout(function(){ gcApplyChatComposerLock(otherUid || currentChatOtherUid); }, 50);
+      setTimeout(function(){ gcApplyChatComposerLock(otherUid || currentChatOtherUid); }, 400);
+    }catch(e){}
+    return r;
+  };
+}
+
+function gcApplyBlockFilter(){
+  if(!currentUser) return;
+  document.querySelectorAll('#feed-actual-container .post-card, #feed-list .post-card').forEach(function(card){
+    var w = card.querySelector('.tf-av-wrap, [data-uid]');
+    var uid = w ? (w.getAttribute('data-uid') || '') : '';
+    if(!uid){
+      var oc = card.getAttribute('onclick') || '';
+      var m = oc.match(/viewUserProfile\('([^']+)'/);
+      if(m) uid = m[1];
+    }
+    if(uid && (gcEffectiveBlock(uid) === 'full' || (typeof gcIsBanned === 'function' && gcIsBanned(uid)))){
+      card.style.display = 'none';
+    }
+  });
+  document.querySelectorAll('#search-results-list [onclick*="viewUserProfile"]').forEach(function(it){
+    var m = (it.getAttribute('onclick') || '').match(/viewUserProfile\('([^']+)'/);
+    if(m && (gcEffectiveBlock(m[1]) === 'full' || (typeof gcIsBanned === 'function' && gcIsBanned(m[1])))) it.style.display = 'none';
+  });
+  document.querySelectorAll('#page-messages .msg-item').forEach(function(it){
+    var m = (it.getAttribute('onclick') || '').match(/openChat\(\s*'[^']+'\s*,\s*'([^']+)'/);
+    if(m && gcMyBlockType(m[1])) it.classList.add('gc-chat-blocked');
+  });
 }
 
 (function gcInitBlockFilter(){
-if(window.gcBlockObsStarted) return;
-window.gcBlockObsStarted = true;
-let gcBfRaf = false;
-const obs = new MutationObserver(function(){
-if(gcBfRaf) return;
-gcBfRaf = true;
-requestAnimationFrame(function(){ gcBfRaf = false; gcApplyBlockFilter(); });
-});
-['feed-actual-container','search-results-list','page-messages'].forEach(function(id){
-const el = document.getElementById(id);
-if(el) obs.observe(el, {childList:true, subtree:true});
-});
-setTimeout(gcApplyBlockFilter, 2000);
-setTimeout(gcApplyBlockFilter, 8000);
-gcApplyBlockFilter();
+  if(window.gcBlockObsStarted) return;
+  window.gcBlockObsStarted = true;
+  try{
+    var obs = new MutationObserver(function(){ try{ gcApplyBlockFilter(); }catch(e){} });
+    obs.observe(document.documentElement, { childList:true, subtree:true });
+  }catch(e){}
+  setInterval(function(){ try{ gcApplyBlockFilter(); }catch(e){} }, 4000);
 })();
 
+// Ban wrappers preserved if present later in file
 
-// ═══════════════════════════════════════════════════════
-// 🚀 Update #39 · ban-enforcement · 2026-08-08
-// ব্যানড ইউজার: সার্চ/প্রোফাইল/ফিড/চ্যাট সবখানে কঠোর ব্লক
-// খুঁজতে: Ctrl+F → "ban-enforcement"
-// ═══════════════════════════════════════════════════════
+
+
+// Restored ban helpers (from previous full-block section)
 window.gcBannedSet = window.gcBannedSet || {};
-try{
-db.collection('bannedUsers').onSnapshot(function(snap){
-const fresh = {};
-snap.forEach(function(d){
-fresh[d.id] = true;
-const data = d.data();
-if(data && data.uid) fresh[data.uid] = true;
-});
-window.gcBannedSet = fresh;
-}, function(){});
-}catch(e){}
 function gcIsBanned(uid, u){
 if(window.gcBannedSet[uid]) return true;
 u = u || (window.allUsersCache || []).find(function(x){ return x.id === uid; });
@@ -38733,23 +39112,6 @@ return window.gcOrigOpenChat39.apply(this, arguments);
 };
 }
 // ৩) ফিড + সার্চ + চ্যাট লিস্ট ফিল্টার (ব্লক + ব্যান একসাথে)
-function gcApplyBlockFilter(){
-if(!currentUser) return;
-document.querySelectorAll('#feed-actual-container .post-card').forEach(function(card){
-const w = card.querySelector('.tf-av-wrap');
-const uid = w ? w.getAttribute('data-uid') : null;
-if(uid && (gcBlockedEither(uid) || gcIsBanned(uid))) card.style.display = 'none';
-});
-document.querySelectorAll('#search-results-list [onclick*="viewUserProfile"]').forEach(function(it){
-const m = (it.getAttribute('onclick') || '').match(/viewUserProfile\('([^']+)'/);
-if(m && (gcBlockedEither(m[1]) || gcIsBanned(m[1]))) it.style.display = 'none';
-});
-document.querySelectorAll('#page-messages .msg-item').forEach(function(it){
-const m = (it.getAttribute('onclick') || '').match(/openChat\(\s*'[^']+'\s*,\s*'([^']+)'/);
-if(m && (gcBlockedEither(m[1]) || gcIsBanned(m[1]))) it.classList.add('gc-chat-blocked');
-});
-}
-// ৪) নিজের অ্যাকাউন্ট ব্যান হলে ফুল-স্ক্রিন লক
 (function gcSelfBanWatcher(){
 if(window.gcSelfBanStarted) return;
 window.gcSelfBanStarted = true;
@@ -38763,7 +39125,6 @@ if(!ov || !ov.classList.contains('open')) gcShowBanScreen(currentUser.uid, true)
 })();
 
 
-// ═══════════════════════════════════════════════════════
 // 🚀 Update #41 · profile-insights · 2026-08-08
 // ফুল ক্রিয়েটর ড্যাশবোর্ড (SVG চার্ট + লাইভ ডেটা)
 // খুঁজতে: Ctrl+F → "profile-insights"
