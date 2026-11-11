@@ -921,7 +921,7 @@ body:not(.light-mode) .topbar{background:var(--surface) !important;}
   color:inherit;
   fill:currentColor;
 }
-.post-action-btn .gc-act-ico{ width:24px; height:24px; }
+.post-action-btn .gc-act-ico{ width:20px; height:20px; }
 .gc-short-act .gc-act-ico{ width:28px; height:28px; color:#fff; }
 .post-action-btn.liked .gc-act-ico{ color:#F33E58; }
 .gc-short-act.liked .gc-act-ico{ color:#F33E58; }
@@ -1957,8 +1957,10 @@ body:not(.light-mode) .post-card {
 }
 
 .post-header { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
-.post-name { font-weight: 700; font-size: 15px; display: flex; align-items: center; gap: 4px; }
-.post-time { font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 4px; margin-top: 2px; }
+.post-head-main { flex: 1; min-width: 0; line-height: 1.4; }
+.post-name { font-weight: 700; font-size: 15px; display: inline; }
+.post-time { font-size: 12px; font-weight: 500; color: var(--text-muted); display: inline-flex; align-items: center; gap: 4px; margin-left: 4px; vertical-align: middle; white-space: nowrap; }
+.post-time::before { content: '\00B7'; font-weight: 800; margin-right: 2px; }
 
 /* 🚀 Update · feed images match single-view size · 2026-09-02 */
 .post-img {
@@ -2065,7 +2067,12 @@ body:not(.light-mode) .gc-react-popup{
   filter:drop-shadow(0 3px 8px rgba(0,0,0,0.14));
   pointer-events:none;
 }
-.post-action-btn .gc-react-mini,
+.post-action-btn .gc-react-mini{
+  width:20px;
+  height:20px;
+  display:block;
+  flex-shrink:0;
+}
 .gc-short-act .gc-react-mini{
   width:24px;
   height:24px;
@@ -2096,8 +2103,8 @@ body:not(.light-mode) .gc-react-popup{
   direction:ltr;
 }
 .gc-react-summary-icons .gc-react-sum-ico{
-  width:22px;
-  height:22px;
+  width:20px;
+  height:20px;
   border-radius:50%;
   border:2px solid var(--surface);
   box-sizing:content-box;
@@ -2296,7 +2303,7 @@ body.light-mode .post-action-btn.liked { background: transparent; }
 ========================================= */
 .tf-av-wrap{
 position:relative;
-width:44px;height:44px;
+width:40px;height:40px;
 flex-shrink:0;
 }
 .tf-plus-badge{
@@ -6399,76 +6406,85 @@ body.light-mode .gc-vid-skeleton{
   vertical-align:top;
 }
 
-/* ── Portrait (9:16 / tall) — shrink-wrap to video width ── */
-.gc-vplayer.gc-tall-video{
-  width:fit-content;
-  max-width:100%;
-  height:auto;
-  min-height:0;
-  margin-left:0;
-  margin-right:auto;
-  justify-content:flex-start;
-  background:transparent !important;
-}
-.gc-vplayer.gc-tall-video video{
-  width:auto !important;
+
+/* Feed/profile/single — all video AR inside same rounded media frame as photos */
+.gc-vplayer.gc-tall-video,
+.gc-vplayer.gc-wide-video,
+.gc-vplayer.gc-square-video{
+  width:100% !important;
   max-width:100% !important;
   height:auto !important;
-  max-height:min(65vh, 420px) !important;
-  object-fit:contain !important;
+  min-height:0 !important;
+  margin-left:0 !important;
+  margin-right:0 !important;
+  justify-content:center !important;
   background:transparent !important;
+  border-radius:14px;
+  overflow:hidden;
 }
 
-/* ── Landscape (16:9 / wide) ── */
-.gc-vplayer.gc-wide-video{
-  width:100%;
-  max-width:100%;
-  background:transparent !important;
-}
-.gc-vplayer.gc-wide-video video{
-  width:100% !important;
-  height:auto !important;
-  max-height:min(52vw, 300px) !important;
-  object-fit:contain !important;
-  background:transparent !important;
-}
-
-/* ── Square (1:1) ── */
-.gc-vplayer.gc-square-video{
-  width:100%;
-  max-width:100%;
-  background:transparent !important;
-}
+/* Default sizing — preserve existing Landscape and Square behavior */
+.gc-vplayer.gc-tall-video video,
+.gc-vplayer.gc-wide-video video,
 .gc-vplayer.gc-square-video video{
   width:100% !important;
+  max-width:100% !important;
   height:auto !important;
-  max-height:min(100vw, 360px) !important;
+  max-height:min(70vh, 420px) !important;
   object-fit:contain !important;
+  object-position:center center !important;
   background:transparent !important;
+  border-radius:14px;
+  display:block;
 }
 
-/* Feed / profile posts / single post — same AR policy (no black letterbox) */
+/* Feed / profile posts / single post — same frame */
 #page-feed .gc-vplayer,
 #feed-list .gc-vplayer,
 #page-profile .gc-vplayer,
 #other-user-posts-list .gc-vplayer,
 #my-posts-list .gc-vplayer,
 .profile-posts .gc-vplayer,
-.post-card .gc-vplayer{
+.post-card .gc-vplayer,
+#single-post-screen .gc-vplayer{
+  width:100% !important;
+  max-width:100% !important;
   background:transparent !important;
+  border-radius:14px;
+  overflow:hidden;
 }
+
 #page-feed .gc-vplayer.gc-tall-video,
 #feed-list .gc-vplayer.gc-tall-video,
 #page-profile .gc-vplayer.gc-tall-video,
-#other-user-posts-list .gc-vplayer.gc-tall-video,
 #my-posts-list .gc-vplayer.gc-tall-video,
-.post-card .gc-vplayer.gc-tall-video{
-  width:fit-content;
-  max-width:100%;
-  margin-left:0;
-  margin-right:auto;
-  justify-content:flex-start;
+.profile-posts .gc-vplayer.gc-tall-video,
+#single-post-screen .gc-vplayer.gc-tall-video{
+  width:100% !important;
+  max-width:100% !important;
+  height:auto !important;
+  margin-left:0 !important;
+  margin-right:0 !important;
+  justify-content:center !important;
 }
+
+/* Portrait full-width sizing — only Home Feed, Own Profile and Single Post */
+#page-feed .gc-vplayer.gc-tall-video video,
+#feed-list .gc-vplayer.gc-tall-video video,
+#page-profile .gc-vplayer.gc-tall-video video,
+#my-posts-list .gc-vplayer.gc-tall-video video,
+.profile-posts .gc-vplayer.gc-tall-video video,
+#single-post-screen .gc-vplayer.gc-tall-video video{
+  width:100% !important;
+  max-width:100% !important;
+  height:auto !important;
+  max-height:none !important;
+  object-fit:contain !important;
+  object-position:center center !important;
+  background:transparent !important;
+  display:block !important;
+}
+
 
 /* Fullscreen / immersive — black canvas is intentional */
 .gc-vplayer:fullscreen,
@@ -7856,7 +7872,7 @@ body.light-mode .gc-pay-close.gc-pay-is-back{
     width: 0;
     height: 0;
 }
-/* 🚀 remove-other-profile-title · 2026-09-02
+/* ?? remove-other-profile-title · 2026-09-02
    অন্যের প্রোফাইলে টপবারে "Profile" লেখাটা লুকানো হলো — শুধু
    ব্যাক অ্যারো + বেল + ৩-ডট থাকবে, নিজের প্রোফাইলের মতোই minimal।
    খুঁজতে: Ctrl+F → "remove-other-profile-title" */
@@ -10151,8 +10167,13 @@ body:not(.light-mode) .nav-capsule {
 .nav-fab:active { transform: scale(0.9); }
 
 /* 🚀 লম্বা নাম ভাঙার এবং ব্যাজ লাইনে রাখার ম্যাজিক */
-.profile-name, .post-name, .msg-name {
+.profile-name, .msg-name {
     display: block !important;
+    word-wrap: break-word !important;
+    word-break: break-word !important;
+    white-space: normal !important;
+}
+.post-name {
     word-wrap: break-word !important;
     word-break: break-word !important;
     white-space: normal !important;
@@ -10258,7 +10279,8 @@ body.msg-select-mode #main-bottom-nav{ display:none !important; }
 }
 
 /* =========================================
-   🚀 NEW DESIGN · Threads Style Timeline Feed 
+   🚀 POST CARD DESIGN · GoChat full-width card (v2)
+   Header: avatar · name · time · ⋯   |   Body: full width   |   Actions: compact row
    ========================================= */
 
 .post-card {
@@ -10276,8 +10298,8 @@ body:not(.light-mode) .post-card {
 
 /* ২. হেডার সেকশন: স্পেসিং কমানো + থ্রি-ডট টপ-রাইট */
 .post-header {
-    margin-bottom: 4px !important;
-    align-items: flex-start !important;
+    margin-bottom: 10px !important;
+    align-items: center !important;
     position: relative;
 }
 .post-header .post-more-wrap {
@@ -10287,16 +10309,17 @@ body:not(.light-mode) .post-card {
 .post-header .post-more-btn:active {
     background: var(--surface-2) !important;
 }
+.post-header .post-more-wrap { margin-right: -6px; }
 
 .post-avatar-wrapper .avatar {
     width: 40px !important;
     height: 40px !important;
 }
 
-/* ৩. 🌟 ম্যাজিক: হেডারের নিচের সবকিছু ডানদিকে সরানো হলো (২-কলাম লুক) */
+/* ৩. কন্টেন্ট কার্ডের পুরো প্রস্থ জুড়ে (অ্যাভাটারের বাম প্রান্ত থেকে শুরু) */
 .post-card > :not(.post-header) {
-    margin-left: 52px !important;
-    width: calc(100% - 52px) !important;
+    margin-left: 0 !important;
+    width: 100% !important;
 }
 
 /* ৪. টেক্সট সাইজ অপটিমাইজ করা হলো */
@@ -10325,48 +10348,83 @@ body:not(.light-mode) .post-card {
     background: var(--surface-2);
 }
 /* মাল্টি-ইমেজ ক্যারাউসেল — সিঙ্গেল ভিউর মতো */
+/* Instagram-style full-width media carousel (one slide at a time + dots) */
 .post-media-carousel {
     display: flex;
-    gap: 8px;
+    gap: 0;
     overflow-x: auto;
     scroll-snap-type: x mandatory;
     -webkit-overflow-scrolling: touch;
-    height: 280px;
-    padding-bottom: 2px;
+    height: auto;
+    padding-bottom: 0;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
 }
+.post-media-carousel::-webkit-scrollbar { display: none !important; height: 0 !important; }
 .post-media-carousel > div,
 .post-media-carousel .gc-feed-slide {
-    min-width: 85% !important;
-    width: 85% !important;
+    min-width: 100% !important;
+    width: 100% !important;
+    flex: 0 0 100% !important;
     flex-shrink: 0 !important;
-    height: 280px !important;
-    scroll-snap-align: start;
+    height: auto !important;
+    scroll-snap-align: center;
+    scroll-snap-stop: always;
     overflow: hidden;
     border-radius: 14px;
+    box-sizing: border-box;
 }
 .post-media-carousel .post-img {
-    height: 100% !important;
-    min-height: 100% !important;
-    max-height: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: min(70vh, 420px) !important;
     width: 100% !important;
     margin: 0 !important;
     border-radius: 14px !important;
+    object-fit: cover !important;
+    display: block !important;
+    background: var(--surface-2);
 }
 .post-media-wrap {
     overflow: hidden;
     border-radius: 14px;
+    position: relative;
 }
+.gc-carousel-dots {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    padding: 8px 0 2px;
+    pointer-events: none;
+}
+.gc-carousel-dots .gc-cdot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--text-muted);
+    opacity: 0.35;
+    transition: opacity .2s, transform .2s, background .2s;
+    flex-shrink: 0;
+}
+.gc-carousel-dots .gc-cdot.active {
+    opacity: 1;
+    background: var(--accent);
+    transform: scale(1.15);
+}
+/* single image/video — no dots */
+.post-media-wrap:not(.gc-ig-carousel) .gc-carousel-dots { display: none !important; }
 #single-post-screen .post-card .post-img {
-    max-height: 360px !important;
+    max-height: min(70vh, 420px) !important;
 }
 #single-post-screen .post-media-carousel {
-    height: 280px;
+    height: auto;
 }
 #single-post-screen .post-media-carousel > div,
 #single-post-screen .post-media-carousel .gc-feed-slide {
-    height: 280px !important;
-    min-width: 85% !important;
-    width: 85% !important;
+    height: auto !important;
+    min-width: 100% !important;
+    width: 100% !important;
 }
 
 /* ৬. রঙিন পোস্টের সাইজ ছোট করা হলো */
@@ -10378,13 +10436,13 @@ body:not(.light-mode) .post-card {
     margin-bottom: 12px !important;
 }
 
-/* ৭. বাটনগুলোকে ছোট, মিনিমাল ও বামে অ্যালাইন করা হলো */
+/* ৭. বাটনগুলো কমপ্যাক্ট; প্রথম আইকন টেক্সটের বাম প্রান্তের সাথে অ্যালাইন (ট্যাপ এরিয়া অক্ষত) */
 .post-card .post-actions {
-    margin-left: 44px !important; /* আইকনের সাথে ভিজ্যুয়াল ব্যালেন্স */
-    width: calc(100% - 44px) !important;
-    max-width: calc(100% - 44px) !important;
+    margin-left: -10px !important;
+    width: calc(100% + 10px) !important;
+    max-width: calc(100% + 10px) !important;
     justify-content: flex-start !important;
-    gap: 2px !important;
+    gap: 4px !important;
     padding: 0 !important;
     pointer-events: none; /* empty space next to share won't capture taps */
     align-items: center !important;
@@ -10394,7 +10452,7 @@ body:not(.light-mode) .post-card {
 .post-card .post-actions .post-action-btn {
     pointer-events: auto;
     flex: 0 0 auto !important;
-    padding: 8px 10px !important;
+    padding: 10px 10px !important;
     min-width: 0 !important;
     gap: 4px !important;
 }
@@ -10405,10 +10463,11 @@ body:not(.light-mode) .post-card {
     flex-shrink: 0 !important;
     align-self: center !important;
     white-space: nowrap !important;
-    margin-right: 0 !important;
+    margin-right: -4px !important;
     flex-shrink: 0 !important;
     align-self: center !important;
 }
+.post-card .post-actions .post-action-btn > span { font-size: 13px !important; line-height: 1; }
 .gc-react-summary-count{ display:none !important; }
 /* Hide like/comment count when post owner enables hideLikeCommentCount */
 .post-card[data-hide-counts="1"] [data-count="likes"],
@@ -10452,11 +10511,12 @@ span[data-raw-count].like-count {
 
 .post-card .post-action-btn {
     flex: none !important;
-    padding: 6px 10px !important;
+    padding: 10px 10px !important;
+    min-height: 40px !important;
     background: transparent !important;
     box-shadow: none !important;
     font-size: 13px !important;
-    font-weight: 700 !important;
+    font-weight: 600 !important;
     color: var(--text) !important;
     border-radius: 12px !important;
     transition: all 0.2s ease !important;
@@ -10697,10 +10757,10 @@ transition:background .2s;
 
 /* Remove dusty/light backgrounds behind standalone icons */
 
-/* Post three-dot · circular theme-aware background */
+/* Post three-dot · plain icon, 32px tap area, theme-aware colour */
 .post-more-btn,
 button.post-more-btn {
-  background: var(--surface-2) !important;
+  background: transparent !important;
   border-radius: 50% !important;
   width: 32px !important;
   height: 32px !important;
@@ -10708,14 +10768,16 @@ button.post-more-btn {
 }
 body.light-mode .post-more-btn,
 body.light-mode button.post-more-btn {
-  background: #f0f2f5 !important;
+  background: transparent !important;
   color: #1a1a2e !important;
 }
 body:not(.light-mode) .post-more-btn,
 body:not(.light-mode) button.post-more-btn {
-  background: #1c1c28 !important;
+  background: transparent !important;
   color: #f0f0f5 !important;
 }
+.post-more-btn:active,
+button.post-more-btn:active { background: var(--surface-2) !important; }
 
 .post-more-btn,
 .more-btn,
@@ -14824,39 +14886,10 @@ body:not(.messages-mode):not(.notifications-mode) #topbar-logo-main .gc-app-logo
 
 	
 /* =========================================
-   🚀 Avatar to Image Curved Connection Line 
+   Post card positioning (the old avatar→media connector line was removed in the card redesign)
    ========================================= */
-
-/* ১. শুধু ছবি/ভিডিও থাকা পোস্টেই এই লাইন কাজ করবে */
 .post-card {
     position: relative !important;
-}
-
-/* ২. অ্যাভাটারের নিচ থেকে লম্বা লাইন (চিকন) */
-.post-card:has(.post-media-wrap, .post-img, .gc-vplayer)::before {
-    content: '';
-    position: absolute;
-    top: 60px; /* অ্যাভাটারের ঠিক নিচ থেকে */
-    left: 36px; /* অ্যাভাটারের মাঝ বরাবর */
-    bottom: 120px; /* পোস্ট কার্ডের নিচ থেকে কিছুটা উপরে (ছবির কাছাকাছি) */
-    width: 16px; /* লাইনটি ডানদিকে কতটুকু বাঁকবে তার পরিমাপ */
-    
-    /* শুধুমাত্র বাম দিকে এবং নিচের দিকে বর্ডার থাকবে, যাতে বাঁকা (Curve) তৈরি হয় */
-    border-left: 1.5px solid var(--border); /* আগের চেয়ে চিকন লাইন */
-    border-bottom: 1.5px solid var(--border);
-    
-    /* কোণাটা গোল/বাঁকা করার জন্য */
-    border-bottom-left-radius: 12px;
-    z-index: 1;
-    pointer-events: none;
-}
-
-/* ৩. যদি ক্যাপশন টেক্সট অনেক বড় হয়, তখন লাইনের উচ্চতা ম্যানেজ করার জন্য মিডিয়া র‍্যাপারের পজিশন */
-.post-card .post-img,
-.post-card .post-media-wrap,
-.post-card .gc-vplayer {
-    position: relative;
-    z-index: 2; /* ছবিটা লাইনের উপরে থাকবে, যাতে লাইনটা ছবির ভেতর ঢুকে গেছে মনে হয় */
 }
 
 /* ═══ Official Announcement · full-screen post-style viewer ═══ */
@@ -28397,7 +28430,7 @@ const isReposted=!!(currentUser && window.__gcMyReposts && window.__gcMyReposts.
 // SVG only for non-default reactions (haha/wow/sad/angry/dislike). Plain "like" keeps filled thumb.
 const likeIconHtml=(myReactType && myReactType !== 'like' && typeof gcReactSvg==='function' && gcReactSvg(myReactType,true))
   ? gcReactSvg(myReactType,true)
-  : (typeof gcActionSvg==='function' ? gcActionSvg((isLiked || myReactType==='like') ? 'likeFilled' : 'like', 24) : `<i class="${isLiked || myReactType ? 'ph-fill' : 'ph-light'} ph-thumbs-up" style="font-size:24px;"></i>`);
+  : (typeof gcActionSvg==='function' ? gcActionSvg((isLiked || myReactType==='like') ? 'likeFilled' : 'like', 20) : `<i class="${isLiked || myReactType ? 'ph-fill' : 'ph-light'} ph-thumbs-up" style="font-size:24px;"></i>`);
 const likeColor=isLiked?'var(--danger)':'var(--text-secondary)';
 const fillProp=isLiked?'1':'0';
 const commentCountRaw=Math.max(Array.isArray(p.comments)?p.comments.length:0, typeof p.commentCount==='number'?p.commentCount:0);
@@ -28434,22 +28467,24 @@ let mediaHtml='';
 if(imgUrls.length>1){
 let slides=imgUrls.map(url=>{
 const safeUrl = escapeHTML(url);
-return`<div class="gc-feed-slide"><img class="post-img" src="${safeUrl}" onclick="event.stopPropagation();openImageZoom('${safeUrl}',null,${zoomIsProfile})" alt=""></div>`;
+return`<div class="gc-feed-slide"><img class="post-img" src="${safeUrl}" onclick="event.stopPropagation();openImageZoom('${safeUrl}',null,${zoomIsProfile})" alt="" loading="lazy"></div>`;
 }).join('');
-mediaHtml=`<div class="post-media-wrap">
-<div class="post-media-carousel">
+const dots=imgUrls.map((_,i)=>`<span class="gc-cdot${i===0?' active':''}" data-i="${i}"></span>`).join('');
+mediaHtml=`<div class="post-media-wrap gc-ig-carousel" data-slide-count="${imgUrls.length}">
+<div class="post-media-carousel" data-gc-carousel="1">
 ${slides}
 </div>
+<div class="gc-carousel-dots" aria-hidden="true">${dots}</div>
 </div>`;
 }else if(imgUrls.length===1){
 const safeUrl = escapeHTML(imgUrls[0]);
 mediaHtml=`<div class="post-media-wrap">
-<img class="post-img" src="${safeUrl}" onclick="event.stopPropagation();openImageZoom('${safeUrl}','${pid}',${zoomIsProfile})" alt="">
+<img class="post-img" src="${safeUrl}" onclick="event.stopPropagation();openImageZoom('${safeUrl}','${pid}',${zoomIsProfile})" alt="" loading="lazy">
 </div>`;
 }
 
 let postDropdownHtml = `<div class="post-more-wrap" style="position:relative;margin-left:auto;flex-shrink:0;">
-<button type="button" class="post-more-btn more-btn" onclick="event.stopPropagation();togglePostDropdown('post-drop-${uniqueDropId}')" aria-label="More" style="cursor:pointer;padding:4px;width:32px;height:32px;border-radius:50%;border:none;background:var(--surface-2);color:var(--text);display:flex;align-items:center;justify-content:center;">
+<button type="button" class="post-more-btn more-btn" onclick="event.stopPropagation();togglePostDropdown('post-drop-${uniqueDropId}')" aria-label="More" style="cursor:pointer;padding:4px;width:32px;height:32px;border-radius:50%;border:none;background:transparent;color:var(--text);display:flex;align-items:center;justify-content:center;">
 <svg class="gc-dots-ico" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"  style="width:20px;height:20px;display:block;flex-shrink:0;"><path d="M144,128a16,16,0,1,1-16-16A16,16,0,0,1,144,128ZM60,112a16,16,0,1,0,16,16A16,16,0,0,0,60,112Zm136,0a16,16,0,1,0,16,16A16,16,0,0,0,196,112Z"/></svg>
 </button>
 <div id="post-drop-${uniqueDropId}" class="post-dropdown-menu" onclick="event.stopPropagation();">`;
@@ -28550,11 +28585,11 @@ const __pcKind = __pcIsVid ? 'media' : (__pcIsImg ? 'gallery' : 'status');
 return`<div class="post-card ${premiumPostClass}${pinnedClass}" data-post-id="${pid}" data-post-kind="${__pcKind}" data-author-uid="${p.uid||''}" data-hide-counts="${p.hideLikeCommentCount ? '1' : '0'}" style="cursor:pointer;" onclick="if(typeof gcOnPostCardClick==='function')gcOnPostCardClick(event,'${pid}')">
 <div class="post-header">
 <div class="tf-av-wrap" data-uid="${p.uid}">
-<div class="avatar" style="width:44px;height:44px;cursor:pointer;" onclick="event.stopPropagation();">${av}</div>
+<div class="avatar" style="width:40px;height:40px;cursor:pointer;" onclick="event.stopPropagation();">${av}</div>
 ${followBadge}
 </div>
-<div style="flex:1; min-width:0;">
-<div class="post-name" style="display: block; line-height: 1.4;">
+<div class="post-head-main">
+<div class="post-name">
 <span style="display: inline; cursor:pointer;" onclick="event.stopPropagation(); viewUserProfile('${p.uid}')">${safeName} <span style="display: inline-flex; vertical-align: middle; margin-top: -3px; margin-left: 2px;">${vBadge}</span></span>
 ${profileUpdateHtml}
 ${withText}
@@ -28598,22 +28633,22 @@ ${generatePollHTML(p)}
 <!-- 🚀 বাটনগুলোতে event.stopPropagation() দেওয়া হলো -->
 <button class="post-action-btn ${isLiked || myReactType ? 'liked' : ''}" data-action="like"${myReactType?` data-my-react="${myReactType}"`:''} onclick="event.stopPropagation();">
     ${likeIconHtml}
-    <span data-count="likes" data-raw-count="${typeof p.likes==='number'?p.likes:(p.likedBy&&p.likedBy.length)||0}" style="font-size:14px;">${gcFmtCount(typeof p.likes==='number'?p.likes:(p.likedBy&&p.likedBy.length)||0)}</span>
+    <span data-count="likes" data-raw-count="${typeof p.likes==='number'?p.likes:(p.likedBy&&p.likedBy.length)||0}">${gcFmtCount(typeof p.likes==='number'?p.likes:(p.likedBy&&p.likedBy.length)||0)}</span>
 </button>
 
 <!-- 🚀 নতুন কমেন্ট বাটন -->
 <button class="post-action-btn" data-action="comment" onclick="event.stopPropagation(); if(typeof gcOpenCommentsSheet==='function')gcOpenCommentsSheet('${pid}'); else if(typeof openCommentPanel==='function')openCommentPanel('${pid}')">
-    ${typeof gcActionSvg==='function'?gcActionSvg('comment',24):'<i class="ph-light ph-chat-circle" style="font-size:24px;"></i>'}
+    ${typeof gcActionSvg==='function'?gcActionSvg('comment',20):'<i class="ph-light ph-chat-circle" style="font-size:20px;"></i>'}
     <span data-count="comments" data-raw-count="${typeof commentCountRaw!=='undefined'?commentCountRaw:commentCount}">${commentCount}</span>
 </button>
 
 <!-- 🚀 নতুন শেয়ার বাটন (শেয়ার কাউন্ট সহ) -->
 <button class="post-action-btn" onclick="event.stopPropagation(); openShareModal('${pid}', '${safeTitleForAttr}', '${imgUrls[0] || ''}')">
-${typeof gcActionSvg==='function'?gcActionSvg('share',24):'<i class="ph-light ph-paper-plane-tilt" style="font-size:24px;"></i>'}
-<span style="font-size:14px;">${p.shares || 0}</span>
+${typeof gcActionSvg==='function'?gcActionSvg('share',20):'<i class="ph-light ph-paper-plane-tilt" style="font-size:20px;"></i>'}
+<span>${p.shares || 0}</span>
 </button>
 <button class="post-action-btn${isReposted?' reposted':''}" data-action="repost" data-post-id="${pid}" onclick="event.stopPropagation(); if(typeof toggleRepost==='function') toggleRepost('${pid}');" aria-label="Repost">
-${typeof gcActionSvg==='function'?gcActionSvg(isReposted?'check':'repost',24):'<i class="ph-light ph-arrows-clockwise" style="font-size:24px;"></i>'}
+${typeof gcActionSvg==='function'?gcActionSvg(isReposted?'check':'repost',20):'<i class="ph-light ph-arrows-clockwise" style="font-size:20px;"></i>'}
 </button>
 ${reactSummaryHtml}
 </div>
@@ -38337,7 +38372,7 @@ requestAnimationFrame(function(){ gcVidRaf = false; if(typeof gcVideoize === 'fu
 window.__gcMyReposts = window.__gcMyReposts || new Set();
 
 function gcRepostIconHtml(on){
-  if(typeof gcActionSvg==='function') return gcActionSvg(on ? 'check' : 'repost', 24);
+  if(typeof gcActionSvg==='function') return gcActionSvg(on ? 'check' : 'repost', 20);
   return on
     ? '<i class="ph-bold ph-check" style="font-size:24px;color:#16a34a;"></i>'
     : '<i class="ph-light ph-arrows-clockwise" style="font-size:24px;"></i>';
@@ -42151,6 +42186,45 @@ v.muted = true;
 });
 }
 if(window.gcVpObserver){ try{ window.gcVpObserver.disconnect(); }catch(e){} }
+
+/* ═══ Instagram-style post media carousel · dots sync ═══ */
+(function gcInstallIgCarousel(){
+  if (window.__gcIgCarouselInstalled) return;
+  window.__gcIgCarouselInstalled = true;
+  function updateDots(carousel){
+    try {
+      var wrap = carousel.closest('.post-media-wrap') || carousel.parentElement;
+      if (!wrap) return;
+      var dots = wrap.querySelectorAll('.gc-carousel-dots .gc-cdot');
+      if (!dots.length) return;
+      var slides = carousel.querySelectorAll('.gc-feed-slide');
+      if (!slides.length) return;
+      var left = carousel.scrollLeft;
+      var w = carousel.clientWidth || 1;
+      var idx = Math.round(left / w);
+      if (idx < 0) idx = 0;
+      if (idx >= slides.length) idx = slides.length - 1;
+      dots.forEach(function(d, i){
+        if (i === idx) d.classList.add('active');
+        else d.classList.remove('active');
+      });
+    } catch (e) {}
+  }
+  function onScroll(e){
+    var t = e.target;
+    if (!t || !t.classList || !t.classList.contains('post-media-carousel')) return;
+    updateDots(t);
+  }
+  document.addEventListener('scroll', onScroll, true);
+  // Touch end snap polish
+  document.addEventListener('touchend', function(e){
+    var c = e.target && e.target.closest && e.target.closest('.post-media-carousel');
+    if (!c) return;
+    setTimeout(function(){ updateDots(c); }, 50);
+    setTimeout(function(){ updateDots(c); }, 200);
+  }, true);
+})();
+
 gcVideoize = function(scope){
 (scope || document).querySelectorAll('img').forEach(function(img){
 const s = img.getAttribute('src') || '';
@@ -42393,64 +42467,121 @@ v.addEventListener('ended', function(){ v.gcUserPaused = false; showControls(); 
 function gcApplyFeedVideoSizing(){
   try{
     if(!v.videoWidth || !v.videoHeight) return;
+
     /* Skip grid thumbs & Shorts — those use cover / full-bleed by design */
     try {
-      if (wrap.closest && (wrap.closest('.grid-post-item') || wrap.closest('#gc-shorts-feed') || wrap.closest('.gc-short-item'))) return;
+      if (
+        wrap.closest &&
+        (
+          wrap.closest('.grid-post-item') ||
+          wrap.closest('#gc-shorts-feed') ||
+          wrap.closest('.gc-short-item')
+        )
+      ) return;
     } catch (e) {}
+
     const ratio = v.videoHeight / v.videoWidth;
     const isSquare = Math.abs(ratio - 1) <= 0.08;
     const isTall = ratio > 1.08;
+
     wrap.classList.toggle('gc-tall-video', isTall);
     wrap.classList.toggle('gc-wide-video', !isTall && !isSquare);
     wrap.classList.toggle('gc-square-video', isSquare);
+
     var vh = window.innerHeight || 640;
     var vw = Math.min(window.innerWidth || 390, 520);
-    /* Clear any previous inline dims so CSS classes drive layout cleanly */
+
+    /* Detect only the three requested post surfaces */
+    var isTargetPostSurface = !!(
+      wrap.closest &&
+      wrap.closest(
+        '#page-feed, #feed-list, #page-profile, #my-posts-list, #single-post-screen'
+      )
+    );
+
+    /* Clear previous inline dimensions before applying sizing */
     v.style.width = '';
     v.style.height = '';
     v.style.maxWidth = '';
     v.style.maxHeight = '';
+
     wrap.style.width = '';
     wrap.style.height = '';
     wrap.style.maxWidth = '';
+
     if (isTall) {
-      /* Portrait: size height first, width follows AR — no side letterbox */
-      var tallCap = Math.round(Math.min(vh * 0.65, 420));
-      var natW = v.videoWidth, natH = v.videoHeight;
-      var scaledH = Math.min(tallCap, natH);
-      var scaledW = Math.round(scaledH * (natW / natH));
-      if (scaledW > vw) {
-        scaledW = vw;
-        scaledH = Math.round(scaledW * (natH / natW));
+
+      if (isTargetPostSurface) {
+
+        /* Portrait: full available media width with original aspect ratio */
+        v.style.width = '100%';
+        v.style.height = 'auto';
+        v.style.maxWidth = '100%';
+        v.style.maxHeight = 'none';
+
+        wrap.style.width = '100%';
+        wrap.style.height = 'auto';
+        wrap.style.maxWidth = '100%';
+        wrap.style.marginLeft = '0';
+        wrap.style.marginRight = '0';
+        wrap.style.justifyContent = 'center';
+
+      } else {
+
+        /* Preserve existing Portrait sizing outside target surfaces */
+        var tallCap = Math.round(Math.min(vh * 0.65, 420));
+        var natW = v.videoWidth, natH = v.videoHeight;
+        var scaledH = Math.min(tallCap, natH);
+        var scaledW = Math.round(scaledH * (natW / natH));
+
+        if (scaledW > vw) {
+          scaledW = vw;
+          scaledH = Math.round(scaledW * (natH / natW));
+        }
+
+        v.style.width = scaledW + 'px';
+        v.style.height = scaledH + 'px';
+        v.style.maxWidth = '100%';
+        v.style.maxHeight = tallCap + 'px';
+
+        wrap.style.width = 'fit-content';
+        wrap.style.maxWidth = '100%';
+        wrap.style.marginLeft = '0';
+        wrap.style.marginRight = 'auto';
+        wrap.style.justifyContent = 'flex-start';
       }
-      v.style.width = scaledW + 'px';
-      v.style.height = scaledH + 'px';
-      v.style.maxWidth = '100%';
-      v.style.maxHeight = tallCap + 'px';
-      wrap.style.width = 'fit-content';
-      wrap.style.maxWidth = '100%';
-      wrap.style.marginLeft = '0';
-      wrap.style.marginRight = 'auto';
-      wrap.style.justifyContent = 'flex-start';
+
     } else if (isSquare) {
+
+      /* Existing Square video sizing — unchanged */
       var sqCap = Math.round(Math.min(vw * 0.92, 360));
+
       v.style.width = '100%';
       v.style.height = 'auto';
       v.style.maxWidth = '100%';
       v.style.maxHeight = sqCap + 'px';
+
       wrap.style.width = '100%';
+
     } else {
+
+      /* Existing Landscape video sizing — unchanged */
       var wideCap = Math.round(Math.min(vw * 0.52, 300));
+
       v.style.width = '100%';
       v.style.height = 'auto';
       v.style.maxWidth = '100%';
       v.style.maxHeight = wideCap + 'px';
+
       wrap.style.width = '100%';
     }
+
     v.style.objectFit = 'contain';
     v.style.objectPosition = 'center center';
     v.style.background = 'transparent';
+
     wrap.style.background = 'transparent';
+
   }catch(e){}
 }
 v.addEventListener('loadedmetadata', function(){
