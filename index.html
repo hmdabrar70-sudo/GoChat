@@ -15217,6 +15217,186 @@ body:not(.light-mode) .gc-block-sheet-primary{background:#f0f0f5;color:#0a0a0f;}
 .gc-block-sheet-cancel{width:100%;margin-top:8px;border:none;background:transparent;color:var(--text-muted);font-weight:700;font-size:14px;padding:12px;cursor:pointer;font-family:inherit;}
 .gc-chat-blocked{opacity:.55;}
 
+
+/* ═══ Stories hub page (Explore → Stories) · hide feed strip ═══ */
+#page-feed > .stories-wrapper,
+#stories-list.stories-wrapper{
+  display:none !important;
+  height:0 !important;
+  margin:0 !important;
+  padding:0 !important;
+  overflow:hidden !important;
+  border:none !important;
+}
+#gc-stories-page{
+  display:none;
+  position:fixed;
+  inset:0;
+  z-index:10040;
+  background:var(--bg);
+  flex-direction:column;
+  max-width:520px;
+  margin:0 auto;
+  width:100%;
+}
+#gc-stories-page.open{
+  display:flex;
+}
+#gc-stories-page .chat-topbar{
+  padding:14px 18px !important;
+  padding-top:calc(14px + env(safe-area-inset-top, 0px)) !important;
+  min-height:calc(68px + env(safe-area-inset-top, 0px)) !important;
+  align-items:center !important;
+  box-sizing:border-box !important;
+  flex-shrink:0;
+  background:var(--surface);
+  border-bottom:none;
+  position:relative;
+  justify-content:space-between;
+  width:100%;
+}
+#gc-stories-page .gc-stories-scroll{
+  flex:1;
+  overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
+  padding:12px 14px 100px;
+  box-sizing:border-box;
+}
+#gc-stories-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:12px;
+}
+.gc-st-card{
+  position:relative;
+  border-radius:22px;
+  overflow:hidden;
+  aspect-ratio:3/4.2;
+  background:#1a1a24;
+  cursor:pointer;
+  box-shadow:0 8px 24px rgba(0,0,0,.18);
+  -webkit-tap-highlight-color:transparent;
+}
+.gc-st-card:active{ transform:scale(0.98); }
+.gc-st-card-bg{
+  position:absolute; inset:0;
+  background-size:cover;
+  background-position:center;
+  background-color:#2a1520;
+}
+.gc-st-card-bg.video::after{
+  content:'';
+  position:absolute; inset:0;
+  background:linear-gradient(transparent 40%, rgba(0,0,0,.55));
+}
+.gc-st-card-fade{
+  position:absolute; inset:0;
+  background:linear-gradient(to top, rgba(0,0,0,.72) 0%, rgba(0,0,0,.15) 45%, transparent 70%);
+  pointer-events:none;
+}
+.gc-st-card-new{
+  position:absolute; top:10px; right:10px;
+  background:#8b5cf6;
+  color:#fff;
+  font-size:10px;
+  font-weight:800;
+  letter-spacing:.04em;
+  padding:4px 8px;
+  border-radius:999px;
+  z-index:2;
+  text-transform:uppercase;
+}
+.gc-st-card-gear{
+  position:absolute; top:10px; right:10px;
+  width:32px; height:32px;
+  border-radius:50%;
+  background:rgba(0,0,0,.35);
+  color:#fff;
+  display:flex; align-items:center; justify-content:center;
+  z-index:2;
+  border:none;
+  cursor:pointer;
+}
+.gc-st-card-bottom{
+  position:absolute; left:0; right:0; bottom:0;
+  padding:12px 12px 14px;
+  z-index:2;
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+  gap:6px;
+}
+.gc-st-card-av{
+  width:42px; height:42px;
+  border-radius:50%;
+  overflow:hidden;
+  border:2.5px solid transparent;
+  background:
+    linear-gradient(var(--surface), var(--surface)) padding-box,
+    linear-gradient(135deg, #f472b6, #a78bfa, #60a5fa) border-box;
+  box-sizing:border-box;
+  flex-shrink:0;
+}
+.gc-st-card-av img{
+  width:100%; height:100%; object-fit:cover; display:block;
+  border-radius:50%;
+}
+.gc-st-card-av.seen{
+  background:
+    linear-gradient(var(--surface), var(--surface)) padding-box,
+    linear-gradient(135deg, #6b7280, #9ca3af) border-box;
+}
+.gc-st-card-name{
+  color:#fff;
+  font-weight:800;
+  font-size:14px;
+  line-height:1.2;
+  text-shadow:0 1px 4px rgba(0,0,0,.5);
+  max-width:100%;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.gc-st-card-time{
+  color:rgba(255,255,255,.75);
+  font-size:11px;
+  font-weight:600;
+  margin-top:-2px;
+}
+/* Add Story card */
+.gc-st-card.add-story{
+  background:linear-gradient(160deg, #4a0d1c 0%, #2a0812 55%, #1a050c 100%);
+  border:1.5px dashed rgba(255,255,255,.18);
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:12px;
+}
+.gc-st-card.add-story .gc-st-add-plus{
+  width:56px; height:56px;
+  border-radius:50%;
+  background:#8b5cf6;
+  color:#fff;
+  display:flex; align-items:center; justify-content:center;
+  font-size:28px;
+  box-shadow:0 6px 20px rgba(139,92,246,.45);
+}
+.gc-st-card.add-story .gc-st-add-label{
+  color:#fff;
+  font-weight:800;
+  font-size:15px;
+}
+body.light-mode .gc-st-card.add-story{
+  background:linear-gradient(160deg, #7f1d2e 0%, #4c0c18 100%);
+}
+#gc-home-drawer .gc-hd-item .gc-hd-svg.gc-stories-ico{
+  color:#a78bfa;
+}
+body.light-mode #gc-home-drawer .gc-hd-item .gc-hd-svg.gc-stories-ico{
+  color:#7c3aed;
+}
+
 </style>
 </head>
 <body>
@@ -15579,15 +15759,17 @@ l-137 -640 -193 -3 -193 -2 4 22 c2 13 67 314 144 671 l139 647 192 0 193 0
         <div class="gc-hd-title">Explore</div>
         <button type="button" class="gc-hd-close gc-text-close-btn" onclick="gcCloseHomeDrawer()" aria-label="Close">Close</button>
     </div>
-    <div class="gc-hd-quick">
-        <button type="button" class="gc-hd-quick-btn" onclick="gcCloseHomeDrawer(); gcOpenLikedScreen();" title="Liked">
-            <svg class="gc-hd-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="24" height="24" aria-hidden="true"><defs><linearGradient id="gLik" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#fb7185"/><stop offset="55%" stop-color="#ef4444"/><stop offset="100%" stop-color="#b91c1c"/></linearGradient><filter id="sLik" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="#ef4444" flood-opacity="0.45"/></filter></defs><path d="M234,80.12A24,24,0,0,0,216,72H160V56a40,40,0,0,0-40-40,8,8,0,0,0-7.16,4.42L75.06,96H32a16,16,0,0,0-16,16v88a16,16,0,0,0,16,16H204a24,24,0,0,0,23.82-21l12-96A24,24,0,0,0,234,80.12ZM32,112H72v88H32Z" fill="url(#gLik)" filter="url(#sLik)"/></svg>
-        </button>
-        <button type="button" class="gc-hd-quick-btn" onclick="gcCloseHomeDrawer(); openMainSettingsScreen();" title="Settings">
-            <svg class="gc-hd-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="24" height="24" aria-hidden="true"><defs><linearGradient id="gSetQ" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#94a3b8"/><stop offset="50%" stop-color="#6366f1"/><stop offset="100%" stop-color="#312e81"/></linearGradient><filter id="sSetQ" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="#6366f1" flood-opacity="0.4"/></filter></defs><path d="M216,130.16q.06-2.16,0-4.32l14.92-18.64a8,8,0,0,0,1.48-7.06,107.6,107.6,0,0,0-10.88-26.25,8,8,0,0,0-6-3.93l-23.72-2.64q-1.48-1.56-3-3L186,40.54a8,8,0,0,0-3.94-6,107.29,107.29,0,0,0-26.25-10.86,8,8,0,0,0-7.06,1.48L130.16,40Q128,40,125.84,40L107.2,25.11a8,8,0,0,0-7.06-1.48A107.6,107.6,0,0,0,73.89,34.51a8,8,0,0,0-3.93,6L67.32,64.27q-1.56,1.49-3,3L40.54,70a8,8,0,0,0-6,3.94,107.71,107.71,0,0,0-10.87,26.25,8,8,0,0,0,1.49,7.06L40,125.84Q40,128,40,130.16L25.11,148.8a8,8,0,0,0-1.48,7.06,107.6,107.6,0,0,0,10.88,26.25,8,8,0,0,0,6,3.93l23.72,2.64q1.49,1.56,3,3L70,215.46a8,8,0,0,0,3.94,6,107.71,107.71,0,0,0,26.25,10.87,8,8,0,0,0,7.06-1.49L125.84,216q2.16.06,4.32,0l18.64,14.92a8,8,0,0,0,7.06,1.48,107.21,107.21,0,0,0,26.25-10.88,8,8,0,0,0,3.93-6l2.64-23.72q1.56-1.48,3-3L215.46,186a8,8,0,0,0,6-3.94,107.71,107.71,0,0,0,10.87-26.25,8,8,0,0,0-1.49-7.06ZM128,168a40,40,0,1,1,40-40A40,40,0,0,1,128,168Z" fill="url(#gSetQ)" filter="url(#sSetQ)"/></svg>
-        </button>
-    </div>
-    <div class="gc-hd-list">
+        <div class="gc-hd-list">
+        <div class="gc-hd-item" id="hd-tab-liked" onclick="gcCloseHomeDrawer(); gcOpenLikedScreen();">
+            <svg class="gc-hd-svg" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true" style="color:#ec4899;">
+              <path d="M0 0h24v24H0z" fill="none"/>
+              <path fill="currentColor" fill-rule="evenodd" d="M2.25 6C2.25 5.58579 2.58579 5.25 3 5.25H20C20.4142 5.25 20.75 5.58579 20.75 6C20.75 6.41421 20.4142 6.75 20 6.75H3C2.58579 6.75 2.25 6.41421 2.25 6ZM2.25 11C2.25 10.5858 2.58579 10.25 3 10.25H9C9.41421 10.25 9.75 10.5858 9.75 11C9.75 11.4142 9.41421 11.75 9 11.75H3C2.58579 11.75 2.25 11.4142 2.25 11ZM2.25 16C2.25 15.5858 2.58579 15.25 3 15.25H10C10.4142 15.25 10.75 15.5858 10.75 16C10.75 16.4142 10.4142 16.75 10 16.75H3C2.58579 16.75 2.25 16.4142 2.25 16Z" clip-rule="evenodd"/>
+              <path fill="currentColor" d="M13 11.7148C13 13.4673 15.1633 15.3304 16.4901 16.3082C16.9442 16.643 17.1713 16.8103 17.5 16.8103C17.8287 16.8103 18.0558 16.643 18.5099 16.3082C19.8367 15.3304 22 13.4674 22 11.7147C22 9.03758 19.5249 8.03806 17.5 10.1061C15.4751 8.03806 13 9.03758 13 11.7148Z"/>
+            </svg>
+            Liked
+            <i class="ph-light ph-caret-right gc-hd-chev"></i>
+        </div>
+
         <div class="gc-hd-item" id="hd-tab-foryou" onclick="gcCloseHomeDrawer(); setFeedTab('foryou');">
             <svg class="gc-hd-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><defs><linearGradient id="gStar" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#FFEA00"/><stop offset="100%" stop-color="#FF8C00"/></linearGradient></defs><path fill="url(#gStar)" d="M12 21C16.4183 21 20 17.6439 20 13.504C20 9.76257 17.9654 6.83811 16.562 5.44436C16.3017 5.18584 15.8683 5.30006 15.7212 5.63288C14.9742 7.3229 13.4178 9.75607 11.4286 9.75607C10.1975 9.92086 8.31688 8.86844 9.83483 3.64868C9.97151 3.17868 9.46972 2.80113 9.08645 3.11539C6.9046 4.90436 4 8.51143 4 13.504C4 17.6439 7.58172 21 12 21Z"/></svg>
             For You
@@ -15626,6 +15808,18 @@ l-137 -640 -193 -3 -193 -2 4 22 c2 13 67 314 144 671 l139 647 192 0 193 0
             <span class="nav-badge" id="friends-badge-drawer" style="position:static;min-width:18px;height:18px;margin-left:6px;border:none;display:none;">0</span>
             <i class="ph-light ph-caret-right gc-hd-chev"></i>
         </div>
+        <div class="gc-hd-item" id="hd-tab-stories" onclick="gcCloseHomeDrawer(); openStoriesPage();">
+            <svg class="gc-hd-svg gc-stories-ico" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M0 0h24v24H0z" fill="none"/>
+              <path fill="currentColor" d="M12 2C13.8452 2 15.3293 2 16.5401 2.08783L13.0986 7.25002H8.40139L11.9014 2H12Z"/>
+              <path fill="currentColor" d="M3.46447 3.46447C4.71683 2.2121 6.62194 2.03072 10.0957 2.00445L6.59861 7.25002H2.10418C2.25143 5.48593 2.6068 4.32213 3.46447 3.46447Z"/>
+              <path fill="currentColor" d="M2 12C2 10.7633 2 9.68875 2.02644 8.75002H21.9736C22 9.68875 22 10.7633 22 12C22 12.0867 22 12.1727 22 12.2579C21.4335 11.8534 20.7946 11.6799 20.1687 11.5958C19.4552 11.4998 18.5736 11.4999 17.5924 11.5H17.4076C16.4264 11.4999 15.5448 11.4998 14.8313 11.5958C14.0522 11.7005 13.253 11.9437 12.5984 12.5984C11.9437 13.253 11.7005 14.0522 11.5958 14.8313C11.4998 15.5448 11.4999 16.4264 11.5 17.4076V17.5924C11.4999 18.5736 11.4998 19.4552 11.5958 20.1687C11.6799 20.7946 11.8534 21.4335 12.2579 22C12.1727 22 12.0867 22 12 22C7.28595 22 4.92893 22 3.46447 20.5355C2 19.0711 2 16.714 2 12Z"/>
+              <path fill="currentColor" d="M21.8958 7.25002C21.7486 5.48593 21.3932 4.32213 20.5355 3.46447C19.9382 2.86714 19.1924 2.51345 18.1987 2.30403L14.9014 7.25002H21.8958Z"/>
+              <path fill="currentColor" fill-rule="evenodd" d="M17.5 22C15.3787 22 14.318 22 13.659 21.341C13 20.682 13 19.6213 13 17.5C13 15.3787 13 14.318 13.659 13.659C14.318 13 15.3787 13 17.5 13C19.6213 13 20.682 13 21.341 13.659C22 14.318 22 15.3787 22 17.5C22 19.6213 22 20.682 21.341 21.341C20.682 22 19.6213 22 17.5 22ZM19.7121 15.2879C20.096 15.6719 20.096 16.2943 19.7121 16.6783L19.6542 16.7361C19.5984 16.7919 19.5205 16.8172 19.4428 16.8032C19.3939 16.7945 19.3225 16.7782 19.2372 16.7486C19.0668 16.6895 18.843 16.5778 18.6326 16.3674C18.4222 16.157 18.3105 15.9332 18.2514 15.7628C18.2218 15.6775 18.2055 15.6061 18.1968 15.5572C18.1828 15.4795 18.2081 15.4016 18.2639 15.3458L18.3217 15.2879C18.7057 14.904 19.3281 14.904 19.7121 15.2879ZM17.35 19.0403C17.2057 19.1846 17.1336 19.2567 17.054 19.3188C16.9602 19.392 16.8587 19.4547 16.7512 19.5059C16.6602 19.5493 16.5634 19.5816 16.3698 19.6461L15.349 19.9864C15.2537 20.0181 15.1487 19.9933 15.0777 19.9223C15.0067 19.8513 14.9819 19.7463 15.0136 19.651L15.3539 18.6302C15.4184 18.4366 15.4507 18.3398 15.4941 18.2488C15.5453 18.1413 15.608 18.0398 15.6812 17.946C15.7433 17.8664 15.8154 17.7943 15.9597 17.65L17.7585 15.8512C17.802 15.8077 17.8769 15.8276 17.8971 15.8857C17.9707 16.098 18.109 16.3742 18.3674 16.6326C18.6258 16.891 18.902 17.0293 19.1143 17.1029C19.1724 17.1231 19.1923 17.198 19.1488 17.2415L17.35 19.0403Z" clip-rule="evenodd"/>
+            </svg>
+            Stories
+            <i class="ph-light ph-caret-right gc-hd-chev"></i>
+        </div>
                 <div class="gc-hd-item" onclick="gcCloseHomeDrawer(); gcOpenShorts();">
             <svg class="gc-hd-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><defs><linearGradient id="gShoN" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#ff0844"/><stop offset="100%" stop-color="#ff4500"/></linearGradient></defs><g fill="url(#gShoN)"><path d="M8.50989 2.00001H15.49C15.7225 1.99995 15.9007 1.99991 16.0565 2.01515C17.1643 2.12352 18.0711 2.78958 18.4556 3.68678H5.54428C5.92879 2.78958 6.83555 2.12352 7.94337 2.01515C8.09917 1.99991 8.27741 1.99995 8.50989 2.00001Z"/><path d="M6.31052 4.72312C4.91989 4.72312 3.77963 5.56287 3.3991 6.67691C3.39117 6.70013 3.38356 6.72348 3.37629 6.74693C3.77444 6.62636 4.18881 6.54759 4.60827 6.49382C5.68865 6.35531 7.05399 6.35538 8.64002 6.35547H15.5321C17.1181 6.35538 18.4835 6.35531 19.5639 6.49382C19.9833 6.54759 20.3977 6.62636 20.7958 6.74693C20.7886 6.72348 20.781 6.70013 20.773 6.67691C20.3925 5.56287 19.2522 4.72312 17.8616 4.72312H6.31052Z"/><path fill-rule="evenodd" d="M15.3276 7.54204H8.67239C5.29758 7.54204 3.61017 7.54204 2.66232 8.52887C1.71447 9.5157 1.93748 11.0403 2.38351 14.0896L2.80648 16.9811C3.15626 19.3724 3.33115 20.568 4.22834 21.284C5.12553 22 6.4488 22 9.09534 22H14.9046C17.5512 22 18.8745 22 19.7717 21.284C20.6689 20.568 20.8437 19.3724 21.1935 16.9811L21.6165 14.0896C22.0625 11.0404 22.2855 9.51569 21.3377 8.52887C20.3898 7.54204 18.7024 7.54204 15.3276 7.54204ZM14.5812 15.7942C15.1396 15.4481 15.1396 14.5519 14.5812 14.2058L11.2096 12.1156C10.6669 11.7792 10 12.2171 10 12.9099V17.0901C10 17.7829 10.6669 18.2208 11.2096 17.8844L14.5812 15.7942Z" clip-rule="evenodd"/></g></svg>
             Shorts
@@ -15635,9 +15829,23 @@ l-137 -640 -193 -3 -193 -2 4 22 c2 13 67 314 144 671 l139 647 192 0 193 0
     </div>
 </aside>
 
+
+<!-- Stories hub page (Explore → Stories) -->
+<div id="gc-stories-page" class="" aria-hidden="true">
+  <div class="chat-topbar" style="justify-content:space-between;width:100%;position:relative;">
+    <div style="display:flex;align-items:center;gap:12px;min-width:0;flex:1;">
+      <button type="button" class="gc-text-close-btn" onclick="closeStoriesPage()" aria-label="Close">Close</button>
+      <div style="font-weight:800;font-size:18px;position:absolute;left:50%;transform:translateX(-50%);pointer-events:none;white-space:nowrap;">Stories</div>
+    </div>
+  </div>
+  <div class="gc-stories-scroll">
+    <div id="gc-stories-grid"></div>
+  </div>
+</div>
+
 <div class="page active" id="page-feed">
-<div class="stories-wrapper" id="stories-list"></div>
-<!-- Feed upload / processing status (between stories and posts) -->
+<!-- stories moved to Explore → Stories page -->
+<!-- Feed upload / processing status -->
 <div id="gc-upload-status" class="gc-upload-status" hidden aria-live="polite">
   <div class="gc-us-card">
     <div class="gc-us-top">
@@ -21272,9 +21480,174 @@ window.gcUploadStoryFile = gcUploadStoryFile;
   setTimeout(_hook, 2000);
 })();
 
+
+// ═══ Stories hub page (Explore) ═══
+function gcStoryRelativeTime(ts){
+  try{
+    var ms = 0;
+    if(!ts) return '';
+    if(typeof ts.toMillis === 'function') ms = ts.toMillis();
+    else if(typeof ts === 'number') ms = ts;
+    else if(ts.seconds) ms = ts.seconds * 1000;
+    if(!ms) return '';
+    var diff = Math.max(0, Date.now() - ms);
+    var sec = Math.floor(diff / 1000);
+    if(sec < 45) return 'Just now';
+    var min = Math.floor(sec / 60);
+    if(min < 60) return min + 'm ago';
+    var hr = Math.floor(min / 60);
+    if(hr < 24) return hr + 'h ago';
+    var day = Math.floor(hr / 24);
+    if(day < 7) return day + 'd ago';
+    return day + 'd ago';
+  }catch(e){ return ''; }
+}
+
+function gcStoryCardBg(storiesArr){
+  if(!storiesArr || !storiesArr.length) return { style: 'background:#2a1520;', cls: '' };
+  // Prefer newest
+  var sorted = storiesArr.slice().sort(function(a,b){
+    var ta = (a.createdAt && a.createdAt.toMillis) ? a.createdAt.toMillis() : 0;
+    var tb = (b.createdAt && b.createdAt.toMillis) ? b.createdAt.toMillis() : 0;
+    return tb - ta;
+  });
+  var s = sorted[0];
+  if(s.isText){
+    return { style: 'background:' + (s.bgColor || '#1a1a2e') + ';', cls: '' };
+  }
+  if(s.isVideo && s.mediaUrl){
+    return { style: 'background-image:url(\'' + String(s.mediaUrl).replace(/'/g, '%27') + '\');', cls: 'video' };
+  }
+  if(s.mediaUrl){
+    return { style: 'background-image:url(\'' + String(s.mediaUrl).replace(/'/g, '%27') + '\');', cls: '' };
+  }
+  return { style: 'background:#2a1520;', cls: '' };
+}
+
+function gcRenderStoriesGrid(grouped, unseenUsers, seenUsers, userIdsOrder){
+  var grid = document.getElementById('gc-stories-grid');
+  if(!grid) return;
+  grouped = grouped || {};
+  unseenUsers = unseenUsers || [];
+  seenUsers = seenUsers || [];
+
+  var html = '';
+  // Add Story card
+  html += '<div class="gc-st-card add-story" onclick="openStoryCreatorModal()" role="button" aria-label="Add Story">'
+        + '<div class="gc-st-add-plus"><i class="ph-light ph-plus" style="font-size:28px;line-height:1;"></i></div>'
+        + '<div class="gc-st-add-label">Add Story</div>'
+        + '</div>';
+
+  function cardForUid(uid, isUnseen){
+    var arr = grouped[uid];
+    if(!arr || !arr.length){
+      // own story may have been deleted from grouped after push
+      arr = (window.allStoriesData || []).filter(function(s){ return s && s.uid === uid; });
+    }
+    if(!arr.length && uid === (currentUser && currentUser.uid)){
+      // still show from currentUserData avatar only if in userIdsOrder
+    }
+    if(!arr.length) return '';
+    var name = escapeHTML(arr[0].name || (uid === currentUser.uid ? 'Your Story' : 'User'));
+    if(uid === currentUser.uid) name = 'Your Story';
+    var av = arr[0].avatar || (currentUserData && uid === currentUser.uid ? currentUserData.avatar : '') || gcDefaultAvatarUrl();
+    var latest = arr.slice().sort(function(a,b){
+      var ta = (a.createdAt && a.createdAt.toMillis) ? a.createdAt.toMillis() : 0;
+      var tb = (b.createdAt && b.createdAt.toMillis) ? b.createdAt.toMillis() : 0;
+      return tb - ta;
+    })[0];
+    var timeStr = gcStoryRelativeTime(latest && latest.createdAt);
+    var bg = gcStoryCardBg(arr);
+    var isOwn = currentUser && uid === currentUser.uid;
+    var badge = (!isOwn && isUnseen) ? '<div class="gc-st-card-new">NEW</div>' : '';
+    // own gear optional - skip for cleaner UI matching screenshot for others only
+    return '<div class="gc-st-card" onclick="playStories(\'' + uid + '\')">'
+      + '<div class="gc-st-card-bg ' + bg.cls + '" style="' + bg.style + '"></div>'
+      + '<div class="gc-st-card-fade"></div>'
+      + badge
+      + '<div class="gc-st-card-bottom">'
+      +   '<div class="gc-st-card-av' + (isUnseen ? '' : ' seen') + '">'
+      +     (av ? '<img src="' + escapeHTML(av) + '" alt="">' : '')
+      +   '</div>'
+      +   '<div class="gc-st-card-name">' + name + '</div>'
+      +   (timeStr ? '<div class="gc-st-card-time">' + timeStr + '</div>' : '')
+      + '</div></div>';
+  }
+
+  // Rebuild order: own first if present, then unseen, then seen
+  var order = [];
+  var seenSet = {};
+  if(currentUser && grouped[currentUser.uid]){
+    order.push(currentUser.uid); seenSet[currentUser.uid] = 1;
+  } else if(currentUser && userIdsOrder && userIdsOrder.indexOf(currentUser.uid) !== -1){
+    order.push(currentUser.uid); seenSet[currentUser.uid] = 1;
+  }
+  unseenUsers.forEach(function(uid){ if(!seenSet[uid]){ order.push(uid); seenSet[uid]=1; } });
+  seenUsers.forEach(function(uid){ if(!seenSet[uid]){ order.push(uid); seenSet[uid]=1; } });
+  // if loadStories already deleted own from grouped, recover from allStoriesData later via cardForUid
+
+  // Fix: after loadStories deletes own from grouped, re-fetch from window will happen after allStoriesData set
+  // So render after a microtask if needed — loadStories sets allStoriesData after this call.
+  // Pass a snapshot: include own from temporary
+  order.forEach(function(uid){
+    var isUnseen = unseenUsers.indexOf(uid) !== -1 || (currentUser && uid === currentUser.uid && unseenUsers.indexOf(uid) !== -1);
+    // own: check views
+    if(currentUser && uid === currentUser.uid){
+      var ownArr = grouped[uid] || [];
+      isUnseen = false; // never NEW on own
+    } else {
+      isUnseen = unseenUsers.indexOf(uid) !== -1;
+    }
+    html += cardForUid(uid, isUnseen);
+  });
+
+  grid.innerHTML = html || html;
+}
+
+function openStoriesPage(){
+  var page = document.getElementById('gc-stories-page');
+  if(!page) return;
+  page.classList.add('open');
+  page.setAttribute('aria-hidden', 'false');
+  document.body.classList.add('gc-stories-page-open');
+  try{ if(typeof loadStories === 'function') loadStories(); }catch(e){}
+  // Re-render grid once data is ready (onSnapshot async)
+  setTimeout(function(){
+    try{
+      if(window.allStoriesData && typeof gcRenderStoriesGrid === 'function'){
+        // rebuild grouping for grid only
+        var stories = window.allStoriesData || [];
+        var grouped = {};
+        stories.forEach(function(s){
+          if(!s || !s.uid) return;
+          if(!grouped[s.uid]) grouped[s.uid] = [];
+          grouped[s.uid].push(s);
+        });
+        var unseen = [], seen = [];
+        Object.keys(grouped).forEach(function(uid){
+          if(currentUser && uid === currentUser.uid) return;
+          var _fol = (currentUserData && Array.isArray(currentUserData.following)) ? currentUserData.following : [];
+          if(_fol.indexOf(uid) === -1) return;
+          var allSeen = grouped[uid].every(function(s){ return s.views && currentUser && s.views.includes(currentUser.uid); });
+          if(allSeen) seen.push(uid); else unseen.push(uid);
+        });
+        var order = window.storyUserIds || [];
+        gcRenderStoriesGrid(grouped, unseen, seen, order);
+      }
+    }catch(e){}
+  }, 300);
+}
+
+function closeStoriesPage(){
+  var page = document.getElementById('gc-stories-page');
+  if(!page) return;
+  page.classList.remove('open');
+  page.setAttribute('aria-hidden', 'true');
+  document.body.classList.remove('gc-stories-page-open');
+}
+
 function loadStories(){
-    const list=document.getElementById('stories-list');
-    if(!list)return;
+    const list=document.getElementById('stories-list'); // optional (feed strip removed)
     if(storyUnsub)storyUnsub();
     storyUnsub=db.collection('stories').onSnapshot(snap=>{
         let stories=[];
@@ -21363,7 +21736,8 @@ function loadStories(){
             userIdsOrder.push(uid);
         });
         
-        list.innerHTML=html;
+        // Feed strip removed from home
+        if(list) list.innerHTML='';
         // Keep upload progress bubble if a story is still uploading
         try{ if(window.gcStoryPending && window.gcStoryPending.active && typeof gcPaintStoryPendingInList==='function') gcPaintStoryPendingInList(); }catch(e){}
         // Never expose private accounts' stories to non-followers in viewer data
@@ -21377,6 +21751,22 @@ function loadStories(){
         }catch(e){}
         window.allStoriesData=stories;
         window.storyUserIds = userIdsOrder;
+        // Stories page grid (Explore → Stories)
+        try{
+          if(typeof gcRenderStoriesGrid === 'function'){
+            var g2 = {};
+            stories.forEach(function(s){ if(s && s.uid){ if(!g2[s.uid]) g2[s.uid]=[]; g2[s.uid].push(s); } });
+            var un2 = [], se2 = [];
+            Object.keys(g2).forEach(function(uid){
+              if(currentUser && uid === currentUser.uid) return;
+              var _fol = (currentUserData && Array.isArray(currentUserData.following)) ? currentUserData.following : [];
+              if(_fol.indexOf(uid) === -1) return;
+              var allSeen = g2[uid].every(function(s){ return s.views && currentUser && s.views.includes(currentUser.uid); });
+              if(allSeen) se2.push(uid); else un2.push(uid);
+            });
+            gcRenderStoriesGrid(g2, un2, se2, userIdsOrder);
+          }
+        }catch(_sg){}
         // Active story uids for profile rings
         window.gcActiveStoryUids = {};
         stories.forEach(function(s){
@@ -35179,6 +35569,7 @@ function closeTopMostView() {
   wrapPair('openEditPostModal', 'closeEditPostModal', 'edit-post', elOpen('edit-post-modal', 'open'));
   wrapPair('openSettingsPrivacy', 'closeSettingsPrivacy', 'settings-privacy', elOpen('settings-privacy-screen', 'open'));
   wrapPair('openLeaderboard', 'closeLeaderboard', 'leaderboard', elOpen('page-leaderboard', 'open'));
+  wrapPair('openStoriesPage', 'closeStoriesPage', 'stories-page', elOpen('gc-stories-page', 'open'));
   wrapPair('openBlockedAccountsPage', 'closeBlockedAccountsPage', 'blocked-accounts', elOpen('blocked-accounts-screen', 'display-flex'));
   wrapPair('openMainMenu', 'closeMainMenu', 'main-menu', function () {
     var el = document.getElementById('main-menu-screen');
@@ -36378,36 +36769,27 @@ function filterPrivacySettings(query) {
 }
 // 🚀 ১. স্টোরি ক্রিয়েটর মডাল ওপেন করার ফাংশন
 function openStoryCreatorModal() {
-    let modal = document.getElementById('story-creator-modal');
-    if (!modal) {
-        modal = document.createElement('div');
-        modal.id = 'story-creator-modal';
-        modal.className = 'modal-overlay';
-        modal.style.zIndex = '10005';
-        modal.innerHTML = `
-            <div class="modal-box" style="max-width: 400px; text-align: center;">
-                <button class="modal-close" onclick="closeStoryCreatorModal()"><i class="ph-light ph-x"></i></button>
-                <div class="modal-title" style="margin-bottom: 24px;">Create Story</div>
-                
-                <div style="display: flex; flex-direction: column; gap: 12px;">
-                    <!-- ফটো বা ভিডিও স্টোরি অপশন -->
-                    <label class="story-type-card">
-                        <div style="width: 44px; height: 44px; border-radius: 50%; background: rgba(255,77,106,0.1); color: var(--danger); display: flex; align-items: center; justify-content: center;">
-                            <i class="ph-light ph-image" style="font-size: 24px;"></i>
-                        </div>
-                        <div style="text-align: left; flex: 1;">
-                            <div>Photo/Video Story</div>
-                            <div style="font-size: 12px; color: var(--text-muted); font-weight: 500;">Upload from your gallery</div>
-                        </div>
-                        <input type="file" accept="image/*,video/*" style="display:none;" onchange="closeStoryCreatorModal(); gcOpenStoryMediaPreview(this);">
-                    </label>
-
-                </div>
-            </div>
-        `;
-        document.body.appendChild(modal);
+    // Skip Create Story popup — open gallery directly
+    var input = document.getElementById('gc-story-direct-file');
+    if (!input) {
+        input = document.createElement('input');
+        input.type = 'file';
+        input.id = 'gc-story-direct-file';
+        input.accept = 'image/*,video/*';
+        input.style.display = 'none';
+        input.setAttribute('aria-hidden', 'true');
+        input.addEventListener('change', function() {
+            try {
+                if (typeof gcOpenStoryMediaPreview === 'function') {
+                    gcOpenStoryMediaPreview(input);
+                }
+            } catch (e) { console.warn(e); }
+            try { input.value = ''; } catch (e2) {}
+        });
+        document.body.appendChild(input);
     }
-    modal.classList.add('open');
+    try { input.value = ''; } catch (e) {}
+    input.click();
 }
 
 function closeStoryCreatorModal() {
@@ -40770,9 +41152,21 @@ if(!scr){
 scr = document.createElement('div');
 scr.id = 'gc-liked-screen';
 scr.className = 'gc-liked-screen';
-scr.innerHTML = '<div class="gc-lk-head"><div class="chat-back" onclick="gcCloseLikedScreen()"><i class="ph-light ph-arrow-left" style="font-size:20px;"></i></div><div class="gc-lk-title">Liked Posts</div></div><div class="gc-lk-body" id="gc-liked-list"></div>';
+scr.innerHTML = '<div class="gc-lk-head" style="position:relative;display:flex;align-items:center;justify-content:flex-start;gap:12px;">'
+  + '<button type="button" class="gc-text-close-btn" onclick="gcCloseLikedScreen()" aria-label="Close">Close</button>'
+  + '<div class="gc-lk-title" style="position:absolute;left:50%;transform:translateX(-50%);pointer-events:none;white-space:nowrap;font-weight:800;font-size:18px;">Liked Posts</div>'
+  + '</div><div class="gc-lk-body" id="gc-liked-list"></div>';
 document.body.appendChild(scr);
 }
+// Ensure header uses Close + centered title (migrate old arrow header)
+try{
+  var head = scr.querySelector('.gc-lk-head');
+  if(head && !head.querySelector('.gc-text-close-btn')){
+    head.setAttribute('style','position:relative;display:flex;align-items:center;justify-content:flex-start;gap:12px;');
+    head.innerHTML = '<button type="button" class="gc-text-close-btn" onclick="gcCloseLikedScreen()" aria-label="Close">Close</button>'
+      + '<div class="gc-lk-title" style="position:absolute;left:50%;transform:translateX(-50%);pointer-events:none;white-space:nowrap;font-weight:800;font-size:18px;">Liked Posts</div>';
+  }
+}catch(e){}
 scr.classList.add('open');
 gcLoadLikedPosts();
 }
@@ -40830,7 +41224,7 @@ return '<div class="gc-lk-item" onclick="gcCloseLikedScreen(); openSinglePostVie
 thumb +
 '<div class="gc-lk-info"><div class="gc-lk-name">' + escapeHTML(displayName) + '</div>' +
 '<div class="gc-lk-cap">' + escapeHTML(p.title || '(no caption)') + '</div>' +
-'<div class="gc-lk-meta"><i class="ph-light ph-heart" style="color:var(--danger);font-size:12px;"></i>' + lc + (t ? ' · ' + t : '') + '</div></div></div>';
+'<div class="gc-lk-meta">' + lc + ' reaction' + (lc === 1 ? '' : 's') + (t ? ' · ' + t : '') + '</div></div></div>';
 }).join('');
 }catch(e){
 console.error('gcLoadLikedPosts error:', e);
