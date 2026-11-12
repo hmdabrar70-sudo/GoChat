@@ -17849,7 +17849,7 @@ const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000; // 🚀 birthday-feature · 202
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 const MAX_FILE_SIZE = 10 * 1024 * 1024; /* photo/video upload cap · post + story */
 const MAX_IMAGES_PER_POST = 10;
-const RATE_LIMIT_MS = 1000;
+const RATE_LIMIT_MS = 400;
 
 
 /* ═══ Media limits + client-side compression (data saver) ═══ */
@@ -25101,11 +25101,9 @@ if(typeof editingMessageId !== 'undefined' && editingMessageId){
         const data = snap.data() || {};
         if(String(data.uid) !== String(currentUser.uid)){ showToast('You can only edit your own messages.'); return; }
         await ref.update({ text: text, edited: true, editedAt: firebase.firestore.FieldValue.serverTimestamp() });
+        // Best-effort lastMsg update — do not block on extra reads
         try{
-            const chatSnap = await db.collection('chats').doc(currentChatId).get();
-            if(chatSnap.exists && chatSnap.data().lastSender === currentUser.uid){
-                await db.collection('chats').doc(currentChatId).set({ lastMsg: text }, { merge:true });
-            }
+            db.collection('chats').doc(currentChatId).set({ lastMsg: text, lastAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge:true });
         }catch(e){}
         inp.value='';
         if(currentChatId) localStorage.removeItem('gochat_draft_' + currentChatId);
@@ -25122,10 +25120,7 @@ if(typeof editingMessageId !== 'undefined' && editingMessageId){
     }
 }
 
-inp.value='';
-    // 🚀 NEW: মেসেজ সেন্ড হলে ড্রাফট ক্লিয়ার করা
-    if(currentChatId) localStorage.removeItem('gochat_draft_' + currentChatId);
-    if(typeof gcUpdateChatSendState==='function') gcUpdateChatSendState();
+// Input cleared only after successful write (see below)
 setTypingStatus(false);
 const msgData={
 uid:currentUser.uid,
@@ -25162,32 +25157,50 @@ if(currentReplyMsgId && replyToMsgData){
     document.getElementById('reply-preview-container').innerHTML = '';
     inp.placeholder = 'Message...';
 }
-await db.collection('chats').doc(currentChatId).collection('messages').add(msgData);
-
-// লাস্ট মেসেজে সেন্ডারের নাম দেখানো (গ্রুপের জন্য)
+// Fast path: write message + chat meta in parallel (chat doc already exists for open conversations)
 let lastText = text;
 if (currentChatOtherUid === 'group') {
     lastText = (currentUserData.name || 'User') + ": " + text;
 }
-
 const __chatUsers = (currentChatOtherUid && currentChatOtherUid !== 'group' && currentChatId && currentChatId.indexOf('group_') !== 0)
-  ? [currentUser.uid, currentChatOtherUid].filter(Boolean)
+  ? [currentUser.uid, currentChatOtherUid].filter(Boolean).sort()
   : null;
-await db.collection('chats').doc(currentChatId).set({
+const __chatMeta = {
     lastMsg: lastText,
     lastAt: firebase.firestore.FieldValue.serverTimestamp(),
-    names: { 
-        [currentUser.uid]: currentUserData.name, 
-        [currentChatOtherUid]: document.getElementById('chat-name-display').textContent 
-    },
-    avatars: { 
-        [currentUser.uid]: currentUserData.avatar || '', 
-        [currentChatOtherUid]: '' 
-    },
-    lastSender: currentUser.uid, // কে মেসেজ পাঠালো
-    isRead: false, // মেসেজটি এখনো পড়া হয়নি
-    ...(__chatUsers ? { users: __chatUsers } : {})
-}, { merge: true });
+    lastSender: currentUser.uid,
+    isRead: false
+};
+try {
+  const __nameEl = document.getElementById('chat-name-display');
+  __chatMeta.names = {};
+  __chatMeta.names[currentUser.uid] = (currentUserData && currentUserData.name) || 'User';
+  if (currentChatOtherUid && currentChatOtherUid !== 'group') {
+    __chatMeta.names[currentChatOtherUid] = (__nameEl && __nameEl.textContent) || 'User';
+  }
+  __chatMeta.avatars = {};
+  __chatMeta.avatars[currentUser.uid] = (currentUserData && currentUserData.avatar) || '';
+  if (currentChatOtherUid && currentChatOtherUid !== 'group') {
+    __chatMeta.avatars[currentChatOtherUid] = __chatMeta.avatars[currentChatOtherUid] || '';
+  }
+} catch(_n) {}
+if (__chatUsers) __chatMeta.users = __chatUsers;
+
+// Do not clear input until write succeeds
+try {
+  await Promise.all([
+    db.collection('chats').doc(currentChatId).collection('messages').add(msgData),
+    db.collection('chats').doc(currentChatId).set(__chatMeta, { merge: true })
+  ]);
+  inp.value = '';
+  if (currentChatId) try { localStorage.removeItem('gochat_draft_' + currentChatId); } catch(_d) {}
+  if (typeof gcUpdateChatSendState === 'function') gcUpdateChatSendState();
+} catch (sendErr) {
+  console.error('sendMsg failed', sendErr);
+  showToast('Failed to send message');
+  // restore text for retry
+  try { if (!inp.value) inp.value = text; } catch(_r) {}
+}
 }
 
 
