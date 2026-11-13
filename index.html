@@ -10648,7 +10648,7 @@ transition:background .2s;
 .gc-vplayer.gc-controls-hidden .gc-vp-bar{opacity:0;visibility:hidden;pointer-events:none;}
 /* Facebook-style mute — always visible (only mute control on video) */
 .gc-vplayer .gc-vp-mute-float{
-  position:absolute; right:10px; bottom:28px; z-index:6;
+  position:absolute; right:10px; bottom:16px; z-index:6;
   width:36px; height:36px; min-width:36px; min-height:36px;
   border-radius:50%;
   border:none; padding:0; margin:0; cursor:pointer;
@@ -15498,6 +15498,79 @@ html.theme-dark .search-input-wrap input{
 #page-search .search-input-wrap{
   background-image: none !important;
 }
+
+/* ═══ Search residual glow kill + Education size match ═══ */
+.gc-settings-search-wrap,
+.gc-settings-search-wrap .search-input-wrap,
+#main-menu-screen .search-input-wrap,
+#main-settings-screen .search-input-wrap,
+.search-container .search-input-wrap,
+.gc-edu-search-wrap,
+.gc-edu-search-block .gc-edu-search-wrap{
+  box-shadow: none !important;
+  filter: none !important;
+  outline: none !important;
+  background-image: none !important;
+  -webkit-box-shadow: none !important;
+}
+.gc-settings-search-wrap .search-input-wrap:focus-within,
+#main-menu-screen .search-input-wrap:focus-within,
+#main-settings-screen .search-input-wrap:focus-within,
+.gc-edu-search-wrap:focus-within{
+  box-shadow: none !important;
+  border-color: var(--border, rgba(0,0,0,0.08)) !important;
+  filter: none !important;
+}
+/* Education search = same geometry as Menu/Settings (44px capsule, full width) */
+.gc-edu-search-block{
+  width: 100% !important;
+  padding: 0 !important;
+  margin: 0 0 12px 0 !important;
+  box-sizing: border-box !important;
+}
+.gc-edu-search-wrap{
+  width: 100% !important;
+  height: 44px !important;
+  min-height: 44px !important;
+  max-height: 44px !important;
+  padding: 0 16px !important;
+  gap: 10px !important;
+  border-radius: 999px !important;
+  background: var(--surface-2, #F0F2F5) !important;
+  border: 1px solid var(--border, rgba(0,0,0,0.08)) !important;
+  box-shadow: none !important;
+  background-image: none !important;
+  box-sizing: border-box !important;
+  display: flex !important;
+  align-items: center !important;
+}
+body:not(.light-mode) .gc-edu-search-wrap,
+html.theme-dark .gc-edu-search-wrap{
+  background: var(--surface-2, #1c1c28) !important;
+  border-color: var(--border, rgba(255,255,255,0.08)) !important;
+}
+.gc-edu-search-wrap .gc-edu-search-ico,
+.gc-edu-search-wrap i{
+  font-size: 18px !important;
+  width: 18px !important;
+  height: 18px !important;
+  color: var(--text-muted, #6a6a80) !important;
+  flex-shrink: 0 !important;
+}
+.gc-edu-search-wrap .gc-edu-search,
+.gc-edu-search-wrap #edu-search-input{
+  height: 100% !important;
+  font-size: 15px !important;
+  padding: 0 !important;
+  border: none !important;
+  background: transparent !important;
+  color: var(--text, #252535) !important;
+  -webkit-text-fill-color: var(--text, #252535) !important;
+}
+body:not(.light-mode) .gc-edu-search-wrap #edu-search-input{
+  color: var(--text, #F0F0F5) !important;
+  -webkit-text-fill-color: var(--text, #F0F0F5) !important;
+}
 </style>
 </head>
 <body>
@@ -17177,7 +17250,7 @@ l-137 -640 -193 -3 -193 -2 4 22 c2 13 67 314 144 671 l139 647 192 0 193 0
 
 </div>
 
-<!-- ?? Avatar crop / preview editor -->
+<!-- 🚀 Avatar crop / preview editor -->
 
 <div id="gc-cover-editor" aria-hidden="true">
   <div class="gc-cover-ed-head">
@@ -22727,7 +22800,8 @@ window.gcPhysicsLikeCount = gcPhysicsLikeCount;
 window.gcLikeIconPhysics = gcLikeIconPhysics;
 
 async function toggleLike(pid) {
-    if (!currentUser || !checkRateLimit()) return;
+    if (!currentUser) return;
+    /* Per-post busy only — global rate limit was blocking rapid Like/Unlike */
     window.__gcLikeBusy = window.__gcLikeBusy || {};
     if (window.__gcLikeBusy[pid]) return;
     window.__gcLikeBusy[pid] = true;
@@ -24556,10 +24630,10 @@ var GC_CHAT_REACT_MAP={
   '😥':{label:'Sad'},
   '😡':{label:'Angry'},
   '❤️‍🔥':{label:'Fire'},
-  '👍':{label:'Like'},
+  '👽':{label:'Alien'},
   '🤒':{label:'Sick'},
   '☁️':{label:'Cloud'},
-  '😵‍💫':{label:'Stats'}
+  '📊':{label:'Stats'}
 };
 function gcChatReactSvg(key,size){
   /* Deprecated: SVG reactions removed — always return empty so callers fall back to Unicode */
@@ -24696,10 +24770,10 @@ function gcOpenMsgActionPopup(msgId){
     {k:'😥', label:'Sad'},
     {k:'😡', label:'Angry'},
     {k:'❤️‍🔥', label:'Fire'},
-    {k:'👍', label:'Like'},
+    {k:'👽', label:'Alien'},
     {k:'🤒', label:'Sick'},
     {k:'☁️', label:'Cloud'},
-    {k:'😵‍💫', label:'Stats'}
+    {k:'📊', label:'Stats'}
   ];
   var reactHtml = '<div class="gc-msg-pop-reacts" onclick="event.stopPropagation()">';
   reacts.forEach(function(r){
@@ -39627,7 +39701,7 @@ if(!scr){
 scr = document.createElement('div');
 scr.id = 'gc-insights-screen';
 scr.className = 'gc-ins-screen';
-scr.innerHTML = '<div class="gc-ins-head"><div class="chat-back" onclick="gcCloseInsights()"><i class="ph-light ph-arrow-left" style="font-size:20px;"></i></div><div class="gc-ins-title">Insights</div><div class="gc-ins-range"><button id="gc-ins-7" class="active" onclick="gcInsSetRange(7)">7D</button><button id="gc-ins-30" onclick="gcInsSetRange(30)">30D</button></div></div><div class="gc-ins-body" id="gc-ins-body"></div>';
+scr.innerHTML = '<div class="gc-ins-head"><div class="chat-back" onclick="gcCloseInsights()"><i class="ph-light ph-arrow-left" style="font-size:20px;"></i></div><div class="gc-ins-title">📊 Insights</div><div class="gc-ins-range"><button id="gc-ins-7" class="active" onclick="gcInsSetRange(7)">7D</button><button id="gc-ins-30" onclick="gcInsSetRange(30)">30D</button></div></div><div class="gc-ins-body" id="gc-ins-body"></div>';
 document.body.appendChild(scr);
 }
 scr.classList.add('open');
@@ -41545,7 +41619,7 @@ function gcUpdateFrBadge(optCount){
 window.gcGetPendingRequestCount = gcGetPendingRequestCount;
 window.gcUpdateFrBadge = gcUpdateFrBadge;
 
-// ?? Update #55 · follow-request-page · 2026-08-10
+// 🚀 Update #55 · follow-request-page · 2026-08-10
 // Request Profile page (gcOpenFollowRequests). Edge-swipe opener removed; open via topbar button.
 // খুঁজতে: Ctrl+F → "follow-request-page"
 
@@ -44790,7 +44864,6 @@ window.gcCloseSheetSafe = gcCloseSheetSafe;
     /* Multi-reaction removed — only Like is allowed */
     type = 'like';
     if(GC_REACT_TYPES.indexOf(type) === -1) return;
-    if(typeof checkRateLimit === 'function' && !checkRateLimit()) return;
     window.__gcLikeBusy = window.__gcLikeBusy || {};
     if(window.__gcLikeBusy[pid]) return;
     window.__gcLikeBusy[pid] = true;
