@@ -22807,6 +22807,8 @@ async function toggleLike(pid) {
     window.__gcLikeBusy = window.__gcLikeBusy || {};
     if (window.__gcLikeBusy[pid]) return;
     window.__gcLikeBusy[pid] = true;
+    /* Allow another toggle after a short UI lock — do not wait for full Firestore round-trip */
+    setTimeout(function(){ try { window.__gcLikeBusy[pid] = false; } catch(e){} }, 180);
 
     try {
       // Prefer the surface the user is actually on (Shorts / single / feed)
@@ -25083,30 +25085,68 @@ function showMessageMenu(event, msgId) {
 async function replyToMessage(msgId) {
     currentReplyMsgId = msgId;
     const input = document.getElementById('chat-input');
-    input.focus();
-    
-    // 🚀 অরিজিনাল মেসেজ ডাটাবেস থেকে এনে প্রিভিউ দেখানো
+    if (input) input.focus();
+
+    // Instant preview from in-memory cache / DOM first (no network wait)
+    var cached = null;
     try {
-        const doc = await db.collection('chats').doc(currentChatId).collection('messages').doc(msgId).get();
-        if(doc.exists) {
-            replyToMsgData = doc.data();
-            let shortText = replyToMsgData.text ? escapeHTML(replyToMsgData.text) : '📷 Photo';
-            if(shortText.length > 50) shortText = shortText.substring(0, 50) + '...';
-            
-            const container = document.getElementById('reply-preview-container');
-            container.innerHTML = `
-                <div class="reply-preview" style="display:flex; justify-content:space-between; align-items:center; background:var(--surface-2); padding:10px 14px; border-left:4px solid var(--accent); border-radius:16px 16px 0 0; margin-bottom:0; width:100%; border: 1px solid var(--border); border-bottom: none; box-shadow: 0 -4px 15px rgba(0,0,0,0.05);">
-                    <div style="display:flex; flex-direction:column; overflow:hidden; flex: 1; margin-right: 10px;">
-                        <span style="font-size:12px; font-weight:800; color:var(--accent); margin-bottom:2px;">Replying to ${escapeHTML(replyToMsgData.senderName || 'User')}</span>
-                        <span style="font-size:13px; color:var(--text-secondary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${shortText}</span>
-                    </div>
-                    <i class="ph-light ph-x" style="cursor:pointer; color:var(--text-muted); padding:6px; background:rgba(0,0,0,0.1); border-radius:50%; flex-shrink: 0;" onclick="cancelReply()"></i>
-                </div>
-            `;
-            input.placeholder = 'Reply to ' + (replyToMsgData.senderName || 'User') + '...';
+      if (window.__gcChatMsgCache && window.__gcChatMsgCache[msgId]) {
+        cached = window.__gcChatMsgCache[msgId];
+      }
+    } catch(e){}
+    try {
+      if (!cached && window.chatMessagesCache && window.chatMessagesCache[msgId]) {
+        cached = window.chatMessagesCache[msgId];
+      }
+    } catch(e){}
+    // Fallback: scrape currently rendered bubble text
+    if (!cached) {
+      try {
+        var art = document.querySelector('article.msg[data-id="'+msgId+'"], .msg-bubble[data-id="'+msgId+'"], [data-msg-id="'+msgId+'"]');
+        if (art) {
+          var txt = (art.querySelector('.msg-text, .bubble-text, .text') || art).textContent || '';
+          txt = txt.replace(/\s+/g, ' ').trim();
+          cached = { text: txt, senderName: art.getAttribute('data-sender') || 'User' };
         }
+      } catch(e){}
+    }
+
+    function paintReplyPreview(data) {
+      replyToMsgData = data || {};
+      var shortText = replyToMsgData.text ? escapeHTML(String(replyToMsgData.text)) : (replyToMsgData.imageUrl || replyToMsgData.videoUrl ? '📷 Media' : 'Message');
+      if (shortText.length > 50) shortText = shortText.substring(0, 50) + '...';
+      const container = document.getElementById('reply-preview-container');
+      if (!container) return;
+      container.innerHTML = `
+        <div class="reply-preview" style="display:flex; justify-content:space-between; align-items:center; background:var(--surface-2); padding:10px 14px; border-left:4px solid var(--accent); border-radius:16px 16px 0 0; margin-bottom:0; width:100%; border: 1px solid var(--border); border-bottom: none; box-shadow: 0 -4px 15px rgba(0,0,0,0.05);">
+          <div style="display:flex; flex-direction:column; overflow:hidden; flex: 1; margin-right: 10px;">
+            <span style="font-size:12px; font-weight:800; color:var(--accent); margin-bottom:2px;">Replying to ${escapeHTML(replyToMsgData.senderName || 'User')}</span>
+            <span style="font-size:13px; color:var(--text-secondary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${shortText}</span>
+          </div>
+          <i class="ph-light ph-x" style="cursor:pointer; color:var(--text-muted); padding:6px; background:rgba(0,0,0,0.1); border-radius:50%; flex-shrink: 0;" onclick="cancelReply()"></i>
+        </div>`;
+      if (input) input.placeholder = 'Reply to ' + (replyToMsgData.senderName || 'User') + '...';
+    }
+
+    if (cached) {
+      paintReplyPreview(cached);
+    } else {
+      // Show a lightweight placeholder immediately
+      paintReplyPreview({ text: '…', senderName: 'User' });
+    }
+
+    // Soft refresh from server (non-blocking)
+    try {
+      const doc = await db.collection('chats').doc(currentChatId).collection('messages').doc(msgId).get();
+      if (doc.exists) {
+        var d = doc.data() || {};
+        try { window.__gcChatMsgCache = window.__gcChatMsgCache || {}; window.__gcChatMsgCache[msgId] = d; } catch(e){}
+        if (currentReplyMsgId === msgId) paintReplyPreview(d);
+      }
     } catch(e) { console.error(e); }
 }
+
+
 
 
 async function copyMessageText(msgId){
@@ -25337,7 +25377,21 @@ try {
 } catch(_n) {}
 if (__chatUsers) __chatMeta.users = __chatUsers;
 
-// Do not clear input until write succeeds
+// Optimistic: clear composer immediately so UI feels instant
+try {
+  if (inp) {
+    inp.value = '';
+    if (currentChatId) localStorage.removeItem('gochat_draft_' + currentChatId);
+  }
+  try {
+    currentReplyMsgId = null;
+    replyToMsgData = null;
+    var rp = document.getElementById('reply-preview-container');
+    if (rp) rp.innerHTML = '';
+    if (inp) inp.placeholder = 'Message...';
+  } catch(_r){}
+} catch(_e){}
+
 try {
   await Promise.all([
     db.collection('chats').doc(currentChatId).collection('messages').add(msgData),
@@ -26095,13 +26149,19 @@ function showInAppMessageNotification(chatId, data) {
     const container = document.getElementById('in-app-notif-container');
     if (!container) return;
 
+    // Remove previous popup for same chat so only one shows
+    try {
+      const prev = document.getElementById('popup-' + chatId);
+      if (prev) prev.remove();
+    } catch(e){}
+
      if (currentUserData && currentUserData.messageSound !== false) {
         notifSound.play().catch(e => console.log('Sound blocked until user interaction'));
     }
 
     const popup = document.createElement('div');
     popup.className = 'msg-popup';
-    popup.id = `popup-${chatId}`; // 🚀 FIX: আগের পপআপ রিমুভ করার জন্য আইডি যুক্ত করা হলো
+    popup.id = `popup-${chatId}`;
     popup.style.flexDirection = 'column';
     popup.style.alignItems = 'stretch';
 
@@ -26123,7 +26183,18 @@ function showInAppMessageNotification(chatId, data) {
         openChat(chatId, otherUid, senderName, data.isGroup ? '' : (data.avatars ? data.avatars[otherUid] : ''));
     };
 
+    // Quick-reply bar (original design)
+    const replyBar = document.createElement('div');
+    replyBar.className = 'msg-popup-reply-bar';
+    replyBar.innerHTML = `
+        <input type="text" placeholder="Reply to ${escapeHTML(senderName)}..." onclick="event.stopPropagation();" onkeypress="if(event.key==='Enter'){event.stopPropagation(); sendQuickReply('${chatId}', '${otherUid}', this.value, this.nextElementSibling);}">
+        <button type="button" onclick="event.stopPropagation(); sendQuickReply('${chatId}', '${otherUid}', this.previousElementSibling.value, this)">
+            <i class="ph-light ph-paper-plane-tilt" style="font-size:16px;"></i>
+        </button>
+    `;
+
     popup.appendChild(topContent);
+    popup.appendChild(replyBar);
     container.appendChild(popup);
 
     let startY = 0;
@@ -26151,7 +26222,52 @@ function showInAppMessageNotification(chatId, data) {
     }, 5000);
 }
 
-// কুইক রিপ্লাই পাঠানোর লজিক
+// Quick reply from in-app message popup
+async function sendQuickReply(chatId, otherUid, text, btnElement) {
+    text = (text || '').trim();
+    if(!text || !currentUser) return;
+    
+    if (btnElement) {
+      btnElement.disabled = true;
+      btnElement.innerHTML = '<i class="ph-light ph-circle" style="font-size:16px; animation:spin 1s linear infinite;"></i>';
+    }
+
+    const msgData = {
+        uid: currentUser.uid,
+        senderName: (currentUserData && currentUserData.name) || 'User',
+        text: text,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+    
+    try {
+        await db.collection('chats').doc(chatId).collection('messages').add(msgData);
+        
+        let lastText = text;
+        if (otherUid === 'group') {
+            lastText = ((currentUserData && currentUserData.name) || 'User') + ": " + text;
+        }
+
+        await db.collection('chats').doc(chatId).set({
+            lastMsg: lastText,
+            lastAt: firebase.firestore.FieldValue.serverTimestamp(),
+            lastSender: currentUser.uid,
+            isRead: false
+        }, { merge: true });
+
+        const popup = btnElement && btnElement.closest ? btnElement.closest('.msg-popup') : null;
+        if(popup) {
+            popup.classList.add('hide');
+            setTimeout(() => popup.remove(), 400);
+        }
+        if (typeof showToast === 'function') showToast("Reply sent!");
+    } catch(e) {
+        if (typeof showToast === 'function') showToast("Failed to send reply");
+        if (btnElement) {
+          btnElement.disabled = false;
+          btnElement.innerHTML = '<i class="ph-light ph-paper-plane-tilt" style="font-size:16px;"></i>';
+        }
+    }
+}
 
 // ===== STRICT & SECURE loadMessages FUNCTION =====
 // Firestore rules require filtered queries (array-contains on users/members).
@@ -44869,6 +44985,7 @@ window.gcCloseSheetSafe = gcCloseSheetSafe;
     window.__gcLikeBusy = window.__gcLikeBusy || {};
     if(window.__gcLikeBusy[pid]) return;
     window.__gcLikeBusy[pid] = true;
+    setTimeout(function(){ try { window.__gcLikeBusy[pid] = false; } catch(e){} }, 180);
     try{
       var ref = db.collection('posts').doc(pid);
       var doc = await ref.get();
