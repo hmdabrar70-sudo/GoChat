@@ -3882,6 +3882,58 @@ border-radius:12px;
 margin-top:6px;
 cursor:pointer;
 }
+
+/* Restored chat input area — permanent layout guard */
+#chat-screen #chat-input-area.chat-input-bar,
+#chat-input-area.chat-input-bar{
+  display:flex !important;
+  flex-direction:row;
+  align-items:center;
+  gap:10px;
+  padding:10px 12px calc(10px + env(safe-area-inset-bottom, 0px));
+  background:var(--surface);
+  border-top:none;
+  position:relative;
+  flex:none;
+  width:100%;
+  box-sizing:border-box;
+}
+#chat-screen #chat-input-area.chat-input-bar.gc-composer-locked,
+#chat-input-area.chat-input-bar.gc-composer-locked,
+#chat-input-area.gc-composer-locked{
+  display:none !important;
+}
+#chat-input-area #chat-input{
+  flex:1;min-width:0;
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:999px;
+  padding:12px 16px;
+  color:var(--text);font-size:15px;outline:none;
+}
+#chat-input-area #chat-media-input,
+#chat-input-area #chat-img-input,
+#chat-input-area #chat-video-input,
+#chat-input-area #voice-start-btn,
+#chat-input-area #image-upload-btn{
+  display:none !important;
+  width:0 !important;height:0 !important;opacity:0 !important;
+  pointer-events:none !important;position:absolute !important;
+}
+#chat-input-area .gc-chat-plus-btn{
+  width:40px;height:40px;border-radius:50%;
+  border:1px solid var(--border);flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  background:var(--surface);color:var(--text);
+}
+#chat-input-area .chat-send-btn,
+#chat-input-area #text-send-btn{
+  width:40px;height:40px;border-radius:50%;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  border:1px solid var(--border);
+  background:var(--surface-2);color:var(--text-muted);
+}
+
 .chat-input-bar{
 background:var(--surface);
 border-top:none;
@@ -24461,7 +24513,10 @@ function openChat(chatId, otherUid, otherName, otherAvatar){
     }).catch(()=>{});
 
     // ইনপুট বার ঠিক রাখা
-    document.getElementById('chat-input-area').style.display = 'flex';
+    var _cia = document.getElementById('chat-input-area');
+    if(_cia){ _cia.style.display = 'flex'; _cia.classList.remove('gc-composer-locked'); }
+    ['chat-media-input','chat-img-input','chat-video-input'].forEach(function(id){ var el=document.getElementById(id); if(el) el.style.display='none'; });
+
     if(typeof closeSelectionMode === 'function') closeSelectionMode();
         
     const safeName=escapeHTML(otherName);
@@ -39503,37 +39558,61 @@ function gcWatchPeerBlock(uid){
 
 function gcApplyChatComposerLock(otherUid){
   try{
-    var bar = document.getElementById('chat-input-bar') || document.querySelector('.chat-input-bar') || document.getElementById('chat-input-area');
+    var bar = document.getElementById('chat-input-area') || document.getElementById('chat-input-bar') || document.querySelector('.chat-input-bar');
     var input = document.getElementById('chat-input');
-    var sendBtn = document.getElementById('chat-send-btn') || document.querySelector('#chat-screen [onclick*="sendMsg"], #chat-screen [onclick*="sendChat"]');
-    var attach = document.querySelectorAll('#chat-screen input[type=file], #chat-screen .chat-attach, #chat-screen [onclick*="sendChat"], #chat-screen [onclick*="startVoice"], #chat-screen [onclick*="recordVoice"], #chat-screen .tool-btn, #chat-screen .voice-btn, #chat-screen .attach-btn');
+    var sendBtn = document.getElementById('text-send-btn') || document.getElementById('chat-send-btn');
+    var plusBtn = document.getElementById('gc-chat-plus-btn');
     var note = document.getElementById('gc-chat-block-note');
+    // Only interactive controls — never touch hidden file inputs (keeps display:none)
+    var controls = [];
+    if(plusBtn) controls.push(plusBtn);
+    if(sendBtn) controls.push(sendBtn);
+    if(input) controls.push(input);
+
+    function restoreBar(){
+      if(!bar) return;
+      bar.classList.remove('gc-composer-locked');
+      bar.style.display = 'flex';
+      bar.style.visibility = '';
+      bar.style.opacity = '';
+      bar.style.pointerEvents = '';
+      // Ensure native file inputs stay hidden (prevents "Choose files" leak)
+      ['chat-media-input','chat-img-input','chat-video-input'].forEach(function(id){
+        var el = document.getElementById(id);
+        if(el){ el.style.display = 'none'; el.setAttribute('aria-hidden','true'); }
+      });
+      var imgLab = document.getElementById('image-upload-btn');
+      if(imgLab) imgLab.style.display = 'none';
+      var vs = document.getElementById('voice-start-btn');
+      if(vs){ vs.style.display = 'none'; vs.setAttribute('aria-hidden','true'); }
+    }
 
     if(!otherUid || otherUid === 'group') {
-      if(bar){ bar.classList.remove('gc-composer-locked'); bar.style.display = ''; }
-      if(input){ input.disabled = false; input.placeholder = input.getAttribute('data-ph') || 'Message...'; }
-      if(sendBtn) sendBtn.style.pointerEvents = '';
-      attach.forEach(function(el){ el.style.pointerEvents = ''; el.style.opacity = ''; el.style.display = ''; });
+      restoreBar();
+      if(input){ input.disabled = false; input.readOnly = false; input.placeholder = input.getAttribute('data-ph') || 'Type a message...'; }
+      controls.forEach(function(el){ el.style.pointerEvents = ''; el.style.opacity = ''; });
       if(note) note.style.display = 'none';
       return;
     }
 
-    var locked = !gcCanMessageUser(otherUid);
+    var locked = (typeof gcCanMessageUser === 'function') ? !gcCanMessageUser(otherUid) : false;
     var iBlocked = typeof gcIsBlockedByMe === 'function' && gcIsBlockedByMe(otherUid);
     var theyBlocked = typeof gcDidBlockMe === 'function' && gcDidBlockMe(otherUid);
 
-    if(input && !input.getAttribute('data-ph')) input.setAttribute('data-ph', input.placeholder || 'Message...');
+    if(input && !input.getAttribute('data-ph')) input.setAttribute('data-ph', input.placeholder || 'Type a message...');
 
     if(locked){
-      if(bar){ bar.classList.add('gc-composer-locked'); bar.style.display = 'none'; }
+      if(bar){
+        bar.classList.add('gc-composer-locked');
+        bar.style.display = 'none';
+      }
       if(input){ input.disabled = true; }
-      if(sendBtn) sendBtn.style.pointerEvents = 'none';
-      attach.forEach(function(el){ el.style.pointerEvents = 'none'; el.style.opacity = '0.4'; });
+      controls.forEach(function(el){ el.style.pointerEvents = 'none'; });
 
       if(!note){
         note = document.createElement('div');
         note.id = 'gc-chat-block-note';
-        note.style.cssText = 'flex:none;text-align:center;padding:14px 16px calc(14px + env(safe-area-inset-bottom,0px));font-size:13px;font-weight:650;color:var(--text-muted);background:var(--surface);border-top:1px solid var(--border);line-height:1.45';
+        note.style.cssText = 'flex:none;text-align:center;padding:14px 16px calc(14px + env(safe-area-inset-bottom,0px));font-size:13px;font-weight:650;color:var(--text-muted);background:var(--surface);border-top:1px solid var(--border);line-height:1.45;z-index:5;';
         var host = document.getElementById('chat-screen') || document.getElementById('page-chat');
         if(host) host.appendChild(note);
         else if(bar && bar.parentElement) bar.parentElement.appendChild(note);
@@ -39556,10 +39635,9 @@ function gcApplyChatComposerLock(otherUid){
       }
       note.style.display = 'block';
     } else {
-      if(bar){ bar.classList.remove('gc-composer-locked'); bar.style.display = ''; }
-      if(input){ input.disabled = false; input.placeholder = input.getAttribute('data-ph') || 'Message...'; }
-      if(sendBtn) sendBtn.style.pointerEvents = '';
-      attach.forEach(function(el){ el.style.pointerEvents = ''; el.style.opacity = ''; });
+      restoreBar();
+      if(input){ input.disabled = false; input.readOnly = false; input.placeholder = input.getAttribute('data-ph') || 'Type a message...'; }
+      controls.forEach(function(el){ el.style.pointerEvents = ''; el.style.opacity = ''; });
       if(note) note.style.display = 'none';
     }
   }catch(e){ console.warn('gcApplyChatComposerLock', e); }
