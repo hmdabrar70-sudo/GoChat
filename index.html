@@ -3465,7 +3465,7 @@ body:not(.light-mode) .detail-item > svg{
   color:#f0f0f5 !important;
 }
 .detail-item .gc-rel-chip{margin-top:0 !important;}
-.avatar-edit-btn{
+.avatar-edit-btn, button.avatar-edit-btn{
 position:absolute;bottom:2px;right:2px;
 width:32px;height:32px;
 background:#0a0a0f;
@@ -4731,29 +4731,137 @@ backdrop-filter:none;
 }
 
 
-/* ═══ Avatar crop / preview editor ═══ */
+/* ═══ Avatar crop / preview editor · multi-step premium ═══ */
 #gc-av-editor{
   display:none; position:fixed; inset:0; z-index:100250;
-  background:#0b0b10; flex-direction:column;
+  background:rgba(5,8,18,0.72); flex-direction:column;
   max-width:520px; margin:0 auto;
+  backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
 }
 #gc-av-editor.open{ display:flex; }
-.gc-av-head{
+#gc-av-editor[data-step="preview"],
+#gc-av-editor[data-step="crop"],
+#gc-av-editor[data-step="final"]{
+  background:#0b0f1a;
+  backdrop-filter:none; -webkit-backdrop-filter:none;
+}
+.gc-av-step{ flex:1; display:flex; flex-direction:column; min-height:0; }
+.gc-av-step[hidden]{ display:none !important; }
+
+/* Chooser bottom sheet */
+.gc-av-step-chooser{
+  justify-content:flex-end; padding:0 0 env(safe-area-inset-bottom);
+}
+.gc-av-sheet-card{
+  background:linear-gradient(180deg,#151b2e 0%,#0e1320 100%);
+  border-radius:28px 28px 0 0;
+  padding:10px 18px 18px;
+  border:1px solid rgba(255,255,255,0.06);
+  border-bottom:none;
+  box-shadow:0 -12px 40px rgba(0,0,0,0.45);
+  animation:gcAvSheetUp .28s cubic-bezier(.22,1,.36,1);
+}
+@keyframes gcAvSheetUp{
+  from{ transform:translateY(24px); opacity:0; }
+  to{ transform:translateY(0); opacity:1; }
+}
+.gc-av-sheet-handle{
+  width:40px; height:4px; border-radius:99px;
+  background:rgba(255,255,255,0.18); margin:4px auto 16px;
+}
+.gc-av-chooser-hero{ text-align:center; margin-bottom:18px; }
+.gc-av-chooser-ring{
+  width:96px; height:96px; border-radius:50%; margin:0 auto 14px;
+  border:2px solid rgba(124,140,255,0.55);
+  background:rgba(124,140,255,0.08);
+  display:flex; align-items:center; justify-content:center;
+  overflow:hidden; color:#8b9cff;
+}
+.gc-av-chooser-ring img{ width:100%; height:100%; object-fit:cover; display:block; }
+.gc-av-chooser-placeholder{ width:48px; height:48px; }
+.gc-av-chooser-title{
+  color:#fff; font-size:18px; font-weight:800; letter-spacing:-0.02em;
+}
+.gc-av-chooser-sub{
+  color:rgba(255,255,255,0.55); font-size:13px; font-weight:500; margin-top:4px;
+}
+.gc-av-choice{
+  width:100%; display:flex; align-items:center; gap:12px;
+  padding:14px 14px; margin:0 0 10px;
+  border:none; border-radius:16px; cursor:pointer; text-align:left;
+  background:rgba(255,255,255,0.06); color:#fff;
+  transition:background .15s, transform .12s;
+}
+.gc-av-choice:active{ transform:scale(0.985); background:rgba(255,255,255,0.1); }
+.gc-av-choice-ico{
+  width:42px; height:42px; border-radius:12px; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  background:rgba(124,140,255,0.16); color:#aab6ff; font-size:20px;
+}
+.gc-av-choice-txt{ flex:1; min-width:0; display:flex; flex-direction:column; gap:2px; }
+.gc-av-choice-txt strong{ font-size:15px; font-weight:700; }
+.gc-av-choice-txt small{ font-size:12px; color:rgba(255,255,255,0.5); font-weight:500; }
+.gc-av-choice-chev{ color:rgba(255,255,255,0.35); font-size:16px; }
+.gc-av-choice-danger .gc-av-choice-ico{ background:rgba(255,77,106,0.14); color:#ff6b84; }
+.gc-av-choice-danger strong{ color:#ff8a9c; }
+.gc-av-sheet-cancel{
+  width:100%; margin-top:4px; padding:14px; border:none; border-radius:16px;
+  background:transparent; color:rgba(255,255,255,0.65);
+  font-size:15px; font-weight:700; cursor:pointer;
+}
+
+/* Shared top bar */
+.gc-av-topbar{
   display:flex; align-items:center; justify-content:space-between;
-  padding:14px 16px; padding-top:max(14px, env(safe-area-inset-top));
-  color:#fff; flex-shrink:0;
+  padding:12px 14px; padding-top:max(12px, env(safe-area-inset-top));
+  color:#fff; flex-shrink:0; gap:8px;
 }
-.gc-av-head h3{ font-size:17px; font-weight:800; margin:0; }
-.gc-av-head button{
-  background:transparent; border:none; color:#fff; font-size:15px; font-weight:700;
-  padding:8px 12px; cursor:pointer; border-radius:20px;
+.gc-av-topbar h3{ font-size:17px; font-weight:800; margin:0; letter-spacing:-0.02em; }
+.gc-av-icon-btn{
+  width:40px; height:40px; border-radius:50%; border:none;
+  background:rgba(255,255,255,0.08); color:#fff;
+  display:inline-flex; align-items:center; justify-content:center;
+  font-size:20px; cursor:pointer;
 }
-.gc-av-head button:active{ opacity:0.7; }
+.gc-av-icon-btn:active{ opacity:0.75; }
+.gc-av-top-spacer{ width:40px; }
+.gc-av-done-chip{
+  border:none; border-radius:999px; padding:8px 16px;
+  background:linear-gradient(135deg,#6d7cff 0%,#8b5cf6 100%);
+  color:#fff; font-weight:800; font-size:14px; cursor:pointer;
+  font-family:inherit; box-shadow:0 6px 18px rgba(109,124,255,0.35);
+}
+.gc-av-done-chip:active{ opacity:0.9; }
+
+/* Preview step */
+.gc-av-preview-body{
+  flex:1; display:flex; flex-direction:column; align-items:center;
+  justify-content:center; padding:12px 20px; min-height:0; gap:16px;
+}
+.gc-av-preview-frame{
+  width:min(86vw, 340px); aspect-ratio:1; border-radius:22px;
+  overflow:hidden; background:#111827;
+  box-shadow:0 16px 48px rgba(0,0,0,0.45);
+  border:1px solid rgba(255,255,255,0.08);
+}
+.gc-av-preview-frame img{
+  width:100%; height:100%; object-fit:cover; display:block;
+}
+.gc-av-preview-note{
+  display:flex; align-items:flex-start; gap:10px;
+  max-width:340px; width:100%;
+  padding:12px 14px; border-radius:14px;
+  background:rgba(255,255,255,0.06);
+  color:rgba(255,255,255,0.72); font-size:13px; font-weight:500; line-height:1.4;
+}
+.gc-av-preview-note i{ font-size:18px; color:#8b9cff; flex-shrink:0; margin-top:1px; }
+
+/* Crop stage */
 .gc-av-stage{
   flex:1; position:relative; overflow:hidden;
   display:flex; align-items:center; justify-content:center;
   touch-action:none; user-select:none; -webkit-user-select:none;
-  background:#000;
+  background:#05070e;
 }
 .gc-av-stage img#gc-av-img{
   position:absolute; max-width:none; max-height:none;
@@ -4762,25 +4870,104 @@ backdrop-filter:none;
 }
 .gc-av-mask{
   position:absolute; inset:0; pointer-events:none;
-  /* Square hole in the center (not circle) */
-  background:
-    linear-gradient(#000,#000) top / 100% calc(50% - min(42vw, 180px)) no-repeat,
-    linear-gradient(#000,#000) bottom / 100% calc(50% - min(42vw, 180px)) no-repeat,
-    linear-gradient(#000,#000) left / calc(50% - min(42vw, 180px)) 100% no-repeat,
-    linear-gradient(#000,#000) right / calc(50% - min(42vw, 180px)) 100% no-repeat;
-  opacity:0.58;
+  background:rgba(0,0,0,0.55);
+  -webkit-mask-image: radial-gradient(circle at center, transparent min(42vw,180px), #000 min(42vw,180px));
+  mask-image: radial-gradient(circle at center, transparent min(42vw,180px), #000 min(42vw,180px));
 }
 .gc-av-ring{
   position:absolute; left:50%; top:50%;
   width:min(84vw, 360px); height:min(84vw, 360px);
   transform:translate(-50%,-50%);
-  border-radius:12px; border:2px solid rgba(255,255,255,0.95);
+  border-radius:50%; border:2px solid rgba(255,255,255,0.95);
   box-shadow:0 0 0 1px rgba(0,0,0,0.35); pointer-events:none;
+  overflow:hidden;
 }
-/* Original mode: hide crop frame, show full photo */
+.gc-av-grid{
+  position:absolute; inset:0;
+  background:
+    linear-gradient(to right, rgba(255,255,255,0.22) 1px, transparent 1px) 0 0 / 33.333% 100%,
+    linear-gradient(to bottom, rgba(255,255,255,0.22) 1px, transparent 1px) 0 0 / 100% 33.333%;
+  opacity:0.55;
+}
+.gc-av-hint{
+  position:absolute; bottom:16px; left:0; right:0; text-align:center;
+  color:rgba(255,255,255,0.72); font-size:12px; font-weight:600;
+  pointer-events:none; text-shadow:0 1px 4px rgba(0,0,0,0.6);
+}
+.gc-av-controls{
+  flex-shrink:0; padding:12px 16px calc(14px + env(safe-area-inset-bottom));
+  background:#0c101c; border-top:1px solid rgba(255,255,255,0.06);
+}
+.gc-av-ratio-row{
+  display:flex; gap:8px; margin-bottom:12px; justify-content:center;
+}
+.gc-av-ratio{
+  min-width:56px; padding:10px 12px; border-radius:12px; border:none;
+  background:rgba(255,255,255,0.06); color:rgba(255,255,255,0.65);
+  font-size:12px; font-weight:800; cursor:pointer; font-family:inherit;
+}
+.gc-av-ratio.active{
+  background:linear-gradient(135deg,#6d7cff 0%,#8b5cf6 100%);
+  color:#fff; box-shadow:0 4px 14px rgba(109,124,255,0.3);
+}
+.gc-av-zoom-row{
+  display:flex; align-items:center; gap:12px; margin-bottom:12px;
+}
+.gc-av-zoom-row i{ color:rgba(255,255,255,0.7); font-size:18px; }
+.gc-av-zoom-row input[type=range]{
+  flex:1; accent-color:#8b5cf6; height:4px;
+}
+.gc-av-tool-row{ display:flex; gap:10px; justify-content:center; }
+.gc-av-tool{
+  flex:1; max-width:160px; border:none; border-radius:14px;
+  padding:12px 10px; background:rgba(255,255,255,0.06); color:#fff;
+  font-size:13px; font-weight:700; cursor:pointer;
+  display:inline-flex; align-items:center; justify-content:center; gap:8px;
+  font-family:inherit;
+}
+.gc-av-tool:active{ opacity:0.8; }
+
+/* Final step */
+.gc-av-final-body{
+  flex:1; display:flex; flex-direction:column; align-items:center;
+  justify-content:center; padding:20px; gap:8px; min-height:0;
+}
+.gc-av-final-circle{
+  width:min(58vw, 220px); height:min(58vw, 220px); border-radius:50%;
+  overflow:hidden; background:#111827;
+  border:3px solid rgba(255,255,255,0.12);
+  box-shadow:0 16px 48px rgba(0,0,0,0.4);
+  margin-bottom:8px;
+}
+.gc-av-final-circle img{ width:100%; height:100%; object-fit:cover; display:block; }
+.gc-av-final-ok{ color:#22c55e; font-size:32px; line-height:1; }
+.gc-av-final-title{ color:#fff; font-size:22px; font-weight:800; letter-spacing:-0.02em; }
+.gc-av-final-sub{ color:rgba(255,255,255,0.55); font-size:14px; font-weight:500; }
+
+.gc-av-bottom-actions{
+  flex-shrink:0; padding:12px 20px calc(18px + env(safe-area-inset-bottom));
+  display:flex; flex-direction:column; gap:10px;
+}
+.gc-av-btn-primary{
+  border:none; border-radius:999px; padding:15px 18px;
+  background:linear-gradient(135deg,#6d7cff 0%,#8b5cf6 100%);
+  color:#fff; font-size:16px; font-weight:800; cursor:pointer;
+  font-family:inherit;
+  box-shadow:0 8px 24px rgba(109,124,255,0.35);
+}
+.gc-av-btn-primary:disabled{ opacity:0.55; cursor:wait; }
+.gc-av-btn-primary:active{ transform:scale(0.98); }
+.gc-av-btn-wide{ width:100%; }
+.gc-av-btn-ghost{
+  border:none; background:transparent; color:rgba(255,255,255,0.65);
+  font-size:15px; font-weight:700; padding:10px; cursor:pointer; font-family:inherit;
+}
+.gc-av-btn-ghost:active{ opacity:0.75; }
+
+/* legacy class hooks kept for JS compatibility */
+.gc-av-mode-row{ display:none !important; }
 #gc-av-editor.mode-original .gc-av-mask,
 #gc-av-editor.mode-original .gc-av-ring{ display:none; }
-#gc-av-editor.mode-original .gc-av-zoom-row{ opacity:0.35; pointer-events:none; }
 
 /* ═══ Cover photo crop editor ═══ */
 #gc-cover-editor{
@@ -16048,9 +16235,9 @@ body:not(.light-mode) .gc-edu-search-wrap #edu-search-input{
 <div class="profile-main-row">
 <div class="profile-avatar-wrap">
 <div class="profile-avatar" id="profile-avatar-big"></div>
-<label class="avatar-edit-btn" for="avatar-input">
+<button type="button" class="avatar-edit-btn" onclick="gcOpenAvatarChooser()" aria-label="Change profile photo">
     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true" style="display:block;"><circle cx="12" cy="13" r="3"/><path d="M9.77778 21H14.2222C17.3433 21 18.9038 21 20.0248 20.2646C20.51 19.9462 20.9267 19.5371 21.251 19.0607C22 17.9601 22 16.4279 22 13.3636C22 10.2994 22 8.76721 21.251 7.6666C20.9267 7.19014 20.51 6.78104 20.0248 6.46268C19.3044 5.99013 18.4027 5.82123 17.022 5.76086C16.3631 5.76086 15.7959 5.27068 15.6667 4.63636C15.4728 3.68489 14.6219 3 13.6337 3H10.3663C9.37805 3 8.52715 3.68489 8.33333 4.63636C8.20412 5.27068 7.63685 5.76086 6.978 5.76086C5.59733 5.82123 4.69555 5.99013 3.97524 6.46268C3.48995 6.78104 3.07328 7.19014 2.74902 7.6666C2 8.76721 2 10.2994 2 13.3636C2 16.4279 2 17.9601 2.74902 19.0607C3.07328 19.5371 3.48995 19.9462 3.97524 20.2646C5.09624 21 6.65675 21 9.77778 21Z"/><path d="M19 10H18"/></svg>
-</label>
+</button>
 <input type="file" id="avatar-input" accept="image/*" style="display:none" onchange="gcOpenAvatarEditor(this)">
 </div>
 <div class="profile-stats-row" id="profile-follow-stats">
@@ -17196,41 +17383,114 @@ body:not(.light-mode) .gc-edu-search-wrap #edu-search-input{
   </div>
 </div>
 
-<div id="gc-av-editor" aria-hidden="true">
-  <div class="gc-av-head">
-  <button type="button" onclick="gcCloseAvatarEditor()" aria-label="Cancel"><i class="ph-light ph-x"></i></button>
-  <h3>Edit profile photo</h3>
-  <div style="width:40px;"></div>
-</div>
-  <div class="gc-av-stage" id="gc-av-stage">
-    <img id="gc-av-img" alt="Profile preview" draggable="false">
-    <div class="gc-av-mask"></div>
-    <div class="gc-av-ring"></div>
-    <div class="gc-av-hint" id="gc-av-hint">Drag to reposition · slide to zoom</div>
-  </div>
-  <div class="gc-av-controls">
-    <div class="gc-av-mode-row">
-      <button type="button" id="gc-av-mode-original" class="active" onclick="gcAvSetMode('original')">
-        Original
+<div id="gc-av-editor" aria-hidden="true" data-step="chooser">
+  <!-- Step: Chooser -->
+  <div class="gc-av-step gc-av-step-chooser" data-av-step="chooser">
+    <div class="gc-av-sheet-card">
+      <div class="gc-av-sheet-handle"></div>
+      <div class="gc-av-chooser-hero">
+        <div class="gc-av-chooser-ring" id="gc-av-chooser-preview">
+          <svg class="gc-av-chooser-placeholder" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4" fill="currentColor" opacity=".35"/><path d="M4 20c0-3.5 3.6-6 8-6s8 2.5 8 6" fill="currentColor" opacity=".25"/></svg>
+        </div>
+        <div class="gc-av-chooser-title">Add a profile photo</div>
+        <div class="gc-av-chooser-sub">Let others know it's you</div>
+      </div>
+      <button type="button" class="gc-av-choice" onclick="gcAvPickCamera()">
+        <span class="gc-av-choice-ico"><i class="ph-light ph-camera"></i></span>
+        <span class="gc-av-choice-txt"><strong>Take Photo</strong><small>Use your camera</small></span>
+        <i class="ph-bold ph-caret-right gc-av-choice-chev"></i>
       </button>
-      <button type="button" id="gc-av-mode-crop" onclick="gcAvSetMode('crop')">
-        Crop
+      <button type="button" class="gc-av-choice" onclick="gcAvPickGallery()">
+        <span class="gc-av-choice-ico"><i class="ph-light ph-image"></i></span>
+        <span class="gc-av-choice-txt"><strong>Choose from Gallery</strong><small>Select from your photos</small></span>
+        <i class="ph-bold ph-caret-right gc-av-choice-chev"></i>
       </button>
+      <button type="button" class="gc-av-choice gc-av-choice-danger" id="gc-av-remove-btn" onclick="gcAvRemovePhoto()" style="display:none;">
+        <span class="gc-av-choice-ico"><i class="ph-light ph-trash"></i></span>
+        <span class="gc-av-choice-txt"><strong>Remove Photo</strong><small>Use default avatar</small></span>
+        <i class="ph-bold ph-caret-right gc-av-choice-chev"></i>
+      </button>
+      <button type="button" class="gc-av-sheet-cancel" onclick="gcCloseAvatarEditor()">Cancel</button>
     </div>
-    <div class="gc-av-zoom-row">
-      <i class="ph-light ph-magnifying-glass-minus"></i>
-      <input type="range" id="gc-av-zoom" min="100" max="300" value="100" step="1">
-      <i class="ph-light ph-magnifying-glass-plus"></i>
-    </div>
-    <div class="gc-av-actions">
-  <button type="button" class="gc-av-btn-secondary" onclick="gcAvatarChooseAnother()">
-    Change
-  </button>
-  <button type="button" class="gc-av-btn-primary" id="gc-av-save-btn" onclick="gcConfirmAvatarCrop()">
-    Use photo
-  </button>
-</div>
   </div>
+
+  <!-- Step: Preview -->
+  <div class="gc-av-step gc-av-step-preview" data-av-step="preview" hidden>
+    <div class="gc-av-topbar">
+      <button type="button" class="gc-av-icon-btn" onclick="gcAvGoBack()" aria-label="Back"><i class="ph-bold ph-arrow-left"></i></button>
+      <h3>Preview</h3>
+      <span class="gc-av-top-spacer"></span>
+    </div>
+    <div class="gc-av-preview-body">
+      <div class="gc-av-preview-frame">
+        <img id="gc-av-preview-img" alt="Preview" draggable="false">
+      </div>
+      <div class="gc-av-preview-note">
+        <i class="ph-light ph-info"></i>
+        <span>This is how your profile picture will look on GoChat.</span>
+      </div>
+    </div>
+    <div class="gc-av-bottom-actions">
+      <button type="button" class="gc-av-btn-primary gc-av-btn-wide" onclick="gcAvGoStep('crop')">Next</button>
+      <button type="button" class="gc-av-btn-ghost" onclick="gcAvGoBack()">Cancel</button>
+    </div>
+  </div>
+
+  <!-- Step: Crop -->
+  <div class="gc-av-step gc-av-step-crop" data-av-step="crop" hidden>
+    <div class="gc-av-topbar">
+      <button type="button" class="gc-av-icon-btn" onclick="gcAvGoBack()" aria-label="Back"><i class="ph-bold ph-arrow-left"></i></button>
+      <h3>Crop Photo</h3>
+      <button type="button" class="gc-av-done-chip" onclick="gcAvGoStep('final')">Done</button>
+    </div>
+    <div class="gc-av-stage" id="gc-av-stage">
+      <img id="gc-av-img" alt="Profile crop" draggable="false">
+      <div class="gc-av-mask"></div>
+      <div class="gc-av-ring">
+        <div class="gc-av-grid" aria-hidden="true"></div>
+      </div>
+      <div class="gc-av-hint" id="gc-av-hint">Drag to reposition · pinch or slide to zoom</div>
+    </div>
+    <div class="gc-av-controls">
+      <div class="gc-av-ratio-row" role="tablist">
+        <button type="button" class="gc-av-ratio active" data-ratio="1" onclick="gcAvSetRatio(1,this)">1:1</button>
+        <button type="button" class="gc-av-ratio" data-ratio="0.75" onclick="gcAvSetRatio(0.75,this)">3:4</button>
+        <button type="button" class="gc-av-ratio" data-ratio="1.333" onclick="gcAvSetRatio(1.333,this)">4:3</button>
+        <button type="button" class="gc-av-ratio" data-ratio="0.5625" onclick="gcAvSetRatio(0.5625,this)">9:16</button>
+      </div>
+      <div class="gc-av-zoom-row">
+        <i class="ph-light ph-magnifying-glass-minus"></i>
+        <input type="range" id="gc-av-zoom" min="100" max="300" value="100" step="1">
+        <i class="ph-light ph-magnifying-glass-plus"></i>
+      </div>
+      <div class="gc-av-tool-row">
+        <button type="button" class="gc-av-tool" onclick="gcAvRotate(-90)"><i class="ph-light ph-arrow-counter-clockwise"></i> Rotate</button>
+        <button type="button" class="gc-av-tool" onclick="gcAvResetView()"><i class="ph-light ph-arrow-clockwise"></i> Reset</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step: Final -->
+  <div class="gc-av-step gc-av-step-final" data-av-step="final" hidden>
+    <div class="gc-av-topbar">
+      <button type="button" class="gc-av-icon-btn" onclick="gcAvGoBack()" aria-label="Back"><i class="ph-bold ph-arrow-left"></i></button>
+      <h3>Profile Picture</h3>
+      <span class="gc-av-top-spacer"></span>
+    </div>
+    <div class="gc-av-final-body">
+      <div class="gc-av-final-circle" id="gc-av-final-preview"></div>
+      <div class="gc-av-final-ok"><i class="ph-fill ph-check-circle"></i></div>
+      <div class="gc-av-final-title">Looks great!</div>
+      <div class="gc-av-final-sub">Your profile picture is ready.</div>
+    </div>
+    <div class="gc-av-bottom-actions">
+      <button type="button" class="gc-av-btn-primary gc-av-btn-wide" id="gc-av-save-btn" onclick="gcConfirmAvatarCrop()">Save</button>
+      <button type="button" class="gc-av-btn-ghost" onclick="gcAvatarChooseAnother()">Try Another</button>
+    </div>
+  </div>
+
+  <input type="file" id="avatar-input-camera" accept="image/*" capture="environment" style="display:none" onchange="gcOpenAvatarEditor(this)">
+  <input type="file" id="avatar-input-gallery" accept="image/*" style="display:none" onchange="gcOpenAvatarEditor(this)">
 </div>
 
 <div id="create-text-story-modal" data-removed="1" style="display:none; position:fixed; inset:0; background:var(--bg); z-index:1005; flex-direction:column; animation:slideUp 0.3s ease;">
@@ -29679,13 +29939,134 @@ var gcAvState = {
   minScale: 1,
   tx: 0,
   ty: 0,
+  rotation: 0,
+  ratio: 1,
   dragging: false,
   lastX: 0,
   lastY: 0,
   pinchDist: 0,
   bound: false,
-  mode: 'original' // 'original' | 'crop'
+  mode: 'crop', // multi-step always crops for final avatar
+  step: 'chooser' // chooser | preview | crop | final
 };
+
+function gcOpenAvatarChooser(){
+  var editor = document.getElementById('gc-av-editor');
+  if(!editor) return;
+  gcAvState.step = 'chooser';
+  editor.dataset.step = 'chooser';
+  editor.classList.add('open');
+  editor.setAttribute('aria-hidden', 'false');
+  // show remove if user has avatar
+  try{
+    var has = !!(typeof currentUserData !== 'undefined' && currentUserData && currentUserData.avatar && String(currentUserData.avatar).trim());
+    var rm = document.getElementById('gc-av-remove-btn');
+    if(rm) rm.style.display = has ? 'flex' : 'none';
+    var ring = document.getElementById('gc-av-chooser-preview');
+    if(ring){
+      if(has){
+        ring.innerHTML = '<img src="'+String(currentUserData.avatar).replace(/"/g,'&quot;')+'" alt="">';
+      }else{
+        ring.innerHTML = '<svg class="gc-av-chooser-placeholder" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4" fill="currentColor" opacity=".35"/><path d="M4 20c0-3.5 3.6-6 8-6s8 2.5 8 6" fill="currentColor" opacity=".25"/></svg>';
+      }
+    }
+  }catch(e){}
+  gcAvShowStep('chooser');
+}
+window.gcOpenAvatarChooser = gcOpenAvatarChooser;
+
+function gcAvPickCamera(){
+  var inp = document.getElementById('avatar-input-camera') || document.getElementById('avatar-input');
+  if(inp){ try{ inp.value=''; }catch(e){} inp.click(); }
+}
+function gcAvPickGallery(){
+  var inp = document.getElementById('avatar-input-gallery') || document.getElementById('avatar-input');
+  if(inp){ try{ inp.value=''; }catch(e){} inp.click(); }
+}
+window.gcAvPickCamera = gcAvPickCamera;
+window.gcAvPickGallery = gcAvPickGallery;
+
+async function gcAvRemovePhoto(){
+  if(!currentUser) return;
+  try{
+    if(typeof gcOpenConfirm === 'function'){
+      gcOpenConfirm({
+        title:'Remove photo?',
+        text:'Your profile will use the default avatar.',
+        icon:'ph-light ph-trash',
+        yesLabel:'Remove',
+        onYes: function(){ gcAvDoRemovePhoto(); }
+      });
+    }else if(confirm('Remove profile photo?')){
+      gcAvDoRemovePhoto();
+    }
+  }catch(e){ gcAvDoRemovePhoto(); }
+}
+async function gcAvDoRemovePhoto(){
+  try{
+    await db.collection('users').doc(currentUser.uid).update({ avatar: '' });
+    if(currentUserData) currentUserData.avatar = '';
+    try{ if(typeof gcPatchUsersCacheAvatar==='function') gcPatchUsersCacheAvatar(currentUser.uid, ''); }catch(e){}
+    try{ if(typeof gcSyncDomAvatarsForUser==='function') gcSyncDomAvatarsForUser(currentUser.uid, ''); }catch(e){}
+    try{ if(typeof loadUserUI==='function') loadUserUI(); }catch(e){}
+    showToast('Profile photo removed');
+    gcCloseAvatarEditor();
+  }catch(e){
+    console.error(e);
+    showToast('Could not remove photo');
+  }
+}
+window.gcAvRemovePhoto = gcAvRemovePhoto;
+
+function gcAvShowStep(step){
+  gcAvState.step = step || 'chooser';
+  var editor = document.getElementById('gc-av-editor');
+  if(editor) editor.dataset.step = gcAvState.step;
+  document.querySelectorAll('#gc-av-editor .gc-av-step').forEach(function(el){
+    var s = el.getAttribute('data-av-step');
+    if(s === gcAvState.step) el.removeAttribute('hidden');
+    else el.setAttribute('hidden','');
+  });
+  if(gcAvState.step === 'crop'){
+    requestAnimationFrame(function(){
+      gcAvFitImage();
+      gcAvApplyTransform();
+    });
+  }
+  if(gcAvState.step === 'final'){
+    gcAvRenderFinalPreview();
+  }
+}
+window.gcAvShowStep = gcAvShowStep;
+
+function gcAvGoStep(step){
+  if(step === 'crop'){
+    gcAvState.mode = 'crop';
+    gcAvShowStep('crop');
+    return;
+  }
+  if(step === 'final'){
+    gcAvShowStep('final');
+    return;
+  }
+  if(step === 'preview'){
+    gcAvShowStep('preview');
+  }
+}
+window.gcAvGoStep = gcAvGoStep;
+
+function gcAvGoBack(){
+  var s = gcAvState.step;
+  if(s === 'final'){ gcAvShowStep('crop'); return; }
+  if(s === 'crop'){ gcAvShowStep('preview'); return; }
+  if(s === 'preview'){
+    // back to chooser, keep file so user can re-pick
+    gcAvShowStep('chooser');
+    return;
+  }
+  gcCloseAvatarEditor();
+}
+window.gcAvGoBack = gcAvGoBack;
 
 function gcOpenAvatarEditor(input){
   const file = input && input.files && input.files[0];
@@ -29702,6 +30083,7 @@ function gcOpenAvatarEditor(input){
   }
   const editor = document.getElementById('gc-av-editor');
   const img = document.getElementById('gc-av-img');
+  const pimg = document.getElementById('gc-av-preview-img');
   const zoom = document.getElementById('gc-av-zoom');
   if(!editor || !img) return;
 
@@ -29713,39 +30095,43 @@ function gcOpenAvatarEditor(input){
   gcAvState.scale = 1;
   gcAvState.tx = 0;
   gcAvState.ty = 0;
+  gcAvState.rotation = 0;
+  gcAvState.ratio = 1;
   gcAvState.dragging = false;
+  gcAvState.mode = 'crop';
   if(zoom) zoom.value = 100;
+
+  // reset ratio buttons
+  try{
+    document.querySelectorAll('.gc-av-ratio').forEach(function(b,i){
+      b.classList.toggle('active', i === 0);
+    });
+  }catch(e){}
 
   img.onload = function(){
     gcAvState.naturalW = img.naturalWidth || img.width;
     gcAvState.naturalH = img.naturalHeight || img.height;
-    gcAvSetMode(gcAvState.mode || 'original');
+    gcAvFitImage();
+    gcAvApplyTransform();
   };
   img.src = gcAvState.objectUrl;
+  if(pimg) pimg.src = gcAvState.objectUrl;
 
   editor.classList.add('open');
   editor.setAttribute('aria-hidden', 'false');
   gcAvBindGestures();
+  gcAvShowStep('preview');
   // clear input so same file can be re-picked
   if(input) input.value = '';
 }
 
 function gcAvSetMode(mode){
-  gcAvState.mode = (mode === 'crop') ? 'crop' : 'original';
+  // kept for compatibility — multi-step uses crop for final save
+  gcAvState.mode = (mode === 'original') ? 'original' : 'crop';
   const editor = document.getElementById('gc-av-editor');
-  const btnO = document.getElementById('gc-av-mode-original');
-  const btnC = document.getElementById('gc-av-mode-crop');
-  const hint = document.getElementById('gc-av-hint');
   if(editor){
     editor.classList.toggle('mode-original', gcAvState.mode === 'original');
     editor.classList.toggle('mode-crop', gcAvState.mode === 'crop');
-  }
-  if(btnO) btnO.classList.toggle('active', gcAvState.mode === 'original');
-  if(btnC) btnC.classList.toggle('active', gcAvState.mode === 'crop');
-  if(hint){
-    hint.textContent = gcAvState.mode === 'original'
-      ? 'Original size · no crop'
-      : 'Drag to reposition · slide to zoom';
   }
   gcAvFitImage();
   gcAvApplyTransform();
@@ -29760,23 +30146,100 @@ function gcCloseAvatarEditor(){
   if(editor){
     editor.classList.remove('open');
     editor.setAttribute('aria-hidden', 'true');
+    editor.dataset.step = 'chooser';
   }
   if(gcAvState.objectUrl){
     try{ URL.revokeObjectURL(gcAvState.objectUrl); }catch(e){}
     gcAvState.objectUrl = null;
   }
   gcAvState.file = null;
+  gcAvState.step = 'chooser';
   const img = document.getElementById('gc-av-img');
   if(img) img.removeAttribute('src');
+  const pimg = document.getElementById('gc-av-preview-img');
+  if(pimg) pimg.removeAttribute('src');
+  const fin = document.getElementById('gc-av-final-preview');
+  if(fin) fin.innerHTML = '';
 }
 window.gcCloseAvatarEditor = gcCloseAvatarEditor;
 
 function gcAvatarChooseAnother(){
-  gcCloseAvatarEditor();
-  const inp = document.getElementById('avatar-input');
-  if(inp) inp.click();
+  // stay in flow — open gallery again
+  gcAvPickGallery();
 }
 window.gcAvatarChooseAnother = gcAvatarChooseAnother;
+
+function gcAvSetRatio(ratio, btn){
+  gcAvState.ratio = Number(ratio) || 1;
+  try{
+    document.querySelectorAll('.gc-av-ratio').forEach(function(b){ b.classList.remove('active'); });
+    if(btn) btn.classList.add('active');
+  }catch(e){}
+  // For profile avatar final export remains square circle; ratio only adjusts frame UI
+  var ring = document.querySelector('#gc-av-editor .gc-av-ring');
+  var base = Math.min(window.innerWidth * 0.84, 360);
+  if(ring){
+    var r = gcAvState.ratio;
+    var w = base, h = base;
+    if(r < 1){ h = base; w = base * r; }
+    else if(r > 1){ w = base; h = base / r; }
+    // keep circle for avatar identity — only slight oval for non-1 ratios
+    if(Math.abs(r - 1) < 0.01){
+      ring.style.borderRadius = '50%';
+      ring.style.width = base + 'px';
+      ring.style.height = base + 'px';
+    }else{
+      ring.style.borderRadius = '18px';
+      ring.style.width = Math.min(w, base) + 'px';
+      ring.style.height = Math.min(h, base) + 'px';
+    }
+  }
+  gcAvFitImage();
+  gcAvApplyTransform();
+}
+window.gcAvSetRatio = gcAvSetRatio;
+
+function gcAvRotate(deg){
+  gcAvState.rotation = ((gcAvState.rotation || 0) + (deg || 0)) % 360;
+  gcAvApplyTransform();
+}
+window.gcAvRotate = gcAvRotate;
+
+function gcAvResetView(){
+  gcAvState.tx = 0;
+  gcAvState.ty = 0;
+  gcAvState.rotation = 0;
+  gcAvState.ratio = 1;
+  try{
+    document.querySelectorAll('.gc-av-ratio').forEach(function(b,i){ b.classList.toggle('active', i===0); });
+    var ring = document.querySelector('#gc-av-editor .gc-av-ring');
+    if(ring){
+      var base = Math.min(window.innerWidth * 0.84, 360);
+      ring.style.borderRadius = '50%';
+      ring.style.width = base + 'px';
+      ring.style.height = base + 'px';
+    }
+  }catch(e){}
+  gcAvFitImage();
+  var zoom = document.getElementById('gc-av-zoom');
+  if(zoom) zoom.value = 100;
+  gcAvApplyTransform();
+}
+window.gcAvResetView = gcAvResetView;
+
+async function gcAvRenderFinalPreview(){
+  var host = document.getElementById('gc-av-final-preview');
+  if(!host) return;
+  try{
+    var blob = await gcExportAvatarBlob();
+    var url = URL.createObjectURL(blob);
+    host.innerHTML = '<img src="'+url+'" alt="Final preview">';
+  }catch(e){
+    if(gcAvState.objectUrl){
+      host.innerHTML = '<img src="'+gcAvState.objectUrl+'" alt="Final preview">';
+    }
+  }
+}
 
 function gcAvCropSize(){
   // diameter of the visible circle in CSS pixels
@@ -29814,14 +30277,17 @@ function gcAvApplyTransform(){
   const img = document.getElementById('gc-av-img');
   if(!img) return;
   const s = gcAvState.scale;
+  const rot = gcAvState.rotation || 0;
   img.style.width = (gcAvState.naturalW * s) + 'px';
   img.style.height = (gcAvState.naturalH * s) + 'px';
   img.style.left = '50%';
   img.style.top = '50%';
-  img.style.transform = 'translate(calc(-50% + ' + gcAvState.tx + 'px), calc(-50% + ' + gcAvState.ty + 'px))';
+  var t = 'translate(calc(-50% + ' + gcAvState.tx + 'px), calc(-50% + ' + gcAvState.ty + 'px)) rotate(' + rot + 'deg)';
+  img.style.transform = t;
   gcAvClamp();
   // re-apply after clamp
-  img.style.transform = 'translate(calc(-50% + ' + gcAvState.tx + 'px), calc(-50% + ' + gcAvState.ty + 'px))';
+  t = 'translate(calc(-50% + ' + gcAvState.tx + 'px), calc(-50% + ' + gcAvState.ty + 'px)) rotate(' + rot + 'deg)';
+  img.style.transform = t;
 }
 
 function gcAvClamp(){
@@ -29925,9 +30391,14 @@ function gcExportAvatarBlob(){
       const drawH = gcAvState.naturalH * gcAvState.scale * scaleToCanvas;
       const cx = outSize / 2 + gcAvState.tx * scaleToCanvas;
       const cy = outSize / 2 + gcAvState.ty * scaleToCanvas;
+      const rot = (gcAvState.rotation || 0) * Math.PI / 180;
 
-      // Image covers the whole square (minScale = cover), so no empty padding
-      ctx.drawImage(img, cx - drawW / 2, cy - drawH / 2, drawW, drawH);
+      // Image covers the whole square (minScale = cover), with optional rotation
+      ctx.save();
+      ctx.translate(cx, cy);
+      if(rot) ctx.rotate(rot);
+      ctx.drawImage(img, -drawW / 2, -drawH / 2, drawW, drawH);
+      ctx.restore();
 
       canvas.toBlob(function(blob){
         if(blob) resolve(blob);
@@ -29939,17 +30410,12 @@ function gcExportAvatarBlob(){
 
 async function gcConfirmAvatarCrop(){
   const btn = document.getElementById('gc-av-save-btn');
-  if(btn){ btn.disabled = true; btn.innerHTML = '<i class="ph-light ph-spinner-gap" style="animation:spin 1s linear infinite;"></i> Uploading…'; }
+  if(btn){ btn.disabled = true; btn.textContent = 'Saving…'; }
   try{
     let file;
-    if(gcAvState.mode === 'original'){
-      // Same as old rule: upload the selected file as-is (original aspect / size)
-      if(!gcAvState.file) throw new Error('No file');
-      file = gcAvState.file;
-    } else {
-      const blob = await gcExportAvatarBlob();
-      file = new File([blob], 'avatar.jpg', { type: 'image/jpeg' });
-    }
+    // Multi-step flow always uses the cropped/framed result
+    const blob = await gcExportAvatarBlob();
+    file = new File([blob], 'avatar.jpg', { type: 'image/jpeg' });
     await gcUploadAvatarFile(file);
     gcCloseAvatarEditor();
   }catch(e){
@@ -29957,7 +30423,7 @@ async function gcConfirmAvatarCrop(){
     if(e && e.message === 'IMG_TOO_LARGE') showToast('Profile photo must be under 5MB!');
     else showToast('Could not update photo. Try again.');
   }finally{
-    if(btn){ btn.disabled = false; btn.innerHTML = '<i class="ph-light ph-check"></i> Use photo'; }
+    if(btn){ btn.disabled = false; btn.textContent = 'Save'; }
   }
 }
 window.gcConfirmAvatarCrop = gcConfirmAvatarCrop;
@@ -34868,7 +35334,7 @@ function gcLegacyCloseLayers() {
     if (trendingScreen && trendingScreen.classList.contains('open')) { if (typeof gcCloseTrending === 'function') gcCloseTrending(); else trendingScreen.classList.remove('open'); return true; }
 
     var avatarEditor = document.getElementById('gc-av-editor');
-    if (avatarEditor && avatarEditor.classList.contains('open')) { if (typeof gcCloseAvatarEditor === 'function') gcCloseAvatarEditor(); else avatarEditor.classList.remove('open'); return true; }
+    if (avatarEditor && avatarEditor.classList.contains('open')) { if (typeof gcAvGoBack === 'function') gcAvGoBack(); else if (typeof gcCloseAvatarEditor === 'function') gcCloseAvatarEditor(); else avatarEditor.classList.remove('open'); return true; }
     var coverEditor = document.getElementById('gc-cover-editor');
     if (coverEditor && coverEditor.classList.contains('open')) { if (typeof gcCloseCoverEditor === 'function') gcCloseCoverEditor(); else coverEditor.classList.remove('open'); return true; }
 
@@ -35587,7 +36053,7 @@ function closeTopMostView() {
   L('#quick-profile-modal', call('closeQuickProfile'));
 
   // Edit profile & its sub-pages
-  L('#gc-av-editor', call('gcCloseAvatarEditor'));
+  L('#gc-av-editor', call('gcAvGoBack'));
   L('#gc-cover-editor', call('gcCloseCoverEditor'));
   L('#ep-section-personal', call('gcCloseEpSection', 'personal'));
   L('#ep-section-work', call('gcCloseEpSection', 'work'));
@@ -35759,7 +36225,8 @@ function closeTopMostView() {
     return ov && (ov.classList.contains('open') || ov.style.display === 'flex');
   });
   wrapPair('gcOpenCoverEditor', 'gcCloseCoverEditor', 'cover-editor', elOpen('gc-cover-editor', 'open'));
-  wrapPair('gcOpenAvatarEditor', 'gcCloseAvatarEditor', 'avatar-editor', elOpen('gc-avatar-editor', 'open'));
+  wrapPair('gcOpenAvatarChooser', 'gcCloseAvatarEditor', 'avatar-editor', elOpen('gc-av-editor', 'open'));
+  wrapPair('gcOpenAvatarEditor', 'gcCloseAvatarEditor', 'avatar-editor-flow', elOpen('gc-av-editor', 'open'));
 
   if (typeof window.closeStory === 'function') {
     var _cs = window.closeStory;
@@ -37900,9 +38367,12 @@ function gcChangeProfilePhotoFromZoom(e){
   if(e) e.stopPropagation();
   try{ if(typeof gcCloseSheet === 'function') gcCloseSheet(); }catch(err){}
   try{ if(typeof closeImageZoom === 'function') closeImageZoom(); }catch(err){}
-  const inp = document.getElementById('avatar-input');
-  if(inp) inp.click();
-  else showToast('Could not open gallery');
+  if(typeof gcOpenAvatarChooser === 'function') gcOpenAvatarChooser();
+  else {
+    const inp = document.getElementById('avatar-input-gallery') || document.getElementById('avatar-input');
+    if(inp) inp.click();
+    else showToast('Could not open gallery');
+  }
 }
 window.gcChangeProfilePhotoFromZoom = gcChangeProfilePhotoFromZoom;
 
