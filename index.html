@@ -4969,6 +4969,69 @@ backdrop-filter:none;
 #gc-av-editor.mode-original .gc-av-mask,
 #gc-av-editor.mode-original .gc-av-ring{ display:none; }
 
+
+/* ═══ Universal Camera / Gallery source picker ═══ */
+#gc-media-source-picker{
+  display:none; position:fixed; inset:0; z-index:100280;
+  align-items:flex-end; justify-content:center;
+  background:rgba(8,10,18,0.55);
+  backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
+  max-width:520px; margin:0 auto;
+}
+#gc-media-source-picker.open{ display:flex; }
+.gc-msp-card{
+  width:100%;
+  background:var(--surface, #151b2e);
+  color:var(--text, #fff);
+  border-radius:24px 24px 0 0;
+  padding:12px 16px calc(16px + env(safe-area-inset-bottom));
+  border:1px solid var(--border, rgba(255,255,255,0.08));
+  border-bottom:none;
+  box-shadow:0 -10px 36px rgba(0,0,0,0.28);
+  animation:gcMspUp .26s cubic-bezier(.22,1,.36,1);
+  position:relative;
+}
+@keyframes gcMspUp{
+  from{ transform:translateY(20px); opacity:0; }
+  to{ transform:translateY(0); opacity:1; }
+}
+body.light-mode #gc-media-source-picker{
+  background:rgba(15,18,28,0.35);
+}
+body.light-mode .gc-msp-card{
+  background:#fff;
+  color:#0a0a0f;
+  border-color:rgba(0,0,0,0.06);
+  box-shadow:0 -10px 36px rgba(0,0,0,0.12);
+}
+.gc-msp-close{ display:none !important; }
+.gc-msp-handle{
+  width:40px; height:4px; border-radius:99px;
+  background:rgba(127,127,127,0.35); margin:2px auto 14px;
+}
+.gc-msp-option{
+  width:100%; display:flex; align-items:center; gap:14px;
+  padding:16px 14px; margin:0 0 10px;
+  border:none; border-radius:16px; cursor:pointer; text-align:left;
+  background:var(--surface-2, rgba(255,255,255,0.06));
+  color:inherit; font-family:inherit;
+  transition:background .15s, transform .12s;
+}
+.gc-msp-option:active{ transform:scale(0.985); }
+body.light-mode .gc-msp-option{ background:#f3f4f8; }
+.gc-msp-ico{
+  width:44px; height:44px; border-radius:14px; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  background:rgba(109,124,255,0.16); color:#7c8cff; font-size:22px;
+}
+.gc-msp-ico svg{ width:22px; height:22px; display:block; }
+
+body.light-mode .gc-msp-ico{ background:rgba(109,124,255,0.12); color:#5563e8; }
+.gc-msp-label{
+  flex:1; font-size:16px; font-weight:700; letter-spacing:-0.01em;
+}
+.gc-msp-option:last-of-type{ margin-bottom:2px; }
+
 /* ═══ Cover photo crop editor ═══ */
 #gc-cover-editor{
   display:none; position:fixed; inset:0; z-index:100260;
@@ -16225,7 +16288,7 @@ body:not(.light-mode) .gc-edu-search-wrap #edu-search-input{
   <div class="gc-cover-fade"></div>
 </div>
 <!-- Add/Edit Cover — position via CSS (inside header flow, not topbar) -->
-<button type="button" class="gc-cover-edit-btn" id="my-cover-edit-btn" onclick="document.getElementById('cover-input').click()" title="Add Cover" aria-label="Add Cover">
+<button type="button" class="gc-cover-edit-btn" id="my-cover-edit-btn" onclick="(function(){var inp=document.getElementById('cover-input');if(inp&&typeof gcOpenMediaSourceForInput==='function')gcOpenMediaSourceForInput(inp,{accept:'image/*',multiple:false});else if(inp)inp.click();})()" title="Add Cover" aria-label="Add Cover">
   <i class="ph-light ph-camera"></i><span>Add Cover</span>
 </button>
 <input type="file" id="cover-input" accept="image/*" style="display:none" onchange="gcUploadCoverPhoto(this)">
@@ -16950,7 +17013,7 @@ body:not(.light-mode) .gc-edu-search-wrap #edu-search-input{
 <div style="display: flex; gap: 20px; align-items: center; margin-top: 8px; padding-bottom: 8px; position: relative;">
     
     <!-- 🖼️ Gallery Button (No Color) -->
-    <label for="post-img-input" style="cursor:pointer; color:var(--text-muted); display: flex; align-items: center; justify-content: center; transition:0.2s; margin:0;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text-muted)'">
+    <label for="post-img-input" id="post-img-picker-label" onclick="event.preventDefault();var inp=document.getElementById('post-img-input');if(inp&&typeof gcOpenMediaSourceForInput==='function'){gcOpenMediaSourceForInput(inp,{accept:'image/*',multiple:true});}else if(inp){inp.click();}" style="cursor:pointer; color:var(--text-muted); display: flex; align-items: center; justify-content: center; transition:0.2s; margin:0;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text-muted)'">
         <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" aria-hidden="true" style="width:26px;height:26px;display:block;"><path d="M0 0h24v24H0z" fill="none"/><path fill="currentColor" fill-rule="evenodd" d="M11.9426 1.25H12.0574C14.3658 1.24999 16.1748 1.24998 17.5863 1.43975C19.031 1.63399 20.1711 2.03933 21.0659 2.93414C21.9607 3.82895 22.366 4.96897 22.5603 6.41371C22.75 7.82519 22.75 9.63423 22.75 11.9426V12.0574C22.75 14.3658 22.75 16.1748 22.5603 17.5863C22.366 19.031 21.9607 20.1711 21.0659 21.0659C20.1711 21.9607 19.031 22.366 17.5863 22.5603C16.1748 22.75 14.3658 22.75 12.0574 22.75H11.9426C9.63423 22.75 7.82519 22.75 6.41371 22.5603C4.96897 22.366 3.82895 21.9607 2.93414 21.0659C2.03933 20.1711 1.63399 19.031 1.43975 17.5863C1.24998 16.1748 1.24999 14.3658 1.25 12.0574V11.9426C1.24999 9.63423 1.24998 7.82519 1.43975 6.41371C1.63399 4.96897 2.03933 3.82895 2.93414 2.93414C3.82895 2.03933 4.96897 1.63399 6.41371 1.43975C7.82519 1.24998 9.63423 1.24999 11.9426 1.25ZM6.61358 2.92637C5.33517 3.09825 4.56445 3.42514 3.9948 3.9948C3.42514 4.56445 3.09825 5.33517 2.92637 6.61358C2.75159 7.91356 2.75 9.62177 2.75 12C2.75 14.3782 2.75159 16.0864 2.92637 17.3864C3.09825 18.6648 3.42514 19.4355 3.9948 20.0052C4.56445 20.5749 5.33517 20.9018 6.61358 21.0736C7.91356 21.2484 9.62177 21.25 12 21.25C14.3782 21.25 16.0864 21.2484 17.3864 21.0736C18.6648 20.9018 19.4355 20.5749 20.0052 20.0052C20.5749 19.4355 20.9018 18.6648 21.0736 17.3864C21.2484 16.0864 21.25 14.3782 21.25 12C21.25 9.62177 21.2484 7.91356 21.0736 6.61358C20.9018 5.33517 20.5749 4.56445 20.0052 3.9948C19.4355 3.42514 18.6648 3.09825 17.3864 2.92637C16.0864 2.75159 14.3782 2.75 12 2.75C9.62177 2.75 7.91356 2.75159 6.61358 2.92637ZM16 6.75C15.3096 6.75 14.75 7.30964 14.75 8C14.75 8.69036 15.3096 9.25 16 9.25C16.6904 9.25 17.25 8.69036 17.25 8C17.25 7.30964 16.6904 6.75 16 6.75ZM13.25 8C13.25 6.48122 14.4812 5.25 16 5.25C17.5188 5.25 18.75 6.48122 18.75 8C18.75 9.51878 17.5188 10.75 16 10.75C14.4812 10.75 13.25 9.51878 13.25 8ZM8.50397 13.1766C7.91991 12.5566 6.94501 12.5241 6.32092 13.1038L5.51041 13.8566C5.20691 14.1385 4.73236 14.1209 4.45047 13.8174C4.16858 13.5139 4.1861 13.0394 4.48959 12.7575L5.3001 12.0047C6.52816 10.8641 8.44651 10.9281 9.59579 12.1481L12.2433 14.9584C12.5202 15.2523 12.9735 15.2919 13.2972 15.0504C14.4971 14.1553 16.1679 14.257 17.2503 15.2911L19.5181 17.4577C19.8176 17.7438 19.8284 18.2186 19.5423 18.5181C19.2562 18.8176 18.7814 18.8284 18.4819 18.5423L16.2141 16.3757C15.661 15.8473 14.8073 15.7953 14.1941 16.2527C13.2596 16.9499 11.9509 16.8356 11.1515 15.9869L8.50397 13.1766Z" clip-rule="evenodd"/></svg>
     </label>
     <input type="file" id="post-img-input" accept="image/*" multiple style="display:none" onchange="previewImages(this)">
@@ -17383,6 +17446,24 @@ body:not(.light-mode) .gc-edu-search-wrap #edu-search-input{
   </div>
 </div>
 
+
+<!-- ═══ Universal Camera / Gallery source picker ═══ -->
+<div id="gc-media-source-picker" aria-hidden="true" role="dialog" aria-label="Add media">
+  <div class="gc-msp-card" onclick="event.stopPropagation()">
+    <div class="gc-msp-handle" aria-hidden="true"></div>
+    <button type="button" class="gc-msp-option" onclick="gcMediaSourcePick('camera')">
+      <span class="gc-msp-ico"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path d="M0 0h24v24H0z" fill="none"/><path fill="currentColor" fill-rule="evenodd" d="M7.59843 4.48666C7.86525 3.17678 9.03088 2.25 10.3663 2.25H13.6337C14.9691 2.25 16.1347 3.17678 16.4016 4.48666C16.4632 4.78904 16.7371 5.01086 17.022 5.01086H17.0384L17.0548 5.01157C18.4582 5.07294 19.5362 5.24517 20.4362 5.83558C21.0032 6.20757 21.4909 6.68617 21.871 7.24464C22.3439 7.93947 22.5524 8.73694 22.6524 9.70145C22.75 10.6438 22.75 11.825 22.75 13.3211V13.4062C22.75 14.9023 22.75 16.0835 22.6524 17.0258C22.5524 17.9903 22.3439 18.7878 21.871 19.4826C21.4909 20.0411 21.0032 20.5197 20.4362 20.8917C19.7327 21.3532 18.9262 21.5567 17.948 21.6544C16.9903 21.75 15.789 21.75 14.2634 21.75H9.73657C8.21098 21.75 7.00967 21.75 6.05196 21.6544C5.07379 21.5567 4.26731 21.3532 3.56385 20.8917C2.99682 20.5197 2.50905 20.0411 2.12899 19.4826C1.65612 18.7878 1.44756 17.9903 1.34762 17.0258C1.24998 16.0835 1.24999 14.9023 1.25 13.4062V13.3211C1.24999 11.825 1.24998 10.6438 1.34762 9.70145C1.44756 8.73694 1.65612 7.93947 2.12899 7.24464C2.50905 6.68617 2.99682 6.20757 3.56385 5.83558C4.46383 5.24517 5.5418 5.07294 6.94523 5.01157L6.96161 5.01086H6.978C7.26288 5.01086 7.53683 4.78905 7.59843 4.48666ZM10.3663 3.75C9.72522 3.75 9.18905 4.19299 9.06824 4.78607C8.87258 5.74659 8.021 6.50186 6.99633 6.51078C5.64772 6.57069 4.92536 6.73636 4.38664 7.08978C3.98309 7.35452 3.63752 7.6941 3.36906 8.08857C3.09291 8.49435 2.92696 9.01325 2.83963 9.85604C2.75094 10.7121 2.75 11.8156 2.75 13.3636C2.75 14.9117 2.75094 16.0152 2.83963 16.8712C2.92696 17.714 3.09291 18.2329 3.36906 18.6387C3.63752 19.0332 3.98309 19.3728 4.38664 19.6375C4.80417 19.9114 5.33844 20.0756 6.20104 20.1618C7.07549 20.2491 8.20193 20.25 9.77778 20.25H14.2222C15.7981 20.25 16.9245 20.2491 17.799 20.1618C18.6616 20.0756 19.1958 19.9114 19.6134 19.6375C20.0169 19.3728 20.3625 19.0332 20.6309 18.6387C20.9071 18.2329 21.073 17.714 21.1604 16.8712C21.2491 16.0152 21.25 14.9117 21.25 13.3636C21.25 11.8156 21.2491 10.7121 21.1604 9.85604C21.073 9.01325 20.9071 8.49435 20.6309 8.08857C20.3625 7.6941 20.0169 7.35452 19.6134 7.08978C19.0746 6.73636 18.3523 6.57069 17.0037 6.51078C15.979 6.50186 15.1274 5.74659 14.9318 4.78607C14.8109 4.19299 14.2748 3.75 13.6337 3.75H10.3663ZM12 10.75C10.7574 10.75 9.75 11.7574 9.75 13C9.75 14.2426 10.7574 15.25 12 15.25C13.2426 15.25 14.25 14.2426 14.25 13C14.25 11.7574 13.2426 10.75 12 10.75ZM8.25 13C8.25 10.9289 9.92893 9.25 12 9.25C14.0711 9.25 15.75 10.9289 15.75 13C15.75 15.0711 14.0711 16.75 12 16.75C9.92893 16.75 8.25 15.0711 8.25 13ZM17.25 10C17.25 9.58579 17.5858 9.25 18 9.25H19C19.4142 9.25 19.75 9.58579 19.75 10C19.75 10.4142 19.4142 10.75 19 10.75H18C17.5858 10.75 17.25 10.4142 17.25 10Z" clip-rule="evenodd"/></svg></span>
+      <span class="gc-msp-label">Take photo</span>
+    </button>
+    <button type="button" class="gc-msp-option" onclick="gcMediaSourcePick('gallery')">
+      <span class="gc-msp-ico"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path d="M0 0h24v24H0z" fill="none"/><path fill="currentColor" fill-rule="evenodd" d="M11.9427 1.25H12.0575C14.3659 1.24999 16.1749 1.24998 17.5864 1.43975C19.0311 1.63399 20.1712 2.03933 21.066 2.93414C21.9608 3.82895 22.3661 4.96897 22.5603 6.41371C22.7501 7.82519 22.7501 9.63423 22.7501 11.9426V12.0574C22.7501 12.5023 22.7501 12.9287 22.7487 13.3372C22.7508 13.3696 22.7507 13.4025 22.7484 13.4356C22.7419 15.1021 22.7106 16.4688 22.5603 17.5863C22.3661 19.031 21.9608 20.1711 21.066 21.0659C20.1712 21.9607 19.0311 22.366 17.5864 22.5603C16.8486 22.6594 16.0023 22.7068 15.0327 22.7294C14.9408 22.7515 14.8431 22.7566 14.7438 22.7414C14.7332 22.7398 14.7228 22.7379 14.7124 22.7359C13.9107 22.75 13.0282 22.75 12.0575 22.75H11.9427C9.63433 22.75 7.82529 22.75 6.4138 22.5603C4.96907 22.366 3.82904 21.9607 2.93423 21.0659C2.03942 20.1711 1.63408 19.031 1.43984 17.5863C1.25007 16.1748 1.25008 14.3658 1.2501 12.0574V11.9426C1.25009 11.3365 1.25009 10.7647 1.25352 10.2256C1.24841 10.1729 1.24893 10.1208 1.25462 10.07C1.26582 8.62518 1.30473 7.41868 1.43984 6.41371C1.63408 4.96897 2.03942 3.82895 2.93423 2.93414C3.82904 2.03933 4.96907 1.63399 6.4138 1.43975C7.82529 1.24998 9.63433 1.24999 11.9427 1.25ZM2.75118 10.8037C2.75015 11.1826 2.7501 11.5809 2.7501 12C2.7501 14.3782 2.75169 16.0864 2.92647 17.3864C3.09834 18.6648 3.42524 19.4355 3.99489 20.0052C4.56455 20.5749 5.33527 20.9018 6.61367 21.0736C7.91365 21.2484 9.62187 21.25 12.0001 21.25C12.8044 21.25 13.5321 21.2498 14.1933 21.2428C14.7362 15.0501 9.3515 9.85595 3.08743 10.7554L2.75118 10.8037ZM15.7011 21.2078C16.3324 21.182 16.8893 21.1405 17.3865 21.0736C18.6649 20.9018 19.4356 20.5749 20.0053 20.0052C20.575 19.4355 20.9018 18.6648 21.0737 17.3864C21.194 16.4918 21.2323 15.4038 21.2444 14.0371L20.9238 13.9927C18.5043 13.6577 16.3038 14.7947 15.0847 16.636C15.5912 18.0541 15.8189 19.6005 15.7011 21.2078ZM14.3875 15.0736C12.2459 11.1169 7.79524 8.56403 2.87423 9.27064L2.76456 9.28639C2.78339 8.2301 2.82673 7.35537 2.92647 6.61358C3.09834 5.33517 3.42524 4.56445 3.99489 3.9948C4.56455 3.42514 5.33527 3.09825 6.61367 2.92637C7.91365 2.75159 9.62187 2.75 12.0001 2.75C14.3783 2.75 16.0865 2.75159 17.3865 2.92637C18.6649 3.09825 19.4356 3.42514 20.0053 3.9948C20.575 4.56445 20.9018 5.33517 21.0737 6.61358C21.2485 7.91356 21.2501 9.62177 21.2501 12C21.2501 12.1783 21.2501 12.3528 21.25 12.5236L21.1295 12.5069C18.4402 12.1345 15.9698 13.22 14.3875 15.0736ZM16.0001 6.75C15.3097 6.75 14.7501 7.30964 14.7501 8C14.7501 8.69036 15.3097 9.25 16.0001 9.25C16.6905 9.25 17.2501 8.69036 17.2501 8C17.2501 7.30964 16.6905 6.75 16.0001 6.75ZM13.2501 8C13.2501 6.48122 14.4813 5.25 16.0001 5.25C17.5189 5.25 18.7501 6.48122 18.7501 8C18.7501 9.51878 17.5189 10.75 16.0001 10.75C14.4813 10.75 13.2501 9.51878 13.2501 8Z" clip-rule="evenodd"/></svg></span>
+      <span class="gc-msp-label">Choose from gallery</span>
+    </button>
+  </div>
+  <input type="file" id="gc-msp-camera-input" accept="image/*" capture="environment" style="display:none" aria-hidden="true">
+  <input type="file" id="gc-msp-gallery-input" accept="image/*" style="display:none" aria-hidden="true">
+</div>
+
 <div id="gc-av-editor" aria-hidden="true" data-step="chooser">
   <!-- Step: Chooser -->
   <div class="gc-av-step gc-av-step-chooser" data-av-step="chooser">
@@ -17784,7 +17865,7 @@ body:not(.light-mode) .gc-edu-search-wrap #edu-search-input{
     <div style="padding:20px 20px 0;text-align:center;">
       <div style="position:relative;display:inline-block;">
         <div class="avatar xl" id="group-info-avatar" style="width:80px;height:80px;margin:0 auto;border:3px solid var(--bg);box-shadow:var(--shadow-sm);">?</div>
-        <label for="group-avatar-upload" id="group-avatar-edit-btn" style="display:none;position:absolute;bottom:0;right:0;background:var(--gradient);width:28px;height:28px;border-radius:50%;align-items:center;justify-content:center;color:white;cursor:pointer;border:2px solid var(--bg);">
+        <label for="group-avatar-upload" id="group-avatar-edit-btn" onclick="event.preventDefault();var inp=document.getElementById('group-avatar-upload');if(inp&&typeof gcOpenMediaSourceForInput==='function'){gcOpenMediaSourceForInput(inp,{accept:'image/*',multiple:false});}else if(inp){inp.click();}" style="display:none;position:absolute;bottom:0;right:0;background:var(--gradient);width:28px;height:28px;border-radius:50%;align-items:center;justify-content:center;color:white;cursor:pointer;border:2px solid var(--bg);">
           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><path d="M0 0h24v24H0z" fill="none"/><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.5"><circle cx="12" cy="13" r="3"/><path d="M9.77778 21H14.2222C17.3433 21 18.9038 21 20.0248 20.2646C20.51 19.9462 20.9267 19.5371 21.251 19.0607C22 17.9601 22 16.4279 22 13.3636C22 10.2994 22 8.76721 21.251 7.6666C20.9267 7.19014 20.51 6.78104 20.0248 6.46268C19.3044 5.99013 18.4027 5.82123 17.022 5.76086C16.3631 5.76086 15.7959 5.27068 15.6667 4.63636C15.4728 3.68489 14.6219 3 13.6337 3H10.3663C9.37805 3 8.52715 3.68489 8.33333 4.63636C8.20412 5.27068 7.63685 5.76086 6.978 5.76086C5.59733 5.82123 4.69555 5.99013 3.97524 6.46268C3.48995 6.78104 3.07328 7.19014 2.74902 7.6666C2 8.76721 2 10.2994 2 13.3636C2 16.4279 2 17.9601 2.74902 19.0607C3.07328 19.5371 3.48995 19.9462 3.97524 20.2646C5.09624 21 6.65675 21 9.77778 21Z"/><path d="M19 10H18"/></g></svg>
         </label>
         <input type="file" id="group-avatar-upload" accept="image/*" style="display:none;" onchange="updateGroupAvatar(this)">
@@ -21611,7 +21692,9 @@ window.gcCancelStoryPreview = gcCancelStoryPreview;
 
 function gcChangeStoryMedia(){
   const inp = document.getElementById('gc-story-preview-file');
-  if(inp){
+  if(inp && typeof gcOpenMediaSourceForInput === 'function'){
+    gcOpenMediaSourceForInput(inp, { accept: 'image/*,video/*', multiple: false });
+  } else if(inp){
     try{ inp.value = ''; }catch(e){}
     inp.click();
   }
@@ -24724,7 +24807,9 @@ function gcChatAttachAction(kind){
   gcCloseChatAttach();
   if(kind === 'gallery' || kind === 'photo' || kind === 'video' || kind === 'media'){
     var inp = document.getElementById('chat-media-input') || document.getElementById('chat-img-input');
-    if(inp){
+    if(inp && typeof gcOpenMediaSourceForInput === 'function'){
+      gcOpenMediaSourceForInput(inp, { accept: 'image/*,video/*', multiple: true });
+    } else if(inp){
       try{ inp.value = ''; }catch(e){}
       inp.click();
     }
@@ -29950,6 +30035,154 @@ var gcAvState = {
   step: 'chooser' // chooser | preview | crop | final
 };
 
+
+// ═══════════════════════════════════════════════════════
+// Universal Camera / Gallery source picker
+// Usage: gcOpenMediaSourcePicker({ accept, multiple, onFiles, onCancel })
+// ═══════════════════════════════════════════════════════
+var __gcMspOpts = null;
+
+function gcOpenMediaSourcePicker(opts){
+  opts = opts || {};
+  __gcMspOpts = {
+    accept: opts.accept || 'image/*',
+    multiple: !!opts.multiple,
+    onFiles: typeof opts.onFiles === 'function' ? opts.onFiles : null,
+    onCancel: typeof opts.onCancel === 'function' ? opts.onCancel : null
+  };
+  var overlay = document.getElementById('gc-media-source-picker');
+  var cam = document.getElementById('gc-msp-camera-input');
+  var gal = document.getElementById('gc-msp-gallery-input');
+  if(!overlay || !cam || !gal) return;
+
+  // Camera: image only (native camera). Gallery: respect accept (may include video).
+  var galAccept = __gcMspOpts.accept || 'image/*';
+  var camAccept = 'image/*';
+  // If accept is video-only, still allow camera as image; gallery uses video accept
+  try{
+    cam.accept = camAccept;
+    cam.removeAttribute('multiple');
+    gal.accept = galAccept;
+    if(__gcMspOpts.multiple) gal.setAttribute('multiple', 'multiple');
+    else gal.removeAttribute('multiple');
+    cam.value = '';
+    gal.value = '';
+  }catch(e){}
+
+  // Bind once
+  if(!cam._gcMspBound){
+    cam._gcMspBound = true;
+    cam.addEventListener('change', function(){ gcMediaSourceOnChange(cam); });
+  }
+  if(!gal._gcMspBound){
+    gal._gcMspBound = true;
+    gal.addEventListener('change', function(){ gcMediaSourceOnChange(gal); });
+  }
+
+  overlay.classList.add('open');
+  overlay.setAttribute('aria-hidden', 'false');
+  // backdrop click closes
+  overlay.onclick = function(e){
+    if(e.target === overlay) gcCloseMediaSourcePicker(true);
+  };
+}
+window.gcOpenMediaSourcePicker = gcOpenMediaSourcePicker;
+
+function gcCloseMediaSourcePicker(fromCancel){
+  var overlay = document.getElementById('gc-media-source-picker');
+  if(overlay){
+    overlay.classList.remove('open');
+    overlay.setAttribute('aria-hidden', 'true');
+  }
+  var opts = __gcMspOpts;
+  __gcMspOpts = null;
+  if(fromCancel && opts && opts.onCancel){
+    try{ opts.onCancel(); }catch(e){}
+  }
+}
+window.gcCloseMediaSourcePicker = gcCloseMediaSourcePicker;
+
+function gcMediaSourcePick(kind){
+  var cam = document.getElementById('gc-msp-camera-input');
+  var gal = document.getElementById('gc-msp-gallery-input');
+  if(kind === 'camera'){
+    if(cam){
+      try{ cam.value = ''; }catch(e){}
+      // Keep overlay open until file chosen; hide visually optional
+      cam.click();
+    }
+  } else {
+    if(gal){
+      try{ gal.value = ''; }catch(e){}
+      gal.click();
+    }
+  }
+}
+window.gcMediaSourcePick = gcMediaSourcePick;
+
+function gcMediaSourceOnChange(input){
+  if(!input || !input.files || !input.files.length){
+    return;
+  }
+  var opts = __gcMspOpts;
+  var files = input.files;
+  // Close picker first so next UI can show
+  var overlay = document.getElementById('gc-media-source-picker');
+  if(overlay){
+    overlay.classList.remove('open');
+    overlay.setAttribute('aria-hidden', 'true');
+  }
+  __gcMspOpts = null;
+  try{
+    if(opts && opts.onFiles){
+      opts.onFiles(files, input);
+    }
+  }catch(e){ console.warn('gcMediaSourceOnChange', e); }
+  try{ input.value = ''; }catch(e2){}
+}
+window.gcMediaSourceOnChange = gcMediaSourceOnChange;
+
+/** Helper: open picker and forward FileList into an existing <input type=file> change pipeline */
+function gcOpenMediaSourceForInput(inputEl, pickerOpts){
+  if(!inputEl) return;
+  pickerOpts = pickerOpts || {};
+  var accept = pickerOpts.accept || inputEl.getAttribute('accept') || 'image/*';
+  var multiple = pickerOpts.multiple != null ? !!pickerOpts.multiple : inputEl.hasAttribute('multiple');
+  gcOpenMediaSourcePicker({
+    accept: accept,
+    multiple: multiple,
+    onFiles: function(files){
+      var assigned = false;
+      try{
+        var dt = new DataTransfer();
+        for(var i=0;i<files.length;i++) dt.items.add(files[i]);
+        inputEl.files = dt.files;
+        assigned = !!(inputEl.files && inputEl.files.length);
+      }catch(err){ assigned = false; }
+
+      var proxy = assigned ? inputEl : { files: files, value: '', id: inputEl.id || '' };
+
+      // Prefer known handlers (reliable even when FileList assignment fails)
+      try{
+        var id = inputEl.id || '';
+        if(id === 'post-img-input' && typeof previewImages === 'function'){ previewImages(proxy); return; }
+        if((id === 'chat-media-input' || id === 'chat-img-input' || id === 'chat-video-input') && typeof gcQueueChatImages === 'function'){ gcQueueChatImages(proxy); return; }
+        if(id === 'cover-input' && typeof gcUploadCoverPhoto === 'function'){ gcUploadCoverPhoto(proxy); return; }
+        if(id === 'group-avatar-upload' && typeof updateGroupAvatar === 'function'){ updateGroupAvatar(proxy); return; }
+        if(id === 'avatar-input' && typeof gcOpenAvatarEditor === 'function'){ gcOpenAvatarEditor(proxy); return; }
+        if(id === 'gc-story-preview-file' && typeof gcOnStoryPreviewFileChange === 'function'){ gcOnStoryPreviewFileChange(proxy); return; }
+        if(id === 'gc-story-direct-file' && typeof gcOpenStoryMediaPreview === 'function'){ gcOpenStoryMediaPreview(proxy); return; }
+      }catch(e3){ console.warn(e3); }
+
+      try{
+        if(typeof inputEl.onchange === 'function') inputEl.onchange({ target: proxy });
+        else inputEl.dispatchEvent(new Event('change', { bubbles: true }));
+      }catch(e2){ console.warn(e2); }
+    }
+  });
+}
+window.gcOpenMediaSourceForInput = gcOpenMediaSourceForInput;
+
 function gcOpenAvatarChooser(){
   var editor = document.getElementById('gc-av-editor');
   if(!editor) return;
@@ -29976,12 +30209,23 @@ function gcOpenAvatarChooser(){
 window.gcOpenAvatarChooser = gcOpenAvatarChooser;
 
 function gcAvPickCamera(){
-  var inp = document.getElementById('avatar-input-camera') || document.getElementById('avatar-input');
-  if(inp){ try{ inp.value=''; }catch(e){} inp.click(); }
+  gcOpenMediaSourcePicker({
+    accept: 'image/*',
+    multiple: false,
+    onFiles: function(files){
+      var inp = document.getElementById('avatar-input') || document.getElementById('avatar-input-gallery');
+      if(!inp){ return; }
+      try{
+        var dt = new DataTransfer();
+        if(files && files[0]) dt.items.add(files[0]);
+        inp.files = dt.files;
+      }catch(e){}
+      if(typeof gcOpenAvatarEditor === 'function') gcOpenAvatarEditor(inp);
+    }
+  });
 }
 function gcAvPickGallery(){
-  var inp = document.getElementById('avatar-input-gallery') || document.getElementById('avatar-input');
-  if(inp){ try{ inp.value=''; }catch(e){} inp.click(); }
+  gcAvPickCamera(); // same picker (camera + gallery options)
 }
 window.gcAvPickCamera = gcAvPickCamera;
 window.gcAvPickGallery = gcAvPickGallery;
@@ -35333,6 +35577,8 @@ function gcLegacyCloseLayers() {
     var trendingScreen = document.getElementById('gc-trending-screen');
     if (trendingScreen && trendingScreen.classList.contains('open')) { if (typeof gcCloseTrending === 'function') gcCloseTrending(); else trendingScreen.classList.remove('open'); return true; }
 
+    var msp = document.getElementById('gc-media-source-picker');
+    if (msp && msp.classList.contains('open')) { if (typeof gcCloseMediaSourcePicker === 'function') gcCloseMediaSourcePicker(true); else msp.classList.remove('open'); return true; }
     var avatarEditor = document.getElementById('gc-av-editor');
     if (avatarEditor && avatarEditor.classList.contains('open')) { if (typeof gcAvGoBack === 'function') gcAvGoBack(); else if (typeof gcCloseAvatarEditor === 'function') gcCloseAvatarEditor(); else avatarEditor.classList.remove('open'); return true; }
     var coverEditor = document.getElementById('gc-cover-editor');
@@ -37407,7 +37653,6 @@ function filterPrivacySettings(query) {
 }
 // 🚀 ১. স্টোরি ক্রিয়েটর মডাল ওপেন করার ফাংশন
 function openStoryCreatorModal() {
-    // Skip Create Story popup — open gallery directly
     var input = document.getElementById('gc-story-direct-file');
     if (!input) {
         input = document.createElement('input');
@@ -37426,8 +37671,12 @@ function openStoryCreatorModal() {
         });
         document.body.appendChild(input);
     }
-    try { input.value = ''; } catch (e) {}
-    input.click();
+    if (typeof gcOpenMediaSourceForInput === 'function') {
+        gcOpenMediaSourceForInput(input, { accept: 'image/*,video/*', multiple: false });
+    } else {
+        try { input.value = ''; } catch (e) {}
+        input.click();
+    }
 }
 
 function closeStoryCreatorModal() {
