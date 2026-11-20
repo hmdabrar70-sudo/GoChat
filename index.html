@@ -9309,7 +9309,7 @@ body.light-mode #page-notifications {
   border:2px solid var(--surface); font-size:10px; color:#fff;
   box-shadow:0 1px 4px rgba(0,0,0,.18);
 }
-.notif-type-badge.like{ background:#ef4444; }
+.notif-type-badge.like{ background:#F33E58; }
 .notif-type-badge.love{ background:#F33E58; }
 .notif-type-badge.haha{ background:#F7B125; }
 .notif-type-badge.wow{ background:#F7B125; }
@@ -9317,8 +9317,11 @@ body.light-mode #page-notifications {
 .notif-type-badge.angry{ background:#E6483D; }
 .notif-type-badge.dislike{ background:#6b7280; }
 .notif-type-badge .gc-react-mini,
-.notif-type-badge svg.gc-react-mini{
-  width:14px; height:14px; display:block;
+.notif-type-badge svg.gc-react-mini,
+.notif-type-badge svg.gc-act-ico,
+.notif-type-badge .gc-act-ico{
+  width:12px; height:12px; display:block;
+  color:#fff;
 }
 
 .notif-type-badge.comment{ background:#3b82f6; }
@@ -9333,15 +9336,8 @@ body.light-mode #page-notifications {
 .notif-type-badge.video{ background:#0ea5e9; }
 .notif-type-badge.default{ background:var(--text-muted); }
 
-/* Post thumbnail on right */
-.notif-thumb{
-  width:48px; height:48px; border-radius:10px; object-fit:cover;
-  flex-shrink:0; background:var(--surface-2); border:1px solid var(--border);
-}
-.notif-thumb.placeholder{
-  display:flex; align-items:center; justify-content:center;
-  color:var(--text-muted); font-size:18px;
-}
+/* Post thumbnail on right — removed from notifications */
+.notif-thumb, .notif-thumb.placeholder{ display:none !important; }
 
 /* Section headers */
 .notif-section-head{
@@ -16155,16 +16151,6 @@ body:not(.light-mode) .gc-edu-search-wrap #edu-search-input{
         <button type="button" class="gc-hd-close gc-text-close-btn" onclick="gcCloseHomeDrawer()" aria-label="Close">Close</button>
     </div>
         <div class="gc-hd-list">
-        <div class="gc-hd-item" id="hd-tab-liked" onclick="gcCloseHomeDrawer(); gcOpenLikedScreen();">
-            <svg class="gc-hd-svg" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true" style="color:#ec4899;">
-              <path d="M0 0h24v24H0z" fill="none"/>
-              <path fill="currentColor" fill-rule="evenodd" d="M2.25 6C2.25 5.58579 2.58579 5.25 3 5.25H20C20.4142 5.25 20.75 5.58579 20.75 6C20.75 6.41421 20.4142 6.75 20 6.75H3C2.58579 6.75 2.25 6.41421 2.25 6ZM2.25 11C2.25 10.5858 2.58579 10.25 3 10.25H9C9.41421 10.25 9.75 10.5858 9.75 11C9.75 11.4142 9.41421 11.75 9 11.75H3C2.58579 11.75 2.25 11.4142 2.25 11ZM2.25 16C2.25 15.5858 2.58579 15.25 3 15.25H10C10.4142 15.25 10.75 15.5858 10.75 16C10.75 16.4142 10.4142 16.75 10 16.75H3C2.58579 16.75 2.25 16.4142 2.25 16Z" clip-rule="evenodd"/>
-              <path fill="currentColor" d="M13 11.7148C13 13.4673 15.1633 15.3304 16.4901 16.3082C16.9442 16.643 17.1713 16.8103 17.5 16.8103C17.8287 16.8103 18.0558 16.643 18.5099 16.3082C19.8367 15.3304 22 13.4674 22 11.7147C22 9.03758 19.5249 8.03806 17.5 10.1061C15.4751 8.03806 13 9.03758 13 11.7148Z"/>
-            </svg>
-            Liked
-            <i class="ph-light ph-caret-right gc-hd-chev"></i>
-        </div>
-
         <div class="gc-hd-item" id="hd-tab-foryou" onclick="gcCloseHomeDrawer(); setFeedTab('foryou');">
             <svg class="gc-hd-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><defs><linearGradient id="gStar" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#FFEA00"/><stop offset="100%" stop-color="#FF8C00"/></linearGradient></defs><path fill="url(#gStar)" d="M12 21C16.4183 21 20 17.6439 20 13.504C20 9.76257 17.9654 6.83811 16.562 5.44436C16.3017 5.18584 15.8683 5.30006 15.7212 5.63288C14.9742 7.3229 13.4178 9.75607 11.4286 9.75607C10.1975 9.92086 8.31688 8.86844 9.83483 3.64868C9.97151 3.17868 9.46972 2.80113 9.08645 3.11539C6.9046 4.90436 4 8.51143 4 13.504C4 17.6439 7.58172 21 12 21Z"/></svg>
             For You
@@ -20222,17 +20208,7 @@ notifUnsub = db.collection('notifications').where('toUid', '==', user.uid).onSna
 
     function gcNotifTypeMeta(t, reaction){
       t = t || '';
-      reaction = reaction || null;
-      if(t === 'like'){
-        var r = reaction || 'like';
-        if(r === 'love') return {cls:'love', icon:'ph-fill ph-heart'};
-        if(r === 'haha') return {cls:'haha', icon:'ph-fill ph-smiley'};
-        if(r === 'wow') return {cls:'wow', icon:'ph-fill ph-smiley-surprised'};
-        if(r === 'sad') return {cls:'sad', icon:'ph-fill ph-smiley-sad'};
-        if(r === 'angry') return {cls:'angry', icon:'ph-fill ph-smiley-angry'};
-        if(r === 'dislike') return {cls:'dislike', icon:'ph-fill ph-thumbs-down'};
-        return {cls:'like', icon:'ph-fill ph-heart'};
-      }
+      if(t === 'like') return {cls:'like', icon:'like'};
       if(t === 'comment') return {cls:'comment', icon:'ph-light ph-chat-circle'};
       if(t === 'follow' || t === 'friend_request' || t === 'request_accepted') return {cls:'follow', icon:'ph-light ph-user-plus'};
       if(t === 'tag') return {cls:'tag', icon:'ph-light ph-at'};
@@ -20243,14 +20219,16 @@ notifUnsub = db.collection('notifications').where('toUid', '==', user.uid).onSna
       return {cls:'default', icon:'ph-light ph-bell'};
     }
     function gcNotifReactionVerb(reaction){
-      var r = reaction || 'like';
-      if(r === 'love') return 'loved your post';
-      if(r === 'haha') return 'reacted Haha to your post';
-      if(r === 'wow') return 'reacted Wow to your post';
-      if(r === 'sad') return 'reacted Sad to your post';
-      if(r === 'angry') return 'reacted Angry to your post';
-      if(r === 'dislike') return 'disliked your post';
+      // Multi-reaction system removed — always like
       return 'liked your post';
+    }
+    function gcNotifLikeBadgeHtml(){
+      try{
+        if(typeof gcActionSvg === 'function'){
+          return gcActionSvg('likeFilled', 12, 'color:#fff');
+        }
+      }catch(e){}
+      return '<i class="ph-fill ph-heart" style="font-size:10px;color:#fff;"></i>';
     }
     function gcNotifSectionLabel(ts){
       var ms = 0;
@@ -20412,15 +20390,7 @@ notifUnsub = db.collection('notifications').where('toUid', '==', user.uid).onSna
             preview = '<div style="font-size:13px;color:var(--text-secondary);margin-top:4px;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">'+escapeHTML(data.message)+'</div>';
         }
 
-        // Post thumbnail (right side) for post-related notifs
-        var thumbHtml = '';
-        if (data.postId && (data.type === 'like' || data.type === 'comment' || data.type === 'tag')) {
-          if (data.postImage && String(data.postImage).trim()) {
-            thumbHtml = '<img class="notif-thumb" src="'+escapeHTML(String(data.postImage).trim())+'" alt="" loading="lazy" onerror="this.style.opacity=.35">';
-          } else {
-            thumbHtml = '<div class="notif-thumb placeholder"><i class="ph-light ph-image"></i></div>';
-          }
-        }
+        // Post preview/thumbnail removed — simple notification layout only
 
         htmlParts.push(
         '<div class="notif-item '+(!data.read ? 'unread' : '')+'" data-type="'+data.type+'" data-id="'+data.id+'" onclick="if(typeof isNotifEditMode !== \'undefined\' && isNotifEditMode){toggleNotifSelection(\''+data.id+'\');}else{'+onClickAction+'}">' +
@@ -20428,7 +20398,7 @@ notifUnsub = db.collection('notifications').where('toUid', '==', user.uid).onSna
               (_isGrouped && !isAnn
                 ? userAvatarHtml
                 : '<div class="avatar sm" style="width:48px;height:48px;flex-shrink:0;">'+userAvatarHtml+'</div>') +
-              '<span class="notif-type-badge '+meta.cls+'">'+((data.type==='like' && data.reaction && data.reaction!=='like' && typeof gcReactSvg==='function' && gcReactSvg(data.reaction,true)) ? gcReactSvg(data.reaction,true) : ('<i class="'+meta.icon+'" style="font-size:10px;"></i>'))+'</span>' +
+              '<span class="notif-type-badge '+meta.cls+'">'+(data.type==='like' ? gcNotifLikeBadgeHtml() : ('<i class="'+meta.icon+'" style="font-size:10px;"></i>'))+'</span>' +
             '</div>' +
             '<div class="notif-text">' +
                 '<span style="font-weight:800;color:var(--text);">'+safeName+'</span> ' +
@@ -20437,17 +20407,13 @@ notifUnsub = db.collection('notifications').where('toUid', '==', user.uid).onSna
                 '<div style="font-size:13px;color:var(--text-muted);margin-top:4px;font-weight:500;">'+getRelativeTime(data.createdAt)+'</div>' +
             '</div>' +
             '<div style="display:flex;align-items:center;gap:10px;flex-shrink:0;">' +
-                thumbHtml +
                 actionBtnHtml +
                 '<input type="checkbox" class="notif-checkbox" id="notif-cb-'+data.id+'" '+(isChecked ? 'checked' : '')+' style="display:'+displayCb+'; pointer-events:none; width:22px; height:22px; accent-color:var(--danger);">' +
             '</div>' +
         '</div>');
     });
     nList.innerHTML = htmlParts.join('');
-    // Enrich missing post thumbnails for older notifs
-    try{
-      if(typeof gcEnrichNotifThumbs === 'function') gcEnrichNotifThumbs(notifs);
-    }catch(e){}
+    // Thumbnails removed from notifications
 });
 }else{
 currentUser=null;currentUserData=null;
@@ -36935,112 +36901,7 @@ window.markAllNotifsRead = markAllNotifsRead;
 })();
 
 
-async function gcEnrichNotifThumbs(notifs){
-  if(!notifs || !notifs.length) return;
-  var need = {};
-  notifs.forEach(function(n){
-    if(n.postId && !n.postImage && (n.type==='like'||n.type==='comment'||n.type==='tag')){
-      need[n.postId] = need[n.postId] || [];
-      need[n.postId].push(n.id);
-    }
-  });
-  var ids = Object.keys(need);
-  if(!ids.length) return;
-  // Cap concurrent fetches
-  for(var i=0;i<ids.length && i<12;i++){
-    (function(pid){
-      db.collection('posts').doc(pid).get().then(function(snap){
-        if(!snap.exists) return;
-        var pd = snap.data()||{};
-        function gcNotifPickThumb(pd){
-          var candidates = [];
-          if(pd.videoThumb) candidates.push(pd.videoThumb);
-          if(pd.poster) candidates.push(pd.poster);
-          if(pd.thumb) candidates.push(pd.thumb);
-          if(pd.thumbnail) candidates.push(pd.thumbnail);
-          if(Array.isArray(pd.imageUrls) && pd.imageUrls[0]) candidates.push(pd.imageUrls[0]);
-          if(pd.imageUrl) candidates.push(pd.imageUrl);
-          if(pd.imgUrl) candidates.push(pd.imgUrl);
-          if(Array.isArray(pd.images) && pd.images[0]){
-            var im0 = pd.images[0];
-            candidates.push(typeof im0==='string' ? im0 : (im0 && im0.url) || '');
-          }
-          if(Array.isArray(pd.mediaUrls) && pd.mediaUrls[0]) candidates.push(pd.mediaUrls[0]);
-          if(pd.mediaUrl) candidates.push(pd.mediaUrl);
-          function isVidUrl(u){
-            if(!u) return false;
-            var s = String(u);
-            return s.indexOf('/video/') !== -1 || /\.mp4(\?|$)/i.test(s) || /\.webm(\?|$)/i.test(s);
-          }
-          var firstImg = '';
-          for(var ci=0;ci<candidates.length;ci++){
-            var c = candidates[ci] && String(candidates[ci]).trim();
-            if(!c) continue;
-            if(!isVidUrl(c)) return c;
-            if(!firstImg) firstImg = c;
-          }
-          // Prefer non-video; only fall back to video URL if nothing else (still will stay as thumb, not player)
-          return firstImg || '';
-        }
-        var img = gcNotifPickThumb(pd);
-        if(!img) return;
-        need[pid].forEach(function(nid){
-          var el = document.querySelector('.notif-item[data-id="'+nid+'"] .notif-thumb');
-          if(el){
-            if(el.tagName === 'IMG'){ el.src = img; }
-            else {
-              var im = document.createElement('img');
-              im.className = 'notif-thumb';
-              im.src = img;
-              im.alt = '';
-              im.loading = 'lazy';
-              el.replaceWith(im);
-            }
-          }
-          // Persist so next open is instant (recipient owns the notif doc)
-          try{ db.collection('notifications').doc(nid).set({postImage:img},{merge:true}); }catch(e){}
-        });
-      }).catch(function(){});
-    })(ids[i]);
-  }
-}
-window.gcEnrichNotifThumbs = gcEnrichNotifThumbs;
-
-
-/* Swipe-to-delete on notifications disabled — use Edit → Select → Delete only */
-(function gcNotifItemSwipe(){
-  if(window.gcNotifItemSwipeOn) return;
-  window.gcNotifItemSwipeOn = true;
-  // Block any residual swipe-delete gestures on notification rows
-  var sx=0, sy=0, active=null;
-  document.addEventListener('touchstart', function(e){
-    var it = e.target && e.target.closest ? e.target.closest('#notifications-list .notif-item') : null;
-    if(!it){ active=null; return; }
-    active = it;
-    sx = e.touches[0].clientX;
-    sy = e.touches[0].clientY;
-  }, {passive:true});
-  document.addEventListener('touchmove', function(e){
-    if(!active) return;
-    // Never translate or mark for delete — vertical scroll only
-    try{
-      active.classList.remove('swiping','swipe-out');
-      active.style.transform = '';
-      active.style.opacity = '';
-    }catch(err){}
-  }, {passive:true});
-  document.addEventListener('touchend', function(){
-    if(active){
-      try{
-        active.classList.remove('swiping','swipe-out');
-        active.style.transform = '';
-        active.style.opacity = '';
-      }catch(err){}
-    }
-    active = null;
-  }, {passive:true});
-})();
-
+async function gcEnrichNotifThumbs(){ /* removed: notif post thumbnails */ }
 
 async function deleteSelectedNotifs() {
     if (selectedNotifs.length === 0) {
@@ -42231,106 +42092,14 @@ window.gcLoadShorts = gcLoadShorts;
 window.gcIsVideoUrl = gcIsVideoUrl;
 window.gcPostVideoUrl = gcPostVideoUrl;
 
-function gcOpenLikedScreen(){
-let scr = document.getElementById('gc-liked-screen');
-if(!scr){
-scr = document.createElement('div');
-scr.id = 'gc-liked-screen';
-scr.className = 'gc-liked-screen';
-scr.innerHTML = '<div class="gc-lk-head" style="position:relative;display:flex;align-items:center;justify-content:flex-start;gap:12px;">'
-  + '<button type="button" class="gc-text-close-btn" onclick="gcCloseLikedScreen()" aria-label="Close">Close</button>'
-  + '<div class="gc-lk-title" style="position:absolute;left:50%;transform:translateX(-50%);pointer-events:none;white-space:nowrap;font-weight:800;font-size:18px;">Liked Posts</div>'
-  + '</div><div class="gc-lk-body" id="gc-liked-list"></div>';
-document.body.appendChild(scr);
-}
-// Ensure header uses Close + centered title (migrate old arrow header)
-try{
-  var head = scr.querySelector('.gc-lk-head');
-  if(head && !head.querySelector('.gc-text-close-btn')){
-    head.setAttribute('style','position:relative;display:flex;align-items:center;justify-content:flex-start;gap:12px;');
-    head.innerHTML = '<button type="button" class="gc-text-close-btn" onclick="gcCloseLikedScreen()" aria-label="Close">Close</button>'
-      + '<div class="gc-lk-title" style="position:absolute;left:50%;transform:translateX(-50%);pointer-events:none;white-space:nowrap;font-weight:800;font-size:18px;">Liked Posts</div>';
-  }
-}catch(e){}
-scr.classList.add('open');
-gcLoadLikedPosts();
-}
+function gcOpenLikedScreen(){ /* Liked Bowl / Liked Posts feature removed */ }
 function gcCloseLikedScreen(){
 const s = document.getElementById('gc-liked-screen');
 if(s) s.classList.remove('open');
 }
-async function gcLoadLikedPosts(){
-const list = document.getElementById('gc-liked-list');
-if(!list || !currentUser) return;
-list.innerHTML = typeof gcModernLoader === 'function'
-    ? gcModernLoader('Loading liked posts')
-    : '<div class="gc-sk-grid"><div class="gc-sk-tile"></div><div class="gc-sk-tile"></div><div class="gc-sk-tile"></div></div>';
-try{
-const snap = await db.collection('posts').where('likedBy', 'array-contains', currentUser.uid).get();
-let items = [];
-snap.forEach(function(d){ items.push({ id: d.id, ...d.data() }); });
-items.sort(function(a, b){
-const ta = a.createdAt && a.createdAt.toMillis ? a.createdAt.toMillis() : 0;
-const tb = b.createdAt && b.createdAt.toMillis ? b.createdAt.toMillis() : 0;
-return tb - ta;
-});
-if(!items.length){
-list.innerHTML = '<div style="text-align:center;padding:70px 20px;color:var(--text-muted);"><i class="ph-light ph-heart-break" style="font-size:44px;"></i><div style="margin-top:12px;font-weight:800;color:var(--text);">No liked posts yet</div><div style="font-size:12px;margin-top:4px;">Posts you like will appear here.</div></div>';
-return;
-}
+async function gcLoadLikedPosts(){ /* removed */ }
 
-// Resolve author names (prefer post fields, then cache, then Firestore)
-const nameMap = {};
-items.forEach(function(p){
-if(p.name) nameMap[p.uid] = p.name;
-else if(p.userName) nameMap[p.uid] = p.userName;
-else if(p.authorName) nameMap[p.uid] = p.authorName;
-});
-const missing = [...new Set(items.map(function(p){ return p.uid; }).filter(function(uid){ return uid && !nameMap[uid]; }))];
-if(missing.length){
-try{
-const docs = await Promise.all(missing.map(function(uid){ return db.collection('users').doc(uid).get(); }));
-docs.forEach(function(doc, i){
-if(doc.exists){
-const d = doc.data() || {};
-nameMap[missing[i]] = d.name || d.username || 'User';
-}
-});
-}catch(e){}
-}
-
-list.innerHTML = items.map(function(p){
-const img = (p.imgUrls && p.imgUrls[0]) || p.videoUrl || '';
-const displayName = nameMap[p.uid] || p.name || p.userName || 'User';
-const t = (p.createdAt && typeof getRelativeTime === 'function') ? getRelativeTime(p.createdAt) : '';
-const lc = Array.isArray(p.likes) ? p.likes.length : (typeof p.likes === 'number' ? p.likes : (Array.isArray(p.likedBy) ? p.likedBy.length : 0));
-const thumb = typeof gcMediaThumb === 'function' ? gcMediaThumb(img, 'gc-lk-img') : (img ? '<img class="gc-lk-img" src="' + escapeHTML(img) + '">' : '');
-return '<div class="gc-lk-item" onclick="gcCloseLikedScreen(); openSinglePostView(\'' + p.id + '\')">' +
-thumb +
-'<div class="gc-lk-info"><div class="gc-lk-name">' + escapeHTML(displayName) + '</div>' +
-'<div class="gc-lk-cap">' + escapeHTML(p.title || '(no caption)') + '</div>' +
-'<div class="gc-lk-meta">' + lc + ' reaction' + (lc === 1 ? '' : 's') + (t ? ' · ' + t : '') + '</div></div></div>';
-}).join('');
-}catch(e){
-console.error('gcLoadLikedPosts error:', e);
-list.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted);font-size:13px;">Failed to load liked posts.</div>';
-}
-}
-// মেনুর "Liked" আইটেমে ক্লিক হুক
-(function gcHookLikedItem(){
-if(window.gcLikedHook) return;
-window.gcLikedHook = true;
-setInterval(function(){
-document.querySelectorAll('.settings-list-item').forEach(function(it){
-if(it.dataset.gcLiked) return;
-if(/Liked/.test(it.textContent || '')){
-it.dataset.gcLiked = '1';
-it.removeAttribute('onclick');
-it.onclick = function(){ gcOpenLikedScreen(); };
-}
-});
-}, 1500);
-})();
+/* Liked menu hook removed */
 
 
 // ═══════════════════════════════════════════════════════
