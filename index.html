@@ -6598,67 +6598,50 @@ box-shadow:0 6px 14px -4px var(--accent-glow);
 ========================================= */
 #in-app-notif-container {
 position: fixed;
-top: 24px;
+top: max(12px, env(safe-area-inset-top, 12px));
 left: 50%;
 transform: translateX(-50%);
-width: 92%;
-max-width: 420px;
+width: min(92%, 400px);
+max-width: 400px;
 z-index: 9999999;
 display: flex;
 flex-direction: column;
 gap: 12px;
 pointer-events: none;
+box-sizing: border-box;
 }
 .msg-popup {
 position: relative;
 overflow: hidden;
-background: linear-gradient(145deg, var(--surface), var(--surface-2));
-border: 1px solid var(--accent-glow);
+background: color-mix(in srgb, var(--surface) 82%, transparent);
+border: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
 border-radius: 22px;
-padding: 14px 18px;
-box-shadow: 0 16px 40px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.06);
-backdrop-filter: blur(14px);
--webkit-backdrop-filter: blur(14px);
+padding: 14px 14px 12px;
+box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18), 0 2px 8px rgba(0,0,0,0.06);
+backdrop-filter: blur(22px) saturate(1.35);
+-webkit-backdrop-filter: blur(22px) saturate(1.35);
 display: flex;
-align-items: center;
-gap: 14px;
+flex-direction: column;
+align-items: stretch;
+gap: 0;
 pointer-events: auto;
 cursor: grab;
-animation: slideDownPop 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+animation: slideDownPop 0.42s cubic-bezier(0.175, 0.885, 0.32, 1.15) forwards;
+transition: transform 0.22s ease, box-shadow 0.22s ease;
+box-sizing: border-box;
+width: 100%;
+max-width: 100%;
 }
-/* বাঁ পাশে গ্লোয়িং অ্যাকসেন্ট বার */
-.msg-popup::before {
-content: '';
-position: absolute;
-left: 0; top: 18%; bottom: 18%;
-width: 3.5px;
-border-radius: 0 4px 4px 0;
-background: linear-gradient(180deg, var(--accent-light), var(--accent-dark));
-box-shadow: 0 0 12px var(--accent-glow);
+body.light-mode .msg-popup {
+background: rgba(255,255,255,0.88);
+border-color: rgba(230,232,240,0.95);
+box-shadow: 0 14px 40px rgba(26,26,46,0.12), 0 2px 10px rgba(26,26,46,0.05);
 }
-/* হালকা শাইন-সুইপ ইফেক্ট */
-.msg-popup::after {
-content: '';
-position: absolute;
-top: 0; left: -60%;
-width: 40%; height: 100%;
-background: linear-gradient(100deg, transparent, rgba(255,255,255,.09), transparent);
-animation: gcPopShine 3s ease-in-out 1.2s infinite;
-pointer-events: none;
+body:not(.light-mode) .msg-popup {
+background: rgba(20,20,28,0.88);
+border-color: rgba(40,40,55,0.9);
 }
-@keyframes gcPopShine {
-0% { left: -60%; }
-55% { left: 130%; }
-100% { left: 130%; }
-}
-.msg-popup:hover {
-transform: translateY(-3px);
-box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.1);
-border-color: var(--accent-glow);
-}
-.msg-popup:active { cursor: grabbing; transform: scale(0.97); }
-/* ডান সোয়াইপ → ডানে, বাঁ সোয়াইপ → বাঁয়ে */
+.msg-popup:active { cursor: grabbing; }
 .msg-popup.hide { animation: slideRightFade 0.4s ease forwards; }
 .msg-popup.hide-left { animation: slideLeftFade 0.4s ease forwards; }
 @keyframes slideRightFade {
@@ -6669,19 +6652,236 @@ border-color: var(--accent-glow);
 0% { transform: translateX(0); opacity: 1; }
 100% { transform: translateX(-120%); opacity: 0; }
 }
-/* কুইক রিপ্লাই বার (আরও প্রিমিয়াম) */
+@keyframes slideDownPop {
+0% { transform: translateY(-28px); opacity: 0; }
+100% { transform: translateY(0); opacity: 1; }
+}
+/* Header row */
+.msg-popup-head {
+display: flex;
+align-items: flex-start;
+gap: 12px;
+width: 100%;
+}
+.msg-popup-av-wrap {
+position: relative;
+width: 48px;
+height: 48px;
+flex: 0 0 48px;
+}
+.msg-popup-av {
+width: 48px;
+height: 48px;
+border-radius: 50%;
+overflow: hidden;
+background: var(--surface-2);
+border: 2px solid color-mix(in srgb, #185DF1 35%, transparent);
+box-sizing: border-box;
+}
+.msg-popup-av img,
+.msg-popup-av .avatar {
+width: 100% !important;
+height: 100% !important;
+border-radius: 50%;
+object-fit: cover;
+display: block;
+}
+.msg-popup-av-badge {
+position: absolute;
+right: -2px;
+bottom: -2px;
+width: 18px;
+height: 18px;
+border-radius: 50%;
+background: var(--surface, #fff);
+box-shadow: 0 0 0 2px var(--surface, #fff);
+display: flex;
+align-items: center;
+justify-content: center;
+z-index: 2;
+}
+body:not(.light-mode) .msg-popup-av-badge {
+background: var(--surface, #0a0a0f);
+box-shadow: 0 0 0 2px var(--surface, #0a0a0f);
+}
+.msg-popup-av-badge .verified-icon,
+.msg-popup-av-badge svg.verified-icon {
+width: 14px !important;
+height: 14px !important;
+margin: 0 !important;
+display: block !important;
+}
+.msg-popup-meta {
+flex: 1;
+min-width: 0;
+text-align: left;
+}
+.msg-popup-name-row {
+display: flex;
+align-items: center;
+gap: 6px;
+flex-wrap: nowrap;
+min-width: 0;
+margin-bottom: 6px;
+}
+.msg-popup-name {
+font-size: 15px;
+font-weight: 800;
+color: var(--text);
+white-space: nowrap;
+overflow: hidden;
+text-overflow: ellipsis;
+max-width: 58%;
+line-height: 1.25;
+}
+.msg-popup-dot {
+width: 3px;
+height: 3px;
+border-radius: 50%;
+background: var(--text-muted);
+flex-shrink: 0;
+opacity: 0.7;
+}
+.msg-popup-time {
+font-size: 12px;
+font-weight: 600;
+color: var(--text-muted);
+white-space: nowrap;
+flex-shrink: 0;
+}
+.msg-popup-bubble {
+display: inline-block;
+max-width: 100%;
+background: color-mix(in srgb, var(--surface-2) 90%, #185DF1 6%);
+border: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
+border-radius: 4px 16px 16px 16px;
+padding: 8px 12px;
+font-size: 13.5px;
+font-weight: 600;
+color: var(--text);
+line-height: 1.4;
+word-break: break-word;
+overflow-wrap: anywhere;
+display: -webkit-box;
+-webkit-line-clamp: 3;
+line-clamp: 3;
+-webkit-box-orient: vertical;
+overflow: hidden;
+}
+body.light-mode .msg-popup-bubble {
+background: #eef1fb;
+border-color: #e0e6f5;
+}
+.msg-popup-close {
+flex: 0 0 32px;
+width: 32px;
+height: 32px;
+border-radius: 50%;
+border: none;
+background: color-mix(in srgb, var(--surface-2) 90%, transparent);
+color: var(--text-muted);
+display: inline-flex;
+align-items: center;
+justify-content: center;
+cursor: pointer;
+padding: 0;
+margin: 0;
+-webkit-tap-highlight-color: transparent;
+}
+.msg-popup-close:active { opacity: 0.7; }
+.msg-popup-close i,
+.msg-popup-close svg { font-size: 16px; width: 16px; height: 16px; display: block; }
+/* Quick reply */
 .msg-popup-reply-bar {
-display: flex; gap: 8px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); width: 100%;
+display: flex;
+align-items: center;
+gap: 8px;
+margin-top: 12px;
+padding-top: 0;
+border-top: none;
+width: 100%;
+}
+.msg-popup-input-wrap {
+flex: 1;
+min-width: 0;
+display: flex;
+align-items: center;
+gap: 8px;
+height: 42px;
+padding: 0 12px 0 10px;
+border-radius: 999px;
+background: var(--surface-2);
+border: 1px solid var(--border);
+box-sizing: border-box;
+}
+.msg-popup-input-wrap:focus-within {
+border-color: #185DF1;
+box-shadow: 0 0 0 3px rgba(24, 93, 241, 0.15);
+}
+.msg-popup-emoji-btn {
+flex: 0 0 auto;
+width: 28px;
+height: 28px;
+border: none;
+background: transparent;
+color: #185DF1;
+display: inline-flex;
+align-items: center;
+justify-content: center;
+cursor: pointer;
+padding: 0;
+border-radius: 50%;
+-webkit-tap-highlight-color: transparent;
+}
+.msg-popup-emoji-btn svg {
+width: 22px;
+height: 22px;
+display: block;
 }
 .msg-popup-reply-bar input {
-flex: 1; background: var(--surface-2); border: 1px solid var(--border);
-border-radius: 20px; padding: 8px 14px; color: var(--text); font-size: 13px; outline: none; transition: 0.2s;
+flex: 1;
+min-width: 0;
+background: transparent !important;
+border: none !important;
+box-shadow: none !important;
+outline: none !important;
+padding: 0;
+margin: 0;
+height: 100%;
+color: var(--text);
+font-size: 14px;
+font-family: inherit;
+font-weight: 500;
 }
-.msg-popup-reply-bar input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
-.msg-popup-reply-bar button {
-background: var(--gradient); color: #fff; border: none; border-radius: 50%;
-width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer;
-box-shadow: 0 4px 12px var(--accent-glow);
+.msg-popup-reply-bar input::placeholder {
+color: var(--text-muted);
+opacity: 0.85;
+}
+.msg-popup-send {
+flex: 0 0 42px;
+width: 42px;
+height: 42px;
+border: none;
+border-radius: 50%;
+background: #185DF1 !important;
+color: #fff !important;
+display: inline-flex;
+align-items: center;
+justify-content: center;
+cursor: pointer;
+padding: 0;
+box-shadow: 0 4px 14px rgba(24, 93, 241, 0.35);
+-webkit-tap-highlight-color: transparent;
+}
+.msg-popup-send:active { transform: scale(0.94); }
+.msg-popup-send:disabled { opacity: 0.55; }
+.msg-popup-send i,
+.msg-popup-send svg {
+font-size: 18px;
+width: 18px;
+height: 18px;
+display: block;
+color: #fff;
 }
 @keyframes slideUpFade {
 0% { transform: translateY(0); opacity: 1; }
@@ -26684,16 +26884,30 @@ function showInAppMessageNotification(chatId, data) {
     let senderName = 'User';
     let avatarHtml = '';
     let otherUid = 'group';
+    let isVerified = false;
+    let senderEmail = '';
 
     if (data.isGroup) {
         senderName = data.groupName || 'Group';
-        avatarHtml = `<div class="avatar sm" style="background:var(--gradient-orange);color:white;"><i class="ph-light ph-circle" style="font-size:18px;"></i></div>`;
+        avatarHtml = `<div class="avatar sm" style="background:var(--gradient-orange);color:white;width:100%;height:100%;display:flex;align-items:center;justify-content:center;"><i class="ph-light ph-circle" style="font-size:18px;"></i></div>`;
     } else {
         const parts = chatId.split('_');
         otherUid = parts[0] === currentUser.uid ? parts[1] : parts[0];
         senderName = data.names ? data.names[otherUid] : 'User';
         const otherAv = data.avatars ? data.avatars[otherUid] : '';
-        avatarHtml = otherAv ? `<img src="${escapeHTML(otherAv)}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">` : `<div class="avatar sm" style="background-color:#fff;background-image:url(data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='32' r='21' fill='%23838C9B'/%3E%3Ccircle cx='50' cy='115' r='55' fill='%23838C9B'/%3E%3C/svg%3E);background-size:cover;background-position:center;"></div>`;
+        avatarHtml = otherAv
+          ? `<img src="${escapeHTML(otherAv)}" alt="" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`
+          : `<div class="avatar sm" style="width:100%;height:100%;background-color:#fff;background-image:url(data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='32' r='21' fill='%23838C9B'/%3E%3Ccircle cx='50' cy='115' r='55' fill='%23838C9B'/%3E%3C/svg%3E);background-size:cover;background-position:center;"></div>`;
+        try {
+          const u = (typeof allUsersCache !== 'undefined' && allUsersCache)
+            ? allUsersCache.find(function(x){ return x.id === otherUid; })
+            : null;
+          if (u) {
+            isVerified = (u.isVerified === true || u.isVerified === 1 || u.isVerified === 'true');
+            senderEmail = u.email || '';
+            if (u.name) senderName = u.name;
+          }
+        } catch(e){}
     }
 
     const container = document.getElementById('in-app-notif-container');
@@ -26709,41 +26923,68 @@ function showInAppMessageNotification(chatId, data) {
         notifSound.play().catch(e => console.log('Sound blocked until user interaction'));
     }
 
+    let timeLabel = 'Just now';
+    try {
+      const ts = data.lastAt || data.createdAt || data.time || null;
+      if (ts && typeof getRelativeTime === 'function') timeLabel = getRelativeTime(ts) || timeLabel;
+    } catch(e){}
+
+    const badgeHtml = (isVerified && typeof getVerifiedBadge === 'function')
+      ? ('<span class="msg-popup-av-badge">' + getVerifiedBadge(senderEmail, true) + '</span>')
+      : '';
+
+    const previewText = escapeHTML(data.lastMsg || 'Sent a message');
+    const emojiSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M0 0h24v24H0z" fill="none"/><path fill="currentColor" fill-rule="evenodd" d="M12 2.75C6.89137 2.75 2.75 6.89137 2.75 12C2.75 17.1086 6.89137 21.25 12 21.25C17.1086 21.25 21.25 17.1086 21.25 12C21.25 6.89137 17.1086 2.75 12 2.75ZM1.25 12C1.25 6.06294 6.06294 1.25 12 1.25C17.9371 1.25 22.75 6.06294 22.75 12C22.75 17.9371 17.9371 22.75 12 22.75C6.06294 22.75 1.25 17.9371 1.25 12ZM8.39747 15.5534C8.64413 15.2206 9.11385 15.1508 9.44661 15.3975C10.175 15.9373 11.0541 16.25 12 16.25C12.9459 16.25 13.825 15.9373 14.5534 15.3975C14.8862 15.1508 15.3559 15.2206 15.6025 15.5534C15.8492 15.8862 15.7794 16.3559 15.4466 16.6025C14.4742 17.3233 13.285 17.75 12 17.75C10.715 17.75 9.5258 17.3233 8.55339 16.6025C8.22062 16.3559 8.15082 15.8862 8.39747 15.5534Z" clip-rule="evenodd"/><path fill="currentColor" d="M16 10.5C16 11.3284 15.5523 12 15 12C14.4477 12 14 11.3284 14 10.5C14 9.67157 14.4477 9 15 9C15.5523 9 16 9.67157 16 10.5Z"/><path fill="currentColor" d="M10 10.5C10 11.3284 9.55229 12 9 12C8.44772 12 8 11.3284 8 10.5C8 9.67157 8.44772 9 9 9C9.55229 9 10 9.67157 10 10.5Z"/></svg>';
+
     const popup = document.createElement('div');
     popup.className = 'msg-popup';
     popup.id = `popup-${chatId}`;
-    popup.style.flexDirection = 'column';
-    popup.style.alignItems = 'stretch';
 
-    const topContent = document.createElement('div');
-    topContent.style.display = 'flex';
-    topContent.style.alignItems = 'center';
-    topContent.style.gap = '12px';
-    
-    topContent.innerHTML = `
-        <div style="width:40px;height:40px;border-radius:50%;overflow:hidden;flex-shrink:0;">${avatarHtml}</div>
-        <div style="flex:1; min-width:0;">
-            <div style="font-size:14px; font-weight:800; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHTML(senderName)}</div>
-            <div style="font-size:13px; color:var(--text-secondary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHTML(data.lastMsg || 'Sent a message')}</div>
+    const head = document.createElement('div');
+    head.className = 'msg-popup-head';
+    head.innerHTML = `
+        <div class="msg-popup-av-wrap">
+          <div class="msg-popup-av">${avatarHtml}</div>
+          ${badgeHtml}
         </div>
+        <div class="msg-popup-meta">
+          <div class="msg-popup-name-row">
+            <span class="msg-popup-name">${escapeHTML(senderName)}</span>
+            <span class="msg-popup-dot" aria-hidden="true"></span>
+            <span class="msg-popup-time">${escapeHTML(timeLabel)}</span>
+          </div>
+          <div class="msg-popup-bubble">${previewText}</div>
+        </div>
+        <button type="button" class="msg-popup-close" aria-label="Close" onclick="event.stopPropagation(); this.closest('.msg-popup').classList.add('hide'); setTimeout(function(){ var p=document.getElementById('popup-${chatId}'); if(p) p.remove(); }, 400);">
+          <i class="ph-light ph-x"></i>
+        </button>
     `;
 
-    topContent.onclick = function() {
+    head.querySelector('.msg-popup-meta').onclick = function(e) {
+        if (e.target && e.target.closest && e.target.closest('.msg-popup-close')) return;
+        popup.remove();
+        openChat(chatId, otherUid, senderName, data.isGroup ? '' : (data.avatars ? data.avatars[otherUid] : ''));
+    };
+    head.querySelector('.msg-popup-av-wrap').onclick = function() {
         popup.remove();
         openChat(chatId, otherUid, senderName, data.isGroup ? '' : (data.avatars ? data.avatars[otherUid] : ''));
     };
 
-    // Quick-reply bar (original design)
     const replyBar = document.createElement('div');
     replyBar.className = 'msg-popup-reply-bar';
     replyBar.innerHTML = `
-        <input type="text" placeholder="Reply to ${escapeHTML(senderName)}..." onclick="event.stopPropagation();" onkeypress="if(event.key==='Enter'){event.stopPropagation(); sendQuickReply('${chatId}', '${otherUid}', this.value, this.nextElementSibling);}">
-        <button type="button" onclick="event.stopPropagation(); sendQuickReply('${chatId}', '${otherUid}', this.previousElementSibling.value, this)">
-            <i class="ph-light ph-paper-plane-tilt" style="font-size:16px;"></i>
+        <div class="msg-popup-input-wrap">
+          <button type="button" class="msg-popup-emoji-btn" aria-label="Emoji" onclick="event.stopPropagation(); var inp=this.parentElement.querySelector('input'); if(inp){ inp.focus(); try{ inp.click(); }catch(e){} }">
+            ${emojiSvg}
+          </button>
+          <input type="text" placeholder="Type a message..." autocomplete="off" onclick="event.stopPropagation();" onkeypress="if(event.key==='Enter'){event.stopPropagation(); event.preventDefault(); var b=this.closest('.msg-popup-reply-bar').querySelector('.msg-popup-send'); sendQuickReply('${chatId}', '${otherUid}', this.value, b);}">
+        </div>
+        <button type="button" class="msg-popup-send" aria-label="Send" onclick="event.stopPropagation(); var inp=this.closest('.msg-popup-reply-bar').querySelector('input'); sendQuickReply('${chatId}', '${otherUid}', inp ? inp.value : '', this);">
+            <i class="ph-light ph-paper-plane-tilt"></i>
         </button>
     `;
 
-    popup.appendChild(topContent);
+    popup.appendChild(head);
     popup.appendChild(replyBar);
     container.appendChild(popup);
 
