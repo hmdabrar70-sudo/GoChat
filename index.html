@@ -26176,6 +26176,140 @@ function gcIsChatImageFile(f){
   if(typ.indexOf('image/') === 0) return true;
   return /\.(jpe?g|png|gif|webp|heic|heif|bmp)$/i.test(name);
 }
+
+/* ═══ Star Message media permission (enforcement only — settings UI is in Butterfly Messenger) ═══ */
+(function(){
+  if(window.__gcMediaPermInstalled) return;
+  window.__gcMediaPermInstalled = true;
+  var FIELD = 'mediaMessagePermission';
+  var cache = {};
+
+  function norm(v){
+    v = String(v||'').toLowerCase();
+    if(v==='friends'||v==='friends_only'||v==='mutual') return 'friends';
+    if(v==='no_one'||v==='noone'||v==='none') return 'no_one';
+    return 'everyone';
+  }
+  async function fetchPerm(uid){
+    if(!uid) return 'everyone';
+    var hit = cache[uid];
+    if(hit && Date.now()-hit.at < 15000) return hit.v;
+    try{
+      var snap = await db.collection('users').doc(uid).get();
+      var v = 'everyone';
+      if(snap.exists){ var d=snap.data()||{}; v = norm(d[FIELD]||d.mediaPermission); }
+      cache[uid] = {v:v, at:Date.now()};
+      return v;
+    }catch(e){ return 'everyone'; }
+  }
+  async function mutual(a,b){
+    if(!a||!b) return false;
+    try{
+      if(typeof currentUser !== 'undefined' && currentUser && a===currentUser.uid && typeof currentUserData !== 'undefined' && currentUserData){
+        var fol = currentUserData.following||[];
+        var fr = currentUserData.followers||[];
+        if(Array.isArray(fol)&&Array.isArray(fr)&&fol.indexOf(b)!==-1&&fr.indexOf(b)!==-1) return true;
+      }
+      var snap = await db.collection('users').doc(a).get();
+      if(!snap.exists) return false;
+      var d = snap.data()||{};
+      var following = d.following||[], followers = d.followers||[];
+      return Array.isArray(following)&&Array.isArray(followers)&&following.indexOf(b)!==-1&&followers.indexOf(b)!==-1;
+    }catch(e){ return false; }
+  }
+  function errMsg(perm, kind){
+    if(perm==='no_one'){
+      if(kind==='photo') return "This user doesn't accept photo messages.";
+      if(kind==='video') return "This user doesn't accept video messages.";
+      if(kind==='voice') return "This user doesn't accept voice messages.";
+      return 'This user only accepts normal text messages. Shared media and external content are not allowed.';
+    }
+    if(kind==='photo') return "You can't send photos to this user. They only allow media from mutual followers.";
+    if(kind==='video') return "You can't send videos to this user. Only mutual followers are allowed to share media.";
+    if(kind==='voice') return "You can't send voice messages to this user because of their privacy settings.";
+    return "You can't share this content with this user because they only accept shared media from friends.";
+  }
+  async function assertMedia(recipientUid, kind){
+    if(!recipientUid || recipientUid==='group') return true;
+    if(typeof currentUser !== 'undefined' && currentUser && recipientUid===currentUser.uid) return true;
+    var perm = await fetchPerm(recipientUid);
+    if(perm==='everyone') return true;
+    if(perm==='no_one'){
+      var m = errMsg(perm, kind||'media');
+      if(typeof showToast==='function') showToast(m); else if(typeof toast==='function') toast(m);
+      return false;
+    }
+    if(perm==='friends'){
+      var ok = await mutual(recipientUid, currentUser && currentUser.uid);
+      if(!ok){
+        var m2 = errMsg(perm, kind||'media');
+        if(typeof showToast==='function') showToast(m2); else if(typeof toast==='function') toast(m2);
+        return false;
+      }
+    }
+    return true;
+  }
+  window.gcAssertCanSendMediaTo = assertMedia;
+
+  function recipient(){
+    try{
+      if(typeof currentChatOtherUid !== 'undefined' && currentChatOtherUid && currentChatOtherUid!=='group') return currentChatOtherUid;
+      if(typeof currentChatId === 'string' && currentChatId.indexOf('_')!==-1 && currentChatId.indexOf('group_')!==0 && currentUser){
+        var p = currentChatId.split('_');
+        if(p.length===2) return p[0]===currentUser.uid ? p[1] : p[0];
+      }
+    }catch(e){}
+    return null;
+  }
+
+  // Hook gallery/photo/video queue — before any upload
+  if(typeof window.gcQueueChatImages === 'function' && !window.__gcQueueMediaPermHooked){
+    window.__gcQueueMediaPermHooked = true;
+    var _q = window.gcQueueChatImages;
+    window.gcQueueChatImages = async function(input){
+      var other = recipient();
+      if(other){
+        var files = input && input.files ? Array.prototype.slice.call(input.files,0) : [];
+        var kind = 'media';
+        if(files.some(function(f){ return f && String(f.type||'').indexOf('video')===0; })) kind = 'video';
+        else if(files.some(function(f){ return f && String(f.type||'').indexOf('image')===0; })) kind = 'photo';
+        var ok = await assertMedia(other, kind);
+        if(!ok){ try{ input.value=''; }catch(e){} return; }
+      }
+      return _q.apply(this, arguments);
+    };
+  }
+
+  // Hook voice
+  if(typeof window.startVoiceRecord === 'function' && !window.__gcVoiceMediaPermHooked){
+    window.__gcVoiceMediaPermHooked = true;
+    var _v = window.startVoiceRecord;
+    window.startVoiceRecord = async function(){
+      var other = recipient();
+      if(other){
+        var ok = await assertMedia(other, 'voice');
+        if(!ok) return;
+      }
+      return _v.apply(this, arguments);
+    };
+  }
+
+  // Hook attach sheet actions early
+  if(typeof window.gcChatAttachAction === 'function' && !window.__gcAttachMediaPermHooked){
+    window.__gcAttachMediaPermHooked = true;
+    var _a = window.gcChatAttachAction;
+    window.gcChatAttachAction = async function(kind){
+      var other = recipient();
+      if(other && (kind==='gallery'||kind==='photo'||kind==='video'||kind==='media'||kind==='voice')){
+        var k = kind==='voice' ? 'voice' : (kind==='video'?'video':'photo');
+        var ok = await assertMedia(other, k);
+        if(!ok) return;
+      }
+      return _a.apply(this, arguments);
+    };
+  }
+})();
+
 function gcQueueChatImages(input){
   if(!input||!input.files||!input.files.length) return;
   var q = window.__gcChatImgQueue || (window.__gcChatImgQueue=[]);
