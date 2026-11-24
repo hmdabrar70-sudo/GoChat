@@ -22242,7 +22242,8 @@ async function gcUploadStoryFile(file, localPreview, isVideo){
       isVideo:isVideo,
       views:[],reacts:[],
       createdAt:firebase.firestore.FieldValue.serverTimestamp(),
-      expiresAt:new Date(Date.now()+ONE_DAY_MS)
+      durationHours: 24,
+      expiresAt: firebase.firestore.Timestamp.fromMillis(Date.now() + ONE_DAY_MS)
     });
     if(typeof gcClearStoryPendingUI === 'function') gcClearStoryPendingUI();
     showToast('Story added!');
@@ -22454,12 +22455,47 @@ function closeStoriesPage(){
   document.body.classList.remove('gc-stories-page-open');
 }
 
+
+function gcStoryExpiryMs(s){
+  try{
+    if(!s) return 0;
+    var ex = s.expiresAt;
+    if(ex){
+      if(typeof ex.toDate === 'function') return ex.toDate().getTime();
+      if(typeof ex.toMillis === 'function') return ex.toMillis();
+      if(typeof ex.seconds === 'number') return ex.seconds * 1000;
+      if(typeof ex === 'number') return ex;
+      if(ex instanceof Date) return ex.getTime();
+    }
+    var created = 0;
+    var c = s.createdAt;
+    if(c){
+      if(typeof c.toDate === 'function') created = c.toDate().getTime();
+      else if(typeof c.toMillis === 'function') created = c.toMillis();
+      else if(typeof c.seconds === 'number') created = c.seconds * 1000;
+      else if(typeof c === 'number') created = c;
+      else if(c instanceof Date) created = c.getTime();
+    }
+    if(!created) return 0;
+    var hours = (typeof s.durationHours === 'number' && s.durationHours > 0) ? s.durationHours : 24;
+    return created + hours * 3600000;
+  }catch(e){ return 0; }
+}
+function gcStoryIsExpired(s){
+  try{
+    var exp = gcStoryExpiryMs(s);
+    if(!exp) return false;
+    return exp < Date.now();
+  }catch(e){ return false; }
+}
+
 function loadStories(){
     const list=document.getElementById('stories-list'); // optional (feed strip removed)
     if(storyUnsub)storyUnsub();
     storyUnsub=db.collection('stories').onSnapshot(snap=>{
         let stories=[];
         snap.forEach(d=>stories.push({id:d.id,...d.data()}));
+        stories = stories.filter(function(s){ return typeof gcStoryIsExpired === 'function' ? !gcStoryIsExpired(s) : true; });
         let grouped={};
         stories.forEach(s=>{
             if(!grouped[s.uid])grouped[s.uid]=[];
